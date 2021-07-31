@@ -206,6 +206,8 @@ namespace rgatCore
         public static int VisMessageFadeStartTime = 500;
         public static bool ShowVisMessages = true;
 
+        public static bool ShowNodeMouseoverTooltip = true;
+
         public static int NodeClumpLimit = 50;
         public static float NodeClumpForce = 880.01f;
 

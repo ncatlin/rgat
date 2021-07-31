@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace rgatCore
 {
-    public struct EXTERNCALLDATA
+    public struct SYMBOLCALLDATA
     {
         public Tuple<uint, uint> edgeIdx;
         public List<Tuple<int, string>> argList;
@@ -199,10 +199,10 @@ namespace rgatCore
                     CallArgList.Add(argData);
                 }
 
-                EXTERNCALLDATA callDat = new EXTERNCALLDATA();
+                SYMBOLCALLDATA callDat = new SYMBOLCALLDATA();
                 callDat.argList = CallArgList;
                 callDat.edgeIdx = edge;
-                ExternCallRecords.Add(callDat);
+                SymbolCallRecords.Add(callDat);
             }
             return true;
         }
@@ -466,6 +466,7 @@ namespace rgatCore
             newTargNode.parentIdx = ProtoLastVertID;
             newTargNode.SetExecutionCount(repeats);
             newTargNode.BlockID = uint.MaxValue;
+            newTargNode.HasSymbol = true;
 
 
             InsertNode(targVertID, newTargNode);
@@ -577,12 +578,12 @@ namespace rgatCore
                             argStringsList.Add(new Tuple<int, string>(_unprocessedCallArguments[aI].argIndex, _unprocessedCallArguments[aI].argstring));
                         }
 
-                        EXTERNCALLDATA callRecord;
+                        SYMBOLCALLDATA callRecord;
                         callRecord.edgeIdx = threadCalls[i];
                         callRecord.argList = argStringsList;
 
-                        functionNode.callRecordsIndexs.Add((ulong)ExternCallRecords.Count);
-                        ExternCallRecords.Add(callRecord);
+                        functionNode.callRecordsIndexs.Add((ulong)SymbolCallRecords.Count);
+                        SymbolCallRecords.Add(callRecord);
 
                         // this toggle isn't thread safe so slight chance for renderer to not notice the final arg
                         // not worth faffing around with locks though - maybe just re-read at tracereader thread termination
@@ -942,6 +943,7 @@ namespace rgatCore
             thisnode.parentIdx = ProtoLastVertID;
             thisnode.SetExecutionCount(repeats);
             thisnode.GlobalModuleID = instruction.globalmodnum;
+            thisnode.HasSymbol = instruction.hasSymbol;
 
             Debug.Assert(!node_exists(targVertID));
             InsertNode(targVertID, thisnode);
@@ -1226,7 +1228,7 @@ namespace rgatCore
 
             //todo - lock?
             JArray externCalls = new JArray();
-            foreach (EXTERNCALLDATA ecd in ExternCallRecords)
+            foreach (SYMBOLCALLDATA ecd in SymbolCallRecords)
             {
                 JArray callArgsEntry = new JArray();
                 callArgsEntry.Add(ecd.edgeIdx.Item1);
@@ -1388,7 +1390,7 @@ namespace rgatCore
         /*
 		bool instructions_to_nodepair(InstructionData sourceIns, InstructionData targIns, NODEPAIR &result);
 		*/
-        public List<EXTERNCALLDATA> ExternCallRecords = new List<EXTERNCALLDATA>();
+        public List<SYMBOLCALLDATA> SymbolCallRecords = new List<SYMBOLCALLDATA>();
         public ulong TotalInstructions { get; set; } = 0;
         public int exeModuleID = -1;
         public ulong moduleBase = 0;

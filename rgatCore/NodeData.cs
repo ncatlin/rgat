@@ -213,15 +213,15 @@ namespace rgatCore
                 return;
             }
 
-            EXTERNCALLDATA lastCall;
+            SYMBOLCALLDATA lastCall;
             if (specificCallIndex == -1)
             {
-                lastCall = graph.ExternCallRecords[(int)callRecordsIndexs[^1]];
+                lastCall = graph.SymbolCallRecords[(int)callRecordsIndexs[^1]];
             }
             else
             {
                 Debug.Assert(callRecordsIndexs.Count > specificCallIndex);
-                lastCall = graph.ExternCallRecords[(int)callRecordsIndexs[specificCallIndex]];
+                lastCall = graph.SymbolCallRecords[(int)callRecordsIndexs[specificCallIndex]];
             }
 
             string argstring = "";
@@ -241,6 +241,10 @@ namespace rgatCore
                 Label = $"{symbolText}({argstring}) +{callRecordsIndexs.Count - 1} saved";
             }
         }
+
+
+
+
 
 
         /*
@@ -299,10 +303,6 @@ namespace rgatCore
         public ulong executionCount { get; private set; } = 0;
         public void SetExecutionCount(ulong value)
         {
-            if (index == 4 && value > 33)
-            {
-                Console.WriteLine($"Node 4 exec count set to {value}");
-            }
             executionCount = value;
         }
         public void IncreaseExecutionCount(ulong value)
@@ -317,6 +317,8 @@ namespace rgatCore
         public List<uint> OutgoingNeighboursSet = new List<uint>();
         eEdgeNodeType _nodeType = eEdgeNodeType.eENLAST;
         string _label;
+        public bool HasSymbol;
+
         public string Label
         {
             get

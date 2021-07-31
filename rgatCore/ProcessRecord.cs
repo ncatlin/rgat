@@ -269,7 +269,7 @@ namespace rgatCore
 
         public bool SymbolExists(int GlobalModuleNumber, ulong address)
         {
-            return modsymsPlain.ContainsKey(GlobalModuleNumber) && modsymsPlain[GlobalModuleNumber].ContainsKey(address);
+            return modsymsPlain.ContainsKey(GlobalModuleNumber) && modsymsPlain[GlobalModuleNumber].ContainsKey(address - LoadedModuleBounds[GlobalModuleNumber].Item1);
         }
 
         public bool GetSymbol(int GlobalModuleNumber, ulong address, out string symbol)

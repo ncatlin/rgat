@@ -432,15 +432,15 @@ namespace rgatCore
                     break;
 
                 case eKeybind.ToggleAllText:
-                    graph.TextEnabled = !graph.TextEnabled;
+                    graph.Opt_TextEnabled = !graph.Opt_TextEnabled;
                     break;
 
                 case eKeybind.ToggleInsText:
-                    graph.TextEnabledIns = !graph.TextEnabledIns;
+                    graph.Opt_TextEnabledIns = !graph.Opt_TextEnabledIns;
                     break;
 
                 case eKeybind.ToggleLiveText:
-                    graph.TextEnabledLive = !graph.TextEnabledLive;
+                    graph.Opt_TextEnabledLive = !graph.Opt_TextEnabledLive;
                     break;
 
                 case eKeybind.Cancel:
@@ -966,7 +966,7 @@ namespace rgatCore
             List<fontStruc> stringVerts = new List<fontStruc>();
             PlottedGraph graph = ActiveGraph;
             if (graph == null) return stringVerts;
-            if (!graph.TextEnabled) return stringVerts;
+            if (!graph.Opt_TextEnabled) return stringVerts;
 
             for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
             {
@@ -1070,7 +1070,7 @@ namespace rgatCore
             cl.SetFramebuffer(drawtarget);
             cl.ClearColorTarget(0, Themes.GetThemeColourWRF(Themes.eThemeColour.GraphBackground).ToRgbaFloat());
 
-            if (graph.NodesVisible)
+            if (graph.Opt_NodesVisible)
             {
                 cl.SetPipeline(_pointsPipeline);
                 cl.SetGraphicsResourceSet(0, crs_core);
@@ -1081,7 +1081,7 @@ namespace rgatCore
 
             }
 
-            if (graph.EdgesVisible)
+            if (graph.Opt_EdgesVisible)
             {
                 cl.SetPipeline(_edgesPipelineRelative);
                 cl.SetGraphicsResourceSet(0, crs_core);
@@ -1118,7 +1118,7 @@ namespace rgatCore
 
 
             //draw text
-            if (graph.TextEnabled)
+            if (graph.Opt_TextEnabled)
             {
                 cl.SetViewport(0, new Viewport(0, 0, WidgetSize.X, WidgetSize.Y, -2200, 1000));
 

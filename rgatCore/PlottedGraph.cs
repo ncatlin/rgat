@@ -564,7 +564,7 @@ namespace rgatCore
                 CreateHighlightEdges(edgeIndices, resultList);
             }
 
-            if ((IsAnimated || !InternalProtoGraph.Terminated) && _liveNodeEdgeEnabled)
+            if (Opt_LiveNodeEdgeEnabled && (IsAnimated || !InternalProtoGraph.Terminated))
             {
                 CreateLiveNodeEdge(edgeIndices, resultList);
             }
@@ -746,7 +746,7 @@ namespace rgatCore
 
         unsafe void AddNode(uint nodeIdx, EdgeData edge = null)
         {
-            Debug.Assert(nodeIdx == _graphStructureLinear.Count); //i dont remember if this is important
+            Debug.Assert(nodeIdx == _graphStructureLinear.Count); //todo, asserting here on load. i dont remember if this is important
 
             textureLock.EnterReadLock();
             if (BufferDownloadActive)
@@ -1005,6 +1005,7 @@ namespace rgatCore
                 Tuple<uint, uint> FirstLastIdx;
                 if (!n.IsExternal)
                 {
+                    if (n.BlockID >= InternalProtoGraph.BlocksFirstLastNodeList.Count) continue;
                     FirstLastIdx = InternalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID]; //bug: this can happen before bflnl is filled
                     if (FirstLastIdx == null) continue;
 
@@ -1225,14 +1226,18 @@ namespace rgatCore
             NodeData n = InternalProtoGraph.NodeList[index];
             if (n.Label == null || n.newArgsRecorded || forceNew)
             {
-                if (n.IsExternal)
+                if (n.HasSymbol)
                 {
+                    if (!n.IsExternal)
+                    {
+                        Console.WriteLine("int");
+                    }
                     n.GenerateSymbolLabel(this.InternalProtoGraph);
                     n.newArgsRecorded = false;
                 }
-                else
+                if (!n.IsExternal)
                 {
-                    if (!TextEnabledIns && !n.ins.hasSymbol)
+                    if (!Opt_TextEnabledIns && !n.ins.hasSymbol)
                     {
                         n.Label = null;
                         return null;
@@ -1315,7 +1320,7 @@ namespace rgatCore
                         Color = new WritableRgbaFloat(index, 0, 0, 1)
                     };
 
-                    if (TextEnabled)
+                    if (Opt_TextEnabled)
                     {
                         var caption = CreateNodeLabel((int)index, renderingMode, createNewLabels);
                         captions.Add(caption);
@@ -1546,9 +1551,9 @@ namespace rgatCore
             {
                 //Console.WriteLine($"BNL node {nodeIdx}");
 
-                if (TextEnabledLive && listOffset == 0 && InternalProtoGraph.safe_get_node(nodeIdx).IsExternal)
+                if (Opt_TextEnabledLive && listOffset == 0 && InternalProtoGraph.safe_get_node(nodeIdx).HasSymbol)
                 {
-                    AddRisingExtern(nodeIdx, (int)entry.count - 1, brightTime);
+                    AddRisingSymbol(nodeIdx, (int)entry.count - 1, brightTime);
                 }
 
 
@@ -2072,15 +2077,15 @@ namespace rgatCore
         {
             lock (animationLock)
             {
-                risingExterns = _RisingExterns.ToList();
-                _RisingExterns.Clear();
+                risingExterns = _RisingSymbols.ToList();
+                _RisingSymbols.Clear();
 
-                risingLingering = _RisingExternsLingering.ToList();
+                risingLingering = _RisingSymbolsLingering.ToList();
             }
         }
 
 
-        public void AddRisingExtern(uint nodeIdx, int callIndex, int lingerFrames)
+        public void AddRisingSymbol(uint nodeIdx, int callIndex, int lingerFrames)
         {
             NodeData n = InternalProtoGraph.safe_get_node(nodeIdx);
             if (n.Label == null) n.GenerateSymbolLabel(this.InternalProtoGraph, callIndex);
@@ -2088,12 +2093,12 @@ namespace rgatCore
             {
                 if (lingerFrames == Anim_Constants.KEEP_BRIGHT)
                 {
-                    _RisingExternsLingering.Add(new Tuple<uint, string>(nodeIdx, n.Label));
+                    _RisingSymbolsLingering.Add(new Tuple<uint, string>(nodeIdx, n.Label));
                 }
                 else
                 {
                     //Console.WriteLine($"Adding new rising: node {nodeIdx}:'{n.Label}'");
-                    _RisingExterns.Add(new Tuple<uint, string>(nodeIdx, n.Label));
+                    _RisingSymbols.Add(new Tuple<uint, string>(nodeIdx, n.Label));
                 }
             }
         }
@@ -2137,7 +2142,7 @@ namespace rgatCore
             {
                 _DeactivatedNodes = _LingeringActiveNodes.ToArray();
                 _LingeringActiveNodes.Clear();
-                _RisingExternsLingering.Clear();
+                _RisingSymbolsLingering.Clear();
             }
         }
 
@@ -2175,11 +2180,11 @@ namespace rgatCore
         public bool NeedReplotting = false; //all verts need re-plotting from scratch
                                             //bool performSymbolResolve = false;
 
-        public bool NodesVisible = true;
-        public bool EdgesVisible = true;
+        public bool Opt_NodesVisible { get; set; } = true;
+        public bool Opt_EdgesVisible { get; set; } = true;
 
         bool _textEnabled = true;
-        public bool TextEnabled
+        public bool Opt_TextEnabled
         {
             get => _textEnabled;
             set
@@ -2190,7 +2195,7 @@ namespace rgatCore
         }
 
         bool _textEnabledIns = true;
-        public bool TextEnabledIns
+        public bool Opt_TextEnabledIns
         {
             get => _textEnabledIns;
             set
@@ -2200,19 +2205,69 @@ namespace rgatCore
             }
         }
 
-        bool _textEnabledLive = true;
-        public bool TextEnabledLive
+        bool _textEnabledSym = true;
+        public bool Opt_TextEnabledSym
         {
-            get => _textEnabledLive;
-            set => _textEnabledLive = value;
+            get => _textEnabledSym;
+            set
+            {
+                _textEnabledSym = value;
+                RegenerateLabels();
+            }
         }
 
-        bool _liveNodeEdgeEnabled = true;
-        public bool LiveNodeEdgeEnabled
+        bool _showNodeAdresses = true;
+        public bool Opt_ShowNodeAddresses
         {
-            get => _liveNodeEdgeEnabled;
-            set => _liveNodeEdgeEnabled = value;
+            get => _showNodeAdresses;
+            set
+            {
+                _showNodeAdresses = value;
+                RegenerateLabels();
+            }
+        }        
+        
+        bool _showNodeIndexes = true;
+        public bool Opt_ShowNodeIndexes
+        {
+            get => _showNodeIndexes;
+            set
+            {
+                _showNodeIndexes = value;
+                RegenerateLabels();
+            }
         }
+                
+        bool _showSymbolModules = true;
+        public bool Opt_ShowSymbolModules
+        {
+            get => _showSymbolModules;
+            set
+            {
+                _showSymbolModules = value;
+                RegenerateLabels();
+            }
+        }
+                
+        bool _showSymbolModulePaths = true;
+        public bool Opt_ShowSymbolModulePaths
+        {
+            get => _showSymbolModulePaths;
+            set
+            {
+                _showSymbolModulePaths = value;
+                RegenerateLabels();
+            }
+        }
+
+        public bool Opt_TextEnabledLive { get; set; } = true;
+        public bool Opt_LiveNodeEdgeEnabled { get; set; } = true;
+
+
+        
+
+
+
 
         public Vector3 _unprojWorldCoordTL, _unprojWorldCoordBR;
 
@@ -2385,8 +2440,8 @@ namespace rgatCore
 
         List<uint> _PulseActiveNodes = new List<uint>();
         List<uint> _LingeringActiveNodes = new List<uint>();
-        List<Tuple<uint, string>> _RisingExterns = new List<Tuple<uint, string>>();
-        List<Tuple<uint, string>> _RisingExternsLingering = new List<Tuple<uint, string>>();
+        List<Tuple<uint, string>> _RisingSymbols = new List<Tuple<uint, string>>();
+        List<Tuple<uint, string>> _RisingSymbolsLingering = new List<Tuple<uint, string>>();
 
         uint[] _DeactivatedNodes = Array.Empty<uint>();
         private readonly object animationLock = new object();
