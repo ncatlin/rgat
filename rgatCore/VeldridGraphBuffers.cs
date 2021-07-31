@@ -178,7 +178,7 @@ namespace rgatCore
                 if (db != null && db.IsDisposed == false)
                 {
                     total_1 -= db.SizeInBytes;
-                    Logging.RecordLogEvent($"DEALLOC! Disposing devicebuff of size {db.SizeInBytes} name {db.Name}  totl[{total_1}]");
+                    //Logging.RecordLogEvent($"DEALLOC! Disposing devicebuff of size {db.SizeInBytes} name {db.Name}  totl[{total_1}]");
                     db.Dispose();
                     _allocatedBufs.Remove(db.Name);
                 }
@@ -193,7 +193,7 @@ namespace rgatCore
             lock (b_lock)
             {
                 total_1 += size;
-                Logging.RecordLogEvent($"ALLOC! {size} name:{name} totl[{total_1}]", Logging.LogFilterType.BulkDebugLogFile);
+                //Logging.RecordLogEvent($"ALLOC! {size} name:{name} totl[{total_1}]", Logging.LogFilterType.BulkDebugLogFile);
                 DeviceBuffer result = gd.ResourceFactory.CreateBuffer(new BufferDescription(size, usage, stride));
                 result.Name = name;
                 _allocatedBufs.Add(result.Name);

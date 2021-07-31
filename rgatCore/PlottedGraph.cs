@@ -141,12 +141,6 @@ namespace rgatCore
         {
             ResetAllActiveAnimatedAlphas();
 
-            //darken any active drawn nodes
-            if (InternalProtoGraph.NodeList.Count > 0)
-            {
-                InternalProtoGraph.set_active_node(0);
-            }
-
             //animInstructionIndex = 0;
             _lastAnimatedVert = 0;
             AnimationIndex = 0;
@@ -155,7 +149,7 @@ namespace rgatCore
             remove_unchained_from_animation();
             currentUnchainedBlocks.Clear();
             animBuildingLoop = false;
-            IsAnimated = false;
+            SetAnimated(false);
 
             ReplayState = REPLAY_STATE.eStopped;
             Logging.RecordLogEvent("Animation reset to stopped state");
@@ -189,6 +183,7 @@ namespace rgatCore
         public void SetAnimated(bool newState)
         {
             IsAnimated = newState;
+            _newLabels = true;
             if (!newState)
             {
                 remove_unchained_from_animation();
@@ -1226,56 +1221,23 @@ namespace rgatCore
             NodeData n = InternalProtoGraph.NodeList[index];
             if (n.Label == null || n.newArgsRecorded || forceNew)
             {
-                if (n.HasSymbol)
-                {
-                    if (!n.IsExternal)
-                    {
-                        Console.WriteLine("int");
-                    }
-                    n.GenerateSymbolLabel(this.InternalProtoGraph);
-                    n.newArgsRecorded = false;
-                }
-                if (!n.IsExternal)
-                {
-                    if (!Opt_TextEnabledIns && !n.ins.hasSymbol)
-                    {
-                        n.Label = null;
-                        return null;
-                    };
-
-                    string label = $"{index}: {n.ins.ins_text}";
-                    if (renderingMode == eRenderingMode.eHeatmap)
-                    {
-                        label += $" [x{n.executionCount}] ";
-                        if (n.OutgoingNeighboursSet.Count > 1)
-                        {
-                            label += "<";
-                            foreach (int nidx in n.OutgoingNeighboursSet)
-                            {
-                                EdgeData targEdge = InternalProtoGraph.GetEdge(n.index, (uint)nidx);
-                                if (targEdge != null)
-                                    label += $" {nidx}:{targEdge.executionCount}, ";
-                            }
-                            label += ">";
-                        }
-                    }
-                    if (n.ins.hasSymbol)
-                    {
-                        InternalProtoGraph.ProcessData.GetSymbol(n.GlobalModuleID, n.address, out string sym);
-                        label += $" [{sym}]";
-                    }
-                    n.Label = label;
-                }
+                n.CreateLabel(this);
             }
-
-            Color color = n.IsExternal ? Color.SpringGreen : Color.White;
-            return new Tuple<string, Color>(n.Label, color);
+            
+            if (n.IsExternal) 
+                return new Tuple<string, Color>(n.Label, Color.SpringGreen);
+            if (n.HasSymbol) 
+                return new Tuple<string, Color>(n.Label, Color.White);
+            else
+                return new Tuple<string, Color>(n.Label, Color.LightGray);
         }
 
         void RegenerateLabels() => _newLabels = true;
         bool _newLabels;
 
         eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
+        public eRenderingMode RenderingMode => lastRenderingMode;
+
         //important todo - cacheing!  once the result is good
         public Position2DColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode,
             out List<uint> nodeIndices,
@@ -1549,13 +1511,10 @@ namespace rgatCore
 
             foreach (uint nodeIdx in nodeIDList)
             {
-                //Console.WriteLine($"BNL node {nodeIdx}");
-
                 if (Opt_TextEnabledLive && listOffset == 0 && InternalProtoGraph.safe_get_node(nodeIdx).HasSymbol)
                 {
                     AddRisingSymbol(nodeIdx, (int)entry.count - 1, brightTime);
                 }
-
 
                 if (!(entry.entryType == eTraceUpdateType.eAnimUnchained) && listOffset == 0)
                 {
@@ -1714,8 +1673,6 @@ namespace rgatCore
                     _lastReplayedIndex = actualIndex;
                 }
             }
-
-            InternalProtoGraph.set_active_node(_lastAnimatedVert);
 
             if (AnimationIndex >= InternalProtoGraph.SavedAnimationData.Count - 1)
             {
@@ -2088,7 +2045,7 @@ namespace rgatCore
         public void AddRisingSymbol(uint nodeIdx, int callIndex, int lingerFrames)
         {
             NodeData n = InternalProtoGraph.safe_get_node(nodeIdx);
-            if (n.Label == null) n.GenerateSymbolLabel(this.InternalProtoGraph, callIndex);
+            if (n.Label == null) n.CreateLabel(this, callIndex);
             lock (animationLock)
             {
                 if (lingerFrames == Anim_Constants.KEEP_BRIGHT)
@@ -2097,7 +2054,6 @@ namespace rgatCore
                 }
                 else
                 {
-                    //Console.WriteLine($"Adding new rising: node {nodeIdx}:'{n.Label}'");
                     _RisingSymbols.Add(new Tuple<uint, string>(nodeIdx, n.Label));
                 }
             }

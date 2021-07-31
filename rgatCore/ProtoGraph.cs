@@ -71,8 +71,6 @@ namespace rgatCore
         public ProcessRecord ProcessData { private set; get; } = null;
         public TraceRecord TraceData { private set; get; } = null;
 
-        //used to keep a blocking extern highlighted - may not be useful with new method TODO
-        private uint latest_active_node_idx = 0;
         public DateTime ConstructedTime { private set; get; } = DateTime.Now;
 
         public bool HeatSolvingComplete = false;
@@ -90,12 +88,12 @@ namespace rgatCore
         }
 
 
-        private bool LoadNodes(JArray NodesArray, Dictionary<ulong, List<InstructionData>> disassembly)
+        private bool LoadNodes(JArray NodesArray, ProcessRecord processinfo)
         {
             foreach (JArray nodeItem in NodesArray)
             {
                 NodeData n = new NodeData();//can't this be done at start?
-                if (!n.Deserialise(nodeItem, disassembly))
+                if (!n.Deserialise(nodeItem, processinfo))
                 {
                     Console.WriteLine("Failed to deserialise node");
                     return false;
@@ -844,8 +842,6 @@ namespace rgatCore
                 run_faulting_BB(thistag);
 
                 TotalInstructions += thistag.insCount;
-
-                set_active_node(ProtoLastVertID);
             }
 
             else if (thistag.jumpModifier == eCodeInstrumentation.eUninstrumentedCode) //call to (uninstrumented) external library
@@ -855,11 +851,7 @@ namespace rgatCore
                 //find caller,external vertids if old + add node to graph if new
                 Console.WriteLine("[rgat]WARNING: Exception handler in uninstrumented module reached\n." +
                     "I have no idea if this code will handle it; Let me know when you reach the other side...");
-                if (RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint> resultPair))
-                {
-                    set_active_node(resultPair.Item2);
-                }
-                else
+                if (!RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint> resultPair))
                 {
                     Console.WriteLine($"\tSecondary error - couldn't deal with extern address 0x{thistag.blockaddr:X}");
                 }
@@ -880,7 +872,6 @@ namespace rgatCore
                 //Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} [BLOCKID: {thistag.blockID}] inscount {thistag.insCount}");
 
                 addBlockToGraph(thistag.blockID, 1, !skipFirstEdge);
-                set_active_node(ProtoLastVertID);
             }
 
             else if (thistag.jumpModifier == eCodeInstrumentation.eUninstrumentedCode)
@@ -891,7 +882,6 @@ namespace rgatCore
                 if (RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint> resultPair)) //todo skipfirstedge
                 {
                     ProcessIncomingCallArguments(); //todo - does this ever achieve anything here?
-                    set_active_node(resultPair.Item2);
                 }
             }
             else
@@ -1060,13 +1050,6 @@ namespace rgatCore
             //Console.WriteLine($"Thread {ThreadID} draw block from nidx {firstVert} -to- {lastVertID}");
         }
 
-        public void set_active_node(uint idx)
-        {
-            if (idx > NodeList.Count) return;
-            //getNodeWriteLock();
-            latest_active_node_idx = idx;
-            //dropNodeWriteLock();
-        }
         /*
         void handle_loop_contents();
 
@@ -1283,7 +1266,7 @@ namespace rgatCore
             return result;
         }
 
-        public bool Deserialise(JObject graphData, Dictionary<ulong, List<InstructionData>> disassembly)
+        public bool Deserialise(JObject graphData, ProcessRecord processinfo)
         {
             if (!graphData.TryGetValue("Nodes", out JToken jNodes) || jNodes.Type != JTokenType.Array)
             {
@@ -1291,7 +1274,7 @@ namespace rgatCore
                 return false;
             }
             JArray NodesArray = (JArray)jNodes;
-            if (!LoadNodes(NodesArray, disassembly))
+            if (!LoadNodes(NodesArray, processinfo))
             {
                 Console.WriteLine("[rgat]ERROR: Failed to load nodes");
                 return false;

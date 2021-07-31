@@ -200,11 +200,7 @@ namespace rgatCore
                         {
                             Logging.APICALL call = (Logging.APICALL)_item;
                             NodeData n = call.node;
-                            if (n.Label == null)
-                            {
-                                n.GenerateSymbolLabel(call.graph, (int)call.index);
-                            }
-                            return $"API call: ({n.Label})";
+                            return $"API call: ({n.CreateSymbolLabel(call.graph, (int)call.index)})";
                         }
                     default:
                         Debug.Assert(false, "Bad timeline event");

@@ -628,7 +628,7 @@ namespace rgatCore
 
             try
             {
-                if (!protograph.Deserialise(jThreadObj, DisassemblyData.disassembly))
+                if (!protograph.Deserialise(jThreadObj, DisassemblyData))
                 {
                     return false;
                 }

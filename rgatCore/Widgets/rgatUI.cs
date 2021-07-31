@@ -3107,8 +3107,8 @@ namespace rgatCore
                     }
                     if (ImGui.MenuItem("Open Saved Trace")) { _show_load_trace_window = true; }
                     ImGui.Separator();
-                    if (ImGui.MenuItem("Save Thread Trace")) { }
-                    if (ImGui.MenuItem("Save Process Traces")) { }
+                    if (ImGui.MenuItem("Save Thread Trace")) { } //todo
+                    if (ImGui.MenuItem("Save Process Traces")) { } //todo
                     if (ImGui.MenuItem("Save All Traces")) { _rgatstate.SaveAllTargets(); }
                     if (ImGui.MenuItem("Export Pajek")) { _rgatstate.ExportTraceAsPajek(_rgatstate.ActiveTrace, _rgatstate.ActiveGraph.tid); }
                     ImGui.Separator();

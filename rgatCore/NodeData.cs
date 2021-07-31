@@ -49,7 +49,7 @@ namespace rgatCore
 
         //takes a file with a pointer next to a node entry, loads it into the node
 
-        public bool Deserialise(JArray nodeData, Dictionary<ulong, List<InstructionData>> disassembly)
+        public bool Deserialise(JArray nodeData, ProcessRecord processinfo)
         {
             int jsnArrIdx = 0;
             if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
@@ -108,20 +108,10 @@ namespace rgatCore
             IsExternal = nodeData[jsnArrIdx].ToObject<bool>();
             jsnArrIdx++;
 
-            if (!IsExternal)
+            if (IsExternal)
             {
-                if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
-                int mutationIndex = nodeData[jsnArrIdx].ToObject<int>();
-
-                if (!disassembly.TryGetValue(address, out List<InstructionData> addrInstructions))
-                {
-                    Console.WriteLine("[rgat] Error. Failed to find address " + address + " in disassembly for node " + jsnArrIdx);
-                    return ErrorAtIndex(jsnArrIdx);
-                }
-                ins = addrInstructions[mutationIndex];
-            }
-            else
-            {
+                HasSymbol = true;
+                //load arguments to the API call
                 if (nodeData[jsnArrIdx].Type != JTokenType.Array) return ErrorAtIndex(jsnArrIdx);
                 JArray functionCalls = (JArray)nodeData[jsnArrIdx];
 
@@ -131,6 +121,21 @@ namespace rgatCore
                     callRecordsIndexs.Add(callIdx.ToObject<ulong>());
                 }
             }
+            else
+            {
+                HasSymbol = processinfo.SymbolExists(GlobalModuleID, address);
+                //load disassembly data of the instruction
+                if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+                int mutationIndex = nodeData[jsnArrIdx].ToObject<int>();
+
+                if (!processinfo.disassembly.TryGetValue(address, out List<InstructionData> addrInstructions))
+                {
+                    Console.WriteLine("[rgat] Error. Failed to find address " + address + " in disassembly for node " + jsnArrIdx);
+                    return ErrorAtIndex(jsnArrIdx);
+                }
+                ins = addrInstructions[mutationIndex];
+            }
+
             jsnArrIdx++;
 
             if (nodeData[jsnArrIdx].Type != JTokenType.Boolean) return ErrorAtIndex(jsnArrIdx);
@@ -177,7 +182,70 @@ namespace rgatCore
         }
 
 
-        public void GenerateSymbolLabel(ProtoGraph graph, int specificCallIndex = -1)
+        bool LabelVisible(PlottedGraph plot)
+        {
+            if (!plot.Opt_TextEnabled) return false;
+
+            //always display node label on the active graph, unless text display is disabled entirely
+            if (plot.IsAnimated && plot.InternalProtoGraph.ProtoLastVertID == index) return true;
+
+            if (plot.Opt_TextEnabledSym && HasSymbol) return true;
+            if (plot.Opt_TextEnabledIns && ins != null && ins.ins_text.Length > 0) return true;
+            return false;
+
+        }
+
+        public void CreateLabel(PlottedGraph plot, int specificCallIndex = -1)
+        {
+            ProtoGraph graph = plot.InternalProtoGraph;
+
+            if (!LabelVisible(plot))
+            {
+                Label = null;
+                return;
+            }
+                
+           Label = "";
+            
+            if (plot.Opt_ShowNodeIndexes) Label += $"{this.index}:";
+            if (plot.Opt_ShowNodeAddresses) Label += $"0x{this.address:X}:";
+            
+            if (!IsExternal && ins.ins_text.Length > 0)
+            {
+                Label += $" {ins.ins_text}";
+            }
+            
+            if (HasSymbol)
+            {
+                if (IsExternal)
+                    Label += $" {CreateSymbolLabel(graph, specificCallIndex)}";
+                else
+                    Label += $" <{CreateSymbolLabel(graph, specificCallIndex)}>";
+
+                newArgsRecorded = false;
+            }
+
+            if (!IsExternal)
+            {
+                if (plot != null && plot.RenderingMode == eRenderingMode.eHeatmap)
+                {
+                    Label += $" [x{executionCount}] ";
+                    if (OutgoingNeighboursSet.Count > 1)
+                    {
+                        Label += "<";
+                        foreach (int nidx in OutgoingNeighboursSet)
+                        {
+                            EdgeData targEdge = graph.GetEdge(index, (uint)nidx);
+                            if (targEdge != null)
+                                Label += $" {nidx}:{targEdge.executionCount}, ";
+                        }
+                        Label += ">";
+                    }
+                }
+            }
+        }
+
+        public string CreateSymbolLabel(ProtoGraph graph, int specificCallIndex = -1)
         {
             string symbolText = "";
             bool found = false;
@@ -202,15 +270,15 @@ namespace rgatCore
 
             if (!found)
             {
-                Label = $"[No Symbol]0x{address:x}";
-                return;
+                return $"[No Symbol]0x{address:x}";
             }
 
 
             if (callRecordsIndexs.Count == 0)
             {
-                Label = $"{symbolText}() [x{executionCount}]";
-                return;
+                if (executionCount == 1) return $"{symbolText}()";
+                else
+                    return $"{symbolText}() [x{executionCount}]";
             }
 
             SYMBOLCALLDATA lastCall;
@@ -234,45 +302,13 @@ namespace rgatCore
 
             if (callRecordsIndexs.Count == 1)
             {
-                Label = $"{symbolText}({argstring})";
+                return $"{symbolText}({argstring})";
             }
             else
             {
-                Label = $"{symbolText}({argstring}) +{callRecordsIndexs.Count - 1} saved";
+                return $"{symbolText}({argstring}) +{callRecordsIndexs.Count - 1} saved";
             }
         }
-
-
-
-
-
-
-        /*
-        void setLabelFromNearestSymbol(TRACERECORDPTR traceRecPtr)
-        {
-            traceRecord* runRecord = (traceRecord*)traceRecPtr;
-            PROCESS_DATA* piddata = runRecord.get_piddata();
-
-            ADDRESS_OFFSET offset = address - runRecord.get_piddata().modBounds.at(globalModID).first;
-            string sym;
-            //i haven't added a good way of looking up the nearest symbol. this requirement should be rare, but if not it's a todo
-            bool foundsym = false;
-            int symOffset;
-            for (symOffset = 0; symOffset < 4096; symOffset++)
-            {
-                if (piddata.get_sym(globalModID, offset - symOffset, sym))
-                {
-                    foundsym = true;
-                    break;
-                }
-            }
-
-            if (foundsym)
-                label = "<" + QString::fromStdString(sym) + "+ 0x" + QString::number(symOffset, 16) + ">";
-            else
-                label = "[Unknown Symbol]";
-        }
-        */
 
 
         public bool Highlighted { get; private set; } = false;
