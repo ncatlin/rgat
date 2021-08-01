@@ -5,9 +5,10 @@
 
 VOID wraphead_fopen_s(LEVEL_VM::THREADID threadid, UINT32 tlskey, void **fdPtr, char * namestring)
 {
-	threadObject* tdata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
-	snprintf(tdata->tmpcharbuf, THREAD_CHARBUF_SIZE, "%s", namestring);
-	tdata->tempPtr1 = (ADDRINT)fdPtr;
+	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
+	if (threaddata->lastBlock->blockID == -1) return;
+	snprintf(threaddata->tmpcharbuf, THREAD_CHARBUF_SIZE, "%s", namestring);
+	threaddata->tempPtr1 = (ADDRINT)fdPtr;
 
 }
 
@@ -15,8 +16,9 @@ VOID wraptail_fclose_s(LEVEL_VM::THREADID threadid, UINT32 tlskey, int errnovalu
 {
 	if (errnovalue == 0)
 	{
-		threadObject* tdata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
-		std::cout << "fopen handle ret:" << "(" << *((ADDRINT **)tdata->tempPtr1) << ") for file " << tdata->tmpcharbuf << std::endl;
+		threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
+		if (threaddata->lastBlock->blockID == -1) return;
+		std::cout << "fopen handle ret:" << "(" << *((ADDRINT **)threaddata->tempPtr1) << ") for file " << threaddata->tmpcharbuf << std::endl;
 	}
 }
 

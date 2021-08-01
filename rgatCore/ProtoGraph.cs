@@ -523,7 +523,8 @@ namespace rgatCore
             if (_unprocessedCallArguments.Count == 0) return;
 
             ulong currentSourceBlock = _unprocessedCallArguments[0].sourceBlock;
-            if ((int)currentSourceBlock == -1) return; //API called before instrumented code was reached
+            if ((int)currentSourceBlock == -1) 
+                return; //API called before instrumented code was reached
             ulong currentTarget = _unprocessedCallArguments[0].calledAddress;
 
             uint completecount = 0;

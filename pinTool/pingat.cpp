@@ -671,6 +671,7 @@ Future improvements:
 inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT targblockAddr)
 {
 	ThreadBlockInfo* blockStats = GetThreadBlockInfo(threadObj, sourceBlock);
+	threadObj->lastBlock = sourceBlock;
 
 	//printf("recordedge. src_%d -> targ 0x%lx blk->execs[%d] blck->act[%d] thread->act[%d]\n", sourceBlock->blockID, targblockAddr,
 	//	blockStats->execCount, blockStats->activityLevel, threadObj->activityLevel);

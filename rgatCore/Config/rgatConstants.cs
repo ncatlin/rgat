@@ -85,6 +85,12 @@ namespace rgatCore
 
     }
 
+    public static class Layout_Constants
+    {
+        public const float MinimumTemperature = 0.1f;
+        public const float TemperatureStepMultiplier = 0.99f;
+    }
+
     static class Version_Constants
     {
         public const int RGAT_VERSION_MAJOR = 0;

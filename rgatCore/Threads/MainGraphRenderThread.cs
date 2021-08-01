@@ -62,7 +62,7 @@ namespace rgatCore.Threads
             if (!protoGraph.Terminated)
             {
                 if (graph.IsAnimated)
-                    graph.render_live_animation(GlobalConfig.animationFadeRate);
+                    graph.ProcessLiveAnimationUpdates();
             }
             else
             {
@@ -70,7 +70,7 @@ namespace rgatCore.Threads
                 {
                     if (--_nextReplayStep <= 0)
                     {
-                        graph.render_replay_animation(GlobalConfig.animationFadeRate);
+                        graph.ProcessReplayUpdates();
                         _nextReplayStep = _FramesBetweenAnimationUpdates;
                     }
                 }

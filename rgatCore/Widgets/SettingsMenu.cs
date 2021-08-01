@@ -1037,8 +1037,6 @@ namespace rgatCore.Widgets
             }
         }
 
-
-
         void RegenerateUIThemeJSON()
         {
             _theme_UI_JSON = Themes.RegenerateUIThemeJSON();

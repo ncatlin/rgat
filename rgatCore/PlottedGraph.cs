@@ -107,12 +107,10 @@ namespace rgatCore
 
         }
 
-        public void render_replay_animation(float fadeRate)
+        public void ProcessReplayUpdates()
         {
             if (userSelectedAnimPosition != -1)
             {
-                //NeedReplotting = true;
-
                 SetAnimated(true);
 
                 int selectionDiff;
@@ -163,14 +161,6 @@ namespace rgatCore
             if (InternalProtoGraph.SavedAnimationData.Count == 0) return 0;
             return (float)((float)AnimationIndex / (float)InternalProtoGraph.SavedAnimationData.Count);
         }
-
-        public void render_live_animation(float fadeRate)
-        {
-            process_live_animation_updates();
-
-        }
-
-
 
         void apply_drag(double dx, double dy)
         {
@@ -260,7 +250,7 @@ namespace rgatCore
                 UpdateNodeLinks((int)edgeNodes.Item1, (int)edgeNodes.Item2);
                 DrawnEdgesCount++;
 
-                if (NeedReplotting || clientState.rgatIsExiting) break;
+                if (clientState.rgatIsExiting) break;
 
                 if (DrawnEdgesCount > dbglimit) return;
             }
@@ -1553,7 +1543,7 @@ namespace rgatCore
         }
 
 
-        void process_live_animation_updates()
+        public void ProcessLiveAnimationUpdates()
         {
             //too many updates at a time damages interactivity
             //too few creates big backlogs which delays the animation (can still see realtime in Structure mode though)
@@ -1655,7 +1645,7 @@ namespace rgatCore
             }
             else
             {
-                stepSize = (ReplayState != REPLAY_STATE.ePaused) ? _animationStepRate : 0;
+                stepSize = (ReplayState != REPLAY_STATE.ePaused) ? AnimationRate : 0;
             }
 
             double targetAnimIndex = AnimationIndex + stepSize;
@@ -1687,7 +1677,7 @@ namespace rgatCore
             bool verbose = true;
             ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[replayUpdateIndex];
 
-            double stepSize = _animationStepRate;
+            double stepSize = AnimationRate;
             if (stepSize < 1) stepSize = 1;
 
             //brighten edge between last block and this
@@ -1807,7 +1797,7 @@ namespace rgatCore
         ulong calculate_wait_frames(ulong executions)
         {
             //assume 10 instructions per step/frame
-            ulong stepSize = (ulong)_animationStepRate;
+            ulong stepSize = (ulong)AnimationRate;
             if (stepSize == 0) stepSize = 1;
             ulong frames = (InternalProtoGraph.TotalInstructions / Anim_Constants.ASSUME_INS_PER_BLOCK) / stepSize;
 
@@ -1874,6 +1864,35 @@ namespace rgatCore
                                 format: PixelFormat.R32_G32_B32_A32_Float, usage: TextureUsage.RenderTarget | TextureUsage.Sampled));
             _previewFramebuffer2 = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture2));
         }
+
+        /// <summary>
+        /// Add new edges to the layout buffer
+        /// Must have upgradable read lock
+        /// </summary>
+        /// <param name="edgesCount"></param>
+        public void AddNewEdgesToLayoutBuffers(int edgesCount)
+        {
+            if (edgesCount > RenderedEdgeCount || (new Random()).Next(0, 100) == 1) //todo this is a hack from when things were less reliable. disable and look for issues
+            {
+                LayoutState.Lock.EnterWriteLock();
+                LayoutState.RegenerateEdgeDataBuffers(this);
+                RenderedEdgeCount = (uint)edgesCount;
+                LayoutState.Lock.ExitWriteLock();
+            }
+
+            int graphNodeCount = RenderedNodeCount();
+            if (ComputeBufferNodeCount < graphNodeCount)
+            {
+                LayoutState.AddNewNodesToComputeBuffers(graphNodeCount, this);
+
+                LayoutState.Lock.EnterWriteLock();
+                LayoutState.RegenerateEdgeDataBuffers(this); //tod change to upgradread
+                LayoutState.Lock.ExitWriteLock();
+            }
+
+        }
+
+
 
         public bool HighlightsChanged;
 
@@ -2132,10 +2151,6 @@ namespace rgatCore
         bool animBuildingLoop = false;
 
         public bool IsAnimated { get; private set; } = false;
-        //public bool 
-        public bool NeedReplotting = false; //all verts need re-plotting from scratch
-                                            //bool performSymbolResolve = false;
-
         public bool Opt_NodesVisible { get; set; } = true;
         public bool Opt_EdgesVisible { get; set; } = true;
 
@@ -2367,7 +2382,7 @@ namespace rgatCore
         public float PreviewCameraZoom = -4000;
         public float CameraFieldOfView = 0.6f;
         public float CameraClippingFar = 60000;
-        public float CameraClippingNear = 1; //extern jut
+        public float CameraClippingNear = 1;
         public Matrix4x4 RotationMatrix = Matrix4x4.Identity;
 
         public uint pid { get; private set; }
@@ -2375,18 +2390,7 @@ namespace rgatCore
 
         public int LiveAnimationUpdatesPerFrame = GlobalConfig.LiveAnimationUpdatesPerFrame;
 
-        float _animationStepRate = 1;
-        public float AnimationRate
-        {
-            get
-            {
-                return _animationStepRate;
-            }
-            set
-            {
-                _animationStepRate = value;
-            }
-        }
+        public float AnimationRate { get; set; } = 1;
 
         ulong unchainedWaitFrames = 0;
         uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays

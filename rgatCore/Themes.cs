@@ -20,6 +20,7 @@ namespace rgatCore
         {
             ePreviewText, ePreviewTextBackground, ePreviewPaneBorder, ePreviewPaneBackground,
             ePreviewZoomEnvelope,
+            eTextEmphasis1, eTextEmphasis2, eTextDull1, eTextDull2,
             eHeat0Lowest, eHeat1, eHeat2, eHeat3, eHeat4, eHeat5, eHeat6, eHeat7, eHeat8, eHeat9Highest,
             eVisBarPlotLine, eVisBarBg, eAlertWindowBg, eAlertWindowBorder,
             eBadStateColour, eWarnStateColour, eGoodStateColour,
@@ -89,6 +90,12 @@ namespace rgatCore
             DefaultCustomColours[eThemeColour.ePreviewPaneBorder] = new WritableRgbaFloat(Af: 1f, Gf: 0, Bf: 0, Rf: 1).ToUint();
             DefaultCustomColours[eThemeColour.ePreviewPaneBackground] = new WritableRgbaFloat(Af: 1f, Gf: 0.05f, Bf: 0.05f, Rf: 0.05f).ToUint();
             DefaultCustomColours[eThemeColour.ePreviewZoomEnvelope] = new WritableRgbaFloat(Af: 0.7f, Gf: 0.7f, Bf: 0.7f, Rf: 0.7f).ToUint();
+
+            DefaultCustomColours[eThemeColour.eTextDull1] = new WritableRgbaFloat(Af: 1, Gf: 0.698f, Bf: 0.698f, Rf: 0.698f).ToUint();
+            DefaultCustomColours[eThemeColour.eTextDull2] = new WritableRgbaFloat(Af: 1, Gf: 0.494f, Bf: 0.494f, Rf: 0.537f).ToUint();
+            DefaultCustomColours[eThemeColour.eTextEmphasis1] = new WritableRgbaFloat(Af: 1, Gf: 1f, Bf: 0.9f, Rf: 0.6f).ToUint();
+            DefaultCustomColours[eThemeColour.eTextEmphasis2] = new WritableRgbaFloat(Af: 1, Gf: 0.773f, Bf:01, Rf: 1f).ToUint();
+
             DefaultCustomColours[eThemeColour.eHeat0Lowest] = new WritableRgbaFloat(0, 0, 155f / 255f, 0.7f).ToUint();
             DefaultCustomColours[eThemeColour.eHeat1] = new WritableRgbaFloat(46f / 255f, 28f / 255f, 155f / 255f, 1).ToUint();
             DefaultCustomColours[eThemeColour.eHeat2] = new WritableRgbaFloat(95f / 255f, 104f / 255f, 226f / 255f, 1).ToUint();
@@ -113,6 +120,14 @@ namespace rgatCore
                 if (!ThemeColoursCustom.ContainsKey(themeStyle))
                 {
                     ThemeColoursCustom.Add(themeStyle, DefaultCustomColours[themeStyle]);
+                }
+            }
+
+            foreach (eThemeColour item in Enum.GetValues(typeof(eThemeColour)))
+            {
+                if (!DefaultCustomColours.ContainsKey(item))
+                {
+                    DefaultCustomColours[item] = new WritableRgbaFloat(Color.Red).ToUint();
                 }
             }
 
@@ -531,6 +546,8 @@ namespace rgatCore
         }
 
         static JObject currentThemeJSON;
+        //controls can check this value to see if the theme has changed
+        public static ulong ThemeVariant { get; private set; } = 0;
 
         public static string RegenerateUIThemeJSON()
         {
@@ -563,8 +580,11 @@ namespace rgatCore
                 themeJsnObj.Add("Metadata", metadObj);
 
                 currentThemeJSON = themeJsnObj;
+
+                ThemeVariant += 1;
+
                 return themeJsnObj.ToString();
-            }
+            };
         }
 
 

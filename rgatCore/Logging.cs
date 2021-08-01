@@ -172,40 +172,58 @@ namespace rgatCore
             }
 
 
-            public string Label()
+            List<Tuple<string, WritableRgbaFloat>> _cachedLabel = null;
+            ulong _cachedLabelTheme = 0;
+            public List<Tuple<string, WritableRgbaFloat>> Label()
             {
+                if (_cachedLabel != null && _cachedLabelTheme == Themes.ThemeVariant) return _cachedLabel;
+                _cachedLabel = new List<Tuple<string, WritableRgbaFloat>>();
+                _cachedLabelTheme = Themes.ThemeVariant;
+
+                WritableRgbaFloat textColour = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiNET.ImGuiCol.Text));
                 switch (_eventType)
                 {
                     case eTimelineEvent.ProcessStart:
                         {
                             TraceRecord trace = (TraceRecord)_item;
-                            return $"Process ({trace.PID}) Started";
+                            _cachedLabel.Add(new Tuple<string, WritableRgbaFloat> ($"Process ({trace.PID}) Started", textColour));
+                            break;
                         }
                     case eTimelineEvent.ProcessEnd:
                         {
                             TraceRecord trace = (TraceRecord)_item;
-                            return $"Process ({trace.PID}) Ended";
+                            _cachedLabel.Add(new Tuple<string, WritableRgbaFloat>($"Process ({trace.PID}) Ended", textColour));
+                            break;
                         }
                     case eTimelineEvent.ThreadStart:
                         {
                             ProtoGraph graph = (ProtoGraph)_item;
-                            return $"Thread ({graph.ThreadID}) Started";
+                            _cachedLabel.Add(new Tuple<string, WritableRgbaFloat>($"Thread ({graph.ThreadID}) Started", textColour));
+                            break;
                         }
                     case eTimelineEvent.ThreadEnd:
                         {
                             ProtoGraph graph = (ProtoGraph)_item;
-                            return $"Thread ({graph.ThreadID}) Ended";
+                            _cachedLabel.Add(new Tuple<string, WritableRgbaFloat>($"Thread ({graph.ThreadID}) Ended", textColour));
+                            break;
                         }
                     case eTimelineEvent.APICall:
                         {
                             Logging.APICALL call = (Logging.APICALL)_item;
                             NodeData n = call.node;
-                            return $"API call: ({n.CreateSymbolLabel(call.graph, (int)call.index)})";
+                            var labelitems = n.CreateColourisedSymbolCall(call.graph,
+                                (int)call.index,
+                                textColour,
+                                Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1));
+                            _cachedLabel.AddRange(labelitems);
+                            break;
                         }
                     default:
-                        Debug.Assert(false, "Bad timeline event");
-                        return "Bad event";
+                        _cachedLabel.Add(new Tuple<string, WritableRgbaFloat>($"Bad timeline event: ", textColour));
+                        Debug.Assert(false, $"Bad timeline event: {_eventType}");
+                        return _cachedLabel;
                 }
+                return _cachedLabel;
 
             }
 

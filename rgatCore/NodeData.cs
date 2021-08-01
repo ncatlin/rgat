@@ -204,17 +204,17 @@ namespace rgatCore
                 Label = null;
                 return;
             }
-                
-           Label = "";
-            
+
+            Label = "";
+
             if (plot.Opt_ShowNodeIndexes) Label += $"{this.index}:";
             if (plot.Opt_ShowNodeAddresses) Label += $"0x{this.address:X}:";
-            
+
             if (!IsExternal && ins.ins_text.Length > 0)
             {
                 Label += $" {ins.ins_text}";
             }
-            
+
             if (HasSymbol)
             {
                 if (IsExternal)
@@ -310,6 +310,64 @@ namespace rgatCore
             }
         }
 
+
+        /// <summary>
+        /// Produces a list of api string/colour tuples for displaying in trace analysis lists
+        /// </summary>
+        /// <param name="graph">The graph of the thread that made the call</param>
+        /// <param name="specificCallIndex">The index of the call</param>
+        /// <param name="colour1">The colour of the API text</param>
+        /// <param name="colour2">The colour of the argument texts</param>
+        /// <returns></returns>
+        public List<Tuple<string, WritableRgbaFloat>> CreateColourisedSymbolCall(ProtoGraph graph, int specificCallIndex, WritableRgbaFloat colour1, WritableRgbaFloat colour2)
+        {
+            List<Tuple<string, WritableRgbaFloat>> result = new List<Tuple<string, WritableRgbaFloat>>();
+            string symbolText = "";
+            bool found = false;
+            if (!graph.ProcessData.GetSymbol(GlobalModuleID, address, out symbolText))
+            {                
+                //search back from the instruction to try and find symbol of a function it may (or may not) be part of
+                ulong searchLimit = Math.Min(GlobalConfig.SymbolSearchDistance, address);
+                for (ulong symOffset = 0; symOffset < searchLimit; symOffset++)
+                {
+                    if (graph.ProcessData.GetSymbol(GlobalModuleID, address - symOffset, out symbolText))
+                    {
+                        symbolText += $"+0x{symOffset}";
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) return result;
+            }
+
+            if (callRecordsIndexs.Count == 0 || specificCallIndex >= callRecordsIndexs.Count)
+            {
+                result.Add(new Tuple<string, WritableRgbaFloat>($"{symbolText}()", colour1));
+                return result;
+            }
+
+            SYMBOLCALLDATA lastCall;
+
+            Debug.Assert(callRecordsIndexs.Count > specificCallIndex);
+            lastCall = graph.SymbolCallRecords[(int)callRecordsIndexs[specificCallIndex]];
+
+            result.Add(new Tuple<string, WritableRgbaFloat>($"{symbolText}(", colour1));
+
+            for (var i = 0; i < lastCall.argList.Count; i++)
+            {
+                Tuple<int, string> arg = lastCall.argList[i];
+                result.Add(new Tuple<string, WritableRgbaFloat>($"{arg.Item1}:", colour1));
+                result.Add(new Tuple<string, WritableRgbaFloat>($"{arg.Item2}", colour2));
+
+                if (i < (lastCall.argList.Count - 1))
+                {
+                    result.Add(new Tuple<string, WritableRgbaFloat>($", ", colour1));
+                }
+            }
+            result.Add(new Tuple<string, WritableRgbaFloat>(")", colour1));
+
+            return result;
+        }
 
         public bool Highlighted { get; private set; } = false;
         public bool SetHighlighted(bool state) => Highlighted = state;

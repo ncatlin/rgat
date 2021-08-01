@@ -327,10 +327,6 @@ namespace rgatCore
             return highest;
         }
 
-
-        bool doDbgPrinting = false;
-
-
         public ulong Compute(CommandList cl, PlottedGraph graph, int mouseoverNodeID, bool useAnimAttribs)
         {
             ulong newversion;
@@ -353,23 +349,8 @@ namespace rgatCore
             }
 
             graph.LayoutState.Lock.EnterUpgradeableReadLock();
-            if (edgesCount > graph.RenderedEdgeCount || (new Random()).Next(0, 100) == 1)
-            {
-                graph.LayoutState.Lock.EnterWriteLock();
-                graph.LayoutState.RegenerateEdgeDataBuffers(graph);
-                graph.RenderedEdgeCount = (uint)edgesCount;
-                graph.LayoutState.Lock.ExitWriteLock();
-            }
 
-            int graphNodeCount = graph.RenderedNodeCount();
-            if (graph.ComputeBufferNodeCount < graphNodeCount)
-            {
-                graph.LayoutState.AddNewNodesToComputeBuffers(graphNodeCount, graph);
-
-                graph.LayoutState.Lock.EnterWriteLock();
-                graph.LayoutState.RegenerateEdgeDataBuffers(graph); //tod change to upgradread
-                graph.LayoutState.Lock.ExitWriteLock();
-            }
+            graph.AddNewEdgesToLayoutBuffers(edgesCount);
 
 
             var now = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
@@ -378,22 +359,12 @@ namespace rgatCore
 
             graph.lastRenderTime = now;
 
-            float _activeGraphTemperature = graph.temperature;
-
             ResourceSet attribComputeResourceSet = null;
             ResourceSetDescription velocity_rsrc_desc, pos_rsrc_desc, attr_rsrc_desc;
-            DeviceBuffer posbefore, posafter, velocitybefore, velocityafter;
             GraphLayoutState layout = graph.LayoutState;
 
             if (graph.LayoutState.flip())
             {
-
-                posbefore = layout.PositionsVRAM1;
-                posafter = layout.PositionsVRAM2;
-
-                velocitybefore = layout.VelocitiesVRAM1;
-                velocityafter = layout.VelocitiesVRAM2;
-
                 //todo unified resource layout
                 velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeLayout, _velocityParamsBuffer,
                     layout.PositionsVRAM1, layout.PresetPositions, layout.VelocitiesVRAM1,
@@ -435,20 +406,18 @@ namespace rgatCore
 
             bool forceComputationActive =
                 GlobalConfig.LayoutPositionsActive &&
-                _activeGraphTemperature > 0.1 && (
+                graph.temperature > 0 && (
                 graph.LayoutState.ActivatingPreset || LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle)
                 );
 
             if (forceComputationActive)
             {
-                RenderVelocity(cl, graph, velocityComputeResourceSet, delta, _activeGraphTemperature);
+                RenderVelocity(cl, graph, velocityComputeResourceSet, delta, graph.temperature);
                 RenderPosition(cl, graph, posRS, delta);
                 layout.IncrementVersion();
 
-
-                if (_activeGraphTemperature > 0.1)
-                    graph.temperature *= 0.99f;
-                else
+                graph.temperature *= Layout_Constants.TemperatureStepMultiplier;
+                if (graph.temperature <= Layout_Constants.MinimumTemperature)
                     graph.temperature = 0;
             }
 
@@ -494,7 +463,7 @@ namespace rgatCore
             {
                 lastComputeMS.Add(timer.ElapsedMilliseconds);
                 if (lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
-                    lastComputeMS = lastComputeMS.Skip(1).Take(GlobalConfig.StatisticsTimeAvgWindow).ToList();
+                    lastComputeMS = lastComputeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
                 AverageComputeTime = lastComputeMS.Average();
             }
             if (GlobalConfig.LayoutPositionsActive)

@@ -291,7 +291,7 @@ namespace rgatCore
             timer.Stop();
             _lastFrameTimeMS.Add(timer.ElapsedMilliseconds);
             if (_lastFrameTimeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
-                _lastFrameTimeMS = _lastFrameTimeMS.Skip(1).Take(GlobalConfig.StatisticsTimeAvgWindow).ToList();
+                _lastFrameTimeMS = _lastFrameTimeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
             if (_frameTimerFired)
             {
                 _frameTimerFired = false;
@@ -2682,7 +2682,12 @@ namespace rgatCore
                         ImGui.TableNextColumn();
                         ImGui.Text(TLevent.TimelineEventType.ToString());
                         ImGui.TableNextColumn();
-                        ImGui.Text(TLevent.Label());
+                        var labelComponents = TLevent.Label();
+                        foreach (var component in labelComponents)
+                        {
+                            ImGui.TextColored(component.Item2.ToVec4(), component.Item1);
+                            ImGui.SameLine();
+                        }
 
                     }
                     ImGui.EndTable();
@@ -3044,7 +3049,7 @@ namespace rgatCore
                                 {
                                     Logging.TIMELINE_EVENT tl_evt = (Logging.TIMELINE_EVENT)msg;
                                     sourceString = $"{tl_evt.Filter}";
-                                    msgString = tl_evt.Label();
+                                    msgString =  String.Join("", tl_evt.Label().Select(l => l.Item1));
                                     break;
                                 }
                             default:
