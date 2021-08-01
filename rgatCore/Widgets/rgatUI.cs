@@ -2267,7 +2267,7 @@ namespace rgatCore
             if (ImGui.BeginChild(ImGui.GetID("LiveTraceControlPanel"), new Vector2(replayControlsSize, otherControlsHeight)))
             {
 
-                _visualiserBar.Draw(width, 50);
+                //_visualiserBar.Draw(width, 50);
                 ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
 
                 if (ImGui.BeginChild("LiveControlsPane", new Vector2(500, ImGui.GetContentRegionAvail().Y - 2)))
@@ -2647,7 +2647,7 @@ namespace rgatCore
                 if (ImGui.BeginTable("#TaTTFullList", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY))
                 {
                     ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 50);
-                    ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 90);
+                    ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 70);
                     ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.None);
                     ImGui.TableHeadersRow();
                     ImGui.TableSetupScrollFreeze(0, 1);
@@ -2659,35 +2659,53 @@ namespace rgatCore
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         bool selected = false;
-                        if (selectedNode != null)
+                        string eventType = "test";
+                        switch (TLevent.TimelineEventType)
                         {
-                            switch (TLevent.TimelineEventType)
-                            {
-                                case eTimelineEvent.ProcessStart:
-                                case eTimelineEvent.ProcessEnd:
+                            case eTimelineEvent.ProcessStart:
+                            case eTimelineEvent.ProcessEnd:
+                                eventType = "Process";
+
+                                if (selectedNode != null)
+                                {
                                     selected = (Equals(selectedNode.reference.GetType(), typeof(TraceRecord)) &&
-                                        TLevent.ID == ((TraceRecord)selectedNode.reference).PID);
-                                    break;
-                                case eTimelineEvent.ThreadStart:
-                                case eTimelineEvent.ThreadEnd:
+                                    TLevent.ID == ((TraceRecord)selectedNode.reference).PID);
+                                }
+
+                                break;
+                            case eTimelineEvent.ThreadStart:
+                            case eTimelineEvent.ThreadEnd:
+                                eventType = "Thread";
+                                if (selectedNode != null)
+                                {
                                     selected = (Equals(selectedNode.reference.GetType(), typeof(ProtoGraph)) &&
-                                        TLevent.ID == ((ProtoGraph)selectedNode.reference).ThreadID);
-                                    break;
-                            }
+                                    TLevent.ID == ((ProtoGraph)selectedNode.reference).ThreadID);
+                                }
+                                break;
+                            case eTimelineEvent.APICall:
+                                eventType = "API";
+                                break;
                         }
+
                         if (ImGui.Selectable(i.ToString(), selected, ImGuiSelectableFlags.SpanAllColumns) && !selected)
                         {
                             chart.SelectEventNode(TLevent);
                         }
                         ImGui.TableNextColumn();
-                        ImGui.Text(TLevent.TimelineEventType.ToString());
+                        ImGui.Text(eventType);
                         ImGui.TableNextColumn();
+
+                        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(3, 3));
+                        
                         var labelComponents = TLevent.Label();
-                        foreach (var component in labelComponents)
+                        for (var labeli = 0; labeli < labelComponents.Count; labeli++)
                         {
-                            ImGui.TextColored(component.Item2.ToVec4(), component.Item1);
-                            ImGui.SameLine();
+                            var component = labelComponents[labeli];
+                            ImGui.TextColored(component.Item2.ToVec4(), component.Item1) ;
+                            if (labeli < labelComponents.Count - 1)
+                                ImGui.SameLine();
                         }
+                        ImGui.PopStyleVar();
 
                     }
                     ImGui.EndTable();
@@ -3049,7 +3067,7 @@ namespace rgatCore
                                 {
                                     Logging.TIMELINE_EVENT tl_evt = (Logging.TIMELINE_EVENT)msg;
                                     sourceString = $"{tl_evt.Filter}";
-                                    msgString =  String.Join("", tl_evt.Label().Select(l => l.Item1));
+                                    msgString = String.Join("", tl_evt.Label().Select(l => l.Item1));
                                     break;
                                 }
                             default:
