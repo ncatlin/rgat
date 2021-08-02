@@ -163,6 +163,8 @@ namespace rgatCore
         /// </summary>
         public static float animationFadeRate = 0.07f; 
         public static int animationLingerFrames = 0; //number of frames before fade begins
+        public static float MinimumAlpha = 0.06f;
+
         /// <summary>
         /// Milliseconds to wait between frames of Main (displayed) Graph rendering
         /// </summary>
@@ -1104,6 +1106,16 @@ namespace rgatCore
             {
                 BulkLogging = (bulklogging.ToLower() == "true");
             }
+
+            if (GetAppSetting("MinimumGraphAlpha", out string minalpha))
+            {
+                if(!float.TryParse(minalpha, out MinimumAlpha))
+                {
+                    MinimumAlpha = 0.06f;
+                }
+            }
+
+            
 
 
             if (GetAppSetting("VideoCodec_Speed", out string vidspeed))

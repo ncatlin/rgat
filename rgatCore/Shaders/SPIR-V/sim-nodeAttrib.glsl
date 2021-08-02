@@ -8,7 +8,7 @@ struct nodeAttribParams
      int  selectedNode;     // selectedNode
      float hoverMode;     // selectedNode
     int edgeTexCount;     
-    int fff;     // neighbor data
+    float minAlpha;  
     bool isAnimated;
 };
 
@@ -63,13 +63,13 @@ void main()	{
 
     float neighborPixel = 0.0;
     
-
+    /*
    float selfPixel = 0;
     if (index == params.selectedNode) {
         selfPixel = 1.0;
     } else {
         selfPixel = 0.0;
-    }
+    }*/
         
     //if live trace or active replay
     //todo - different shaders for these
@@ -153,7 +153,7 @@ void main()	{
 
     }
 
-    float alphaTarget = (params.isAnimated) ? 0 :1; //0.2 : 1.0;
+    float alphaTarget = (params.isAnimated) ? params.minAlpha : 1.0;
 
     /*
     This section deals with mouseover hover/selection
@@ -181,10 +181,10 @@ void main()	{
         //quickly shrink geometry that has been inflated, unless highlighted or very recently animated
         if ( selfAttrib.x > 200.0 && selfAttrib.w == 0 && selfAttrib.z <= AnimNodeDeflateThreshold)
         {
-            selfAttrib.x -= 4000.0 * params.delta;
+            selfAttrib.x -= 40.0 * params.delta;
             if (selfAttrib.x < 200) 
             {
-            selfAttrib.x = 200;
+                 selfAttrib.x = 200;
             }
         }
 
@@ -192,7 +192,7 @@ void main()	{
         if ( params.selectedNode >= 0.0 ){
 
             // if you are a node or a neighbor
-            if ( neighborPixel > 0.0 || selfPixel > 0.0){
+            if ( neighborPixel > 0.0 || index == params.selectedNode){
                 selfAttrib.y = 0.8; // light up *only* self or neighbors
             }
 
@@ -215,7 +215,7 @@ void main()	{
         if ( params.selectedNode >= 0.0 ){
 
             // if you are a node or a neighbor
-            if ( neighborPixel > 0.0 || selfPixel > 0.0){
+            if ( neighborPixel > 0.0 || index == params.selectedNode){
                 selfAttrib.y = 0.3; // light up *only* self or neighbors
             }
         }

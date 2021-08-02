@@ -830,6 +830,14 @@ namespace rgatCore.Widgets
                 GlobalConfig.BulkLogging = debglog;
                 GlobalConfig.AddUpdateAppSettings("BulkLogging", debglog ? "True" : "False");
             }
+
+            float minGraphAlpha = GlobalConfig.MinimumAlpha;
+            ImGui.SetNextItemWidth(80);
+            if (ImGui.DragFloat("Minimum Animation Alpha", ref minGraphAlpha, 0.01f, 0, 1))
+            {
+                GlobalConfig.MinimumAlpha = minGraphAlpha;
+                GlobalConfig.AddUpdateAppSettings("MinimumGraphAlpha", minGraphAlpha.ToString());
+            }
         }
 
 

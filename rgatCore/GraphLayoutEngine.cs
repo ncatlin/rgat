@@ -592,7 +592,7 @@ namespace rgatCore
             public float hoverMode;     // selectedNode
             public int edgesTexCount;     // will be the same for neighbors
 
-            public int fff;     // neighbor data
+            public float MinimumAlpha;
             public bool isAnimated;
 
             private readonly uint _padding2b;
@@ -610,7 +610,7 @@ namespace rgatCore
                 delta = delta,
                 selectedNode = mouseoverNodeID,
                 edgesTexCount = (int)graph.LayoutState.EdgeConnections.SizeInBytes / 4,
-                fff = (int)0,
+                MinimumAlpha = GlobalConfig.MinimumAlpha,
                 hoverMode = 1,
                 isAnimated = useAnimAttribs
             };
