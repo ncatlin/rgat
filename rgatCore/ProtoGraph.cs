@@ -12,6 +12,12 @@ namespace rgatCore
     public struct SYMBOLCALLDATA
     {
         public Tuple<uint, uint> edgeIdx;
+        /// <summary>
+        /// a list of (index, value) tuples
+        /// where 
+        ///     index: the position of the argument in the function prototype
+        ///     value: a string representation of the argument value
+        /// </summary>
         public List<Tuple<int, string>> argList;
     };
 
@@ -499,6 +505,7 @@ namespace rgatCore
             public int argIndex;
             public bool finalEntry;
             public string argstring;
+            public bool isReturnVal;
         }
 
 
@@ -517,9 +524,6 @@ namespace rgatCore
          */
         public void ProcessIncomingCallArguments()
         {
-            //todo
-            //Console.WriteLine("todo reenable incoming areguments after crashes stop");
-
             if (_unprocessedCallArguments.Count == 0) return;
 
             ulong currentSourceBlock = _unprocessedCallArguments[0].sourceBlock;
@@ -536,7 +540,7 @@ namespace rgatCore
                 INCOMING_CALL_ARGUMENT arg = _unprocessedCallArguments[cacheI];
                 Debug.Assert(arg.calledAddress == currentTarget, "ProcessIncomingCallArguments() unexpected change of target");
                 Debug.Assert(arg.sourceBlock == currentSourceBlock, "ProcessIncomingCallArguments() unexpected change of source");
-                Debug.Assert(arg.argIndex > currentIndex, "ProcessIncomingCallArguments() unexpected change of source");
+                Debug.Assert(arg.argIndex > currentIndex || arg.isReturnVal, "ProcessIncomingCallArguments() unexpected change of source");
                 if (BlocksFirstLastNodeList.Count <= (int)currentSourceBlock)
                     break;
 
@@ -632,7 +636,8 @@ namespace rgatCore
                 callerAddress = ulong.MaxValue,
                 argstring = contents,
                 finalEntry = isLastArgInCall,
-                sourceBlock = sourceBlockID
+                sourceBlock = sourceBlockID,
+                isReturnVal = argpos == -1
             };
             lock (argsLock)
             {

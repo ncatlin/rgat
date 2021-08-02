@@ -8,11 +8,7 @@ a pin implementation of the drgat client
 //#undef _WINDOWS_H_PATH_
 #include "pin.H"
 //extern "C" {#include "xed-interface.h"}
-#define _WINDOWS_H_PATH_ C:/Program Files (x86)/Windows Kits/10/Include/10.0.19041.0/um
-namespace WINDOWS {
-#include "C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v7.1A\\Include\\Windows.h"
-	//#include "C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v7.1A\\Include\\i"
-};
+#include "windows_include.h"
 #include "threadObject.h"
 #include "utilities.h"
 #include "blockdata.h"

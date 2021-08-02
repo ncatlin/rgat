@@ -7,6 +7,7 @@
 #define TRACE_TAG_MARKER "j"
 #define STEP_MARKER "S"
 #define ARG_MARKER "A"
+#define RETVAL_MARKER "a"
 #define UNLINK_MARKER "U"
 #define UNCHAIN_MARKER "u"
 #define EXECUTECOUNT_MARKER "B"

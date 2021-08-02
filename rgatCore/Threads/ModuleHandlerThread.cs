@@ -186,7 +186,7 @@ namespace rgatCore
             {
                 try
                 {
-                    Console.WriteLine($"controlPipe.BeginWrite with {cmd.Length} bytes {cmd}");
+                    Console.WriteLine($"controlPipe.BeginWrite with {cmd.Length} bytes {Encoding.ASCII.GetString(cmd)}");
                     commandPipe.Write(cmd, 0, cmd.Length);
                 }
                 catch (Exception e)

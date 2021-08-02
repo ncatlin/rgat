@@ -81,7 +81,7 @@ namespace rgatCore.Widgets
                 };
                 //layout = new GraphShape.Algorithms.Layout.KKLayoutAlgorithm<itemNode, Edge<itemNode>, BidirectionalGraph<itemNode, Edge<itemNode>>>(sbgraph, parameters: layoutParams);
 
-                Task.Run(() => { layout.Compute(); });
+                Task.Run(() => { layout.Compute(); }); //todo - still a thread safety issue here
             }
         }
 

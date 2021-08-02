@@ -514,9 +514,6 @@ namespace rgatCore.Threads
         //decodes argument and places in processing queue, processes if all decoded for that call
         void HandleArg(byte[] entry)
         {
-            //todo also - crashes if proto handler disabled, why
-            //todo
-            //Console.WriteLine("todo reenable incoming areguments after crashes stop");
 
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 6);
@@ -526,15 +523,30 @@ namespace rgatCore.Threads
             ulong sourceBlockID = ulong.Parse(entries[3], NumberStyles.HexNumber);
 
             char moreArgsFlag = entries[4][0];
-
-            bool callDone = moreArgsFlag == 'E';
             string argstring = entries[5];
 
             Console.WriteLine($"Handling arg index {argIdx} of symbol address 0x{funcpc:x} from source block {sourceBlockID} :'{argstring}'");
 
-            protograph.CacheIncomingCallArgument(funcpc, sourceBlockID, argIdx, argstring, callDone);
+            protograph.CacheIncomingCallArgument(funcpc, sourceBlockID, argpos: argIdx, contents: argstring, isLastArgInCall: moreArgsFlag == 'E');
 
         }
+
+        void HandleRetVal(byte[] entry)
+        {
+
+            string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
+            string[] entries = msg.Split(',', 4);
+
+            ulong funcpc = ulong.Parse(entries[1], NumberStyles.HexNumber);
+            ulong sourceBlockID = ulong.Parse(entries[2], NumberStyles.HexNumber);
+
+            ulong retval = ulong.Parse(entries[3], NumberStyles.HexNumber);
+            //Console.WriteLine($"Handling retval of symbol address 0x{funcpc:x} from source block {sourceBlockID} :'{retval}'");
+
+            protograph.CacheIncomingCallArgument(funcpc, sourceBlockID, -1, $"0x{retval:X}", true); //todo look at this causing a dupe arg list to be created
+
+        }
+
 
 
         void AddReinstrumentedUpdate(byte[] entry)
@@ -849,6 +861,9 @@ namespace rgatCore.Threads
                             break;
                         case (byte)'A':
                             HandleArg(msg);
+                            break;
+                        case (byte)'a':
+                            HandleRetVal(msg);
                             break;
                         case (byte)'R':
                             AddReinstrumentedUpdate(msg);

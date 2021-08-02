@@ -195,6 +195,12 @@ namespace rgatCore
 
         }
 
+        /// <summary>
+        /// This creates the label drawn on the graph
+        /// For symbol labels drawn in logs/analysis tabs see CreateColourisedSymbolCall
+        /// </summary>
+        /// <param name="plot"></param>
+        /// <param name="specificCallIndex"></param>
         public void CreateLabel(PlottedGraph plot, int specificCallIndex = -1)
         {
             ProtoGraph graph = plot.InternalProtoGraph;
@@ -296,18 +302,32 @@ namespace rgatCore
             for (var i = 0; i < lastCall.argList.Count; i++)
             {
                 Tuple<int, string> arg = lastCall.argList[i];
+
                 argstring += $"{arg.Item1}:{arg.Item2}";
-                if (i < (lastCall.argList.Count - 1)) argstring += ", ";
+
+                //if not last arg + next is not return val
+                bool moreArgs = (i < (lastCall.argList.Count - 1) && (lastCall.argList[i + 1].Item1 != -1));
+                if (moreArgs)
+                {
+                    argstring += ", "; 
+                }
+                else
+                    break;
             }
 
-            if (callRecordsIndexs.Count == 1)
+            string result = $"{symbolText}({argstring})";
+
+            //add return value, if it's there
+            if (lastCall.argList.Count > 0 && lastCall.argList[^1].Item1 == -1)
             {
-                return $"{symbolText}({argstring})";
+                result += " => " + lastCall.argList[^1].Item2;
             }
-            else
+            
+            if (callRecordsIndexs.Count > 1)
             {
-                return $"{symbolText}({argstring}) +{callRecordsIndexs.Count - 1} saved";
+                result += $" +{callRecordsIndexs.Count - 1} saved";
             }
+            return result;
         }
 
 
@@ -359,12 +379,23 @@ namespace rgatCore
                 result.Add(new Tuple<string, WritableRgbaFloat>($"{arg.Item1}:", colour1));
                 result.Add(new Tuple<string, WritableRgbaFloat>($"{arg.Item2}", colour2));
 
-                if (i < (lastCall.argList.Count - 1))
+                bool moreArgs = (i < (lastCall.argList.Count - 1) && (lastCall.argList[i + 1].Item1 != -1));
+                if (moreArgs)
                 {
                     result.Add(new Tuple<string, WritableRgbaFloat>($", ", colour1));
                 }
+                else break;
             }
-            result.Add(new Tuple<string, WritableRgbaFloat>(")", colour1));
+
+            if (lastCall.argList.Count > 0 && lastCall.argList[^1].Item1 == -1)
+            {
+                result.Add(new Tuple<string, WritableRgbaFloat>(") = ", colour1));
+                result.Add(new Tuple<string, WritableRgbaFloat>(lastCall.argList[^1].Item2, colour2));
+            }
+            else
+            {
+                result.Add(new Tuple<string, WritableRgbaFloat>(")", colour1));
+            }
 
             return result;
         }

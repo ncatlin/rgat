@@ -653,8 +653,10 @@ namespace rgatCore
                     fixed (float* dataPtr = valArray)
                     {
                         uint nodeAlphaOffset = (activeNodeIdx * 4 * sizeof(float)) + (2 * sizeof(float));
-                        Debug.Assert(nodeAlphaOffset < inputAttributes.SizeInBytes);
-                        cl.UpdateBuffer(inputAttributes, nodeAlphaOffset, (IntPtr)dataPtr, sizeof(float));
+                        if (nodeAlphaOffset+sizeof(float) <= inputAttributes.SizeInBytes)
+                        { 
+                            cl.UpdateBuffer(inputAttributes, nodeAlphaOffset, (IntPtr)dataPtr, sizeof(float)); 
+                        }
                     }
                 }
 
