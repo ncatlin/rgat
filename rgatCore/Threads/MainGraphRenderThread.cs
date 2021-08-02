@@ -66,7 +66,7 @@ namespace rgatCore.Threads
             }
             else
             {
-                if (graph.ReplayState == PlottedGraph.REPLAY_STATE.ePlaying || graph.userSelectedAnimPosition != -1)
+                if (graph.ReplayState == PlottedGraph.REPLAY_STATE.ePlaying || graph._userSelectedAnimPosition != -1)
                 {
                     if (--_nextReplayStep <= 0)
                     {

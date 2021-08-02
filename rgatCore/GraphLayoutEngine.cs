@@ -618,9 +618,13 @@ namespace rgatCore
 
             graph.GetActiveNodeIDs(out List<uint> pulseNodes, out List<uint> lingerNodes, out uint[] deactivatedNodes);
 
+
             Logging.RecordLogEvent($"RenderNodeAttribs creaters  {this.EngineID} updating attribsbuf {inputAttributes.Name}", Logging.LogFilterType.BulkDebugLogFile);
 
             cl.UpdateBuffer(_attribsParamsBuffer, 0, parms);
+
+
+            float currentPulseAlpha = Math.Max(GlobalConfig.AnimatedFadeMinimumAlpha, GraphicsMaths.getPulseAlpha());
 
             //todo - merge contiguous regions to reduce command count
             float[] valArray = new float[3];
@@ -639,7 +643,24 @@ namespace rgatCore
                 }
             }
 
-            float currentPulseAlpha = Math.Max(GlobalConfig.AnimatedFadeMinimumAlpha, GraphicsMaths.getPulseAlpha());
+            //make the active node pulse
+            if (graph.IsAnimated)
+            {
+                uint activeNodeIdx = graph.LastAnimatedVert;
+                if (!lingerNodes.Contains(activeNodeIdx))
+                {
+                    valArray[0] = currentPulseAlpha;
+                    fixed (float* dataPtr = valArray)
+                    {
+                        uint nodeAlphaOffset = (activeNodeIdx * 4 * sizeof(float)) + (2 * sizeof(float));
+                        Debug.Assert(nodeAlphaOffset < inputAttributes.SizeInBytes);
+                        cl.UpdateBuffer(inputAttributes, nodeAlphaOffset, (IntPtr)dataPtr, sizeof(float));
+                    }
+                }
+
+            }
+
+
             foreach (uint idx in lingerNodes)
             {
                 if (idx >= graph.RenderedNodeCount()) break;

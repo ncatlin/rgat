@@ -103,36 +103,29 @@ namespace rgatCore
             }
 
             int NewPosition = (int)(position * (float)InternalProtoGraph.SavedAnimationData.Count);
-            userSelectedAnimPosition = NewPosition;
+            _userSelectedAnimPosition = NewPosition;
+            Console.WriteLine($"Animation set index: {NewPosition}, last: {_lastReplayedIndex}");
 
         }
 
         public void ProcessReplayUpdates()
         {
-            if (userSelectedAnimPosition != -1)
+            if (_userSelectedAnimPosition != -1)
             {
                 SetAnimated(true);
-
-                int selectionDiff;
-                if (userSelectedAnimPosition < 20 || InternalProtoGraph.SavedAnimationData.Count < 20)
-                {
-                    AnimationIndex = 0;
-                    selectionDiff = userSelectedAnimPosition;
-                }
-                else
-                    AnimationIndex = userSelectedAnimPosition - 20;
-
-                process_replay_animation_updates(20);
+                _lastReplayedIndex = Math.Max(0, _userSelectedAnimPosition - 2 * (int)Math.Ceiling(AnimationRate));
+                AnimationIndex = _userSelectedAnimPosition;
+                remove_unchained_from_animation();
             }
-            else
-                process_replay_animation_updates();
+            process_replay_animation_updates();
 
-            if (userSelectedAnimPosition != -1)
-                userSelectedAnimPosition = -1;
+            if (_userSelectedAnimPosition != -1)
+                _userSelectedAnimPosition = -1;
         }
 
         //public void schedule_animation_reset() { animation_needs_reset = true; }
-        uint _lastAnimatedVert;
+        public uint LastAnimatedVert { get; private set; }
+
 
         //This should only ever be called from the rendering thread
         public void ResetAnimation()
@@ -140,7 +133,7 @@ namespace rgatCore
             ResetAllActiveAnimatedAlphas();
 
             //animInstructionIndex = 0;
-            _lastAnimatedVert = 0;
+            LastAnimatedVert = 0;
             AnimationIndex = 0;
 
             unchainedWaitFrames = 0;
@@ -596,7 +589,7 @@ namespace rgatCore
 
         void CreateLiveNodeEdge(List<uint> edgeIndices, List<GeomPositionColour> resultList)
         {
-            uint node = _lastAnimatedVert;
+            uint node = LastAnimatedVert;
             if (InternalProtoGraph.HasRecentStep)
             {
                 var addrnodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(InternalProtoGraph.RecentStepAddr, InternalProtoGraph.ThreadID);
@@ -1424,7 +1417,7 @@ namespace rgatCore
                 newnodelist = new List<uint>();
                 foreach (Tuple<uint, uint> edge in calls) //record each call by caller
                 {
-                    if (edge.Item1 == _lastAnimatedVert)
+                    if (edge.Item1 == LastAnimatedVert)
                     {
                         newnodelist.Add(edge.Item2);
                     }
@@ -1456,11 +1449,11 @@ namespace rgatCore
             if (externStr != null)
             {
                 var callers = externStr.Value.thread_callers[InternalProtoGraph.ThreadID];
-                var caller = callers.Find(n => n.Item2 == _lastAnimatedVert);
+                var caller = callers.Find(n => n.Item2 == LastAnimatedVert);
                 if (caller == null) return;
 
                 uint callerIdx = caller.Item2;
-                LinkingPair = new Tuple<uint, uint>(_lastAnimatedVert, callerIdx);
+                LinkingPair = new Tuple<uint, uint>(LastAnimatedVert, callerIdx);
 
 
             }
@@ -1470,7 +1463,7 @@ namespace rgatCore
                 InstructionData nextIns = nextBlock[0];
                 if (nextIns.GetThreadVert(InternalProtoGraph.ThreadID, out uint caller))
                 {
-                    LinkingPair = new Tuple<uint, uint>(_lastAnimatedVert, caller);
+                    LinkingPair = new Tuple<uint, uint>(LastAnimatedVert, caller);
                 }
                 else return;
             }
@@ -1501,7 +1494,7 @@ namespace rgatCore
 
                 if (!(entry.entryType == eTraceUpdateType.eAnimUnchained) && listOffset == 0)
                 {
-                    Tuple<uint, uint> edge = new Tuple<uint, uint>(_lastAnimatedVert, nodeIdx);
+                    Tuple<uint, uint> edge = new Tuple<uint, uint>(LastAnimatedVert, nodeIdx);
                     if (InternalProtoGraph.EdgeExists(edge))
                     {
                         AddPulseActiveNode(edge.Item1);
@@ -1520,7 +1513,7 @@ namespace rgatCore
                     AddPulseActiveNode(nodeIdx);
                 }
 
-                _lastAnimatedVert = nodeIdx;
+                LastAnimatedVert = nodeIdx;
 
                 ++listOffset;
                 if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (listOffset == (entry.count + 1))) break;
@@ -1537,7 +1530,7 @@ namespace rgatCore
             List<InstructionData> firstChainedBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
             bool found = firstChainedBlock[^1].GetThreadVert(tid, out uint vertID);
             Debug.Assert(found);
-            _lastAnimatedVert = vertID; //should this be front()?
+            LastAnimatedVert = vertID; //should this be front()?
 
         }
 
@@ -2015,7 +2008,6 @@ namespace rgatCore
 
                 _PulseActiveNodes.Clear();
                 lingerNodes = _LingeringActiveNodes.ToList();
-                lingerNodes.Add(_lastAnimatedVert);//make the most recent node pulse, useful for blocking api calls
                 deactivatedNodes = _DeactivatedNodes.ToArray();
                 _DeactivatedNodes.Clear();// = Array.Empty<uint>();
 
@@ -2386,7 +2378,7 @@ namespace rgatCore
         public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
 
         public ulong vertResizeIndex = 0;
-        public int userSelectedAnimPosition = -1;
+        public int _userSelectedAnimPosition = -1;
 
         public REPLAY_STATE ReplayState = REPLAY_STATE.eEnded;
         int updateProcessingIndex = 0;
