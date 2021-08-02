@@ -362,6 +362,8 @@ namespace rgatCore
             ResourceSet attribComputeResourceSet = null;
             ResourceSetDescription velocity_rsrc_desc, pos_rsrc_desc, attr_rsrc_desc;
             GraphLayoutState layout = graph.LayoutState;
+            DeviceBuffer inputAttributes;
+            DeviceBuffer outputAttributes;
 
             if (graph.LayoutState.flip())
             {
@@ -378,6 +380,8 @@ namespace rgatCore
                 attr_rsrc_desc = new ResourceSetDescription(_nodeAttribComputeLayout,
                     _attribsParamsBuffer, layout.AttributesVRAM1, layout.EdgeConnectionIndexes,
                     layout.EdgeConnections, layout.AttributesVRAM2);
+                inputAttributes = layout.AttributesVRAM1;
+                outputAttributes = layout.AttributesVRAM2;
 
             }
 
@@ -396,6 +400,8 @@ namespace rgatCore
                 attr_rsrc_desc = new ResourceSetDescription(_nodeAttribComputeLayout,
                     _attribsParamsBuffer, layout.AttributesVRAM2, layout.EdgeConnectionIndexes,
                     layout.EdgeConnections, layout.AttributesVRAM1);
+                inputAttributes = layout.AttributesVRAM2;
+                outputAttributes = layout.AttributesVRAM1;
             }
 
             ResourceSet velocityComputeResourceSet = _factory.CreateResourceSet(velocity_rsrc_desc);
@@ -425,7 +431,7 @@ namespace rgatCore
             if (GlobalConfig.LayoutAttribsActive)
             {
                 attribComputeResourceSet = _factory.CreateResourceSet(attr_rsrc_desc);
-                RenderNodeAttribs(cl, graph, layout.AttributesVRAM1, attribComputeResourceSet, delta, mouseoverNodeID, useAnimAttribs);
+                RenderNodeAttribs(cl, graph, inputAttributes, attribComputeResourceSet, delta, mouseoverNodeID, useAnimAttribs);
             }
 
 
@@ -433,6 +439,9 @@ namespace rgatCore
 
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
+
+            //DebugPrintOutputFloatBuffer(inputAttributes, "AttsIn", 64);
+            //DebugPrintOutputFloatBuffer(outputAttributes, "AttsOut", 64);
 
             if (graph.LayoutState.ActivatingPreset && graph.LayoutState.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
             {

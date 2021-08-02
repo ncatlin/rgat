@@ -655,7 +655,7 @@ namespace rgatCore
             _VRAMBuffers.Attributes1 = VeldridGraphBuffers.CreateFloatsDeviceBuffer(storedAttributes, _gd, $"RNA_AattBuf1_{dbgGraphDeleteMe.tid}");
             _VRAMBuffers.Attributes2 = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, _VRAMBuffers.Attributes1.SizeInBytes, _VRAMBuffers.Attributes1.Usage, 4, $"RNA_AattBuf2_{ dbgGraphDeleteMe.tid}");
 
-            _VRAMBuffers._flop = false; //process attribs buffer 1 first into buffer 2
+            _VRAMBuffers._flop = true; //process attribs buffer 1 first into buffer 2, saves on an extra copy
         }
 
 

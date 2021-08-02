@@ -40,12 +40,18 @@ int NodeIndexIsSelected(int neighbor){
 }
 
 
+
+    //x = diameter
+    //y = default alpha
+    //z = counter since last animation activity
+    //w = highlight info
+
+
 layout (local_size_x = 256) in;
 void main()	{
     uvec3 id = gl_GlobalInvocationID;
     uint index = id.x;
     vec4 selfAttrib = nodeAttrib[index];  // just using x and y right now
-
 
     // epoch time lookups
 
@@ -71,7 +77,7 @@ void main()	{
     {        
         //alpha is based on how long since last activated
         
-        if (selfAttrib.z > 0)
+        if (selfAttrib.z > 0) //an 'active' node
         {
             if (selfAttrib.z >= 2) //2+ are blocked/high cpu usage nodes 
             {
@@ -81,18 +87,12 @@ void main()	{
             {  
                 selfAttrib.y = selfAttrib.z;
                 selfAttrib.z -= params.delta;// * 7.0;
-                if (selfAttrib.x > 200.0)
-                    selfAttrib.x -= (selfAttrib.z * 7.0); //make animated nodes larger
+
+                selfAttrib.x = max(200, selfAttrib.x - (selfAttrib.z * 7.0)); //make animated nodes larger
+                
                 if (selfAttrib.z < 0.05) 
                     selfAttrib.z = 0;
             }
-              
-            
-
-        }
-        else
-        {
-        selfAttrib.y = 0;
         }
     }
 
@@ -163,19 +163,29 @@ void main()	{
         // we are in hover mode
         //first restore modified values to default
 
-        //slowly darken bright geometry to default alpha
-        if ( selfAttrib.y > alphaTarget){
-            selfAttrib.y -= params.delta * 2.5;
+        selfAttrib.w = 10;
+        if (selfAttrib.y != alphaTarget)
+        {
+            //slowly darken bright geometry to default alpha
+            if ( selfAttrib.y > (alphaTarget+0.01)){
+                selfAttrib.y =  max(selfAttrib.y - params.delta * 2.5, alphaTarget);
+            }
+
+            //slowly brighten dark geometry to default alpha
+            if ( selfAttrib.y < (alphaTarget-0.01)){
+                selfAttrib.y = min(selfAttrib.y + params.delta * 2.5, alphaTarget);
+            }
         }
 
-        //slowly brighten dark geometry to default alpha
-        if ( selfAttrib.y < alphaTarget){
-            selfAttrib.y += params.delta * 2.5;
-        }
 
         //quickly shrink geometry that has been inflated, unless highlighted or very recently animated
-        if ( selfAttrib.x > 200.0 && selfAttrib.w == 0 && selfAttrib.z <= AnimNodeDeflateThreshold){
+        if ( selfAttrib.x > 200.0 && selfAttrib.w == 0 && selfAttrib.z <= AnimNodeDeflateThreshold)
+        {
             selfAttrib.x -= 4000.0 * params.delta;
+            if (selfAttrib.x < 200) 
+            {
+            selfAttrib.x = 200;
+            }
         }
 
         // if you are hovering over a real node
@@ -213,12 +223,6 @@ void main()	{
     */
     
     
-
-
-    //x = diameter
-    //y = default alpha
-    //z = counter since last animation activity
-    //w = highlight info
 
     resultData[index] = selfAttrib;
 }

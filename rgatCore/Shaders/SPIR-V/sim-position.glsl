@@ -12,7 +12,7 @@ See included licence: METASTACK ANALYTICS LICENSE
 /*
 to compile 
 
-C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\Users\nia\Source\Repos\rgatCore\rgatCore\Shaders\SPIR-V\sim-position.glsl -o sim-position.spv -S comp
+C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\Shaders\SPIR-V\sim-position.glsl -o sim-position.spv -S comp
 */
 
 #version 450

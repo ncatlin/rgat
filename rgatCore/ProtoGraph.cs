@@ -539,10 +539,15 @@ namespace rgatCore
                 Debug.Assert(arg.argIndex > currentIndex, "ProcessIncomingCallArguments() unexpected change of source");
                 if (BlocksFirstLastNodeList.Count <= (int)currentSourceBlock)
                     break;
-                uint callerNodeIdx = BlocksFirstLastNodeList[(int)currentSourceBlock].Item2;
-                currentIndex = arg.argIndex;
 
+
+                Tuple<uint, uint> blockIndexes = BlocksFirstLastNodeList[(int)currentSourceBlock];
+                if (blockIndexes == null) break;
+
+                uint callerNodeIdx = blockIndexes.Item2;
+                currentIndex = arg.argIndex; //uh
                 if (!arg.finalEntry) continue;
+
 
                 //each API call target can have multiple nodes in a thread, so we have to get the list of 
                 //every edge that has this extern as a target
@@ -649,7 +654,6 @@ namespace rgatCore
                     return rtn.thread_callers.TryGetValue(ThreadID, out callEdges);
                 }
             }
-
 
             callEdges = null;
             return false;

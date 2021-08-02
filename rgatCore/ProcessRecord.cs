@@ -989,12 +989,15 @@ namespace rgatCore
 
                     JArray threadsUsingInstruction = new JArray();
                     List<Tuple<uint, uint>> threadVerts = mutation.ThreadVerts;
-                    foreach (Tuple<uint, uint> thread_node in threadVerts)
+                    if (threadVerts != null)
                     {
-                        JArray threadNodeMappings = new JArray();
-                        threadNodeMappings.Add(thread_node.Item1);
-                        threadNodeMappings.Add(thread_node.Item2);
-                        threadsUsingInstruction.Add(threadNodeMappings);
+                        foreach (Tuple<uint, uint> thread_node in threadVerts)
+                        {
+                            JArray threadNodeMappings = new JArray();
+                            threadNodeMappings.Add(thread_node.Item1);
+                            threadNodeMappings.Add(thread_node.Item2);
+                            threadsUsingInstruction.Add(threadNodeMappings);
+                        }
                     }
                     mutationData.Add(threadsUsingInstruction);
                     opcodesMutationsList.Add(mutationData);

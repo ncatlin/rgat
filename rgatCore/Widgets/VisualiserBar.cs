@@ -221,15 +221,15 @@ namespace rgatCore.Widgets
             _newHeight = height;
 
 
-            //_rsrcs.Dispose();
-
             Vector2 pos = ImGui.GetCursorScreenPos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList();
             IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, _outputTexture, "VisualiserBar");
+            
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: pos,
                 p_max: new Vector2(pos.X + _outputTexture.Width, pos.Y + _outputTexture.Height),
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
-
+            
+            
             MODULE_LABEL[] labels = null;
             lock (_lock)
             {
@@ -240,6 +240,7 @@ namespace rgatCore.Widgets
             {
                 imdp.AddText(pos + new Vector2(mtxt.startX, 30), 0xffffffff, "start");
             }
+            
 
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + _height);
         }

@@ -48,7 +48,7 @@ namespace rgatCore
         //this was added later, might be worth ditching other stuff in exchange
         public byte[] opcodes;
         public int numbytes;
-        public List<Tuple<uint, uint>> ThreadVerts => threadvertIdx.ToList();
+        public List<Tuple<uint, uint>> ThreadVerts => threadvertIdx?.ToList();
 
         public bool GetThreadVert(uint TID, out uint vert)
         {

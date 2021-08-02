@@ -151,20 +151,12 @@ namespace rgatCore
 
             ReplayState = REPLAY_STATE.eStopped;
             Logging.RecordLogEvent("Animation reset to stopped state");
-            //animnodesdata.release_col_write();
-
-
         }
 
         public float GetAnimationPercent()
         {
             if (InternalProtoGraph.SavedAnimationData.Count == 0) return 0;
             return (float)((float)AnimationIndex / (float)InternalProtoGraph.SavedAnimationData.Count);
-        }
-
-        void apply_drag(double dx, double dy)
-        {
-            Console.WriteLine("todo apply drag");
         }
 
 

@@ -1056,7 +1056,7 @@ namespace rgatCore
             }
             else
             {
-                stringVerts = RenderHighlightedNodeText(captions, _mouseoverNodeID);
+               stringVerts = RenderHighlightedNodeText(captions, _mouseoverNodeID);
             }
 
             MaintainCaptions(stringVerts);
@@ -1117,7 +1117,7 @@ namespace rgatCore
             }
 
 
-            //draw text
+            //draw text            
             if (graph.Opt_TextEnabled)
             {
                 cl.SetViewport(0, new Viewport(0, 0, WidgetSize.X, WidgetSize.Y, -2200, 1000));
@@ -1130,11 +1130,7 @@ namespace rgatCore
 
                 cl.DrawIndexed(indexCount: (uint)stringVerts.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             }
-
-            if (_clientState.VideoRecorder.Recording)
-            {
-                //CreateCaptureFrame(_outputTexture1, cl);
-            }
+           
 
             //update the picking framebuffer 
             //todo - not every frame?
