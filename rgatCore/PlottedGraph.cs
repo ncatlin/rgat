@@ -604,6 +604,7 @@ namespace rgatCore
                     node = addrnodes[^1];
             }
 
+            //point the active node indicator line to a random busy-region instruction
             lock (animationLock)
             {
                 if (_LingeringActiveNodes.Count > 0)
@@ -1509,9 +1510,15 @@ namespace rgatCore
                 }
 
                 if (brightTime == Anim_Constants.KEEP_BRIGHT)
-                    AddContinuousActiveNode(nodeIdx);
+                {
+
+                    AddContinuousActiveNode(nodeIdx); 
+
+                }
                 else
+                {
                     AddPulseActiveNode(nodeIdx);
+                }
 
                 _lastAnimatedVert = nodeIdx;
 
@@ -1576,8 +1583,7 @@ namespace rgatCore
 
             if (entry.entryType == eTraceUpdateType.eAnimReinstrument)
             {
-                Logging.RecordLogEvent($"Live update: eAnimReinstrument.",
-                    Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"Live update: eAnimReinstrument.", Logging.LogFilterType.BulkDebugLogFile);
                 end_unchained(entry);
                 ++updateProcessingIndex;
                 return true;
@@ -1644,14 +1650,18 @@ namespace rgatCore
             if (targetAnimIndex >= InternalProtoGraph.SavedAnimationData.Count)
                 targetAnimIndex = InternalProtoGraph.SavedAnimationData.Count - 1;
 
-
             for (; AnimationIndex < targetAnimIndex; AnimationIndex += stepSize)
             {
                 Console.WriteLine($"Anim Step {AnimationIndex}");
                 int actualIndex = (int)Math.Floor(AnimationIndex);
+
+
                 if (actualIndex > _lastReplayedIndex)
                 {
-                    process_replay_update(actualIndex);
+                    for (var innerReplayIdx = _lastReplayedIndex +1; innerReplayIdx < actualIndex+1; innerReplayIdx += 1)
+                    {
+                        process_replay_update(innerReplayIdx);
+                    }
                     _lastReplayedIndex = actualIndex;
                 }
             }
@@ -1696,6 +1706,11 @@ namespace rgatCore
                     unchainedWaitFrames = maxWait;
 
                 if (verbose) Console.WriteLine($"\tUpdate eAnimUnchainedResults block 0x{entry.blockAddr:x} ");
+
+
+                remove_unchained_from_animation();
+
+
                 return;
             }
 
@@ -1703,25 +1718,12 @@ namespace rgatCore
             if (entry.entryType == eTraceUpdateType.eAnimReinstrument)
             {
                 if (verbose) Console.WriteLine($"\tUpdate eAnimReinstrument");
-                if (unchainedWaitFrames-- > 1) return;
+                //if (unchainedWaitFrames-- > 1) return;
 
                 remove_unchained_from_animation();
                 end_unchained(entry);
                 return;
             }
-
-            /*
-            if (entry.entryType == eTraceUpdateType.eAnimLoopLast)
-            {
-                if (verbose) Console.WriteLine($"\tUpdate eAnimLoopLast");
-                if (unchainedWaitFrames-- > 1) return;
-
-                remove_unchained_from_animation();
-                currentUnchainedBlocks.Clear();
-                animBuildingLoop = false;
-                return;
-            }*/
-
 
 
             int brightTime;
@@ -1735,24 +1737,6 @@ namespace rgatCore
                 brightTime = GlobalConfig.animationLingerFrames;
             }
 
-            /*
-            if (entry.entryType == eTraceUpdateType.eAnimLoop)
-            {
-                if (verbose) Console.WriteLine($"\tUpdate eAnimLoop");
-                ProcessRecord piddata = InternalProtoGraph.ProcessData;
-                List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockID);
-
-                if (block == null)
-                    unchainedWaitFrames += calculate_wait_frames(entry.count); //external
-                else
-                    unchainedWaitFrames += calculate_wait_frames(entry.count * (ulong)block.Count);
-
-                uint maxWait = (uint)Math.Floor((float)maxWaitFrames / (float)stepSize);
-                if (unchainedWaitFrames > maxWait)
-                    unchainedWaitFrames = maxWait;
-
-                animBuildingLoop = true;
-            }*/
 
 
             if (!get_block_nodelist(entry.blockAddr, (long)entry.blockID, out List<uint> nodeIDList) &&
@@ -1767,9 +1751,8 @@ namespace rgatCore
                 }
             }
 
-
+            Console.WriteLine($"Trace type {entry.entryType} brightening nodes {String.Join(",", nodeIDList.Select(x => x.ToString()))} for time {brightTime}");
             //add all the nodes+edges in the block to the brightening list
-            Console.WriteLine($"Brightening nodelist with {nodeIDList.Count} for time {brightTime}");
             brighten_node_list(entry, brightTime, nodeIDList);
 
             //brighten edge to next unchained block
@@ -2034,7 +2017,7 @@ namespace rgatCore
                 lingerNodes = _LingeringActiveNodes.ToList();
                 lingerNodes.Add(_lastAnimatedVert);//make the most recent node pulse, useful for blocking api calls
                 deactivatedNodes = _DeactivatedNodes.ToArray();
-                _DeactivatedNodes = Array.Empty<uint>();
+                _DeactivatedNodes.Clear();// = Array.Empty<uint>();
 
             }
             return res;
@@ -2096,7 +2079,6 @@ namespace rgatCore
 
         void RemoveContinuousActiveNode(uint nodeIdx)
         {
-            Console.WriteLine($"Purgin node {nodeIdx} from lingering");
             lock (animationLock)
             {
                 _LingeringActiveNodes.RemoveAll(n => n == nodeIdx);
@@ -2107,7 +2089,7 @@ namespace rgatCore
         {
             lock (animationLock)
             {
-                _DeactivatedNodes = _LingeringActiveNodes.ToArray();
+                _DeactivatedNodes.AddRange(_LingeringActiveNodes);
                 _LingeringActiveNodes.Clear();
                 _RisingSymbolsLingering.Clear();
             }
@@ -2119,7 +2101,7 @@ namespace rgatCore
             {
                 _PulseActiveNodes.Clear();
                 _LingeringActiveNodes.Clear();
-                _DeactivatedNodes = Array.Empty<uint>();
+                _DeactivatedNodes.Clear();
             }
         }
 
@@ -2127,9 +2109,7 @@ namespace rgatCore
         public bool SetLayout(LayoutStyles.Style newStyle, GraphicsDevice gd)
         {
             if (newStyle == ActiveLayoutStyle) return false;
-            //LayoutState.UploadStateToVRAM(newStyle, gd);
             LayoutState.TriggerLayoutChange(newStyle);
-            //ActiveLayoutStyle = newStyle;
             return true;
         }
 
@@ -2395,7 +2375,7 @@ namespace rgatCore
         List<Tuple<uint, string>> _RisingSymbols = new List<Tuple<uint, string>>();
         List<Tuple<uint, string>> _RisingSymbolsLingering = new List<Tuple<uint, string>>();
 
-        uint[] _DeactivatedNodes = Array.Empty<uint>();
+        List<uint> _DeactivatedNodes = new List<uint>();// Array.Empty<uint>();
         private readonly object animationLock = new object();
 
 

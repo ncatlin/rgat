@@ -153,7 +153,7 @@ void main()	{
 
     }
 
-    float alphaTarget = (params.isAnimated) ? 0.2 : 1.0;
+    float alphaTarget = (params.isAnimated) ? 0 :1; //0.2 : 1.0;
 
     /*
     This section deals with mouseover hover/selection

@@ -441,7 +441,7 @@ namespace rgatCore
             _gd.WaitForIdle();
 
             //DebugPrintOutputFloatBuffer(inputAttributes, "AttsIn", 64);
-            //DebugPrintOutputFloatBuffer(outputAttributes, "AttsOut", 64);
+            //DebugPrintOutputFloatBuffer(outputAttributes, "AttsOut", 256);
 
             if (graph.LayoutState.ActivatingPreset && graph.LayoutState.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
             {
@@ -622,7 +622,7 @@ namespace rgatCore
 
             cl.UpdateBuffer(_attribsParamsBuffer, 0, parms);
 
-
+            //todo - merge contiguous regions to reduce command count
             float[] valArray = new float[3];
             foreach (uint idx in pulseNodes)
             {
