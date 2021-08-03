@@ -1524,9 +1524,10 @@ namespace rgatCore
                         ImGui.TableSetupColumn("Recent Binaries");
                         ImGui.TableSetupScrollFreeze(0, 1);
                         ImGui.TableHeadersRow();
-
-                        foreach (var entry in recentBins)
+                        int bincount = recentBins.Count;
+                        for (var bini = 0; bini < bincount; bini++)
                         {
+                            var entry = recentBins[bini];
                             ImGui.TableNextRow();
                             ImGui.TableNextColumn();
                             if (DrawRecentPathEntry(entry, false))

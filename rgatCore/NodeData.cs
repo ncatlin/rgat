@@ -389,7 +389,7 @@ namespace rgatCore
 
             if (lastCall.argList.Count > 0 && lastCall.argList[^1].Item1 == -1)
             {
-                result.Add(new Tuple<string, WritableRgbaFloat>(") = ", colour1));
+                result.Add(new Tuple<string, WritableRgbaFloat>(") =", colour1));
                 result.Add(new Tuple<string, WritableRgbaFloat>(lastCall.argList[^1].Item2, colour2));
             }
             else

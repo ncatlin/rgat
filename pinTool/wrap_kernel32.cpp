@@ -4,16 +4,17 @@
 #include "modules.h"
 #include "windows_include.h"
 
-VOID wraphead_WriteFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, DWORD bytesOutArg)
+
+VOID wraphead_CloseHandle(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD handle)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
-
-	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,%ld\x01", 2, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, bytesOutArg);
+	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, handle);
 	fflush(threaddata->threadpipeFILE);
 }
 
-VOID wraphead_ReadFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, DWORD bytesInArg)
+
+VOID wraphead_ReadFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD bytesInArg)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
@@ -25,17 +26,8 @@ VOID wraphead_ReadFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funca
 #endif
 }
 
-VOID wraphead_CreateFileW(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, const wchar_t* pathstring)
-{
-	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
-	if (threaddata->lastBlock->blockID == -1) return;
-	char argbuf[PATH_MAX];
-	wcstombs(argbuf, pathstring, PATH_MAX);
-	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, argbuf);
-	fflush(threaddata->threadpipeFILE);
-}
 
-VOID replacement_CreateFileW(
+WINDOWS::HANDLE replacement_CreateFileW(
 	CONTEXT* ctx, THREADID threadid, UINT32 tlskey, AFUNPTR funcaddr,
 	WINDOWS::LPCWSTR lpFileName,
 	DWORD dwDesiredAccess,
@@ -46,6 +38,9 @@ VOID replacement_CreateFileW(
 	WINDOWS::HANDLE hTemplateFile)
 {
 	WINDOWS::HANDLE retval;
+
+	printf("CreatefileW calling path %s, access 0x%lx, share: %lx, atts: 0x%lx, creareadis: 0x%lx, flags: 0x%lx, templ: 0x%lx\n", lpFileName, dwDesiredAccess,
+		dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 
 	PIN_CallApplicationFunction(ctx, threadid, CALLINGSTD_STDCALL, funcaddr,
 		NULL,
@@ -59,17 +54,20 @@ VOID replacement_CreateFileW(
 		PIN_PARG(WINDOWS::HANDLE), hTemplateFile,
 		PIN_PARG_END());
 
+
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
-	if (threaddata->lastBlock->blockID == -1) return;
+	if (threaddata->lastBlock->blockID == -1) return retval;
 	char argbuf[PATH_MAX];
 	wcstombs(argbuf, lpFileName, PATH_MAX);
 	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, argbuf);
 	fprintf(threaddata->threadpipeFILE, RETVAL_MARKER",%lx,%lx,%lx\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, retval);
 	fflush(threaddata->threadpipeFILE);
+
+	return retval;
 }
 
 
-VOID replacement_CreateFileA(
+WINDOWS::HANDLE replacement_CreateFileA(
 	CONTEXT* ctx, THREADID threadid, UINT32 tlskey, AFUNPTR funcaddr,
 	WINDOWS::LPCTSTR  lpFileName,
 	DWORD dwDesiredAccess,
@@ -80,7 +78,7 @@ VOID replacement_CreateFileA(
 	WINDOWS::HANDLE hTemplateFile)
 {
 	WINDOWS::HANDLE retval;
-
+	printf("CreatefileA calling\n");
 	PIN_CallApplicationFunction(ctx, threadid, CALLINGSTD_STDCALL, funcaddr,
 		NULL,
 		PIN_PARG(WINDOWS::HANDLE), &retval,
@@ -94,13 +92,14 @@ VOID replacement_CreateFileA(
 		PIN_PARG_END());
 
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
-	if (threaddata->lastBlock->blockID == -1) return;
+	if (threaddata->lastBlock->blockID == -1) return retval;
 	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpFileName);
 	fprintf(threaddata->threadpipeFILE, RETVAL_MARKER",%lx,%lx,%lx\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, retval);
 	fflush(threaddata->threadpipeFILE);
+	return retval;
 }
 
-VOID wraptail_dword_return(LEVEL_VM::THREADID threadid, UINT32 tlskey, DWORD return_value)//, ADDRINT funcaddr, ADDRINT returnaddr, DWORD return_value)
+VOID wraptail_dword_return(LEVEL_VM::THREADID threadid, UINT32 tlskey, DWORD return_value)//, ADDRINT funcaddr, DWORD return_value)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	//if (threaddata->lastBlock->blockID == -1) return;
@@ -111,7 +110,7 @@ VOID wraptail_dword_return(LEVEL_VM::THREADID threadid, UINT32 tlskey, DWORD ret
 }
 
 
-VOID wraphead_GetStdHandle(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, DWORD arg)
+VOID wraphead_GetStdHandle(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD arg)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
@@ -135,27 +134,8 @@ VOID wraphead_GetStdHandle(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT f
 	fflush(threaddata->threadpipeFILE);
 }
 
-VOID wraphead_GetModuleHandleA(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, char* modulestring)
-{
-	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
-	if (threaddata->lastBlock->blockID == -1) return;
 
-	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, modulestring);
-	fflush(threaddata->threadpipeFILE);
-}
-
-VOID wraphead_GetModuleHandleW(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, const wchar_t* modulewstring)
-{
-	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
-	if (threaddata->lastBlock->blockID == -1) return;
-
-	char argbuf[PATH_MAX];
-	wcstombs(argbuf, modulewstring, PATH_MAX);
-	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, argbuf);
-	fflush(threaddata->threadpipeFILE);
-}
-
-VOID wraphead_LoadlibraryW(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, const wchar_t* modulewstring)
+VOID wraphead_LoadlibraryW(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, const wchar_t* modulewstring)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
@@ -165,7 +145,9 @@ VOID wraphead_LoadlibraryW(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT f
 	fflush(threaddata->threadpipeFILE);
 }
 
-VOID wraphead_LoadlibraryA(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, const char* modulestring)
+
+
+VOID wraphead_LoadlibraryA(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, const char* modulestring)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
@@ -174,9 +156,43 @@ VOID wraphead_LoadlibraryA(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT f
 }
 
 
+VOID wraphead_GetModuleHandleA(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, const char* modulestring)
+{
+	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
+	if (threaddata->lastBlock->blockID == -1) return;
+	if (modulestring == NULL)
+	{
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, "NULL");
+	}
+	else 
+	{
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, modulestring);
+	}
+	fflush(threaddata->threadpipeFILE);
+}
+
+VOID wraphead_GetModuleHandleW(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, const wchar_t* modulewstring)
+{
+	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
+	if (threaddata->lastBlock->blockID == -1) return;
+
+	if (modulewstring == NULL)
+	{
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, "NULL");
+	}
+	else
+	{
+		char argbuf[PATH_MAX];
+		wcstombs(argbuf, modulewstring, PATH_MAX);
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, argbuf);
+	}
+	fflush(threaddata->threadpipeFILE);
+}
 
 
-VOID wraphead_GetProcAddress(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, char* procstring)
+
+
+VOID wraphead_GetProcAddress(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, char* procstring)
 {
 
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
@@ -193,7 +209,7 @@ VOID wraphead_GetProcAddress(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT
 	fflush(threaddata->threadpipeFILE);
 }
 
-VOID wraphead_Sleep(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, DWORD msarg)
+VOID wraphead_Sleep(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD msarg)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
@@ -227,7 +243,7 @@ static char* protectionToString(DWORD protect)
 	}
 }
 
-VOID wraphead_VirtualProtect(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, DWORD newprotectArg)
+VOID wraphead_VirtualProtect(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD newprotectArg)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
@@ -236,7 +252,7 @@ VOID wraphead_VirtualProtect(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT
 	fflush(threaddata->threadpipeFILE);
 }
 
-VOID wraphead_VirtualProtectEx(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, DWORD newprotectArg)
+VOID wraphead_VirtualProtectEx(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD newprotectArg)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
@@ -245,7 +261,7 @@ VOID wraphead_VirtualProtectEx(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRI
 	fflush(threaddata->threadpipeFILE);
 }
 
-VOID wraphead_VirtualAlloc(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, DWORD sizearg, DWORD newprotectArg)
+VOID wraphead_VirtualAlloc(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD sizearg, DWORD newprotectArg)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
@@ -255,7 +271,7 @@ VOID wraphead_VirtualAlloc(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT f
 	fflush(threaddata->threadpipeFILE);
 }
 
-VOID wraphead_VirtualAllocEx(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, ADDRINT returnaddr, DWORD sizearg, DWORD newprotectArg)
+VOID wraphead_VirtualAllocEx(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD sizearg, DWORD newprotectArg)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
@@ -266,14 +282,35 @@ VOID wraphead_VirtualAllocEx(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT
 }
 
 
+
+VOID wraphead_WriteFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD bytesOutArg)
+{
+	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
+	if (threaddata->lastBlock->blockID == -1) return;
+
+	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,%ld\x01", 2, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, bytesOutArg);
+	fflush(threaddata->threadpipeFILE);
+}
+
 void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 {
-	RTN rtn = RTN_FindByName(img, "GetProcAddress");
+	RTN rtn = RTN_FindByName(img, "CloseHandle");
+	if (RTN_Valid(rtn))
+	{
+		RTN_Open(rtn);
+		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_CloseHandle,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
+			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+			IARG_END);
+		RTN_Close(rtn);
+	}
+
+	rtn = RTN_FindByName(img, "GetProcAddress");
 	if (RTN_Valid(rtn))
 	{
 		RTN_Open(rtn);
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_GetProcAddress,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
 			IARG_END);
 		RTN_Close(rtn);
@@ -284,7 +321,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 	{
 		RTN_Open(rtn);
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_GetModuleHandleA,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 			IARG_END);
 		RTN_Close(rtn);
@@ -296,7 +333,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 		RTN_Open(rtn);
 
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_GetModuleHandleW,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 			IARG_END);
 
@@ -308,7 +345,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 	{
 		RTN_Open(rtn);
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_LoadlibraryA,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 			IARG_END);
 		RTN_Close(rtn);
@@ -320,7 +357,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 		RTN_Open(rtn);
 
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_LoadlibraryW,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 			IARG_END);
 
@@ -335,7 +372,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 		RTN_Open(rtn);
 
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_GetStdHandle,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 			IARG_END);
 
@@ -348,10 +385,10 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 		RTN_Open(rtn);
 
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_ReadFile,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
 			IARG_END);
-		//RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)test1, IARG_THREAD_ID, IARG_UINT32, TLS_KEY, 13337, IARG_END);// IARG_INST_PTR, IARG_RETURN_IP, IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
+		//RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)test1, IARG_THREAD_ID, IARG_UINT32, TLS_KEY, 13337, IARG_END);// IARG_INST_PTR,  IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
 
 
 		RTN_Close(rtn);
@@ -360,14 +397,14 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 	rtn = RTN_FindByName(img, "WriteFile");
 	if (RTN_Valid(rtn))
 	{
-		
+
 		RTN_Open(rtn);
-		
+
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_WriteFile,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
 			IARG_END);
-		//RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)test1, IARG_THREAD_ID, IARG_UINT32, TLS_KEY, 13357, IARG_END);// IARG_INST_PTR, IARG_RETURN_IP, IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
+		//RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)test1, IARG_THREAD_ID, IARG_UINT32, TLS_KEY, 13357, IARG_END);// IARG_INST_PTR,  IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
 
 		RTN_Close(rtn);
 	}
@@ -442,13 +479,15 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 
 
 
+
+
 	rtn = RTN_FindByName(img, "Sleep");
 	if (RTN_Valid(rtn))
 	{
 		RTN_Open(rtn);
 
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_Sleep,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 			IARG_END);
 
@@ -461,7 +500,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 		RTN_Open(rtn);
 
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_VirtualProtect,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
 			IARG_END);
 
@@ -474,7 +513,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 		RTN_Open(rtn);
 
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_VirtualProtectEx,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
 			IARG_END);
 
@@ -487,7 +526,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 		RTN_Open(rtn);
 
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_VirtualAlloc,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
 			IARG_END);
@@ -501,7 +540,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 		RTN_Open(rtn);
 
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_VirtualAllocEx,
-			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, IARG_RETURN_IP,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 4,
 			IARG_END);

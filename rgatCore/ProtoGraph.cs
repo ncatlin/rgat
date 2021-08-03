@@ -584,6 +584,8 @@ namespace rgatCore
                         for (var aI = 0; aI <= cacheI; aI++)
                         {
                             argStringsList.Add(new Tuple<int, string>(_unprocessedCallArguments[aI].argIndex, _unprocessedCallArguments[aI].argstring));
+
+                            completecount++;
                         }
 
                         SYMBOLCALLDATA callRecord;
@@ -597,7 +599,6 @@ namespace rgatCore
                         // not worth faffing around with locks though - maybe just re-read at tracereader thread termination
                         functionNode.newArgsRecorded = true;
                     }
-                    completecount++;
                     sequenceProcessed = true;
                     break;
                 }

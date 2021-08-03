@@ -20,20 +20,24 @@ int main()
         szTempFileName);  // buffer for name 
 
     //create + write    
-    HANDLE  hFile = CreateFileW(szTempFileName,   GENERIC_WRITE, FILE_SHARE_READ, NULL,  OPEN_EXISTING ,  FILE_ATTRIBUTE_NORMAL, NULL);
+    bool resultbool = false;
+    HANDLE  hFile = CreateFileW(szTempFileName,   GENERIC_WRITE, 0, NULL,  OPEN_EXISTING ,  FILE_ATTRIBUTE_NORMAL, NULL);
     printf("CreateW err: %d\n", GetLastError());
 
     char testdata[] = "testdata";
     DWORD written;
-    WriteFile(hFile, testdata, 8, &written, NULL);
+    resultbool = WriteFile(hFile, testdata, 8, &written, NULL);
+    printf("Write result: %d\n", resultbool);
     CloseHandle(hFile);
 
+    // FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE
     //open + read wide
-    HANDLE  hFile2 = CreateFileW(szTempFileName, GENERIC_READ, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE  hFile2 = CreateFileW(szTempFileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     printf("CreateW err: %d\n", GetLastError());
     char testdata2[5];
     DWORD read;
-    ReadFile(hFile2, testdata2, 4, &read, NULL);
+    resultbool = ReadFile(hFile2, testdata2, 4, &read, NULL);
+    printf("ReadFile result1: %d\n", resultbool);
     testdata2[4] = 0;
     CloseHandle(hFile2);    
     
@@ -44,7 +48,8 @@ int main()
     wcstombs_s(&conv, mbspath, szTempFileName, sizeof(szTempFileName) * 2);
     hFile2 = CreateFileA(mbspath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); //FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE
     printf("CreateA err: %d\n", GetLastError());
-    ReadFile(hFile2, testdata2, 4, &read, NULL);
+    resultbool = ReadFile(hFile2, testdata2, 4, &read, NULL);
+    printf("ReadFile result1: %d\n", resultbool);
     testdata2[4] = 0;
     CloseHandle(hFile2);
 

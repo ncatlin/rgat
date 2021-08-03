@@ -24,6 +24,7 @@ namespace rgatCore
             { "ws2_32.dll" , APIModule.WS32 }
         };
 
+
         static Dictionary<APIModule, Dictionary<string, Logging.LogFilterType>> _configuredSymbols = new Dictionary<APIModule, Dictionary<string, Logging.LogFilterType>>()
         {
             {
@@ -53,8 +54,46 @@ namespace rgatCore
             {
                 APIModule.Kernel32,
                 new Dictionary<string, Logging.LogFilterType>() {
-                    { "writefile", Logging.LogFilterType.APIFile},
-                    { "exitprocess", Logging.LogFilterType.APIProcess}
+                    { "CloseHandle", Logging.LogFilterType.APIFile},
+                    { "CreateDirectoryA", Logging.LogFilterType.APIFile},
+                    { "CreateDirectoryW", Logging.LogFilterType.APIFile},
+                    { "CreateDirectoryExA", Logging.LogFilterType.APIFile},
+                    { "CreateDirectoryExW", Logging.LogFilterType.APIFile},
+                    { "CreateDirectoryTransactedA", Logging.LogFilterType.APIFile},
+                    { "CreateDirectoryTransactedW", Logging.LogFilterType.APIFile},
+                    { "CreateFileA", Logging.LogFilterType.APIFile},
+                    { "CreateFileW", Logging.LogFilterType.APIFile},
+                    { "CreateFile2", Logging.LogFilterType.APIFile},
+                    { "CreateProcessA", Logging.LogFilterType.APIProcess},
+                    { "CreateProcessW", Logging.LogFilterType.APIProcess},
+                    { "CreateThread", Logging.LogFilterType.APIFile},
+                    { "ExitProcess", Logging.LogFilterType.APIProcess},
+                    { "ExitThread", Logging.LogFilterType.APIProcess},
+                    { "FindFirstFileA", Logging.LogFilterType.APIFile},
+                    { "FindFirstFileExA", Logging.LogFilterType.APIFile},
+                    { "FindFirstFileW", Logging.LogFilterType.APIFile},
+                    { "FindFirstFileExW", Logging.LogFilterType.APIFile},
+                    { "DeleteFileA", Logging.LogFilterType.APIFile},
+                    { "DeleteFileW", Logging.LogFilterType.APIFile},
+                    { "GetModuleHandleA", Logging.LogFilterType.APIProcess},
+                    { "GetModuleHandleW", Logging.LogFilterType.APIProcess},
+                    { "GetTempPathA", Logging.LogFilterType.APIFile},
+                    { "GetTempPathW", Logging.LogFilterType.APIFile},
+                    { "GetTempFileNameA", Logging.LogFilterType.APIFile},
+                    { "GetTempFileNameW", Logging.LogFilterType.APIFile},
+                    { "OpenProcess", Logging.LogFilterType.APIProcess},
+                    { "OpenThread", Logging.LogFilterType.APIProcess},
+                    { "ReadFile", Logging.LogFilterType.APIFile},
+                    { "ReadProcessMemory", Logging.LogFilterType.APIProcess},
+                    { "RegCreateKeyExA", Logging.LogFilterType.APIReg},
+                    { "RegCreateKeyExW", Logging.LogFilterType.APIReg},
+                    { "RegDeleteKeyExA", Logging.LogFilterType.APIReg},
+                    { "RegDeleteKeyExW", Logging.LogFilterType.APIReg},
+                    { "RegDeleteValueA", Logging.LogFilterType.APIReg},
+                    { "RegDeleteValueW", Logging.LogFilterType.APIReg},
+                    { "ResumeThread", Logging.LogFilterType.APIProcess},
+                    { "WriteFile", Logging.LogFilterType.APIFile},
+                    { "WriteProcessMemory", Logging.LogFilterType.APIProcess}
                 }
             },
             {
@@ -112,7 +151,6 @@ namespace rgatCore
 
         public static Logging.LogFilterType ResolveAPI(APIModule modenum, string symbolname)
         {
-            symbolname = symbolname.ToLower();
             if (_configuredSymbols[modenum].TryGetValue(symbolname, out Logging.LogFilterType filterType)) return filterType;
 
             //some libraries are specific enough that pretty much all of the offerings fall in a single category
