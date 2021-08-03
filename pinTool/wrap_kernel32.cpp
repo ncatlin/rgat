@@ -28,7 +28,7 @@ VOID wraphead_ReadFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funca
 
 
 WINDOWS::HANDLE replacement_CreateFileW(
-	CONTEXT* ctx, THREADID threadid, UINT32 tlskey, AFUNPTR funcaddr,
+	LEVEL_PINCLIENT::CONTEXT* ctx, THREADID threadid, UINT32 tlskey, AFUNPTR funcaddr,
 	WINDOWS::LPCWSTR lpFileName,
 	DWORD dwDesiredAccess,
 	DWORD dwShareMode,
@@ -38,12 +38,8 @@ WINDOWS::HANDLE replacement_CreateFileW(
 	WINDOWS::HANDLE hTemplateFile)
 {
 	WINDOWS::HANDLE retval;
-
-	printf("CreatefileW calling path %s, access 0x%lx, share: %lx, atts: 0x%lx, creareadis: 0x%lx, flags: 0x%lx, templ: 0x%lx\n", lpFileName, dwDesiredAccess,
-		dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-
-	PIN_CallApplicationFunction(ctx, threadid, CALLINGSTD_STDCALL, funcaddr,
-		NULL,
+	
+	PIN_CallApplicationFunction(ctx, threadid, CALLINGSTD_STDCALL, funcaddr, NULL,
 		PIN_PARG(WINDOWS::HANDLE), &retval,
 		PIN_PARG(WINDOWS::LPCWSTR), lpFileName,
 		PIN_PARG(DWORD), dwDesiredAccess,
@@ -56,19 +52,20 @@ WINDOWS::HANDLE replacement_CreateFileW(
 
 
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
-	if (threaddata->lastBlock->blockID == -1) return retval;
-	char argbuf[PATH_MAX];
-	wcstombs(argbuf, lpFileName, PATH_MAX);
-	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, argbuf);
-	fprintf(threaddata->threadpipeFILE, RETVAL_MARKER",%lx,%lx,%lx\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, retval);
-	fflush(threaddata->threadpipeFILE);
-
+	if (threaddata->lastBlock->blockID != -1)
+	{
+		char argbuf[PATH_MAX];
+		wcstombs(argbuf, lpFileName, PATH_MAX);
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, argbuf);
+		fprintf(threaddata->threadpipeFILE, RETVAL_MARKER",%lx,%lx,%lx\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, retval);
+		fflush(threaddata->threadpipeFILE);
+	}
 	return retval;
 }
 
 
 WINDOWS::HANDLE replacement_CreateFileA(
-	CONTEXT* ctx, THREADID threadid, UINT32 tlskey, AFUNPTR funcaddr,
+	 LEVEL_PINCLIENT::CONTEXT* ctx, THREADID threadid, UINT32 tlskey, AFUNPTR funcaddr,
 	WINDOWS::LPCTSTR  lpFileName,
 	DWORD dwDesiredAccess,
 	DWORD dwShareMode,
@@ -78,9 +75,7 @@ WINDOWS::HANDLE replacement_CreateFileA(
 	WINDOWS::HANDLE hTemplateFile)
 {
 	WINDOWS::HANDLE retval;
-	printf("CreatefileA calling\n");
-	PIN_CallApplicationFunction(ctx, threadid, CALLINGSTD_STDCALL, funcaddr,
-		NULL,
+	PIN_CallApplicationFunction(ctx, threadid, CALLINGSTD_STDCALL, funcaddr, NULL,
 		PIN_PARG(WINDOWS::HANDLE), &retval,
 		PIN_PARG(WINDOWS::LPCTSTR), lpFileName,
 		PIN_PARG(DWORD), dwDesiredAccess,
@@ -92,10 +87,12 @@ WINDOWS::HANDLE replacement_CreateFileA(
 		PIN_PARG_END());
 
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
-	if (threaddata->lastBlock->blockID == -1) return retval;
-	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpFileName);
-	fprintf(threaddata->threadpipeFILE, RETVAL_MARKER",%lx,%lx,%lx\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, retval);
-	fflush(threaddata->threadpipeFILE);
+	if (threaddata->lastBlock->blockID != -1)
+	{
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpFileName);
+		fprintf(threaddata->threadpipeFILE, RETVAL_MARKER",%lx,%lx,%lx\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, retval);
+		fflush(threaddata->threadpipeFILE);
+	}
 	return retval;
 }
 
@@ -476,8 +473,6 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 		PROTO_Free(proto);
 
 	}
-
-
 
 
 

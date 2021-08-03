@@ -108,6 +108,7 @@ namespace rgatCore.Widgets
 
         void CreateTextures(float width, float height)
         {
+            Console.WriteLine("VisBarCreateTex Start");
             _width = Math.Max(50, width);
             _height = Math.Max(50, height);
             VeldridGraphBuffers.DoDispose(_outputTexture);
@@ -115,6 +116,7 @@ namespace rgatCore.Widgets
             _outputTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_width, (uint)_height, 1, 1,
                 PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
             _outputFramebuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
+            Console.WriteLine("VisBarCreateTex end");
         }
 
         void MaintainBuffers()

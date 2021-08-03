@@ -1,182 +1,236 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using Newtonsoft.Json.Linq;
 
 namespace rgatCore
 {
     public class WinAPIDetails
     {
-        public enum APIModule { Advapi32, Crypt32, DHCPcsvc, DnsAPI, Kernel32, MSVCRT, NTDLL, UCRT, UrlMon, WS32, Wininet, WinHTTP, Other }
-
-        //these two data structures are probably better off loaded from disk or a resource, so leaving them in an amenable format
-        static Dictionary<string, APIModule> _configuredModules = new Dictionary<string, APIModule>()
+        public static bool Loaded { get; private set; }
+        public static void Load(string datapath)
         {
-            { "advapi32.dll" , APIModule.Advapi32 },
-            { "crypt32.dll" , APIModule.Crypt32 },
-            { "dhcpcsvc.dll" , APIModule.DHCPcsvc },
-            { "dnsapi.dll" , APIModule.DnsAPI },
-            { "kernel32.dll" , APIModule.Kernel32 },
-            { "msvcrt.dll" , APIModule.MSVCRT },
-            { "ntdll.dll" , APIModule.NTDLL },
-            { "ucrtbase.dll" , APIModule.UCRT },
-            { "ucrtbased.dll" , APIModule.UCRT },
-            { "urlmon.dll" , APIModule.UrlMon },
-            { "winhttp.dll" , APIModule.WinHTTP },
-            { "wininet.dll" , APIModule.Wininet },
-            { "ws2_32.dll" , APIModule.WS32 }
-        };
+            if (!File.Exists(datapath))
+            {
+                Logging.RecordLogEvent($"Windows API datafile {datapath} did not exist");
+                return;
+            }
 
+            StreamReader file;
+            try
+            {
+                file = File.OpenText(datapath);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Windows API datafile {datapath} could not be opened: {e.Message}");
+                return;
+            }
 
-        static Dictionary<APIModule, Dictionary<string, Logging.LogFilterType>> _configuredSymbols = new Dictionary<APIModule, Dictionary<string, Logging.LogFilterType>>()
-        {
-            {
-                APIModule.Advapi32,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "a_shaupdate", Logging.LogFilterType.APIAlgos}
-                }
-            },
-            {
-                APIModule.Crypt32,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "a_shaupdate", Logging.LogFilterType.APIAlgos}
-                }
-            },
-            {
-                APIModule.DHCPcsvc,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "a_shaupdate", Logging.LogFilterType.APIAlgos}
-                }
-            },
-            {
-                APIModule.DnsAPI,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "a_shaupdate", Logging.LogFilterType.APIAlgos}
-                }
-            },
-            {
-                APIModule.Kernel32,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "CloseHandle", Logging.LogFilterType.APIFile},
-                    { "CreateDirectoryA", Logging.LogFilterType.APIFile},
-                    { "CreateDirectoryW", Logging.LogFilterType.APIFile},
-                    { "CreateDirectoryExA", Logging.LogFilterType.APIFile},
-                    { "CreateDirectoryExW", Logging.LogFilterType.APIFile},
-                    { "CreateDirectoryTransactedA", Logging.LogFilterType.APIFile},
-                    { "CreateDirectoryTransactedW", Logging.LogFilterType.APIFile},
-                    { "CreateFileA", Logging.LogFilterType.APIFile},
-                    { "CreateFileW", Logging.LogFilterType.APIFile},
-                    { "CreateFile2", Logging.LogFilterType.APIFile},
-                    { "CreateProcessA", Logging.LogFilterType.APIProcess},
-                    { "CreateProcessW", Logging.LogFilterType.APIProcess},
-                    { "CreateThread", Logging.LogFilterType.APIFile},
-                    { "ExitProcess", Logging.LogFilterType.APIProcess},
-                    { "ExitThread", Logging.LogFilterType.APIProcess},
-                    { "FindFirstFileA", Logging.LogFilterType.APIFile},
-                    { "FindFirstFileExA", Logging.LogFilterType.APIFile},
-                    { "FindFirstFileW", Logging.LogFilterType.APIFile},
-                    { "FindFirstFileExW", Logging.LogFilterType.APIFile},
-                    { "DeleteFileA", Logging.LogFilterType.APIFile},
-                    { "DeleteFileW", Logging.LogFilterType.APIFile},
-                    { "GetModuleHandleA", Logging.LogFilterType.APIProcess},
-                    { "GetModuleHandleW", Logging.LogFilterType.APIProcess},
-                    { "GetTempPathA", Logging.LogFilterType.APIFile},
-                    { "GetTempPathW", Logging.LogFilterType.APIFile},
-                    { "GetTempFileNameA", Logging.LogFilterType.APIFile},
-                    { "GetTempFileNameW", Logging.LogFilterType.APIFile},
-                    { "OpenProcess", Logging.LogFilterType.APIProcess},
-                    { "OpenThread", Logging.LogFilterType.APIProcess},
-                    { "ReadFile", Logging.LogFilterType.APIFile},
-                    { "ReadProcessMemory", Logging.LogFilterType.APIProcess},
-                    { "RegCreateKeyExA", Logging.LogFilterType.APIReg},
-                    { "RegCreateKeyExW", Logging.LogFilterType.APIReg},
-                    { "RegDeleteKeyExA", Logging.LogFilterType.APIReg},
-                    { "RegDeleteKeyExW", Logging.LogFilterType.APIReg},
-                    { "RegDeleteValueA", Logging.LogFilterType.APIReg},
-                    { "RegDeleteValueW", Logging.LogFilterType.APIReg},
-                    { "ResumeThread", Logging.LogFilterType.APIProcess},
-                    { "WriteFile", Logging.LogFilterType.APIFile},
-                    { "WriteProcessMemory", Logging.LogFilterType.APIProcess}
-                }
-            },
-            {
-                APIModule.MSVCRT,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "a_shaupdate", Logging.LogFilterType.APIAlgos}
-                }
-            },
-            {
-                APIModule.NTDLL,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "a_shaupdate", Logging.LogFilterType.APIAlgos}
-                }
-            },
-            {
-                APIModule.UCRT,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "a_shaupdate", Logging.LogFilterType.APIAlgos}
-                }
-            },
-            {
-                APIModule.UrlMon,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "a_shaupdate", Logging.LogFilterType.APIAlgos}
-                }
-            },
-            {
-                APIModule.WinHTTP,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "a_shaupdate", Logging.LogFilterType.APIAlgos}
-                }
-            },
-            {
-                APIModule.Wininet,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "a_shaupdate", Logging.LogFilterType.APIAlgos}
-                }
-            },
-            {
-                APIModule.WS32,
-                new Dictionary<string, Logging.LogFilterType>() {
-                    { "a_shaupdate", Logging.LogFilterType.APIAlgos}
-                }
-            },
+            Newtonsoft.Json.Linq.JArray apiDataJSON = null;
 
-        };
-
-        public static APIModule ResolveModuleEnum(string path)
-        {
-            string fname = System.IO.Path.GetFileName(path).ToLower();
-            if (_configuredModules.TryGetValue(fname, out APIModule moduleEnum))
-                return moduleEnum;
-            return APIModule.Other;
-        }
-
-        public static Logging.LogFilterType ResolveAPI(APIModule modenum, string symbolname)
-        {
-            if (_configuredSymbols[modenum].TryGetValue(symbolname, out Logging.LogFilterType filterType)) return filterType;
-
-            //some libraries are specific enough that pretty much all of the offerings fall in a single category
-            switch (modenum)
+            string jsnfile = file.ReadToEnd();
+            try
             {
-                case APIModule.Crypt32:
-                case APIModule.UCRT: //not really worth recording most of these (tan, ceil, isdigit, etc)
-                    return Logging.LogFilterType.APIAlgos;
+                apiDataJSON = Newtonsoft.Json.Linq.JArray.Parse(jsnfile);
+            }
+            catch (Newtonsoft.Json.JsonReaderException e)
+            {
+                Logging.RecordLogEvent($"Failed to parse Windows API datafile JSON {datapath}: {e.Message}");
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Failed to load Windows API datafile {datapath}: {e.Message}");
+            }
 
-                case APIModule.DHCPcsvc:
-                case APIModule.DnsAPI:
-                case APIModule.WinHTTP:
-                case APIModule.Wininet:
-                case APIModule.WS32:
-                    return Logging.LogFilterType.APINetwork;
-
-                case APIModule.Advapi32:
-                case APIModule.NTDLL:
-                case APIModule.MSVCRT:
-                    return Logging.LogFilterType.APIOther;
-
-                default:
-                    return Logging.LogFilterType.APIOther;
+            if (apiDataJSON != null)
+            {
+                LoadJSON(apiDataJSON);
+                Loaded = true;
             }
 
 
+            file.Close();
         }
+
+
+
+
+        static Dictionary<string, int> _configuredModules = new Dictionary<string, int>();
+        static Dictionary<int, string> _defaultFilters = new Dictionary<int, string>();
+        static Dictionary<int, Dictionary<string, API_ENTRY>> _configuredSymbols = new Dictionary<int, Dictionary<string, API_ENTRY>>();
+
+        static void LoadJSON(Newtonsoft.Json.Linq.JArray JItems)
+        {
+            foreach (JToken moduleEntryTok in JItems)
+            {
+
+                if (moduleEntryTok.Type != JTokenType.Object)
+                {
+                    Logging.RecordLogEvent("API Data JSON has a library entry which is not an object. Abandoning Load.", Logging.LogFilterType.TextError);
+                    return;
+                }
+
+                JObject moduleEntry = moduleEntryTok.ToObject<JObject>();
+                if (!moduleEntry.TryGetValue("Library", out JToken libnameTok) || libnameTok.Type != JTokenType.String)
+                {
+                    Logging.RecordLogEvent("API Data library entry has no 'Library' name string. Abandoning Load.", Logging.LogFilterType.TextError);
+                    return;
+                }
+
+                string libname = libnameTok.ToString().ToLower();
+                if (_configuredModules.ContainsKey(libname))
+                {
+                    continue;
+                }
+
+                int moduleReference = _configuredModules.Count;
+                _configuredModules.Add(libname, moduleReference);
+
+
+                string moduleFilter;
+                if (moduleEntry.TryGetValue("DefaultFilter", out JToken filterTok) && filterTok.Type == JTokenType.String)
+                {
+                    moduleFilter = filterTok.ToString();
+                }
+                else
+                {
+                    moduleFilter = "Other";
+                }
+
+                _defaultFilters.Add(moduleReference, moduleFilter);
+
+                if (moduleEntry.TryGetValue("Interfaces", out JToken ifTok) && ifTok.Type == JTokenType.Object)
+                {
+                    Dictionary<string, API_ENTRY> moduleSyms = new Dictionary<string, API_ENTRY>();
+
+                    JObject APIs = ifTok.ToObject<JObject>();
+                    foreach (var API in APIs)
+                    {
+                        if (API.Value.Type != JTokenType.Object)
+                        {
+                            Logging.RecordLogEvent($"API data entry {libname}:{API.Key} is not an object");
+                            continue;
+                        }
+                        string apiname = API.Key;
+                        JObject APIJsn = API.Value.ToObject<JObject>();
+
+                        API_ENTRY APIItem = new API_ENTRY();
+
+                        if (APIJsn.TryGetValue("Filter", out filterTok) && filterTok.Type == JTokenType.String)
+                        {
+                            APIItem.FilterType = filterTok.ToString();
+                        }
+                        else
+                        {
+                            APIItem.FilterType = moduleFilter;
+                        }
+
+                        if (APIJsn.TryGetValue("Parameters", out JToken paramsTok) && paramsTok.Type == JTokenType.Array)
+                        {
+                            JArray callParams = paramsTok.ToObject<JArray>();
+                            APIItem.LoggedParams = ExtractParameters(callParams, libname, apiname);
+                        }
+
+                        if (moduleEntry.TryGetValue("KeyParam", out JToken keyParamTok) && keyParamTok.Type == JTokenType.Integer)
+                        {
+                            APIItem.KeyParameter = keyParamTok.ToObject<int>();
+                        }
+                        
+                        if (moduleEntry.TryGetValue("Interaction", out JToken interactionTok) && interactionTok.Type == JTokenType.String)
+                        {
+                            APIItem.InteractionType = interactionTok.ToObject<string>();
+                        }
+
+
+
+                        moduleSyms.Add(apiname, APIItem);
+                    }
+                    _configuredSymbols.Add(moduleReference, moduleSyms);
+                }
+
+
+            }
+        }
+
+       static List<API_PARAM_ENTRY> ExtractParameters(JArray callParams, string libname, string apiname)
+        {
+            List<API_PARAM_ENTRY> result = new List<API_PARAM_ENTRY>();
+            foreach (JToken callParamTok in callParams)
+            {
+                if (callParamTok.Type != JTokenType.Object)
+                {
+                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a non-object parameter");
+                    continue;
+                }
+
+                JObject callParam = callParamTok.ToObject<JObject>();
+                if (!callParam.TryGetValue("Index", out JToken paramIndexTok) || paramIndexTok.Type != JTokenType.Integer)
+                {
+                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter with no valid index");
+                    continue;
+                }
+                if (!callParam.TryGetValue("Name", out JToken paramNameTok) || paramNameTok.Type != JTokenType.String)
+                {
+                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter with no valid name");
+                    continue;
+                }
+
+                API_PARAM_ENTRY param = new API_PARAM_ENTRY();
+                param.index = paramIndexTok.ToObject<int>();
+                param.name = paramNameTok.ToObject<string>();
+
+                if (callParam.TryGetValue("Type", out JToken paramTypeTok) && paramTypeTok.Type == JTokenType.String)
+                {
+                    if (Enum.TryParse(typeof(APIParamType), paramTypeTok.ToObject<string>(), ignoreCase: true, out object paramtype))
+                    {
+                        param.paramType = (APIParamType)paramtype;
+                    }
+                    else
+                    {
+                        param.paramType = APIParamType.InfoString;
+                    }
+                    continue;
+                }
+                result.Add(param);
+            }
+            return result;
+        }
+
+
+
+        enum APIParamType { InfoString, PathString, FileReference, RegistryReference, NetworkReference }
+        enum APIInteractionType { None, Open, Close, Read, Write, Delete, Query, Lock, Unlock }
+
+        struct API_PARAM_ENTRY
+        {
+            public int index;
+            public string name;
+            public APIParamType paramType;
+        }
+        struct API_ENTRY
+        {
+            public string FilterType;
+            public List<API_PARAM_ENTRY> LoggedParams;
+            public string InteractionType;
+            public int KeyParameter;
+        }
+        
+    public static int ResolveModuleEnum(string path)
+    {
+        string fname = System.IO.Path.GetFileName(path).ToLower();
+        if (_configuredModules.TryGetValue(fname, out int moduleEnum))
+            return moduleEnum;
+        return -1;
     }
+
+    public static string ResolveAPIFilterType(int moduleReference, string symbolname)
+    {
+        
+        if (_configuredSymbols.ContainsKey(moduleReference) && _configuredSymbols[moduleReference].TryGetValue(symbolname, out API_ENTRY value)) return value.FilterType;
+        if (moduleReference < _defaultFilters.Count) return _defaultFilters[moduleReference];
+        return "Other";
+
+    }
+}
 }

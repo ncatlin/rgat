@@ -113,8 +113,8 @@ namespace rgatCore
             DisassemblyData = new ProcessRecord(binary.BitWidth);
             TraceState = eTraceState.eRunning;
 
-            _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = 0;
-            _tlFilterCounts[Logging.LogFilterType.TimelineThread] = 0;
+            //_tlFilterCounts[Logging.LogFilterType.TimelineProcess] = 0;
+            //_tlFilterCounts[Logging.LogFilterType.TimelineThread] = 0;
         }
 
         public long TestRunID { get; private set; }
@@ -282,7 +282,8 @@ namespace rgatCore
         // Process start, process end, thread start, thread end
         readonly object _logLock = new object();
         List<Logging.TIMELINE_EVENT> _timeline = new List<Logging.TIMELINE_EVENT>();
-        Dictionary<Logging.LogFilterType, int> _tlFilterCounts = new Dictionary<Logging.LogFilterType, int>();
+        //Dictionary<Logging.LogFilterType, int> _tlFilterCounts = new Dictionary<Logging.LogFilterType, int>();
+
         int runningProcesses = 0;
         int runningThreads = 0;
 
@@ -299,8 +300,8 @@ namespace rgatCore
                         {
                             _timeline.Add(new Logging.TIMELINE_EVENT(type, trace));
                             runningProcesses += 1;
-                            _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
-                            _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                          //  _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
+                         //   _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
                         }
                     }
                     break;
@@ -332,8 +333,8 @@ namespace rgatCore
                             lock (_logLock)
                             {
                                 _timeline.Add(new Logging.TIMELINE_EVENT(type, trace));
-                                _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
-                                _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                                //_tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
+                               // _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
                             }
                         }
                     }
@@ -345,8 +346,8 @@ namespace rgatCore
                         {
                             _timeline.Add(new Logging.TIMELINE_EVENT(type, graph));
                             runningThreads += 1;
-                            _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
-                            _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
+                           // _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
+                           // _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
                         }
                     }
                     break;
@@ -359,8 +360,8 @@ namespace rgatCore
                             _timeline.Add(new Logging.TIMELINE_EVENT(type, graph));
                             runningThreads -= 1;
                             if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
-                            _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
-                            _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
+                          //  _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
+                            //_tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
                         }
                     }
                     break;
@@ -387,7 +388,7 @@ namespace rgatCore
             lock (_logLock)
             {
                 _timeline.Add(new Logging.TIMELINE_EVENT(Logging.eTimelineEvent.APICall, call));
-                _tlFilterCounts[call.ApiType] = _tlFilterCounts.GetValueOrDefault(call.ApiType, 0) + 1;
+                //_tlFilterCounts[call.ApiType] = _tlFilterCounts.GetValueOrDefault(call.ApiType, 0) + 1;
             }
             //Logging.RecordLogEvent("Api call: "+node.Label, trace:this, graph: graph, apicall: call, filter: call.ApiType);
 
@@ -420,22 +421,25 @@ namespace rgatCore
             return results.ToArray();
         }
 
-        public Dictionary<Logging.LogFilterType, int> GetTimeLineFilterCounts()
+        /*
+        public Dictionary<LogFilterType, int> GetTimeLineFilterCounts()
         {
-            Dictionary<Logging.LogFilterType, int> result = null;
+            Dictionary<LogFilterType, int> result = null;
             lock (_logLock)
             {
-                result = new Dictionary<Logging.LogFilterType, int>(_tlFilterCounts);
+                result = new Dictionary<LogFilterType, int>(_tlFilterCounts);
             }
             for (var i = 0; i < (int)Logging.LogFilterType.COUNT; i++)
             {
-                if (!result.ContainsKey((Logging.LogFilterType)i))
+                LogFilterType key = ((LogFilterType)i);
+                if (!result.ContainsKey(key))
                 {
-                    result.Add((Logging.LogFilterType)i, 0);
+                    result.Add(key, 0);
                 }
             }
             return result;
         }
+        */
 
 
         public eCodeInstrumentation FindContainingModule(ulong address, out int localmodID)
@@ -781,7 +785,7 @@ namespace rgatCore
             {
                 if (tlTok.Type != JTokenType.Object)
                 {
-                    Logging.RecordLogEvent($"\tWarning: Bad timeline item in trace save", LogFilterType.TextInfo);
+                    Logging.RecordLogEvent($"\tWarning: Bad timeline item in trace save", Logging.LogFilterType.TextInfo);
                     return false;
                 }
                 Logging.TIMELINE_EVENT evt = new Logging.TIMELINE_EVENT(tlTok.ToObject<JObject>(), this);
@@ -798,43 +802,45 @@ namespace rgatCore
                         case Logging.eTimelineEvent.ProcessStart:
                         case Logging.eTimelineEvent.ProcessEnd:
                             {
-                                _tlFilterCounts.TryGetValue(LogFilterType.TimelineProcess, out int currentCountp);
-                                _tlFilterCounts[LogFilterType.TimelineProcess] = currentCountp + 1;
+                               // _tlFilterCounts.TryGetValue(LogFilterType.TimelineProcess , out int currentCountp);
+                               // _tlFilterCounts[LogFilterType.TimelineProcess] = currentCountp + 1;
                                 _timeline.Add(evt);
                             }
                             break;
                         case Logging.eTimelineEvent.ThreadStart:
                         case Logging.eTimelineEvent.ThreadEnd:
                             {
-                                _tlFilterCounts.TryGetValue(LogFilterType.TimelineThread, out int currentCountt);
-                                _tlFilterCounts[LogFilterType.TimelineThread] = currentCountt + 1;
+                                //_tlFilterCounts.TryGetValue(LogFilterType.TimelineThread, out int currentCountt);
+                                //_tlFilterCounts[LogFilterType.TimelineThread] = currentCountt + 1;
                                 _timeline.Add(evt);
                             }
                             break;
+                        /*
                         case eTimelineEvent.APICall:
-                            APICALL apic = (APICALL)(evt.Item);
-                            if (apic.graph.ProcessData.GetSymbol(apic.node.GlobalModuleID, apic.node.address, out string sym))
+                        APICALL apic = (APICALL)(evt.Item);
+                        if (apic.graph.ProcessData.GetSymbol(apic.node.GlobalModuleID, apic.node.address, out string sym))
+                        {
+                            try
                             {
-                                try
-                                {
-                                    //resolve the api type again in case the api type list has been updated
-                                    string modulePath = apic.graph.ProcessData.GetModulePath(apic.node.GlobalModuleID);
-                                    var moduleEnum = WinAPIDetails.ResolveModuleEnum(modulePath);
-                                    Logging.LogFilterType ftype = WinAPIDetails.ResolveAPI(moduleEnum, sym);
+                                //resolve the api type again in case the api type list has been updated
+                                string modulePath = apic.graph.ProcessData.GetModulePath(apic.node.GlobalModuleID);
+                                var moduleEnum = WinAPIDetails.ResolveModuleEnum(modulePath);
+                                string ftype = WinAPIDetails.ResolveAPIFilterType(moduleEnum, sym);
 
-                                    _tlFilterCounts[ftype] = _tlFilterCounts.GetValueOrDefault(ftype, 0) + 1;
-                                    apic.ApiType = ftype;
-                                    evt.ReplaceItem(apic);
-                                    evt.Filter = ftype;
-                                    _timeline.Add(evt);
-                                    continue;
-                                }
-                                catch { }
-
+                                //_tlFilterCounts[LogFilterType.] = _tlFilterCounts.GetValueOrDefault(ftype, 0) + 1;
+                                apic.ApiType = ftype;
+                                evt.ReplaceItem(apic);
+                                evt.Filter = LogFilterType;
+                                _timeline.Add(evt);
+                                continue;
                             }
-                            _tlFilterCounts[apic.ApiType] = _tlFilterCounts.GetValueOrDefault(apic.ApiType, 0) + 1;
-                            _timeline.Add(evt);
-                            break;
+                            catch { }
+
+                        }
+                        _tlFilterCounts[apic.ApiType] = _tlFilterCounts.GetValueOrDefault(apic.ApiType, 0) + 1;
+                        _timeline.Add(evt);
+                        break;
+                        */
                         default:
                             Debug.Assert(false, "Timeline event has no assigned filter");
                             break;

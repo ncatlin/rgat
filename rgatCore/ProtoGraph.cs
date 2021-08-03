@@ -76,10 +76,18 @@ namespace rgatCore
         public ThreadTraceProcessingThread TraceProcessor { set; get; } = null;
         public ProcessRecord ProcessData { private set; get; } = null;
         public TraceRecord TraceData { private set; get; } = null;
-
         public DateTime ConstructedTime { private set; get; } = DateTime.Now;
 
         public bool HeatSolvingComplete = false;
+
+        public List<InteractionTarget> SystemInteractions = new List<InteractionTarget>();
+        public Dictionary<ulong, InteractionTarget> Interacted_FileHandles = new Dictionary<ulong, InteractionTarget>();
+        public Dictionary<string, InteractionTarget> Interacted_FilePaths = new Dictionary<string, InteractionTarget>();
+        public Dictionary<string, InteractionTarget> Interacted_RegistryPaths = new Dictionary<string, InteractionTarget>();
+        public Dictionary<string, InteractionTarget> Interacted_NetworkPaths = new Dictionary<string, InteractionTarget>();
+        public Dictionary<string, InteractionTarget> Interacted_Mutexes = new Dictionary<string, InteractionTarget>();
+ 
+
 
         public void SetTerminated()
         {
@@ -584,7 +592,6 @@ namespace rgatCore
                         for (var aI = 0; aI <= cacheI; aI++)
                         {
                             argStringsList.Add(new Tuple<int, string>(_unprocessedCallArguments[aI].argIndex, _unprocessedCallArguments[aI].argstring));
-
                             completecount++;
                         }
 
@@ -594,6 +601,7 @@ namespace rgatCore
 
                         functionNode.callRecordsIndexs.Add((ulong)SymbolCallRecords.Count);
                         SymbolCallRecords.Add(callRecord);
+                        RecordSystemInteraction(functionNode, callRecord);
 
                         // this toggle isn't thread safe so slight chance for renderer to not notice the final arg
                         // not worth faffing around with locks though - maybe just re-read at tracereader thread termination
@@ -621,6 +629,15 @@ namespace rgatCore
             RemoveProcessedArgsFromCache(completecount);
         }
 
+        void RecordSystemInteraction(NodeData node, SYMBOLCALLDATA APIcall)
+        {
+            Debug.Assert(node.IsExternal && node.HasSymbol);
+            //int  moduleEnum = ProcessData.ModuleAPIReferences[node.GlobalModuleID];
+
+            ProcessData.GetSymbol(node.GlobalModuleID, node.address, out string symbol);
+            Console.WriteLine($"Node {node.index} is system interaction {node.IsExternal}");
+        
+        }
 
         /*
          * Inserts API call argument data from the trace into the cache

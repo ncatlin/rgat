@@ -1,0 +1,105 @@
+[
+	{
+		"Library":  "advapi32.dll" ,
+		"Interfaces": {
+			"CreateServiceA": {
+				"Filter": "Process",
+				"Interaction": "Create",
+				"Parameters": [
+					{"Index":1, "Name":"lpServiceName", "Type":"Info"},
+					{"Index":7, "Name":"lpBinaryPathName", "Type":"Path"}
+				],
+				"KeyParam": 7
+			},
+			"CreateServiceW": {
+				"Filter": "Process",
+				"Interaction": "Create",
+				"Parameters": [
+					{"Index":1, "Name":"lpServiceName", "Type":"Info"},
+					{"Index":7, "Name":"lpBinaryPathName", "Type":"Path"}
+				],
+				"KeyParam": 7
+			}
+		}
+	},
+	{
+		"Library":  "crypt32.dll" ,	"DefaultFilter": "Crypt"
+	},
+	{
+		"Library":  "dhcpcsvc.dll" ,"DefaultFilter": "Network"
+	},
+	{
+		"Library":  "dnsapi.dll" ,
+		"DefaultFilter": "Network",
+		"Interfaces": {
+			"DnsQuery_A": {
+				"Interaction": "Query",
+				"Parameters": [
+					{"Index":0, "Name":"pszName", "Type":"Path"}
+				],
+				"KeyParam": 0
+			}
+			"DnsQuery_W": {
+				"Interaction": "Query",
+				"Parameters": [
+					{"Index":0, "Name":"pszName", "Type":"Path"}
+				],
+				"KeyParam": 0
+			}
+		}
+	},
+	{
+		"Library":  "kernel32.dll" ,
+		"Interfaces": {
+			"CreateFileA": {
+				"Filter": "File"
+				"Parameters": [
+					{"Index": -1, "Name":"Handle", "Type":"FileReference"},
+					{"Index":0, "Name":"lpFileName", "Type":"Path"}
+				],
+				"KeyParam": 0
+				}
+			"CreateFileW": {
+				"Filter": "File"
+				"Parameters": [
+					{"Index": -1, "Name":"Handle", "Type":"FileReference"},
+					{"Index": 0, "Name":"lpFileName", "Type":"Path"}
+				],
+				"KeyParam": 0
+				}
+		}
+	},
+	{
+		"Library":  "msvcrt.dll" ,
+	},
+	{
+		"Library":  "ntdll.dll" ,
+		"Interfaces": {
+			"A_SHAUpdate": {
+				"Filter": "Crypt"
+			}
+		}
+	},
+	{
+		"Library":  "ucrtbase.dll"
+	},
+	{
+		"Library":  "ucrtbased.dll"
+	},
+	{
+		"Library":  "urlmon.dll" ,
+		"DefaultFilter": "Network"
+	},
+	{
+		"Library":  "winhttp.dll" ,
+		"DefaultFilter": "Network"
+	},
+	{
+		"Library":  "wininet.dll" ,
+		"DefaultFilter": "Network"
+	},
+	{
+		"Library":  "ws2_32.dll" ,
+		"DefaultFilter": "Network"
+	}
+]

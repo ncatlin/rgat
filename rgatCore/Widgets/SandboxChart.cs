@@ -12,10 +12,9 @@ namespace rgatCore.Widgets
 {
     class SandboxChart
     {
-
-        public class itemNode
+        public class ItemNode
         {
-            public itemNode(string caption, Logging.eTimelineEvent eventType, object item)
+            public ItemNode(string caption, Logging.eTimelineEvent eventType, object item)
             {
                 label = caption;
                 TLtype = eventType;
@@ -26,8 +25,8 @@ namespace rgatCore.Widgets
             public object reference;
         }
         //todo lock access to this
-        QuikGraph.BidirectionalGraph<itemNode, Edge<itemNode>> sbgraph = new BidirectionalGraph<itemNode, Edge<itemNode>>();
-        GraphShape.Algorithms.Layout.KKLayoutAlgorithm<itemNode, Edge<itemNode>, QuikGraph.BidirectionalGraph<itemNode, Edge<itemNode>>> layout;
+        QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>> sbgraph = new BidirectionalGraph<ItemNode, Edge<ItemNode>>();
+        GraphShape.Algorithms.Layout.KKLayoutAlgorithm<ItemNode, Edge<ItemNode>, QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>>> layout;
         Vector2 chartSize;
         float padding = 15;
         double _scaleX = 1;
@@ -47,7 +46,7 @@ namespace rgatCore.Widgets
                 ExchangeVertices = true
             };
 
-            layout = new GraphShape.Algorithms.Layout.KKLayoutAlgorithm<itemNode, Edge<itemNode>, BidirectionalGraph<itemNode, Edge<itemNode>>>(sbgraph, parameters: layoutParams);
+            layout = new GraphShape.Algorithms.Layout.KKLayoutAlgorithm<ItemNode, Edge<ItemNode>, BidirectionalGraph<ItemNode, Edge<ItemNode>>>(sbgraph, parameters: layoutParams);
             layout.Compute();
         }
 
@@ -85,21 +84,21 @@ namespace rgatCore.Widgets
             }
         }
 
-        Dictionary<string, itemNode> addedNodes = new Dictionary<string, itemNode>();
+        Dictionary<string, ItemNode> addedNodes = new Dictionary<string, ItemNode>();
 
-        void AddThreadItems(itemNode parentProcess, TraceRecord trace)
+        void AddThreadItems(ItemNode parentProcess, TraceRecord trace)
         {
 
             string nodeName = $"PID_{trace.PID}_PATH...";
-            itemNode startProcess = null;
+            ItemNode startProcess = null;
             if (!addedNodes.TryGetValue(nodeName, out startProcess))
             {
-                startProcess = new itemNode(nodeName, Logging.eTimelineEvent.ProcessStart, trace);
+                startProcess = new ItemNode(nodeName, Logging.eTimelineEvent.ProcessStart, trace);
                 sbgraph.AddVertex(startProcess);
                 addedNodes[nodeName] = startProcess;
                 if (parentProcess != null)
                 {
-                    sbgraph.AddEdge(new Edge<itemNode>(parentProcess, startProcess));
+                    sbgraph.AddEdge(new Edge<ItemNode>(parentProcess, startProcess));
                 }
             }
 
@@ -110,9 +109,9 @@ namespace rgatCore.Widgets
                 string threadName = $"TID_{thread.ThreadID}_StartModule...";
                 if (!addedNodes.ContainsKey(threadName))
                 {
-                    itemNode threadNode = new itemNode(threadName, Logging.eTimelineEvent.ThreadStart, thread);
+                    ItemNode threadNode = new ItemNode(threadName, Logging.eTimelineEvent.ThreadStart, thread);
                     sbgraph.AddVertex(threadNode);
-                    sbgraph.AddEdge(new Edge<itemNode>(startProcess, threadNode));
+                    sbgraph.AddEdge(new Edge<ItemNode>(startProcess, threadNode));
                     addedNodes[threadName] = threadNode;
                 }
             }
@@ -123,7 +122,7 @@ namespace rgatCore.Widgets
 
         }
 
-        public itemNode GetSelectedNode => _selectedNode;
+        public ItemNode GetSelectedNode => _selectedNode;
 
         Vector2 Point2Vec(GraphShape.Point point) => new Vector2((float)point.X, (float)point.Y);
         Vector2 chartOffset = Vector2.Zero;
@@ -159,7 +158,7 @@ namespace rgatCore.Widgets
 
                 var edges = sbgraph.Edges;
 
-                var positions = new Dictionary<itemNode, GraphShape.Point>(layout.VerticesPositions);
+                var positions = new Dictionary<ItemNode, GraphShape.Point>(layout.VerticesPositions);
                 foreach (var edge in edges)
                 {
                     if (positions.TryGetValue(edge.Source, out GraphShape.Point srcPoint) &&
@@ -194,8 +193,8 @@ namespace rgatCore.Widgets
         }
 
 
-        itemNode _selectedNode = null;
-        void DrawNode(itemNode node, Vector2 position)
+        ItemNode _selectedNode = null;
+        void DrawNode(ItemNode node, Vector2 position)
         {
             Vector2 cursor = ImGui.GetCursorScreenPos();
             if (!InFrame(position - cursor)) return;
@@ -305,7 +304,9 @@ namespace rgatCore.Widgets
                     break;
 
                 case Logging.eTimelineEvent.APICall:
-                    Console.WriteLine("Api selection not supported yet");
+
+                    //_selectedNode = node;
+                    Console.WriteLine($"Api selection not supported yet");// {node.reference}");
                     break;
             }
         }

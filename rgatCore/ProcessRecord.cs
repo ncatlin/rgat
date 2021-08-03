@@ -205,7 +205,7 @@ namespace rgatCore
                 int globalModID = LoadedModuleCount; //index into our module lists
 
                 LoadedModulePaths.Add(path);
-                ModuleEnums.Add(WinAPIDetails.ResolveModuleEnum(path));
+                ModuleAPIReferences.Add(WinAPIDetails.ResolveModuleEnum(path));
                 APITypes.Add(globalModID, new Dictionary<ulong, Logging.LogFilterType>());
                 //globalModuleIDs.Add(path, globalModID); //sharing violation here???
 
@@ -239,7 +239,7 @@ namespace rgatCore
                     attempts -= 1;
                     if (attempts == 0)
                     {
-                        Logging.RecordLogEvent($"Failed to translate module ID {localModnum}", filter: Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Failed to translate module ID {localModnum}", filter:  Logging.LogFilterType.TextError);
                         return;
                     }
                 }
@@ -257,11 +257,9 @@ namespace rgatCore
                 else
                 {
                     modsymsPlain[modnum].Add(offset, name);
-                    WinAPIDetails.APIModule moduleEnum = ModuleEnums[modnum];
-                    if (moduleEnum != WinAPIDetails.APIModule.Other)
-                    {
-                        APITypes[modnum].Add(offset, WinAPIDetails.ResolveAPI(moduleEnum, name));
-                    }
+                    int moduleref = ModuleAPIReferences[modnum];
+                   // APITypes[modnum].Add(offset, WinAPIDetails.ResolveAPIFilterType(moduleref, name));
+                    
                 }
 
             }
@@ -400,7 +398,7 @@ namespace rgatCore
 
         public List<string> LoadedModulePaths = new List<string>();
         public List<int> modIDTranslationVec = new List<int>();
-        public List<WinAPIDetails.APIModule> ModuleEnums = new List<WinAPIDetails.APIModule>();
+        public List<int> ModuleAPIReferences = new List<int>();
         public List<Tuple<ulong, ulong>> LoadedModuleBounds = new List<Tuple<ulong, ulong>>();
         public List<eCodeInstrumentation> ModuleTraceStates = new List<eCodeInstrumentation>();
 
@@ -417,13 +415,19 @@ namespace rgatCore
         private Dictionary<int, Dictionary<ulong, Logging.LogFilterType>> APITypes = new Dictionary<int, Dictionary<ulong, Logging.LogFilterType>>();
 
 
-        public Logging.LogFilterType GetAPIType(int module, ulong address)
+        public string GetAPIType(int module, ulong address)
         {
-            if (module >= modsymsPlain.Count) return Logging.LogFilterType.APIOther;
-            if (ModuleEnums[module] == WinAPIDetails.APIModule.Other) return Logging.LogFilterType.APIOther;
-            if (APITypes[module].TryGetValue(address - LoadedModuleBounds[module].Item1, out Logging.LogFilterType apitype)) return apitype;
-            return Logging.LogFilterType.APIOther;
+            if (module >= modsymsPlain.Count) return "Other";
+            int configuredModuleDataRef = ModuleAPIReferences[module];
+            if (configuredModuleDataRef == -1) return "Other";
 
+            ulong symbolOffset = address - LoadedModuleBounds[module].Item1;
+            if(modsymsPlain[module].TryGetValue(symbolOffset, out string symname))
+            {
+                return WinAPIDetails.ResolveAPIFilterType(configuredModuleDataRef, symname);
+            }
+
+            return "Other";
         }
 
 

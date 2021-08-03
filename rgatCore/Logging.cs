@@ -33,7 +33,7 @@ namespace rgatCore
             public ulong repeats;
             public ulong uniqID;
             public ProtoGraph graph;
-            public LogFilterType ApiType;
+            public string ApiType;
         }
 
 
@@ -50,15 +50,13 @@ namespace rgatCore
                     case eTimelineEvent.ProcessStart:
                     case eTimelineEvent.ProcessEnd:
                         SetIDs(ID: ((TraceRecord)item).PID);
-                        Filter = LogFilterType.TimelineProcess;
                         break;
                     case eTimelineEvent.ThreadStart:
                     case eTimelineEvent.ThreadEnd:
                         SetIDs(ID: ((ProtoGraph)item).ThreadID);
-                        Filter = LogFilterType.TimelineThread;
                         break;
                     case eTimelineEvent.APICall:
-                        Filter = ((APICALL)(item)).ApiType;
+                        //todo
                         break;
                     default:
                         Debug.Assert(false, "Bad timeline event");
@@ -78,44 +76,6 @@ namespace rgatCore
 
                 _eventType = evtType.ToObject<eTimelineEvent>();
 
-                if (_eventType == eTimelineEvent.APICall)
-                {
-                    JToken tok;
-                    APICALL apic = new APICALL();
-                    if (jobj.TryGetValue("Graph", out tok) && tok.Type == JTokenType.Date)
-                    {
-                        apic.graph = trace.GetProtoGraphByTime(tok.ToObject<DateTime>());
-                        if (apic.graph == null) return;
-                    }
-                    if (jobj.TryGetValue("Node", out tok) && tok.Type == JTokenType.Integer)
-                    {
-                        int idx = tok.ToObject<int>();
-                        if (idx >= apic.graph.NodeList.Count) return;
-                        apic.node = apic.graph.NodeList[idx];
-                    }
-                    if (jobj.TryGetValue("Idx", out tok) && tok.Type == JTokenType.Integer)
-                    {
-                        apic.index = tok.ToObject<ulong>();
-                    }
-                    if (jobj.TryGetValue("Repeats", out tok) && tok.Type == JTokenType.Integer)
-                    {
-                        apic.repeats = tok.ToObject<ulong>();
-                    }
-                    if (jobj.TryGetValue("uniqID", out tok) && tok.Type == JTokenType.Integer)
-                    {
-                        apic.uniqID = tok.ToObject<ulong>();
-                    }
-                    if (jobj.TryGetValue("Filter", out tok) && tok.Type == JTokenType.Integer)
-                    {
-                        apic.ApiType = (LogFilterType)tok.ToObject<int>();
-                        this.Filter = apic.ApiType;
-                    }
-                    _item = apic;
-
-                    Inited = true;
-                    return;
-                }
-
                 JToken idtok, pidtok;
                 if (!jobj.TryGetValue("ID", out idtok) || idtok.Type != JTokenType.Integer ||
                     !jobj.TryGetValue("PID", out pidtok) || pidtok.Type != JTokenType.Integer)
@@ -130,14 +90,12 @@ namespace rgatCore
                     case eTimelineEvent.ProcessStart:
                     case eTimelineEvent.ProcessEnd:
                         SetIDs(ID: idtok.ToObject<ulong>(), parentID: pidtok.ToObject<ulong>());
-                        Filter = LogFilterType.TimelineProcess;
                         _item = trace.GetTraceByID(ID);
                         Inited = true;
                         break;
                     case eTimelineEvent.ThreadStart:
                     case eTimelineEvent.ThreadEnd:
                         SetIDs(ID: idtok.ToObject<ulong>());
-                        Filter = LogFilterType.TimelineThread;
                         _item = trace.GetProtoGraphByID(ID);
                         Inited = true;
                         break;
@@ -161,7 +119,7 @@ namespace rgatCore
                     obj.Add("Repeats", apic.repeats);
                     obj.Add("uniqID", apic.uniqID);
                     obj.Add("Graph", apic.graph.ConstructedTime);
-                    obj.Add("Filter", (int)apic.ApiType);
+                    obj.Add("Filter", apic.ApiType);
                 }
                 else
                 {
@@ -252,8 +210,7 @@ namespace rgatCore
 
         public enum LogFilterType
         {
-            TextDebug, TextInfo, TextError, TextAlert, TimelineProcess, TimelineThread,
-            APIFile, APIReg, APINetwork, APIProcess, APIAlgos, APIOther, BulkDebugLogFile, COUNT
+            TextDebug, TextInfo, TextError, TextAlert, BulkDebugLogFile, COUNT
         };
         static int[] MessageCounts = new int[(int)LogFilterType.COUNT];
 

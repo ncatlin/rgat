@@ -95,6 +95,11 @@ namespace rgatCore
             }
             _scheduleMissingPathCheck = true;
 
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+            {
+                WinAPIDetails.Load(Path.Combine(AppContext.BaseDirectory, "APIData.json"));
+            }
+
             RecordLogEvent("Startup: Config Inited", LogFilterType.TextDebug);
             _UIstartupProgress = 0.4;
 
@@ -2630,7 +2635,7 @@ namespace rgatCore
             chart.InitChartFromTrace(activeTrace);
 
 
-            SandboxChart.itemNode selectedNode = chart.GetSelectedNode;
+            SandboxChart.ItemNode selectedNode = chart.GetSelectedNode;
             if (ImGui.BeginTable("#TaTTable", 3, ImGuiTableFlags.Resizable))
             {
                 ImGui.TableSetupColumn("#TaTTEntryList", ImGuiTableColumnFlags.None, sidePaneWidth);
@@ -2645,13 +2650,14 @@ namespace rgatCore
 
 
                 TIMELINE_EVENT[] events = activeTrace.GetTimeLineEntries();
-                if (ImGui.BeginTable("#TaTTFullList", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY))
+                if (ImGui.BeginTable("#TaTTFullList", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable))
                 {
+                    ImGui.TableSetupScrollFreeze(0, 1);
                     ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 50);
                     ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 70);
+                    ImGui.TableSetupColumn("Module", ImGuiTableColumnFlags.WidthFixed, 70);
                     ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.None);
                     ImGui.TableHeadersRow();
-                    ImGui.TableSetupScrollFreeze(0, 1);
 
                     int i = 0;
                     foreach (TIMELINE_EVENT TLevent in events)
@@ -2660,7 +2666,8 @@ namespace rgatCore
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         bool selected = false;
-                        string eventType = "test";
+                        string eventType = "";
+                        string module = "";
                         switch (TLevent.TimelineEventType)
                         {
                             case eTimelineEvent.ProcessStart:
@@ -2684,7 +2691,18 @@ namespace rgatCore
                                 }
                                 break;
                             case eTimelineEvent.APICall:
-                                eventType = "API";
+                                {
+                                    Logging.APICALL call = (Logging.APICALL)(TLevent.Item);
+                                    if (call.node.IsExternal)
+                                    {
+                                        eventType = "API - " + call.ApiType;
+                                        module = Path.GetFileNameWithoutExtension(activeTrace.DisassemblyData.GetModulePath(call.node.GlobalModuleID));
+                                    }
+                                    else
+                                    {
+                                        eventType = "Internal";
+                                    }
+                                }
                                 break;
                         }
 
@@ -2694,6 +2712,8 @@ namespace rgatCore
                         }
                         ImGui.TableNextColumn();
                         ImGui.Text(eventType);
+                        ImGui.TableNextColumn();
+                        ImGui.Text(module);
                         ImGui.TableNextColumn();
 
                         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(3, 3));
@@ -2725,8 +2745,21 @@ namespace rgatCore
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x5f88705f);
                 if (ImGui.BeginChild("#SandboxTabtopRightPane", new Vector2(sidePaneWidth, tr_height)))
                 {
-
                     ImGui.Text("Filters");
+                 
+                    if (!WinAPIDetails.Loaded)
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                        if(ImGui.BeginChild("#LoadErrFrame", new Vector2(ImGui.GetContentRegionAvail().X - 2, 80)))
+                        {
+                            ImGui.Indent(5);
+                            ImGui.TextWrapped("Error - No API datafile was loaded");
+                            ImGui.TextWrapped("See error details in the logs tab");
+                            ImGui.EndChild();
+                        }
+                        ImGui.PopStyleColor();
+                    }
+                    
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
@@ -2748,7 +2781,7 @@ namespace rgatCore
                                 break;
 
                             case eTimelineEvent.APICall:
-                                ImGui.Text("Api call (not handled yet)");
+                                ///DrawAPIInfoTable()
                                 break;
                             default:
                                 ImGui.Text($"We don't do {selectedNode.TLtype} here");
@@ -2857,6 +2890,8 @@ namespace rgatCore
                 int activeCount = _LogFilters.Where(x => x == true).Count();
 
                 string label = $"{msgs.Length} log entries displayed from ({activeCount}/{_LogFilters.Length}) sources";
+
+                ImGui.SetNextItemOpen(true);
                 bool isOpen = ImGui.TreeNode("##FiltersTree", label);
                 if (isOpen)
                 {
@@ -2868,9 +2903,8 @@ namespace rgatCore
 
 
                     var textFilterCounts = Logging.GetTextFilterCounts();
-                    var timelineCounts = _rgatstate.ActiveTrace?.GetTimeLineFilterCounts();
 
-                    if (ImGui.BeginTable("LogFilterTable", 7, ImGuiTableFlags.Borders, new Vector2(boxSize.X * 7, 100)))
+                    if (ImGui.BeginTable("LogFilterTable", 7, ImGuiTableFlags.Borders, new Vector2(boxSize.X * 7, 41)))
                     {
                         ImGui.TableNextRow();
 
@@ -2902,59 +2936,6 @@ namespace rgatCore
                         ImGui.Selectable($"Error ({textFilterCounts[LogFilterType.TextError]})",
                             ref _LogFilters[(int)LogFilterType.TextError], flags, boxSize);
 
-                        if (timelineCounts != null)
-                        {
-                            ImGui.TableNextRow();
-                            ImGui.TableSetColumnIndex(0);
-                            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
-                            if (ImGui.Selectable("Timeline", false, flags, marginSize))
-                            {
-                                rowLastSelected[1] = !rowLastSelected[1];
-                                _LogFilters[(int)LogFilterType.TimelineProcess] = rowLastSelected[1];
-                                _LogFilters[(int)LogFilterType.TimelineThread] = rowLastSelected[1];
-                            }
-                            ImGui.TableNextColumn();
-                            ImGui.Selectable($"Process ({timelineCounts[LogFilterType.TimelineProcess]})",
-                                ref _LogFilters[(int)LogFilterType.TimelineProcess], flags, boxSize);
-
-                            ImGui.TableNextColumn();
-                            ImGui.Selectable($"Thread ({timelineCounts[LogFilterType.TimelineThread]})",
-                                ref _LogFilters[(int)LogFilterType.TimelineThread], flags, boxSize);
-
-                            ImGui.TableNextRow();
-                            ImGui.TableSetColumnIndex(0);
-                            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
-                            if (ImGui.Selectable("API", false, flags, marginSize))
-                            {
-                                rowLastSelected[2] = !rowLastSelected[2];
-                                _LogFilters[(int)LogFilterType.APIFile] = rowLastSelected[2];
-                                _LogFilters[(int)LogFilterType.APINetwork] = rowLastSelected[2];
-                                _LogFilters[(int)LogFilterType.APIReg] = rowLastSelected[2];
-                                _LogFilters[(int)LogFilterType.APIProcess] = rowLastSelected[2];
-                                _LogFilters[(int)LogFilterType.APIOther] = rowLastSelected[2];
-                            }
-
-
-                            ImGui.TableNextColumn();
-                            ImGui.Selectable($"Data ({timelineCounts[LogFilterType.APIAlgos]})",
-                                ref _LogFilters[(int)LogFilterType.APIAlgos], flags, boxSize);
-                            ImGui.TableNextColumn();
-                            ImGui.Selectable($"File ({timelineCounts[LogFilterType.APIFile]})",
-                                ref _LogFilters[(int)LogFilterType.APIFile], flags, boxSize);
-                            ImGui.TableNextColumn();
-                            ImGui.Selectable($"Network ({timelineCounts[LogFilterType.APINetwork]})",
-                                ref _LogFilters[(int)LogFilterType.APINetwork], flags, boxSize);
-                            ImGui.TableNextColumn();
-                            ImGui.Selectable($"Process ({timelineCounts[LogFilterType.APIProcess]})",
-                                ref _LogFilters[(int)LogFilterType.APIProcess], flags, boxSize);
-                            ImGui.TableNextColumn();
-                            ImGui.Selectable($"Registry ({timelineCounts[LogFilterType.APIReg]})",
-                                ref _LogFilters[(int)LogFilterType.APIReg], flags, boxSize);
-                            ImGui.TableNextColumn();
-                            ImGui.Selectable($"Other ({timelineCounts[LogFilterType.APIOther]})",
-                                ref _LogFilters[(int)LogFilterType.APIOther], flags, boxSize);
-
-                        }
                         ImGui.EndTable();
                     }
 
@@ -2994,8 +2975,6 @@ namespace rgatCore
 
 
                 List<LOG_EVENT> shownMsgs = new List<LOG_EVENT>(msgs);
-                bool TlProcessShown = _LogFilters[(int)Logging.LogFilterType.TimelineProcess];
-                bool TlThreadShown = _LogFilters[(int)Logging.LogFilterType.TimelineThread];
                 if (_LogFilters.Any(f => f == true))
                 {
                     var TLmsgs = _rgatstate.ActiveTrace?.GetTimeLineEntries();
