@@ -9,7 +9,7 @@ namespace rgatCore
     public class Logging
     {
 
-        public enum eLogType { TimeLine, API, Text }
+        public enum eLogType { TimeLine, Text }
         public class LOG_EVENT
         {
             public LOG_EVENT(eLogType type)
@@ -26,14 +26,22 @@ namespace rgatCore
             public TraceRecord Trace;
         }
 
-        public struct APICALL
+        public class APICALL
         {
+            public APICALL() { APIDetails = null; }
             public NodeData node;
             public ulong index;
             public ulong repeats;
             public ulong uniqID;
             public ProtoGraph graph;
-            public string ApiType;
+
+            public WinAPIDetails.API_ENTRY? APIDetails;
+            public string APIType()
+            {
+                if (APIDetails == null) return "Other";
+                return APIDetails.Value.FilterType;
+            }
+
         }
 
 
@@ -119,7 +127,7 @@ namespace rgatCore
                     obj.Add("Repeats", apic.repeats);
                     obj.Add("uniqID", apic.uniqID);
                     obj.Add("Graph", apic.graph.ConstructedTime);
-                    obj.Add("Filter", apic.ApiType);
+                    //obj.Add("Filter", apic.APIType());
                 }
                 else
                 {
@@ -144,7 +152,7 @@ namespace rgatCore
                     case eTimelineEvent.ProcessStart:
                         {
                             TraceRecord trace = (TraceRecord)_item;
-                            _cachedLabel.Add(new Tuple<string, WritableRgbaFloat> ($"Process ({trace.PID}) Started", textColour));
+                            _cachedLabel.Add(new Tuple<string, WritableRgbaFloat>($"Process ({trace.PID}) Started", textColour));
                             break;
                         }
                     case eTimelineEvent.ProcessEnd:
@@ -358,7 +366,7 @@ namespace rgatCore
         {
             lock (_messagesLock)
             {
-               return _logMessages.Where(x => x.LogType == eLogType.Text && x.Filter == LogFilterType.TextError).ToArray();
+                return _logMessages.Where(x => x.LogType == eLogType.Text && x.Filter == LogFilterType.TextError).ToArray();
 
             }
         }

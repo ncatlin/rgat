@@ -38,7 +38,7 @@
 					{"Index":0, "Name":"pszName", "Type":"Path"}
 				],
 				"KeyParam": 0
-			}
+			},
 			"DnsQuery_W": {
 				"Interaction": "Query",
 				"Parameters": [
@@ -51,22 +51,61 @@
 	{
 		"Library":  "kernel32.dll" ,
 		"Interfaces": {
+			
+			"CloseHandle": { "Filter": "File" },
+			"CreateDirectoryA": { "Filter": "File" },
+			"CreateDirectoryW": { "Filter": "File" },
+			"CreateDirectoryExA": { "Filter": "File" },
+			"CreateDirectoryExW": { "Filter": "File" },
+			"CreateDirectoryTransactedA": { "Filter": "File" },
+			"CreateDirectoryTransactedW": { "Filter": "File" },
 			"CreateFileA": {
-				"Filter": "File"
+				"Filter": "File",
 				"Parameters": [
 					{"Index": -1, "Name":"Handle", "Type":"FileReference"},
 					{"Index":0, "Name":"lpFileName", "Type":"Path"}
 				],
 				"KeyParam": 0
-				}
+				},
 			"CreateFileW": {
-				"Filter": "File"
+				"Filter": "File",
 				"Parameters": [
 					{"Index": -1, "Name":"Handle", "Type":"FileReference"},
 					{"Index": 0, "Name":"lpFileName", "Type":"Path"}
 				],
 				"KeyParam": 0
-				}
+				},
+			 "CreateFile2": { "Filter" : "File" },
+             "CreateProcessA": { "Filter" : "Process" },
+             "CreateProcessW": { "Filter" : "Process" },
+             "CreateThread": { "Filter" : "File" },
+             "ExitProcess": { "Filter" : "Process" },
+             "ExitThread": { "Filter" : "Process" },
+             "FindFirstFileA": { "Filter" : "File" },
+             "FindFirstFileExA": { "Filter" : "File" },
+             "FindFirstFileW": { "Filter" : "File" },
+             "FindFirstFileExW": { "Filter" : "File" },
+             "DeleteFileA": { "Filter" : "File" },
+             "DeleteFileW": { "Filter" : "File" },
+             "GetModuleHandleA": { "Filter" : "Process" },
+             "GetModuleHandleW": { "Filter" : "Process" },
+             "GetTempPathA": { "Filter" : "File" },
+             "GetTempPathW": { "Filter" : "File" },
+             "GetTempFileNameA": { "Filter" : "File" },
+             "GetTempFileNameW": { "Filter" : "File" },
+             "OpenProcess": { "Filter" : "Process" },
+             "OpenThread": { "Filter" : "Process" },
+             "ReadFile": { "Filter" : "File" },
+             "ReadProcessMemory": { "Filter" : "Process" },
+             "RegCreateKeyExA": { "Filter" : "Registry" },
+             "RegCreateKeyExW": { "Filter" : "Registry" },
+             "RegDeleteKeyExA": { "Filter" : "Registry" },
+             "RegDeleteKeyExW": { "Filter" : "Registry" },
+             "RegDeleteValueA": { "Filter" : "Registry" },
+             "RegDeleteValueW": { "Filter" : "Registry" },
+             "ResumeThread": { "Filter" : "Process" },
+             "WriteFile": { "Filter" : "File" },
+             "WriteProcessMemory": { "Filter" : "Process" }
 		}
 	},
 	{

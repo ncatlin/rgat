@@ -132,12 +132,16 @@ namespace rgatCore
                             APIItem.LoggedParams = ExtractParameters(callParams, libname, apiname);
                         }
 
-                        if (moduleEntry.TryGetValue("KeyParam", out JToken keyParamTok) && keyParamTok.Type == JTokenType.Integer)
+                        if (APIJsn.TryGetValue("KeyParam", out JToken keyParamTok) && keyParamTok.Type == JTokenType.Integer)
                         {
                             APIItem.KeyParameter = keyParamTok.ToObject<int>();
                         }
-                        
-                        if (moduleEntry.TryGetValue("Interaction", out JToken interactionTok) && interactionTok.Type == JTokenType.String)
+                        else
+                        {
+                            APIItem.KeyParameter = int.MinValue;
+                        }
+
+                        if (APIJsn.TryGetValue("Interaction", out JToken interactionTok) && interactionTok.Type == JTokenType.String)
                         {
                             APIItem.InteractionType = interactionTok.ToObject<string>();
                         }
@@ -153,7 +157,7 @@ namespace rgatCore
             }
         }
 
-       static List<API_PARAM_ENTRY> ExtractParameters(JArray callParams, string libname, string apiname)
+        static List<API_PARAM_ENTRY> ExtractParameters(JArray callParams, string libname, string apiname)
         {
             List<API_PARAM_ENTRY> result = new List<API_PARAM_ENTRY>();
             foreach (JToken callParamTok in callParams)
@@ -199,38 +203,44 @@ namespace rgatCore
 
 
 
-        enum APIParamType { InfoString, PathString, FileReference, RegistryReference, NetworkReference }
-        enum APIInteractionType { None, Open, Close, Read, Write, Delete, Query, Lock, Unlock }
+        public enum APIParamType { InfoString, PathString, FileReference, RegistryReference, NetworkReference }
+        //enum APIInteractionType { None, Open, Close, Read, Write, Delete, Query, Lock, Unlock }
 
-        struct API_PARAM_ENTRY
+        public struct API_PARAM_ENTRY
         {
             public int index;
             public string name;
             public APIParamType paramType;
         }
-        struct API_ENTRY
+        public struct API_ENTRY
         {
             public string FilterType;
             public List<API_PARAM_ENTRY> LoggedParams;
             public string InteractionType;
             public int KeyParameter;
         }
-        
-    public static int ResolveModuleEnum(string path)
-    {
-        string fname = System.IO.Path.GetFileName(path).ToLower();
-        if (_configuredModules.TryGetValue(fname, out int moduleEnum))
-            return moduleEnum;
-        return -1;
-    }
 
-    public static string ResolveAPIFilterType(int moduleReference, string symbolname)
-    {
-        
-        if (_configuredSymbols.ContainsKey(moduleReference) && _configuredSymbols[moduleReference].TryGetValue(symbolname, out API_ENTRY value)) return value.FilterType;
-        if (moduleReference < _defaultFilters.Count) return _defaultFilters[moduleReference];
-        return "Other";
+        public static int ResolveModuleEnum(string path)
+        {
+            string fname = System.IO.Path.GetFileName(path).ToLower();
+            if (_configuredModules.TryGetValue(fname, out int moduleEnum))
+                return moduleEnum;
+            return -1;
+        }
 
+        public static string ResolveAPIFilterType(int moduleReference, string symbolname)
+        {
+
+            if (_configuredSymbols.ContainsKey(moduleReference) && _configuredSymbols[moduleReference].TryGetValue(symbolname, out API_ENTRY value)) return value.FilterType;
+            if (moduleReference < _defaultFilters.Count) return _defaultFilters[moduleReference];
+            return "Other";
+
+        }
+
+        public static API_ENTRY? GetAPIInfo(int moduleReference, string symbolname)
+        {
+            if (_configuredSymbols.ContainsKey(moduleReference) && _configuredSymbols[moduleReference].TryGetValue(symbolname, out API_ENTRY value)) return value;
+            return null;
+        }
     }
-}
 }

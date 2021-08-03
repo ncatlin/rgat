@@ -2695,8 +2695,9 @@ namespace rgatCore
                                     Logging.APICALL call = (Logging.APICALL)(TLevent.Item);
                                     if (call.node.IsExternal)
                                     {
-                                        eventType = "API - " + call.ApiType;
+                                        eventType = "API - " + call.APIType();
                                         module = Path.GetFileNameWithoutExtension(activeTrace.DisassemblyData.GetModulePath(call.node.GlobalModuleID));
+                                        //WinAPIDetails.API_ENTRY = call.APIEntry;
                                     }
                                     else
                                     {

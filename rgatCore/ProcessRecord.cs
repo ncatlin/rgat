@@ -414,20 +414,24 @@ namespace rgatCore
 
         private Dictionary<int, Dictionary<ulong, Logging.LogFilterType>> APITypes = new Dictionary<int, Dictionary<ulong, Logging.LogFilterType>>();
 
-
-        public string GetAPIType(int module, ulong address)
+        public int GetModuleReference(int GlobalModuleID)
         {
-            if (module >= modsymsPlain.Count) return "Other";
-            int configuredModuleDataRef = ModuleAPIReferences[module];
-            if (configuredModuleDataRef == -1) return "Other";
+            if (GlobalModuleID >= modsymsPlain.Count) return -1; //todo race condition here where it could stay as -1 if requested too early?
+            return  ModuleAPIReferences[GlobalModuleID];
+        }
 
-            ulong symbolOffset = address - LoadedModuleBounds[module].Item1;
-            if(modsymsPlain[module].TryGetValue(symbolOffset, out string symname))
+        
+        public WinAPIDetails.API_ENTRY? GetAPIEntry(int globalModuleID, int moduleAPIRef, ulong address)
+        {
+            if (moduleAPIRef == -1) return null;
+
+            ulong symbolOffset = address - LoadedModuleBounds[globalModuleID].Item1;
+            if(modsymsPlain[globalModuleID].TryGetValue(symbolOffset, out string symname))
             {
-                return WinAPIDetails.ResolveAPIFilterType(configuredModuleDataRef, symname);
+                return WinAPIDetails.GetAPIInfo(moduleAPIRef, symname);
             }
 
-            return "Other";
+            return null;
         }
 
 

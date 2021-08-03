@@ -376,19 +376,23 @@ namespace rgatCore
 
         public void RecordAPICall(NodeData node, ProtoGraph graph, ulong callIndex, ulong repeats)
         {
-            Logging.APICALL call = new Logging.APICALL
+            int ModuleReference = DisassemblyData.GetModuleReference(node.GlobalModuleID);
+
+            WinAPIDetails.API_ENTRY? APIDetails = DisassemblyData.GetAPIEntry( node.GlobalModuleID, ModuleReference, node.address);
+
+            Logging.APICALL call = new Logging.APICALL()
             {
                 index = callIndex,
                 node = node,
                 repeats = repeats,
                 uniqID = uniqAPICallIdx++,
                 graph = graph,
-                ApiType = DisassemblyData.GetAPIType(node.GlobalModuleID, node.address)
+                APIDetails = APIDetails
             };
             lock (_logLock)
             {
                 _timeline.Add(new Logging.TIMELINE_EVENT(Logging.eTimelineEvent.APICall, call));
-                //_tlFilterCounts[call.ApiType] = _tlFilterCounts.GetValueOrDefault(call.ApiType, 0) + 1;
+         
             }
             //Logging.RecordLogEvent("Api call: "+node.Label, trace:this, graph: graph, apicall: call, filter: call.ApiType);
 
@@ -845,11 +849,6 @@ namespace rgatCore
                             Debug.Assert(false, "Timeline event has no assigned filter");
                             break;
                     }
-                }
-                else if (evt.LogType == Logging.eLogType.API)
-                {
-
-                    Debug.Assert(false, "Should not have this event type here");
                 }
                 else
                 {

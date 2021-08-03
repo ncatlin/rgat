@@ -27,6 +27,8 @@ namespace rgatCore.Widgets
         //todo lock access to this
         QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>> sbgraph = new BidirectionalGraph<ItemNode, Edge<ItemNode>>();
         GraphShape.Algorithms.Layout.KKLayoutAlgorithm<ItemNode, Edge<ItemNode>, QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>>> layout;
+        Dictionary<string, ItemNode> _interactedItems = new Dictionary<string, ItemNode>();
+
         Vector2 chartSize;
         float padding = 15;
         double _scaleX = 1;
@@ -54,67 +56,92 @@ namespace rgatCore.Widgets
         int timelineItemsOnChartDraw = 0;
         public void InitChartFromTrace(TraceRecord trace)
         {
-            if (trace != _rootTrace)
+            lock (_lock)
             {
-                sbgraph.Clear();
-                layout.VerticesPositions.Clear();
-                _rootTrace = trace;
-                addedNodes.Clear();
-            }
-
-            if (trace.TimelineItemsCount != timelineItemsOnChartDraw)
-            {
-
-                Logging.TIMELINE_EVENT[] entries = trace.GetTimeLineEntries();
-                timelineItemsOnChartDraw = entries.Length;
-                StopLayout();
-                AddThreadItems(null, trace);
-
-                KKLayoutParameters layoutParams = new KKLayoutParameters()
+                if (trace != _rootTrace)
                 {
-                    Height = chartSize.Y - (2 * padding),
-                    Width = chartSize.X - (2 * padding),
-                    LengthFactor = 1,
-                    DisconnectedMultiplier = 2,
-                    ExchangeVertices = true
-                };
-                //layout = new GraphShape.Algorithms.Layout.KKLayoutAlgorithm<itemNode, Edge<itemNode>, BidirectionalGraph<itemNode, Edge<itemNode>>>(sbgraph, parameters: layoutParams);
+                    sbgraph.Clear();
+                    layout.VerticesPositions.Clear();
+                    _rootTrace = trace;
+                    addedNodes.Clear();
+                }
 
-                Task.Run(() => { layout.Compute(); }); //todo - still a thread safety issue here if its open
+                if (trace.TimelineItemsCount != timelineItemsOnChartDraw)
+                {
+
+                    Logging.TIMELINE_EVENT[] entries = trace.GetTimeLineEntries();
+                    timelineItemsOnChartDraw = entries.Length;
+                    StopLayout();
+                    AddThreadItems(null, trace);
+
+                    KKLayoutParameters layoutParams = new KKLayoutParameters()
+                    {
+                        Height = chartSize.Y - (2 * padding),
+                        Width = chartSize.X - (2 * padding),
+                        LengthFactor = 1,
+                        DisconnectedMultiplier = 2,
+                        ExchangeVertices = true
+                    };
+                    //layout = new GraphShape.Algorithms.Layout.KKLayoutAlgorithm<itemNode, Edge<itemNode>, BidirectionalGraph<itemNode, Edge<itemNode>>>(sbgraph, parameters: layoutParams);
+
+                    Task.Run(() => { layout.Compute(); }); //todo - still a thread safety issue here if its open
+                }
             }
         }
 
         Dictionary<string, ItemNode> addedNodes = new Dictionary<string, ItemNode>();
+        readonly object _lock = new object();
 
         void AddThreadItems(ItemNode parentProcess, TraceRecord trace)
         {
 
             string nodeName = $"PID_{trace.PID}_PATH...";
             ItemNode startProcess = null;
-            if (!addedNodes.TryGetValue(nodeName, out startProcess))
+            lock (_lock)
             {
-                startProcess = new ItemNode(nodeName, Logging.eTimelineEvent.ProcessStart, trace);
-                sbgraph.AddVertex(startProcess);
-                addedNodes[nodeName] = startProcess;
-                if (parentProcess != null)
+                if (!addedNodes.TryGetValue(nodeName, out startProcess))
                 {
-                    sbgraph.AddEdge(new Edge<ItemNode>(parentProcess, startProcess));
+                    startProcess = new ItemNode(nodeName, Logging.eTimelineEvent.ProcessStart, trace);
+                    sbgraph.AddVertex(startProcess);
+                    addedNodes[nodeName] = startProcess;
+                    if (parentProcess != null)
+                    {
+                        sbgraph.AddEdge(new Edge<ItemNode>(parentProcess, startProcess));
+                    }
+                }
+
+
+                var threads = trace.GetProtoGraphs();
+                foreach (var thread in threads)
+                {
+                    string threadName = $"TID_{thread.ThreadID}_StartModule...";
+                    if (!addedNodes.ContainsKey(threadName))
+                    {
+                        ItemNode threadNode = new ItemNode(threadName, Logging.eTimelineEvent.ThreadStart, thread);
+                        sbgraph.AddVertex(threadNode);
+                        sbgraph.AddEdge(new Edge<ItemNode>(startProcess, threadNode));
+                        addedNodes[threadName] = threadNode;
+                    }
+                }
+
+                var timelineEntries = trace.GetTimeLineEntries();
+                foreach (var entry in timelineEntries)
+                {
+                    if (entry.TimelineEventType == Logging.eTimelineEvent.APICall)
+                    {
+                        var call = (Logging.APICALL)(entry.Item);
+                        if(call.APIDetails != null)
+                        {
+                            if (call.APIDetails.Value.KeyParameter != int.MinValue)
+                            {
+                                //timeline candidate
+                                Console.WriteLine("Possible add to timeline");
+                            }    
+                        }
+                    }
                 }
             }
 
-
-            var threads = trace.GetProtoGraphs();
-            foreach (var thread in threads)
-            {
-                string threadName = $"TID_{thread.ThreadID}_StartModule...";
-                if (!addedNodes.ContainsKey(threadName))
-                {
-                    ItemNode threadNode = new ItemNode(threadName, Logging.eTimelineEvent.ThreadStart, thread);
-                    sbgraph.AddVertex(threadNode);
-                    sbgraph.AddEdge(new Edge<ItemNode>(startProcess, threadNode));
-                    addedNodes[threadName] = threadNode;
-                }
-            }
             foreach (var child in trace.GetChildren())
             {
                 AddThreadItems(startProcess, child);
