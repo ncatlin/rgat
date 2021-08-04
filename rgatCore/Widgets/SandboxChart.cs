@@ -132,11 +132,22 @@ namespace rgatCore.Widgets
                         var call = (Logging.APICALL)(entry.Item);
                         if(call.APIDetails != null)
                         {
-                            if (call.APIDetails.Value.KeyParameter != int.MinValue)
+                            WinAPIDetails.API_ENTRY apiinfo = call.APIDetails.Value;
+                            if (apiinfo.Effects != null) 
                             {
-                                //timeline candidate
-                                Console.WriteLine("Possible add to timeline");
+                                foreach (WinAPIDetails.InteractionEffect effectBase in apiinfo.Effects)
+                                {
+                                    switch (effectBase)
+                                    {
+                                        case WinAPIDetails.LinkReferenceEffect linkEffect:
+                                            var entity = apiinfo.LoggedParams[linkEffect.entityIndex];
+                                            var reference = apiinfo.LoggedParams[linkEffect.referenceIndex];
+                                            Console.WriteLine($"Entity api call {apiinfo.Label} linking {entity.name}({entity.paramType}) to reference {reference.name}({reference.paramType})");
+                                            break;
+                                    }
+                                }
                             }    
+                
                         }
                     }
                 }
