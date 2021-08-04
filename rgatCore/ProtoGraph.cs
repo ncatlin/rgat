@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace rgatCore
 {
-    public struct SYMBOLCALLDATA
+    public struct APICALLDATA
     {
         public Tuple<uint, uint> edgeIdx;
         /// <summary>
@@ -211,7 +211,7 @@ namespace rgatCore
                     CallArgList.Add(argData);
                 }
 
-                SYMBOLCALLDATA callDat = new SYMBOLCALLDATA();
+                APICALLDATA callDat = new APICALLDATA();
                 callDat.argList = CallArgList;
                 callDat.edgeIdx = edge;
                 SymbolCallRecords.Add(callDat);
@@ -435,7 +435,7 @@ namespace rgatCore
 
                     TraceData.RecordAPICall(targNode, this, targNode.currentCallIndex, repeats); //todo this should be done in a BG thread
 
-                    targNode.currentCallIndex += repeats;
+                    targNode.currentCallIndex = (int)Math.Min(int.MaxValue, (ulong)targNode.currentCallIndex + repeats);
                     ProtoLastLastVertID = ProtoLastVertID;
                     ProtoLastVertID = targVertID;
                     resultPair = caller;
@@ -595,7 +595,7 @@ namespace rgatCore
                             completecount++;
                         }
 
-                        SYMBOLCALLDATA callRecord;
+                        APICALLDATA callRecord;
                         callRecord.edgeIdx = threadCalls[i];
                         callRecord.argList = argStringsList;
 
@@ -629,7 +629,7 @@ namespace rgatCore
             RemoveProcessedArgsFromCache(completecount);
         }
 
-        void RecordSystemInteraction(NodeData node, SYMBOLCALLDATA APIcall)
+        void RecordSystemInteraction(NodeData node, APICALLDATA APIcall)
         {
             Debug.Assert(node.IsExternal && node.HasSymbol);
             //int  moduleEnum = ProcessData.ModuleAPIReferences[node.GlobalModuleID];
@@ -1239,7 +1239,7 @@ namespace rgatCore
 
             //todo - lock?
             JArray externCalls = new JArray();
-            foreach (SYMBOLCALLDATA ecd in SymbolCallRecords)
+            foreach (APICALLDATA ecd in SymbolCallRecords)
             {
                 JArray callArgsEntry = new JArray();
                 callArgsEntry.Add(ecd.edgeIdx.Item1);
@@ -1401,7 +1401,7 @@ namespace rgatCore
         /*
 		bool instructions_to_nodepair(InstructionData sourceIns, InstructionData targIns, NODEPAIR &result);
 		*/
-        public List<SYMBOLCALLDATA> SymbolCallRecords = new List<SYMBOLCALLDATA>();
+        public List<APICALLDATA> SymbolCallRecords = new List<APICALLDATA>();
         public ulong TotalInstructions { get; set; } = 0;
         public int exeModuleID = -1;
         public ulong moduleBase = 0;

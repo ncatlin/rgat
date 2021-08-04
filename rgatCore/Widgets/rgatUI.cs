@@ -2646,11 +2646,11 @@ namespace rgatCore
 
                 ImGui.TableNextColumn();
                 //ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff99ff77);
-                ImGui.Text("Full Listing");
+                ImGui.Text("Event Listing");
 
 
                 TIMELINE_EVENT[] events = activeTrace.GetTimeLineEntries();
-                if (ImGui.BeginTable("#TaTTFullList", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable))
+                if (ImGui.BeginTable("#TaTTFullList", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg))
                 {
                     ImGui.TableSetupScrollFreeze(0, 1);
                     ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 50);
@@ -2659,12 +2659,24 @@ namespace rgatCore
                     ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.None);
                     ImGui.TableHeadersRow();
 
+                    var SelectedEntity = chart.SelectedEntity;
+                    var SelectedAPIEvent = chart.SelectedAPIEvent;
+
+
                     int i = 0;
                     foreach (TIMELINE_EVENT TLevent in events)
                     {
                         i += 1;
+
                         ImGui.TableNextRow();
+                        if (TLevent.MetaError != null)
+                        {
+                            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                        }
+
                         ImGui.TableNextColumn();
+
                         bool selected = false;
                         string eventType = "";
                         string module = "";
@@ -2692,11 +2704,16 @@ namespace rgatCore
                                 break;
                             case eTimelineEvent.APICall:
                                 {
+                                    //api call is selected if it is either directly activated, or interacts with a reference to the active entity
+                                    //eg: if the file.txt node is selected, writefile to the relevant handle will also be selected
                                     Logging.APICALL call = (Logging.APICALL)(TLevent.Item);
+                                    selected = TLevent == SelectedAPIEvent;
+                                    
                                     if (call.node.IsExternal)
                                     {
                                         eventType = "API - " + call.APIType();
                                         module = Path.GetFileNameWithoutExtension(activeTrace.DisassemblyData.GetModulePath(call.node.GlobalModuleID));
+                                        selected = selected || (SelectedEntity != null && SelectedEntity == chart.GetInteractedEntity(TLevent));
                                         //WinAPIDetails.API_ENTRY = call.APIEntry;
                                     }
                                     else
@@ -2709,7 +2726,7 @@ namespace rgatCore
 
                         if (ImGui.Selectable(i.ToString(), selected, ImGuiSelectableFlags.SpanAllColumns) && !selected)
                         {
-                            chart.SelectEventNode(TLevent);
+                            chart.SelectAPIEvent(TLevent);
                         }
                         ImGui.TableNextColumn();
                         ImGui.Text(eventType);
@@ -2728,7 +2745,6 @@ namespace rgatCore
                                 ImGui.SameLine();
                         }
                         ImGui.PopStyleVar();
-
                     }
                     ImGui.EndTable();
 
@@ -2782,11 +2798,19 @@ namespace rgatCore
                                 break;
 
                             case eTimelineEvent.APICall:
-                                ///DrawAPIInfoTable()
+                                DrawAPIInfoTable((Logging.TIMELINE_EVENT)selectedNode.reference);
                                 break;
                             default:
                                 ImGui.Text($"We don't do {selectedNode.TLtype} here");
                                 break;
+                        }
+                    }
+                    else
+                    {
+                        if (chart.SelectedAPIEvent != null)
+                        {
+
+                            DrawAPIInfoTable(chart.SelectedAPIEvent);
                         }
                     }
                     ImGui.EndChild();
@@ -2865,6 +2889,53 @@ namespace rgatCore
                 ImGui.TableNextColumn();
                 ImGui.Text($"{thread.TotalInstructions}");
 
+                ImGui.EndTable();
+            }
+        }
+
+        public void DrawAPIInfoTable(TIMELINE_EVENT evt)
+        {
+            if (ImGui.BeginTable("#ThreadSelTl", 2))
+            {
+                Logging.APICALL call = (Logging.APICALL)evt.Item;
+
+                ImGui.TableSetupColumn("#Field", ImGuiTableColumnFlags.WidthFixed, 80);
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text($"Thread ID");
+                ImGui.TableNextColumn();
+                ImGui.Text($"{call.graph.ThreadID}");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text($"Library");
+                ImGui.TableNextColumn();
+                ImGui.TextWrapped($"{call.graph.TraceData.DisassemblyData.GetModulePath(call.node.GlobalModuleID)}");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text($"Symbol");
+                ImGui.TableNextColumn();
+                if (call.APIDetails.HasValue)
+                {
+                    ImGui.TextWrapped($"{call.APIDetails.Value.Symbol}");
+                }
+                else
+                {
+                    call.graph.TraceData.DisassemblyData.GetSymbol(call.node.GlobalModuleID, call.node.address, out string symbol);
+                    ImGui.TextWrapped(symbol);
+                }
+                ImGui.TableNextColumn();
+
+                if (evt.MetaError != null)
+                {
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.TextWrapped($"Processing Error");
+                    ImGui.TableNextColumn();
+                    ImGui.TextWrapped($"{evt.MetaError}");
+                }
                 ImGui.EndTable();
             }
         }

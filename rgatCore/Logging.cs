@@ -30,7 +30,7 @@ namespace rgatCore
         {
             public APICALL() { APIDetails = null; }
             public NodeData node;
-            public ulong index;
+            public int index;
             public ulong repeats;
             public ulong uniqID;
             public ProtoGraph graph;
@@ -177,10 +177,7 @@ namespace rgatCore
                         {
                             Logging.APICALL call = (Logging.APICALL)_item;
                             NodeData n = call.node;
-                            var labelitems = n.CreateColourisedSymbolCall(call.graph,
-                                (int)call.index,
-                                textColour,
-                                Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1));
+                            var labelitems = n.CreateColourisedSymbolCall(call.graph, call.index, textColour, Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1));
                             _cachedLabel.AddRange(labelitems);
                             break;
                         }
@@ -206,6 +203,9 @@ namespace rgatCore
             public ulong Parent => _parentID;
             public object Item => _item;
 
+            //an error was encountered processing this event, usually on the timeline chart
+            //this does not indicate an error with the actual API
+            public string MetaError = null;
             public bool Inited { get; private set; }
 
             eTimelineEvent _eventType;

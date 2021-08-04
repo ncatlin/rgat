@@ -71,6 +71,16 @@ namespace rgatCore
             public int entityIndex;
         }
 
+        public class UseReferenceEffect : InteractionEffect
+        {
+            public int referenceIndex;
+        }
+
+        public class DestroyReferenceEffect : InteractionEffect
+        {
+            public int referenceIndex;
+        }
+
         static void LoadJSON(Newtonsoft.Json.Linq.JArray JItems)
         {
             foreach (JToken moduleEntryTok in JItems)
@@ -127,6 +137,8 @@ namespace rgatCore
                         JObject APIJsn = API.Value.ToObject<JObject>();
 
                         API_ENTRY APIItem = new API_ENTRY();
+                        APIItem.ModuleName = libname;
+                        APIItem.Symbol = apiname;
 
                         if (APIJsn.TryGetValue("Filter", out filterTok) && filterTok.Type == JTokenType.String)
                         {
@@ -226,6 +238,10 @@ namespace rgatCore
                                 return null;
                             }
                             param.RawType = (InteractionRawType)rawtypeEnum;
+                            if (param.RawType == InteractionRawType.Handle)
+                            {
+                                param.NoCase = true;
+                            }
                         }
                     }
                     else
@@ -279,7 +295,40 @@ namespace rgatCore
                                 valid = true;
                             }
                         }
+                        break;                    
+                    
+                    case "UseReference":
+                        if (effectJsn.TryGetValue("ReferenceIndex", out refidx) && refidx.Type == JTokenType.Integer)
+                        {
+                            int refParamCallIndex = refidx.ToObject<int>();
+                            int refParamListIndex = callparams.FindIndex(x => x.index == refParamCallIndex);
+
+
+                            if (refParamListIndex != -1)
+                            {
+                                UseReferenceEffect effect = new UseReferenceEffect() { referenceIndex = refParamListIndex };
+                                result.Add(effect);
+                                valid = true;
+                            }
+                        }
                         break;
+
+                    case "DestroyReference":
+                        if (effectJsn.TryGetValue("ReferenceIndex", out refidx) && refidx.Type == JTokenType.Integer)
+                        {
+                            int refParamCallIndex = refidx.ToObject<int>();
+                            int refParamListIndex = callparams.FindIndex(x => x.index == refParamCallIndex);
+
+
+                            if (refParamListIndex != -1)
+                            {
+                                DestroyReferenceEffect effect = new DestroyReferenceEffect() { referenceIndex = refParamListIndex };
+                                result.Add(effect);
+                                valid = true;
+                            }
+                        }
+                        break;
+
                     default:
                         Logging.RecordLogEvent($"API data entry {libname}:{apiname} has an unknown interaction effect {typetok}", Logging.LogFilterType.TextError);
                         break;
@@ -309,6 +358,7 @@ namespace rgatCore
             public APIParamType paramType;
             public InteractionEntityType Category;
             public InteractionRawType RawType;
+            public bool NoCase; //reference is case insensitive, particularly numbers such as handles which get represented as hex strings
         }
 
         /// <summary>
@@ -331,6 +381,20 @@ namespace rgatCore
 
             //how this api call affects our tracking of interaction targets
             public List<InteractionEffect> Effects;
+
+            /// <summary>
+            /// the filename of the library
+            /// </summary>
+            public string ModuleName;
+            /// <summary>
+            /// the case-sensitive API name
+            /// </summary>
+            public string Symbol;
+        }
+
+        public struct API_INTERACTION_ENTITY
+        {
+            public string name;
         }
 
         /// <summary>

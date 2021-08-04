@@ -14,11 +14,12 @@ VOID wraphead_CloseHandle(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT fu
 }
 
 
-VOID wraphead_ReadFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD bytesInArg)
+VOID wraphead_ReadFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD handleArg, DWORD bytesInArg)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
 
+	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, handleArg);
 	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,%ld\x01", 2, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, bytesInArg);
 	fflush(threaddata->threadpipeFILE);
 #ifdef BREAK_LOOP_ON_BLOCK
@@ -280,11 +281,12 @@ VOID wraphead_VirtualAllocEx(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT
 
 
 
-VOID wraphead_WriteFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD bytesOutArg)
+VOID wraphead_WriteFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD handleArg, DWORD bytesOutArg)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
 
+	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, handleArg);
 	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,%ld\x01", 2, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, bytesOutArg);
 	fflush(threaddata->threadpipeFILE);
 }
@@ -380,14 +382,11 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 	if (RTN_Valid(rtn))
 	{
 		RTN_Open(rtn);
-
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_ReadFile,
 			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
+			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
 			IARG_END);
-		//RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)test1, IARG_THREAD_ID, IARG_UINT32, TLS_KEY, 13337, IARG_END);// IARG_INST_PTR,  IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
-
-
 		RTN_Close(rtn);
 	}
 
@@ -399,6 +398,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_WriteFile,
 			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
+			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
 			IARG_END);
 		//RTN_InsertCall(rtn, IPOINT_AFTER, (AFUNPTR)test1, IARG_THREAD_ID, IARG_UINT32, TLS_KEY, 13357, IARG_END);// IARG_INST_PTR,  IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);

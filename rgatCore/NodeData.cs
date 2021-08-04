@@ -287,7 +287,7 @@ namespace rgatCore
                     return $"{symbolText}() [x{executionCount}]";
             }
 
-            SYMBOLCALLDATA lastCall;
+            APICALLDATA lastCall;
             if (specificCallIndex == -1)
             {
                 lastCall = graph.SymbolCallRecords[(int)callRecordsIndexs[^1]];
@@ -366,10 +366,10 @@ namespace rgatCore
                 return result;
             }
 
-            SYMBOLCALLDATA lastCall;
+            APICALLDATA lastCall;
 
             Debug.Assert(callRecordsIndexs.Count > specificCallIndex);
-            lastCall = graph.SymbolCallRecords[(int)callRecordsIndexs[specificCallIndex]];
+            lastCall = graph.SymbolCallRecords[(int)callRecordsIndexs[specificCallIndex]]; //thread unsafe todo, when sandbox open while being filled
 
             result.Add(new Tuple<string, WritableRgbaFloat>($"{symbolText}(", colour1));
 
@@ -417,7 +417,7 @@ namespace rgatCore
 
         //an index used to lookup the caller/arguments of each instance of this being called
         public List<ulong> callRecordsIndexs = new List<ulong>();
-        public ulong currentCallIndex = 1; //need to review how this works and if it achieves anything
+        public int currentCallIndex = 1; //need to review how this works and if it achieves anything
         public bool newArgsRecorded;
 
         //number of external functions called

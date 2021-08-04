@@ -374,7 +374,7 @@ namespace rgatCore
 
         ulong uniqAPICallIdx = 0;
 
-        public void RecordAPICall(NodeData node, ProtoGraph graph, ulong callIndex, ulong repeats)
+        public void RecordAPICall(NodeData node, ProtoGraph graph, int callIndex, ulong repeats)
         {
             int ModuleReference = DisassemblyData.GetModuleReference(node.GlobalModuleID);
 

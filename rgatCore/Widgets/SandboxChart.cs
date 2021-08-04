@@ -27,7 +27,6 @@ namespace rgatCore.Widgets
         //todo lock access to this
         QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>> sbgraph = new BidirectionalGraph<ItemNode, Edge<ItemNode>>();
         GraphShape.Algorithms.Layout.KKLayoutAlgorithm<ItemNode, Edge<ItemNode>, QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>>> layout;
-        Dictionary<string, ItemNode> _interactedItems = new Dictionary<string, ItemNode>();
 
         Vector2 chartSize;
         float padding = 15;
@@ -91,6 +90,31 @@ namespace rgatCore.Widgets
 
         Dictionary<string, ItemNode> addedNodes = new Dictionary<string, ItemNode>();
         readonly object _lock = new object();
+        Dictionary<WinAPIDetails.InteractionEntityType, Dictionary<string, ItemNode>> _interactionEntities = new Dictionary<WinAPIDetails.InteractionEntityType, Dictionary<string, ItemNode>>();
+        Dictionary<WinAPIDetails.InteractionRawType, Dictionary<string, ItemNode>> _interactionEntityReferences = new Dictionary<WinAPIDetails.InteractionRawType, Dictionary<string, ItemNode>>();
+        Dictionary<Logging.TIMELINE_EVENT, ItemNode> _timelineEventEntities = new Dictionary<Logging.TIMELINE_EVENT, ItemNode>();
+
+        //set of action labels associateed with each edge. todo add as a property to edge/make new edge object?
+        Dictionary<Tuple<ItemNode, ItemNode>, List<string>> _edgeLabels = new Dictionary<Tuple<ItemNode, ItemNode>, List<string>>();
+        List<Tuple<ItemNode, ItemNode>> _addedEdges = new List<Tuple<ItemNode, ItemNode>>();
+
+        ItemNode _selectedNode = null;
+        public ItemNode GetSelectedNode => _selectedNode;
+        public Logging.TIMELINE_EVENT SelectedAPIEvent { get; private set; }
+        Vector2 Point2Vec(GraphShape.Point point) => new Vector2((float)point.X, (float)point.Y);
+        Vector2 chartOffset = Vector2.Zero;
+
+
+        public ItemNode GetInteractedEntity(Logging.TIMELINE_EVENT evt)
+        {
+            lock (_lock)
+            {
+                if (_timelineEventEntities.TryGetValue(evt, out ItemNode entity)) return entity;
+            }
+            return null;
+        }
+
+        public ItemNode SelectedEntity { get; private set; }
 
         void AddThreadItems(ItemNode parentProcess, TraceRecord trace)
         {
@@ -125,45 +149,203 @@ namespace rgatCore.Widgets
                 }
 
                 var timelineEntries = trace.GetTimeLineEntries();
-                foreach (var entry in timelineEntries)
+                foreach (Logging.TIMELINE_EVENT timelineEvent in timelineEntries)
                 {
-                    if (entry.TimelineEventType == Logging.eTimelineEvent.APICall)
+                    if (timelineEvent.TimelineEventType == Logging.eTimelineEvent.APICall)
                     {
-                        var call = (Logging.APICALL)(entry.Item);
-                        if(call.APIDetails != null)
+                        var call = (Logging.APICALL)(timelineEvent.Item);
+                        if (call.APIDetails != null)
                         {
                             WinAPIDetails.API_ENTRY apiinfo = call.APIDetails.Value;
-                            if (apiinfo.Effects != null) 
+                            if (apiinfo.Effects != null)
                             {
+                                ProtoGraph caller = call.graph;
+                                APICALLDATA APICallRecord = caller.SymbolCallRecords[(int)call.node.callRecordsIndexs[call.index]]; 
+                                string threadName = $"TID_{caller.ThreadID}_StartModule...";
+                                ItemNode threadNode = addedNodes[threadName];
+
                                 foreach (WinAPIDetails.InteractionEffect effectBase in apiinfo.Effects)
                                 {
                                     switch (effectBase)
                                     {
                                         case WinAPIDetails.LinkReferenceEffect linkEffect:
-                                            var entity = apiinfo.LoggedParams[linkEffect.entityIndex];
-                                            var reference = apiinfo.LoggedParams[linkEffect.referenceIndex];
-                                            Console.WriteLine($"Entity api call {apiinfo.Label} linking {entity.name}({entity.paramType}) to reference {reference.name}({reference.paramType})");
+                                            {
+                                                WinAPIDetails.API_PARAM_ENTRY entityParamRecord = apiinfo.LoggedParams[linkEffect.entityIndex];
+                                                WinAPIDetails.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[linkEffect.referenceIndex];
+
+                                                int entityParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == entityParamRecord.index);
+                                                int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.index);
+
+                                                if (entityParamLoggedIndex == -1 || referenceParamLoggedIndex == -1)
+                                                {
+                                                    string error = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [LinkReference] didn't have correct parameters. The instrumentation library or apidata.json may not match.";
+                                                    timelineEvent.MetaError = error;
+                                                    Logging.RecordLogEvent(error, Logging.LogFilterType.TextDebug);
+                                                    break;
+                                                }
+
+                                                if (!_interactionEntities.TryGetValue(entityParamRecord.Category, out Dictionary<string, ItemNode> entityDict))
+                                                {
+                                                    entityDict = new Dictionary<string, ItemNode>();
+                                                    _interactionEntities.Add(entityParamRecord.Category, entityDict);
+                                                }
+                                                string entityString = APICallRecord.argList[entityParamLoggedIndex].Item2;
+
+                                                ItemNode entityNode;
+                                                if (!entityDict.ContainsKey(entityString))
+                                                {
+                                                    entityNode = new ItemNode(entityString, Logging.eTimelineEvent.APICall, timelineEvent);
+                                                    entityDict.Add(entityString, entityNode);
+                                                    sbgraph.AddVertex(entityNode);
+                                                    addedNodes[entityString] = entityNode;
+                                                }
+                                                else
+                                                {
+                                                    entityNode = addedNodes[entityString];
+                                                }
+                                                AddAPIEdge(threadNode, entityNode, apiinfo.Label);
+
+                                                if (!_timelineEventEntities.TryGetValue(timelineEvent, out ItemNode existingEntity))
+                                                {
+                                                    _timelineEventEntities.Add(timelineEvent, entityNode);
+                                                }
+                                                Debug.Assert(existingEntity == null || existingEntity == entityNode);
+
+
+                                                //link this entity to the reference the api all created (eg associate a file path with the file handle that 'CreateFile' created)
+                                                string referenceString = APICallRecord.argList[referenceParamLoggedIndex].Item2;
+                                                if (referenceParamRecord.NoCase)
+                                                    referenceString = referenceString.ToLower();
+
+                                                if (!_interactionEntityReferences.ContainsKey(referenceParamRecord.RawType))
+                                                {
+                                                    _interactionEntityReferences.Add(referenceParamRecord.RawType, new Dictionary<string, ItemNode>());
+                                                }
+                                                if (!_interactionEntityReferences[referenceParamRecord.RawType].ContainsKey(referenceString))
+                                                {
+                                                    _interactionEntityReferences[referenceParamRecord.RawType].Add(referenceString, entityNode);
+                                                }
+
+                                                break;
+                                            }
+
+                                        // this api performs some action on a refererence to an entity
+                                        // record this as a label on the edge and link this event to the entity
+                                        case WinAPIDetails.UseReferenceEffect useEffect:
+                                            {
+                                                WinAPIDetails.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[useEffect.referenceIndex];
+                                                int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.index);
+                                                if (referenceParamLoggedIndex == -1)
+                                                {
+                                                    timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [UseReference] didn't have correct parameters"; 
+                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
+                                                    break;
+                                                }
+
+                                                string referenceString = APICallRecord.argList[referenceParamLoggedIndex].Item2;
+                                                if (referenceParamRecord.NoCase)
+                                                    referenceString = referenceString.ToLower();
+
+                                                bool resolvedReference = false;
+                                                if(_interactionEntityReferences.TryGetValue(referenceParamRecord.RawType, out Dictionary<string, ItemNode> typeEntityList))
+                                                {
+                                                    if (typeEntityList.TryGetValue(referenceString, out ItemNode entityNode))
+                                                    {
+                                                        resolvedReference = true;
+                                                        _timelineEventEntities.Add(timelineEvent, entityNode);
+                                                        AddAPIEdge(threadNode, entityNode, apiinfo.Label);
+                                                    }
+                                                }
+                                                if (!resolvedReference)
+                                                {
+                                                    timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [UseReference] reference was not lined to an entity ({referenceString})";
+                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
+                                                }
+                                                break;
+                                            }
+
+                                        // this api invalidates a reference
+                                        // remove the link between the reference and the entity it references
+                                        case WinAPIDetails.DestroyReferenceEffect destroyEffect:
+                                            {
+                                                WinAPIDetails.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[destroyEffect.referenceIndex];
+                                                int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.index);
+                                                if (referenceParamLoggedIndex == -1)
+                                                {
+                                                    timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [DestroyReference] didn't have correct parameters";
+                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
+                                                    break;
+                                                }
+
+                                                string referenceString = APICallRecord.argList[referenceParamLoggedIndex].Item2;
+                                                if (referenceParamRecord.NoCase)
+                                                    referenceString = referenceString.ToLower();
+
+                                                bool resolvedReference = false;
+                                                if (_interactionEntityReferences.TryGetValue(referenceParamRecord.RawType, out Dictionary<string, ItemNode> typeEntityList))
+                                                {
+                                                    if (typeEntityList.TryGetValue(referenceString, out ItemNode entityNode))
+                                                    {
+                                                        resolvedReference = true;
+                                                        _timelineEventEntities.Add(timelineEvent, entityNode);
+                                                        AddAPIEdge(threadNode, entityNode, apiinfo.Label);
+                                                        typeEntityList.Remove(referenceString);
+                                                    }
+                                                }
+                                                if (!resolvedReference)
+                                                {
+                                                    timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [DestroyReference] reference was not lined to an entity ({referenceString})";
+                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
+                                                }
+
+                                                break;
+                                            }
+
+                                        default:
+                                            timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol}: had invalid effect {effectBase}";
+                                            Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
                                             break;
+
                                     }
                                 }
-                            }    
-                
+                            }
+
                         }
                     }
+
                 }
-            }
 
-            foreach (var child in trace.GetChildren())
-            {
-                AddThreadItems(startProcess, child);
-            }
+                foreach (var child in trace.GetChildren())
+                {
+                    AddThreadItems(startProcess, child);
+                }
 
+            }
         }
 
-        public ItemNode GetSelectedNode => _selectedNode;
+        void AddAPIEdge(ItemNode source, ItemNode dest, string label = null)
+        {
+            Edge<ItemNode> edge = new Edge<ItemNode>(source, dest);
+            Tuple<ItemNode, ItemNode> edgeTuple = new Tuple<ItemNode, ItemNode>(source, dest);
+            if (!_addedEdges.Contains(edgeTuple))
+            {
+                sbgraph.AddEdge(edge);
+                _addedEdges.Add(edgeTuple);
+            }
 
-        Vector2 Point2Vec(GraphShape.Point point) => new Vector2((float)point.X, (float)point.Y);
-        Vector2 chartOffset = Vector2.Zero;
+            if (!_edgeLabels.TryGetValue(edgeTuple, out List<string> thisEdgeLabels))
+            {
+                _edgeLabels.Add(edgeTuple, new List<string>() { label });
+            }
+            else
+            {
+                if (!thisEdgeLabels.Contains(label))
+                {
+                    thisEdgeLabels.Add(label);
+                }
+            }
+        }
+
         public void Draw()
         {
             Vector2 availArea = ImGui.GetContentRegionAvail();
@@ -183,7 +365,7 @@ namespace rgatCore.Widgets
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
 
-
+            
             Vector2 cursorPos = ImGui.GetCursorScreenPos();
             Vector2 chartPos = cursorPos + chartOffset + new Vector2(padding, padding);
             if (ImGui.BeginChild("ChartFrame", chartSize, false, ImGuiWindowFlags.NoScrollbar))
@@ -195,14 +377,24 @@ namespace rgatCore.Widgets
                 }
 
                 var edges = sbgraph.Edges;
-
+                List<Tuple<ItemNode, ItemNode>> drawnEdges = new List<Tuple<ItemNode, ItemNode>>();
                 var positions = new Dictionary<ItemNode, GraphShape.Point>(layout.VerticesPositions);
                 foreach (var edge in edges)
                 {
                     if (positions.TryGetValue(edge.Source, out GraphShape.Point srcPoint) &&
                     positions.TryGetValue(edge.Target, out GraphShape.Point targPoint))
                     {
-                        ImGui.GetWindowDrawList().AddLine(chartPos + Point2Vec(srcPoint), chartPos + Point2Vec(targPoint), 0xffff00ff);
+                        Vector2 sourcePos = chartPos + Point2Vec(srcPoint);
+                        Vector2 targPos = chartPos + Point2Vec(targPoint);
+                        Tuple<ItemNode, ItemNode> edgeTuple = new Tuple<ItemNode, ItemNode>(edge.Source, edge.Target);
+                        if (drawnEdges.Contains(edgeTuple)) continue;
+                        drawnEdges.Add(edgeTuple);
+
+                        ImGui.GetWindowDrawList().AddLine(sourcePos, targPos, 0xffff00ff);
+                        if (_edgeLabels.TryGetValue(edgeTuple, out List<string> edgeLabels))
+                        {
+                            ImGui.GetWindowDrawList().AddText(Vector2.Lerp(sourcePos, targPos, 0.5f), 0xff000000, String.Join(",", edgeLabels));
+                        }
                     }
                 }
 
@@ -231,7 +423,6 @@ namespace rgatCore.Widgets
         }
 
 
-        ItemNode _selectedNode = null;
         void DrawNode(ItemNode node, Vector2 position)
         {
             Vector2 cursor = ImGui.GetCursorScreenPos();
@@ -277,6 +468,12 @@ namespace rgatCore.Widgets
                         }
                     }
                     break;
+
+                case Logging.eTimelineEvent.APICall:
+                    DrawList.AddCircleFilled(position, nodeSize, 0xff905f20);
+                    break;
+
+
                 default:
                     DrawList.AddCircleFilled(position, nodeSize, 0xff000000);
                     break;
@@ -293,6 +490,16 @@ namespace rgatCore.Widgets
             if (ImGui.IsItemClicked())
             {
                 _selectedNode = node;
+                if (_selectedNode.TLtype == Logging.eTimelineEvent.APICall)
+                {
+                    SelectedEntity = node;
+                    SelectedAPIEvent = (Logging.TIMELINE_EVENT)node.reference;
+                }
+                else
+                {
+                    SelectedEntity = null;
+                    SelectedAPIEvent = null;
+                }
             }
 
             DrawList.AddRectFilled(position, position + new Vector2(20, 8), 0xddffffff);
@@ -310,8 +517,12 @@ namespace rgatCore.Widgets
         }
 
 
-        public void SelectEventNode(Logging.TIMELINE_EVENT evt)
+        public void SelectAPIEvent(Logging.TIMELINE_EVENT evt)
         {
+            SelectedAPIEvent = null;
+            SelectedEntity = null;
+            _selectedNode = null;
+
             if (_rootTrace == null) return;
 
             switch (evt.TimelineEventType)
@@ -342,9 +553,14 @@ namespace rgatCore.Widgets
                     break;
 
                 case Logging.eTimelineEvent.APICall:
-
-                    //_selectedNode = node;
-                    Console.WriteLine($"Api selection not supported yet");// {node.reference}");
+                    {
+                        SelectedAPIEvent = evt;
+                        if (_timelineEventEntities.TryGetValue(evt, out ItemNode newSelectedEntity))
+                        {
+                            SelectedEntity = newSelectedEntity;
+                            _selectedNode = newSelectedEntity;
+                        }
+                    }
                     break;
             }
         }
