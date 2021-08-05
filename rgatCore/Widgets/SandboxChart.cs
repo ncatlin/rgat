@@ -160,7 +160,18 @@ namespace rgatCore.Widgets
                             if (apiinfo.Effects != null)
                             {
                                 ProtoGraph caller = call.graph;
-                                APICALLDATA APICallRecord = caller.SymbolCallRecords[(int)call.node.callRecordsIndexs[call.index]]; 
+                                if (call.index >= call.node.callRecordsIndexs.Count)
+                                {
+                                    Logging.RecordLogEvent($"Warning: Call {call.APIDetails.Value.ModuleName}:{call.APIDetails.Value.Symbol} tried to place call {call.index} on timeline, but only {call.node.callRecordsIndexs.Count} recorded");
+                                    continue;
+                                }
+                                int recordsIndex = (int)call.node.callRecordsIndexs[call.index];
+                                if (recordsIndex >= caller.SymbolCallRecords.Count)
+                                {
+                                    Logging.RecordLogEvent($"Warning: Call {call.APIDetails.Value.ModuleName}:{call.APIDetails.Value.Symbol} tried to place record {recordsIndex} on timeline, but caller has only {caller.SymbolCallRecords} recorded");
+                                    continue;
+                                }
+                                APICALLDATA APICallRecord = caller.SymbolCallRecords[recordsIndex];
                                 string threadName = $"TID_{caller.ThreadID}_StartModule...";
                                 ItemNode threadNode = addedNodes[threadName];
 
@@ -184,10 +195,10 @@ namespace rgatCore.Widgets
                                                     break;
                                                 }
 
-                                                if (!_interactionEntities.TryGetValue(entityParamRecord.Category, out Dictionary<string, ItemNode> entityDict))
+                                                if (!_interactionEntities.TryGetValue(entityParamRecord.EntityType, out Dictionary<string, ItemNode> entityDict))
                                                 {
                                                     entityDict = new Dictionary<string, ItemNode>();
-                                                    _interactionEntities.Add(entityParamRecord.Category, entityDict);
+                                                    _interactionEntities.Add(entityParamRecord.EntityType, entityDict);
                                                 }
                                                 string entityString = APICallRecord.argList[entityParamLoggedIndex].Item2;
 
@@ -237,7 +248,7 @@ namespace rgatCore.Widgets
                                                 int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.index);
                                                 if (referenceParamLoggedIndex == -1)
                                                 {
-                                                    timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [UseReference] didn't have correct parameters"; 
+                                                    timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [UseReference] didn't have correct parameters";
                                                     Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
                                                     break;
                                                 }
@@ -247,7 +258,7 @@ namespace rgatCore.Widgets
                                                     referenceString = referenceString.ToLower();
 
                                                 bool resolvedReference = false;
-                                                if(_interactionEntityReferences.TryGetValue(referenceParamRecord.RawType, out Dictionary<string, ItemNode> typeEntityList))
+                                                if (_interactionEntityReferences.TryGetValue(referenceParamRecord.RawType, out Dictionary<string, ItemNode> typeEntityList))
                                                 {
                                                     if (typeEntityList.TryGetValue(referenceString, out ItemNode entityNode))
                                                     {
@@ -258,7 +269,7 @@ namespace rgatCore.Widgets
                                                 }
                                                 if (!resolvedReference)
                                                 {
-                                                    timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [UseReference] reference was not lined to an entity ({referenceString})";
+                                                    timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [UseReference] reference was not linked to an entity ({referenceString})";
                                                     Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
                                                 }
                                                 break;
@@ -294,7 +305,7 @@ namespace rgatCore.Widgets
                                                 }
                                                 if (!resolvedReference)
                                                 {
-                                                    timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [DestroyReference] reference was not lined to an entity ({referenceString})";
+                                                    timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [DestroyReference] reference was not linked to an entity ({referenceString})";
                                                     Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
                                                 }
 
@@ -365,7 +376,7 @@ namespace rgatCore.Widgets
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
 
-            
+
             Vector2 cursorPos = ImGui.GetCursorScreenPos();
             Vector2 chartPos = cursorPos + chartOffset + new Vector2(padding, padding);
             if (ImGui.BeginChild("ChartFrame", chartSize, false, ImGuiWindowFlags.NoScrollbar))

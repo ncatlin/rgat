@@ -2688,8 +2688,7 @@ namespace rgatCore
 
                                 if (selectedNode != null)
                                 {
-                                    selected = (Equals(selectedNode.reference.GetType(), typeof(TraceRecord)) &&
-                                    TLevent.ID == ((TraceRecord)selectedNode.reference).PID);
+                                    selected = (Equals(selectedNode.reference.GetType(), typeof(TraceRecord)) && TLevent.ID == ((TraceRecord)selectedNode.reference).PID);
                                 }
 
                                 break;
@@ -2698,14 +2697,11 @@ namespace rgatCore
                                 eventType = "Thread";
                                 if (selectedNode != null)
                                 {
-                                    selected = (Equals(selectedNode.reference.GetType(), typeof(ProtoGraph)) &&
-                                    TLevent.ID == ((ProtoGraph)selectedNode.reference).ThreadID);
+                                    selected = (Equals(selectedNode.reference.GetType(), typeof(ProtoGraph)) && TLevent.ID == ((ProtoGraph)selectedNode.reference).ThreadID);
                                 }
                                 break;
                             case eTimelineEvent.APICall:
                                 {
-                                    //api call is selected if it is either directly activated, or interacts with a reference to the active entity
-                                    //eg: if the file.txt node is selected, writefile to the relevant handle will also be selected
                                     Logging.APICALL call = (Logging.APICALL)(TLevent.Item);
                                     selected = TLevent == SelectedAPIEvent;
                                     
@@ -2713,7 +2709,17 @@ namespace rgatCore
                                     {
                                         eventType = "API - " + call.APIType();
                                         module = Path.GetFileNameWithoutExtension(activeTrace.DisassemblyData.GetModulePath(call.node.GlobalModuleID));
+
+                                        //api call is selected if it is either directly activated, or interacts with a reference to the active entity
+                                        //eg: if the file.txt node is selected, writefile to the relevant handle will also be selected
                                         selected = selected || (SelectedEntity != null && SelectedEntity == chart.GetInteractedEntity(TLevent));
+                                        if (!selected && selectedNode != null)
+                                        {
+                                            //select all apis called by selected thread node
+                                            selected = selected || (Equals(selectedNode.reference.GetType(), typeof(ProtoGraph)) && call.graph.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
+                                            //select all apis called by selected process node
+                                            selected = selected || (Equals(selectedNode.reference.GetType(), typeof(TraceRecord)) && call.graph.TraceData.PID == ((TraceRecord)selectedNode.reference).PID);
+                                        }
                                         //WinAPIDetails.API_ENTRY = call.APIEntry;
                                     }
                                     else

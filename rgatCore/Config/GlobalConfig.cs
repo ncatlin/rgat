@@ -388,12 +388,13 @@ namespace rgatCore
 
         static void RestoreCustomKeybind(JObject bindobj)
         {
+            string errorString = "";
+            bool success = bindobj.TryGetValue("Action", out JToken actionTok) && actionTok.Type == JTokenType.String;
+            success &= bindobj.TryGetValue("BindIndex", out JToken indexTok) && indexTok.Type == JTokenType.Integer;
+            success &= bindobj.TryGetValue("Key", out JToken keyTok) && keyTok.Type == JTokenType.String;
+            success &= bindobj.TryGetValue("Modifiers", out JToken modifierTok) && keyTok.Type == JTokenType.String;
 
-            bool error = bindobj.TryGetValue("Action", out JToken actionTok) && actionTok.Type == JTokenType.String;
-            error &= bindobj.TryGetValue("BindIndex", out JToken indexTok) && indexTok.Type == JTokenType.Integer;
-            error &= bindobj.TryGetValue("Key", out JToken keyTok) && keyTok.Type == JTokenType.String;
-            error &= bindobj.TryGetValue("Modifiers", out JToken modifierTok) && keyTok.Type == JTokenType.String;
-
+            bool error = !success;
             try
             {
                 eKeybind action = (eKeybind)Enum.Parse(typeof(eKeybind), actionTok.ToObject<string>());
@@ -403,14 +404,15 @@ namespace rgatCore
                 ModifierKeys mods = (ModifierKeys)Enum.Parse(typeof(ModifierKeys), modifierTok.ToObject<string>());
                 SetKeybind(action, bindIndex, key, mods);
             }
-            catch
+            catch (Exception e)
             {
                 error = true;
+                errorString = e.Message;
             }
 
             if (error)
             {
-                Logging.RecordLogEvent($"Error loading keybind {bindobj}");
+                Logging.RecordLogEvent($"Error loading keybind {bindobj}: {errorString}");
             }
         }
 

@@ -219,7 +219,7 @@ namespace rgatCore
 
                         if (param.paramType != APIParamType.Info)
                         {
-                            if (!callParam.TryGetValue("Category", out JToken catTok) ||
+                            if (!callParam.TryGetValue("EntityType", out JToken catTok) ||
                                 catTok.Type != JTokenType.String ||
                                 !Enum.TryParse(typeof(InteractionEntityType), catTok.ToString(), out object categoryEnum))
                             {
@@ -227,7 +227,7 @@ namespace rgatCore
                                 return null;
                             }
 
-                            param.Category = (InteractionEntityType)categoryEnum;
+                            param.EntityType = (InteractionEntityType)categoryEnum;
 
 
                             if (!callParam.TryGetValue("RawType", out JToken rawTypeTok) ||
@@ -242,11 +242,18 @@ namespace rgatCore
                             {
                                 param.NoCase = true;
                             }
+
+
                         }
                     }
                     else
                     {
                         param.paramType = APIParamType.Info;
+                    }
+
+                    if (callParam.TryGetValue("Conditional", out JToken condTok) && condTok.Type == JTokenType.Boolean)
+                    {
+                        param.IsConditional = condTok.ToObject<bool>();
                     }
                 }
                 result.Add(param);
@@ -344,8 +351,10 @@ namespace rgatCore
 
 
         public enum APIParamType { Info, Entity, Reference }
-        public enum InteractionEntityType { File, Host }
-        public enum InteractionRawType { Handle, Path, Domain }
+        //the type of entity being interacted with
+        public enum InteractionEntityType { File, Host, Registry }
+        //the type of parameter
+        public enum InteractionRawType { Handle, Path, Domain, HKEY }
         //enum APIInteractionType { None, Open, Close, Read, Write, Delete, Query, Lock, Unlock }
 
         /// <summary>
@@ -356,9 +365,16 @@ namespace rgatCore
             public int index;
             public string name;
             public APIParamType paramType;
-            public InteractionEntityType Category;
+            public InteractionEntityType EntityType;
             public InteractionRawType RawType;
-            public bool NoCase; //reference is case insensitive, particularly numbers such as handles which get represented as hex strings
+            /// <summary>
+            /// may not receive this parameter (eg: failed registry key open -> no registry key handle)
+            /// </summary>
+            public bool IsConditional;
+            /// <summary>
+            /// comparisons are case insensitive, particularly numbers such as handles which get represented as hex strings
+            /// </summary>
+            public bool NoCase;
         }
 
         /// <summary>

@@ -546,7 +546,11 @@ namespace rgatCore
             for (var cacheI = 0; cacheI < maxCacheI; cacheI++)
             {
                 INCOMING_CALL_ARGUMENT arg = _unprocessedCallArguments[cacheI];
-                Debug.Assert(arg.calledAddress == currentTarget, "ProcessIncomingCallArguments() unexpected change of target");
+                if (arg.calledAddress != currentTarget)
+                {
+                    Logging.RecordLogEvent($"Breakdown of API argument processing between {_unprocessedCallArguments[cacheI-1].argstring} and {_unprocessedCallArguments[cacheI].argstring}", Logging.LogFilterType.TextError);
+                    Debug.Assert(arg.calledAddress == currentTarget, "ProcessIncomingCallArguments() unexpected change of target. Check the 'M' and 'E' fields of any recently added API wrapper in the instrumentation tool");
+                }
                 Debug.Assert(arg.sourceBlock == currentSourceBlock, "ProcessIncomingCallArguments() unexpected change of source");
                 Debug.Assert(arg.argIndex > currentIndex || arg.isReturnVal, "ProcessIncomingCallArguments() unexpected change of source");
                 if (BlocksFirstLastNodeList.Count <= (int)currentSourceBlock)

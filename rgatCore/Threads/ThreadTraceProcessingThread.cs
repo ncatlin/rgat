@@ -533,17 +533,14 @@ namespace rgatCore.Threads
 
         void HandleRetVal(byte[] entry)
         {
-
+            
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 4);
 
             ulong funcpc = ulong.Parse(entries[1], NumberStyles.HexNumber);
             ulong sourceBlockID = ulong.Parse(entries[2], NumberStyles.HexNumber);
 
-            ulong retval = ulong.Parse(entries[3], NumberStyles.HexNumber);
-            //Console.WriteLine($"Handling retval of symbol address 0x{funcpc:x} from source block {sourceBlockID} :'{retval}'");
-
-            protograph.CacheIncomingCallArgument(funcpc, sourceBlockID, -1, $"0x{retval:X}", true); //todo look at this causing a dupe arg list to be created
+            protograph.CacheIncomingCallArgument(funcpc, sourceBlockID, -1, entries[3], true); //todo look at this causing a dupe arg list to be created
 
         }
 

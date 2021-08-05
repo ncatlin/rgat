@@ -45,6 +45,11 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 	{
 		wrapKernel32Funcs(img, (UINT32)threadData_TLSKEY);
 	}
+	else if (path.find("\\advapi32.dll") != std::string::npos)
+	{
+		wrapAdvapi32Funcs(img, (UINT32)threadData_TLSKEY);
+	}
+	
 
 	//std::cout << "Module " << path << std::endl;
 	for (SYM sym = IMG_RegsymHead(img); SYM_Valid(sym); sym = SYM_Next(sym))
