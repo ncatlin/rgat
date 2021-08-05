@@ -1,4 +1,5 @@
-﻿using rgatCore;
+﻿using CommandLine;
+using rgatCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,7 +40,34 @@ namespace ImGuiNET
         static System.Timers.Timer _housekeepingTimer;
         static bool _housekeepingTimerFired;
 
+
+
+        public class Options
+        {
+            [Option('n', "nogui", Required = false, HelpText = "Do not launch GUI. Requires further commandline arguments.")]
+            public bool NoGUI { get; set; }
+        }
+
         static void Main(string[] args)
+        {
+            Parser.Default.ParseArguments<Options>(args)
+               .WithParsed<Options>(o =>
+               {
+                   if (!o.NoGUI)
+                   {
+                       ImGuiMain(o);
+                   }
+                   else
+                   {
+                       NoGuiMain(o);
+                   }
+               });
+        }
+
+
+
+
+        static void ImGuiMain(Options cmdLineOpts)
         {
             Setup();
 
@@ -50,9 +78,11 @@ namespace ImGuiNET
 
             Cleanup();
         }
-
-
-        private static void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _housekeepingTimerFired = true; }
+                
+        static void NoGuiMain(Options cmdLineOpts)
+        {
+            Console.WriteLine("Starting command line mode");
+        }
 
         private static void Setup()
         {
@@ -125,6 +155,7 @@ namespace ImGuiNET
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
         }
 
+        private static void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _housekeepingTimerFired = true; }
 
         private static void Update()
         {
@@ -139,7 +170,7 @@ namespace ImGuiNET
             {
                 _window.Close();
             }
-           
+
             if (_controller.ShowDemoWindow)
             {
                 SubmitDemoUI();
@@ -221,7 +252,7 @@ namespace ImGuiNET
                 _housekeepingTimerFired = false;
                 _housekeepingTimer.Start();
             }
-            
+
         }
 
         private static void Cleanup()
