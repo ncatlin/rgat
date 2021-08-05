@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace rgatCore
+namespace rgat
 {
     class TextUtils
     {

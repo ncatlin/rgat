@@ -1,9 +1,9 @@
-﻿using rgatCore.Threads;
+﻿using rgat.Threads;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 
-namespace rgatCore
+namespace rgat
 {
 
     public class TraceProcessorWorkers

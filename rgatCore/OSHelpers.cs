@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace rgatCore
+namespace rgat
 {
     class OSHelpers
     {

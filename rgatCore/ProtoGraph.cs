@@ -1,13 +1,13 @@
 ﻿using Newtonsoft.Json.Linq;
-using rgatCore.Testing;
-using rgatCore.Threads;
+using rgat.Testing;
+using rgat.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
 
-namespace rgatCore
+namespace rgat
 {
     public struct APICALLDATA
     {

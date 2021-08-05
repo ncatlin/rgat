@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
-namespace rgatCore.Testing
+namespace rgat.Testing
 {
 
 

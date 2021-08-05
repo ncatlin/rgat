@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 
-namespace rgatCore
+namespace rgat
 {
     public enum eModuleTracingMode { eDefaultIgnore = 0, eDefaultTrace = 1 };
     public class TraceChoiceSettings

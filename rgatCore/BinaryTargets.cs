@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace rgatCore
+namespace rgat
 {
     public class BinaryTargets
     {

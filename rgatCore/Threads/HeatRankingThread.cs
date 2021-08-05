@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using System.Threading;
 
-namespace rgatCore.Threads
+namespace rgat.Threads
 {
     public class HeatRankingThread : TraceProcessorWorker
     {

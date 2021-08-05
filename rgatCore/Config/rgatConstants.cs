@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace rgatCore
+namespace rgat
 {
     public enum eNodeType { eInsUndefined, eInsJump, eInsReturn, eInsCall };
     public enum eEdgeNodeType

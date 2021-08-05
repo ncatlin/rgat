@@ -1,4 +1,4 @@
-﻿namespace rgatCore
+﻿namespace rgat
 {
     class FileTriageInfo
     {

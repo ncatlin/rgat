@@ -7,9 +7,9 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using Veldrid;
-using static rgatCore.VeldridGraphBuffers;
+using static rgat.VeldridGraphBuffers;
 
-namespace rgatCore
+namespace rgat
 {
     public class GRAPH_SCALE
     {

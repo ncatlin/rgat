@@ -1,13 +1,13 @@
-﻿using rgatCore.Threads;
+﻿using rgat.Threads;
 using System;
 using System.Collections.Generic;
 using System.IO.Pipes;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using static rgatCore.TraceRecord;
+using static rgat.TraceRecord;
 
-namespace rgatCore
+namespace rgat
 {
     public class ModuleHandlerThread : TraceProcessorWorker
     {

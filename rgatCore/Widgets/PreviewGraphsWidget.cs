@@ -1,5 +1,5 @@
 ﻿using ImGuiNET;
-using rgatCore.Shaders.SPIR_V;
+using rgat.Shaders.SPIR_V;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,9 +10,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Timers;
 using Veldrid;
-using static rgatCore.VeldridGraphBuffers;
+using static rgat.VeldridGraphBuffers;
 
-namespace rgatCore
+namespace rgat
 {
     public class PreviewGraphsWidget : IDisposable
     {

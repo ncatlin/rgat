@@ -1,7 +1,7 @@
 ﻿using Humanizer;
 using ImGuiNET;
-using rgatCore.Threads;
-using rgatCore.Widgets;
+using rgat.Threads;
+using rgat.Widgets;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -13,14 +13,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Veldrid;
 using Veldrid.Sdl2;
-using static rgatCore.Logging;
+using static rgat.Logging;
 
-namespace rgatCore
+namespace rgat
 {
     class rgatUI
     {
-
-
 
         //rgat ui state
         private bool _settings_window_shown = false;

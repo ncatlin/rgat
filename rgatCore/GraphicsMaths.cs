@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Numerics;
 
-namespace rgatCore
+namespace rgat
 {
     class GraphicsMaths
     {

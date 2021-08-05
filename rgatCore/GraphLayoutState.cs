@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using Veldrid;
 
-namespace rgatCore
+namespace rgat
 {
     public class GraphLayoutState
     {

@@ -4,8 +4,8 @@ using FFMpegCore.Enums;
 using FFMpegCore.Extend;
 using FFMpegCore.Pipes;
 using ImGuiNET;
-using rgatCore.Properties;
-using rgatCore.Widgets;
+using rgat.Properties;
+using rgat.Widgets;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -18,7 +18,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace rgatCore
+namespace rgat
 {
     public class VideoEncoder
     {

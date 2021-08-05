@@ -1,5 +1,5 @@
 ﻿using ImGuiNET;
-using rgatCore.Testing;
+using rgat.Testing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 
-namespace rgatCore.Widgets
+namespace rgat.Widgets
 {
 
     class TestCategory

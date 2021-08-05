@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using rgatCore.Testing;
+using rgat.Testing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,9 +8,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using static rgatCore.Logging;
+using static rgat.Logging;
 
-namespace rgatCore
+namespace rgat
 {
     public class InstructionData
     {

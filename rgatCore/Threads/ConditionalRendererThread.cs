@@ -1,4 +1,4 @@
-﻿namespace rgatCore.Threads
+﻿namespace rgat.Threads
 {
     public class ConditionalRendererThread : TraceProcessorWorker
     {

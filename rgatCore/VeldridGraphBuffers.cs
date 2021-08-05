@@ -1,5 +1,5 @@
 ﻿using ImGuiNET;
-using rgatCore.Shaders.SPIR_V;
+using rgat.Shaders.SPIR_V;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using Veldrid;
 using Veldrid.SPIRV;
 
-namespace rgatCore
+namespace rgat
 {
     public class VeldridGraphBuffers
     {

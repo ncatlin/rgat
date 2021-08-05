@@ -13,7 +13,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using Veldrid;
 
-namespace rgatCore
+namespace rgat
 {
     class GlobalConfig
     {
@@ -140,6 +140,11 @@ namespace rgatCore
             public bool extraDetail;
         };
 
+        /*
+         * Launch config derived from command line arguments/defaults
+         */
+        public static Config.LaunchConfig StartOptions;
+
         /* 
          * Rendering config 
          */
@@ -161,7 +166,7 @@ namespace rgatCore
         /// <summary>
         /// Amount of alpha to reduce fading item by each frame
         /// </summary>
-        public static float animationFadeRate = 0.07f; 
+        public static float animationFadeRate = 0.07f;
         public static int animationLingerFrames = 0; //number of frames before fade begins
         public static float MinimumAlpha = 0.06f;
 
@@ -216,7 +221,7 @@ namespace rgatCore
         /// <summary>
         /// Toggle use of the GPU computation engine for main/preview graphs
         /// </summary>
-        public static bool LayoutAllComputeEnabled = true; 
+        public static bool LayoutAllComputeEnabled = true;
         /// <summary>
         /// Toggle position computation
         /// </summary>
@@ -367,21 +372,28 @@ namespace rgatCore
 
         static void LoadCustomKeybinds()
         {
-            var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            KeybindSection sec = (KeybindSection)configFile.GetSection("CustomKeybinds");
-            if (sec != null)
+            try
             {
-                JArray keybinds = sec.CustomKeybinds;
-                foreach (var bindTok in keybinds)
+                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                KeybindSection sec = (KeybindSection)configFile.GetSection("CustomKeybinds");
+                if (sec != null)
                 {
-                    if (bindTok.Type != JTokenType.Object)
+                    JArray keybinds = sec.CustomKeybinds;
+                    foreach (var bindTok in keybinds)
                     {
-                        Logging.RecordLogEvent("Bad type in loaded user keybinds array", Logging.LogFilterType.TextError);
-                        continue;
+                        if (bindTok.Type != JTokenType.Object)
+                        {
+                            Logging.RecordLogEvent("Bad type in loaded user keybinds array", Logging.LogFilterType.TextError);
+                            continue;
+                        }
+                        JObject bindObj = (JObject)bindTok;
+                        RestoreCustomKeybind(bindObj);
                     }
-                    JObject bindObj = (JObject)bindTok;
-                    RestoreCustomKeybind(bindObj);
                 }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Error loading keybinds: {e.Message}");
             }
         }
 
@@ -483,35 +495,42 @@ namespace rgatCore
 
         static void LoadRecentPaths(string pathType, ref List<CachedPathData> store)
         {
-            var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            RecentPathSection sec = (RecentPathSection)configFile.GetSection("RecentPaths");
-            if (sec != null && sec.RecentPaths.Type == JTokenType.Object)
+            try
             {
-                if (sec.RecentPaths.TryGetValue(pathType, out JToken val) && val.Type == JTokenType.Object)
+                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                RecentPathSection sec = (RecentPathSection)configFile.GetSection("RecentPaths");
+                if (sec != null && sec.RecentPaths.Type == JTokenType.Object)
                 {
-                    JObject tracesObj = val.ToObject<JObject>();
-
-                    foreach (var entry in tracesObj)
+                    if (sec.RecentPaths.TryGetValue(pathType, out JToken val) && val.Type == JTokenType.Object)
                     {
-                        if (entry.Value.Type != JTokenType.Object) continue;
-                        JObject data = (JObject)entry.Value;
-                        if (!data.TryGetValue("OpenCount", out JToken ocountTok) || ocountTok.Type != JTokenType.Integer ||
-                            !data.TryGetValue("FirstOpen", out JToken firstOpenTok) || firstOpenTok.Type != JTokenType.Date ||
-                            !data.TryGetValue("LastOpen", out JToken lastOpenTok) || lastOpenTok.Type != JTokenType.Date)
-                            continue;
-                        if (!File.Exists(entry.Key)) continue;
-                        CachedPathData pd = new CachedPathData
+                        JObject tracesObj = val.ToObject<JObject>();
+
+                        foreach (var entry in tracesObj)
                         {
-                            path = entry.Key,
-                            firstSeen = firstOpenTok.ToObject<DateTime>(),
-                            lastSeen = lastOpenTok.ToObject<DateTime>(),
-                            count = ocountTok.ToObject<uint>()
-                        };
-                        store.Add(pd);
+                            if (entry.Value.Type != JTokenType.Object) continue;
+                            JObject data = (JObject)entry.Value;
+                            if (!data.TryGetValue("OpenCount", out JToken ocountTok) || ocountTok.Type != JTokenType.Integer ||
+                                !data.TryGetValue("FirstOpen", out JToken firstOpenTok) || firstOpenTok.Type != JTokenType.Date ||
+                                !data.TryGetValue("LastOpen", out JToken lastOpenTok) || lastOpenTok.Type != JTokenType.Date)
+                                continue;
+                            if (!File.Exists(entry.Key)) continue;
+                            CachedPathData pd = new CachedPathData
+                            {
+                                path = entry.Key,
+                                firstSeen = firstOpenTok.ToObject<DateTime>(),
+                                lastSeen = lastOpenTok.ToObject<DateTime>(),
+                                count = ocountTok.ToObject<uint>()
+                            };
+                            store.Add(pd);
+                        }
                     }
                 }
+                store = store.OrderByDescending(x => x.lastSeen).Take(MaxStoredRecentPaths).ToList();
             }
-            store = store.OrderByDescending(x => x.lastSeen).Take(MaxStoredRecentPaths).ToList();
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Error loading recent paths: {e.Message}", Logging.LogFilterType.TextError);
+            }
         }
 
 
@@ -686,7 +705,9 @@ namespace rgatCore
         {
             try
             {
-                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+
+                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal);
+
                 var settings = configFile.AppSettings.Settings;
                 if (settings[key] != null)
                 {
@@ -1111,13 +1132,13 @@ namespace rgatCore
 
             if (GetAppSetting("MinimumGraphAlpha", out string minalpha))
             {
-                if(!float.TryParse(minalpha, out MinimumAlpha))
+                if (!float.TryParse(minalpha, out MinimumAlpha))
                 {
                     MinimumAlpha = 0.06f;
                 }
             }
 
-            
+
 
 
             if (GetAppSetting("VideoCodec_Speed", out string vidspeed))
@@ -1140,7 +1161,7 @@ namespace rgatCore
             {
                 ImageCapture_Format = imageformat.ToUpper();
             }
-            
+
         }
 
         public static double LoadProgress { get; private set; } = 0;
@@ -1155,7 +1176,7 @@ namespace rgatCore
             {
                 LoadSettings();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Logging.RecordLogEvent($"Exception loading settings: {e.Message}", Logging.LogFilterType.TextError);
             }
@@ -1176,6 +1197,7 @@ namespace rgatCore
             InitResponsiveKeys();
 
             //overwrite with any user configured binds
+
             LoadCustomKeybinds();
 
             LoadProgress = 0.7;

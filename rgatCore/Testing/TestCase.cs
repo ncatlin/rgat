@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace rgatCore.Testing
+namespace rgat.Testing
 {
     public enum RequirementCondition
     {

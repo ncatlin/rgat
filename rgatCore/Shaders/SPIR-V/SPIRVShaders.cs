@@ -2,7 +2,7 @@
 using Veldrid;
 using Veldrid.SPIRV;
 
-namespace rgatCore.Shaders.SPIR_V
+namespace rgat.Shaders.SPIR_V
 {
     class SPIRVShaders
     {

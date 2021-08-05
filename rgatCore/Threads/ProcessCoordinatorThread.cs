@@ -4,7 +4,7 @@ using System.IO.Pipes;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace rgatCore.Threads
+namespace rgat.Threads
 {
     class ProcessCoordinatorThread : TraceProcessorWorker
     {

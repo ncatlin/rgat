@@ -1,12 +1,12 @@
 ﻿using CommandLine;
-using rgatCore;
+using rgat;
+using rgat.Config;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Veldrid;
 using Veldrid.Sdl2;
-//using Veldrid.SPIRV;
 using Veldrid.StartupUtilities;
 
 namespace ImGuiNET
@@ -41,33 +41,82 @@ namespace ImGuiNET
         static bool _housekeepingTimerFired;
 
 
-
-        public class Options
-        {
-            [Option('n', "nogui", Required = false, HelpText = "Do not launch GUI. Requires further commandline arguments.")]
-            public bool NoGUI { get; set; }
-        }
-
         static void Main(string[] args)
         {
-            Parser.Default.ParseArguments<Options>(args)
-               .WithParsed<Options>(o =>
-               {
-                   if (!o.NoGUI)
-                   {
-                       ImGuiMain(o);
-                   }
-                   else
-                   {
-                       NoGuiMain(o);
-                   }
-               });
+
+            if (!InitOptions(args))
+            {
+                Console.WriteLine($"Bad Launch options. Exiting");
+                return;
+            }
+
+            if (HandleImmediateExitOptions()) return;
+
+
+            if (!GlobalConfig.StartOptions.NoGUI)
+            {
+                ImGuiMain();
+            }
+            else
+            {
+                NoGuiMain();
+            }
         }
 
+        static bool InitOptions(string [] cmdlineParams)
+        {
+            Parser.Default.ParseArguments<LaunchConfig>(cmdlineParams)
+               .WithParsed(cmdlineOpts =>
+               {
+                   if (!cmdlineOpts.ExtractJSONOptions(out string error))
+                   {
+                       Console.WriteLine($"Error: Bad configuration blob - {error}");
+                   }
 
+                   GlobalConfig.StartOptions = cmdlineOpts;
+               });
+            
+            return GlobalConfig.StartOptions != null;
+        }
 
+        static bool HandleImmediateExitOptions()
+        {
+            //list valid network interfaces if the -i param was provided with a list arg or invalid interface
+            string interfaceOption = GlobalConfig.StartOptions.Interface;
+            if (interfaceOption != null)
+            {
+                switch (interfaceOption)
+                {
+                    case "list all":
+                    case "show all":
+                    case "print all":
+                        RemoteTracing.PrintInterfaces(PrintInvalid: true);
+                        return true;
 
-        static void ImGuiMain(Options cmdLineOpts)
+                    case "help":
+                    case "list":
+                    case "show":
+                    case "print":
+                    case "?":
+                        RemoteTracing.PrintInterfaces();
+                        return true;
+
+                    default:
+                        GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(interfaceOption);
+                        if (GlobalConfig.StartOptions.ActiveNetworkInterface == null)
+                        {
+                            Console.WriteLine($"Error: Specified network interface '{interfaceOption}' could not be matched to a valid network interface");
+                            Console.WriteLine("");
+                            RemoteTracing.PrintInterfaces();
+                            return true;
+                        }
+                        break;
+                }
+            }
+            return false;
+        }
+
+        static void ImGuiMain()
         {
             Setup();
 
@@ -79,10 +128,14 @@ namespace ImGuiNET
             Cleanup();
         }
                 
-        static void NoGuiMain(Options cmdLineOpts)
+        static void NoGuiMain()
         {
             Console.WriteLine("Starting command line mode");
         }
+
+
+
+
 
         private static void Setup()
         {
@@ -180,61 +233,6 @@ namespace ImGuiNET
             _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
             _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
             _controller.Render(_gd, _cl);
-
-
-
-            //---------
-            /*
-
-            _cl.SetFramebuffer(recordingFramebuffer);
-            //get the graph image we have rendered
-            Texture stageTex = _gd.ResourceFactory.CreateTexture(new TextureDescription(graphtexture.Width, graphtexture.Height, graphtexture.Depth,
-                graphtexture.MipLevels, graphtexture.ArrayLayers, graphtexture.Format, TextureUsage.Staging, TextureType.Texture2D));
-
-            cl.Begin();
-            cl.CopyTexture(graphtexture, stageTex);
-            cl.End();
-            _gd.SubmitCommands(cl);
-            _gd.WaitForIdle();
-
-            //draw it onto a bitmap
-            Bitmap bmp = new Bitmap(frameWidth, frameHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            System.Drawing.Imaging.BitmapData data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, frameWidth, frameHeight),
-                ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-            byte* scan0 = (byte*)data.Scan0;
-
-            MappedResourceView<RgbaFloat> res = _gd.Map<RgbaFloat>(stageTex, MapMode.Read);
-            int drawHeight = (int)Math.Min(bmp.Height, stageTex.Height);
-            int drawWidth = (int)Math.Min(bmp.Width, stageTex.Width);
-
-            for (int y = 0; y < drawHeight; y += 1)
-            {
-                for (int x = 0; x < drawWidth; x += 1)
-                {
-                    RgbaFloat px = res[x, drawHeight - y];
-                    byte* ptr = scan0 + y * data.Stride + (x * 4);
-                    ptr[0] = (byte)(px.B * 255f);
-                    ptr[1] = (byte)(px.G * 255f);
-                    ptr[2] = (byte)(px.R * 255f);
-                    ptr[3] = (byte)(px.A * 255f);
-                }
-            }
-            bmp.UnlockBits(data);
-            _gd.Unmap(stageTex);
-
-            */
-
-
-
-
-
-
-
-            //----------
-
-
-
-
 
             _cl.End();
 

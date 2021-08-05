@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace rgatCore
+namespace rgat
 {
     class VulkanWidget
     {

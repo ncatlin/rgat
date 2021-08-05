@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace rgatCore.Testing
+namespace rgat.Testing
 {
     public class TestResultCommentary
     {

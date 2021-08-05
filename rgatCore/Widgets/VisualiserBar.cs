@@ -1,5 +1,5 @@
 ﻿using ImGuiNET;
-using rgatCore.Shaders.SPIR_V;
+using rgat.Shaders.SPIR_V;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,9 +9,9 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Veldrid;
-using static rgatCore.VeldridGraphBuffers;
+using static rgat.VeldridGraphBuffers;
 
-namespace rgatCore.Widgets
+namespace rgat.Widgets
 {
     class VisualiserBar
     {

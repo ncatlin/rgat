@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 
-namespace rgatCore.Threads
+namespace rgat.Threads
 {
     public class PreviewRendererThread : TraceProcessorWorker
     {

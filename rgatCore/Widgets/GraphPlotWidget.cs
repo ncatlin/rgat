@@ -1,6 +1,6 @@
 ﻿using ImGuiNET;
-using rgatCore.Shaders.SPIR_V;
-using rgatCore.Widgets;
+using rgat.Shaders.SPIR_V;
+using rgat.Widgets;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Generic;
@@ -13,9 +13,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Veldrid;
-using static rgatCore.VeldridGraphBuffers;
+using static rgat.VeldridGraphBuffers;
 
-namespace rgatCore
+namespace rgat
 {
     class GraphPlotWidget : IDisposable
     {

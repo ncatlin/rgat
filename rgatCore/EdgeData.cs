@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 
-namespace rgatCore
+namespace rgat
 {
     public class EdgeData
     {

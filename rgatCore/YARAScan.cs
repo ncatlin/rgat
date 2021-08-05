@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 
-namespace rgatCore
+namespace rgat
 {
 
     public class YARAScan

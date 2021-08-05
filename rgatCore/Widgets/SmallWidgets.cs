@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 using Veldrid;
 
-namespace rgatCore.Widgets
+namespace rgat.Widgets
 {
     class SmallWidgets
     {

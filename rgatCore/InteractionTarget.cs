@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace rgatCore
+namespace rgat
 {
     public class InteractionTarget
     {

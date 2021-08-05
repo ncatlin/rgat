@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json.Linq;
 
-namespace rgatCore
+namespace rgat
 {
     public class WinAPIDetails
     {

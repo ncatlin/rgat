@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
-namespace rgatCore
+namespace rgat
 {
     public class DetectItEasy
     {

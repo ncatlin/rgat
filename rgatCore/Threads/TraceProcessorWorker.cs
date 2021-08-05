@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Threading;
 
-namespace rgatCore.Threads
+namespace rgat.Threads
 {
     public abstract class TraceProcessorWorker
     {

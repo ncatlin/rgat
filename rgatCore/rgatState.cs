@@ -9,7 +9,7 @@ using System.Threading;
 /// Handles Loading/Saving/Storage of traces and binaries. 
 /// Holds various utility objects such as signature scanners and video encoder.
 /// </summary>
-namespace rgatCore
+namespace rgat
 {
     public class rgatState
     {

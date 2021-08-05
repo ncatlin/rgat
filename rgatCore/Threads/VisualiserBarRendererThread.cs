@@ -1,4 +1,4 @@
-﻿using rgatCore.Widgets;
+﻿using rgat.Widgets;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Timers;
 
-namespace rgatCore.Threads
+namespace rgat.Threads
 {
     class VisualiserBarRendererThread : TraceProcessorWorker
     {

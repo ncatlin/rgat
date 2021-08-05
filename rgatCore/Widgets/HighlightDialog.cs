@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Numerics;
 
-namespace rgatCore.Widgets
+namespace rgat.Widgets
 {
     class HighlightDialog
     {

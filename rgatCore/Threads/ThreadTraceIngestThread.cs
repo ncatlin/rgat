@@ -1,4 +1,4 @@
-﻿using rgatCore.Threads;
+﻿using rgat.Threads;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Timers;
 
-namespace rgatCore
+namespace rgat
 {
     public class ThreadTraceIngestThread : TraceProcessorWorker
     {

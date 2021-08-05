@@ -4,7 +4,7 @@ using Veldrid;
 /*
 This class holds (and provides dubiously mutex guarded access to) OpenGl vertex and colour data
 */
-namespace rgatCore
+namespace rgat
 {
     public struct WritableRgbaFloat
     {

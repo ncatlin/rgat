@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Veldrid;
 
-namespace rgatCore
+namespace rgat
 {
     public class GraphLayoutEngine
     {

@@ -10,7 +10,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace rgatCore
+namespace rgat
 {
     class Themes
     {

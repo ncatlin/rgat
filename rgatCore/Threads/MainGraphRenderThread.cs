@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using System.Timers;
 
-namespace rgatCore.Threads
+namespace rgat.Threads
 {
     class MainGraphRenderThread : TraceProcessorWorker
     {

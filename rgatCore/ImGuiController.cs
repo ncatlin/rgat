@@ -1,4 +1,4 @@
-﻿using rgatCore;
+﻿using rgat;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -416,22 +416,22 @@ namespace ImGuiNET
             {
                 case GraphicsBackend.Direct3D11:
                     {
-                        string resourceName = "rgatCore.Shaders.HLSL." + name + ".hlsl.bytes";
+                        string resourceName = "rgat.Shaders.HLSL." + name + ".hlsl.bytes";
                         return GetEmbeddedResourceBytes(resourceName);
                     }
                 case GraphicsBackend.OpenGL:
                     {
-                        string resourceName = "rgatCore.Shaders.GLSL." + name + ".glsl";
+                        string resourceName = "rgat.Shaders.GLSL." + name + ".glsl";
                         return GetEmbeddedResourceBytes(resourceName);
                     }
                 case GraphicsBackend.Vulkan:
                     {
-                        string resourceName = "rgatCore.Shaders.SPIR_V." + name + ".spv";
+                        string resourceName = "rgat.Shaders.SPIR_V." + name + ".spv";
                         return GetEmbeddedResourceBytes(resourceName);
                     }
                 case GraphicsBackend.Metal:
                     {
-                        string resourceName = "rgatCore.Shaders.Metal." + name + ".metallib";
+                        string resourceName = "rgat.Shaders.Metal." + name + ".metallib";
                         return GetEmbeddedResourceBytes(resourceName);
                     }
                 default:

@@ -8,7 +8,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 
-namespace rgatCore.Widgets
+namespace rgat.Widgets
 {
     class SandboxChart
     {

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
-namespace rgatCore.Threads
+namespace rgat.Threads
 {
     public class ThreadTraceProcessingThread : TraceProcessorWorker
     {

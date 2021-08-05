@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace rgatCore
+namespace rgat
 {
     public class NodeData
     {

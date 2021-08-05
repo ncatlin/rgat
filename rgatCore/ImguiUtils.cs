@@ -8,7 +8,7 @@ using System;
 using System.Drawing;
 using System.Numerics;
 
-namespace rgatCore
+namespace rgat
 {
     class ImguiUtils
     {
