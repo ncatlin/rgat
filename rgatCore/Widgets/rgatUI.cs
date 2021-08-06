@@ -26,6 +26,7 @@ namespace rgat
         private bool _show_load_trace_window = false;
         private bool _show_test_harness = false;
         private bool _show_stats_dialog = false;
+        private bool _show_remote_dialog = false;
         private ImGuiController _ImGuiController = null;
 
         //rgat program state
@@ -41,6 +42,7 @@ namespace rgat
         PreviewGraphsWidget PreviewGraphWidget;
         VisualiserBar _visualiserBar;
         SettingsMenu _SettingsMenu;
+        RemoteDialog _RemoteDialog;
         TestsWindow _testHarness;
 
         Vector2 WindowStartPos = new Vector2(100f, 100f);
@@ -286,6 +288,7 @@ namespace rgat
             if (_show_load_trace_window) DrawTraceLoadBox();
             if (_show_stats_dialog) DrawGraphStatsDialog(ref _show_stats_dialog);
             if (_show_test_harness) _testHarness.Draw(ref _show_test_harness);
+            if (_show_remote_dialog) _RemoteDialog.Draw(ref _show_remote_dialog);
 
             Themes.ResetThemeColours();
 
@@ -1417,9 +1420,9 @@ namespace rgat
             float regionHeight = ImGui.GetContentRegionAvail().Y;
             float regionWidth = ImGui.GetContentRegionAvail().X;
             float buttonBlockWidth = Math.Min(400f, regionWidth / 2.1f);
-            float headerSize = regionHeight / 3;
-            float blockHeight = (regionHeight * 0.95f) - headerSize;
-            float blockStart = headerSize + 40f;
+            float headerHeight = regionHeight / 3;
+            float blockHeight = (regionHeight * 0.95f) - headerHeight;
+            float blockStart = headerHeight + 40f;
 
 
             if (_UIstartupProgress < 1)
@@ -1434,41 +1437,77 @@ namespace rgat
 
             bool boxBorders = false;
 
-            if (ImGui.BeginChild("header", new Vector2(ImGui.GetContentRegionAvail().X, headerSize), boxBorders))
+            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0x45ffffff);
+            if (ImGui.BeginChild("header", new Vector2(ImGui.GetContentRegionAvail().X, headerHeight), boxBorders))
             {
                 Texture settingsIcon = _ImGuiController.GetImage("Menu");
                 GraphicsDevice gd = _ImGuiController.graphicsDevice;
                 IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, settingsIcon, "SettingsIcon");
 
-                ImGui.SetCursorPosX((regionWidth / 2) - 25);
-                ImGui.SetCursorPosY((headerSize / 2) - 75);
+                int groupSep = 100;
 
                 ImGui.BeginGroup();
                 {
-                    Vector2 cpb4 = ImGui.GetCursorPos();
-                    ImGui.SetCursorPosY(cpb4.Y - ImGui.GetItemRectSize().Y);
-                    ImGui.Image(CPUframeBufferTextureId, new Vector2(50, 50), Vector2.Zero, Vector2.One, Vector4.One);
-                    ImGui.SetCursorPos(cpb4 - new Vector2(35, 15));
-                    if (ImGui.Selectable("##SettingsDlg", false, ImGuiSelectableFlags.None, new Vector2(120, 120)))
+                    float headerBtnsY = 65;
+                    float btnSize = 50;
+                    ImGui.BeginGroup();
                     {
-                        if (_SettingsMenu != null)
+                        float btnX = (regionWidth / 2) - (btnSize + groupSep / 2);
+                        ImGui.SetCursorPos(new Vector2(btnX, headerBtnsY));
+                        ImGui.Image(CPUframeBufferTextureId, new Vector2(btnSize, btnSize), Vector2.Zero, Vector2.One, Vector4.One);
+
+                        ImGui.SetCursorPos(new Vector2(btnX - 35, headerBtnsY - 35));
+
+                        if (ImGui.Selectable("##SettingsDlg", false, ImGuiSelectableFlags.None, new Vector2(120, 120)))
                         {
-                            _settings_window_shown = true;
+                            if (_SettingsMenu != null)
+                            {
+                                _settings_window_shown = true;
+                            }
                         }
+                        if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
+                        {
+                            ImGui.SetTooltip("Open Settings Menu");
+                        }
+                        if (_splashHeaderHover)
+                        {
+                            ImGui.PushFont(_ImGuiController.SplashButtonFont);
+                            Vector2 textsz = ImGui.CalcTextSize("Settings");
+                            ImGui.SetCursorPosX(btnX - (textsz.X+35));
+                            ImGui.SetCursorPosY(headerBtnsY + btnSize / 2 - textsz.Y / 2);
+                            ImGui.Text("Settings");
+                            ImGui.PopFont();
+                        }
+                        ImGui.EndGroup();
                     }
-                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
+                    ImGui.BeginGroup();
                     {
-                        ImGui.SetTooltip("Open Settings Menu");
+                        float btnX = (regionWidth / 2) + groupSep / 2;
+                        ImGui.SetCursorPos(new Vector2(btnX, headerBtnsY));
+                        ImGui.Image(CPUframeBufferTextureId, new Vector2(btnSize, btnSize), Vector2.Zero, Vector2.One, Vector4.One);
+
+                        ImGui.SetCursorPos(new Vector2(btnX - 35, headerBtnsY - 35));
+                        if (ImGui.Selectable("##NetworkDlg", false, ImGuiSelectableFlags.None, new Vector2(120, 120)))
+                        {
+                            ToggleRemoteDialog();
+                        }
+                        if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
+                        {
+                            ImGui.SetTooltip("Setup Remote Tracing");
+                        }
+                        if (_splashHeaderHover)
+                        {
+                            ImGui.PushFont(_ImGuiController.SplashButtonFont);
+                            Vector2 textsz = ImGui.CalcTextSize("Settings");
+                            ImGui.SetCursorPosX(btnX + btnSize + 35);
+                            ImGui.SetCursorPosY(headerBtnsY + btnSize / 2 - textsz.Y / 2);
+                            ImGui.TextWrapped("Remote Tracing");
+                            ImGui.PopFont();
+                        }
+            
+                        ImGui.EndGroup();
                     }
-                    if (_splashHeaderHover)
-                    {
-                        ImGui.PushFont(_ImGuiController.SplashButtonFont); //todo destroy this font on leaving splash?
-                        float textw = ImGui.CalcTextSize("Settings").X;
-                        ImGui.SetCursorPosX(ImGui.GetCursorPosX() - (textw - 50) / 2);
-                        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 50);
-                        ImGui.Text("Settings");
-                        ImGui.PopFont();
-                    }
+
                     ImGui.EndGroup();
                 }
                 ImGui.EndChild();
@@ -1659,6 +1698,7 @@ namespace rgat
 
                 ImGui.EndChild();
             }
+            ImGui.PopStyleColor();
             //String msg = "No target binary is selected\nOpen a binary or saved trace from the target menu фä洁ф";
             //ImguiUtils.DrawRegionCenteredText(msg);
         }
@@ -1674,6 +1714,15 @@ namespace rgat
                 if (_testHarness == null) _testHarness = new TestsWindow(_rgatstate, _ImGuiController);
             }
             _show_test_harness = !_show_test_harness;
+        }       
+        
+        void ToggleRemoteDialog()
+        {
+            if (_show_remote_dialog == false)
+            {
+                if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog();// _rgatstate, _ImGuiController);
+            }
+            _show_remote_dialog = !_show_remote_dialog;
         }
 
         bool DrawRecentPathEntry(GlobalConfig.CachedPathData pathdata, bool menu)
@@ -2702,7 +2751,7 @@ namespace rgat
                                 {
                                     Logging.APICALL call = (Logging.APICALL)(TLevent.Item);
                                     selected = TLevent == SelectedAPIEvent;
-                                    
+
                                     if (call.node.IsExternal)
                                     {
                                         eventType = "API - " + call.APIType();
@@ -2739,12 +2788,12 @@ namespace rgat
                         ImGui.TableNextColumn();
 
                         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(3, 3));
-                        
+
                         var labelComponents = TLevent.Label();
                         for (var labeli = 0; labeli < labelComponents.Count; labeli++)
                         {
                             var component = labelComponents[labeli];
-                            ImGui.TextColored(component.Item2.ToVec4(), component.Item1) ;
+                            ImGui.TextColored(component.Item2.ToVec4(), component.Item1);
                             if (labeli < labelComponents.Count - 1)
                                 ImGui.SameLine();
                         }
@@ -2767,11 +2816,11 @@ namespace rgat
                 if (ImGui.BeginChild("#SandboxTabtopRightPane", new Vector2(sidePaneWidth, tr_height)))
                 {
                     ImGui.Text("Filters");
-                 
+
                     if (!WinAPIDetails.Loaded)
                     {
                         ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
-                        if(ImGui.BeginChild("#LoadErrFrame", new Vector2(ImGui.GetContentRegionAvail().X - 2, 80)))
+                        if (ImGui.BeginChild("#LoadErrFrame", new Vector2(ImGui.GetContentRegionAvail().X - 2, 80)))
                         {
                             ImGui.Indent(5);
                             ImGui.TextWrapped("Error - No API datafile was loaded");
@@ -2780,7 +2829,7 @@ namespace rgat
                         }
                         ImGui.PopStyleColor();
                     }
-                    
+
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();

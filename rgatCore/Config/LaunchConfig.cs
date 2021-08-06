@@ -24,10 +24,10 @@ namespace rgat.Config
         public string ConfigPath { get; set; }
 
         [Option('r', "remote", SetName = "ConnectMode", Required = false, HelpText = "Network address of an rgat instance running in server mode to connect to. Allows remote control of tracing on +this computer. Not compatible with the listen option. --key paramater is mandatory if no preconfigured key is set.")]
-        public string ServerPath { get; set; }
+        public string ConnectModeAddress { get; set; }
 
-        [Option('p', "port", SetName = "ListenMode", Required = false, HelpText = "A TCP port to listen on. Allows remote control of tracing on this computer. Not compatible with the port option. --key paramater is mandatory if no preconfigured key is set.")]
-        public uint ListenPort { get; set; }
+        [Option('p', "port", Default=-1, SetName = "ListenMode", Required = false, HelpText = "A TCP port to listen on. Allows remote control of tracing on this computer. Not compatible with the port option. --key paramater is mandatory if no preconfigured key is set.")]
+        public int ListenPort { get; set; }
 
         [Option('i', "interface", SetName = "Interface", Required = false, HelpText = "A network interface to use for remote control options (r or p). By default all available interfaces will be used. Argument '?' will list valid interfaces and exit.")]
         public string Interface { get; set; }
@@ -73,10 +73,10 @@ namespace rgat.Config
                     case "port":
                         if (kvp.Value.Type == JTokenType.Integer)
                         {
-                            ListenPort = kvp.Value.ToObject<uint>();
+                            ListenPort = kvp.Value.ToObject<int>();
                             break;
                         }
-                        else if (uint.TryParse(kvp.Value.ToString(), out uint ListenPort))
+                        else if (int.TryParse(kvp.Value.ToString(), out int ListenPort))
                         {
                             break;
                         }
@@ -100,7 +100,7 @@ namespace rgat.Config
                                         OutputPath = valuestring;
                                         break;
                                     case "remote":
-                                        ServerPath = valuestring;
+                                        ConnectModeAddress = valuestring;
                                         break;
                                     case "interface":
                                          Interface = valuestring;

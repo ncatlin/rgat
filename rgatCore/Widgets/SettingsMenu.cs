@@ -35,9 +35,6 @@ namespace rgat.Widgets
             settingTips["MediaCapturePath"] = "The directory where videos recordings and images are saved";
         }
 
-        readonly static uint INVALID_VALUE_TEXTBOX_COLOUR = 0xcc5555ff;
-
-
         PendingKeybind _pendingKeybind = new PendingKeybind();
         public bool HasPendingKeybind
         {
@@ -51,36 +48,6 @@ namespace rgat.Widgets
             _pendingKeybind.active = false;
         }
 
-
-
-
-        void InitSettings()
-        {
-            RegenerateUIThemeJSON();
-
-            settingsNames = new List<string>();
-            settingsNames.Add("Files");
-            settingsNames.Add("Signatures");
-            settingsNames.Add("Text");
-            settingsNames.Add("Keybinds");
-            settingsNames.Add("Theme");
-            settingsNames.Add("Video Encoder");
-            settingsNames.Add("Miscellaneous");
-            optionsSelectStates = new bool[settingsNames.Count];
-            optionsSelectStates[(int)eSettingsCategory.eFiles] = false;
-            optionsSelectStates[(int)eSettingsCategory.eText] = false;
-            optionsSelectStates[(int)eSettingsCategory.eKeybinds] = false;
-            optionsSelectStates[(int)eSettingsCategory.eSignatures] = false;
-            optionsSelectStates[(int)eSettingsCategory.eUITheme] = true;
-            optionsSelectStates[(int)eSettingsCategory.eVideoEncode] = false;
-            optionsSelectStates[(int)eSettingsCategory.eMisc] = false;
-        }
-
-        void DeclareError(string msg, long MSDuration = 5500)
-        {
-            _errorExpiryTime = DateTime.Now.AddMilliseconds(MSDuration);
-            _errorBanner = msg;
-        }
 
         public void Draw(ref bool window_shown_flag)
         {
@@ -149,6 +116,33 @@ namespace rgat.Widgets
             }
         }
 
+        void InitSettings()
+        {
+            RegenerateUIThemeJSON();
+
+            settingsNames = new List<string>();
+            settingsNames.Add("Files");
+            settingsNames.Add("Signatures");
+            settingsNames.Add("Text");
+            settingsNames.Add("Keybinds");
+            settingsNames.Add("Theme");
+            settingsNames.Add("Video Encoder");
+            settingsNames.Add("Miscellaneous");
+            optionsSelectStates = new bool[settingsNames.Count];
+            optionsSelectStates[(int)eSettingsCategory.eFiles] = false;
+            optionsSelectStates[(int)eSettingsCategory.eText] = false;
+            optionsSelectStates[(int)eSettingsCategory.eKeybinds] = false;
+            optionsSelectStates[(int)eSettingsCategory.eSignatures] = false;
+            optionsSelectStates[(int)eSettingsCategory.eUITheme] = true;
+            optionsSelectStates[(int)eSettingsCategory.eVideoEncode] = false;
+            optionsSelectStates[(int)eSettingsCategory.eMisc] = false;
+        }
+
+        void DeclareError(string msg, long MSDuration = 5500)
+        {
+            _errorExpiryTime = DateTime.Now.AddMilliseconds(MSDuration);
+            _errorBanner = msg;
+        }
 
         void CreateSettingsContentPane(string settingCategoryName)
         {

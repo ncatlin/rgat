@@ -109,4 +109,13 @@ namespace rgat
     {
         public const string testextension = ".test.json";
     }
+
+    static class NETWORK_CONSTANTS
+    {
+        public const int DefaultKeyLength = 9;
+        //number of times a host can try to connect with the wrong key
+        public const int HostLockoutLimit = 5;
+        //number of wrong-key connections allowed before the listener disables itself
+        public const int TotalLockoutLimit = 15;
+    }
 }

@@ -217,8 +217,16 @@ namespace rgat
             }
 
             string storedir = GetCaptureDirectory();
-            string targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.binaryTarg.FilePath);
-            string vidname = $"rgat_{targetname}_{graph.pid}_{DateTime.Now.ToString("MMdd_HHMMss")}";
+            string vidname;
+            if (graph == null)
+            {
+                vidname = $"rgat_NoGraph_{DateTime.Now.ToString("MMdd_HHMMss")}";
+            }
+            else
+            {
+                string targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.binaryTarg.FilePath);
+                vidname = $"rgat_{targetname}_{graph.pid}_{DateTime.Now.ToString("MMdd_HHMMss")}";
+            }
             string targetfile = Path.Combine(storedir, $"{vidname}.{extension}");
             int attempt = 1;
             while (File.Exists(targetfile))

@@ -328,6 +328,13 @@ namespace rgat
         public static string VideoCodec_Content = "Graph";
         public static string ImageCapture_Format = "PNG";
 
+        /*
+         * Remote Tracing Config
+         */
+        public static string DefaultHeadlessAddress = "";
+        public static int DefaultListenPort = -1;
+        public static string DefaultNetworkKey = "";
+
 
         /*
          * Keybinds config
@@ -1125,11 +1132,13 @@ namespace rgat
 
         static void LoadSettings()
         {
+            //logging
             if (GetAppSetting("BulkLogging", out string bulklogging))
             {
                 BulkLogging = (bulklogging.ToLower() == "true");
             }
 
+            //rendering
             if (GetAppSetting("MinimumGraphAlpha", out string minalpha))
             {
                 if (!float.TryParse(minalpha, out MinimumAlpha))
@@ -1138,8 +1147,7 @@ namespace rgat
                 }
             }
 
-
-
+            //video
 
             if (GetAppSetting("VideoCodec_Speed", out string vidspeed))
             {
@@ -1162,6 +1170,20 @@ namespace rgat
                 ImageCapture_Format = imageformat.ToUpper();
             }
 
+            //remote tracing
+
+            if (GetAppSetting("DefaultNetworkKey", out string netkey) && netkey.Length > 0)
+            {
+                DefaultNetworkKey = netkey;
+            }
+            if (GetAppSetting("DefaultHeadlessAddress", out string conaddr) && conaddr.Length > 0)
+            {
+                DefaultHeadlessAddress = conaddr;
+            }
+            if (GetAppSetting("DefaultListenPort", out string defaultport) && defaultport.Length > 0)
+            {
+                int.TryParse(defaultport, out DefaultListenPort);
+            }
         }
 
         public static double LoadProgress { get; private set; } = 0;

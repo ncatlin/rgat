@@ -215,9 +215,12 @@ namespace rgat.Widgets
 
         public static void MouseoverText(string text)
         {
+
             if (text?.Length > 0 && ImGui.IsItemHovered())
             {
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(3, 3));
                 ImGui.SetTooltip(text);
+                ImGui.PopStyleVar();
             }
         }
     }
