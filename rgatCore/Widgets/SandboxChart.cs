@@ -36,7 +36,7 @@ namespace rgat.Widgets
 
         public SandboxChart()
         {
-            chartSize = ImGui.GetContentRegionAvail();
+            chartSize = new Vector2(300, 300);
 
             KKLayoutParameters layoutParams = new KKLayoutParameters()
             {

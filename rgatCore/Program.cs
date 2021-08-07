@@ -13,40 +13,23 @@ namespace ImGuiNET
 {
     class Program
     {
-        private static Sdl2Window _window;
-        private static GraphicsDevice _gd;
-        private static CommandList _cl;
-        private static ImGuiController _controller;
+
         static rgatState _rgatState = new rgatState();
-
-        private static rgatUI _rgatui = null;
-
-        // UI state
-        private static Vector3 _clearColor = new Vector3(0.15f, 0.15f, 0.16f);
-        private static bool _showDemoWindow = true;
-        static Vector2 _lastMousePos;
-
-        static List<Key> HeldResponsiveKeys = new List<Key>();
-
-        static System.Timers.Timer _housekeepingTimer;
-        static bool _housekeepingTimerFired;
-
 
         static void Main(string[] args)
         {
-
-            if (!InitOptions(args))
+            // Bad arguments given or an info argument that is supposed to exit immediately
+            if (!InitOptions(args) || HandleImmediateExitOptions())
             {
                 return;
             }
-
-            if (HandleImmediateExitOptions()) return;
 
             InitialSetup();
 
             if (!GlobalConfig.StartOptions.NoGUI)
             {
-                GUIMain();
+                rgatUI Ui = new rgatUI(_rgatState);
+                Ui.Run();
             }
             else if (GlobalConfig.StartOptions.NetworkKey != null)
             {
@@ -176,20 +159,6 @@ namespace ImGuiNET
             rgat.Threads.TraceProcessorWorker.SetRgatState(_rgatState);
         }
 
-        /// <summary>
-        /// Runs a standard UI window loop using ImGui
-        /// </summary>
-        static void GUIMain()
-        {
-            GUISetup();
-
-            while (_window.Exists)
-            {
-                GUIUpdate();
-            }
-
-            GUICleanup();
-        }
 
 
         /// <summary>
@@ -240,127 +209,5 @@ namespace ImGuiNET
 
 
 
-        private static void GUISetup()
-        {
-            System.Threading.Thread.CurrentThread.Name = "rgatUIMain";
-            Logging.RecordLogEvent("rgat is starting", Logging.LogFilterType.TextDebug);
-
-            GraphicsDeviceOptions options = new GraphicsDeviceOptions(
-            debug: true,
-            swapchainDepthFormat: PixelFormat.R8_UNorm,
-            syncToVerticalBlank: true,
-            resourceBindingModel: ResourceBindingModel.Improved,
-            preferDepthRangeZeroToOne: true,
-            preferStandardClipSpaceYDirection: false);
-
-            VeldridStartup.CreateWindowAndGraphicsDevice(
-                new WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "rgat"),
-                //new GraphicsDeviceOptions(true, null, true, ResourceBindingModel.Improved, true, true),
-                options,
-                preferredBackend: GraphicsBackend.Vulkan,
-                out _window,
-                out _gd);
-
-            _lastMousePos = new Vector2(0, 0);
-
-            _window.Resized += () =>
-            {
-                _gd.MainSwapchain.Resize((uint)_window.Width, (uint)_window.Height);
-                _controller.WindowResized(_window.Width, _window.Height);
-                _rgatui?.AlertResized(new Vector2(_window.Width, _window.Height));
-            };
-            _cl = _gd.ResourceFactory.CreateCommandList();
-            _controller = new ImGuiController(_gd, _gd.MainSwapchain.Framebuffer.OutputDescription, _window.Width, _window.Height);
-
-            _rgatui = new rgatUI(_rgatState, _controller, _gd, _cl);
-
-            _window.KeyDown += (KeyEvent k) =>
-            {
-                if (GlobalConfig.ResponsiveKeys.Contains(k.Key))
-                {
-                    if (!HeldResponsiveKeys.Contains(k.Key))
-                        HeldResponsiveKeys.Add(k.Key);
-                }
-                else
-                {
-                    _rgatui.AlertKeyEvent(new Tuple<Key, ModifierKeys>(k.Key, k.Modifiers));
-                }
-            };
-            _window.KeyUp += (KeyEvent k) =>
-            {
-                HeldResponsiveKeys.RemoveAll(key => key == k.Key);
-            };
-
-
-            _window.MouseWheel += (MouseWheelEventArgs mw) => _rgatui.AlertMouseWheel(mw);
-            _window.MouseMove += (MouseMoveEventArgs mm) =>
-            {
-                _rgatui.AlertMouseMove(mm.State, _lastMousePos - mm.MousePosition);
-                _lastMousePos = mm.MousePosition;
-            };
-
-
-            _housekeepingTimer = new System.Timers.Timer(60000);
-            _housekeepingTimer.Elapsed += FireTimer;
-            _housekeepingTimer.AutoReset = false;
-            _housekeepingTimer.Start();
-
-            ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
-        }
-
-        private static void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _housekeepingTimerFired = true; }
-
-        private static void GUIUpdate()
-        {
-            InputSnapshot snapshot = _window.PumpEvents();
-            if (!_window.Exists) { return; }
-
-            HeldResponsiveKeys.ForEach(key => _rgatui.AlertResponsiveKeyEvent(key));
-
-            _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
-
-            if (!_rgatui.DrawUI())
-            {
-                _window.Close();
-            }
-
-            if (_controller.ShowDemoWindow)
-            {
-                ImGui.ShowDemoWindow(ref _showDemoWindow);
-            }
-            _gd.WaitForIdle();
-            _cl.Begin();
-            _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
-            _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
-            _controller.Render(_gd, _cl);
-
-            _cl.End();
-
-            _gd.SubmitCommands(_cl);
-            _gd.SwapBuffers(_gd.MainSwapchain);
-
-            _gd.WaitForIdle();
-
-            _rgatui.ProcessFramebuffer(_gd.MainSwapchain.Framebuffer, _cl);
-
-
-            if (_housekeepingTimerFired)
-            {
-                _controller.ClearCachedImageResources();
-                _housekeepingTimerFired = false;
-                _housekeepingTimer.Start();
-            }
-
-        }
-
-        private static void GUICleanup()
-        {
-            _rgatui.Exit();
-            // Clean up Veldrid resources
-            _gd.WaitForIdle();
-            _controller.Dispose();
-            _cl.Dispose();
-            _gd.Dispose();
-        }
     }
 }

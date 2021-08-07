@@ -27,7 +27,7 @@ namespace rgat
         private bool _show_test_harness = false;
         private bool _show_stats_dialog = false;
         private bool _show_remote_dialog = false;
-        private ImGuiController _ImGuiController = null;
+        private ImGuiController _controller = null;
 
         //rgat program state
         private rgatState _rgatstate;
@@ -45,6 +45,7 @@ namespace rgat
         SettingsMenu _SettingsMenu;
         RemoteDialog _RemoteDialog;
         TestsWindow _testHarness;
+        SandboxChart chart;
 
         Vector2 WindowStartPos = new Vector2(100f, 100f);
         Vector2 WindowOffset = new Vector2(0, 0);
@@ -59,22 +60,182 @@ namespace rgat
         double _UIDrawFPS = 0;
         bool _frameTimerFired = false;
 
-        public rgatUI(rgatState state, ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
+        public rgatUI(rgatState state)
         {
             _rgatstate = state;
-            _rgatstate.InitVeldrid(_gd, _cl);
+        }
+
+
+        private Sdl2Window _window;
+        private GraphicsDevice _gd;
+        private CommandList _cl;
+
+        // UI state
+        private static Vector3 _clearColor = new Vector3(0.15f, 0.15f, 0.16f);
+        private static bool _showDemoWindow = true;
+        static Vector2 _lastMousePos;
+
+        static List<Key> HeldResponsiveKeys = new List<Key>();
+
+        static System.Timers.Timer _housekeepingTimer;
+        static bool _housekeepingTimerFired;
+
+
+
+        private static void FireHousekeepingTimer(object sender, System.Timers.ElapsedEventArgs e) { _housekeepingTimerFired = true; }
+
+
+        /// <summary>
+        /// Runs a standard UI window loop using ImGui
+        /// </summary>
+        public void Run()
+        {
+            System.Threading.Thread.CurrentThread.Name = "rgatUIMain";
+            Logging.RecordLogEvent("rgat is starting in GUI mode", Logging.LogFilterType.TextDebug);
+
+            Setup();
+
+            while (_window.Exists)
+            {
+                GUIUpdate();
+            }
+
+            GUICleanup();
+        }
+
+        private void Setup()
+        {
 
             Logging.RecordLogEvent("rgatUI is starting in imgui mode", Logging.LogFilterType.TextDebug);
-            _ImGuiController = imguicontroller;
+
+
+            GraphicsDeviceOptions options = new GraphicsDeviceOptions(
+            debug: true,
+            swapchainDepthFormat: PixelFormat.R8_UNorm,
+            syncToVerticalBlank: true,
+            resourceBindingModel: ResourceBindingModel.Improved,
+            preferDepthRangeZeroToOne: true,
+            preferStandardClipSpaceYDirection: false);
+
+            Veldrid.StartupUtilities.VeldridStartup.CreateWindowAndGraphicsDevice(
+                new Veldrid.StartupUtilities.WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "rgat"),
+                //new GraphicsDeviceOptions(true, null, true, ResourceBindingModel.Improved, true, true),
+                options,
+                preferredBackend: GraphicsBackend.Vulkan,
+                out _window,
+                out _gd);
+
+            _cl = _gd.ResourceFactory.CreateCommandList();
+            _rgatstate.InitVeldrid(_gd, _cl);
+            _controller = new ImGuiController(_gd, _gd.MainSwapchain.Framebuffer.OutputDescription, _window.Width, _window.Height);
+
             _UIstartupProgress = 0.1;
-            Task.Run(() => LoadingThread(imguicontroller, _gd));
+            Task.Run(() => LoadingThread(_controller, _gd));
 
             System.Timers.Timer FrameStatTimer = new System.Timers.Timer(500);
             FrameStatTimer.Elapsed += FireTimer;
             FrameStatTimer.AutoReset = true;
             FrameStatTimer.Start();
 
+
+            _window.Resized += () =>
+            {
+                _gd.MainSwapchain.Resize((uint)_window.Width, (uint)_window.Height);
+                _controller.WindowResized(_window.Width, _window.Height);
+                AlertResized(new Vector2(_window.Width, _window.Height));
+            };
+            _window.KeyDown += (KeyEvent k) =>
+            {
+                if (GlobalConfig.ResponsiveKeys.Contains(k.Key))
+                {
+                    if (!HeldResponsiveKeys.Contains(k.Key))
+                        HeldResponsiveKeys.Add(k.Key);
+                }
+                else
+                {
+                    AlertKeyEvent(new Tuple<Key, ModifierKeys>(k.Key, k.Modifiers));
+                }
+            };
+            _window.KeyUp += (KeyEvent k) =>
+            {
+                HeldResponsiveKeys.RemoveAll(key => key == k.Key);
+            };
+
+
+            _window.MouseWheel += (MouseWheelEventArgs mw) => AlertMouseWheel(mw);
+            _window.MouseMove += (MouseMoveEventArgs mm) =>
+            {
+                AlertMouseMove(mm.State, _lastMousePos - mm.MousePosition);
+                _lastMousePos = mm.MousePosition;
+            };
+
+
+            _lastMousePos = new Vector2(0, 0);
+
+            _housekeepingTimer = new System.Timers.Timer(60000);
+            _housekeepingTimer.Elapsed += FireHousekeepingTimer;
+            _housekeepingTimer.AutoReset = false;
+            _housekeepingTimer.Start();
+
+            ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
         }
+
+
+        private void GUIUpdate()
+        {
+            InputSnapshot snapshot = _window.PumpEvents();
+            if (!_window.Exists) { return; }
+
+            HeldResponsiveKeys.ForEach(key => AlertResponsiveKeyEvent(key));
+
+            _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
+
+            if (!DrawUI())
+            {
+                _window.Close();
+            }
+
+            if (_controller.ShowDemoWindow)
+            {
+                ImGui.ShowDemoWindow(ref _showDemoWindow);
+            }
+            _gd.WaitForIdle();
+            _cl.Begin();
+            _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
+            _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
+            _controller.Render(_gd, _cl);
+
+            _cl.End();
+
+            _gd.SubmitCommands(_cl);
+            _gd.SwapBuffers(_gd.MainSwapchain);
+
+            _gd.WaitForIdle();
+
+            ProcessFramebuffer(_gd.MainSwapchain.Framebuffer, _cl);
+
+
+            if (_housekeepingTimerFired)
+            {
+                _controller.ClearCachedImageResources();
+                _housekeepingTimerFired = false;
+                _housekeepingTimer.Start();
+            }
+
+        }
+
+        private void GUICleanup()
+        {
+            Exit();
+            // Clean up Veldrid resources
+            _gd.WaitForIdle();
+            _controller.Dispose();
+            _cl.Dispose();
+            _gd.Dispose();
+        }
+
+
+
 
 
         private void FireTimer(object sender, System.Timers.ElapsedEventArgs e)
@@ -122,6 +283,7 @@ namespace rgat
 
             _UIstartupProgress = 0.60;
             MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, _rgatstate, new Vector2(1000, 500)); //1000~ ms
+            chart = new SandboxChart();
 
             _UIstartupProgress = 0.9;
             PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd, _rgatstate); //350~ ms
@@ -264,7 +426,7 @@ namespace rgat
 
             ImGui.SetNextWindowPos(new Vector2(0, 0), ImGuiCond.Always);
 
-            ImGui.SetNextWindowSize(new Vector2(_ImGuiController._windowWidth, _ImGuiController._windowHeight), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new Vector2(_controller._windowWidth, _controller._windowHeight), ImGuiCond.Always);
             //ImGui.SetNextWindowSize(new Vector2(1200, 800), ImGuiCond.Appearing);
 
             Themes.ApplyThemeColours();
@@ -967,7 +1129,7 @@ namespace rgat
                         ImGui.TableNextColumn();
                         ImGui.Text("DetectItEasy");
                         ImGui.TableNextColumn();
-                        _ImGuiController.PushOriginalFont();
+                        _controller.PushOriginalFont();
                         ImGui.AlignTextToFramePadding();
                         ImGui.Text(hit);
                         ImGui.PopFont();
@@ -982,7 +1144,7 @@ namespace rgat
                         ImGui.TableNextColumn();
                         ImGui.Text("YARA");
                         ImGui.TableNextColumn();
-                        _ImGuiController.PushOriginalFont();
+                        _controller.PushOriginalFont();
                         ImGui.AlignTextToFramePadding();
                         int strCount = hit.Matches.Values.Count;
                         string label = hit.MatchingRule.Identifier;
@@ -1103,7 +1265,7 @@ namespace rgat
                     ImGui.Text("Hex Preview");
                     ImGui.TableNextColumn();
                     _hexTooltipShown = false;
-                    _ImGuiController.PushOriginalFont(); //original imgui font is monospace and UTF8, good for this
+                    _controller.PushOriginalFont(); //original imgui font is monospace and UTF8, good for this
                     {
                         _dataInput = Encoding.UTF8.GetBytes(activeTarget.HexPreview);
                         ImGui.InputText("##hexprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
@@ -1119,7 +1281,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("ASCII Preview");
                     ImGui.TableNextColumn();
-                    _ImGuiController.PushOriginalFont();
+                    _controller.PushOriginalFont();
                     {
                         _dataInput = Encoding.ASCII.GetBytes(activeTarget.ASCIIPreview);
                         ImGui.InputText("##ascprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
@@ -1442,9 +1604,9 @@ namespace rgat
             ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0x45ffffff);
             if (ImGui.BeginChild("header", new Vector2(ImGui.GetContentRegionAvail().X, headerHeight), boxBorders))
             {
-                Texture settingsIcon = _ImGuiController.GetImage("Menu");
-                GraphicsDevice gd = _ImGuiController.graphicsDevice;
-                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, settingsIcon, "SettingsIcon");
+                Texture settingsIcon = _controller.GetImage("Menu");
+                GraphicsDevice gd = _controller.graphicsDevice;
+                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(gd.ResourceFactory, settingsIcon, "SettingsIcon");
 
                 int groupSep = 100;
 
@@ -1473,7 +1635,7 @@ namespace rgat
                         }
                         if (_splashHeaderHover)
                         {
-                            ImGui.PushFont(_ImGuiController.SplashButtonFont);
+                            ImGui.PushFont(_controller.SplashButtonFont);
                             Vector2 textsz = ImGui.CalcTextSize("Settings");
                             ImGui.SetCursorPosX(btnX - (textsz.X+35));
                             ImGui.SetCursorPosY(headerBtnsY + btnSize / 2 - textsz.Y / 2);
@@ -1499,7 +1661,7 @@ namespace rgat
                         }
                         if (_splashHeaderHover)
                         {
-                            ImGui.PushFont(_ImGuiController.SplashButtonFont);
+                            ImGui.PushFont(_controller.SplashButtonFont);
                             Vector2 textsz = ImGui.CalcTextSize("Settings");
                             ImGui.SetCursorPosX(btnX + btnSize + 35);
                             ImGui.SetCursorPosY(headerBtnsY + btnSize / 2 - textsz.Y / 2);
@@ -1529,11 +1691,11 @@ namespace rgat
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0);
             if (ImGui.BeginChild("##RunGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
             {
-                Texture btnIcon = _ImGuiController.GetImage("Crosshair");
-                GraphicsDevice gd = _ImGuiController.graphicsDevice;
-                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon, "CrossHairIcon");
+                Texture btnIcon = _controller.GetImage("Crosshair");
+                GraphicsDevice gd = _controller.graphicsDevice;
+                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon, "CrossHairIcon");
 
-                ImGui.PushFont(_ImGuiController.SplashButtonFont);
+                ImGui.PushFont(_controller.SplashButtonFont);
                 float captionHeight = ImGui.CalcTextSize("Load Binary").Y;
                 Vector2 iconsize = new Vector2(80, 80);
                 ImGui.BeginTable("##LoadBinBtnBox", 3, tblflags);
@@ -1608,11 +1770,11 @@ namespace rgat
             ImGui.SetCursorPosX(runGrpX + buttonBlockWidth + voidspace);
             if (ImGui.BeginChild("##LoadGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
             {
-                Texture btnIcon = _ImGuiController.GetImage("Crosshair");
-                GraphicsDevice gd = _ImGuiController.graphicsDevice;
-                IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon, "LoadGrpIcon");
+                Texture btnIcon = _controller.GetImage("Crosshair");
+                GraphicsDevice gd = _controller.graphicsDevice;
+                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon, "LoadGrpIcon");
 
-                ImGui.PushFont(_ImGuiController.SplashButtonFont);
+                ImGui.PushFont(_controller.SplashButtonFont);
                 float captionHeight = ImGui.CalcTextSize("Load Trace").Y;
                 Vector2 iconsize = new Vector2(80, 80);
                 ImGui.BeginTable("##LoadBtnBox", 3, tblflags);
@@ -1713,7 +1875,7 @@ namespace rgat
         {
             if (_show_test_harness == false)
             {
-                if (_testHarness == null) _testHarness = new TestsWindow(_rgatstate, _ImGuiController);
+                if (_testHarness == null) _testHarness = new TestsWindow(_rgatstate, _controller);
             }
             _show_test_harness = !_show_test_harness;
         }       
@@ -1722,7 +1884,7 @@ namespace rgat
         {
             if (_show_remote_dialog == false)
             {
-                if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog();// _rgatstate, _ImGuiController);
+                if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog();// _rgatstate, _controller);
             }
             _show_remote_dialog = !_show_remote_dialog;
         }
@@ -2175,7 +2337,7 @@ namespace rgat
         unsafe Bitmap CreateVideoRecordingFrame(Framebuffer fbuf, CommandList cl, VideoEncoder.CaptureContent region)
         {
 
-            GraphicsDevice gd = _ImGuiController.graphicsDevice;
+            GraphicsDevice gd = _controller.graphicsDevice;
             Texture ftex = fbuf.ColorTargets[0].Target;
             if (recordingStager == null || recordingStager.Width != ftex.Width || recordingStager.Height != ftex.Height)
             {
@@ -2539,7 +2701,7 @@ namespace rgat
                         ImGui.Text($"Layout Cumulative Time: {MainGraphWidget.ActiveGraph.ComputeLayoutTime} ({MainGraphWidget.ActiveGraph.ComputeLayoutSteps} steps");
                         ImGui.EndTooltip();
                     }
-                    //ImGui.Text($"AllocMem: {_ImGuiController.graphicsDevice.MemoryManager._totalAllocatedBytes}");
+                    //ImGui.Text($"AllocMem: {_controller.graphicsDevice.MemoryManager._totalAllocatedBytes}");
 
                     ImGui.EndChild();
                     if (ImGui.IsItemClicked())
@@ -2662,7 +2824,6 @@ namespace rgat
         }
 
 
-        SandboxChart chart = new SandboxChart();
         private void DrawAnalysisTab(TraceRecord activeTrace)
         {
 
@@ -3258,7 +3419,7 @@ namespace rgat
                     ToggleTestHarness();
                 }
 
-                ImGui.MenuItem("Demo", null, ref _ImGuiController.ShowDemoWindow, true);
+                ImGui.MenuItem("Demo", null, ref _controller.ShowDemoWindow, true);
                 ImGui.EndMenuBar();
             }
         }

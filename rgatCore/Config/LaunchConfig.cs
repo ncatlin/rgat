@@ -22,17 +22,16 @@ namespace rgat.Config
         public string OutputPath { get; set; }
 
         [Option('d', "draw", Required = false, HelpText = "Draw a png of the final rendering of the trace")]
-        public string DrawPath { get; set; }       
-        
+        public string DrawPath { get; set; }
+
         [Option('V', "video_replay", Required = false, HelpText = "Record a video of a playback of the final trace. Takes an optional mp4 file outout path.  Requires FFMpeg.")]
-        public string VideoReplayPath { get; set; }       
-        
+        public string VideoReplayPath { get; set; }
+
         [Option('v', "video_live", Required = false, HelpText = "Record a video of the trace as it is being reecorded. Takes an optional mp4 file outout path. Requires FFMpeg.")]
-        public string VideoTracingPath { get; set; }        
-        
+        public string VideoTracingPath { get; set; }
+
         [Option('M', "ffmpeg", Required = false, HelpText = "Provide a path to FFMpeg.exe to enable video recording if one is not configured. With no argument, prints status of configured FFMpeg.")]
         public string FFmpegPath { get; set; }
-
 
         [Option('c', "configfile", Required = false, HelpText = "A path or current directory filename of a file containing a JSON configuration blob. Values in this configuration can be used instead of (or be overidden by) command line arguments.")]
         public string ConfigPath { get; set; }
@@ -40,7 +39,7 @@ namespace rgat.Config
         [Option('r', "remote", SetName = "ConnectMode", Required = false, HelpText = "Network address of an rgat instance running in server mode to connect to. Allows remote control of tracing on this computer. Not compatible with the listen option. --key parameter is mandatory if no preconfigured key is set.")]
         public string ConnectModeAddress { get; set; }
 
-        [Option('p', "port", Default=-1, SetName = "ListenMode", Required = false, HelpText = "A TCP port to listen on. Allows remote control of tracing on this computer. Not compatible with the port option. --key parameter is mandatory if no preconfigured key is set.")]
+        [Option('p', "port", Default = -1, SetName = "ListenMode", Required = false, HelpText = "A TCP port to listen on. Allows remote control of tracing on this computer. Not compatible with the port option. --key parameter is mandatory if no preconfigured key is set.")]
         public int ListenPort { get; set; }
 
         [Option('i', "interface", SetName = "Interface", Required = false, HelpText = "A network interface to use for remote control options (r or p). By default all available interfaces will be used. Argument '?' will list valid interfaces and exit.")]
@@ -59,13 +58,35 @@ namespace rgat.Config
         public NetworkInterface ActiveNetworkInterface;
 
 
-        public enum eRunMode { GUI, Bridged, GPURenderCommand, NoGPUTraceCommand, Invalid};
+        public enum eRunMode {
+            /// <summary>
+            /// Full GPU rendered GUI mode
+            /// </summary>
+            GUI,
+            /// <summary>
+            /// Performs a full trace + graph rendering, without the UI. 
+            /// Results drawn to an image and/or video
+            /// </summary>
+            GPURenderCommand,
+            /// <summary>
+            /// Lightweight proxy mode which does little more than spawn processes and feed results back to
+            /// a connected rgat instance
+            /// </summary>
+            Bridged, 
+            /// <summary>
+            /// Generates a trace file that can be read by rgat in GUI mode
+            /// </summary>
+            NoGPUTraceCommand, 
+            /// <summary>
+            /// The provided command line arguments were not valid for any supported mode of operation
+            /// </summary>
+            Invalid };
         public eRunMode RunMode;
 
         public void Init(string[] originalParams)
         {
-            SetRunMode();
             DeNullifyArgumentless(originalParams);
+            SetRunMode();
         }
 
 
@@ -104,7 +125,9 @@ namespace rgat.Config
             }
         }
 
-
+        /// <summary>
+        /// Work out what the user wants to do based on the arguments
+        /// </summary>
         void SetRunMode()
         {
             if (!NoGUI)
@@ -124,10 +147,12 @@ namespace rgat.Config
                 if (VideoReplayPath != null || DrawPath != null)
                 {
                     RunMode = eRunMode.GPURenderCommand;
-                    return;
                 }
-
-                RunMode = eRunMode.NoGPUTraceCommand;
+                else
+                {
+                    RunMode = eRunMode.NoGPUTraceCommand;
+                }
+                return;
             }
 
             RunMode = eRunMode.Invalid;
@@ -189,7 +214,7 @@ namespace rgat.Config
                                         ConnectModeAddress = valuestring;
                                         break;
                                     case "interface":
-                                         Interface = valuestring;
+                                        Interface = valuestring;
                                         break;
                                     case "key":
                                         NetworkKey = valuestring;
@@ -245,7 +270,6 @@ namespace rgat.Config
                     error = $"Bad JSON file {this.ConfigPath}: {e.Message}";
                     return false;
                 }
-
             }
             else
             {
@@ -268,7 +292,7 @@ namespace rgat.Config
                 }
                 else
                 {
-                    error = $"File {path} not found";
+                    error = $"JSON config file {path} not found";
                     return false;
                 }
             }
