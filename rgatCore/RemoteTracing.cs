@@ -44,6 +44,21 @@ namespace rgat
             }
         }
 
+        public static string hexMAC(PhysicalAddress addr)
+        {
+            string result = "";
+            var bytes = addr.GetAddressBytes();
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                result+= bytes[i].ToString("X2");
+                if (i != bytes.Length - 1)
+                {
+                    result += "-";
+                }
+            }
+            return result;
+        }
+
         public static void PrintInterfaceInformation(NetworkInterface iface, int index = -1)
         {
             if (index != -1)
@@ -66,13 +81,15 @@ namespace rgat
             {
                 Console.WriteLine("\t\tInterface has no addresses");
             }
-            Console.WriteLine($"\t\tMAC: {iface.GetPhysicalAddress().ToString()}");
+            string MAC = RemoteTracing.hexMAC(iface.GetPhysicalAddress());
+            if (MAC.Length > 0)
+                Console.WriteLine($"\t\tMAC: {MAC}");
             Console.WriteLine($"\t\tType: {iface.NetworkInterfaceType}");
             Console.WriteLine($"\t\tID: {iface.Id}");
             Console.WriteLine("");
         }
 
-        static NetworkInterface[] GetInterfaces(bool IncludeInvalid = false)
+        public static NetworkInterface[] GetInterfaces(bool IncludeInvalid = false)
         {
             NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
             if (IncludeInvalid) return interfaces;

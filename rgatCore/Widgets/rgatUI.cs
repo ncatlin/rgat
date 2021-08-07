@@ -30,11 +30,12 @@ namespace rgat
         private ImGuiController _ImGuiController = null;
 
         //rgat program state
-        private rgatState _rgatstate = null;
+        private rgatState _rgatstate;
         private int _selectedInstrumentationLevel = 0;
 
-        Threads.MainGraphRenderThread mainRenderThreadObj = null;
         Threads.VisualiserBarRendererThread visbarRenderThreadObj = null;
+
+        Threads.MainGraphRenderThread mainRenderThreadObj = null;
         Threads.HeatRankingThread heatRankThreadObj = null;
         ProcessCoordinatorThread processCoordinatorThreadObj = null;
 
@@ -58,12 +59,15 @@ namespace rgat
         double _UIDrawFPS = 0;
         bool _frameTimerFired = false;
 
-        public rgatUI(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
+        public rgatUI(rgatState state, ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
         {
+            _rgatstate = state;
+            _rgatstate.InitVeldrid(_gd, _cl);
+
             Logging.RecordLogEvent("rgatUI is starting in imgui mode", Logging.LogFilterType.TextDebug);
             _ImGuiController = imguicontroller;
-            Task.Run(() => LoadingThread(imguicontroller, _gd, _cl));
             _UIstartupProgress = 0.1;
+            Task.Run(() => LoadingThread(imguicontroller, _gd));
 
             System.Timers.Timer FrameStatTimer = new System.Timers.Timer(500);
             FrameStatTimer.Elapsed += FireTimer;
@@ -80,10 +84,8 @@ namespace rgat
 
 
         //todo - make Exit wait until this returns
-        void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd, CommandList _cl)
+        void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd)
         {
-            _rgatstate = new rgatState(_gd, _cl);
-            TraceProcessorWorker.SetRgatState(_rgatstate);
 
             RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug); //about 800 ish ms
             double currentUIProgress = _UIstartupProgress;

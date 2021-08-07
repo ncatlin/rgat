@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.NetworkInformation;
 using System.Text;
 
@@ -17,23 +18,36 @@ namespace rgat.Config
         [Option('t', "target", SetName = "HeadlessMode", Required = false, HelpText = "The file path of the target binary to execute and generate a trace for")]
         public string TargetPath { get; set; }
 
-        [Option('o', "output", SetName = "HeadlessMode", Required = false, HelpText = "The file path or directory to save the output trace to")]
+        [Option('o', "output", SetName = "HeadlessMode", Required = false, HelpText = "Optional file path or directory to save the output trace to. Only valid with the -t option.")]
         public string OutputPath { get; set; }
+
+        [Option('d', "draw", Required = false, HelpText = "Draw a png of the final rendering of the trace")]
+        public string DrawPath { get; set; }       
+        
+        [Option('V', "video_replay", Required = false, HelpText = "Record a video of a playback of the final trace. Takes an optional mp4 file outout path.  Requires FFMpeg.")]
+        public string VideoReplayPath { get; set; }       
+        
+        [Option('v', "video_live", Required = false, HelpText = "Record a video of the trace as it is being reecorded. Takes an optional mp4 file outout path. Requires FFMpeg.")]
+        public string VideoTracingPath { get; set; }        
+        
+        [Option('M', "ffmpeg", Required = false, HelpText = "Provide a path to FFMpeg.exe to enable video recording if one is not configured. With no argument, prints status of configured FFMpeg.")]
+        public string FFmpegPath { get; set; }
+
 
         [Option('c', "configfile", Required = false, HelpText = "A path or current directory filename of a file containing a JSON configuration blob. Values in this configuration can be used instead of (or be overidden by) command line arguments.")]
         public string ConfigPath { get; set; }
 
-        [Option('r', "remote", SetName = "ConnectMode", Required = false, HelpText = "Network address of an rgat instance running in server mode to connect to. Allows remote control of tracing on +this computer. Not compatible with the listen option. --key paramater is mandatory if no preconfigured key is set.")]
+        [Option('r', "remote", SetName = "ConnectMode", Required = false, HelpText = "Network address of an rgat instance running in server mode to connect to. Allows remote control of tracing on this computer. Not compatible with the listen option. --key parameter is mandatory if no preconfigured key is set.")]
         public string ConnectModeAddress { get; set; }
 
-        [Option('p', "port", Default=-1, SetName = "ListenMode", Required = false, HelpText = "A TCP port to listen on. Allows remote control of tracing on this computer. Not compatible with the port option. --key paramater is mandatory if no preconfigured key is set.")]
+        [Option('p', "port", Default=-1, SetName = "ListenMode", Required = false, HelpText = "A TCP port to listen on. Allows remote control of tracing on this computer. Not compatible with the port option. --key parameter is mandatory if no preconfigured key is set.")]
         public int ListenPort { get; set; }
 
         [Option('i', "interface", SetName = "Interface", Required = false, HelpText = "A network interface to use for remote control options (r or p). By default all available interfaces will be used. Argument '?' will list valid interfaces and exit.")]
         public string Interface { get; set; }
 
 
-        [Option('k', "key", Required = false, HelpText = "Pre-shared key for remote control tracing. Use with the 'listen' or 'server' options.")]
+        [Option('k', "key", Required = false, HelpText = "Pre-shared key for remote control tracing. Required with the 'listen' or 'server' options unless a saved key exists.")]
         public string NetworkKey { get; set; }
 
 
@@ -45,7 +59,79 @@ namespace rgat.Config
         public NetworkInterface ActiveNetworkInterface;
 
 
+        public enum eRunMode { GUI, Bridged, GPURenderCommand, NoGPUTraceCommand, Invalid};
+        public eRunMode RunMode;
 
+        public void Init(string[] originalParams)
+        {
+            SetRunMode();
+            DeNullifyArgumentless(originalParams);
+        }
+
+
+        /// <summary>
+        /// nothing => null
+        /// -M => null
+        /// This makes it so -M => ""
+        /// Allows us to react to arguments with no value provided (eg: thing with no path -> do the thing but use a default path)
+        /// </summary>
+        /// <param name="originalParams"></param>
+        void DeNullifyArgumentless(string[] originalParams)
+        {
+            if (FFmpegPath == null && originalParams.Contains("-M"))
+            {
+                FFmpegPath = "";
+            }
+
+            if (OutputPath == null && originalParams.Contains("-o"))
+            {
+                OutputPath = "";
+            }
+
+            if (VideoReplayPath == null && originalParams.Contains("-V"))
+            {
+                VideoReplayPath = "";
+            }
+
+            if (VideoTracingPath == null && originalParams.Contains("-v"))
+            {
+                VideoTracingPath = "";
+            }
+
+            if (DrawPath == null && originalParams.Contains("-d"))
+            {
+                DrawPath = "";
+            }
+        }
+
+
+        void SetRunMode()
+        {
+            if (!NoGUI)
+            {
+                RunMode = eRunMode.GUI;
+                return;
+            }
+
+            if (NetworkKey != null)
+            {
+                RunMode = eRunMode.Bridged;
+                return;
+            }
+
+            if (TargetPath != null)
+            {
+                if (VideoReplayPath != null || DrawPath != null)
+                {
+                    RunMode = eRunMode.GPURenderCommand;
+                    return;
+                }
+
+                RunMode = eRunMode.NoGPUTraceCommand;
+            }
+
+            RunMode = eRunMode.Invalid;
+        }
 
         bool ParseConfigJSON(JObject jsn, out string error)
         {

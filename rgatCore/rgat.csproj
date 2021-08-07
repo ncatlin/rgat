@@ -50,7 +50,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.9.0-preview1" />
+    <PackageReference Include="CommandLineParser" Version="2.9.0-preview3" />
     <PackageReference Include="FFMpegCore" Version="4.4.0" />
     <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
     <PackageReference Include="GraphShape" Version="1.2.0" />
@@ -63,6 +63,7 @@
     <PackageReference Include="PeNet" Version="2.6.3" />
     <PackageReference Include="QuikGraph" Version="2.3.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.3" />
+    <PackageReference Include="Sodium.Core" Version="1.2.3" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0-preview.1.21102.12" />
     <PackageReference Include="Veldrid" Version="4.9.0-g831b50551e" />
     <PackageReference Include="Veldrid.ImageSharp" Version="4.9.0-g7c248955fb" />

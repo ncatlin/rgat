@@ -85,14 +85,14 @@ namespace rgat
 
         public void Load(string dllpath = "")
         {
-            if (File.Exists(GlobalConfig.VideoEncoderFFmpegPath))
+            if (File.Exists(GlobalConfig.FFmpegPath))
             {
                 Loaded = true;
             }
             else if (DetectFFmpeg(out string path))
             {
                 Loaded = true;
-                GlobalConfig.VideoEncoderFFmpegPath = path;
+                GlobalConfig.FFmpegPath = path;
             }
         }
 
@@ -269,9 +269,9 @@ namespace rgat
 
         async public void Go(PlottedGraph graph)
         {
-            if (GlobalConfig.VideoEncoderFFmpegPath == null ||
-                GlobalConfig.VideoEncoderFFmpegPath == "" ||
-                !File.Exists(GlobalConfig.VideoEncoderFFmpegPath))
+            if (GlobalConfig.FFmpegPath == null ||
+                GlobalConfig.FFmpegPath == "" ||
+                !File.Exists(GlobalConfig.FFmpegPath))
             {
                 Logging.RecordLogEvent($"Unable to start recording: FFmpeg path not configured");
                 _recording = false;
@@ -281,7 +281,7 @@ namespace rgat
 
             try
             {
-                GlobalFFOptions.Configure(new FFOptions { BinaryFolder = Path.GetDirectoryName(GlobalConfig.VideoEncoderFFmpegPath) });
+                GlobalFFOptions.Configure(new FFOptions { BinaryFolder = Path.GetDirectoryName(GlobalConfig.FFmpegPath) });
             }
             catch (Exception e)
             {
@@ -354,7 +354,7 @@ namespace rgat
 
         public void DrawSettingsPane()
         {
-            if (File.Exists(GlobalConfig.VideoEncoderFFmpegPath))
+            if (File.Exists(GlobalConfig.FFmpegPath))
             {
                 DrawHaveLibSettingsPane();
             }
@@ -363,7 +363,7 @@ namespace rgat
                 if (DetectFFmpeg(out string path))
                 {
                     Loaded = true;
-                    GlobalConfig.VideoEncoderFFmpegPath = path;
+                    GlobalConfig.FFmpegPath = path;
                     DrawHaveLibSettingsPane();
                 }
                 else
@@ -392,7 +392,7 @@ namespace rgat
                 string candidate = match;
                 if (File.Exists(candidate))
                 {
-                    if (GlobalConfig.SetBinaryPath("FFmpeg", candidate, save: true))
+                    if (GlobalConfig.SetBinaryPath("FFmpegPath", candidate, save: true))
                     {
                         path = candidate;
                         return true;
@@ -410,11 +410,11 @@ namespace rgat
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                ImGui.Text($"Go to https://ffmpeg.org/download.html to find downloads and place ffmpeg.exe in the relevant rgat directory or configure it in the Settings->Paths pane");
+                ImGui.TextWrapped($"Go to https://ffmpeg.org/download.html to find downloads and place ffmpeg.exe in the relevant rgat directory or configure it in the Settings->Paths pane");
             }
             else
             {
-                ImGui.Text($"Go to https://ffmpeg.org/download.html to find downloads and place ffmpeg in the relevant rgat directory or configure it in the Settings->Paths pane");
+                ImGui.TextWrapped($"Go to https://ffmpeg.org/download.html to find downloads and place ffmpeg in the relevant rgat directory or configure it in the Settings->Paths pane");
             }
             //todo downloader
         }

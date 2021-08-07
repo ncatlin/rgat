@@ -321,7 +321,7 @@ namespace rgat
         /*
          * Video encoder config
          */
-        public static string VideoEncoderFFmpegPath = @"";
+        public static string FFmpegPath = @"";
         public static string VideoCodec_Speed = "Medium";
         public static int VideoCodec_Quality = 6;
         public static int VideoCodec_FPS = 30;
@@ -334,6 +334,8 @@ namespace rgat
         public static string DefaultHeadlessAddress = "";
         public static int DefaultListenPort = -1;
         public static string DefaultNetworkKey = "";
+        public static string DefaultListenModeIF = "";
+        public static string DefaultConnectModeIF = "";
 
 
         /*
@@ -724,7 +726,7 @@ namespace rgat
             }
             catch (ConfigurationErrorsException e)
             {
-                Logging.RecordLogEvent($"Error getting app setting {key}: {e.Message}");
+                Logging.RecordLogEvent($"Error getting app setting {key}: {e.Message}", Logging.LogFilterType.TextError);
             }
             value = null;
             return false;
@@ -996,9 +998,9 @@ namespace rgat
                 }
             }
 
-            if (GetAppSetting("FFmpeg", out string ffmpegbinary) && File.Exists(ffmpegbinary))
+            if (GetAppSetting("FFmpegPath", out string ffmpegbinary) && File.Exists(ffmpegbinary))
             {
-                SetBinaryPath("FFmpeg", ffmpegbinary, save: false);
+                SetBinaryPath("FFmpegPath", ffmpegbinary, save: false);
             }
         }
 
@@ -1073,9 +1075,9 @@ namespace rgat
                 }
                 PinToolPath64 = path;
             }
-            if (setting == "FFmpeg")
+            if (setting == "FFmpegPath")
             {
-                VideoEncoderFFmpegPath = path;
+                FFmpegPath = path;
             }
 
 
@@ -1184,6 +1186,8 @@ namespace rgat
             {
                 int.TryParse(defaultport, out DefaultListenPort);
             }
+            GetAppSetting("DefaultListenModeIF", out DefaultListenModeIF);
+            GetAppSetting("DefaultConnectModeIF", out DefaultConnectModeIF);
         }
 
         public static double LoadProgress { get; private set; } = 0;

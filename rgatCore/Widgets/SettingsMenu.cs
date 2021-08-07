@@ -26,7 +26,7 @@ namespace rgat.Widgets
             settingTips["PinPath"] = "The path to pin.exe - the Intel Pin Dynamic Instrumentation program.";
             settingTips["PinToolPath32"] = "The path to the 32-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
             settingTips["PinToolPath64"] = "The path to the 64-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
-            settingTips["FFmpeg"] = "The path to the FFmpeg executable for recording video captures";
+            settingTips["FFmpegPath"] = "The path to the FFmpeg executable for recording video captures";
 
             settingTips["TraceSaveDirectory"] = "The directory where trace save files (.rgat) are stored";
             settingTips["TestsDirectory"] = "The directory where rgat development tests are stored. These can be downloaded from [todo]";
@@ -429,8 +429,8 @@ namespace rgat.Widgets
                 if (DrawPathMenuOption("Pintool64 Library", GlobalConfig.PinToolPath64, settingTips["PinToolPath64"], out clearFlag))
                 { choosePath = "PinToolPath64"; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("FFmpeg Executable", GlobalConfig.VideoEncoderFFmpegPath, settingTips["FFmpeg"], out clearFlag))
-                { choosePath = "FFmpeg"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("FFmpeg Executable", GlobalConfig.FFmpegPath, settingTips["FFmpegPath"], out clearFlag))
+                { choosePath = "FFmpegPath"; doClear |= clearFlag; }
 
                 if (choosePath.Length == 0) isFolder = true;
 

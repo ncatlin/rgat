@@ -1383,10 +1383,6 @@ namespace rgat
         void DrawLayoutSelector(Vector2 position, float scale, LayoutStyles.Style layout)
         {
 
-
-
-
-
             Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
             float padding = 6f;
             Vector2 pmin = new Vector2((position.X - iconSize.X) - padding, ((position.Y - iconSize.Y) - 4) - padding);
@@ -1440,11 +1436,6 @@ namespace rgat
 
         void DrawLayoutSelectorIcons(Vector2 iconSize, bool snappingToPreset)
         {
-
-
-
-
-
             PlottedGraph graph = ActiveGraph;
             if (graph == null) return;
             float buttonWidth = 150f;

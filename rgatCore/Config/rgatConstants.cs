@@ -117,5 +117,6 @@ namespace rgat
         public const int HostLockoutLimit = 5;
         //number of wrong-key connections allowed before the listener disables itself
         public const int TotalLockoutLimit = 15;
+        public const int InterfaceRefreshIntervalMS = 6000; 
     }
 }

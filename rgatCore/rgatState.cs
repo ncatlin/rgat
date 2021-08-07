@@ -22,10 +22,16 @@ namespace rgat
         public DetectItEasy DIELib;
         public YARAScan YARALib;
         public VideoEncoder VideoRecorder = new VideoEncoder();
+        public NetworkBridge NetworkHub = new NetworkBridge();
 
         public PreviewGraphsWidget PreviewWidget;
 
-        public rgatState(Veldrid.GraphicsDevice _gd, Veldrid.CommandList _cl)
+        public rgatState()
+        {
+
+        }
+
+        public void InitVeldrid(Veldrid.GraphicsDevice _gd, Veldrid.CommandList _cl)
         {
             _GraphicsDevice = _gd;
             _CommandList = _cl;
