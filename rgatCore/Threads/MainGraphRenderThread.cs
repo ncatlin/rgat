@@ -10,12 +10,8 @@ namespace rgat.Threads
             _graphWidget = maingraphwidget;
             System.Diagnostics.Debug.Assert(maingraphwidget != null);
 
-            _IrregularActionTimer = new System.Timers.Timer(600);
-            _IrregularActionTimer.Elapsed += FireIrregularTimer;
-            _IrregularActionTimer.AutoReset = true;
 
         }
-
 
         public override void Begin()
         {
@@ -23,7 +19,12 @@ namespace rgat.Threads
             WorkerThread = new Thread(ThreadProc);
             WorkerThread.Name = $"MainGraphRenderer";
             WorkerThread.Start();
+
+            _IrregularActionTimer = new System.Timers.Timer(600);
+            _IrregularActionTimer.Elapsed += FireIrregularTimer;
+            _IrregularActionTimer.AutoReset = true;
             _IrregularActionTimer.Start();
+
         }
 
         public void Dispose()
@@ -112,7 +113,10 @@ namespace rgat.Threads
                 if (GlobalConfig.MainGraphRenderDelay > 0)
                     Thread.Sleep(GlobalConfig.MainGraphRenderDelay);
             }
+
             Finished();
         }
+
+
     }
 }

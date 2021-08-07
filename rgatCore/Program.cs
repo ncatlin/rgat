@@ -28,7 +28,7 @@ namespace ImGuiNET
 
             if (!GlobalConfig.StartOptions.NoGUI)
             {
-                rgatUI Ui = new rgatUI(_rgatState);
+                rgat.OperationModes.ImGuiRunner Ui = new rgat.OperationModes.ImGuiRunner(_rgatState);
                 Ui.Run();
             }
             else if (GlobalConfig.StartOptions.NetworkKey != null)

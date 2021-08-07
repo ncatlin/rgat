@@ -49,6 +49,9 @@ namespace rgat
         public const int PREVIEW_PANE_GRAPH_HEIGHT = 150;
         public const float PREVIEW_PANE_X_PADDING = 3;
         public const float PREVIEW_PANE_Y_SEP = 6;
+
+        public const uint UI_SHORT_TIMER_INTERVAL = 500;
+        public const uint UI_LONG_TIMER_INTERVAL = 60000;
     }
 
     static class GL_Constants

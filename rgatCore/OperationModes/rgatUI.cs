@@ -19,279 +19,91 @@ namespace rgat
 {
     class rgatUI
     {
+        //all-modes state
+        rgatState _rgatState;
 
-        //rgat ui state
+        //hardware resources
+        ImGuiController _controller;
+        GraphicsDevice _gd;
+
+        //widgets
+        GraphPlotWidget MainGraphWidget;
+        PreviewGraphsWidget PreviewGraphWidget;
+        VisualiserBar _visualiserBar;
+        SandboxChart chart;
+
+        //dialogs
+        RemoteDialog _RemoteDialog;
+        TestsWindow _testHarness;
+        SettingsMenu _SettingsMenu;
+
+        //threads
+        Threads.VisualiserBarRendererThread visbarRenderThreadObj = null;
+        Threads.MainGraphRenderThread mainRenderThreadObj = null;
+
+
         private bool _settings_window_shown = false;
         private bool _show_select_exe_window = false;
         private bool _show_load_trace_window = false;
         private bool _show_test_harness = false;
         private bool _show_stats_dialog = false;
         private bool _show_remote_dialog = false;
-        private ImGuiController _controller = null;
 
-        //rgat program state
-        private rgatState _rgatstate;
+        public double StartupProgress;
+        double _UIDrawFPS = 0;
+        List<double> _lastFrameTimeMS = new List<double>();
         private int _selectedInstrumentationLevel = 0;
 
-        Threads.VisualiserBarRendererThread visbarRenderThreadObj = null;
-
-        Threads.MainGraphRenderThread mainRenderThreadObj = null;
-        Threads.HeatRankingThread heatRankThreadObj = null;
-        ProcessCoordinatorThread processCoordinatorThreadObj = null;
-
-        GraphPlotWidget MainGraphWidget;
-        PreviewGraphsWidget PreviewGraphWidget;
-        VisualiserBar _visualiserBar;
-        SettingsMenu _SettingsMenu;
-        RemoteDialog _RemoteDialog;
-        TestsWindow _testHarness;
-        SandboxChart chart;
-
-        Vector2 WindowStartPos = new Vector2(100f, 100f);
-        Vector2 WindowOffset = new Vector2(0, 0);
-
-        private readonly object _inputLock = new object();
         List<Tuple<Key, ModifierKeys>> _keyPresses = new List<Tuple<Key, ModifierKeys>>();
         float _mouseWheelDelta = 0;
         Vector2 _mouseDragDelta = new Vector2(0, 0);
 
-        double _UIstartupProgress = 0;
-        List<double> _lastFrameTimeMS = new List<double>();
-        double _UIDrawFPS = 0;
-        bool _frameTimerFired = false;
 
-        public rgatUI(rgatState state)
+        bool _splashHeaderHover = false;
+        bool _scheduleMissingPathCheck = true;
+
+        public VideoEncoder.CaptureContent PendingScreenshot = VideoEncoder.CaptureContent.Invalid;
+
+        private readonly object _inputLock = new object();
+
+
+        public rgatUI(rgatState state, ImGuiController controller)
         {
-            _rgatstate = state;
+            _rgatState = state;
+            _controller = controller;
+            _gd = _controller.graphicsDevice;
         }
 
-
-        private Sdl2Window _window;
-        private GraphicsDevice _gd;
-        private CommandList _cl;
-
-        // UI state
-        private static Vector3 _clearColor = new Vector3(0.15f, 0.15f, 0.16f);
-        private static bool _showDemoWindow = true;
-        static Vector2 _lastMousePos;
-
-        static List<Key> HeldResponsiveKeys = new List<Key>();
-
-        static System.Timers.Timer _housekeepingTimer;
-        static bool _housekeepingTimerFired;
-
-
-
-        private static void FireHousekeepingTimer(object sender, System.Timers.ElapsedEventArgs e) { _housekeepingTimerFired = true; }
-
-
-        /// <summary>
-        /// Runs a standard UI window loop using ImGui
-        /// </summary>
-        public void Run()
+        ~rgatUI()
         {
-            System.Threading.Thread.CurrentThread.Name = "rgatUIMain";
-            Logging.RecordLogEvent("rgat is starting in GUI mode", Logging.LogFilterType.TextDebug);
-
-            Setup();
-
-            while (_window.Exists)
-            {
-                GUIUpdate();
-            }
-
-            GUICleanup();
+            MainGraphWidget?.Dispose();
+            PreviewGraphWidget?.Dispose();
         }
 
-        private void Setup()
+        public void InitWidgets()
         {
-
-            Logging.RecordLogEvent("rgatUI is starting in imgui mode", Logging.LogFilterType.TextDebug);
-
-
-            GraphicsDeviceOptions options = new GraphicsDeviceOptions(
-            debug: true,
-            swapchainDepthFormat: PixelFormat.R8_UNorm,
-            syncToVerticalBlank: true,
-            resourceBindingModel: ResourceBindingModel.Improved,
-            preferDepthRangeZeroToOne: true,
-            preferStandardClipSpaceYDirection: false);
-
-            Veldrid.StartupUtilities.VeldridStartup.CreateWindowAndGraphicsDevice(
-                new Veldrid.StartupUtilities.WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "rgat"),
-                //new GraphicsDeviceOptions(true, null, true, ResourceBindingModel.Improved, true, true),
-                options,
-                preferredBackend: GraphicsBackend.Vulkan,
-                out _window,
-                out _gd);
-
-            _cl = _gd.ResourceFactory.CreateCommandList();
-            _rgatstate.InitVeldrid(_gd, _cl);
-            _controller = new ImGuiController(_gd, _gd.MainSwapchain.Framebuffer.OutputDescription, _window.Width, _window.Height);
-
-            _UIstartupProgress = 0.1;
-            Task.Run(() => LoadingThread(_controller, _gd));
-
-            System.Timers.Timer FrameStatTimer = new System.Timers.Timer(500);
-            FrameStatTimer.Elapsed += FireTimer;
-            FrameStatTimer.AutoReset = true;
-            FrameStatTimer.Start();
+            StartupProgress = 0.55;
 
 
-            _window.Resized += () =>
-            {
-                _gd.MainSwapchain.Resize((uint)_window.Width, (uint)_window.Height);
-                _controller.WindowResized(_window.Width, _window.Height);
-                AlertResized(new Vector2(_window.Width, _window.Height));
-            };
-            _window.KeyDown += (KeyEvent k) =>
-            {
-                if (GlobalConfig.ResponsiveKeys.Contains(k.Key))
-                {
-                    if (!HeldResponsiveKeys.Contains(k.Key))
-                        HeldResponsiveKeys.Add(k.Key);
-                }
-                else
-                {
-                    AlertKeyEvent(new Tuple<Key, ModifierKeys>(k.Key, k.Modifiers));
-                }
-            };
-            _window.KeyUp += (KeyEvent k) =>
-            {
-                HeldResponsiveKeys.RemoveAll(key => key == k.Key);
-            };
+            Logging.RecordLogEvent("Startup: Initing graph display widgets", Logging.LogFilterType.TextDebug);
 
+            _visualiserBar = new VisualiserBar(_gd, _controller); //200~ ms
 
-            _window.MouseWheel += (MouseWheelEventArgs mw) => AlertMouseWheel(mw);
-            _window.MouseMove += (MouseMoveEventArgs mm) =>
-            {
-                AlertMouseMove(mm.State, _lastMousePos - mm.MousePosition);
-                _lastMousePos = mm.MousePosition;
-            };
-
-
-            _lastMousePos = new Vector2(0, 0);
-
-            _housekeepingTimer = new System.Timers.Timer(60000);
-            _housekeepingTimer.Elapsed += FireHousekeepingTimer;
-            _housekeepingTimer.AutoReset = false;
-            _housekeepingTimer.Start();
-
-            ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
-        }
-
-
-        private void GUIUpdate()
-        {
-            InputSnapshot snapshot = _window.PumpEvents();
-            if (!_window.Exists) { return; }
-
-            HeldResponsiveKeys.ForEach(key => AlertResponsiveKeyEvent(key));
-
-            _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
-
-            if (!DrawUI())
-            {
-                _window.Close();
-            }
-
-            if (_controller.ShowDemoWindow)
-            {
-                ImGui.ShowDemoWindow(ref _showDemoWindow);
-            }
-            _gd.WaitForIdle();
-            _cl.Begin();
-            _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
-            _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
-            _controller.Render(_gd, _cl);
-
-            _cl.End();
-
-            _gd.SubmitCommands(_cl);
-            _gd.SwapBuffers(_gd.MainSwapchain);
-
-            _gd.WaitForIdle();
-
-            ProcessFramebuffer(_gd.MainSwapchain.Framebuffer, _cl);
-
-
-            if (_housekeepingTimerFired)
-            {
-                _controller.ClearCachedImageResources();
-                _housekeepingTimerFired = false;
-                _housekeepingTimer.Start();
-            }
-
-        }
-
-        private void GUICleanup()
-        {
-            Exit();
-            // Clean up Veldrid resources
-            _gd.WaitForIdle();
-            _controller.Dispose();
-            _cl.Dispose();
-            _gd.Dispose();
-        }
-
-
-
-
-
-        private void FireTimer(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            _frameTimerFired = true;
-        }
-
-
-        //todo - make Exit wait until this returns
-        void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd)
-        {
-
-            RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug); //about 800 ish ms
-            double currentUIProgress = _UIstartupProgress;
-            Task confloader = Task.Run(() => GlobalConfig.LoadConfig());
-            while (!confloader.IsCompleted)
-            {
-                _UIstartupProgress = currentUIProgress + 0.3 * GlobalConfig.LoadProgress;
-                Thread.Sleep(10);
-            }
-            _scheduleMissingPathCheck = true;
-
-            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
-            {
-                WinAPIDetails.Load(Path.Combine(AppContext.BaseDirectory, "APIData.json"));
-            }
-
-            RecordLogEvent("Startup: Config Inited", LogFilterType.TextDebug);
-            _UIstartupProgress = 0.4;
-
-            RecordLogEvent("Startup: Initing State Object", Logging.LogFilterType.TextDebug);
-
-
-            RecordLogEvent("Startup: State created", LogFilterType.TextDebug);
-            _UIstartupProgress = 0.5;
-
-            RecordLogEvent("Startup: Initing Settings Window", LogFilterType.TextDebug);
-            _SettingsMenu = new SettingsMenu(imguicontroller, _rgatstate); //call after config init, so theme gets generated
-            _UIstartupProgress = 0.55;
-
-
-            RecordLogEvent("Startup: Initing graph display widgets", LogFilterType.TextDebug);
-
-            _visualiserBar = new VisualiserBar(_gd, imguicontroller); //200~ ms
-
-            _UIstartupProgress = 0.60;
-            MainGraphWidget = new GraphPlotWidget(imguicontroller, _gd, _rgatstate, new Vector2(1000, 500)); //1000~ ms
+            StartupProgress = 0.60;
+            MainGraphWidget = new GraphPlotWidget(_controller, _gd, _rgatState, new Vector2(1000, 500)); //1000~ ms
             chart = new SandboxChart();
 
-            _UIstartupProgress = 0.9;
-            PreviewGraphWidget = new PreviewGraphsWidget(imguicontroller, _gd, _rgatstate); //350~ ms
-            _rgatstate.PreviewWidget = PreviewGraphWidget;
+            StartupProgress = 0.9;
+            PreviewGraphWidget = new PreviewGraphsWidget(_controller, _gd, _rgatState); //350~ ms
+            _rgatState.PreviewWidget = PreviewGraphWidget;
 
-            _rgatstate.VideoRecorder.Load();
+            _SettingsMenu = new SettingsMenu(_controller, _rgatState); //call after config init, so theme gets generated
 
-            RecordLogEvent("Startup: Initing graph rendering threads", LogFilterType.TextDebug);
+
+            MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
+            PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
+
+
             mainRenderThreadObj = new MainGraphRenderThread(MainGraphWidget);
             mainRenderThreadObj.Begin();
 
@@ -299,186 +111,50 @@ namespace rgat
             visbarRenderThreadObj.Begin();
 
 
-            heatRankThreadObj = null;// new HeatRankingThread(_rgatstate);           
-
-            //todo - conditional thread here instead of new trace
-            processCoordinatorThreadObj = new ProcessCoordinatorThread();
-            processCoordinatorThreadObj.Begin();
-            _UIstartupProgress = 0.95;
-
-            RecordLogEvent("Startup: Initing layout engines", LogFilterType.TextDebug);
-            _UIstartupProgress = 0.99;
-
-            MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
-            PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
-
-            RecordLogEvent("Startup: rgatUI created", LogFilterType.TextDebug);
-
-            _rgatstate.LoadSignatures();
-
-            RecordLogEvent("Startup: Signatures Loaded", LogFilterType.TextDebug);
-
-            _LogFilters[(int)LogFilterType.TextDebug] = true;
-            _LogFilters[(int)LogFilterType.TextInfo] = true;
-            _LogFilters[(int)LogFilterType.TextError] = true;
-            _LogFilters[(int)LogFilterType.TextAlert] = true;
-            _UIstartupProgress = 1;
-
+            _LogFilters[(int)Logging.LogFilterType.TextDebug] = true;
+            _LogFilters[(int)Logging.LogFilterType.TextInfo] = true;
+            _LogFilters[(int)Logging.LogFilterType.TextError] = true;
+            _LogFilters[(int)Logging.LogFilterType.TextAlert] = true;
         }
 
-
-        public void Exit()
-        {
-            if (GlobalConfig.BulkLogging)
-                Logging.RecordLogEvent("rgat Exit() triggered", LogFilterType.BulkDebugLogFile);
-
-            _rgatstate?.ShutdownRGAT();
-
-            //wait for the ui stop stop and the main renderer to quit
-            while (
-                (!_UIStopped && Thread.CurrentThread.Name != "rgatUIMain")
-                ||
-                (mainRenderThreadObj != null && mainRenderThreadObj.Running)
-                )
-            {
-                Thread.Sleep(10);
-            }
-
-            MainGraphWidget?.Dispose();
-            PreviewGraphWidget?.Dispose();
-
-        }
-
-
-        public void AlertResized(Vector2 size)
-        {
-
-        }
-
-
-        public void AlertKeyEvent(Tuple<Key, ModifierKeys> keyCombo)
+        public void AddMouseWheelDelta(float delta)
         {
             lock (_inputLock)
             {
-                _keyPresses.Add(keyCombo);
+                _mouseWheelDelta += delta;
             }
         }
 
-        public void AlertResponsiveKeyEvent(Key key)
+        public void AddMouseDragDelta(Vector2 delta)
         {
             lock (_inputLock)
             {
-                //modifiers are checked later on, if needed
-                _keyPresses.Add(new Tuple<Key, ModifierKeys>(key, ModifierKeys.None));
+                _mouseDragDelta += delta;
             }
         }
 
-
-
-        public void AlertMouseWheel(MouseWheelEventArgs mw)
+        public void AddKeyPress(Tuple<Key, ModifierKeys> keypress)
         {
             lock (_inputLock)
             {
-                float thisDelta = mw.WheelDelta;
-                if (ImGui.GetIO().KeyShift) { thisDelta *= 10; }
-                _mouseWheelDelta += thisDelta;
+                _keyPresses.Add(keypress);
             }
         }
 
-        public void AlertMouseMove(MouseState ms, Vector2 delta)
+
+
+        public void ShortTimerFired()
         {
-            if (ms.IsButtonDown(MouseButton.Left) || ms.IsButtonDown(MouseButton.Right))
-            {
-                lock (_inputLock)
-                {
-                    if (ImGui.GetIO().KeyShift) { delta = new Vector2(delta.X * 10, delta.Y * 10); }
-                    _mouseDragDelta += delta;
-                }
+            _UIDrawFPS = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
 
+            if (_scheduleMissingPathCheck)
+            {
+                CheckMissingPaths();
+                _scheduleMissingPathCheck = false;
             }
         }
 
-        bool _UIStopped = false;
-        public bool DrawUI()
-        {
-            if (_rgatstate?.rgatIsExiting ?? false)
-            {
-                _UIStopped = true;
-                return false;
-            }
-
-            var timer = new System.Diagnostics.Stopwatch();
-            timer.Start();
-
-            bool hasActiveTrace = _rgatstate?.ActiveTarget != null;
-
-            ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
-            window_flags |= ImGuiWindowFlags.NoDecoration;
-            if (hasActiveTrace)
-            {
-                window_flags |= ImGuiWindowFlags.MenuBar;
-            }
-            window_flags |= ImGuiWindowFlags.DockNodeHost;
-            window_flags |= ImGuiWindowFlags.NoBringToFrontOnFocus;
-
-            ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
-            //ImGui.GetIO().ConfigWindowsResizeFromEdges = true;
-
-            ImGui.SetNextWindowPos(new Vector2(0, 0), ImGuiCond.Always);
-
-            ImGui.SetNextWindowSize(new Vector2(_controller._windowWidth, _controller._windowHeight), ImGuiCond.Always);
-            //ImGui.SetNextWindowSize(new Vector2(1200, 800), ImGuiCond.Appearing);
-
-            Themes.ApplyThemeColours();
-            ImGui.Begin("rgat Primary Window", window_flags);
-
-
-            WindowOffset = ImGui.GetWindowPos() - WindowStartPos;
-            HandleUserInput();
-
-            BinaryTarget activeTarget = _rgatstate?.ActiveTarget;
-            if (activeTarget == null)
-            {
-                DrawStartSplash();
-            }
-            else
-            {
-                DrawMainMenu();
-                DrawWindowContent();
-            }
-
-            if (_settings_window_shown) _SettingsMenu.Draw(ref _settings_window_shown);
-            if (_show_select_exe_window) DrawFileSelectBox();
-            if (_show_load_trace_window) DrawTraceLoadBox();
-            if (_show_stats_dialog) DrawGraphStatsDialog(ref _show_stats_dialog);
-            if (_show_test_harness) _testHarness.Draw(ref _show_test_harness);
-            if (_show_remote_dialog) _RemoteDialog.Draw(ref _show_remote_dialog);
-
-            Themes.ResetThemeColours();
-
-            ImGui.End();
-
-            timer.Stop();
-            _lastFrameTimeMS.Add(timer.ElapsedMilliseconds);
-            if (_lastFrameTimeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
-                _lastFrameTimeMS = _lastFrameTimeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
-            if (_frameTimerFired)
-            {
-                _frameTimerFired = false;
-                _UIDrawFPS = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
-
-                if (_scheduleMissingPathCheck)
-                {
-                    CheckMissingPaths();
-                    _scheduleMissingPathCheck = false;
-                }
-            }
-
-
-
-            return true;
-        }
-
+        // keep checking the files in the loading panes so we can highlight if they are deleted (or appear)
         void CheckMissingPaths()
         {
             foreach (var path in GlobalConfig.RecentBinaries.Concat(GlobalConfig.RecentTraces))
@@ -490,10 +166,71 @@ namespace rgat
             }
         }
 
-        void DrawGraphStatsDialog(ref bool hideme)
+
+        public void UpdateFrameStats(long elapsedMS)
         {
-            if (_rgatstate.ActiveGraph == null) return;
-            PlottedGraph graphplot = _rgatstate.ActiveGraph;
+            _lastFrameTimeMS.Add(elapsedMS);
+            if (_lastFrameTimeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
+                _lastFrameTimeMS = _lastFrameTimeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
+        }
+
+
+        public void GetFrameDimensions(VideoEncoder.CaptureContent frameType, out int startX, out int startY, out int width, out int height)
+        {
+            switch (frameType)
+            {
+                case VideoEncoder.CaptureContent.Graph:
+                    height = (int)MainGraphWidget.WidgetSize.Y;
+                    width = (int)MainGraphWidget.WidgetSize.X;
+                    startX = (int)MainGraphWidget.WidgetPos.X;
+                    startY = (int)MainGraphWidget.WidgetPos.Y;
+                    break;
+                case VideoEncoder.CaptureContent.GraphAndPreviews:
+                    height = (int)MainGraphWidget.WidgetSize.Y;
+                    width = (int)MainGraphWidget.WidgetSize.X + UI_Constants.PREVIEW_PANE_WIDTH;
+                    startX = (int)MainGraphWidget.WidgetPos.X;
+                    startY = (int)MainGraphWidget.WidgetPos.Y;
+                    break;
+                case VideoEncoder.CaptureContent.Window:
+                default:
+                    startX = 0;
+                    startY = 0;
+                    height = -1;
+                    width = -1;
+                    break;
+            }
+        }
+
+        public bool ThreadsRunning => (mainRenderThreadObj != null && mainRenderThreadObj.Running);
+
+
+        public void DrawMain()
+        {
+            if (_rgatState?.ActiveTarget == null)
+            {
+                DrawStartSplash();
+            }
+            else
+            {
+                DrawMainMenu();
+                DrawWindowContent();
+            }
+        }
+
+        public void DrawDialogs()
+        {
+            if (_settings_window_shown) _SettingsMenu.Draw(ref _settings_window_shown);
+            if (_show_select_exe_window) DrawFileSelectBox(ref _show_select_exe_window);
+            if (_show_load_trace_window) DrawTraceLoadBox(ref _show_load_trace_window);
+            if (_show_stats_dialog) DrawGraphStatsDialog(ref _show_stats_dialog);
+            if (_show_test_harness) _testHarness.Draw(ref _show_test_harness);
+            if (_show_remote_dialog) _RemoteDialog.Draw(ref _show_remote_dialog);
+        }
+
+        public void DrawGraphStatsDialog(ref bool hideme)
+        {
+            if (_rgatState.ActiveGraph == null) return;
+            PlottedGraph graphplot = _rgatState.ActiveGraph;
             ProtoGraph graph = graphplot.InternalProtoGraph;
 
             ImGui.SetNextWindowSize(new Vector2(800, 250), ImGuiCond.Appearing);
@@ -628,13 +365,13 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("This sets the speed of graph layout and slows over time");
 
-                    if (_rgatstate.VideoRecorder.Recording)
+                    if (_rgatState.VideoRecorder.Recording)
                     {
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         ImGui.Text($"Video Frame Backlog");
                         ImGui.TableNextColumn();
-                        ImGui.Text($"{_rgatstate.VideoRecorder.FrameQueueSize}");
+                        ImGui.Text($"{_rgatState.VideoRecorder.FrameQueueSize}");
                         ImGui.TableNextColumn();
                         ImGui.Text("Number of recorded frames awaiting commit to video");
                     }
@@ -656,7 +393,7 @@ namespace rgat
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 12);
                 }
 
-                BinaryTarget activeTarget = _rgatstate.ActiveTarget;
+                BinaryTarget activeTarget = _rgatState.ActiveTarget;
                 if (activeTarget == null)
                 {
                     DrawStartSplash();
@@ -763,11 +500,9 @@ namespace rgat
         }
 
 
-
-
-        void HandleUserInput()
+        public void HandleUserInput()
         {
-            if (_UIstartupProgress < 1) return;
+            if (StartupProgress < 1) return;
             if (_hexTooltipShown && _mouseWheelDelta != 0)
             {
                 _hexTooltipScroll -= _mouseWheelDelta * 60;
@@ -791,8 +526,6 @@ namespace rgat
                     chart?.ApplyZoom(_mouseWheelDelta);
                     _mouseWheelDelta = 0;
                 }
-
-
 
                 if (_mouseDragDelta.X != 0 || _mouseDragDelta.Y != 0)
                 {
@@ -863,28 +596,25 @@ namespace rgat
                     //could be a quickmenu shortcut
                     if (MainGraphWidget.AlertRawKeyPress(KeyModifierTuple)) continue;
 
-
-
-
                     if (isKeybind)
                     {
                         switch (boundAction)
                         {
                             case eKeybind.ToggleVideo:
-                                if (_rgatstate.VideoRecorder.Recording)
+                                if (_rgatState.VideoRecorder.Recording)
                                 {
-                                    _rgatstate.VideoRecorder.Done();
+                                    _rgatState.VideoRecorder.Done();
                                 }
                                 else
                                 {
-                                    _rgatstate.VideoRecorder.StartRecording();
+                                    _rgatState.VideoRecorder.StartRecording();
                                 }
                                 continue;
 
                             case eKeybind.PauseVideo:
-                                if (_rgatstate.VideoRecorder.Recording)
+                                if (_rgatState.VideoRecorder.Recording)
                                 {
-                                    _rgatstate.VideoRecorder.CapturePaused = !_rgatstate.VideoRecorder.CapturePaused;
+                                    _rgatState.VideoRecorder.CapturePaused = !_rgatState.VideoRecorder.CapturePaused;
                                 }
                                 continue;
 
@@ -942,12 +672,12 @@ namespace rgat
 
         private void DrawDetectItEasyProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
-            if (_rgatstate.DIELib == null)
+            if (_rgatState.DIELib == null)
             {
                 ImGui.Text("Not Loaded");
                 return;
             }
-            DiELibDotNet.DieScript.SCANPROGRESS DEProgress = _rgatstate.DIELib.GetDIEScanProgress(activeTarget);
+            DiELibDotNet.DieScript.SCANPROGRESS DEProgress = _rgatState.DIELib.GetDIEScanProgress(activeTarget);
             ImGui.BeginGroup();
             {
                 uint textColour = Themes.GetThemeColourImGui(ImGuiCol.Text);
@@ -997,7 +727,7 @@ namespace rgat
                     }
                     if (ImGui.IsItemClicked())
                     {
-                        _rgatstate.DIELib.CancelDIEScan(activeTarget);
+                        _rgatState.DIELib.CancelDIEScan(activeTarget);
                     }
                 }
                 else if (!DEProgress.running && !DEProgress.loading)
@@ -1019,15 +749,15 @@ namespace rgat
                         ImGui.PopStyleColor();
                         ImGui.EndTooltip();
                     }
-                    if (_rgatstate.DIELib.ScriptsLoaded && ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                    if (_rgatState.DIELib.ScriptsLoaded && ImGui.IsItemClicked(ImGuiMouseButton.Left))
                     {
-                        _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                        _rgatState.DIELib.StartDetectItEasyScan(activeTarget);
                     }
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
-                        _rgatstate.DIELib.ReloadDIEScripts(GlobalConfig.DiESigsPath);
-                        if (_rgatstate.DIELib.ScriptsLoaded)
-                            _rgatstate.DIELib.StartDetectItEasyScan(activeTarget);
+                        _rgatState.DIELib.ReloadDIEScripts(GlobalConfig.DiESigsPath);
+                        if (_rgatState.DIELib.ScriptsLoaded)
+                            _rgatState.DIELib.StartDetectItEasyScan(activeTarget);
                     }
                 }
                 else if (DEProgress.loading)
@@ -1048,12 +778,12 @@ namespace rgat
         //YARA
         private void DrawYARAProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
-            if (_rgatstate.YARALib == null)
+            if (_rgatState.YARALib == null)
             {
                 ImGui.Text("Not Loaded");
                 return;
             }
-            YARAScan.eYaraScanProgress progress = _rgatstate.YARALib.Progress(activeTarget);
+            YARAScan.eYaraScanProgress progress = _rgatState.YARALib.Progress(activeTarget);
             string caption;
             float progressAmount = 0;
             uint barColour = 0;
@@ -1064,7 +794,7 @@ namespace rgat
                     break;
                 case YARAScan.eYaraScanProgress.eComplete:
                     {
-                        uint rulecount = _rgatstate.YARALib.LoadedRuleCount();
+                        uint rulecount = _rgatState.YARALib.LoadedRuleCount();
                         caption = $"YARA:{rulecount}/{rulecount}"; //wrong if reloaded?
                         barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
                         progressAmount = 1;
@@ -1091,7 +821,7 @@ namespace rgat
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();
-                ImGui.Text($"{caption} with {_rgatstate.YARALib.LoadedRuleCount()} loaded rules");
+                ImGui.Text($"{caption} with {_rgatState.YARALib.LoadedRuleCount()} loaded rules");
                 ImGui.Separator();
                 ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
                 ImGui.Text("Left Click  - Rescan");
@@ -1099,15 +829,15 @@ namespace rgat
                 ImGui.PopStyleColor();
                 ImGui.EndTooltip();
             }
-            if (_rgatstate.YARALib.LoadedRuleCount() > 0 && ImGui.IsItemClicked(ImGuiMouseButton.Left))
+            if (_rgatState.YARALib.LoadedRuleCount() > 0 && ImGui.IsItemClicked(ImGuiMouseButton.Left))
             {
-                _rgatstate.YARALib.StartYARATargetScan(activeTarget);
+                _rgatState.YARALib.StartYARATargetScan(activeTarget);
             }
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
-                _rgatstate.YARALib.RefreshRules(forceRecompile: true);
-                if (_rgatstate.YARALib.LoadedRuleCount() > 0)
-                    _rgatstate.YARALib.StartYARATargetScan(activeTarget);
+                _rgatState.YARALib.RefreshRules(forceRecompile: true);
+                if (_rgatState.YARALib.LoadedRuleCount() > 0)
+                    _rgatState.YARALib.StartYARATargetScan(activeTarget);
             }
 
         }
@@ -1517,24 +1247,24 @@ namespace rgat
                 ImGui.InputText("##cmdline", _dataInput, 1024);
                 ImGui.PopStyleColor();
 
-                string pintoolpath = _rgatstate.ActiveTarget.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
+                string pintoolpath = _rgatState.ActiveTarget.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
 
                 if (ImGui.Button("Start Trace"))
                 {
-                    _WaitingNewTraceCount = _rgatstate.InstrumentationCount;
-                    System.Diagnostics.Process p = ProcessLaunching.StartTracedProcess(pintoolpath, _rgatstate.ActiveTarget.FilePath);
+                    _WaitingNewTraceCount = _rgatState.InstrumentationCount;
+                    System.Diagnostics.Process p = ProcessLaunching.StartTracedProcess(pintoolpath, _rgatState.ActiveTarget.FilePath);
                     Console.WriteLine($"Started process id {p.Id}");
                 }
                 ImGui.SameLine();
 
                 if (ImGui.Checkbox("Start Paused", ref _checkStartPausedState))
                 {
-                    _rgatstate.ActiveTarget.SetTraceConfig("PAUSE_ON_START", _checkStartPausedState ? "TRUE" : "FALSE");
+                    _rgatState.ActiveTarget.SetTraceConfig("PAUSE_ON_START", _checkStartPausedState ? "TRUE" : "FALSE");
                 }
-                if (_rgatstate.VideoRecorder.Loaded)
+                if (_rgatState.VideoRecorder.Loaded)
                 {
                     ImGui.SameLine();
-                    if (_rgatstate.VideoRecorder.Loaded)
+                    if (_rgatState.VideoRecorder.Loaded)
                     {
                         ImGui.Checkbox("Capture Video", ref _recordVideoOnStart);
                     }
@@ -1571,8 +1301,6 @@ namespace rgat
 
 
 
-        bool _splashHeaderHover = false;
-        bool _scheduleMissingPathCheck = true;
         void DrawStartSplash()
         {
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
@@ -1588,11 +1316,10 @@ namespace rgat
             float blockHeight = (regionHeight * 0.95f) - headerHeight;
             float blockStart = headerHeight + 40f;
 
-
-            if (_UIstartupProgress < 1)
+            if (StartupProgress < 1)
             {
                 float ypos = ImGui.GetCursorPosY();
-                ImGui.ProgressBar((float)_UIstartupProgress, new Vector2(-1, 4f));
+                ImGui.ProgressBar((float)StartupProgress, new Vector2(-1, 4f));
                 ImGui.SetCursorPosY(ypos);
             }
 
@@ -1637,7 +1364,7 @@ namespace rgat
                         {
                             ImGui.PushFont(_controller.SplashButtonFont);
                             Vector2 textsz = ImGui.CalcTextSize("Settings");
-                            ImGui.SetCursorPosX(btnX - (textsz.X+35));
+                            ImGui.SetCursorPosX(btnX - (textsz.X + 35));
                             ImGui.SetCursorPosY(headerBtnsY + btnSize / 2 - textsz.Y / 2);
                             ImGui.Text("Settings");
                             ImGui.PopFont();
@@ -1668,7 +1395,7 @@ namespace rgat
                             ImGui.TextWrapped("Remote Tracing");
                             ImGui.PopFont();
                         }
-            
+
                         ImGui.EndGroup();
                     }
 
@@ -1875,16 +1602,16 @@ namespace rgat
         {
             if (_show_test_harness == false)
             {
-                if (_testHarness == null) _testHarness = new TestsWindow(_rgatstate, _controller);
+                if (_testHarness == null) _testHarness = new TestsWindow(_rgatState, _controller);
             }
             _show_test_harness = !_show_test_harness;
-        }       
-        
+        }
+
         void ToggleRemoteDialog()
         {
             if (_show_remote_dialog == false)
             {
-                if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog();// _rgatstate, _controller);
+                if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog();// _rgatState, _controller);
             }
             _show_remote_dialog = !_show_remote_dialog;
         }
@@ -1986,7 +1713,7 @@ namespace rgat
             Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
-                MainGraphWidget.Draw(graphSize, _rgatstate.ActiveGraph, _rgatstate.VideoRecorder.Recording);
+                MainGraphWidget.Draw(graphSize, _rgatState.ActiveGraph, _rgatState.VideoRecorder.Recording);
 
                 Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1 * graphSize.Y);
                 MainGraphWidget.DisplayEventMessages(msgpos);
@@ -2032,7 +1759,7 @@ namespace rgat
 
         private void DrawCameraPopup()
         {
-            PlottedGraph ActiveGraph = _rgatstate.ActiveGraph;
+            PlottedGraph ActiveGraph = _rgatState.ActiveGraph;
             if (ActiveGraph == null) return;
 
             if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(235, 200)))
@@ -2052,7 +1779,7 @@ namespace rgat
 
         private unsafe void DrawPlaybackControls(float otherControlsHeight, float width)
         {
-            PlottedGraph activeGraph = _rgatstate.ActiveGraph;
+            PlottedGraph activeGraph = _rgatState.ActiveGraph;
             if (activeGraph == null)
             {
                 if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(width, otherControlsHeight)))
@@ -2268,14 +1995,14 @@ namespace rgat
         {
             if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
             {
-                if (_rgatstate.VideoRecorder.Recording)
+                if (_rgatState.VideoRecorder.Recording)
                 {
-                    if (_rgatstate.VideoRecorder.CapturePaused)
+                    if (_rgatState.VideoRecorder.CapturePaused)
                     {
                         ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
                         if (ImGui.Button("Resume Capture")) //this is more intended as an indicator than a control
                         {
-                            _rgatstate.VideoRecorder.CapturePaused = false;
+                            _rgatState.VideoRecorder.CapturePaused = false;
                         }
                         ImGui.PopStyleColor();
                     }
@@ -2284,7 +2011,7 @@ namespace rgat
                         ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
                         if (ImGui.Button("Stop Capture"))
                         {
-                            _rgatstate.VideoRecorder.Done();
+                            _rgatState.VideoRecorder.Done();
                         }
                         ImGui.PopStyleColor();
                     }
@@ -2293,7 +2020,7 @@ namespace rgat
                 {
                     if (ImGui.Button("Start Capture"))
                     {
-                        _rgatstate.VideoRecorder.StartRecording();
+                        _rgatState.VideoRecorder.StartRecording();
                     }
                 }
 
@@ -2303,109 +2030,7 @@ namespace rgat
             }
         }
 
-        static Texture recordingStager;
-        static VideoEncoder.CaptureContent PendingScreenshot = VideoEncoder.CaptureContent.Invalid;
 
-        unsafe public void ProcessFramebuffer(Framebuffer fbuf, CommandList cl)
-        {
-            //exit if no video capture or screenshot pending
-            VideoEncoder recorder = _rgatstate?.VideoRecorder;
-            if ((recorder == null || !recorder.Recording) && PendingScreenshot == VideoEncoder.CaptureContent.Invalid) return;
-
-            if (_rgatstate.VideoRecorder.Recording && !_rgatstate.VideoRecorder.CapturePaused)
-            {
-                Bitmap videoBmp = CreateVideoRecordingFrame(fbuf, cl, _rgatstate.VideoRecorder.GetCapturedContent());
-                _rgatstate.VideoRecorder.QueueFrame(videoBmp, _rgatstate.ActiveGraph);
-            }
-
-            if (PendingScreenshot != VideoEncoder.CaptureContent.Invalid)
-            {
-                try
-                {
-                    //cant reuse the video bitmap because of object currently in use exceptions
-                    Bitmap screenBmp = CreateVideoRecordingFrame(fbuf, cl, PendingScreenshot);
-                    _rgatstate.VideoRecorder.TakeScreenshot(_rgatstate.ActiveGraph, screenBmp);
-                }
-                catch (Exception e)
-                {
-                    Logging.RecordLogEvent($"Unhandled exception while taking screenshot {PendingScreenshot}: {e.Message}");
-                }
-                PendingScreenshot = VideoEncoder.CaptureContent.Invalid;
-            }
-        }
-
-        unsafe Bitmap CreateVideoRecordingFrame(Framebuffer fbuf, CommandList cl, VideoEncoder.CaptureContent region)
-        {
-
-            GraphicsDevice gd = _controller.graphicsDevice;
-            Texture ftex = fbuf.ColorTargets[0].Target;
-            if (recordingStager == null || recordingStager.Width != ftex.Width || recordingStager.Height != ftex.Height)
-            {
-                VeldridGraphBuffers.DoDispose(recordingStager);
-                recordingStager = gd.ResourceFactory.CreateTexture(new TextureDescription(ftex.Width, ftex.Height,
-                    1, 1, 1, PixelFormat.B8_G8_R8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
-            }
-
-            cl.Begin();
-            cl.CopyTexture(ftex, recordingStager);
-            cl.End();
-            gd.SubmitCommands(cl);
-            gd.WaitForIdle();
-
-
-            //draw it onto a bitmap
-            Bitmap bmp = new Bitmap((int)recordingStager.Width, (int)recordingStager.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            System.Drawing.Imaging.BitmapData data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, (int)recordingStager.Width, (int)recordingStager.Height),
-                System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            byte* scan0 = (byte*)data.Scan0;
-
-            MappedResourceView<SixLabors.ImageSharp.PixelFormats.Rgba32> res = gd.Map<SixLabors.ImageSharp.PixelFormats.Rgba32>(recordingStager, MapMode.Read);
-            int drawHeight = 0;
-            int drawWidth = 0;
-            float startX = 0;
-            float startY = 0;
-
-            switch (region)
-            {
-                case VideoEncoder.CaptureContent.Graph:
-                    drawHeight = (int)Math.Min(bmp.Height, MainGraphWidget.WidgetSize.Y);
-                    drawWidth = (int)Math.Min(bmp.Width, MainGraphWidget.WidgetSize.X);
-                    startX = MainGraphWidget.WidgetPos.X;
-                    startY = MainGraphWidget.WidgetPos.Y;
-                    break;
-                case VideoEncoder.CaptureContent.GraphAndPreviews:
-                    drawHeight = (int)Math.Min(bmp.Height, MainGraphWidget.WidgetSize.Y);
-                    drawWidth = (int)Math.Min(bmp.Width, MainGraphWidget.WidgetSize.X + UI_Constants.PREVIEW_PANE_WIDTH);
-                    startX = MainGraphWidget.WidgetPos.X;
-                    startY = MainGraphWidget.WidgetPos.Y;
-                    break;
-                case VideoEncoder.CaptureContent.Window:
-                default:
-                    drawHeight = (int)Math.Min(bmp.Height, recordingStager.Height);
-                    drawWidth = (int)Math.Min(bmp.Width, recordingStager.Width);
-                    break;
-            }
-
-
-            for (int y = 0; y < drawHeight; y += 1)
-            {
-                for (int x = 0; x < drawWidth; x += 1)
-                {
-                    int xPixel = (int)startX + x;
-                    int yPixel = (int)startY + y;
-                    SixLabors.ImageSharp.PixelFormats.Rgba32 px = res[xPixel, yPixel];
-                    byte* ptr = scan0 + yPixel * data.Stride + (xPixel * 4);
-                    ptr[0] = px.R;
-                    ptr[1] = px.G;
-                    ptr[2] = px.B;
-                    ptr[3] = 255;
-                }
-            }
-            bmp.UnlockBits(data);
-            gd.Unmap(recordingStager);
-
-            return bmp;
-        }
 
 
 
@@ -2506,13 +2131,13 @@ namespace rgat
 
         private void SetActiveGraph(PlottedGraph graph)
         {
-            if (graph.pid != _rgatstate.ActiveGraph.pid)
+            if (graph.pid != _rgatState.ActiveGraph.pid)
             {
                 Console.WriteLine("Warning: Graph selected in non-viewed trace");
                 return;
             }
 
-            _rgatstate.SwitchToGraph(graph);
+            _rgatState.SwitchToGraph(graph);
             PreviewGraphWidget.SetSelectedGraph(graph);
             //MainGraphWidget.SetActiveGraph(graph);
         }
@@ -2523,9 +2148,9 @@ namespace rgat
             foreach (TraceRecord child in tr.children)
             {
                 string tabs = new String("  ");
-                if (ImGui.Selectable(tabs + "PID " + child.PID, _rgatstate.ActiveGraph.pid == child.PID))
+                if (ImGui.Selectable(tabs + "PID " + child.PID, _rgatState.ActiveGraph.pid == child.PID))
                 {
-                    _rgatstate.SelectActiveTrace(child);
+                    _rgatState.SelectActiveTrace(child);
                 }
                 if (child.children.Count > 0)
                 {
@@ -2537,7 +2162,7 @@ namespace rgat
         private void DrawTraceSelector(float frameHeight, float frameWidth)
         {
 
-            PlottedGraph plot = _rgatstate.ActiveGraph;
+            PlottedGraph plot = _rgatState.ActiveGraph;
             if (plot == null)
             {
                 if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth, frameHeight)))
@@ -2557,9 +2182,9 @@ namespace rgat
 
                 float combosHeight = 60 - vpadding;
 
-                if (_rgatstate.ActiveTarget != null)
+                if (_rgatState.ActiveTarget != null)
                 {
-                    var tracelist = _rgatstate.ActiveTarget.GetTracesUIList();
+                    var tracelist = _rgatState.ActiveTarget.GetTracesUIList();
                     string selString = "PID " + graph.TraceData.PID;
                     if (ImGui.BeginCombo($"{tracelist.Count} Process{(tracelist.Count != 1 ? "es" : "")}", selString))
                     {
@@ -2568,7 +2193,7 @@ namespace rgat
                             TraceRecord selectableTrace = timepid.Item2;
                             if (ImGui.Selectable("PID " + selectableTrace.PID, graph.TraceData.PID == selectableTrace.PID))
                             {
-                                _rgatstate.SelectActiveTrace(selectableTrace);
+                                _rgatState.SelectActiveTrace(selectableTrace);
                             }
                             if (selectableTrace.children.Count > 0)
                             {
@@ -2579,10 +2204,10 @@ namespace rgat
                         ImGui.EndCombo();
                     }
 
-                    if (_rgatstate.ActiveTrace != null)
+                    if (_rgatState.ActiveTrace != null)
                     {
                         selString = "TID " + graph.ThreadID;
-                        List<PlottedGraph> graphs = _rgatstate.ActiveTrace.GetPlottedGraphs();
+                        List<PlottedGraph> graphs = _rgatState.ActiveTrace.GetPlottedGraphs();
                         if (ImGui.BeginCombo($"{graphs.Count} Thread{(graphs.Count != 1 ? "s" : "")}", selString))
                         {
                             foreach (PlottedGraph selectablegraph in graphs)
@@ -2723,14 +2348,14 @@ namespace rgat
         {
             float vpadding = 10;
 
-            if (_rgatstate.ActiveGraph == null)
+            if (_rgatState.ActiveGraph == null)
             {
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF222222);
                 if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(ImGui.GetContentRegionAvail().X, controlsHeight - vpadding)))
                 {
                     string caption = "No trace to display";
                     ImguiUtils.DrawRegionCenteredText(caption);
-                    ImGui.Text($"temp: {_rgatstate.ActiveGraph?.temperature}");
+                    ImGui.Text($"temp: {_rgatState.ActiveGraph?.temperature}");
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
@@ -2742,7 +2367,7 @@ namespace rgat
             float controlsWidth = ImGui.GetContentRegionAvail().X;
             if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(controlsWidth, frameHeight)))
             {
-                PlottedGraph activeGraph = _rgatstate.ActiveGraph;
+                PlottedGraph activeGraph = _rgatState.ActiveGraph;
                 if (activeGraph != null)
                 {
                     if (ImGui.BeginChild("ControlsInner", new Vector2(controlsWidth - UI_Constants.PREVIEW_PANE_WIDTH, frameHeight)))
@@ -2768,22 +2393,22 @@ namespace rgat
 
         void ManageActiveGraph()
         {
-            if (_rgatstate.ActiveGraph == null)
+            if (_rgatState.ActiveGraph == null)
             {
-                if (_rgatstate.ActiveTrace == null)
+                if (_rgatState.ActiveTrace == null)
                 {
-                    _rgatstate.SelectActiveTrace();
+                    _rgatState.SelectActiveTrace();
                 }
-                if (_rgatstate.ChooseActiveGraph())
+                if (_rgatState.ChooseActiveGraph())
                 {
 
                     if (_recordVideoOnStart)
                     {
-                        _rgatstate.VideoRecorder.StartRecording();
+                        _rgatState.VideoRecorder.StartRecording();
                         _recordVideoOnStart = false;
                     }
-                    PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
-                    PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
+                    PreviewGraphWidget.SetActiveTrace(_rgatState.ActiveTrace);
+                    PreviewGraphWidget.SetSelectedGraph(_rgatState.ActiveGraph);
                 }
                 else
                 {
@@ -2793,17 +2418,17 @@ namespace rgat
                     }
                 }
             }
-            else if (_rgatstate.ActiveGraph != MainGraphWidget.ActiveGraph)
+            else if (_rgatState.ActiveGraph != MainGraphWidget.ActiveGraph)
             {
 
                 if (_recordVideoOnStart)
                 {
-                    _rgatstate.VideoRecorder.StartRecording();
+                    _rgatState.VideoRecorder.StartRecording();
                     _recordVideoOnStart = false;
                 }
 
-                PreviewGraphWidget.SetActiveTrace(_rgatstate.ActiveTrace);
-                PreviewGraphWidget.SetSelectedGraph(_rgatstate.ActiveGraph);
+                PreviewGraphWidget.SetActiveTrace(_rgatState.ActiveTrace);
+                PreviewGraphWidget.SetSelectedGraph(_rgatState.ActiveGraph);
             }
         }
 
@@ -3265,7 +2890,7 @@ namespace rgat
                 List<LOG_EVENT> shownMsgs = new List<LOG_EVENT>(msgs);
                 if (_LogFilters.Any(f => f == true))
                 {
-                    var TLmsgs = _rgatstate.ActiveTrace?.GetTimeLineEntries();
+                    var TLmsgs = _rgatState.ActiveTrace?.GetTimeLineEntries();
                     if (TLmsgs != null)
                     {
                         foreach (TIMELINE_EVENT ev in TLmsgs)
@@ -3400,12 +3025,13 @@ namespace rgat
                     ImGui.Separator();
                     if (ImGui.MenuItem("Save Thread Trace")) { } //todo
                     if (ImGui.MenuItem("Save Process Traces")) { } //todo
-                    if (ImGui.MenuItem("Save All Traces")) { _rgatstate.SaveAllTargets(); }
-                    if (ImGui.MenuItem("Export Pajek")) { _rgatstate.ExportTraceAsPajek(_rgatstate.ActiveTrace, _rgatstate.ActiveGraph.tid); }
+                    if (ImGui.MenuItem("Save All Traces")) { _rgatState.SaveAllTargets(); }
+                    if (ImGui.MenuItem("Export Pajek")) { _rgatState.ExportTraceAsPajek(_rgatState.ActiveTrace, _rgatState.ActiveGraph.tid); }
                     ImGui.Separator();
                     if (ImGui.MenuItem("Exit"))
                     {
-                        Task.Run(() => { Exit(); });
+                        ExitFlag = true;
+                       // Task.Run(() => { Exit(); });
                     }
                     ImGui.EndMenu();
                 }
@@ -3424,6 +3050,8 @@ namespace rgat
             }
         }
 
+        public bool ExitFlag = false;
+
         /// <summary>
         /// Draws a dropdown allowing selection of one of the loaded target binaries
         /// </summary>
@@ -3431,17 +3059,17 @@ namespace rgat
         private unsafe bool DrawTargetBar()
         {
 
-            if (_rgatstate.targets.count() == 0)
+            if (_rgatState.targets.count() == 0)
             {
                 ImGui.Text("No target selected or trace loaded");
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
                 return false;
             }
 
-            BinaryTarget activeTarget = _rgatstate.ActiveTarget;
+            BinaryTarget activeTarget = _rgatState.ActiveTarget;
             //there shouldn't actually be a way to select a null target once one is loaded
             string activeString = (activeTarget == null) ? "No target selected" : activeTarget.FilePath;
-            List<string> paths = _rgatstate.targets.GetTargetPaths();
+            List<string> paths = _rgatState.targets.GetTargetPaths();
             ImGuiComboFlags flags = 0;
             if (ImGui.BeginCombo("Selected Binary", activeString, flags))
             {
@@ -3450,7 +3078,7 @@ namespace rgat
                     bool is_selected = activeTarget != null && activeTarget.FilePath == path;
                     if (ImGui.Selectable(path, is_selected))
                     {
-                        _rgatstate.SetActiveTarget(path);
+                        _rgatState.SetActiveTarget(path);
                     }
 
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -3472,18 +3100,18 @@ namespace rgat
             bool tabDrawn = false;
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
 
-            if (_WaitingNewTraceCount != -1 && _rgatstate.InstrumentationCount > _WaitingNewTraceCount)
+            if (_WaitingNewTraceCount != -1 && _rgatState.InstrumentationCount > _WaitingNewTraceCount)
             {
                 _WaitingNewTraceCount = -1;
                 _SwitchToVisualiserTab = true;
                 //MainGraphWidget.SetActiveGraph(null);
                 PreviewGraphWidget.SetActiveTrace(null);
-                _rgatstate.SelectActiveTrace(newest: true);
+                _rgatState.SelectActiveTrace(newest: true);
             }
 
             if (ImGui.BeginTabBar("Primary Tab Bar", tab_bar_flags))
             {
-                DrawTraceTab(_rgatstate.ActiveTarget);
+                DrawTraceTab(_rgatState.ActiveTarget);
 
                 //is there a better way to do this?
                 if (_SwitchToVisualiserTab)
@@ -3500,7 +3128,7 @@ namespace rgat
                 }
 
 
-                DrawAnalysisTab(_rgatstate.ActiveTrace);
+                DrawAnalysisTab(_rgatState.ActiveTrace);
 
 
                 DrawMemDataTab();
@@ -3547,16 +3175,16 @@ namespace rgat
             else
             {
                 GlobalConfig.RecordRecentPath(path, GlobalConfig.eRecentPathType.Binary);
-                _rgatstate.AddTargetByPath(path);
+                _rgatState.AddTargetByPath(path);
             }
             return true;
         }
 
-        private unsafe void DrawFileSelectBox()
+        public void DrawFileSelectBox(ref bool show_select_exe_window)
         {
             ImGui.OpenPopup("Select Executable");
 
-            if (ImGui.BeginPopupModal("Select Executable", ref _show_select_exe_window, ImGuiWindowFlags.NoScrollbar))
+            if (ImGui.BeginPopupModal("Select Executable", ref show_select_exe_window, ImGuiWindowFlags.NoScrollbar))
             {
 
                 var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
@@ -3567,7 +3195,7 @@ namespace rgat
                     {
                         rgatFilePicker.FilePicker.RemoveFilePicker(this);
                     }
-                    _show_select_exe_window = false;
+                    show_select_exe_window = false;
                 }
 
                 ImGui.EndPopup();
@@ -3582,7 +3210,7 @@ namespace rgat
                 return false;
             }
 
-            if (!_rgatstate.LoadTraceByPath(filepath, out TraceRecord trace))
+            if (!_rgatState.LoadTraceByPath(filepath, out TraceRecord trace))
             {
                 Logging.RecordLogEvent($"Failed to load invalid trace: {filepath}", filter: LogFilterType.TextAlert);
                 return false;
@@ -3592,15 +3220,15 @@ namespace rgat
             BinaryTarget target = trace.binaryTarg;
 
             //todo only if signatures not stored in trace + file exists on disk
-            _rgatstate.DIELib?.StartDetectItEasyScan(target);
-            _rgatstate.YARALib?.StartYARATargetScan(target);
+            _rgatState.DIELib?.StartDetectItEasyScan(target);
+            _rgatState.YARALib?.StartYARATargetScan(target);
 
-            launch_all_trace_threads(trace, _rgatstate);
+            launch_all_trace_threads(trace, _rgatState);
 
-            _rgatstate.ActiveTarget = target;
-            _rgatstate.SelectActiveTrace(target.GetFirstTrace());
+            _rgatState.ActiveTarget = target;
+            _rgatState.SelectActiveTrace(target.GetFirstTrace());
 
-            //_rgatstate.SwitchTrace = trace;
+            //_rgatState.SwitchTrace = trace;
 
             //ui.dynamicAnalysisContentsTab.setCurrentIndex(eVisualiseTab);
             return true;
@@ -3616,11 +3244,11 @@ namespace rgat
             }
         }
 
-        private void DrawTraceLoadBox()
+        public void DrawTraceLoadBox(ref bool show_load_trace_window)
         {
             ImGui.OpenPopup("Select Trace File");
 
-            if (ImGui.BeginPopupModal("Select Trace File", ref _show_load_trace_window, ImGuiWindowFlags.NoScrollbar))
+            if (ImGui.BeginPopupModal("Select Trace File", ref show_load_trace_window, ImGuiWindowFlags.NoScrollbar))
             {
                 string savedir = GlobalConfig.TraceSaveDirectory;
                 if (!Directory.Exists(savedir)) savedir = Environment.CurrentDirectory;
@@ -3633,7 +3261,7 @@ namespace rgat
                         LoadTraceByPath(picker.SelectedFile);
                     }
                     rgatFilePicker.FilePicker.RemoveFilePicker(this);
-                    _show_load_trace_window = false;
+                    show_load_trace_window = false;
                 }
 
                 ImGui.EndPopup();
