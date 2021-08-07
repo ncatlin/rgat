@@ -12,46 +12,88 @@ namespace rgat.Config
     class LaunchConfig
     {
 
-        [Option('n', "nogui", Required = false, HelpText = "Do not launch GUI. Requires further commandline arguments.")]
-        public bool NoGUI { get; set; }
+        // usage modes
 
-        [Option('t', "target", SetName = "HeadlessMode", Required = false, HelpText = "The file path of the target binary to execute and generate a trace for")]
+
+        // if present - trace target file and exit
+        // this mode does not require a GPU, unless paired with the draw or mp4 options
+        [Option('t', "target", SetName = "HeadlessMode", MetaValue = "\"path_to_binary\"", Required = false, 
+            HelpText = "Run rgat in Headless tracing mode. Requires the file path of the target binary to execute and generate a trace for." +
+            "Traces are saved to the standard save directory, unless accompanied by the -o option." +
+            "This mode does not require a GPU, unless accompanied by the 'draw' and/or 'mp4' options"
+            )]
         public string TargetPath { get; set; }
 
-        [Option('o', "output", SetName = "HeadlessMode", Required = false, HelpText = "Optional file path or directory to save the output trace to. Only valid with the -t option.")]
-        public string OutputPath { get; set; }
 
-        [Option('d', "draw", Required = false, HelpText = "Draw a png of the final rendering of the trace")]
-        public string DrawPath { get; set; }
-
-        [Option('V', "video_replay", Required = false, HelpText = "Record a video of a playback of the final trace. Takes an optional mp4 file outout path.  Requires FFMpeg.")]
-        public string VideoReplayPath { get; set; }
-
-        [Option('v', "video_live", Required = false, HelpText = "Record a video of the trace as it is being reecorded. Takes an optional mp4 file outout path. Requires FFMpeg.")]
-        public string VideoTracingPath { get; set; }
-
-        [Option('M', "ffmpeg", Required = false, HelpText = "Provide a path to FFMpeg.exe to enable video recording if one is not configured. With no argument, prints status of configured FFMpeg.")]
-        public string FFmpegPath { get; set; }
-
-        [Option('c', "configfile", Required = false, HelpText = "A path or current directory filename of a file containing a JSON configuration blob. Values in this configuration can be used instead of (or be overidden by) command line arguments.")]
-        public string ConfigPath { get; set; }
-
-        [Option('r', "remote", SetName = "ConnectMode", Required = false, HelpText = "Network address of an rgat instance running in server mode to connect to. Allows remote control of tracing on this computer. Not compatible with the listen option. --key parameter is mandatory if no preconfigured key is set.")]
+        //if present - go into headless bridge mode and act as a proxy for the specified rgat instance on a remote machine
+        [Option('r', "remote", SetName = "ConnectMode", Required = false, MetaValue = "address:port", 
+            HelpText = "Run rgat in headless network bridge mode (beaconing) which allows the rgat to control tracing from another computer.\n" + 
+            "Requires the address:port of an rgat instance with listening mode activated. \n"+
+            "Not compatible with the 'port' option. --key parameter is mandatory if no preconfigured key is set." +
+            "This mode does not require a GPU.")]
         public string ConnectModeAddress { get; set; }
 
-        [Option('p', "port", Default = -1, SetName = "ListenMode", Required = false, HelpText = "A TCP port to listen on. Allows remote control of tracing on this computer. Not compatible with the port option. --key parameter is mandatory if no preconfigured key is set.")]
-        public int ListenPort { get; set; }
 
-        [Option('i', "interface", SetName = "Interface", Required = false, HelpText = "A network interface to use for remote control options (r or p). By default all available interfaces will be used. Argument '?' will list valid interfaces and exit.")]
+        // if present - go into headless bridge mode and act as a proxy for the next rgat instance to connect to this port
+        // this mode does not require a GPU
+        [Option('p', "port", SetName = "ListenMode", Required = false, MetaValue = "[port number]", 
+            HelpText = "Run rgat in headless network bridge mode (listening) which allows an rgat client to connect and control tracing on this computer.\n" +
+            "Takes an  optional TCP port to listen on, or chooses a random available port.\n" +
+            "Not compatible with the 'remote' option. See notes for the --key parameter, which is optional for this mode." +
+            "This mode does not require a GPU")]
+        public int? ListenPort { get; set; }
+
+
+        //network bridge mode modifiers
+
+        // the interface to use for network connections
+        [Option('i', "interface", Required = false, MetaValue ="[ip]|[ID]|[MAC]|[name]",
+            HelpText = "A network interface to use for remote control options (r or p). By default all available interfaces will be used, so it's a good idea to pick the one you will be using.\n" +
+            "The argument can be an interface name, ID, MAC or IP address.\n" +
+            "Use without an argument to list valid interfaces and exit.")]
         public string Interface { get; set; }
 
-
-        [Option('k', "key", Required = false, HelpText = "Pre-shared key for remote control tracing. Required with the 'listen' or 'server' options unless a saved key exists.")]
+        // the encryption key to use for network connections
+        [Option('k', "key", Required = false, 
+            HelpText = "Pre-shared key for remote control tracing. This key is stored so it is not required in future invocations.\n" +
+            "------Security note------\n" +
+            "\tNetwork tracing is intended to facilitate tracing between VM Host/Guest or between machines on a private analysis network.\n" +
+            "\tWhile rgat expects malicious traffic and heavily rate-limits connection attempts, exposing the listener port to the internet is not advisable. " +
+            "Anyone able to connect to this port with the specified key can execute abitrary code. Standard sensible password choice warnings apply.")]
         public string NetworkKey { get; set; }
 
 
+        // tracing mode modifiers
+
+        // write the collected trace to this path, for opening later by rgat in UI mode
+        [Option('o', "output", SetName = "HeadlessMode", Required = false, MetaValue = "\"filepath\"",
+            HelpText = "Optional file path or directory to save the output trace to when in headless tracing mode")]
+        public string OutputPath { get; set; }
+
+        // draw the rendered graph to a png image
+        [Option('d', "draw", Required = false, MetaValue = "[\"path_to_image.png\"]", HelpText = "Draw a png of the final rendering of the trace. Requires GPU access with Vulkan drivers.")]
+        public string DrawPath { get; set; }
+
+        // once tracing and graph layout is complete, record playback to an mp4 video. 
+        [Option('M', "mp4_playback", Required = false, MetaValue = "[\"path_to_video.mp4\"]", HelpText = "Record a video of a playback of the final trace. Takes an optional mp4 file outout path.  Requires FFMpeg.")]
+        public string VideoReplayPath { get; set; }
+
+        // record a video of tracing and layout. 
+        [Option('m', "mp4_recording", Required = false, MetaValue = "[\"path_to_video.mp4\"]", HelpText = "Record a video of the trace as it is being reecorded. Takes an optional mp4 file outout path. Requires FFMpeg.")]
+        public string VideoTracingPath { get; set; }
+
+        [Option("ffmpeg", Required = false, MetaValue = "[\"path_to_ffmpeg.exe\"]", HelpText = "Provide a path to FFMpeg.exe to enable video recording if one is not configured. With no argument, prints status of configured FFMpeg.")]
+        public string FFmpegPath { get; set; }
+
         [Option("nofollow", Required = false, HelpText = "If specified, rgat will not trace new processes spawned by the initial process")]
         public bool NoFollowDescendants { get; set; }
+
+
+        //general options applicable to all headless modes
+
+        [Option('c', "configfile", Required = false, MetaValue = "[\"path_to_config.json\"]", HelpText = "A path or current directory filename of a file containing a JSON configuration blob. Values in this configuration can be used instead of (or be overidden by) command line arguments.")]
+        public string ConfigPath { get; set; }
+
 
 
 
@@ -119,9 +161,19 @@ namespace rgat.Config
                 VideoTracingPath = "";
             }
 
-            if (DrawPath == null && originalParams.Contains("-d"))
+            if (DrawPath == null && (originalParams.Contains("-d") || originalParams.Contains("-draw") || originalParams.Contains("--draw")))
             {
                 DrawPath = "";
+            }
+                        
+            if (Interface == null && (originalParams.Contains("-i") || originalParams.Contains("-interface") || originalParams.Contains("--interface")))
+            {
+                Interface = "";
+            }
+
+            if (ListenPort == null && originalParams.Contains("-p"))
+            {
+                ListenPort = int.MinValue;
             }
         }
 
@@ -130,13 +182,8 @@ namespace rgat.Config
         /// </summary>
         void SetRunMode()
         {
-            if (!NoGUI)
-            {
-                RunMode = eRunMode.GUI;
-                return;
-            }
 
-            if (NetworkKey != null)
+            if (ListenPort != null || ConnectModeAddress != null)
             {
                 RunMode = eRunMode.Bridged;
                 return;
@@ -155,7 +202,7 @@ namespace rgat.Config
                 return;
             }
 
-            RunMode = eRunMode.Invalid;
+            RunMode = eRunMode.GUI;
         }
 
         bool ParseConfigJSON(JObject jsn, out string error)
@@ -166,11 +213,9 @@ namespace rgat.Config
 
                 switch (keyname)
                 {
-                    case "nogui":
                     case "nofollow":
                         if (TryGetBool(kvp.Value, out bool boolitem))
                         {
-                            if (keyname == "nogui") NoGUI = boolitem;
                             if (keyname == "nofollow") NoFollowDescendants = boolitem;
                         }
                         else
@@ -218,6 +263,9 @@ namespace rgat.Config
                                         break;
                                     case "key":
                                         NetworkKey = valuestring;
+                                        break;
+                                    case "ffmpeg":
+                                        FFmpegPath = valuestring;
                                         break;
                                     default:
                                         Console.WriteLine($"\tWarning: Ignoring unknown config option '{kvp.Key}':'{kvp.Value}'");

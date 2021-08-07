@@ -18,7 +18,7 @@ namespace rgat
             }
             else
             {
-                Console.WriteLine($"Listing {interfaces.Length} valid network interfaces. You can specify an interface using its name, ID or address"); //or index, but not a good idea
+                Console.WriteLine($"Listing {interfaces.Length} valid network interfaces. You can specify an interface using its name, ID, MAC or address"); //or index, but not a good idea
             }
 
 
@@ -40,7 +40,7 @@ namespace rgat
             for (var i = 0; i < interfaces.Length; i++)
             {
                 NetworkInterface iface = interfaces[i];
-                PrintInterfaceInformation(iface, i);
+                PrintInterfaceInformation(iface, i+1); //start index from 1. 0 == 0.0.0.0
             }
         }
 
@@ -63,11 +63,11 @@ namespace rgat
         {
             if (index != -1)
             {
-                Console.WriteLine($"\t{index}: {iface.Name} - \"{iface.Description}\" [{iface.OperationalStatus}]");
+                Console.WriteLine($"\t{index}: \"{iface.Name}\" <Description: {iface.Description} [{iface.OperationalStatus}]>");
             }
             else
             {
-                Console.WriteLine($"\t{iface.Name} - \"{iface.Description}\" [{iface.OperationalStatus}]");
+                Console.WriteLine($"\t\"{iface.Name}\" <Description: {iface.Description} [{iface.OperationalStatus}]>");
             }
 
             var addresses = iface.GetIPProperties().UnicastAddresses;
@@ -114,6 +114,7 @@ namespace rgat
 
             string comparer = interfaceCmdlineString.ToLower();
 
+            int index = 1;
             foreach (NetworkInterface iface in validInterfaces)
             {
                 if (iface.Name.ToLower() == comparer)
@@ -126,7 +127,15 @@ namespace rgat
                     matchedInterface = iface;
                     break;
                 }
+
                 if (iface.Description.ToLower() == comparer)
+                {
+                    matchedInterface = iface;
+                    break;
+                }
+
+                string hexmac = RemoteTracing.hexMAC(iface.GetPhysicalAddress()).ToLower();
+                if (hexmac.Length > 0 && comparer.Contains(hexmac))
                 {
                     matchedInterface = iface;
                     break;
@@ -140,7 +149,13 @@ namespace rgat
                         break;
                     }
                 }
-                
+
+                if (int.TryParse(comparer, out int indexInt) && indexInt == index)
+                {
+                    matchedInterface = iface;
+                    break;
+                }
+                index += 1;
             }
 
             return matchedInterface;

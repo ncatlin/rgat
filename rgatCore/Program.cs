@@ -26,14 +26,16 @@ namespace ImGuiNET
 
             InitialSetup();
 
-            if (!GlobalConfig.StartOptions.NoGUI)
+            if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.GUI)
             {
                 rgat.OperationModes.ImGuiRunner Ui = new rgat.OperationModes.ImGuiRunner(_rgatState);
                 Ui.Run();
             }
-            else if (GlobalConfig.StartOptions.NetworkKey != null)
+            else if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.Bridged)
             {
-                BridgedMain();
+
+                rgat.OperationModes.BridgedRunner bridge = new rgat.OperationModes.BridgedRunner(_rgatState);
+                bridge.Run();
             }
             else
             {
@@ -43,11 +45,16 @@ namespace ImGuiNET
 
         static bool InitOptions(string[] cmdlineParams)
         {
+
             var parser = new Parser(with =>
             {
                 with.GetoptMode = true;
+                with.AutoHelp = true;
+                with.AutoVersion = true;
+                with.CaseSensitive = true;
+                with.EnableDashDash = false;
             });
-            parser.ParseArguments<LaunchConfig>(cmdlineParams)
+            Parser.Default.ParseArguments<LaunchConfig>(cmdlineParams)
                .WithParsed(cmdlineOpts =>
                {
                    if (!cmdlineOpts.ExtractJSONOptions(out string error))
@@ -57,15 +64,18 @@ namespace ImGuiNET
                    else
                    {
                        cmdlineOpts.Init(cmdlineParams);
+
                        GlobalConfig.StartOptions = cmdlineOpts;
+                       if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.Invalid)
+                       {
+                           Console.WriteLine($"Error: With GUI disabled and no valid network configuration or target to trace, I could not work out what to do. Quitting.");
+                       }
+
                    }
                });
-            
 
-            if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.Invalid)
-            {
-                Console.WriteLine($"Error: With GUI disabled and no valid network configuration or target to trace, I could not work out what to do. Quitting.");
-            }
+
+
             return GlobalConfig.StartOptions != null;
         }
 
@@ -77,34 +87,7 @@ namespace ImGuiNET
             string interfaceOption = GlobalConfig.StartOptions.Interface;
             if (interfaceOption != null)
             {
-                switch (interfaceOption)
-                {
-                    case "list all":
-                    case "show all":
-                    case "print all":
-                        RemoteTracing.PrintInterfaces(PrintInvalid: true);
-                        exit = true;
-                        break;
-
-                    case "help":
-                    case "list":
-                    case "show":
-                    case "print":
-                    case "?":
-                        RemoteTracing.PrintInterfaces();
-                        exit = true;
-                        break;
-
-                    default:
-                        GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(interfaceOption);
-                        if (GlobalConfig.StartOptions.ActiveNetworkInterface == null)
-                        {
-                            Console.WriteLine($"Error: Specified network interface '{interfaceOption}' could not be matched to a valid network interface\n");
-                            RemoteTracing.PrintInterfaces();
-                            exit = true;
-                        }
-                        break;
-                }
+                HandleInterfaceParam(interfaceOption, ref exit);
             }
 
             if (GlobalConfig.StartOptions.FFmpegPath != null)
@@ -114,6 +97,58 @@ namespace ImGuiNET
 
             return exit;
         }
+
+
+        static void HandleInterfaceParam(string interfaceOption, ref bool exit)
+        {
+            switch (interfaceOption)
+            {
+                case "list all":
+                case "show all":
+                case "print all":
+                    RemoteTracing.PrintInterfaces(PrintInvalid: true);
+                    exit = true;
+                    break;
+
+                case "":
+                case "help":
+                case "list":
+                case "show":
+                case "print":
+                case "?":
+                    RemoteTracing.PrintInterfaces();
+                    exit = true;
+                    break;
+
+                case "all":
+                case "any":
+                    if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.Bridged)
+                    {
+                        GlobalConfig.StartOptions.Interface = "0.0.0.0";
+                    }
+                    break;
+
+                default:
+                    {
+                        if (GlobalConfig.StartOptions.RunMode != LaunchConfig.eRunMode.Bridged) return;
+
+                        if (!System.Net.IPAddress.TryParse(GlobalConfig.StartOptions.Interface, out System.Net.IPAddress address) ||
+                            int.TryParse(GlobalConfig.StartOptions.Interface, out int ipInt) && ipInt > 0 && ipInt < 128)
+                        {                        
+                            //see if it matches a property from the interface list
+                            GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(interfaceOption);
+                            if (GlobalConfig.StartOptions.ActiveNetworkInterface == null)
+                            {
+                                Console.WriteLine($"Error: Specified network interface '{interfaceOption}' could not be matched to a valid network interface\n");
+                                RemoteTracing.PrintInterfaces();
+                                exit = true;
+                            }
+                        }
+                        break;
+                    }
+            }
+        }
+
 
         static void HandleFFmpegParam(string ffmpegopt, ref bool exit)
         {
@@ -174,17 +209,6 @@ namespace ImGuiNET
                 return;
             }
 
-            if (GlobalConfig.StartOptions.ListenPort != -1)
-            {
-                Console.WriteLine("Starting headless listen mode");
-                return;
-            }
-
-            if (GlobalConfig.StartOptions.ConnectModeAddress != null)
-            {
-                Console.WriteLine("Starting headless conenct mode");
-                return;
-            }
 
         }
 

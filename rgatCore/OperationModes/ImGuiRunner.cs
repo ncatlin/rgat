@@ -12,6 +12,10 @@ using Veldrid.Sdl2;
 
 namespace rgat.OperationModes
 {
+    /// <summary>
+    /// Creates and manages a Veldrid/ImGui based rgat GUI
+    /// This requires access to a GPU (with Vulkan drivers)
+    /// </summary>
     class ImGuiRunner
     {
 

@@ -1026,8 +1026,6 @@ namespace rgat
 
                     if (!_hexTooltipShown) _hexTooltipScroll = 0;
 
-
-
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     ImGui.Text("Signature Scan");
@@ -1112,8 +1110,6 @@ namespace rgat
             ImGui.BeginGroup();
             {
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF992200);
-
-
 
                 ImGui.BeginChildFrame(18, new Vector2(width, 200));
                 ImGui.AlignTextToFramePadding();
