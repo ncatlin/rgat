@@ -33,9 +33,10 @@ namespace ImGuiNET
             }
             else if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.Bridged)
             {
-
+                BridgeConnection connection = new BridgeConnection(false);
                 rgat.OperationModes.BridgedRunner bridge = new rgat.OperationModes.BridgedRunner(_rgatState);
-                bridge.Run();
+                bridge.RunHeadleess(connection);
+
             }
             else
             {

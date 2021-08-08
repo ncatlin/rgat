@@ -29,7 +29,6 @@ namespace rgat
         public void RequestWakeupOnData() { if (!StopFlag) { WakeupRequested = true; TagDataReadyEvent.Reset(); } }
 
         private readonly object QueueSwitchLock = new object();
-        private readonly object RawQueueLock = new object();
         int readIndex = 0;
         List<byte[]> FirstQueue = new List<byte[]>();
         List<byte[]> SecondQueue = new List<byte[]>();

@@ -1299,6 +1299,21 @@ namespace rgat
 
         void DrawStartSplash()
         {
+            if (_rgatState.NetworkBridge != null && _rgatState.NetworkBridge.Connected)
+            {
+                DrawSplash(new List<GlobalConfig.CachedPathData>(){ }, new List<GlobalConfig.CachedPathData>(){ });
+            }
+            else
+            {
+                List<GlobalConfig.CachedPathData> recentBins = GlobalConfig.RecentBinaries;
+                List<GlobalConfig.CachedPathData> recentTraces = GlobalConfig.RecentTraces;
+                DrawSplash(recentBins, recentTraces);
+            }
+        }
+
+
+        void DrawSplash(List<GlobalConfig.CachedPathData> recentBins, List<GlobalConfig.CachedPathData> recentTraces)
+        {
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
@@ -1443,7 +1458,6 @@ namespace rgat
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);
                 Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y - 25);
 
-                List<GlobalConfig.CachedPathData> recentBins = GlobalConfig.RecentBinaries;
                 if (recentBins?.Count > 0)
                 {
                     ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
@@ -1524,7 +1538,6 @@ namespace rgat
 
                 Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y - 25);
 
-                List<GlobalConfig.CachedPathData> recentTraces = GlobalConfig.RecentTraces;
                 if (recentTraces?.Count > 0)
                 {
                     ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
@@ -1607,7 +1620,7 @@ namespace rgat
         {
             if (_show_remote_dialog == false)
             {
-                if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog();// _rgatState, _controller);
+                if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog(_rgatState);// _rgatState, _controller);
             }
             _show_remote_dialog = !_show_remote_dialog;
         }

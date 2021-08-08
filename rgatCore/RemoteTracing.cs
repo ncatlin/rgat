@@ -3,11 +3,21 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net.NetworkInformation;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Diagnostics;
 
 namespace rgat
 {
     class RemoteTracing
     {
+
+
+
+
+
         public static void PrintInterfaces(bool PrintInvalid = false)
         {
             NetworkInterface[] interfaces = GetInterfaces(PrintInvalid);
@@ -40,7 +50,7 @@ namespace rgat
             for (var i = 0; i < interfaces.Length; i++)
             {
                 NetworkInterface iface = interfaces[i];
-                PrintInterfaceInformation(iface, i+1); //start index from 1. 0 == 0.0.0.0
+                PrintInterfaceInformation(iface, i + 1); //start index from 1. 0 == 0.0.0.0
             }
         }
 
@@ -50,7 +60,7 @@ namespace rgat
             var bytes = addr.GetAddressBytes();
             for (int i = 0; i < bytes.Length; i++)
             {
-                result+= bytes[i].ToString("X2");
+                result += bytes[i].ToString("X2");
                 if (i != bytes.Length - 1)
                 {
                     result += "-";
@@ -114,6 +124,14 @@ namespace rgat
 
             string comparer = interfaceCmdlineString.ToLower();
 
+
+            if (int.TryParse(comparer, out int indexInt))
+            {
+                indexInt -= 1;
+                if (indexInt >= 0 && indexInt < validInterfaces.Length) return validInterfaces[indexInt];
+            }
+
+
             int index = 1;
             foreach (NetworkInterface iface in validInterfaces)
             {
@@ -150,15 +168,13 @@ namespace rgat
                     }
                 }
 
-                if (int.TryParse(comparer, out int indexInt) && indexInt == index)
-                {
-                    matchedInterface = iface;
-                    break;
-                }
                 index += 1;
             }
 
             return matchedInterface;
         }
+
+
+
     }
 }

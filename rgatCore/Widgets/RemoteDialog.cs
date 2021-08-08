@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Text;
@@ -12,8 +13,6 @@ namespace rgat.Widgets
     class RemoteDialog
     {
         public bool ListenMode = false;
-        public bool Active = false;
-        public bool Connected = false;
         List<NetworkInterface> _netIFList = new List<NetworkInterface>();
         string _listenIFID = "";
         string _connectIFID = "";
@@ -21,14 +20,21 @@ namespace rgat.Widgets
         System.Timers.Timer _refreshTimer = new System.Timers.Timer(NETWORK_CONSTANTS.InterfaceRefreshIntervalMS);
         bool _refreshTimerFired = false;
         int listenPort = -1;
+        OperationModes.BridgedRunner runner;
+        rgatState _rgatState;
 
-        public RemoteDialog()
+        public RemoteDialog(rgatState state)
         {
+            _rgatState = state;
             InitSettings();
+
+            runner = new OperationModes.BridgedRunner(state);
 
             _refreshTimer.Elapsed += FireTimer;
             _refreshTimer.AutoReset = true;
             _refreshTimerFired = true;
+
+            
         }
 
         void InitSettings()
@@ -58,7 +64,7 @@ namespace rgat.Widgets
                 ListenMode = false;
             }
 
-            if (GlobalConfig.StartOptions.ListenPort == -1)
+            if (GlobalConfig.StartOptions.ListenPort == null || GlobalConfig.StartOptions.ListenPort == -1)
             {
                 if (GlobalConfig.DefaultListenPort != -1)
                 {
@@ -158,11 +164,12 @@ namespace rgat.Widgets
                 {
                     if (ImGui.BeginChild("#ConStatFrame1", new Vector2(ImGui.GetContentRegionAvail().X, 35)))
                     {
-                        if (Active)
+                        if (_rgatState.NetworkBridge.ActiveNetworking)
                         {
-                            if (Connected)
+                            IPEndPoint endpoint = _rgatState.NetworkBridge.RemoteEndPoint;
+                            if (_rgatState.NetworkBridge.Connected)
                             {
-                                ImguiUtils.DrawHorizCenteredText($"Connected");
+                                ImguiUtils.DrawHorizCenteredText($"Connected to {endpoint}");
                             }
                             else
                             {
@@ -172,13 +179,13 @@ namespace rgat.Widgets
                                 }
                                 else
                                 {
-                                    ImguiUtils.DrawHorizCenteredText($"Attempting to connect");
+                                    ImguiUtils.DrawHorizCenteredText($"Attempting to connect to {GlobalConfig.StartOptions.ConnectModeAddress}");
                                 }
                             }
                         }
                         else
                         {
-                            ImguiUtils.DrawHorizCenteredText($"Remote Tracing Disabled");
+                            ImguiUtils.DrawHorizCenteredText($"Remote Tracing Inactive");
                         }
                         ImGui.EndChild();
                     }
@@ -268,22 +275,36 @@ namespace rgat.Widgets
 
                     if (ImGui.BeginChild("##RemoteStatFrame", new Vector2(itemsw, 30)))
                     {
-
+                        bool activeNetworking = _rgatState.NetworkBridge.ActiveNetworking;
                         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X / 2) - (ImGui.CalcTextSize("Active").X + 39));
                         {
-                            if (!Active)
+                            if (!activeNetworking)
                                 ImGui.Text("Disabled");
                             else
                                 ImGui.TextDisabled("Disabled");
                         }
                         ImGui.SameLine();
-                        if (SmallWidgets.ToggleButton("NwkListenActive", Active, "Toggle remote tracing mode"))
+                        if (SmallWidgets.ToggleButton("NwkListenActive", activeNetworking, "Toggle remote tracing mode"))
                         {
-                            Active = !Active;
+                            if (activeNetworking)
+                            {
+                                _rgatState.NetworkBridge.Teardown();
+                            }
+                            else 
+                            {
+                                if (ListenMode)
+                                {
+                                    System.Threading.Tasks.Task.Run(() => runner.StartGUIListen(_rgatState.NetworkBridge, () => { _rgatState.NetworkBridge.SendCommand("RefreshCaches"); }));
+                                }
+                                else
+                                {
+                                    System.Threading.Tasks.Task.Run(() => runner.StartGUIConnect(_rgatState.NetworkBridge, () => { _rgatState.NetworkBridge.SendCommand("RefreshCaches"); }));
+                                }
+                            }
                         }
                         ImGui.SameLine();
                         {
-                            if (Active)
+                            if (activeNetworking)
                                 ImGui.Text("Active");
                             else
                                 ImGui.TextDisabled("Active");
@@ -304,7 +325,6 @@ namespace rgat.Widgets
             }
             ImGui.PopStyleVar();
         }
-
 
         void DrawListenOptsFrame()
         {
