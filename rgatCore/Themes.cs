@@ -12,7 +12,7 @@ using System.Text;
 
 namespace rgat
 {
-    class Themes
+    public class Themes
     {
 
         //todo should be lists not dicts

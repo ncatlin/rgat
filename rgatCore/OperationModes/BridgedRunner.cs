@@ -26,9 +26,8 @@ namespace rgat.OperationModes
         {
             if (GlobalConfig.StartOptions.ConnectModeAddress != null)
             {
-                Console.WriteLine("Starting connect mode");
+                Logging.RecordLogEvent("Starting GUI connect mode", Logging.LogFilterType.TextDebug);
                 ConnectToListener(connection, onConnected);
-                Console.WriteLine("Gui connect run mode started");
             }
         }
 
@@ -36,24 +35,23 @@ namespace rgat.OperationModes
         {
             if (GlobalConfig.StartOptions.ListenPort != null)
             {
-                Console.WriteLine("Starting listen mode");
+                Logging.RecordLogEvent("Starting GUI listen mode", Logging.LogFilterType.TextDebug);
                 StartListenerMode(connection, onConnected);
-                Console.WriteLine("Gui network run mode started");
             }
 
         }
 
-        public void RunHeadleess(BridgeConnection connection)
+        public void RunHeadless(BridgeConnection connection)
         {
             if (GlobalConfig.StartOptions.ListenPort != null)
             {
-                Console.WriteLine("Starting listen mode");
+                Logging.RecordLogEvent($"Starting headless listen mode => {GlobalConfig.StartOptions.ListenPort}", Logging.LogFilterType.TextDebug);
                 StartListenerMode(connection, () => RunConnection(connection));
             }
 
             if (GlobalConfig.StartOptions.ConnectModeAddress != null)
             {
-                Console.WriteLine("Starting connect mode");
+                Logging.RecordLogEvent($"Starting headless connect mode => {GlobalConfig.StartOptions.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
                 ConnectToListener(connection, () => RunConnection(connection));
             }
 
@@ -130,6 +128,11 @@ namespace rgat.OperationModes
         IPAddress GetLocalAddress()
         {
             IPAddress result = null;
+            if (GlobalConfig.StartOptions.ActiveNetworkInterface == null && GlobalConfig.StartOptions.Interface != null) 
+            {
+                GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(GlobalConfig.StartOptions.Interface);
+            }
+
             if (GlobalConfig.StartOptions.ActiveNetworkInterface == null) //user didn't pass a param, or 
             {
                 if (IPAddress.TryParse(GlobalConfig.StartOptions.Interface, out IPAddress address))

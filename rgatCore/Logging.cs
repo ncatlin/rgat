@@ -328,7 +328,14 @@ namespace rgat
             {
                 if (GlobalConfig.BulkLogging)
                 {
+                    try { 
                     WriteToDebugFile(log);
+                    }
+                    catch (Exception e)
+                    {
+                        GlobalConfig.BulkLogging = false;
+                        Logging.RecordLogEvent($"Error: Not able to write to bulk log file {e.Message}. Another rgat may be using it. Disabling bulk logging.");
+                    }
                 }
 
                 if (filter != LogFilterType.BulkDebugLogFile)

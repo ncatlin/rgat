@@ -35,7 +35,7 @@ namespace ImGuiNET
             {
                 BridgeConnection connection = new BridgeConnection(false);
                 rgat.OperationModes.BridgedRunner bridge = new rgat.OperationModes.BridgedRunner(_rgatState);
-                bridge.RunHeadleess(connection);
+                bridge.RunHeadless(connection);
 
             }
             else
