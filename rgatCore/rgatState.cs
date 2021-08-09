@@ -22,7 +22,7 @@ namespace rgat
         public DetectItEasy DIELib;
         public YARAScan YARALib;
         public VideoEncoder VideoRecorder = new VideoEncoder();
-        public BridgeConnection NetworkBridge = new BridgeConnection(isgui: true);
+        public BridgeConnection NetworkBridge;
 
         public PreviewGraphsWidget PreviewWidget;
 

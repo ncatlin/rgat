@@ -1,8 +1,7 @@
 {
   "profiles": {
     "rgat": {
-      "commandName": "Project",
-      "commandLineArgs": " -i 0 -p 13000"
+      "commandName": "Project"
     }
   }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace rgat
 {
-   public class BridgeConnection
+    public class BridgeConnection
     {
 
         public delegate void OnGotDataCallback(byte[] data);
@@ -19,9 +20,9 @@ namespace rgat
         public bool ActiveNetworking => BridgeState == eBridgeState.Connected || BridgeState == eBridgeState.Listening || BridgeState == eBridgeState.Connecting;
 
         //public IPEndPoint ConnectedEndpoint = null;
-        public  enum eBridgeState { Inactive, Connecting, Listening, Connected, Errored, Teardown };
-        public eBridgeState BridgeState 
-        { 
+        public enum eBridgeState { Inactive, Connecting, Listening, Connected, Errored, Teardown };
+        public eBridgeState BridgeState
+        {
             get => _bridgeState;
             private set
             {
@@ -31,6 +32,9 @@ namespace rgat
         }
         eBridgeState _bridgeState = eBridgeState.Inactive;
 
+
+        readonly object _messagesLock = new object();
+        List<string> _displayLogMessages = new List<string>();
 
         /// <summary>
         /// Whether this instance is the GUI.
@@ -45,7 +49,6 @@ namespace rgat
         CancellationTokenSource cancelTokens;
         CancellationToken CancelToken => cancelTokens.Token;
         readonly object _sendQueueLock = new object();
-        readonly object _recvQueueLock = new object();
 
         TcpClient _ActiveClient;
         TcpListener _ActiveListener;
@@ -53,14 +56,15 @@ namespace rgat
         public IPEndPoint RemoteEndPoint;
 
 
-        const string connectPreludeGUI = "rgat connect prelude";
-        const string connectPreludeHeadless = "rgat connect prelude";
-        const string connectResponseGUI = "accept rgat prelude";
-        const string connectResponseHeadless = "accept rgat prelude connect";
+        const string connectPreludeGUI = "rgat connect GUI prelude";
+        const string connectPreludeHeadless = "rgat connect headless prelude";
+        const string connectResponseGUI = "rgat accept GUI prelude";
+        const string connectResponseHeadless = "rgat accept headless prelude";
 
-       public  BridgeConnection(bool isgui)
+        public BridgeConnection(bool isgui)
         {
-            GUIMode = GUIMode;
+            Console.WriteLine($"Init bridge. gui: {isgui}");
+            GUIMode = isgui;
         }
 
         /// <summary>
@@ -122,7 +126,25 @@ namespace rgat
 
         }
 
+        void AddDisplayLogMessage(string msg)
+        {
+            lock (_messagesLock)
+            {
+                _displayLogMessages.Add(msg);
+                if (_displayLogMessages.Count > 10)
+                {
+                    _displayLogMessages = _displayLogMessages.Skip(_displayLogMessages.Count - 10).Take(10).ToList();
+                }
+            }
+        }
 
+        List<string> GetRecentConnectEvents()
+        {
+            lock (_messagesLock)
+            {
+                return _displayLogMessages;
+            }
+        }
 
         /// <summary>
         /// Initiate a bridge connection in listener mode
@@ -197,11 +219,8 @@ namespace rgat
             }
             lock (_sendQueueLock)
             {
-                lock (_recvQueueLock)
-                {
-                    _OutDataQueue.Clear();
-                    NewOutDataEvent.Reset();
-                }
+                _OutDataQueue.Clear();
+                NewOutDataEvent.Reset();
             }
             RemoteEndPoint = null;
             cancelTokens = new CancellationTokenSource();
@@ -246,7 +265,7 @@ namespace rgat
         }
 
 
-       public void SendOutgoingData(byte[] data)
+        public void SendOutgoingData(byte[] data)
         {
             lock (_sendQueueLock)
             {
@@ -295,11 +314,10 @@ namespace rgat
                     break;
                 }
 
-                lock (_recvQueueLock)
-                {
-                    Console.WriteLine($"ReceiveIncomingTraffic ServeClientIncoming newdata: Got {ASCIIEncoding.ASCII.GetString(newdata)}");
-                    _registeredIncomingDataCallback(newdata);
-                }
+
+                Console.WriteLine($"ReceiveIncomingTraffic ServeClientIncoming newdata: Got {ASCIIEncoding.ASCII.GetString(newdata)}");
+                _registeredIncomingDataCallback(newdata);
+
             }
             Console.WriteLine("ReceiveIncomingTraffic ServeClientIncoming dropout");
             Teardown();
@@ -313,7 +331,7 @@ namespace rgat
             {
                 try
                 {
-                   bool waitResult = NewOutDataEvent.Wait(-1, cancellationToken: CancelToken);
+                    bool waitResult = NewOutDataEvent.Wait(-1, cancellationToken: CancelToken);
                     Console.WriteLine($"Waitrs {waitResult}");
                 }
                 catch (System.OperationCanceledException e)
@@ -358,7 +376,7 @@ namespace rgat
 
         public bool AuthenticateOutgoingConnection(TcpClient client, NetworkStream stream)
         {
-
+            Console.WriteLine($"AuthenticateOutgoingConnection Sending prelude '{(GUIMode ? connectPreludeGUI : connectPreludeHeadless)}'");
             if (!RawSendData(stream, Encoding.ASCII.GetBytes(GUIMode ? connectPreludeGUI : connectPreludeHeadless)))
             {
                 Console.WriteLine($"Failed to send prelude using {client}");
@@ -366,15 +384,25 @@ namespace rgat
             }
 
             int count = ReadData(stream, out byte[] recvd);
-            string connectResponse = GUIMode ? connectPreludeHeadless : connectPreludeGUI;
-            if (count == connectResponse.Length && ASCIIEncoding.ASCII.GetString(recvd, 0, Math.Min(count, connectResponse.Length)) == connectResponse)
+            string expectedConnectResponse = GUIMode ? connectResponseHeadless : connectResponseGUI;
+            string response = ASCIIEncoding.ASCII.GetString(recvd, 0, Math.Min(count, 255));
+
+            Console.WriteLine($"AuthenticateOutgoingConnection Comparing response '{response}' to gui:{GUIMode} expected '{expectedConnectResponse}'");
+            if (response == expectedConnectResponse)
             {
                 Console.WriteLine($"Auth succeeded");
                 return true;
             }
             else
             {
-                Console.WriteLine($"Bad prelude response {ASCIIEncoding.ASCII.GetString(recvd)}, ignoring");
+                if (response == (GUIMode ? connectResponseGUI : connectResponseHeadless) || response == "Bad Mode")
+                {
+                    Console.WriteLine($"Bad prelude response: '{response}', Connection can only be made between rgat in GUI and command-line modes");
+                }
+                else
+                {
+                    Console.WriteLine($"AUTH FAILURE: Bad prelude response {response}, ignoring");
+                }
                 return false;
             }
 
@@ -395,7 +423,7 @@ namespace rgat
             string recvd;
             try
             {
-                recvd = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(bytes.Length, connectPrelude.Length));
+                recvd = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(255, readCount));
             }
             catch (Exception e)
             {
@@ -403,14 +431,22 @@ namespace rgat
                 return false;
             }
 
-            if (recvd == connectPrelude && RawSendData(stream, ASCIIEncoding.ASCII.GetBytes(connectPrelude)))
+            if (recvd == connectPrelude && RawSendData(stream, ASCIIEncoding.ASCII.GetBytes(GUIMode ? connectResponseGUI : connectResponseHeadless)))
             {
                 Console.WriteLine($"Auth succeeded");
                 return true;
             }
             else
             {
-                Console.WriteLine($"Bad prelude {recvd}, ignoring");
+                if (recvd == (GUIMode ? connectPreludeGUI : connectPreludeHeadless))
+                {
+                    Console.WriteLine($"Bad prelude: '{recvd}', Connection can only be made between rgat in GUI and command-line modes");
+                    RawSendData(stream, ASCIIEncoding.ASCII.GetBytes("Bad Mode"));
+                }
+                else
+                {
+                    Console.WriteLine($"AUTH FAILURE: Bad prelude {recvd}, ignoring");
+                }
                 return false;
             }
 

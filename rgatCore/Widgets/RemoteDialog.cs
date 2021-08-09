@@ -27,7 +27,10 @@ namespace rgat.Widgets
         {
             _rgatState = state;
             InitSettings();
-
+            if (_rgatState.NetworkBridge == null)
+            {
+                _rgatState.NetworkBridge = new BridgeConnection(isgui: true);
+            }
             runner = new OperationModes.BridgedRunner(state);
 
             _refreshTimer.Elapsed += FireTimer;
