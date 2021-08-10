@@ -16,7 +16,7 @@ namespace rgat
 {
     public class BridgeConnection
     {
-        public enum emsgType { Meta, Command, Response, Data };
+        public enum emsgType { Meta, TracerCommand, CommandResponse, Data };
 
         public delegate void OnGotDataCallback(Tuple<emsgType, string> data);
         public delegate void OnConnectSuccessCallback();
@@ -51,7 +51,7 @@ namespace rgat
         ManualResetEventSlim NewOutDataEvent = new ManualResetEventSlim(false);
 
         CancellationTokenSource cancelTokens;
-        CancellationToken CancelToken => cancelTokens.Token;
+        public CancellationToken CancelToken => cancelTokens.Token;
         readonly object _sendQueueLock = new object();
 
         TcpClient _ActiveClient;
@@ -314,7 +314,7 @@ namespace rgat
         {
             lock (_sendQueueLock)
             {
-                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.Command, text));
+                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.TracerCommand, text));
                 NewOutDataEvent.Set();
             }
         }
@@ -323,7 +323,7 @@ namespace rgat
         Newtonsoft.Json.JsonSerializer serialiserIn = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
         {
             TypeNameHandling = TypeNameHandling.None,
-        }); 
+        });
         Newtonsoft.Json.JsonSerializer serialiserOut = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
         {
             TypeNameHandling = TypeNameHandling.None,
@@ -339,9 +339,9 @@ namespace rgat
                 JsonWriter writer = new JsonTextWriter(sw);
 
                 serialiserOut.Serialize(writer, response);
-                JObject responseObj = new JObject() { new JProperty("Command", command), new JProperty("Response", sb.ToString()) };
-                
-                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.Response, responseObj.ToString()));
+                JObject responseObj = new JObject() { new JProperty("Command", command), new JProperty("Response", JToken.Parse(sb.ToString())) };
+
+                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.CommandResponse, responseObj.ToString(formatting: Formatting.None)));
                 NewOutDataEvent.Set();
             }
         }

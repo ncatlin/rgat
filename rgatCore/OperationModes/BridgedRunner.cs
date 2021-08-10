@@ -1,4 +1,6 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using rgat.Config;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -119,9 +121,18 @@ namespace rgat.OperationModes
 
             switch (item.Item1)
             {
-                case emsgType.Command:
+                case emsgType.TracerCommand:
                     ProcessCommand(item.Item2);
                     break;
+                case emsgType.CommandResponse:
+                    if (!ParseResponse(item.Item2, out string command, out JToken response))
+                    {
+                        _rgatState.NetworkBridge.Teardown();
+                        break;
+                    }
+                    ProcessResponse(command, response);
+                    break;
+
                 default:
                     Console.WriteLine($"Unhandled message typer {item.Item1} => {item.Item2}");
                     break;
@@ -133,7 +144,7 @@ namespace rgat.OperationModes
         {
             if (_rgatState.NetworkBridge.GUIMode)
             {
-                Logging.RecordLogEvent("Error: GUI sent a command", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Error: The GUI sent a tracer-only command.", Logging.LogFilterType.TextError);
                 _rgatState.NetworkBridge.Teardown();
                 return;
             }
@@ -144,15 +155,117 @@ namespace rgat.OperationModes
             Console.WriteLine("Processing command " + cmd);
             switch (cmd)
             {
-                case "RefreshCaches":
+                case "GetRecentBinaries":
                     Console.WriteLine($"Sending {GlobalConfig.RecentBinaries.Count} recent");
-                    _rgatState.NetworkBridge.SendResponse("RefreshCaches", GlobalConfig.RecentBinaries);
+                    _rgatState.NetworkBridge.SendResponse("GetRecentBinaries", GlobalConfig.RecentBinaries);
                     break;
             }
 
         }
 
-   
+
+        JsonLoadSettings _JSONLoadSettings = new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error };
+        void ProcessResponse(string command, JToken response)
+        {
+            bool processed = false;
+            switch (command)
+            {
+                case "GetRecentBinaries":
+                    processed = HandleRecentBinariesList(response);
+                    break;
+                default:
+                    Logging.RecordLogEvent($"No handler for response to command {command}", Logging.LogFilterType.TextError);
+                    break;
+            }
+
+            if (!processed) //fail fast
+            {
+                Logging.RecordLogEvent($"ProcessResponse failed to process {command}", Logging.LogFilterType.TextError);
+                _rgatState.NetworkBridge.Teardown();
+            }
+        }
+
+
+        bool HandleRecentBinariesList(JToken dataTok)
+        {
+            if (dataTok.Type != JTokenType.Array)
+            {
+                Logging.RecordLogEvent($"HandleRecentBinariesList: Non-array recent binaries list", Logging.LogFilterType.TextError);
+                return false;
+            }
+
+            List<GlobalConfig.CachedPathData> recentbins = new List<GlobalConfig.CachedPathData>();
+
+            JArray bintoks = dataTok.ToObject<JArray>();
+            foreach (JToken recentbinTok in bintoks)
+            {
+                if (recentbinTok.Type != JTokenType.Object)
+                {
+                    Logging.RecordLogEvent("HandleRecentBinariesList: Bad CachedPathData", Logging.LogFilterType.TextError);
+                    return false;
+                }
+                JObject binJsn = recentbinTok.ToObject<JObject>();
+                JToken prop1, prop2 = null, prop3 = null, prop4 = null;
+                bool success = binJsn.TryGetValue("path", out prop1) && prop1.Type == JTokenType.String;
+                success = success && binJsn.TryGetValue("firstSeen", out prop2) && prop2.Type == JTokenType.Date;
+                success = success && binJsn.TryGetValue("lastSeen", out prop3) && prop3.Type == JTokenType.Date;
+                success = success && binJsn.TryGetValue("count", out prop4) && prop4.Type == JTokenType.Integer;
+
+                if (!success)
+                {
+                    Logging.RecordLogEvent($"HandleRecentBinariesList: Bad property in cached path item. {recentbinTok.ToString()}");
+                    return false;
+                }
+
+                GlobalConfig.CachedPathData newEntry = new GlobalConfig.CachedPathData();
+                newEntry.path = prop1.ToString();
+                newEntry.firstSeen = prop2.ToObject<DateTime>();
+                newEntry.lastSeen = prop3.ToObject<DateTime>();
+                newEntry.count = prop4.ToObject<uint>();
+                recentbins.Add(newEntry);
+            }
+
+            RemoteConfigMirror.SetRecentPaths(recentbins);
+            return true;
+        }
+
+
+
+
+
+
+
+
+
+
+        bool ParseResponse(string messageJson, out string command, out JToken responseData)
+        {
+            command = ""; responseData = null;
+            try
+            {
+                JObject responseJsn = JObject.Parse(messageJson, _JSONLoadSettings);
+                if (!responseJsn.TryGetValue("Command", out JToken cstring) || cstring == null || cstring.Type != JTokenType.String)
+                {
+                    Logging.RecordLogEvent($"Missing valid command name in response JSON: [snippet: {messageJson.Substring(0, Math.Min(messageJson.Length, 128))}]");
+                    return false;
+                }
+                if (!responseJsn.TryGetValue("Response", out responseData) || responseData == null)
+                {
+                    Logging.RecordLogEvent($"Missing valid response data: [snippet: {messageJson.Substring(0, Math.Min(messageJson.Length, 128))}]");
+                    return false;
+                }
+                command = cstring.ToString();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Error parsing incoming response JSON: {e.Message} [snippet: {messageJson.Substring(0, Math.Min(messageJson.Length, 128))}]");
+                return false;
+            }
+        }
+
+
+
 
         public void GotData(Tuple<emsgType, string> data)
         {
@@ -182,7 +295,12 @@ namespace rgat.OperationModes
         }
 
 
-
+        public void CompleteGUIConnection()
+        {
+            Thread dataProcessor = new Thread(new ParameterizedThreadStart(ResponseHandlerThread));
+            dataProcessor.Start(_rgatState.NetworkBridge.CancelToken);
+            _rgatState.NetworkBridge.SendCommand("GetRecentBinaries");
+        }
 
 
         bool GetRemoteAddress(string param, out string address, out int port)
@@ -284,23 +402,43 @@ namespace rgat.OperationModes
         }
 
 
-        /// Downloaded State
 
-        static readonly object _cacheLock = new object();
-        static List<GlobalConfig.CachedPathData> _pathsRecentBinaries = new List<GlobalConfig.CachedPathData>();
-        static List<GlobalConfig.CachedPathData> _pathsRecentTraces = new List<GlobalConfig.CachedPathData>();
 
-        public static void GetRecentWorkLists(out List<GlobalConfig.CachedPathData> binaries, out List<GlobalConfig.CachedPathData> traces)
+        public void ResponseHandlerThread(object cancelToken)
         {
-            lock (_cacheLock)
+            Debug.Assert(cancelToken.GetType() == typeof(CancellationToken));
+            lock (_lock)
             {
-                binaries = _pathsRecentBinaries.ToList();
-                traces = _pathsRecentTraces.ToList();
+                _incomingData.Clear();
             }
-
+            Tuple<emsgType, string>[] incoming = null;
+            while (!_rgatState.rgatIsExiting)
+            {
+                try
+                {
+                    NewDataEvent.Wait((CancellationToken)cancelToken);
+                }
+                catch (Exception e)
+                {
+                    if (((CancellationToken)cancelToken).IsCancellationRequested) return;
+                }
+                lock (_lock)
+                {
+                    if (_incomingData.Any())
+                    {
+                        incoming = _incomingData.ToArray();
+                        _incomingData.Clear();
+                    }
+                }
+                if (incoming != null)
+                {
+                    foreach (var item in incoming)
+                    {
+                        ProcessData(item);
+                    }
+                }
+            }
         }
-
-        ////
 
 
 

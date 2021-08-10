@@ -495,6 +495,7 @@ namespace rgat
             public DateTime lastSeen;
             public uint count;
         }
+
         public enum eRecentPathType { Binary, Trace };
         static List<CachedPathData> _cachedRecentBins = new List<CachedPathData>();
         static List<CachedPathData> _cachedRecentTraces = new List<CachedPathData>();

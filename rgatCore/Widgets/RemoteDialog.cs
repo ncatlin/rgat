@@ -245,12 +245,12 @@ namespace rgat.Widgets
                         if (ListenMode)
                         {
                             GlobalConfig.StartOptions.Interface = _listenIFID;
-                            System.Threading.Tasks.Task.Run(() => runner.StartGUIListen(_rgatState.NetworkBridge, () => { _rgatState.NetworkBridge.SendCommand("RefreshCaches"); }));
+                            System.Threading.Tasks.Task.Run(() => runner.StartGUIListen(_rgatState.NetworkBridge, () => { runner.CompleteGUIConnection(); }));
                         }
                         else
                         {
                             GlobalConfig.StartOptions.Interface = _connectIFID;
-                            System.Threading.Tasks.Task.Run(() => runner.StartGUIConnect(_rgatState.NetworkBridge, () => { _rgatState.NetworkBridge.SendCommand("RefreshCaches"); }));
+                            System.Threading.Tasks.Task.Run(() => runner.StartGUIConnect(_rgatState.NetworkBridge, () => { runner.CompleteGUIConnection(); }));
                         }
                     }
                 }

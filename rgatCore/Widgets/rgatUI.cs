@@ -1,5 +1,6 @@
 ﻿using Humanizer;
 using ImGuiNET;
+using rgat.Config;
 using rgat.Threads;
 using rgat.Widgets;
 using System;
@@ -1301,13 +1302,11 @@ namespace rgat
         {
             if (_rgatState.NetworkBridge != null && _rgatState.NetworkBridge.Connected)
             {
-                DrawSplash(new List<GlobalConfig.CachedPathData>(){ }, new List<GlobalConfig.CachedPathData>(){ });
+                DrawSplash(RemoteConfigMirror.GetRecentBins(), GlobalConfig.RecentTraces);
             }
             else
             {
-                List<GlobalConfig.CachedPathData> recentBins = GlobalConfig.RecentBinaries;
-                List<GlobalConfig.CachedPathData> recentTraces = GlobalConfig.RecentTraces;
-                DrawSplash(recentBins, recentTraces);
+                DrawSplash(GlobalConfig.RecentBinaries, GlobalConfig.RecentTraces);
             }
         }
 
