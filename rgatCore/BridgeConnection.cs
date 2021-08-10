@@ -1,10 +1,14 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,8 +16,9 @@ namespace rgat
 {
     public class BridgeConnection
     {
+        public enum emsgType { Meta, Command, Response, Data };
 
-        public delegate void OnGotDataCallback(byte[] data);
+        public delegate void OnGotDataCallback(Tuple<emsgType, string> data);
         public delegate void OnConnectSuccessCallback();
 
         public bool Connected => BridgeState == eBridgeState.Connected;
@@ -26,7 +31,6 @@ namespace rgat
             get => _bridgeState;
             private set
             {
-                Console.WriteLine($"Setting bridgestate to {value}");
                 _bridgeState = value;
             }
         }
@@ -43,7 +47,7 @@ namespace rgat
         /// </summary>
         public bool GUIMode { get; private set; }
 
-        Queue<byte[]> _OutDataQueue = new Queue<byte[]>();
+        Queue<Tuple<emsgType, string>> _OutDataQueue = new Queue<Tuple<emsgType, string>>();
         ManualResetEventSlim NewOutDataEvent = new ManualResetEventSlim(false);
 
         CancellationTokenSource cancelTokens;
@@ -63,7 +67,6 @@ namespace rgat
 
         public BridgeConnection(bool isgui)
         {
-            Console.WriteLine($"Init bridge. gui: {isgui}");
             GUIMode = isgui;
         }
 
@@ -89,13 +92,20 @@ namespace rgat
             Task connect;
             try
             {
-                AddDisplayLogMessage($"Connecting to {remoteConnectAddress}:{remoteConnectPort}", null);
+                AddDisplayLogMessage($"Connecting from {((IPEndPoint)client.Client.LocalEndPoint).Address} to {remoteConnectAddress}:{remoteConnectPort}", null);
                 connect = _ActiveClient.ConnectAsync(remoteConnectAddress, remoteConnectPort);
                 Task.WaitAny(new Task[] { connect }, CancelToken);
             }
             catch (SocketException e)
             {
-                AddDisplayLogMessage($"Connection Failed: {e.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
+                if (e.SocketErrorCode == SocketError.AddressNotAvailable)
+                {
+                    AddDisplayLogMessage($"Remote Address unavailable. Wrong interface?", Themes.eThemeColour.eWarnStateColour);
+                }
+                else
+                {
+                    AddDisplayLogMessage($"Connection Failed: {e.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
+                }
                 Teardown();
                 return;
             }
@@ -108,6 +118,7 @@ namespace rgat
 
             if (client.Connected)
             {
+
                 if (AuthenticateOutgoingConnection(client, client.GetStream()))
                 {
                     AddDisplayLogMessage($"Connected to {remoteConnectAddress}:{remoteConnectPort}", Themes.eThemeColour.eGoodStateColour);
@@ -141,13 +152,20 @@ namespace rgat
 
         void AddDisplayLogMessage(string msg, Themes.eThemeColour? colour)
         {
-            lock (_messagesLock)
+            if (GUIMode)
             {
-                _displayLogMessages.Add(new Tuple<string, Themes.eThemeColour?>(msg, colour));
-                if (_displayLogMessages.Count > 10)
+                lock (_messagesLock)
                 {
-                    _displayLogMessages = _displayLogMessages.TakeLast(10).ToList();
+                    _displayLogMessages.Add(new Tuple<string, Themes.eThemeColour?>(msg, colour));
+                    if (_displayLogMessages.Count > 10)
+                    {
+                        _displayLogMessages = _displayLogMessages.TakeLast(10).ToList();
+                    }
                 }
+            }
+            else
+            {
+                Console.WriteLine(msg);
             }
         }
 
@@ -204,8 +222,8 @@ namespace rgat
             catch (SocketException e)
             {
                 if (!cancelTokens.IsCancellationRequested)
-                { 
-                    AddDisplayLogMessage($"Failed Accept: {e.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour); 
+                {
+                    AddDisplayLogMessage($"Failed Accept: {e.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
                 }
                 Teardown();
                 return;
@@ -219,9 +237,9 @@ namespace rgat
 
             if (_ActiveClient != null && _ActiveClient.Connected)
             {
+
                 IPEndPoint clientEndpoint = (IPEndPoint)_ActiveClient.Client.RemoteEndPoint;
                 AddDisplayLogMessage($"Incoming connection from {clientEndpoint}", null);
-                Console.WriteLine($"StartListenForConnection Got {clientEndpoint.AddressFamily} connection from {clientEndpoint.Address}:{clientEndpoint.Port}");
                 if (AuthenticateIncomingConnection(_ActiveClient, _ActiveClient.GetStream()))
                 {
                     AddDisplayLogMessage("Connected to rgat", Themes.eThemeColour.eGoodStateColour);
@@ -234,7 +252,6 @@ namespace rgat
                     BridgeState = eBridgeState.Errored;
                     return;
                 }
-
             }
             else
             {
@@ -284,7 +301,7 @@ namespace rgat
         }
 
 
-        public void SendOutgoingData(byte[] data)
+        public void SendOutgoingData(Tuple<emsgType, string> data)
         {
             lock (_sendQueueLock)
             {
@@ -295,15 +312,39 @@ namespace rgat
 
         public void SendCommand(string text)
         {
-            Console.WriteLine("Doing sendcommand: " + text);
-
             lock (_sendQueueLock)
             {
-                _OutDataQueue.Enqueue(Encoding.ASCII.GetBytes(text));
+                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.Command, text));
                 NewOutDataEvent.Set();
             }
         }
 
+        //https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca2328
+        Newtonsoft.Json.JsonSerializer serialiserIn = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
+        {
+            TypeNameHandling = TypeNameHandling.None,
+        }); 
+        Newtonsoft.Json.JsonSerializer serialiserOut = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
+        {
+            TypeNameHandling = TypeNameHandling.None,
+        });
+
+
+        public void SendResponse(string command, object response)
+        {
+            lock (_sendQueueLock)
+            {
+                StringBuilder sb = new StringBuilder();
+                StringWriter sw = new StringWriter(sb);
+                JsonWriter writer = new JsonTextWriter(sw);
+
+                serialiserOut.Serialize(writer, response);
+                JObject responseObj = new JObject() { new JProperty("Command", command), new JProperty("Response", sb.ToString()) };
+                
+                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.Response, responseObj.ToString()));
+                NewOutDataEvent.Set();
+            }
+        }
 
 
         public void Teardown()
@@ -328,18 +369,16 @@ namespace rgat
         {
             Console.WriteLine("ReceiveIncomingTraffic started");
             NetworkStream stream = client.GetStream();
+            BinaryReader reader = new BinaryReader(stream);
             while (client.Connected && !cancelTokens.IsCancellationRequested)
             {
-                int i = ReadData(stream, out byte[] newdata);
-                if (i == 0)
+                bool success = ReadData(reader, out Tuple<emsgType, string> newdata);
+                if (!success || newdata == null)
                 {
                     if (!cancelTokens.IsCancellationRequested)
                         AddDisplayLogMessage("Connection terminated unexpectedly", Themes.eThemeColour.eWarnStateColour);
                     break;
                 }
-
-
-                Console.WriteLine($"ReceiveIncomingTraffic ServeClientIncoming newdata: Got {ASCIIEncoding.ASCII.GetString(newdata)}");
                 _registeredIncomingDataCallback(newdata);
 
             }
@@ -350,7 +389,7 @@ namespace rgat
         void SendOutgoingTraffic(TcpClient client)
         {
             NetworkStream stream = client.GetStream();
-            Console.WriteLine("Serve outgoing started");
+            BinaryWriter writer = new BinaryWriter(stream);
             while (client.Connected && !cancelTokens.IsCancellationRequested)
             {
                 try
@@ -359,17 +398,15 @@ namespace rgat
                 }
                 catch (System.OperationCanceledException e)
                 {
-                    Console.WriteLine("Cancellation during wait for outgoing data");
                     break;
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Exception waiting for new data event: {e}");
+                    AddDisplayLogMessage($"Exception {e.Message}-{e.GetType()} in send outgoing", Themes.eThemeColour.eBadStateColour);
                     break;
                 }
 
-                Console.WriteLine("Serveout got");
-                byte[][] items = null;
+                Tuple<emsgType, string>[] items = null;
                 lock (_sendQueueLock)
                 {
                     items = _OutDataQueue.ToArray();
@@ -379,20 +416,14 @@ namespace rgat
 
                 foreach (var item in items)
                 {
-                    if (RawSendData(stream, item))
+                    if (!RawSendData(writer, item))
                     {
-                        Console.WriteLine($"Sent: {ASCIIEncoding.ASCII.GetString(item)}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"\tFailed sending item '{item}' sending to client");
                         Teardown();
                         break;
                     }
                 }
             }
 
-            Console.WriteLine("Serveout dropped");
             Teardown();
         }
 
@@ -400,25 +431,27 @@ namespace rgat
         public bool AuthenticateOutgoingConnection(TcpClient client, NetworkStream stream)
         {
             Console.WriteLine($"AuthenticateOutgoingConnection Sending prelude '{(GUIMode ? connectPreludeGUI : connectPreludeHeadless)}'");
-            if (!RawSendData(stream, Encoding.ASCII.GetBytes(GUIMode ? connectPreludeGUI : connectPreludeHeadless)))
+            if (!RawSendData(new BinaryWriter(stream), new Tuple<emsgType, string>(emsgType.Meta, GUIMode ? connectPreludeGUI : connectPreludeHeadless)))
             {
                 Console.WriteLine($"Failed to send prelude using {client}");
                 return false;
             }
 
-            int count = ReadData(stream, out byte[] recvd);
+
+            bool success = ReadData(new BinaryReader(stream), out Tuple<emsgType, string> response);
+            if (!success || response.Item2 == null || response.Item1 != emsgType.Meta) return false;
+
             string expectedConnectResponse = GUIMode ? connectResponseHeadless : connectResponseGUI;
-            string response = ASCIIEncoding.ASCII.GetString(recvd, 0, Math.Min(count, 255));
 
             Console.WriteLine($"AuthenticateOutgoingConnection Comparing response '{response}' to gui:{GUIMode} expected '{expectedConnectResponse}'");
-            if (response == expectedConnectResponse)
+            if (response.Item2 == expectedConnectResponse)
             {
                 Console.WriteLine($"Auth succeeded");
                 return true;
             }
             else
             {
-                if (response == (GUIMode ? connectResponseGUI : connectResponseHeadless) || response == "Bad Mode")
+                if (response.Item2 == (GUIMode ? connectResponseGUI : connectResponseHeadless) || response.Item2 == "Bad Mode")
                 {
                     if (GUIMode)
                         AddDisplayLogMessage("GUI<->GUI Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
@@ -439,43 +472,39 @@ namespace rgat
         public bool AuthenticateIncomingConnection(TcpClient client, NetworkStream stream)
         {
 
-            int readCount = ReadData(stream, out byte[] bytes);
-            if (readCount == 0)
+
+            Tuple<emsgType, string> recvd;
+            while (!ReadData(new BinaryReader(stream), out recvd))
             {
-                AddDisplayLogMessage("Authentication failed - no data", Themes.eThemeColour.eBadStateColour);
+                continue;
+            }
+
+            if (recvd == null) return false;
+
+            if (recvd == null || recvd.Item1 != emsgType.Meta || recvd.Item2.Length == 0)
+            {
+                AddDisplayLogMessage("Authentication failed - no vald data", Themes.eThemeColour.eBadStateColour);
                 Console.WriteLine($"AuthenticateIncomingConnection No prelude from {client}, ignoring");
                 Logging.RecordLogEvent($"No prelude from {client}, ignoring", Logging.LogFilterType.TextDebug);
                 return false;
             }
 
             string connectPrelude = GUIMode ? connectPreludeHeadless : connectPreludeGUI;
-            string recvd;
-            try
-            {
-                recvd = System.Text.Encoding.ASCII.GetString(bytes, 0, Math.Min(255, readCount));
-            }
-            catch (Exception e)
-            {
-                AddDisplayLogMessage("Authentication failed - Exception", Themes.eThemeColour.eBadStateColour);
-                Logging.RecordLogEvent($"AuthenticateIncomingConnection Exception {e} decoding prelude, ignoring", Logging.LogFilterType.TextError);
-                return false;
-            }
-
-            if (recvd == connectPrelude && RawSendData(stream, ASCIIEncoding.ASCII.GetBytes(GUIMode ? connectResponseGUI : connectResponseHeadless)))
+            if (recvd.Item2 == connectPrelude && RawSendData(new BinaryWriter(stream), new Tuple<emsgType, string>(emsgType.Meta, GUIMode ? connectResponseGUI : connectResponseHeadless)))
             {
                 Console.WriteLine($"Auth succeeded");
                 return true;
             }
             else
             {
-                if (recvd == (GUIMode ? connectPreludeGUI : connectPreludeHeadless))
+                if (recvd.Item2 == (GUIMode ? connectPreludeGUI : connectPreludeHeadless))
                 {
                     if (GUIMode)
                         AddDisplayLogMessage("GUI<->GUI Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
                     else
                         AddDisplayLogMessage("Cmdline<->Cmdline Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
                     Logging.RecordLogEvent($"Connection refused - Connection can only be made between rgat in GUI and command-line modes", Logging.LogFilterType.TextError);
-                    RawSendData(stream, ASCIIEncoding.ASCII.GetBytes("Bad Mode"));
+                    RawSendData(new BinaryWriter(stream), new Tuple<emsgType, string>(emsgType.Meta, "Bad Mode"));
                 }
                 else
                 {
@@ -487,22 +516,54 @@ namespace rgat
 
         }
 
-        int ReadData(NetworkStream stream, out byte[] bytes)
+
+        int fragmentIndex = -1;
+        byte[] assembledMessage;
+
+        Queue<byte[]> _incomingData = new Queue<byte[]>();
+
+        readonly object _lock = new object();
+
+        ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
+
+
+        bool ReadData(BinaryReader reader, out Tuple<emsgType, string> data)
         {
-            bytes = new byte[255];
-            Task<int> read = null;
             try
             {
-                read = stream.ReadAsync(bytes, 0, bytes.Length, CancelToken);
-                if (read.IsCanceled)
+                emsgType msgType = (emsgType)reader.ReadByte();
+                data = new Tuple<emsgType, string>(msgType, reader.ReadString());
+                return true;
+            }
+            catch (System.IO.IOException IOExcep)
+            {
+                data = null;
+                if (cancelTokens.IsCancellationRequested) return false;
+                if (IOExcep.InnerException != null && IOExcep.InnerException.GetType() == typeof(SocketException))
                 {
-                    return 0;
+                    SocketException innerE = (SocketException)IOExcep.InnerException;
+                    switch (innerE.SocketErrorCode)
+                    {
+                        case SocketError.ConnectionReset:
+                            AddDisplayLogMessage($"Receive Failed: The connection was reset ({innerE.ErrorCode})", Themes.eThemeColour.eWarnStateColour);
+                            break;
+                        default:
+                            AddDisplayLogMessage($"Receive Failed: {innerE.SocketErrorCode} ({innerE.ErrorCode})", Themes.eThemeColour.eWarnStateColour);
+                            break;
+                    }
+
                 }
-                Console.WriteLine($"Readdata {read.Result} bytes");
-                return read.Result;
+                else
+                {
+                    AddDisplayLogMessage($"Receive Failed: {IOExcep.Message}", Themes.eThemeColour.eWarnStateColour);
+                }
             }
             catch (Exception e)
             {
+                data = null;
+                if (cancelTokens.IsCancellationRequested) return false;
+                Console.WriteLine($"ReadData Exception {e}, {e.GetType()}");
+                /*
                 Logging.RecordLogEvent($"Exception during receive: {e.Message}");
                 if (read != null && read.IsCanceled)
                 {
@@ -538,19 +599,23 @@ namespace rgat
                         }
                     }
                 }
+                */
             }
             Teardown();
-            return 0;
+            data = null;
+            return false;
         }
 
-        bool RawSendData(NetworkStream stream, byte[] bytes)
+
+
+        bool RawSendData(BinaryWriter writer, Tuple<emsgType, string> data)
         {
             Task write = null;
             try
             {
-                Console.WriteLine($"Doing writeasync of {bytes.Length} bytes");
-                write = stream.WriteAsync(bytes, 0, bytes.Length, CancelToken);
-                write.Wait();
+                writer.Write((byte)data.Item1);
+                writer.Write(data.Item2);
+                writer.Flush();
                 return !cancelTokens.IsCancellationRequested;
             }
             catch (System.IO.IOException e)

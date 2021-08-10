@@ -1,11 +1,14 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static rgat.BridgeConnection;
 
 namespace rgat.OperationModes
 
@@ -21,8 +24,13 @@ namespace rgat.OperationModes
             _rgatState = state;
         }
 
+        Queue<Tuple<emsgType, string>> _incomingData = new Queue<Tuple<emsgType, string>>();
+        readonly object _lock = new object();
 
-        public void StartGUIConnect(BridgeConnection connection,  BridgeConnection.OnConnectSuccessCallback onConnected)
+        ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
+
+
+        public void StartGUIConnect(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback onConnected)
         {
             if (GlobalConfig.StartOptions.ConnectModeAddress != null)
             {
@@ -43,6 +51,8 @@ namespace rgat.OperationModes
 
         public void RunHeadless(BridgeConnection connection)
         {
+            GlobalConfig.LoadConfig(); //todo a lightweight headless config
+
             if (GlobalConfig.StartOptions.ListenPort != null)
             {
                 Logging.RecordLogEvent($"Starting headless listen mode => {GlobalConfig.StartOptions.ListenPort}", Logging.LogFilterType.TextDebug);
@@ -70,18 +80,88 @@ namespace rgat.OperationModes
                 Console.WriteLine($"Waiting for connection: {connection.BridgeState}");
                 System.Threading.Thread.Sleep(500);
             }
+            List<Tuple<emsgType, string>> incoming = new List<Tuple<emsgType, string>>();
             while (!_rgatState.rgatIsExiting && connection.Connected)
             {
                 Console.WriteLine($"Headless bridge running while connected {connection.BridgeState}");
-                System.Threading.Thread.Sleep(1000);
+                NewDataEvent.Wait();
+                lock (_lock)
+                {
+                    if (_incomingData.Any())
+                    {
+                        incoming = _incomingData.ToList();
+                        _incomingData.Clear();
+                    }
+                    NewDataEvent.Reset();
+                }
+
+                foreach (Tuple<emsgType, string> item in incoming)
+                {
+                    Console.WriteLine($"Processing indata: {item}");
+                    if (item.Item2.Length > 0)
+                    {
+                        ProcessData(item);
+                    }
+                    else
+                    {
+                        Logging.RecordLogEvent($"RunConnection Error: null data");
+                        connection.Teardown();
+                        break;
+                    }
+                }
             }
 
         }
 
 
-        public void GotData(byte[] data)
+        void ProcessData(Tuple<emsgType, string> item)
         {
-            Console.WriteLine("BridgedRunner got new data: " + ASCIIEncoding.ASCII.GetString(data));
+
+            switch (item.Item1)
+            {
+                case emsgType.Command:
+                    ProcessCommand(item.Item2);
+                    break;
+                default:
+                    Console.WriteLine($"Unhandled message typer {item.Item1} => {item.Item2}");
+                    break;
+            }
+        }
+
+
+        void ProcessCommand(string cmd)
+        {
+            if (_rgatState.NetworkBridge.GUIMode)
+            {
+                Logging.RecordLogEvent("Error: GUI sent a command", Logging.LogFilterType.TextError);
+                _rgatState.NetworkBridge.Teardown();
+                return;
+            }
+
+
+
+
+            Console.WriteLine("Processing command " + cmd);
+            switch (cmd)
+            {
+                case "RefreshCaches":
+                    Console.WriteLine($"Sending {GlobalConfig.RecentBinaries.Count} recent");
+                    _rgatState.NetworkBridge.SendResponse("RefreshCaches", GlobalConfig.RecentBinaries);
+                    break;
+            }
+
+        }
+
+   
+
+        public void GotData(Tuple<emsgType, string> data)
+        {
+            Console.WriteLine("BridgedRunner got new data: " + data.Item2);
+            lock (_lock)
+            {
+                _incomingData.Enqueue(data);
+                NewDataEvent.Set();
+            }
         }
 
 
@@ -98,7 +178,7 @@ namespace rgat.OperationModes
                 return;
             }
 
-           connection.Start(localBinding, address, port, GotData, onConnected);
+            connection.Start(localBinding, address, port, GotData, onConnected);
         }
 
 
@@ -128,7 +208,7 @@ namespace rgat.OperationModes
         IPAddress GetLocalAddress()
         {
             IPAddress result = null;
-            if (GlobalConfig.StartOptions.ActiveNetworkInterface == null && GlobalConfig.StartOptions.Interface != null) 
+            if (GlobalConfig.StartOptions.ActiveNetworkInterface == null && GlobalConfig.StartOptions.Interface != null)
             {
                 GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(GlobalConfig.StartOptions.Interface);
             }
@@ -221,11 +301,6 @@ namespace rgat.OperationModes
         }
 
         ////
-
-
-        readonly object _taskLock = new object();
-        Queue<byte[]> _taskQueue = new Queue<byte[]>();
-
 
 
 

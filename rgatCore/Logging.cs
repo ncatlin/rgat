@@ -328,8 +328,9 @@ namespace rgat
             {
                 if (GlobalConfig.BulkLogging)
                 {
-                    try { 
-                    WriteToDebugFile(log);
+                    try
+                    {
+                        WriteToDebugFile(log);
                     }
                     catch (Exception e)
                     {

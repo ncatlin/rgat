@@ -1,7 +1,8 @@
 {
   "profiles": {
     "rgat": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": " -r 192.168.1.54:13000 -i 0"
     }
   }
 }
