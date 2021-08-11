@@ -9,7 +9,7 @@ using System.Text;
 
 namespace rgat.Config
 {
-    class LaunchConfig
+   public class LaunchConfig
     {
 
         // usage modes
@@ -19,7 +19,7 @@ namespace rgat.Config
         // this mode does not require a GPU, unless paired with the draw or mp4 options
         [Option('t', "target", SetName = "HeadlessMode", MetaValue = "\"path_to_binary\"", Required = false, 
             HelpText = "Run rgat in Headless tracing mode. Requires the file path of the target binary to execute and generate a trace for." +
-            "Traces are saved to the standard save directory, unless accompanied by the -o option." +
+            "Traces are saved to the standard save directory, unless accompanied by the -o option.\n" +
             "This mode does not require a GPU, unless accompanied by the 'draw' and/or 'mp4' options"
             )]
         public string TargetPath { get; set; }
@@ -29,7 +29,7 @@ namespace rgat.Config
         [Option('r', "remote", SetName = "ConnectMode", Required = false, MetaValue = "address:port", 
             HelpText = "Run rgat in headless network bridge mode (beaconing) which allows the rgat to control tracing from another computer.\n" + 
             "Requires the address:port of an rgat instance with listening mode activated. \n"+
-            "Not compatible with the 'port' option. --key parameter is mandatory if no preconfigured key is set." +
+            "Not compatible with the 'port' option. --key parameter is mandatory if no preconfigured key is set.\n" +
             "This mode does not require a GPU.")]
         public string ConnectModeAddress { get; set; }
 
@@ -39,7 +39,7 @@ namespace rgat.Config
         [Option('p', "port", SetName = "ListenMode", Required = false, MetaValue = "[port number]", 
             HelpText = "Run rgat in headless network bridge mode (listening) which allows an rgat client to connect and control tracing on this computer.\n" +
             "Takes an  optional TCP port to listen on, or chooses a random available port.\n" +
-            "Not compatible with the 'remote' option. See notes for the --key parameter, which is optional for this mode." +
+            "Not compatible with the 'remote' option. See notes for the --key parameter, which is optional for this mode.\n" +
             "This mode does not require a GPU")]
         public int? ListenPort { get; set; }
 
@@ -47,7 +47,7 @@ namespace rgat.Config
         //network bridge mode modifiers
 
         // the interface to use for network connections
-        [Option('i', "interface", Required = false, MetaValue ="[ip]|[ID]|[MAC]|[name]",
+        [Option('i', "interface", Required = false, MetaValue ="IP/ID/MAC/name",
             HelpText = "A network interface to use for remote control options (r or p). By default all available interfaces will be used, so it's a good idea to pick the one you will be using.\n" +
             "The argument can be an interface name, ID, MAC or IP address.\n" +
             "Use without an argument to list valid interfaces and exit.")]

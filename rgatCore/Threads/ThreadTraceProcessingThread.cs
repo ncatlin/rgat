@@ -61,7 +61,7 @@ namespace rgat.Threads
 
         void PerformIrregularActions()
         {
-            if (_clientState.rgatIsExiting) return;
+            if (rgatState.RgatIsExiting) return;
             if (blockRepeatQueue.Count > 0) AssignBlockRepeats();
             if (protograph.hasPendingArguments()) protograph.ProcessIncomingCallArguments();
             IrregularActionTimer.Start();
@@ -824,14 +824,14 @@ namespace rgat.Threads
         void Processor()
         {
             //process traces until program exits or the trace ingest stops + the queues are empty
-            while (!_clientState.rgatIsExiting && (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData()))
+            while (!rgatState.RgatIsExiting && (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData()))
             {
                 byte[] msg = protograph.TraceReader.DeQueueData();
                 if (msg == null)
                 {
                     AssignBlockRepeats();
                     protograph.TraceReader.RequestWakeupOnData();
-                    if (_clientState.rgatIsExiting || protograph.TraceReader.StopFlag) { continue; }
+                    if (rgatState.RgatIsExiting || protograph.TraceReader.StopFlag) { continue; }
                     try
                     {
                         protograph.TraceReader.TagDataReadyEvent.Wait(-1, cancellationToken: protograph.TraceReader.CancelToken);

@@ -27,11 +27,11 @@ namespace rgat.Widgets
         {
             _rgatState = state;
             InitSettings();
-            if (_rgatState.NetworkBridge == null)
+            if (rgatState.NetworkBridge == null)
             {
-                _rgatState.NetworkBridge = new BridgeConnection(isgui: true);
+                rgatState.NetworkBridge = new BridgeConnection(isgui: true);
             }
-            runner = new OperationModes.BridgedRunner(state);
+            runner = new OperationModes.BridgedRunner();
 
             _refreshTimer.Elapsed += FireTimer;
             _refreshTimer.AutoReset = true;
@@ -185,10 +185,10 @@ namespace rgat.Widgets
         {
             if (ImGui.BeginChild("#ConStatFrame1", new Vector2(ImGui.GetContentRegionAvail().X, 35)))
             {
-                if (_rgatState.NetworkBridge.ActiveNetworking)
+                if (rgatState.NetworkBridge.ActiveNetworking)
                 {
-                    IPEndPoint endpoint = _rgatState.NetworkBridge.RemoteEndPoint;
-                    if (_rgatState.NetworkBridge.Connected)
+                    IPEndPoint endpoint = rgatState.NetworkBridge.RemoteEndPoint;
+                    if (rgatState.ConnectedToRemote)
                     {
                         ImguiUtils.DrawRegionCenteredText($"Connected to {endpoint}");
                     }
@@ -218,7 +218,7 @@ namespace rgat.Widgets
             Vector2 togStart = ImGui.GetCursorScreenPos();
             if (ImGui.BeginChild("##RemoteActiveTogFrame", new Vector2(itemsWidth, 30), true, flags: ImGuiWindowFlags.NoScrollbar))
             {
-                bool activeNetworking = _rgatState.NetworkBridge.ActiveNetworking;
+                bool activeNetworking = rgatState.NetworkBridge.ActiveNetworking;
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X / 2) - (ImGui.CalcTextSize("Active").X + 39));
                 {
                     if (!activeNetworking)
@@ -227,7 +227,7 @@ namespace rgat.Widgets
                     }
                     else
                     {
-                        if (_rgatState.NetworkBridge.Connected)
+                        if (rgatState.ConnectedToRemote)
                             ImGui.TextDisabled("Disconnect");
                         else
                             ImGui.TextDisabled("Disable");
@@ -238,19 +238,19 @@ namespace rgat.Widgets
                 {
                     if (activeNetworking)
                     {
-                        _rgatState.NetworkBridge.Teardown();
+                        rgatState.NetworkBridge.Teardown("Manual Disconnect");
                     }
                     else
                     {
                         if (ListenMode)
                         {
                             GlobalConfig.StartOptions.Interface = _listenIFID;
-                            System.Threading.Tasks.Task.Run(() => runner.StartGUIListen(_rgatState.NetworkBridge, () => { runner.CompleteGUIConnection(); }));
+                            System.Threading.Tasks.Task.Run(() => runner.StartGUIListen(rgatState.NetworkBridge, () => { runner.CompleteGUIConnection(); }));
                         }
                         else
                         {
                             GlobalConfig.StartOptions.Interface = _connectIFID;
-                            System.Threading.Tasks.Task.Run(() => runner.StartGUIConnect(_rgatState.NetworkBridge, () => { runner.CompleteGUIConnection(); }));
+                            System.Threading.Tasks.Task.Run(() => runner.StartGUIConnect(rgatState.NetworkBridge, () => { runner.CompleteGUIConnection(); }));
                         }
                     }
                 }
@@ -258,7 +258,7 @@ namespace rgat.Widgets
                 {
                     if (activeNetworking)
                     {
-                        if (_rgatState.NetworkBridge.Connected)
+                        if (rgatState.ConnectedToRemote)
                         {
                             ImGui.Text("Connected");
                         }
@@ -301,7 +301,7 @@ namespace rgat.Widgets
                 const string ConnectActiveConnected = "Connected to the specified commandline rgat instance";
                 const string Inactive = "Remote tracing disabled";
 
-                if (!_rgatState.NetworkBridge.ActiveNetworking)
+                if (!rgatState.NetworkBridge.ActiveNetworking)
                 {
                     ImGui.Text(Inactive);
                     if (ListenMode)
@@ -314,14 +314,14 @@ namespace rgat.Widgets
                     //what happens when we toggle to disabled
                     if (ListenMode)
                     {
-                        if (_rgatState.NetworkBridge.Connected)
+                        if (rgatState.ConnectedToRemote)
                             ImGui.TextDisabled(ListenInactivateConnected);
                         else
                             ImGui.TextDisabled(ListenInactivate);
                     }
                     else
                     {
-                        if (_rgatState.NetworkBridge.Connected)
+                        if (rgatState.ConnectedToRemote)
                             ImGui.TextDisabled(ConnectInactivateConnected);
                         else
                             ImGui.TextDisabled(ConnectInactivate);
@@ -330,14 +330,14 @@ namespace rgat.Widgets
                     //current enabled state
                     if (ListenMode)
                     {
-                        if (_rgatState.NetworkBridge.Connected)
+                        if (rgatState.ConnectedToRemote)
                             ImGui.Text(ListenActiveConnected);
                         else
                             ImGui.Text(ListenActive);
                     }
                     else
                     {
-                        if (_rgatState.NetworkBridge.Connected)
+                        if (rgatState.ConnectedToRemote)
                             ImGui.Text(ConnectActiveConnected);
                         else
                             ImGui.Text(ConnectActive);
@@ -581,7 +581,7 @@ namespace rgat.Widgets
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
             if (ImGui.BeginChild("##MsgsFrame1", new Vector2(itemsWidth, ImGui.GetContentRegionAvail().Y)))
             {
-                var messages = _rgatState.NetworkBridge.GetRecentConnectEvents().TakeLast(5);
+                var messages = rgatState.NetworkBridge.GetRecentConnectEvents().TakeLast(5);
                 if (messages.Any())
                 {
                     ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 0));

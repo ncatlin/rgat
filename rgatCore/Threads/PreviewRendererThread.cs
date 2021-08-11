@@ -31,13 +31,13 @@ namespace rgat.Threads
             int StopTimer = -1;
             bool moreRenderingNeeded;
 
-            while (!_clientState.rgatIsExiting && _graphWidget == null)
+            while (!rgatState.RgatIsExiting && _graphWidget == null)
             {
                 _graphWidget = _clientState.PreviewWidget;
                 Thread.Sleep(50);
             }
 
-            while (!_clientState.rgatIsExiting)
+            while (!rgatState.RgatIsExiting)
             {
                 //only write we are protecting against happens while creating new threads
                 //so not important to release this quickly
@@ -64,14 +64,14 @@ namespace rgat.Threads
                         _graphWidget.GeneratePreviewGraph(cl, graph);
                     }
 
-                    if (_clientState.rgatIsExiting) break;
+                    if (rgatState.RgatIsExiting) break;
                     Thread.Sleep((int)GlobalConfig.Preview_PerThreadLoopSleepMS); //sleep removed for debug
                 }
 
                 graphlist.Clear();
 
                 int waitForNextIt = 0;
-                while (waitForNextIt < GlobalConfig.Preview_PerProcessLoopSleepMS && !_clientState.rgatIsExiting)
+                while (waitForNextIt < GlobalConfig.Preview_PerProcessLoopSleepMS && !rgatState.RgatIsExiting)
                 {
                     Thread.Sleep(5); //sleep removed for debug
                     waitForNextIt += 5;

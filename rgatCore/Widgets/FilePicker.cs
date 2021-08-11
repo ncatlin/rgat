@@ -4,27 +4,58 @@
  */
 
 using ImGuiNET;
+using Newtonsoft.Json.Linq;
+using rgat;
+using rgat.Config;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Threading;
 
 namespace rgatFilePicker
 {
     public class FilePicker
     {
+        FilePicker(BridgeConnection remoteMirror = null)
+        {
+            _remoteMirror = remoteMirror;
+            Created = DateTime.Now;
+            myID = Created.ToString();
+            _refreshTimer = new System.Timers.Timer(2000);
+            _refreshTimer.AutoReset = false;
+            _refreshTimer.Elapsed += FireTimer;
+            _refreshTimer.Start();
+        }
+        private void FireTimer(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            _refreshTimerFired = true;
 
+        }
+
+        System.Timers.Timer _refreshTimer;
+        bool _refreshTimerFired = false;
+
+        BridgeConnection _remoteMirror;
         private const int RefreshThresholdSeconds = 2;
-        public DateTime Created { get; private set; } = DateTime.Now;
+        bool _needRefresh = false;
+        public DateTime Created { get; private set; }
+        string myID;
 
         private class FileMetadata
         {
-            public FileMetadata(string _path) { path = _path; }
-            public FileInfo fileinfo = null;
+            public FileMetadata(string _path)
+            {
+                path = _path;
+                extension = Path.GetExtension(_path);
+            }
+
             public string path = "";
             public string filename = "";
+            public DateTime LastWriteTime;
             public float namewidth = 0;
             public string extension = "";
             public string size_str = "";
@@ -41,14 +72,17 @@ namespace rgatFilePicker
                 }
             }
 
-            public void Enrich()
+            public void SetFileSize(long size) => size_str = String.Format("{0:n0}", size);
+
+            public void UpdateLocalFileMetadata()
             {
                 if (isDeleted) return;
                 if (Directory.Exists(path)) return;
                 try
                 {
-                    fileinfo = new FileInfo(path);
-                    size_str = String.Format("{0:n0}", fileinfo.Length);
+                    FileInfo fileinfo = new FileInfo(path);
+                    SetFileSize(fileinfo.Length);
+                    LastWriteTime = fileinfo.LastWriteTime;
 
                     string ext = fileinfo.Extension;
                     if (ext.StartsWith('.')) ext = ext.Substring(1);
@@ -104,10 +138,23 @@ namespace rgatFilePicker
                 basePath = _path;
                 fileData = new Dictionary<string, FileMetadata>();
                 dirData = new Dictionary<string, FileMetadata>();
-                Refresh();
             }
 
-            public void IngestDirectories(List<string> dirs)
+            public List<Tuple<string, bool>> AllPaths()
+            {
+                List<Tuple<string, bool>> result = new List<Tuple<string, bool>>();
+                foreach (var file in dirData)
+                {
+                    result.Add(new Tuple<string, bool>(file.Key, true));
+                }
+                foreach (var file in fileData)
+                {
+                    result.Add(new Tuple<string, bool>(file.Key, false));
+                }
+                return result;
+            }
+
+            public void IngestDirectories(List<string> dirs, DirectoryContents newContentsObj = null)
             {
                 if (latestDirPaths != null)
                 {
@@ -129,10 +176,14 @@ namespace rgatFilePicker
                     }
                 }
                 latestDirPaths = dirs;
-                ExtractMetaData_Dirs();
+
+                if (rgatState.ConnectedToRemote)
+                    TransferRemoteDirMetadata(newContentsObj);
+                else
+                    ExtractMetaData_Dirs();
             }
 
-            public void IngestFiles(List<string> files)
+            public void IngestFiles(List<string> files, DirectoryContents newContentsObj = null)
             {
                 if (latestFilePaths != null)
                 {
@@ -157,11 +208,29 @@ namespace rgatFilePicker
                 }
                 latestFilePaths = files;
 
-                ExtractMetaData_Files();
+                if (rgatState.ConnectedToRemote && newContentsObj != null)
+                    TransferRemoteFileMetadata(newContentsObj);
+                else
+                    ExtractMetaData_Files();
+            }
+
+
+            private void TransferRemoteFileMetadata(DirectoryContents newContentsObj)
+            {
+                Dictionary<string, FileMetadata> newFileData = new Dictionary<string, FileMetadata>();
+                foreach (string path in latestFilePaths)
+                {
+                    newFileData[path] = newContentsObj.fileData[path];
+                }
+
+                lostFiles.Where(lf => !lf.expired).ToList().ForEach(m => newFileData[m.filename] = m);
+                fileData.Clear();
+                fileData = newFileData;
             }
 
             private void ExtractMetaData_Files()
             {
+                Debug.Assert(!rgatState.ConnectedToRemote);
                 Dictionary<string, FileMetadata> newFileData = new Dictionary<string, FileMetadata>();
                 foreach (string path in latestFilePaths)
                 {
@@ -169,7 +238,7 @@ namespace rgatFilePicker
                     if (fileData.ContainsKey(path))
                     {
                         newFileData[path] = fileData[path];
-                        newFileData[path].Enrich();
+                        newFileData[path].UpdateLocalFileMetadata();
                         continue;
                     }
 
@@ -183,7 +252,7 @@ namespace rgatFilePicker
                         m.isNew = true;
                         m.timeFound = DateTime.Now;
                     }
-                    m.Enrich();
+                    m.UpdateLocalFileMetadata();
                     newFileData[path] = m;
                 }
 
@@ -204,8 +273,9 @@ namespace rgatFilePicker
                         continue;
                     }
 
+                    Debug.Assert(!rgatState.ConnectedToRemote);
                     FileMetadata m = new FileMetadata(path);
-                    m.fileinfo = new FileInfo(path);
+                    m.LastWriteTime = new FileInfo(path).LastWriteTime;
                     m.filename = Path.GetFileName(path);
                     m.namewidth = ImGui.CalcTextSize(m.filename).X;
 
@@ -232,8 +302,17 @@ namespace rgatFilePicker
             }
 
 
-            public void Refresh()
+            private void TransferRemoteDirMetadata(DirectoryContents newContentsObj)
             {
+                dirData = newContentsObj.dirData;
+            }
+
+
+
+
+            public void Refresh(List<Tuple<string, bool>> latest_dir_entires, DirectoryContents newContentsObj = null)
+            {
+
                 if (lostFiles.RemoveAll(s => s.expired) > 0)
                 {
                     fileData.Where(kv => kv.Value.expired).ToList().ForEach(s => fileData.Remove(s.Key));
@@ -249,47 +328,22 @@ namespace rgatFilePicker
 
                 var files = new List<string>();
                 var dirs = new List<string>();
-                string[] entries = null;
-                try
-                {
-                    entries = Directory.GetFileSystemEntries(basePath, "");
-                    ErrMsg = "";
-                }
-                catch (Exception e)
-                {
-                    ErrMsg = e.Message;
-                    return;
-                }
 
-                foreach (var fse in entries)
+                foreach (var path_isdir in latest_dir_entires)
                 {
-                    if (Directory.Exists(fse))
+                    if (path_isdir.Item2)
                     {
-                        dirs.Add(fse);
+                        dirs.Add(path_isdir.Item1);
                     }
                     else
                     {
-                        files.Add(fse);
+                        files.Add(path_isdir.Item1);
                     }
-                    /*
-					else if (!OnlyAllowFolders)
-					{
-						if (AllowedExtensions == null)
-						{
-							files.Add(fse);
-						}
-						else
-						{
-							var ext = Path.GetExtension(fse);
-							if (AllowedExtensions.Contains(ext))
-								files.Add(fse);
-						}
-					}
-					*/
+
                 }
 
-                IngestDirectories(dirs);
-                IngestFiles(files);
+                IngestDirectories(dirs, newContentsObj);
+                IngestFiles(files, newContentsObj);
                 lastRefreshed = DateTime.Now;
             }
 
@@ -298,22 +352,45 @@ namespace rgatFilePicker
                 return (DateTime.Now - lastRefreshed).TotalSeconds < RefreshThresholdSeconds;
             }
         }
+        /*
+ else if (!OnlyAllowFolders)
+ {
+     if (AllowedExtensions == null)
+     {
+         files.Add(fse);
+     }
+     else
+     {
+         var ext = Path.GetExtension(fse);
+         if (AllowedExtensions.Contains(ext))
+             files.Add(fse);
+     }
+ }
+ */
 
         public enum PickerResult { eNoAction, eTrue, eFalse };
         static readonly Dictionary<object, FilePicker> _filePickers = new Dictionary<object, FilePicker>();
-        Dictionary<object, DirectoryContents> _currentDirContents = new Dictionary<object, DirectoryContents>();
-        private List<Tuple<string, string>> _availableDriveStrings = new List<Tuple<string, string>>();
-        private DateTime _lastDriveListRefresh = DateTime.MinValue;
-
-        public string RootFolder;
-        public string CurrentFolder;
+        static readonly Dictionary<object, FILEPICKER_DATA> _filePickerData = new Dictionary<object, FILEPICKER_DATA>();
+        FILEPICKER_DATA Data = new FILEPICKER_DATA();
+        public DateTime LastDriveListRefresh = DateTime.MinValue;
         public string SelectedFile;
-        public List<string> AllowedExtensions;
+        public List<string> AllowedExtensions = new List<string>();
         public bool OnlyAllowFolders;
 
+        class FILEPICKER_DATA
+        {
+            public List<Tuple<string, string>> AvailableDriveStrings = new List<Tuple<string, string>>();
+            public DirectoryContents Contents;
+            public string CurrentDirectory;
+            public bool CurrentDirectoryExists;
+            public string CurrentDirectoryParent;
+            public string NextRemoteDirectory;
+            public bool CurrentDirectoryParentExists;
+            public string ErrMsg;
+        }
         private bool _badDir = false;
 
-        public static FilePicker GetFolderPicker(object o, string startingPath)
+        public static FilePicker GetDirectoryPicker(object o, string startingPath)
             => GetFilePicker(o, startingPath, null, true);
 
         //this feels like a very C way of doing things, the Imgui.InputText needs a byte array though
@@ -327,14 +404,13 @@ namespace rgatFilePicker
         }
 
 
-        public static FilePicker GetFilePicker(object o, string startingPath, string searchFilter = null, bool onlyAllowFolders = false)
+        public static FilePicker GetRemoteFilePicker(object o, BridgeConnection remoteMirror, string searchFilter = null, bool onlyAllowFolders = false)
         {
 
             if (!_filePickers.TryGetValue(o, out FilePicker fp))
             {
-                fp = new FilePicker();
-                fp.RootFolder = Path.GetPathRoot(startingPath);
-                fp.CurrentFolder = startingPath;
+                fp = new FilePicker(remoteMirror: remoteMirror);
+                fp.Data.CurrentDirectory = RemoteDataMirror.RootDirectory;
                 fp.OnlyAllowFolders = onlyAllowFolders;
 
                 if (searchFilter != null)
@@ -347,6 +423,32 @@ namespace rgatFilePicker
                     fp.AllowedExtensions.AddRange(searchFilter.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries));
                 }
 
+                _filePickers.Add(o, fp);
+            }
+
+            return fp;
+        }
+
+
+        public static FilePicker GetFilePicker(object o, string startingPath, string searchFilter = null, bool onlyAllowFolders = false)
+        {
+
+            if (!_filePickers.TryGetValue(o, out FilePicker fp))
+            {
+                fp = new FilePicker(remoteMirror: null);
+                fp.OnlyAllowFolders = onlyAllowFolders;
+
+                if (searchFilter != null)
+                {
+                    if (fp.AllowedExtensions != null)
+                        fp.AllowedExtensions.Clear();
+                    else
+                        fp.AllowedExtensions = new List<string>();
+
+                    fp.AllowedExtensions.AddRange(searchFilter.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries));
+                }
+
+                fp.SetActiveDirectory(startingPath);
                 _filePickers.Add(o, fp);
             }
 
@@ -370,7 +472,7 @@ namespace rgatFilePicker
             ImGui.TableNextColumn();
             ImGui.Text(data.size_str);
             ImGui.TableNextColumn();
-            string modified = data.fileinfo.LastWriteTime.ToShortDateString() + " " + data.fileinfo.LastWriteTime.ToShortTimeString();
+            string modified = data.LastWriteTime.ToShortDateString() + " ?" + data.LastWriteTime.ToShortTimeString();
             ImGui.Text(modified);
             ImGui.TableNextColumn();
 
@@ -380,13 +482,79 @@ namespace rgatFilePicker
 
         private List<Tuple<string, string>> GetDriveListStrings()
         {
-            if ((DateTime.Now - _lastDriveListRefresh).TotalSeconds < RefreshThresholdSeconds)
+            if ((DateTime.Now - LastDriveListRefresh).TotalSeconds < RefreshThresholdSeconds)
             {
-                return _availableDriveStrings;
+                return Data.AvailableDriveStrings;
             }
 
-            _availableDriveStrings.Clear();
 
+            if (_remoteMirror != null && _remoteMirror.Connected)
+            {
+                RemoteDataMirror.ResponseStatus status = RemoteDataMirror.CheckTaskStatus("GetDrives", myID);
+                switch (status)
+                {
+                    case RemoteDataMirror.ResponseStatus.eNoRecord:
+                        _remoteMirror.SendCommand("GetDrives", recipientID: myID, callback: InitRemoteDriveStringsCallback);
+                        pendingCmdCount += 1;
+                        return Data.AvailableDriveStrings;
+
+                    case RemoteDataMirror.ResponseStatus.eWaiting:
+                        return Data.AvailableDriveStrings;
+
+                    default:
+                        Logging.RecordLogEvent($"GetDriveListStrings Bad remote response state: {status}", Logging.LogFilterType.TextError);
+                        _remoteMirror.Teardown("Bad status in GetDriveListStrings");
+                        InitLocalDriveStrings();
+                        return Data.AvailableDriveStrings;
+                }
+            }
+            else
+            {
+                InitLocalDriveStrings();
+                return Data.AvailableDriveStrings;
+            }
+        }
+
+        readonly object _lock = new object();
+
+        bool InitRemoteDriveStringsCallback(JToken remoteResponse)
+        {
+            if (remoteResponse.Type != JTokenType.Array) return false;
+            List<Tuple<string, string>> result = new List<Tuple<string, string>>();
+            foreach (var dir_drive in (JArray)remoteResponse)
+            {
+                if (dir_drive.Type != JTokenType.Object) return false;
+                JObject drivetuple = (JObject)dir_drive;
+                if (drivetuple.TryGetValue("Item1", out JToken val1) && val1.Type == JTokenType.String &&
+                     drivetuple.TryGetValue("Item2", out JToken val2) && val2.Type == JTokenType.String)
+                {
+                    result.Add(new Tuple<string, string>(val1.ToString(), val2.ToString()));
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            lock (_lock)
+            {
+                Data.AvailableDriveStrings = result;
+                LastDriveListRefresh = DateTime.Now;
+                pendingCmdCount -= 1;
+                if (pendingCmdCount == 0) _refreshTimer.Start();
+            }
+            return true;
+        }
+
+        void InitLocalDriveStrings()
+        {
+            Data.AvailableDriveStrings = GetLocalDriveStrings();
+            LastDriveListRefresh = DateTime.Now;
+        }
+
+
+        public static List<Tuple<string, string>> GetLocalDriveStrings()
+        {
+            List<Tuple<string, string>> result = new List<Tuple<string, string>>();
             DriveInfo[] allDrives = DriveInfo.GetDrives();
             foreach (DriveInfo d in allDrives)
             {
@@ -398,17 +566,182 @@ namespace rgatFilePicker
                 }
                 if (d.VolumeLabel.Length > 0)
                     driveName += " (" + d.VolumeLabel + ")";
-                _availableDriveStrings.Add(new Tuple<string, string>(d.RootDirectory.Name, driveName));
+                result.Add(new Tuple<string, string>(d.RootDirectory.Name, driveName));
             }
-
-            _lastDriveListRefresh = DateTime.Now;
-            return _availableDriveStrings;
+            return result;
         }
 
 
+        bool InitCurrentDirInfo(JToken responseTok)
+        {
+            if (responseTok.Type != JTokenType.Object) return false;
+            JObject response = responseTok.ToObject<JObject>();
+
+            if (!response.TryGetValue("Current", out JToken currentDirTok) || currentDirTok.Type != JTokenType.String) return false;
+            string path = currentDirTok.ToString();
+            if (!response.TryGetValue("CurrentExists", out JToken ctokexists) || ctokexists.Type != JTokenType.Boolean) return false;
+            if (!response.TryGetValue("Parent", out JToken parentTok) || parentTok.Type != JTokenType.String) return false;
+            if (!response.TryGetValue("ParentExists", out JToken ptokexists) || ptokexists.Type != JTokenType.Boolean) return false;
+            if (!response.TryGetValue("Error", out JToken errTok) || errTok.Type != JTokenType.String) return false;
+            if (!response.TryGetValue("Contents", out JToken contentsTok) || contentsTok.Type != JTokenType.Object) return false;
+
+            if (!ParseRemoteDirectoryContents(path, contentsTok.ToObject<JObject>(), out DirectoryContents newDirContents)) return false;
+
+
+            if (Data.Contents != null && Data.CurrentDirectory == currentDirTok.ToString() && Data.NextRemoteDirectory == null)
+            {
+                Data.Contents.Refresh(newDirContents.AllPaths(), newDirContents);
+            }
+            else
+            {
+                Data.CurrentDirectory = currentDirTok.ToString();
+                Data.CurrentDirectoryExists = ctokexists.ToObject<bool>();
+
+                Data.CurrentDirectoryParent = parentTok.ToString();
+                Data.CurrentDirectoryParentExists = ptokexists.ToObject<bool>();
+                SetFileSystemEntries(Data.CurrentDirectory, newDirContents.AllPaths(), newDirContents);
+
+            }
+
+
+            Data.ErrMsg = errTok.ToString();
+            return true;
+        }
+
+
+        bool ParseRemoteDirectoryContents(string dirpath, JObject remoteData, out DirectoryContents contents)
+        {
+            contents = new DirectoryContents(dirpath);
+            if (!remoteData.TryGetValue("Files", out JToken filesTok) || filesTok.Type != JTokenType.Array
+                || !remoteData.TryGetValue("Dirs", out JToken dirsTok) || dirsTok.Type != JTokenType.Array)
+            {
+                return false;
+            }
+
+            foreach (JToken fileTok in (JArray)filesTok)
+            {
+                if (fileTok.Type == JTokenType.Array)
+                {
+                    JArray fileitem = (JArray)fileTok;
+                    if (fileitem.Count == 4 &&
+                        fileitem[0].Type == JTokenType.String &&
+                        fileitem[1].Type == JTokenType.Boolean &&
+                        fileitem[2].Type == JTokenType.Integer &&
+                        fileitem[3].Type == JTokenType.Date
+                        )
+                    {
+                        string itempath = Path.Combine(dirpath, fileitem[0].ToString());
+                        FileMetadata m = new FileMetadata(itempath);
+                        m.filename = Path.GetFileName(itempath);
+                        m.namewidth = ImGui.CalcTextSize(m.filename).X;
+                        m.LastWriteTime = fileitem[3].ToObject<DateTime>();
+                        m.SetFileSize(fileitem[2].ToObject<long>());
+                        contents.fileData.Add(itempath, m);
+                    }
+                }
+            }
+
+            foreach (JToken fileTok in (JArray)dirsTok)
+            {
+                if (fileTok.Type == JTokenType.Array)
+                {
+                    JArray fileitem = (JArray)fileTok;
+                    if (fileitem.Count == 4 &&
+                        fileitem[0].Type == JTokenType.String &&
+                        fileitem[1].Type == JTokenType.Boolean &&
+                        fileitem[2].Type == JTokenType.Integer &&
+                        fileitem[3].Type == JTokenType.Date
+                        )
+                    {
+                        string itempath = Path.Combine(dirpath, fileitem[0].ToString());
+                        FileMetadata m = new FileMetadata(itempath);
+                        m.filename = Path.GetFileName(itempath);
+                        m.namewidth = ImGui.CalcTextSize(m.filename).X;
+                        m.LastWriteTime = fileitem[3].ToObject<DateTime>();
+                        contents.dirData.Add(itempath, m);
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        bool HandleRemoteDirInfoCallback(JToken response)
+        {
+            lock (_lock)
+            {
+                pendingCmdCount -= 1;
+                if (InitCurrentDirInfo(response))
+                {
+                    if (Data.CurrentDirectory == Data.NextRemoteDirectory)
+                        Data.NextRemoteDirectory = null;
+                }
+                else
+                {
+                    Logging.RecordLogEvent($"Bad DirectoryInfo response", Logging.LogFilterType.TextError);
+                    rgatState.NetworkBridge.Teardown("Bad DirectoryInfo response");
+                    SetActiveDirectory(Environment.CurrentDirectory);
+                }
+
+                if (pendingCmdCount == 0) _refreshTimer.Start();
+                return true;
+            }
+        }
+
+        int pendingCmdCount = 0;
+
         public PickerResult Draw(object objKey)
         {
-            ImGui.Text("Path: " + RootFolder + CurrentFolder.Replace(RootFolder, ""));
+            if (Data.CurrentDirectory == null || Data.NextRemoteDirectory != null)
+            {
+                string myID = this.Created.ToString();
+
+                RemoteDataMirror.ResponseStatus status = RemoteDataMirror.CheckTaskStatus("DirectoryInfo", myID);
+                switch (status)
+                {
+                    case RemoteDataMirror.ResponseStatus.eNoRecord:
+                        string param = (Data.NextRemoteDirectory != null) ? Data.NextRemoteDirectory : Data.CurrentDirectory;
+                        int cmdid = rgatState.NetworkBridge.SendCommand("DirectoryInfo", recipientID: this.myID, callback: HandleRemoteDirInfoCallback, param: param);
+                        lock (_lock)
+                        {
+                            _refreshTimer.Stop();
+                            _refreshTimerFired = false;
+                            pendingCmdCount += 1;
+                        }
+                        if (Data.CurrentDirectory == null)
+                        {
+                            ImGui.Text("Loading from remote...");
+                            return PickerResult.eNoAction;
+                        }
+                        else break;
+
+                    case RemoteDataMirror.ResponseStatus.eWaiting:
+                        if (Data.CurrentDirectory == null)
+                        {
+                            ImGui.Text("Loading from remote...");
+                            return PickerResult.eNoAction;
+                        }
+                        else break;
+
+                    default:
+                        Logging.RecordLogEvent($"Bad response status {status}", filter: Logging.LogFilterType.TextError);
+                        rgatState.NetworkBridge.Teardown($"Bad response status { status}");
+                        SetActiveDirectory(Environment.CurrentDirectory);
+                        return PickerResult.eNoAction;
+                }
+            }
+
+            lock (_lock)
+            {
+                if (_refreshTimerFired && pendingCmdCount == 0)
+                {
+                    Data.NextRemoteDirectory = Data.CurrentDirectory;
+                    _refreshTimerFired = false;
+                }
+            }
+
+            string root = Path.GetPathRoot(Data.CurrentDirectory);
+            ImGui.Text("Path: " + root + Data.CurrentDirectory.Replace(root, ""));
             const int LEFTCOLWIDTH = 150;
 
             float BTNSGRPHEIGHT = 28;
@@ -452,13 +785,13 @@ namespace rgatFilePicker
                     ImGui.SameLine();
                     if (ImGui.Button("Select Folder", new Vector2(80, btnHeight)))
                     {
-                        SelectedFile = CurrentFolder;
+                        SelectedFile = Data.CurrentDirectory;
                         ImGui.CloseCurrentPopup();
                         return PickerResult.eTrue;
                     }
                     if (ImGui.IsItemHovered())
                     {
-                        ImGui.SetTooltip("Choose the current folder: " + CurrentFolder);
+                        ImGui.SetTooltip("Choose the current folder: " + Data.CurrentDirectory);
                     }
                 }
                 else if (SelectedFile != null)
@@ -480,6 +813,40 @@ namespace rgatFilePicker
         }
 
 
+        void SetActiveDirectory(string dir)
+        {
+            if (_remoteMirror != null)
+            {
+                _refreshTimer.Stop();
+                _refreshTimerFired = false;
+                Data.NextRemoteDirectory = dir;
+                return;
+            }
+            DirectoryInfo thisdir = new DirectoryInfo(dir);
+            Data.CurrentDirectory = thisdir.FullName;
+            Data.CurrentDirectoryExists = Directory.Exists(Data.CurrentDirectory);
+            Data.CurrentDirectoryParentExists = thisdir.Parent != null && Directory.Exists(thisdir.Parent.FullName);
+            if (Data.CurrentDirectoryParentExists)
+            {
+                Data.CurrentDirectoryParent = thisdir.Parent.FullName;
+            }
+            else
+            {
+                Data.CurrentDirectoryParent = "";
+            }
+            Data.ErrMsg = "";
+
+            string[] allpaths = Directory.GetFileSystemEntries(Data.CurrentDirectory);
+            List<Tuple<string, bool>> newFileListing = new List<Tuple<string, bool>>();
+            foreach (string path in allpaths)
+            {
+                if (Directory.Exists(path)) newFileListing.Add(new Tuple<string, bool>(path, true));
+                if (File.Exists(path)) newFileListing.Add(new Tuple<string, bool>(path, false));
+            }
+            SetFileSystemEntries(thisdir.FullName, newFileListing);
+        }
+
+
         PickerResult DrawFilesList(float height, object objKey)
         {
             PickerResult result = PickerResult.eNoAction;
@@ -492,14 +859,12 @@ namespace rgatFilePicker
             if (ImGui.BeginChildFrame(1, listSize, ImGuiWindowFlags.AlwaysAutoResize))
             {
 
-                var di = new DirectoryInfo(CurrentFolder);
-                if (!di.Exists)
+                if (!Data.CurrentDirectoryExists)
                 {
                     currentBadDir = true;
                 }
                 else
                 {
-
                     Vector2 sz = ImGui.GetContentRegionAvail();
                     if (ImGui.BeginTable("FileTable", 4, ImGuiTableFlags.ScrollY, sz))
                     {
@@ -510,27 +875,24 @@ namespace rgatFilePicker
                         ImGui.TableSetupColumn("Modified");
                         ImGui.TableHeadersRow();
 
-                        if (di.Parent != null && CurrentFolder != RootFolder)
+                        if (Data.CurrentDirectoryParent != null && Data.CurrentDirectory != Path.GetPathRoot(Data.CurrentDirectory))
                         {
                             ImGui.TableNextRow();
                             ImGui.TableNextColumn();
                             if (ImGui.Selectable("../", false, ImGuiSelectableFlags.SpanAllColumns))
                             {
-                                CurrentFolder = di.Parent.FullName;
-                                di = new DirectoryInfo(CurrentFolder);
-                                _currentDirContents.Remove(objKey);
+                                SetActiveDirectory(Data.CurrentDirectoryParent);
                             }
                             ImGui.TableNextColumn();
                             ImGui.TableNextColumn();
                             ImGui.TableNextColumn();
                         }
 
-                        DirectoryContents contents = GetFileSystemEntries(di.FullName, objKey);
-                        if (contents.ErrMsg.Length > 0)
+                        if (Data.ErrMsg != null && Data.ErrMsg.Length > 0)
                         {
                             ImGui.TableNextRow();
                             ImGui.TableNextColumn();
-                            ImGui.TextWrapped("Failed to read directory: " + contents.ErrMsg);
+                            ImGui.TextWrapped("Failed to read directory: " + Data.ErrMsg);
                             ImGui.TableNextColumn();
                             ImGui.TableNextColumn();
                             ImGui.TableNextColumn();
@@ -538,45 +900,47 @@ namespace rgatFilePicker
                         }
                         else
                         {
-                            currentBadDir = false;
-                            float longestFilename = 100;
-                            foreach (var path_data in contents.dirData)
+                            if (Data.Contents != null)
                             {
-                                ImGui.TableNextRow();
-                                ImGui.TableNextColumn();
-
-                                //file
-                                FileMetadata md = path_data.Value;
-                                ImGui.PushStyleColor(ImGuiCol.Text, md.ListingColour());
-                                if (ImGui.Selectable(path_data.Value.filename + "/", false, ImGuiSelectableFlags.SpanAllColumns))
+                                currentBadDir = false;
+                                float longestFilename = 100;
+                                foreach (var path_data in Data.Contents.dirData)
                                 {
-                                    CurrentFolder = path_data.Key;
-                                    _currentDirContents.Remove(objKey);
+                                    ImGui.TableNextRow();
+                                    ImGui.TableNextColumn();
+
+                                    //file
+                                    FileMetadata md = path_data.Value;
+                                    ImGui.PushStyleColor(ImGuiCol.Text, md.ListingColour());
+                                    if (ImGui.Selectable(path_data.Value.filename + "/", false, ImGuiSelectableFlags.SpanAllColumns))
+                                    {
+                                        SetActiveDirectory(path_data.Key);
+                                    }
+                                    if (path_data.Value.namewidth > longestFilename)
+                                        longestFilename = path_data.Value.namewidth;
+
+                                    ImGui.TableNextColumn();
+                                    //type
+                                    ImGui.Text("Dir");
+                                    ImGui.TableNextColumn();
+                                    //size
+                                    ImGui.Text(path_data.Value.size_str);
+                                    ImGui.TableNextColumn();
+                                    ImGui.Text("");
+                                    ImGui.TableNextColumn();
+                                    ImGui.PopStyleColor();
                                 }
-                                if (path_data.Value.namewidth > longestFilename)
-                                    longestFilename = path_data.Value.namewidth;
 
-                                ImGui.TableNextColumn();
-                                //type
-                                ImGui.Text("Dir");
-                                ImGui.TableNextColumn();
-                                //size
-                                ImGui.Text(path_data.Value.size_str);
-                                ImGui.TableNextColumn();
-                                ImGui.Text("");
-                                ImGui.TableNextColumn();
-                                ImGui.PopStyleColor();
-                            }
-
-                            foreach (var path_data in contents.fileData)
-                            {
-                                EmitFileSelectableEntry(path_data.Key, path_data.Value);
-                                if (path_data.Value.namewidth > longestFilename)
-                                    longestFilename = path_data.Value.namewidth;
-                                if (ImGui.IsMouseDoubleClicked(0))
+                                foreach (var path_data in Data.Contents.fileData)
                                 {
-                                    result = PickerResult.eTrue;
-                                    ImGui.CloseCurrentPopup();
+                                    EmitFileSelectableEntry(path_data.Key, path_data.Value);
+                                    if (path_data.Value.namewidth > longestFilename)
+                                        longestFilename = path_data.Value.namewidth;
+                                    if (ImGui.IsMouseDoubleClicked(0))
+                                    {
+                                        result = PickerResult.eTrue;
+                                        ImGui.CloseCurrentPopup();
+                                    }
                                 }
                             }
                         }
@@ -623,9 +987,7 @@ namespace rgatFilePicker
                         ImGui.TableNextColumn();
                         if (ImGui.Selectable(d_l.Item2, false, ImGuiSelectableFlags.SpanAllColumns))
                         {
-                            CurrentFolder = d_l.Item1;
-                            RootFolder = d_l.Item1;
-                            _currentDirContents.Remove(objKey);
+                            SetActiveDirectory(d_l.Item1);
                         }
                     }
                     ImGui.EndTable();
@@ -670,21 +1032,13 @@ namespace rgatFilePicker
         }
 
 
-        DirectoryContents GetFileSystemEntries(string fullName, object o)
+        DirectoryContents SetFileSystemEntries(string fullName, List<Tuple<string, bool>> newFileListing, DirectoryContents newDirContentsObj = null)
         {
-            DirectoryContents contents = null;
-
-            if (_currentDirContents.TryGetValue(o, out contents))
-            {
-                if (contents != null)
-                {
-                    if (!contents.recentlyRefreshed()) contents.Refresh();
-                    return contents;
-                }
-            }
-
-            _currentDirContents[o] = new DirectoryContents(fullName);
-            return _currentDirContents[o];
+            Data.Contents = new DirectoryContents(fullName);
+            Data.Contents.Refresh(newFileListing, newDirContentsObj);
+            if (Data.Contents.ErrMsg != null && Data.Contents.ErrMsg.Length > 0)
+                Data.ErrMsg = Data.Contents.ErrMsg;
+            return Data.Contents;
         }
 
     }

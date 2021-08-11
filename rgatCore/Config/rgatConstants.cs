@@ -20,7 +20,7 @@ namespace rgat
     }
 
 
-    enum eKeybind
+    public enum eKeybind
     {
         MoveLeft, MoveRight, MoveUp, MoveDown,
         ZoomIn, ZoomOut, PitchXFwd, PitchXBack, YawYLeft, YawYRight, RollGraphZAnti, RollGraphZClock,

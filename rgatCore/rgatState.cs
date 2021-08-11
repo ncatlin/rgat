@@ -8,6 +8,8 @@ using System.Threading;
 /// <summary>
 /// Handles Loading/Saving/Storage of traces and binaries. 
 /// Holds various utility objects such as signature scanners and video encoder.
+/// 
+/// This is a holdover from the previous iteration of rgat that needs revamping or removing
 /// </summary>
 namespace rgat
 {
@@ -22,7 +24,8 @@ namespace rgat
         public DetectItEasy DIELib;
         public YARAScan YARALib;
         public VideoEncoder VideoRecorder = new VideoEncoder();
-        public BridgeConnection NetworkBridge;
+        public static BridgeConnection NetworkBridge;
+        public static bool ConnectedToRemote => NetworkBridge != null && NetworkBridge.Connected;
 
         public PreviewGraphsWidget PreviewWidget;
 
@@ -49,7 +52,7 @@ namespace rgat
         }
 
 
-        public bool rgatIsExiting { private set; get; } = false;
+        public static bool RgatIsExiting { private set; get; } = false;
         public int InstrumentationCount { private set; get; } = 0;
         public void RecordInstrumentationConnection() => InstrumentationCount += 1;
 
@@ -63,7 +66,7 @@ namespace rgat
         /// </summary>
         public void ShutdownRGAT()
         {
-            rgatIsExiting = true;
+            RgatIsExiting = true;
             DIELib?.CancelAllScans();
             YARALib?.CancelAllScans();
             VideoRecorder.Done();

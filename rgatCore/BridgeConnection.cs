@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using rgat.Config;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -310,14 +311,38 @@ namespace rgat
             }
         }
 
-        public void SendCommand(string text)
+
+        static int commandCount = 0;
+        /// <summary>
+        /// Send a command to the remote instance of rgat (which is in commandline tracing mode)
+        /// The handling of the response (a JToken) depends on the arguments
+        ///     If a callback is specified, it will be executed with the response as a parameter
+        ///     Otherwise it will be stored for the requestor to pick up later
+        /// </summary>
+        /// <param name="command">The task to perform</param>
+        /// <param name="recipientID">The intended recipient of the task, eg a certain file picker requested the directory they are in</param>
+        /// <param name="callback">A callback to be performed with the response</param>
+        public int SendCommand(string command, string recipientID = null, RemoteDataMirror.ProcessResponseCallback callback = null, string param = null)
         {
+            Debug.Assert(!command.Contains('&'));
+            Debug.Assert(recipientID != null);
+
             lock (_sendQueueLock)
             {
-                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.TracerCommand, text));
+                commandCount += 1;
+                string fulltext = $"{command}&{commandCount}";
+                string addressedCmd = $"{command}&{recipientID}";
+                if (param != null)
+                    fulltext +=  "&"+param;
+                fulltext += '&';
+                Console.WriteLine("Send cmd  " + fulltext);
+                RemoteDataMirror.RegisterPendingResponse(commandCount, command, recipientID, callback);
+                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.TracerCommand, fulltext));
                 NewOutDataEvent.Set();
+                return commandCount;
             }
         }
+
 
         //https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca2328
         Newtonsoft.Json.JsonSerializer serialiserIn = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
@@ -329,8 +354,13 @@ namespace rgat
             TypeNameHandling = TypeNameHandling.None,
         });
 
-
-        public void SendResponse(string command, object response)
+        /// <summary>
+        /// Used to send raw .net data types (serialised as JSON) as command responses
+        /// Useful for when the GUI just wants a copy of some pre-existing data
+        /// </summary>
+        /// <param name="command"></param>
+        /// <param name="response"></param>
+        public void SendResponseObject(int commandID, object response)
         {
             lock (_sendQueueLock)
             {
@@ -339,7 +369,7 @@ namespace rgat
                 JsonWriter writer = new JsonTextWriter(sw);
 
                 serialiserOut.Serialize(writer, response);
-                JObject responseObj = new JObject() { new JProperty("Command", command), new JProperty("Response", JToken.Parse(sb.ToString())) };
+                JObject responseObj = new JObject() { new JProperty("CommandID", commandID), new JProperty("Response", JToken.Parse(sb.ToString())) };
 
                 _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.CommandResponse, responseObj.ToString(formatting: Formatting.None)));
                 NewOutDataEvent.Set();
@@ -347,12 +377,32 @@ namespace rgat
         }
 
 
-        public void Teardown()
+        /// <summary>
+        /// Send pre-built json objects as a command response
+        /// This is usually for when the gui needs some API output, rather than neatly packaged data that we already have
+        /// </summary>
+        /// <param name="command"></param>
+        /// <param name="response"></param>
+        public void SendResponseJSON(int commandID, JObject response)
+        {
+            lock (_sendQueueLock)
+            {
+                JObject responseObj = new JObject() { new JProperty("CommandID", commandID), new JProperty("Response", response) };
+                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.CommandResponse, responseObj.ToString(formatting: Formatting.None)));
+                NewOutDataEvent.Set();
+            }
+        }
+
+
+        public void Teardown(string reason = "")
         {
             if (BridgeState != eBridgeState.Teardown)
             {
-                if (Connected)
+                if (_ActiveClient != null && _ActiveClient.Connected)
+                {
+                    RawSendData(new BinaryWriter(_ActiveClient.GetStream()), new Tuple<emsgType, string>(emsgType.Meta, "Teardown:"+ reason));
                     AddDisplayLogMessage("Disconnected", null);
+                }
                 else
                     AddDisplayLogMessage("Connection Disabled", null);
 
@@ -382,8 +432,8 @@ namespace rgat
                 _registeredIncomingDataCallback(newdata);
 
             }
-            Console.WriteLine("ReceiveIncomingTraffic ServeClientIncoming dropout");
-            Teardown();
+            Logging.RecordLogEvent("ReceiveIncomingTraffic ServeClientIncoming dropout", filter: Logging.LogFilterType.TextError);
+            Teardown("ReceiveIncomingTraffic dropout");
         }
 
         void SendOutgoingTraffic(TcpClient client)
@@ -418,13 +468,13 @@ namespace rgat
                 {
                     if (!RawSendData(writer, item))
                     {
-                        Teardown();
+                        Teardown("Send outgoing loop failed");
                         break;
                     }
                 }
             }
 
-            Teardown();
+            Teardown("Send outgoing failed");
         }
 
 
@@ -474,12 +524,18 @@ namespace rgat
 
 
             Tuple<emsgType, string> recvd;
-            while (!ReadData(new BinaryReader(stream), out recvd))
+            BinaryReader reader = null;
+            try
             {
-                continue;
+                reader = new BinaryReader(stream);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent("Failed to create reader for stream", Logging.LogFilterType.TextError);
+                return false;
             }
 
-            if (recvd == null) return false;
+            if (!ReadData(reader, out recvd)) return false;
 
             if (recvd == null || recvd.Item1 != emsgType.Meta || recvd.Item2.Length == 0)
             {
@@ -541,6 +597,7 @@ namespace rgat
                 if (cancelTokens.IsCancellationRequested) return false;
                 if (IOExcep.InnerException != null && IOExcep.InnerException.GetType() == typeof(SocketException))
                 {
+                    if (cancelTokens.IsCancellationRequested) return false;
                     SocketException innerE = (SocketException)IOExcep.InnerException;
                     switch (innerE.SocketErrorCode)
                     {
@@ -551,10 +608,10 @@ namespace rgat
                             AddDisplayLogMessage($"Receive Failed: {innerE.SocketErrorCode} ({innerE.ErrorCode})", Themes.eThemeColour.eWarnStateColour);
                             break;
                     }
-
                 }
                 else
                 {
+                    Console.WriteLine("Readddata io excep");
                     AddDisplayLogMessage($"Receive Failed: {IOExcep.Message}", Themes.eThemeColour.eWarnStateColour);
                 }
             }
@@ -563,45 +620,8 @@ namespace rgat
                 data = null;
                 if (cancelTokens.IsCancellationRequested) return false;
                 Console.WriteLine($"ReadData Exception {e}, {e.GetType()}");
-                /*
-                Logging.RecordLogEvent($"Exception during receive: {e.Message}");
-                if (read != null && read.IsCanceled)
-                {
-                    Console.WriteLine("Cancellation during read of incoming data");
-                }
-                else
-                {
-                    if (read.Status == TaskStatus.Faulted && !cancelTokens.IsCancellationRequested)
-                    {
-                        switch (read.Exception.InnerException)
-                        {
-                            case SocketException sockExcep:
-                                {
-                                    AddDisplayLogMessage($"Receive Failed: {sockExcep.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
-                                    break;
-                                }
-                            case System.IO.IOException IOExcep:
-                                {
-                                    if (IOExcep.InnerException.GetType() == typeof(SocketException))
-                                    {
-                                        SocketException innerE = (SocketException)IOExcep.InnerException;
-                                        AddDisplayLogMessage($"Receive Failed: {innerE.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
-                                    }
-                                    else
-                                    {
-                                        AddDisplayLogMessage($"Receive Failed: {IOExcep.Message}", Themes.eThemeColour.eWarnStateColour);
-                                    }
-                                    break;
-                                }
-                            default:
-                                AddDisplayLogMessage($"Receive Failure", Themes.eThemeColour.eWarnStateColour);
-                                break;
-                        }
-                    }
-                }
-                */
             }
-            Teardown();
+            Teardown("Read failed");
             data = null;
             return false;
         }
@@ -615,7 +635,6 @@ namespace rgat
             {
                 writer.Write((byte)data.Item1);
                 writer.Write(data.Item2);
-                writer.Flush();
                 return !cancelTokens.IsCancellationRequested;
             }
             catch (System.IO.IOException e)
@@ -648,7 +667,7 @@ namespace rgat
                     }
                 }
             }
-            Teardown();
+            Teardown("Send failed");
             return false;
         }
 

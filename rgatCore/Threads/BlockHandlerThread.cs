@@ -213,7 +213,7 @@ namespace rgat
 
 
             int totalWaited = 0;
-            while (!_clientState.rgatIsExiting)
+            while (!rgatState.RgatIsExiting)
             {
                 if (blockPipe.IsConnected) break;
                 Thread.Sleep(1000);
@@ -230,7 +230,7 @@ namespace rgat
             byte[] pendingBuf = null;
             const int BufMax = 4096; //todo experiment for perfomance
             int bytesRead = 0;
-            while (!_clientState.rgatIsExiting && blockPipe.IsConnected)
+            while (!rgatState.RgatIsExiting && blockPipe.IsConnected)
             {
                 byte[] buf = new byte[BufMax];
                 try

@@ -1300,9 +1300,9 @@ namespace rgat
 
         void DrawStartSplash()
         {
-            if (_rgatState.NetworkBridge != null && _rgatState.NetworkBridge.Connected)
+            if (rgatState.NetworkBridge != null && rgatState.ConnectedToRemote)
             {
-                DrawSplash(RemoteConfigMirror.GetRecentBins(), GlobalConfig.RecentTraces);
+                DrawSplash(RemoteDataMirror.GetRecentBins(), GlobalConfig.RecentTraces);
             }
             else
             {
@@ -3191,11 +3191,18 @@ namespace rgat
         public void DrawFileSelectBox(ref bool show_select_exe_window)
         {
             ImGui.OpenPopup("Select Executable");
-
+            string title = "Select Executable";
+            if (rgatState.ConnectedToRemote) title += " (Remote Machine)";
             if (ImGui.BeginPopupModal("Select Executable", ref show_select_exe_window, ImGuiWindowFlags.NoScrollbar))
             {
 
-                var picker = rgatFilePicker.FilePicker.GetFilePicker(this, Path.Combine(Environment.CurrentDirectory));
+                rgatFilePicker.FilePicker picker;
+                if (rgatState.ConnectedToRemote)
+                    picker = rgatFilePicker.FilePicker.GetRemoteFilePicker(this, rgatState.NetworkBridge);
+                else
+                    picker = rgatFilePicker.FilePicker.GetFilePicker(this, Environment.CurrentDirectory);
+
+
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
                 if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
                 {

@@ -49,7 +49,7 @@ namespace rgat.Testing
             ProcessLaunching.StartTracedProcess(pintoolpath, _testCase.BinaryPath, testID: _thisTest.TestID);
 
             //GetTestTrace
-            while (!_rgatState.rgatIsExiting && !Finished)
+            while (!rgatState.RgatIsExiting && !Finished)
             {
                 Console.WriteLine($"\tWaiting for test {_thisTest.TestID} to start...");
                 if (_rgatState.GetTestTrace(_thisTest.TestID, out TraceRecord testTrace))
@@ -57,7 +57,7 @@ namespace rgat.Testing
                     _thisTest.SetFirstTrace(testTrace);
                     Console.WriteLine($"\tGot first trace of test {_thisTest.TestID}");
 
-                    while (!_rgatState.rgatIsExiting && !Finished)
+                    while (!rgatState.RgatIsExiting && !Finished)
                     {
                         Thread.Sleep(100);
                         if (!testTrace.IsRunning && !testTrace.ProcessingRemaining)

@@ -34,8 +34,8 @@ namespace ImGuiNET
             else if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.Bridged)
             {
                 BridgeConnection connection = new BridgeConnection(false);
-                _rgatState.NetworkBridge = connection;
-                rgat.OperationModes.BridgedRunner bridge = new rgat.OperationModes.BridgedRunner(_rgatState);
+                rgatState.NetworkBridge = connection;
+                rgat.OperationModes.BridgedRunner bridge = new rgat.OperationModes.BridgedRunner();
                 bridge.RunHeadless(connection);
 
             }

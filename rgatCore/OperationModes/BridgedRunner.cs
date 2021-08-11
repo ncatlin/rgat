@@ -4,6 +4,7 @@ using rgat.Config;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -20,10 +21,8 @@ namespace rgat.OperationModes
      /// </summary>
     class BridgedRunner
     {
-        rgatState _rgatState;
-        public BridgedRunner(rgatState state)
+        public BridgedRunner()
         {
-            _rgatState = state;
         }
 
         Queue<Tuple<emsgType, string>> _incomingData = new Queue<Tuple<emsgType, string>>();
@@ -77,13 +76,13 @@ namespace rgat.OperationModes
 
         void RunConnection(BridgeConnection connection)
         {
-            while (!_rgatState.rgatIsExiting && !connection.Connected && connection.ActiveNetworking)
+            while (!rgatState.RgatIsExiting && !connection.Connected && connection.ActiveNetworking)
             {
                 Console.WriteLine($"Waiting for connection: {connection.BridgeState}");
                 System.Threading.Thread.Sleep(500);
             }
             List<Tuple<emsgType, string>> incoming = new List<Tuple<emsgType, string>>();
-            while (!_rgatState.rgatIsExiting && connection.Connected)
+            while (!rgatState.RgatIsExiting && connection.Connected)
             {
                 Console.WriteLine($"Headless bridge running while connected {connection.BridgeState}");
                 NewDataEvent.Wait();
@@ -107,7 +106,7 @@ namespace rgat.OperationModes
                     else
                     {
                         Logging.RecordLogEvent($"RunConnection Error: null data");
-                        connection.Teardown();
+                        connection.Teardown("Null indata");
                         break;
                     }
                 }
@@ -121,20 +120,35 @@ namespace rgat.OperationModes
 
             switch (item.Item1)
             {
+                case emsgType.Meta:
+                    if(item.Item2 != null && item.Item2.StartsWith("Teardown:"))
+                    {
+                        var split = item.Item2.Split(':');
+                        string reason = "";
+                        if (split.Length > 1 && split[1].Length > 0)
+                            reason += ": " +split[1];
+                        Logging.RecordLogEvent($"Disconnected - Remote party tore down the connection {((reason.Length > 0) ? reason : "")}", Logging.LogFilterType.TextError);
+                        rgatState.NetworkBridge.Teardown();
+                        return;
+                    }
+
+                    Console.WriteLine($"Unhandled meta message: {item.Item2}");
+                    break;
                 case emsgType.TracerCommand:
                     ProcessCommand(item.Item2);
                     break;
                 case emsgType.CommandResponse:
-                    if (!ParseResponse(item.Item2, out string command, out JToken response))
+                    if (!ParseResponse(item.Item2, out int commandID, out JToken response))
                     {
-                        _rgatState.NetworkBridge.Teardown();
+                        rgatState.NetworkBridge.Teardown($"Bad command ({commandID}) response");
                         break;
                     }
-                    ProcessResponse(command, response);
+                    RemoteDataMirror.DeliverResponse(commandID, response);
                     break;
 
                 default:
-                    Console.WriteLine($"Unhandled message typer {item.Item1} => {item.Item2}");
+                    rgatState.NetworkBridge.Teardown($"Bad message type ({item.Item1})");
+                    Logging.RecordLogEvent($"Unhandled message type {item.Item1} => {item.Item2}", filter: Logging.LogFilterType.TextError );
                     break;
             }
         }
@@ -142,22 +156,63 @@ namespace rgat.OperationModes
 
         void ProcessCommand(string cmd)
         {
-            if (_rgatState.NetworkBridge.GUIMode)
+            if (rgatState.NetworkBridge.GUIMode)
             {
                 Logging.RecordLogEvent("Error: The GUI sent a tracer-only command.", Logging.LogFilterType.TextError);
-                _rgatState.NetworkBridge.Teardown();
+                rgatState.NetworkBridge.Teardown("GUI only command");
                 return;
             }
 
+            
+            int cmdEndIDx = cmd.IndexOf('&');
+            if (cmdEndIDx == -1)
+            {
+                Logging.RecordLogEvent("Error: No command seperator in command.", Logging.LogFilterType.TextError);
+                rgatState.NetworkBridge.Teardown("No cmd sep");
+                return;
+            }
+            int idEndIDx = cmd.IndexOf('&', cmdEndIDx+1);
+            if (idEndIDx == -1)
+            {
+                Logging.RecordLogEvent("Error: No command ID seperator in command.", Logging.LogFilterType.TextError);
+                rgatState.NetworkBridge.Teardown("No cmd sep");
+                return;
+            }
 
+            string actualCmd = cmd.Substring(0, cmdEndIDx);
 
+            string param = "";
+            int cmdID = -1;
+            if (cmd.Length >  (idEndIDx+1))
+            {
+                int paramLen = cmd.Length - idEndIDx - 2;
+                param = cmd.Substring(idEndIDx+1, paramLen);
+            }
+
+            int.TryParse(cmd.Substring(cmdEndIDx + 1, idEndIDx - cmdEndIDx - 1), out cmdID);
+            if (cmdID == -1)
+            {
+                Logging.RecordLogEvent("Error: No command ID in command.", Logging.LogFilterType.TextError);
+                rgatState.NetworkBridge.Teardown("No cmd ID");
+                return;
+            }
 
             Console.WriteLine("Processing command " + cmd);
-            switch (cmd)
+            switch (actualCmd)
             {
                 case "GetRecentBinaries":
                     Console.WriteLine($"Sending {GlobalConfig.RecentBinaries.Count} recent");
-                    _rgatState.NetworkBridge.SendResponse("GetRecentBinaries", GlobalConfig.RecentBinaries);
+                    rgatState.NetworkBridge.SendResponseObject(cmdID, GlobalConfig.RecentBinaries);
+                    break;
+                case "DirectoryInfo":
+                    rgatState.NetworkBridge.SendResponseJSON(cmdID, GetDirectoryInfo(param));
+                    break;
+                case "GetDrives":
+                    rgatState.NetworkBridge.SendResponseObject(cmdID, rgatFilePicker.FilePicker.GetLocalDriveStrings());
+                    break;
+                default:
+                    Logging.RecordLogEvent($"Unknown command: {actualCmd} ({cmd})", Logging.LogFilterType.TextError);
+                    rgatState.NetworkBridge.Teardown("Bad Command");
                     break;
             }
 
@@ -165,88 +220,68 @@ namespace rgat.OperationModes
 
 
         JsonLoadSettings _JSONLoadSettings = new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error };
-        void ProcessResponse(string command, JToken response)
-        {
-            bool processed = false;
-            switch (command)
-            {
-                case "GetRecentBinaries":
-                    processed = HandleRecentBinariesList(response);
-                    break;
-                default:
-                    Logging.RecordLogEvent($"No handler for response to command {command}", Logging.LogFilterType.TextError);
-                    break;
-            }
 
-            if (!processed) //fail fast
-            {
-                Logging.RecordLogEvent($"ProcessResponse failed to process {command}", Logging.LogFilterType.TextError);
-                _rgatState.NetworkBridge.Teardown();
-            }
+ 
+
+        JObject GetDirectoryInfo(string dir)
+        {
+            JObject data = new JObject();
+            if (dir == null || dir.Length == 0)
+                dir = Environment.CurrentDirectory;
+            DirectoryInfo dirinfo = new DirectoryInfo(dir);
+            data.Add("Current", dir);
+            data.Add("CurrentExists", Directory.Exists(dir));
+            data.Add("Parent", dirinfo.Parent.FullName);
+            data.Add("ParentExists", Directory.Exists(dirinfo.Parent.FullName));
+            data.Add("Contents", GetDirectoryListing(dir, out string error));
+            data.Add("Error", error);
+            return data;
+            //rootfolder
         }
 
-
-        bool HandleRecentBinariesList(JToken dataTok)
+        JObject GetDirectoryListing(string param, out string error)
         {
-            if (dataTok.Type != JTokenType.Array)
+            JArray files = new JArray();
+            JArray dirs = new JArray();
+            error = "";
+            Console.WriteLine("listing " + param);
+            try
             {
-                Logging.RecordLogEvent($"HandleRecentBinariesList: Non-array recent binaries list", Logging.LogFilterType.TextError);
-                return false;
+                if (Directory.Exists(param))
+                {
+                    string[] listing = Directory.GetFileSystemEntries(param);
+                    foreach (string item in listing)
+                    {
+                        FileInfo info = new FileInfo(item);
+                        if (File.Exists(item)) files.Add(new JArray() { Path.GetFileName(item), false, info.Length, info.LastWriteTime });
+                        else if (Directory.Exists(item)) dirs.Add(new JArray() { Path.GetFileName(item), true, -1, info.LastWriteTime });
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                error = e.Message;
             }
 
-            List<GlobalConfig.CachedPathData> recentbins = new List<GlobalConfig.CachedPathData>();
-
-            JArray bintoks = dataTok.ToObject<JArray>();
-            foreach (JToken recentbinTok in bintoks)
-            {
-                if (recentbinTok.Type != JTokenType.Object)
-                {
-                    Logging.RecordLogEvent("HandleRecentBinariesList: Bad CachedPathData", Logging.LogFilterType.TextError);
-                    return false;
-                }
-                JObject binJsn = recentbinTok.ToObject<JObject>();
-                JToken prop1, prop2 = null, prop3 = null, prop4 = null;
-                bool success = binJsn.TryGetValue("path", out prop1) && prop1.Type == JTokenType.String;
-                success = success && binJsn.TryGetValue("firstSeen", out prop2) && prop2.Type == JTokenType.Date;
-                success = success && binJsn.TryGetValue("lastSeen", out prop3) && prop3.Type == JTokenType.Date;
-                success = success && binJsn.TryGetValue("count", out prop4) && prop4.Type == JTokenType.Integer;
-
-                if (!success)
-                {
-                    Logging.RecordLogEvent($"HandleRecentBinariesList: Bad property in cached path item. {recentbinTok.ToString()}");
-                    return false;
-                }
-
-                GlobalConfig.CachedPathData newEntry = new GlobalConfig.CachedPathData();
-                newEntry.path = prop1.ToString();
-                newEntry.firstSeen = prop2.ToObject<DateTime>();
-                newEntry.lastSeen = prop3.ToObject<DateTime>();
-                newEntry.count = prop4.ToObject<uint>();
-                recentbins.Add(newEntry);
-            }
-
-            RemoteConfigMirror.SetRecentPaths(recentbins);
-            return true;
+            JObject result = new JObject();
+            result.Add("Files", files);
+            result.Add("Dirs", dirs);
+            return result;
         }
 
 
 
 
-
-
-
-
-
-
-        bool ParseResponse(string messageJson, out string command, out JToken responseData)
+        bool ParseResponse(string messageJson, out int commandID, out JToken responseData)
         {
-            command = ""; responseData = null;
+            commandID = -1; responseData = null;
             try
             {
                 JObject responseJsn = JObject.Parse(messageJson, _JSONLoadSettings);
-                if (!responseJsn.TryGetValue("Command", out JToken cstring) || cstring == null || cstring.Type != JTokenType.String)
+                if (!responseJsn.TryGetValue("CommandID", out JToken cID) || cID == null || cID.Type != JTokenType.Integer)
                 {
-                    Logging.RecordLogEvent($"Missing valid command name in response JSON: [snippet: {messageJson.Substring(0, Math.Min(messageJson.Length, 128))}]");
+                    Logging.RecordLogEvent($"Missing valid command ID in response JSON: [snippet: {messageJson.Substring(0, Math.Min(messageJson.Length, 128))}]");
                     return false;
                 }
                 if (!responseJsn.TryGetValue("Response", out responseData) || responseData == null)
@@ -254,7 +289,7 @@ namespace rgat.OperationModes
                     Logging.RecordLogEvent($"Missing valid response data: [snippet: {messageJson.Substring(0, Math.Min(messageJson.Length, 128))}]");
                     return false;
                 }
-                command = cstring.ToString();
+                commandID = cID.ToObject<int>();
                 return true;
             }
             catch (Exception e)
@@ -269,7 +304,7 @@ namespace rgat.OperationModes
 
         public void GotData(Tuple<emsgType, string> data)
         {
-            Console.WriteLine("BridgedRunner got new data: " + data.Item2);
+            //Console.WriteLine($"BridgedRunner ({(rgatState.NetworkBridge.GUIMode ? "GUI mode" : "Headless mode")}) got new {data.Item1} data: {data.Item2}");
             lock (_lock)
             {
                 _incomingData.Enqueue(data);
@@ -298,8 +333,8 @@ namespace rgat.OperationModes
         public void CompleteGUIConnection()
         {
             Thread dataProcessor = new Thread(new ParameterizedThreadStart(ResponseHandlerThread));
-            dataProcessor.Start(_rgatState.NetworkBridge.CancelToken);
-            _rgatState.NetworkBridge.SendCommand("GetRecentBinaries");
+            dataProcessor.Start(rgatState.NetworkBridge.CancelToken);
+            rgatState.NetworkBridge.SendCommand("GetRecentBinaries", recipientID:"GUI",  callback: RemoteDataMirror.HandleRecentBinariesList);
         }
 
 
@@ -412,7 +447,7 @@ namespace rgat.OperationModes
                 _incomingData.Clear();
             }
             Tuple<emsgType, string>[] incoming = null;
-            while (!_rgatState.rgatIsExiting)
+            while (!rgatState.RgatIsExiting)
             {
                 try
                 {

@@ -187,7 +187,7 @@ namespace rgat
                     Console.WriteLine("Resuming ingest...");
                     break;
                 }
-            } while (!StopFlag && !_clientState.rgatIsExiting);
+            } while (!StopFlag && !rgatState.RgatIsExiting);
 
             lock (QueueSwitchLock)
             {
@@ -213,7 +213,7 @@ namespace rgat
          */
         void MessageSplitterThread()
         {
-            while (!_clientState.rgatIsExiting && (threadpipe.IsConnected || RawQueue.Count > 0))
+            while (!rgatState.RgatIsExiting && (threadpipe.IsConnected || RawQueue.Count > 0))
             {
                 if (!RawQueue.TryDequeue(out Tuple<byte[], int> buf_sz))
                 {

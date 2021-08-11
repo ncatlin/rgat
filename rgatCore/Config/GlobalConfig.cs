@@ -15,7 +15,7 @@ using Veldrid;
 
 namespace rgat
 {
-    class GlobalConfig
+   public class GlobalConfig
     {
         public class JSONBlobConverter : TypeConverter
         {

@@ -53,14 +53,14 @@ namespace rgat.Threads
         {
             PlottedGraph activeGraph;
             Veldrid.CommandList cl = _clientState._GraphicsDevice.ResourceFactory.CreateCommandList();
-            while (!_clientState.rgatIsExiting)
+            while (!rgatState.RgatIsExiting)
             {
 
                 activeGraph = _clientState.getActiveGraph(false);
                 while (activeGraph == null)
                 {
                     Thread.Sleep(50);
-                    if (_clientState.rgatIsExiting)
+                    if (rgatState.RgatIsExiting)
                     {
                         Finished();
                         return;

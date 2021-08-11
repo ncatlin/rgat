@@ -68,9 +68,20 @@ namespace rgat.OperationModes
         /// </summary>
         public void Run()
         {
+            Console.WriteLine("Runstart");
             Logging.RecordLogEvent("rgat is starting in GUI mode", Logging.LogFilterType.TextDebug);
 
-            Setup();
+            if (!Setup())
+            {
+                Console.WriteLine($"------------------------------------------------------------------------------------");
+                Console.WriteLine($"The rgat UI and graph layout engine is GPU based, requiring access to the Vulkan API");
+                Console.WriteLine($"If https://github.com/skeeto/vulkan-test doesn't work then neither will rgat rendering.");
+                Console.WriteLine($"If your GPU or analysis environment does does not support this then you can still perform\n" +
+                    $"tracing and load the result using rgat on another machine, or perform tracing directly over a network."); 
+                Console.WriteLine("Run 'rgat.exe ?' for the available options");
+                Console.WriteLine($"------------------------------------------------------------------------------------");
+                return;
+            }
 
             while (_window.Exists && !_rgatUI.ExitFlag)
             {
@@ -80,7 +91,7 @@ namespace rgat.OperationModes
             Cleanup();
         }
 
-        private void Setup()
+        private bool Setup()
         {
             System.Threading.Thread.CurrentThread.Name = "rgatUIMain";
 
@@ -91,14 +102,38 @@ namespace rgat.OperationModes
             resourceBindingModel: ResourceBindingModel.Improved,
             preferDepthRangeZeroToOne: true,
             preferStandardClipSpaceYDirection: false);
+            bool loadSuccess = false;
+            try
+            {
+                Veldrid.StartupUtilities.VeldridStartup.CreateWindowAndGraphicsDevice(
+                    new Veldrid.StartupUtilities.WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "rgat"),
+                    //new GraphicsDeviceOptions(true, null, true, ResourceBindingModel.Improved, true, true),
+                    options,
+                    preferredBackend: GraphicsBackend.Vulkan,
+                    out _window,
+                    out _gd);
+                loadSuccess = true;
+            }
+            catch (System.TypeInitializationException e)
+            {
+                if (e.InnerException != null)
+                {
+                    if (e.InnerException.GetType() == typeof(System.InvalidOperationException))
+                    {
+                        Logging.RecordLogEvent($"Error: Unable to initialise the Vulkan graphics driver: {e.InnerException.Message}", Logging.LogFilterType.TextError);
+                    }
+                }
+                else
+                {
+                    Logging.RecordLogEvent($"Error: Unable to initialise the Vulkan graphics driver. {e.Message}", Logging.LogFilterType.TextError);
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Error 2: unable to initialise the Vulkan drivers. {e.Message}", Logging.LogFilterType.TextError);
+            }
 
-            Veldrid.StartupUtilities.VeldridStartup.CreateWindowAndGraphicsDevice(
-                new Veldrid.StartupUtilities.WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "rgat"),
-                //new GraphicsDeviceOptions(true, null, true, ResourceBindingModel.Improved, true, true),
-                options,
-                preferredBackend: GraphicsBackend.Vulkan,
-                out _window,
-                out _gd);
+            if (!loadSuccess) return false;
 
             _cl = _gd.ResourceFactory.CreateCommandList();
             _rgatState.InitVeldrid(_gd, _cl);
@@ -113,6 +148,7 @@ namespace rgat.OperationModes
             InitEventHandlers();
 
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
+            return true;
         }
 
         void InitEventHandlers()
@@ -351,7 +387,7 @@ namespace rgat.OperationModes
         bool _UIStopped = false;
         public bool DrawUI()
         {
-            if (_rgatState?.rgatIsExiting ?? false)
+            if (rgatState.RgatIsExiting)
             {
                 _UIStopped = true;
                 return false;

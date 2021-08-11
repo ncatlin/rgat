@@ -100,7 +100,7 @@ namespace rgat.Threads
                 return;
             }
 
-            while (!_clientState.rgatIsExiting)
+            while (!rgatState.RgatIsExiting)
             {
                 try
                 {
@@ -123,7 +123,7 @@ namespace rgat.Threads
 
                 while (!coordPipe.IsConnected)
                 {
-                    if (_clientState.rgatIsExiting)
+                    if (rgatState.RgatIsExiting)
                     {
                         Finished();
                         return;
@@ -144,7 +144,7 @@ namespace rgat.Threads
                 {
                     Logging.RecordLogEvent("Warning: Read timeout for coordinator connection, abandoning");
                 }
-                while (coordPipe.IsConnected && !_clientState.rgatIsExiting) Thread.Sleep(5);
+                while (coordPipe.IsConnected && !rgatState.RgatIsExiting) Thread.Sleep(5);
             }
             Finished();
 
