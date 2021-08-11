@@ -14,22 +14,7 @@ namespace rgat.Config
         public enum ResponseStatus { eNoRecord, eWaiting, eDelivered, eError };
         public delegate bool ProcessResponseCallback(JToken response);
 
-        static Dictionary<int, JToken> _pendingCommandResponses = new Dictionary<int, JToken>();
         static Dictionary<int, ProcessResponseCallback> _pendingCommandCallbacks = new Dictionary<int, ProcessResponseCallback>();
-        public static ResponseStatus TryGetResponse(int commandID, out JToken response, string recipient = null)
-        {
-            lock (_lock)
-            {
-                if (!_pendingCommandResponses.TryGetValue(commandID, out response))
-                {
-                    return ResponseStatus.eNoRecord;
-                }
-                if (response == null) return ResponseStatus.eWaiting;
-
-                _pendingCommandResponses.Remove(commandID);
-                return ResponseStatus.eDelivered;
-            }
-        }
 
 
         static Dictionary<string, int> _pendingEvents = new Dictionary<string, int>();
@@ -43,16 +28,10 @@ namespace rgat.Config
                 Debug.Assert(!_pendingEventsReverse.ContainsKey(commandID));
                 _pendingEvents.Add(addressedCmd, commandID);
                 _pendingEventsReverse.Add(commandID, addressedCmd);
-                if (callback == null)
-                {
-                    Debug.Assert(!_pendingCommandResponses.ContainsKey(commandID));
-                    _pendingCommandResponses.Add(commandID, null);
-                }
-                else
-                {
+
                     Debug.Assert(!_pendingCommandCallbacks.ContainsKey(commandID));
                     _pendingCommandCallbacks.Add(commandID, callback);
-                }
+                
             }
         }
 
@@ -62,12 +41,6 @@ namespace rgat.Config
             lock (_lock)
             {
                 if (!_pendingEvents.TryGetValue(addressedCmd, out int cmdID)) return ResponseStatus.eNoRecord;
-                if (_pendingCommandResponses.TryGetValue(cmdID, out JToken value))
-                {
-                    if (value == null) return ResponseStatus.eWaiting;
-                    return ResponseStatus.eDelivered;
-                }
-
                 if (_pendingCommandCallbacks.ContainsKey(cmdID)) return ResponseStatus.eWaiting;
                 return ResponseStatus.eError;
             }
@@ -78,12 +51,8 @@ namespace rgat.Config
         {
             lock (_lock)
             {
-                if (_pendingCommandResponses.ContainsKey(commandID))
-                {
-                    _pendingCommandResponses[commandID] = response;
-                }
-
-                else if (_pendingCommandCallbacks.TryGetValue(commandID, out ProcessResponseCallback cb))
+ 
+                if (_pendingCommandCallbacks.TryGetValue(commandID, out ProcessResponseCallback cb))
                 {
 
                     bool success = false;
