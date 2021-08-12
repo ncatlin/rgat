@@ -69,44 +69,44 @@ namespace rgat.Widgets
                 //ImGui.BeginGroup();
                 //ImGui.EndGroup();
 
-                
-                    ImGui.BeginGroup();
-                {
-                        if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y - 35)))
-                        {
-                            for (int i = 0; i < settingsNames.Count; i++)
-                            {
-                                if (ImGui.Selectable(settingsNames[i], ref optionsSelectStates[i]))
-                                {
-                                    Array.Clear(optionsSelectStates, 0, optionsSelectStates.Length);
-                                    optionsSelectStates[i] = true;
-                                }
-                            }
-                            ImGui.EndChildFrame();
-                        }
-                        if (ImGui.Button("Close1", new Vector2(65, 25)))
-                        {
-                            window_shown_flag = false;
-                        }
-                    
-                ImGui.EndGroup();
-                }
-                
-                    ImGui.SameLine();
 
-                if (ImGui.BeginChildFrame(ImGui.GetID("SettingContent"), ImGui.GetContentRegionAvail()))
+                ImGui.BeginGroup();
+                {
+                    if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y - 35)))
                     {
-                        for (var i = 0; i < optionsSelectStates.Length; i++)
+                        for (int i = 0; i < settingsNames.Count; i++)
                         {
-                            if (optionsSelectStates[i])
+                            if (ImGui.Selectable(settingsNames[i], ref optionsSelectStates[i]))
                             {
-                                CreateSettingsContentPane(settingCategoryName: settingsNames[i]);
-                                break;
+                                Array.Clear(optionsSelectStates, 0, optionsSelectStates.Length);
+                                optionsSelectStates[i] = true;
                             }
                         }
                         ImGui.EndChildFrame();
                     }
-                
+                    if (ImGui.Button("Close1", new Vector2(65, 25)))
+                    {
+                        window_shown_flag = false;
+                    }
+
+                    ImGui.EndGroup();
+                }
+
+                ImGui.SameLine();
+
+                if (ImGui.BeginChildFrame(ImGui.GetID("SettingContent"), ImGui.GetContentRegionAvail()))
+                {
+                    for (var i = 0; i < optionsSelectStates.Length; i++)
+                    {
+                        if (optionsSelectStates[i])
+                        {
+                            CreateSettingsContentPane(settingCategoryName: settingsNames[i]);
+                            break;
+                        }
+                    }
+                    ImGui.EndChildFrame();
+                }
+
 
                 ImGui.End();
             }
@@ -186,7 +186,7 @@ namespace rgat.Widgets
             //available/enabled/loaded signatures pane
             //scanning controls
             //download more btn
-   
+
             Vector2 tabsize = ImGui.GetContentRegionAvail() - new Vector2(0, 100);
             if (ImGui.BeginChild("#SignaturesPane", tabsize, false, ImGuiWindowFlags.None))
             {
@@ -331,7 +331,7 @@ namespace rgat.Widgets
 
             GlobalConfig.CheckSignatureError(path, out signerror, out bool signatureTimeWarning);
 
-            ImGui.TableNextRow(); 
+            ImGui.TableNextRow();
             ImGui.TableNextColumn();
 
 
@@ -360,7 +360,7 @@ namespace rgat.Widgets
                 selected = true;
             }
 
-            if (signatureError) { ImGui.PopStyleColor();  }
+            if (signatureError) { ImGui.PopStyleColor(); }
 
             hovered = hovered || ImGui.IsItemHovered();
 
@@ -543,22 +543,23 @@ namespace rgat.Widgets
             {
                 var picker = rgatFilePicker.FilePicker.GetFilePicker(_filePickHandle, Path.Combine(Environment.CurrentDirectory));
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(_filePickHandle);
+
+                if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
+                {
+                    if (File.Exists(picker.SelectedFile))
+                    {
+                        ChoseSettingPath(_pendingPathSetting, picker.SelectedFile);
+                    }
+                    else
+                    {
+                        DeclareError($"Error: Path {picker.SelectedFile} does not exist");
+                    }
+                }
                 if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
                 {
-                    if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
-                    {
-                        if (File.Exists(picker.SelectedFile))
-                        {
-                            ChoseSettingPath(_pendingPathSetting, picker.SelectedFile);
-                        }
-                        else
-                        {
-                            DeclareError($"Error: Path {picker.SelectedFile} does not exist");
-                        }
-                        rgatFilePicker.FilePicker.RemoveFilePicker(_filePickHandle);
-                    }
-
+                    rgatFilePicker.FilePicker.RemoveFilePicker(_filePickHandle);
                 }
+
                 ImGui.EndPopup();
             }
 
@@ -1018,7 +1019,7 @@ namespace rgat.Widgets
                         }
                     }
                     ImGui.EndTabItem();
-                    
+
                     if (ImGui.BeginTabItem("Custom Widgets Tab"))
                     {
                         ImGui.EndTabItem();
@@ -1075,7 +1076,7 @@ namespace rgat.Widgets
 
 
 
-        void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex, string tooltip=null)
+        void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex, string tooltip = null)
         {
             uint bindFramecol = ((rowIndex % 2) == 0) ? 0xafcc3500 : 0xafdc4500;
             ImGui.PushStyleColor(ImGuiCol.FrameBg, bindFramecol);
@@ -1133,7 +1134,7 @@ namespace rgat.Widgets
                     ImGui.PushStyleColor(ImGuiCol.Text, 0xff000000);
                     kstring = $"[Click To Set]##{rowIndex}2";
                 }
-                if (ImGui.Button($"[{kstring}]")) 
+                if (ImGui.Button($"[{kstring}]"))
                     DoClickToSetKeybind(caption, action: keyAction, 2);
 
                 ImGui.PopStyleColor(2);

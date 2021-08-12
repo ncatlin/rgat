@@ -115,6 +115,17 @@ namespace rgat
             return targ;
         }
 
+        public BinaryTarget AddRemoteTargetByPath(string path, string hostAddr, bool makeActive= true)
+        {
+            BinaryTarget targ = targets.AddTargetByPath(path, remoteAddr: hostAddr);
+
+            if (makeActive)
+            {
+                ClearActiveGraph();
+                SetActiveTarget(targ);
+            }
+            return targ;
+        }
 
 
         /*

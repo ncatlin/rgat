@@ -23,6 +23,7 @@ namespace rgat
         public delegate void OnConnectSuccessCallback();
 
         public bool Connected => BridgeState == eBridgeState.Connected;
+        public string LastAddress { get; private set; } = "";
         public bool ActiveNetworking => BridgeState == eBridgeState.Connected || BridgeState == eBridgeState.Listening || BridgeState == eBridgeState.Connecting;
 
         //public IPEndPoint ConnectedEndpoint = null;
@@ -283,6 +284,7 @@ namespace rgat
         void ServeAuthenticatedConnection(TcpClient client, OnConnectSuccessCallback connectedCallback)
         {
             RemoteEndPoint = (IPEndPoint)client.Client.RemoteEndPoint;
+            LastAddress = RemoteEndPoint.Address.ToString();
             BridgeState = eBridgeState.Connected;
             Console.WriteLine("Invoking connected callback");
             Task.Run(() => connectedCallback());
@@ -331,7 +333,6 @@ namespace rgat
             {
                 commandCount += 1;
                 string fulltext = $"{command}&{commandCount}";
-                string addressedCmd = $"{command}&{recipientID}";
                 if (param != null)
                     fulltext +=  "&"+param;
                 fulltext += '&';

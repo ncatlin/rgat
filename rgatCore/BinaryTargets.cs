@@ -39,19 +39,21 @@ namespace rgat
             }
         }
 
-        public BinaryTarget AddTargetByPath(string path, int arch = 0)
+        public BinaryTarget AddTargetByPath(string path, int arch = 0, string remoteAddr = "")
         {
             lock (targetslock)
             {
                 BinaryTarget target = null;
                 if (!targets.TryGetValue(path, out target))
                 {
-                    target = new BinaryTarget(path, arch);
+                    target = new BinaryTarget(path, arch, remoteAddr);
                     targets.Add(path, target);
                 }
                 return target;
             }
         }
+                
+    
 
 
         private readonly object targetslock = new object();

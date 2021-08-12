@@ -178,9 +178,17 @@ namespace rgatFilePicker
                 latestDirPaths = dirs;
 
                 if (rgatState.ConnectedToRemote)
-                    TransferRemoteDirMetadata(newContentsObj);
+                {
+                    if (newContentsObj != null)
+                    {
+                        TransferRemoteDirMetadata(newContentsObj);
+                    }
+                }
                 else
+                {
                     ExtractMetaData_Dirs();
+                }
+
             }
 
             public void IngestFiles(List<string> files, DirectoryContents newContentsObj = null)
@@ -220,9 +228,15 @@ namespace rgatFilePicker
                 Dictionary<string, FileMetadata> newFileData = new Dictionary<string, FileMetadata>();
                 foreach (string path in latestFilePaths)
                 {
-                    newFileData[path] = newContentsObj.fileData[path];
+                    newFileData[path] = newContentsObj.fileData[path];                
+                    
+                    //newly created while window was open
+                    if ((bool)addedFilePaths?.Contains(path))
+                    {
+                        newFileData[path].isNew = true;
+                        newFileData[path].timeFound = DateTime.Now;
+                    }
                 }
-
                 lostFiles.Where(lf => !lf.expired).ToList().ForEach(m => newFileData[m.filename] = m);
                 fileData.Clear();
                 fileData = newFileData;
@@ -305,12 +319,22 @@ namespace rgatFilePicker
             private void TransferRemoteDirMetadata(DirectoryContents newContentsObj)
             {
                 dirData = newContentsObj.dirData;
+                foreach (string path in dirData.Keys)
+                {
+                    //newly created while window was open
+                    if ((bool)addedDirPaths?.Contains(path))
+                    {
+                        dirData[path].isNew = true;
+                        dirData[path].timeFound = DateTime.Now;
+                    }
+                }
+
             }
 
 
 
 
-            public void Refresh(List<Tuple<string, bool>> latest_dir_entires, DirectoryContents newContentsObj = null)
+            public void RefreshDirectoryContents(List<Tuple<string, bool>> latest_dir_entires, DirectoryContents newContentsObj = null)
             {
 
                 if (lostFiles.RemoveAll(s => s.expired) > 0)
@@ -344,6 +368,9 @@ namespace rgatFilePicker
 
                 IngestDirectories(dirs, newContentsObj);
                 IngestFiles(files, newContentsObj);
+
+                addedDirPaths.Clear();
+                addedFilePaths.Clear();
                 lastRefreshed = DateTime.Now;
             }
 
@@ -376,6 +403,8 @@ namespace rgatFilePicker
         public string SelectedFile;
         public List<string> AllowedExtensions = new List<string>();
         public bool OnlyAllowFolders;
+        readonly object _lock = new object();
+
 
         class FILEPICKER_DATA
         {
@@ -480,96 +509,6 @@ namespace rgatFilePicker
         }
 
 
-        private List<Tuple<string, string>> GetDriveListStrings()
-        {
-            if ((DateTime.Now - LastDriveListRefresh).TotalSeconds < RefreshThresholdSeconds)
-            {
-                return Data.AvailableDriveStrings;
-            }
-
-
-            if (_remoteMirror != null && _remoteMirror.Connected)
-            {
-                RemoteDataMirror.ResponseStatus status = RemoteDataMirror.CheckTaskStatus("GetDrives", myID);
-                switch (status)
-                {
-                    case RemoteDataMirror.ResponseStatus.eNoRecord:
-                        _remoteMirror.SendCommand("GetDrives", recipientID: myID, callback: InitRemoteDriveStringsCallback);
-                        pendingCmdCount += 1;
-                        return Data.AvailableDriveStrings;
-
-                    case RemoteDataMirror.ResponseStatus.eWaiting:
-                        return Data.AvailableDriveStrings;
-
-                    default:
-                        Logging.RecordLogEvent($"GetDriveListStrings Bad remote response state: {status}", Logging.LogFilterType.TextError);
-                        _remoteMirror.Teardown("Bad status in GetDriveListStrings");
-                        InitLocalDriveStrings();
-                        return Data.AvailableDriveStrings;
-                }
-            }
-            else
-            {
-                InitLocalDriveStrings();
-                return Data.AvailableDriveStrings;
-            }
-        }
-
-        readonly object _lock = new object();
-
-        bool InitRemoteDriveStringsCallback(JToken remoteResponse)
-        {
-            if (remoteResponse.Type != JTokenType.Array) return false;
-            List<Tuple<string, string>> result = new List<Tuple<string, string>>();
-            foreach (var dir_drive in (JArray)remoteResponse)
-            {
-                if (dir_drive.Type != JTokenType.Object) return false;
-                JObject drivetuple = (JObject)dir_drive;
-                if (drivetuple.TryGetValue("Item1", out JToken val1) && val1.Type == JTokenType.String &&
-                     drivetuple.TryGetValue("Item2", out JToken val2) && val2.Type == JTokenType.String)
-                {
-                    result.Add(new Tuple<string, string>(val1.ToString(), val2.ToString()));
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            lock (_lock)
-            {
-                Data.AvailableDriveStrings = result;
-                LastDriveListRefresh = DateTime.Now;
-                pendingCmdCount -= 1;
-                if (pendingCmdCount == 0) _refreshTimer.Start();
-            }
-            return true;
-        }
-
-        void InitLocalDriveStrings()
-        {
-            Data.AvailableDriveStrings = GetLocalDriveStrings();
-            LastDriveListRefresh = DateTime.Now;
-        }
-
-
-        public static List<Tuple<string, string>> GetLocalDriveStrings()
-        {
-            List<Tuple<string, string>> result = new List<Tuple<string, string>>();
-            DriveInfo[] allDrives = DriveInfo.GetDrives();
-            foreach (DriveInfo d in allDrives)
-            {
-                if (!d.IsReady) continue;
-                string driveName = d.Name;
-                if (driveName.EndsWith('\\') || driveName.EndsWith('/'))
-                {
-                    driveName = d.Name.Substring(0, d.Name.Length - 1);
-                }
-                if (d.VolumeLabel.Length > 0)
-                    driveName += " (" + d.VolumeLabel + ")";
-                result.Add(new Tuple<string, string>(d.RootDirectory.Name, driveName));
-            }
-            return result;
-        }
 
 
         bool InitCurrentDirInfo(JToken responseTok)
@@ -588,9 +527,9 @@ namespace rgatFilePicker
             if (!ParseRemoteDirectoryContents(path, contentsTok.ToObject<JObject>(), out DirectoryContents newDirContents)) return false;
 
 
-            if (Data.Contents != null && Data.CurrentDirectory == currentDirTok.ToString() && Data.NextRemoteDirectory == null)
+            if (Data.Contents != null && Data.CurrentDirectory == currentDirTok.ToString() && Data.NextRemoteDirectory == Data.CurrentDirectory)
             {
-                Data.Contents.Refresh(newDirContents.AllPaths(), newDirContents);
+                Data.Contents.RefreshDirectoryContents(newDirContents.AllPaths(), newDirContents);
             }
             else
             {
@@ -971,31 +910,6 @@ namespace rgatFilePicker
             return result;
         }
 
-        void DrawDrivesList(Vector2 framesize, object objKey)
-        {
-            if (ImGui.BeginChildFrame(ImGui.GetID("#DrvListFrm"), framesize, ImGuiWindowFlags.AlwaysAutoResize))
-            {
-                List<Tuple<string, string>> drives = GetDriveListStrings();
-                if (ImGui.BeginTable("##DrivesTable", 1))
-                {
-                    ImGui.TableSetupScrollFreeze(0, 1);
-                    ImGui.TableSetupColumn("Drives");
-                    ImGui.TableHeadersRow();
-                    foreach (Tuple<string, string> d_l in drives)
-                    {
-                        ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        if (ImGui.Selectable(d_l.Item2, false, ImGuiSelectableFlags.SpanAllColumns))
-                        {
-                            SetActiveDirectory(d_l.Item1);
-                        }
-                    }
-                    ImGui.EndTable();
-                }
-                ImGui.EndChildFrame();
-            }
-        }
-
         void DrawRecentDirsList(Vector2 framesize)
         {
             if (ImGui.BeginChildFrame(ImGui.GetID("#RecentDirListFrm"), framesize, ImGuiWindowFlags.AlwaysAutoResize))
@@ -1035,11 +949,131 @@ namespace rgatFilePicker
         DirectoryContents SetFileSystemEntries(string fullName, List<Tuple<string, bool>> newFileListing, DirectoryContents newDirContentsObj = null)
         {
             Data.Contents = new DirectoryContents(fullName);
-            Data.Contents.Refresh(newFileListing, newDirContentsObj);
+            Data.Contents.RefreshDirectoryContents(newFileListing, newDirContentsObj);
             if (Data.Contents.ErrMsg != null && Data.Contents.ErrMsg.Length > 0)
                 Data.ErrMsg = Data.Contents.ErrMsg;
             return Data.Contents;
         }
+
+
+        /*
+         * Drives
+         */
+        private List<Tuple<string, string>> GetDriveListStrings()
+        {
+            if ((DateTime.Now - LastDriveListRefresh).TotalSeconds < RefreshThresholdSeconds)
+            {
+                return Data.AvailableDriveStrings;
+            }
+
+
+            if (_remoteMirror != null && _remoteMirror.Connected)
+            {
+                RemoteDataMirror.ResponseStatus status = RemoteDataMirror.CheckTaskStatus("GetDrives", myID);
+                switch (status)
+                {
+                    case RemoteDataMirror.ResponseStatus.eNoRecord:
+                        _remoteMirror.SendCommand("GetDrives", recipientID: myID, callback: InitRemoteDriveStringsCallback);
+                        pendingCmdCount += 1;
+                        return Data.AvailableDriveStrings;
+
+                    case RemoteDataMirror.ResponseStatus.eWaiting:
+                        return Data.AvailableDriveStrings;
+
+                    default:
+                        Logging.RecordLogEvent($"GetDriveListStrings Bad remote response state: {status}", Logging.LogFilterType.TextError);
+                        _remoteMirror.Teardown("Bad status in GetDriveListStrings");
+                        InitLocalDriveStrings();
+                        return Data.AvailableDriveStrings;
+                }
+            }
+            else
+            {
+                InitLocalDriveStrings();
+                return Data.AvailableDriveStrings;
+            }
+        }
+
+        bool InitRemoteDriveStringsCallback(JToken remoteResponse)
+        {
+            if (remoteResponse.Type != JTokenType.Array) return false;
+            List<Tuple<string, string>> result = new List<Tuple<string, string>>();
+            foreach (var dir_drive in (JArray)remoteResponse)
+            {
+                if (dir_drive.Type != JTokenType.Object) return false;
+                JObject drivetuple = (JObject)dir_drive;
+                if (drivetuple.TryGetValue("Item1", out JToken val1) && val1.Type == JTokenType.String &&
+                     drivetuple.TryGetValue("Item2", out JToken val2) && val2.Type == JTokenType.String)
+                {
+                    result.Add(new Tuple<string, string>(val1.ToString(), val2.ToString()));
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            lock (_lock)
+            {
+                Data.AvailableDriveStrings = result;
+                LastDriveListRefresh = DateTime.Now;
+                pendingCmdCount -= 1;
+                if (pendingCmdCount == 0) _refreshTimer.Start();
+            }
+            return true;
+        }
+
+        void InitLocalDriveStrings()
+        {
+            Data.AvailableDriveStrings = GetLocalDriveStrings();
+            LastDriveListRefresh = DateTime.Now;
+        }
+
+
+        public static List<Tuple<string, string>> GetLocalDriveStrings()
+        {
+            List<Tuple<string, string>> result = new List<Tuple<string, string>>();
+            DriveInfo[] allDrives = DriveInfo.GetDrives();
+            foreach (DriveInfo d in allDrives)
+            {
+                if (!d.IsReady) continue;
+                string driveName = d.Name;
+                if (driveName.EndsWith('\\') || driveName.EndsWith('/'))
+                {
+                    driveName = d.Name.Substring(0, d.Name.Length - 1);
+                }
+                if (d.VolumeLabel.Length > 0)
+                    driveName += " (" + d.VolumeLabel + ")";
+                result.Add(new Tuple<string, string>(d.RootDirectory.Name, driveName));
+            }
+            return result;
+        }
+
+        void DrawDrivesList(Vector2 framesize, object objKey)
+        {
+            if (ImGui.BeginChildFrame(ImGui.GetID("#DrvListFrm"), framesize, ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                List<Tuple<string, string>> drives = GetDriveListStrings();
+                if (ImGui.BeginTable("##DrivesTable", 1))
+                {
+                    ImGui.TableSetupScrollFreeze(0, 1);
+                    ImGui.TableSetupColumn("Drives");
+                    ImGui.TableHeadersRow();
+                    foreach (Tuple<string, string> d_l in drives)
+                    {
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        if (ImGui.Selectable(d_l.Item2, false, ImGuiSelectableFlags.SpanAllColumns))
+                        {
+                            SetActiveDirectory(d_l.Item1);
+                        }
+                    }
+                    ImGui.EndTable();
+                }
+                ImGui.EndChildFrame();
+            }
+        }
+
+
 
     }
 }

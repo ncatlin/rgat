@@ -127,7 +127,7 @@ namespace rgat.OperationModes
                         string reason = "";
                         if (split.Length > 1 && split[1].Length > 0)
                             reason += ": " +split[1];
-                        Logging.RecordLogEvent($"Disconnected - Remote party tore down the connection {((reason.Length > 0) ? reason : "")}", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Disconnected - Remote party tore down the connection{((reason.Length > 0) ? reason : "")}", Logging.LogFilterType.TextError);
                         rgatState.NetworkBridge.Teardown();
                         return;
                     }
@@ -135,14 +135,25 @@ namespace rgat.OperationModes
                     Console.WriteLine($"Unhandled meta message: {item.Item2}");
                     break;
                 case emsgType.TracerCommand:
-                    ProcessCommand(item.Item2);
+                    try
+                    {
+                        ProcessCommand(item.Item2);
+                    }
+                    catch(Exception e)
+                    {
+                        Console.WriteLine($"Exception processing command  {item.Item1} {item.Item2}: {e}");
+                        rgatState.NetworkBridge.Teardown($"Command Exception ({item.Item2})");
+                    }
+                    
                     break;
                 case emsgType.CommandResponse:
+
                     if (!ParseResponse(item.Item2, out int commandID, out JToken response))
                     {
                         rgatState.NetworkBridge.Teardown($"Bad command ({commandID}) response");
                         break;
                     }
+                    Console.WriteLine($"Delivering response {response}");
                     RemoteDataMirror.DeliverResponse(commandID, response);
                     break;
 
@@ -153,6 +164,41 @@ namespace rgat.OperationModes
             }
         }
 
+        bool ParseCommandFields(string cmd, out string actualCmd, out int cmdID, out string paramfield)
+        {
+            actualCmd = "";
+            paramfield = null;
+            cmdID = -1;
+
+            int cmdEndIDx = cmd.IndexOf('&');
+            if (cmdEndIDx == -1)
+            {
+                Logging.RecordLogEvent("Error: No command seperator in command.", Logging.LogFilterType.TextError);
+                return false;
+            }
+            int idEndIDx = cmd.IndexOf('&', cmdEndIDx + 1);
+            if (idEndIDx == -1)
+            {
+                Logging.RecordLogEvent("Error: No command ID seperator in command.", Logging.LogFilterType.TextError);
+                return false;
+            }
+
+            actualCmd = cmd.Substring(0, cmdEndIDx);
+
+            if (cmd.Length > (idEndIDx + 1))
+            {
+                int paramLen = cmd.Length - idEndIDx - 2;
+                paramfield = cmd.Substring(idEndIDx + 1, paramLen);
+            }
+
+            int.TryParse(cmd.Substring(cmdEndIDx + 1, idEndIDx - cmdEndIDx - 1), out cmdID);
+            if (cmdID == -1)
+            {
+                Logging.RecordLogEvent("Error: No command ID in command.", Logging.LogFilterType.TextError);
+                return false;
+            }
+            return true;
+        }
 
         void ProcessCommand(string cmd)
         {
@@ -163,39 +209,12 @@ namespace rgat.OperationModes
                 return;
             }
 
-            
-            int cmdEndIDx = cmd.IndexOf('&');
-            if (cmdEndIDx == -1)
+            if(!ParseCommandFields(cmd, out string actualCmd, out int cmdID, out string paramfield))
             {
-                Logging.RecordLogEvent("Error: No command seperator in command.", Logging.LogFilterType.TextError);
-                rgatState.NetworkBridge.Teardown("No cmd sep");
-                return;
-            }
-            int idEndIDx = cmd.IndexOf('&', cmdEndIDx+1);
-            if (idEndIDx == -1)
-            {
-                Logging.RecordLogEvent("Error: No command ID seperator in command.", Logging.LogFilterType.TextError);
-                rgatState.NetworkBridge.Teardown("No cmd sep");
+                rgatState.NetworkBridge.Teardown("Command parse failure");
                 return;
             }
 
-            string actualCmd = cmd.Substring(0, cmdEndIDx);
-
-            string param = "";
-            int cmdID = -1;
-            if (cmd.Length >  (idEndIDx+1))
-            {
-                int paramLen = cmd.Length - idEndIDx - 2;
-                param = cmd.Substring(idEndIDx+1, paramLen);
-            }
-
-            int.TryParse(cmd.Substring(cmdEndIDx + 1, idEndIDx - cmdEndIDx - 1), out cmdID);
-            if (cmdID == -1)
-            {
-                Logging.RecordLogEvent("Error: No command ID in command.", Logging.LogFilterType.TextError);
-                rgatState.NetworkBridge.Teardown("No cmd ID");
-                return;
-            }
 
             Console.WriteLine("Processing command " + cmd);
             switch (actualCmd)
@@ -205,10 +224,13 @@ namespace rgat.OperationModes
                     rgatState.NetworkBridge.SendResponseObject(cmdID, GlobalConfig.RecentBinaries);
                     break;
                 case "DirectoryInfo":
-                    rgatState.NetworkBridge.SendResponseJSON(cmdID, GetDirectoryInfo(param));
+                    rgatState.NetworkBridge.SendResponseJSON(cmdID, GetDirectoryInfo(paramfield));
                     break;
                 case "GetDrives":
                     rgatState.NetworkBridge.SendResponseObject(cmdID, rgatFilePicker.FilePicker.GetLocalDriveStrings());
+                    break;
+                case "LoadTarget":
+                    rgatState.NetworkBridge.SendResponseObject(cmdID, GatherTargetInitData(paramfield));
                     break;
                 default:
                     Logging.RecordLogEvent($"Unknown command: {actualCmd} ({cmd})", Logging.LogFilterType.TextError);
@@ -231,8 +253,8 @@ namespace rgat.OperationModes
             DirectoryInfo dirinfo = new DirectoryInfo(dir);
             data.Add("Current", dir);
             data.Add("CurrentExists", Directory.Exists(dir));
-            data.Add("Parent", dirinfo.Parent.FullName);
-            data.Add("ParentExists", Directory.Exists(dirinfo.Parent.FullName));
+            data.Add("Parent", (dirinfo.Parent != null) ? dirinfo.Parent.FullName : "");
+            data.Add("ParentExists", dirinfo.Parent != null && Directory.Exists(dirinfo.Parent.FullName));
             data.Add("Contents", GetDirectoryListing(dir, out string error));
             data.Add("Error", error);
             return data;
@@ -260,7 +282,10 @@ namespace rgat.OperationModes
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                if (e.GetType() != typeof(System.UnauthorizedAccessException))
+                {
+                    Console.WriteLine(e);
+                }
                 error = e.Message;
             }
 
@@ -270,6 +295,12 @@ namespace rgat.OperationModes
             return result;
         }
 
+
+        JToken GatherTargetInitData(string path)
+        {
+            BinaryTarget targ = new BinaryTarget(path);
+            return (JToken)targ.GetRemoteLoadInitData();
+        }
 
 
 
@@ -471,6 +502,7 @@ namespace rgat.OperationModes
                     {
                         ProcessData(item);
                     }
+                    incoming = null;
                 }
             }
         }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -59,6 +60,9 @@ namespace rgat
         private string _sha1hash = "";
         private string _sha256hash = "";
         private long fileSize = 0;
+        public string RemoteHost { get; private set; }  = null;
+        public bool RemoteInitialised { get; private set; } = false;
+
         public TraceChoiceSettings traceChoices = new TraceChoiceSettings();
         public Byte[] StartBytes = null;
         public PeNet.PeFile PEFileObj;
@@ -72,6 +76,58 @@ namespace rgat
         public string ASCIIPreview { get; private set; } = "";
 
         string _hexTooltip;
+
+
+
+        public BinaryTarget(string filepath, int bitWidth_ = 0, string remoteAddr = null)
+        {
+            FilePath = filepath;
+            BitWidth = bitWidth_; //overwritten by PE parser if PE
+            FileName = Path.GetFileName(FilePath);
+            if (remoteAddr == null && File.Exists(filepath))
+            {
+                try
+                {
+
+                    ParseFile();
+                    if (bitWidth_ != 0 && bitWidth_ != BitWidth)
+                    {
+                        Console.WriteLine($"Warning: bitwidth changed from provided value {bitWidth_} to {BitWidth}");
+                    }
+                }
+                catch (Exception e){
+                    Logging.RecordLogEvent("BinaryTarget().Parse() threw exception {e.Message}");
+                }
+            }
+
+            RemoteHost = remoteAddr;
+
+            traceChoices.InitDefaultExclusions();
+        }
+
+        public JToken GetRemoteLoadInitData()
+        {
+            JObject result = new JObject();
+            result.Add("Size", fileSize);
+            result.Add("StartBytes", StartBytes); //any benefit to obfuscating?
+            result.Add("SHA1", GetSHA1Hash());
+            result.Add("SHA256", GetSHA256Hash());
+            result.Add("PEBitWidth", PEFileObj != null ? BitWidth : 0);
+            return result;
+        }
+
+
+        public bool InitialiseFromRemoteData(Newtonsoft.Json.Linq.JToken data)
+        {
+            Console.WriteLine("Initing from remote");
+            if (data.Type != JTokenType.Object) return false;
+
+
+            RemoteInitialised = true;
+            return true;
+        }
+
+
         public string HexTooltip()
         {
             if (_hexTooltip?.Length > 0) return _hexTooltip;
@@ -197,27 +253,6 @@ namespace rgat
         }
 
 
-        public BinaryTarget(string filepath, int bitWidth_ = 0)
-        {
-            FilePath = filepath;
-            BitWidth = bitWidth_; //overwritten by PE parser if PE
-            FileName = Path.GetFileName(FilePath);
-            if (File.Exists(filepath))
-            {
-                try
-                {
-                    FileInfo fileinfo = new FileInfo(filepath);
-                    fileSize = fileinfo.Length;
-                    ParseFile();
-                    if (bitWidth_ != 0 && bitWidth_ != BitWidth)
-                    {
-                        Console.WriteLine($"Warning: bitwidth changed from provided value {bitWidth_} to {BitWidth}");
-                    }
-                }
-                catch { }
-            }
-            traceChoices.InitDefaultExclusions();
-        }
 
 
 
@@ -239,6 +274,8 @@ namespace rgat
         {
             try
             {
+                FileInfo fileinfo = new FileInfo(FilePath);
+                fileSize = fileinfo.Length;
                 using FileStream fs = File.OpenRead(FilePath);
                 StartBytes = new byte[Math.Min(1024, fileSize)];
                 int bytesread = fs.Read(StartBytes, 0, StartBytes.Length);
@@ -320,7 +357,5 @@ namespace rgat
                 return TraceRecordsList[^1];
             }
         }
-
-
     }
 }

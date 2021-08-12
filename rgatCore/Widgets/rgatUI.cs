@@ -3168,7 +3168,6 @@ namespace rgat
                 return false;
             }
 
-
             FileStream fs = File.OpenRead(path);
             bool isJSON = (fs.ReadByte() == '{' && fs.ReadByte() == '"');
             fs.Close();
@@ -3188,26 +3187,50 @@ namespace rgat
             return true;
         }
 
+
+        bool LoadRemoteBinary(string path)
+        {
+            if (!rgatState.NetworkBridge.Connected)
+            {
+                Logging.RecordLogEvent($"Loading remote binary {path} failed: Not Connected", filter: LogFilterType.TextAlert);
+                return false;
+            }
+
+           BinaryTarget target = _rgatState.AddRemoteTargetByPath(path, rgatState.NetworkBridge.LastAddress);
+            rgatState.NetworkBridge.SendCommand("LoadTarget", "GUI", target.InitialiseFromRemoteData, path);
+            
+            return true;
+        }
+
+
         public void DrawFileSelectBox(ref bool show_select_exe_window)
         {
-            ImGui.OpenPopup("Select Executable");
             string title = "Select Executable";
             if (rgatState.ConnectedToRemote) title += " (Remote Machine)";
-            if (ImGui.BeginPopupModal("Select Executable", ref show_select_exe_window, ImGuiWindowFlags.NoScrollbar))
+            ImGui.OpenPopup(title);
+            if (ImGui.BeginPopupModal(title, ref show_select_exe_window, ImGuiWindowFlags.NoScrollbar))
             {
 
                 rgatFilePicker.FilePicker picker;
-                if (rgatState.ConnectedToRemote)
+                bool isRemote = rgatState.ConnectedToRemote;
+                if (isRemote)
+                {
                     picker = rgatFilePicker.FilePicker.GetRemoteFilePicker(this, rgatState.NetworkBridge);
+                }
                 else
-                    picker = rgatFilePicker.FilePicker.GetFilePicker(this, Environment.CurrentDirectory);
-
+                { 
+                    picker = rgatFilePicker.FilePicker.GetFilePicker(this, Environment.CurrentDirectory); 
+                }
 
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
                 if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
                 {
-                    if (result == rgatFilePicker.FilePicker.PickerResult.eTrue && LoadSelectedBinary(picker.SelectedFile))
+                    if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
                     {
+                        if (isRemote)
+                            LoadRemoteBinary(picker.SelectedFile);
+                        else 
+                            LoadSelectedBinary(picker.SelectedFile);
                         rgatFilePicker.FilePicker.RemoveFilePicker(this);
                     }
                     show_select_exe_window = false;
