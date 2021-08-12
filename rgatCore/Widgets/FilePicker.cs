@@ -41,7 +41,6 @@ namespace rgatFilePicker
 
         BridgeConnection _remoteMirror;
         private const int RefreshThresholdSeconds = 2;
-        bool _needRefresh = false;
         public DateTime Created { get; private set; }
         string myID;
 
@@ -436,7 +435,7 @@ namespace rgatFilePicker
         public static FilePicker GetRemoteFilePicker(object o, BridgeConnection remoteMirror, string searchFilter = null, bool onlyAllowFolders = false)
         {
 
-            if (!_filePickers.TryGetValue(o, out FilePicker fp))
+            if (!_filePickers.TryGetValue(o, out FilePicker fp) || fp._remoteMirror.LastAddress != remoteMirror.LastAddress)
             {
                 fp = new FilePicker(remoteMirror: remoteMirror);
                 fp.Data.CurrentDirectory = RemoteDataMirror.RootDirectory;
@@ -462,7 +461,7 @@ namespace rgatFilePicker
         public static FilePicker GetFilePicker(object o, string startingPath, string searchFilter = null, bool onlyAllowFolders = false)
         {
 
-            if (!_filePickers.TryGetValue(o, out FilePicker fp))
+            if (!_filePickers.TryGetValue(o, out FilePicker fp) || fp._remoteMirror != null)
             {
                 fp = new FilePicker(remoteMirror: null);
                 fp.OnlyAllowFolders = onlyAllowFolders;
@@ -633,6 +632,7 @@ namespace rgatFilePicker
         {
             if (Data.CurrentDirectory == null || Data.NextRemoteDirectory != null)
             {
+                Debug.Assert(_remoteMirror != null);
                 string myID = this.Created.ToString();
 
                 RemoteDataMirror.ResponseStatus status = RemoteDataMirror.CheckTaskStatus("DirectoryInfo", myID);
@@ -674,8 +674,16 @@ namespace rgatFilePicker
             {
                 if (_refreshTimerFired && pendingCmdCount == 0)
                 {
-                    Data.NextRemoteDirectory = Data.CurrentDirectory;
-                    _refreshTimerFired = false;
+                    if (_remoteMirror != null)
+                    {
+                        Data.NextRemoteDirectory = Data.CurrentDirectory;
+                        _refreshTimerFired = false;
+                    }
+                    else
+                    {
+                        SetFileSystemEntries(Data.CurrentDirectory, GetFileSystemEntries());                       
+                    }
+
                 }
             }
 
@@ -754,13 +762,18 @@ namespace rgatFilePicker
 
         void SetActiveDirectory(string dir)
         {
-            if (_remoteMirror != null)
+            if (_remoteMirror == null)
             {
+                Data.Contents = new DirectoryContents(dir);
+            }
+            else
+            {
+                Data.NextRemoteDirectory = dir;
                 _refreshTimer.Stop();
                 _refreshTimerFired = false;
-                Data.NextRemoteDirectory = dir;
                 return;
             }
+
             DirectoryInfo thisdir = new DirectoryInfo(dir);
             Data.CurrentDirectory = thisdir.FullName;
             Data.CurrentDirectoryExists = Directory.Exists(Data.CurrentDirectory);
@@ -775,14 +788,8 @@ namespace rgatFilePicker
             }
             Data.ErrMsg = "";
 
-            string[] allpaths = Directory.GetFileSystemEntries(Data.CurrentDirectory);
-            List<Tuple<string, bool>> newFileListing = new List<Tuple<string, bool>>();
-            foreach (string path in allpaths)
-            {
-                if (Directory.Exists(path)) newFileListing.Add(new Tuple<string, bool>(path, true));
-                if (File.Exists(path)) newFileListing.Add(new Tuple<string, bool>(path, false));
-            }
-            SetFileSystemEntries(thisdir.FullName, newFileListing);
+
+            SetFileSystemEntries(thisdir.FullName, GetFileSystemEntries());
         }
 
 
@@ -946,12 +953,41 @@ namespace rgatFilePicker
         }
 
 
+
+        List<Tuple<string, bool>> GetFileSystemEntries()
+        {
+            List<Tuple<string, bool>> newFileListing = new List<Tuple<string, bool>>();
+            try
+            {
+                string[] allpaths = Directory.GetFileSystemEntries(Data.CurrentDirectory);
+                foreach (string path in allpaths)
+                {
+                    if (Directory.Exists(path)) newFileListing.Add(new Tuple<string, bool>(path, true));
+                    if (File.Exists(path)) newFileListing.Add(new Tuple<string, bool>(path, false));
+                }
+            }
+            catch(Exception e)
+            {
+                Logging.RecordLogEvent($"Failed to list directory {Data.CurrentDirectory} contents: {e.Message}");
+            }
+            return newFileListing;
+        }
+
         DirectoryContents SetFileSystemEntries(string fullName, List<Tuple<string, bool>> newFileListing, DirectoryContents newDirContentsObj = null)
         {
-            Data.Contents = new DirectoryContents(fullName);
-            Data.Contents.RefreshDirectoryContents(newFileListing, newDirContentsObj);
-            if (Data.Contents.ErrMsg != null && Data.Contents.ErrMsg.Length > 0)
-                Data.ErrMsg = Data.Contents.ErrMsg;
+            if (newDirContentsObj == null)
+            {
+                if (Data.Contents == null)
+                    Data.Contents = new DirectoryContents(fullName);
+                Data.Contents.RefreshDirectoryContents(newFileListing, newDirContentsObj);
+            }
+            else
+            {
+                Data.Contents = new DirectoryContents(fullName);
+                Data.Contents.RefreshDirectoryContents(newFileListing, newDirContentsObj);
+                if (Data.Contents.ErrMsg != null && Data.Contents.ErrMsg.Length > 0)
+                    Data.ErrMsg = Data.Contents.ErrMsg;
+            }
             return Data.Contents;
         }
 

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -61,7 +62,10 @@ namespace rgat
         private string _sha256hash = "";
         private long fileSize = 0;
         public string RemoteHost { get; private set; }  = null;
+        public bool RemoteBinary => RemoteHost != null;
+        public bool RemoteAccessible => RemoteHost == rgatState.NetworkBridge.LastAddress;
         public bool RemoteInitialised { get; private set; } = false;
+        public bool IsRunnable => RemoteBinary ? RemoteAccessible : File.Exists(FilePath);
 
         public TraceChoiceSettings traceChoices = new TraceChoiceSettings();
         public Byte[] StartBytes = null;
@@ -96,7 +100,7 @@ namespace rgat
                     }
                 }
                 catch (Exception e){
-                    Logging.RecordLogEvent("BinaryTarget().Parse() threw exception {e.Message}");
+                    Logging.RecordLogEvent($"BinaryTarget().Parse() threw exception {e.Message}", filter: Logging.LogFilterType.TextError);
                 }
             }
 
@@ -104,6 +108,8 @@ namespace rgat
 
             traceChoices.InitDefaultExclusions();
         }
+
+
 
         public JToken GetRemoteLoadInitData()
         {
@@ -117,14 +123,54 @@ namespace rgat
         }
 
 
-        public bool InitialiseFromRemoteData(Newtonsoft.Json.Linq.JToken data)
+        bool InitialiseFromRemoteDataInner(Newtonsoft.Json.Linq.JToken dataTok)
         {
             Console.WriteLine("Initing from remote");
-            if (data.Type != JTokenType.Object) return false;
+            if (dataTok.Type != JTokenType.Object)
+            {
+                Logging.RecordLogEvent($"Got non-obj InitialiseFromRemoteData param <{dataTok.Type}>", Logging.LogFilterType.TextError);
+                return false;
+            }
+            
+        
+            JObject data = dataTok.ToObject<JObject>();
+            bool success = true;
+            JToken sizeTok = null, snipTok = null, sha1Tok = null, sha256Tok = null, bitTok = null;
+            success = success && data.TryGetValue("Size", out sizeTok) && sizeTok.Type == JTokenType.Integer;
+            success = success && data.TryGetValue("StartBytes", out snipTok) && snipTok.Type == JTokenType.String;
+            success = success && data.TryGetValue("SHA1", out sha1Tok) && (sha1Tok.Type == JTokenType.String || sha1Tok == null);
+            success = success && data.TryGetValue("SHA256", out sha256Tok) && (sha256Tok.Type == JTokenType.String || sha256Tok == null);
+            success = success && data.TryGetValue("PEBitWidth", out bitTok) && bitTok.Type == JTokenType.Integer;
+            if (!success)
+            {
+                Logging.RecordLogEvent($"InitialiseFromRemoteData bad or missing field", Logging.LogFilterType.TextError);
+                return false;
+            }
 
+            fileSize = sizeTok.ToObject<long>();
+            StartBytes = Convert.FromBase64String(snipTok.ToObject<string>());
+            InitPreviews();
+
+            _sha1hash = sha1Tok.ToObject<string>() ?? "";
+            _sha256hash = sha256Tok.ToObject<string>() ?? "";
+            BitWidth = bitTok.ToObject<int>();
 
             RemoteInitialised = true;
             return true;
+        }
+
+
+        public bool InitialiseFromRemoteData(Newtonsoft.Json.Linq.JToken dataTok)
+        {
+            try
+            {
+                return InitialiseFromRemoteDataInner(dataTok);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Exception parsing Remote Target init data: {e.Message}");
+                return false;
+            }
         }
 
 
@@ -272,6 +318,8 @@ namespace rgat
 
         private void ParseFile()
         {
+            if (RemoteHost != null && RemoteInitialised == false) return;
+            Debug.Assert(RemoteHost == null);
             try
             {
                 FileInfo fileinfo = new FileInfo(FilePath);
@@ -279,17 +327,13 @@ namespace rgat
                 using FileStream fs = File.OpenRead(FilePath);
                 StartBytes = new byte[Math.Min(1024, fileSize)];
                 int bytesread = fs.Read(StartBytes, 0, StartBytes.Length);
-                int previewSize = Math.Min(16, bytesread);
-                if (fileSize == 0)
+                if (bytesread < StartBytes.Length)
                 {
-                    HexPreview = "[Empty File] ";
-                    ASCIIPreview = "[Empty File] ";
+                    byte[] newBuf = new byte[StartBytes.Length];
+                    Array.Copy(StartBytes, newBuf, newBuf.Length);
+                    StartBytes = newBuf;
                 }
-                else
-                {
-                    HexPreview = BitConverter.ToString(StartBytes, 0, previewSize).Replace("-", " ");
-                    ASCIIPreview = TextUtils.IllustrateASCIIBytes(StartBytes, previewSize);
-                }
+                InitPreviews();
 
                 SHA1 sha1 = new SHA1Managed();
                 _sha1hash = BitConverter.ToString(sha1.ComputeHash(fs)).Replace("-", "");
@@ -316,6 +360,22 @@ namespace rgat
                 HexPreview = "Error";
             }
         }
+
+        void InitPreviews()
+        {
+            int previewSize = Math.Min(16, StartBytes.Length);
+            if (fileSize == 0)
+            {
+                HexPreview = "[Empty File] ";
+                ASCIIPreview = "[Empty File] ";
+            }
+            else
+            {
+                HexPreview = BitConverter.ToString(StartBytes, 0, previewSize).Replace("-", " ");
+                ASCIIPreview = TextUtils.IllustrateASCIIBytes(StartBytes, previewSize);
+            }
+        }
+
         public string GetFileSizeString()
         {
             return String.Format(new FileSizeFormatProvider(), "{0:fs}", fileSize);

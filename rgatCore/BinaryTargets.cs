@@ -39,7 +39,7 @@ namespace rgat
             }
         }
 
-        public BinaryTarget AddTargetByPath(string path, int arch = 0, string remoteAddr = "")
+        public BinaryTarget AddTargetByPath(string path, int arch = 0, string remoteAddr = null)
         {
             lock (targetslock)
             {

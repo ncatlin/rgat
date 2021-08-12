@@ -15,7 +15,7 @@ namespace rgat
 {
     public class rgatState
     {
-        public BinaryTargets targets = new BinaryTargets();
+        public static BinaryTargets targets = new BinaryTargets();
         public BinaryTarget ActiveTarget;// { get; private set; } = null;
         public TraceRecord ActiveTrace;
         public PlottedGraph ActiveGraph { get; private set; }
@@ -26,12 +26,13 @@ namespace rgat
         public VideoEncoder VideoRecorder = new VideoEncoder();
         public static BridgeConnection NetworkBridge;
         public static bool ConnectedToRemote => NetworkBridge != null && NetworkBridge.Connected;
+        public static string LocalCoordinatorPipeName;
 
         public PreviewGraphsWidget PreviewWidget;
 
         public rgatState()
         {
-
+            LocalCoordinatorPipeName = Path.GetRandomFileName().Substring(0, 8).ToUpper();
         }
 
         public void InitVeldrid(Veldrid.GraphicsDevice _gd, Veldrid.CommandList _cl)
@@ -53,8 +54,8 @@ namespace rgat
 
 
         public static bool RgatIsExiting { private set; get; } = false;
-        public int InstrumentationCount { private set; get; } = 0;
-        public void RecordInstrumentationConnection() => InstrumentationCount += 1;
+        public int TotalTraceCount { private set; get; } = 0;
+        public void IncreaseTraceCount() => TotalTraceCount += 1;
 
         public LayoutStyles.Style newGraphLayout = LayoutStyles.Style.ForceDirected3DNodes;
 
@@ -71,7 +72,7 @@ namespace rgat
             YARALib?.CancelAllScans();
             VideoRecorder.Done();
 
-            foreach (BinaryTarget targ in this.targets.GetBinaryTargets())
+            foreach (BinaryTarget targ in targets.GetBinaryTargets())
             {
                 foreach (TraceRecord trace in targ.GetTracesList())
                 {

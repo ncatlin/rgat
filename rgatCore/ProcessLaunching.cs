@@ -61,15 +61,26 @@ namespace rgat
 
     class ProcessLaunching
     {
-        public static System.Diagnostics.Process StartTracedProcess(string pintool, string targetBinary, long testID = -1)
+        public static System.Diagnostics.Process StartLocalTrace(string pintool, string targetBinary, long testID = -1)
         {
             string runargs = $"-t \"{pintool}\" ";
             if (testID > -1)
                 runargs += $"-T {testID} ";
+            runargs += $"-P {rgatState.LocalCoordinatorPipeName} ";
             runargs += $"-- \"{targetBinary}\" ";
             return System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
         }
 
+        public static void StartRemoteTrace(BinaryTarget target, long testID = -1)
+        {
+            if(!target.RemoteAccessible)
+            {
+                Logging.RecordLogEvent($"Could not trace {target.FilePath} on non-connected host {target.RemoteHost}", Logging.LogFilterType.TextAlert);
+                return;
+            }
+            string startParams = $"{target.FilePath},{testID}";
+            rgatState.NetworkBridge.SendCommand("StartTrace", null, null, startParams);
+        }
 
 
         //for each saved process we have a thread rendering graph data for previews, heatmaps and conditonals

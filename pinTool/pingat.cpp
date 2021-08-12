@@ -83,11 +83,10 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v);
 /* ===================================================================== */
 // Command line switches
 /* ===================================================================== */
-KNOB<std::string> KnobSkipSleep(KNOB_MODE_WRITEONCE, "pintool", "caffine", "0", "skip sleep calls");
 
-KNOB<BOOL>   KnobCount(KNOB_MODE_WRITEONCE, "pintool", "count", "1", "count instructions, basic blocks and threads in the application");
+KNOB<std::string> TestArgValue(KNOB_MODE_WRITEONCE, "pintool", "T", "-1", "Test case ID");
 
-KNOB<std::string> TestArgValue(KNOB_MODE_WRITEONCE, "pintool", "T", "-1", "Test Case ID");
+KNOB<std::string> PipeNameValue(KNOB_MODE_WRITEONCE, "pintool", "P", "change_me", "rgat coordinator pipe name");
 
 /* ===================================================================== */
 // Utilities
@@ -1303,9 +1302,10 @@ void getSetupString(std::string programName, char* buf, int bufSize)
 }
 
 
-DWORD connect_coordinator_pipe(std::wstring coordinatorName, NATIVE_FD& coordinatorPipe)
+DWORD connect_coordinator_pipe(std::string coordinatorName, NATIVE_FD& coordinatorPipe)
 {
-	coordinatorPipe = (NATIVE_FD)WINDOWS::CreateFileW(coordinatorName.c_str(), GENERIC_READ |  // read and write access 
+
+	coordinatorPipe = (NATIVE_FD)WINDOWS::CreateFileA(coordinatorName.c_str(), GENERIC_READ |  // read and write access 
 		GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0,
 		NULL);
 
@@ -1316,7 +1316,7 @@ DWORD connect_coordinator_pipe(std::wstring coordinatorName, NATIVE_FD& coordina
 	if (lastErr == ERROR_PIPE_BUSY) {
 		int remaining = 10;
 		do {
-			coordinatorPipe = (NATIVE_FD)WINDOWS::CreateFileW(coordinatorName.c_str(), GENERIC_READ |  // read and write access 
+			coordinatorPipe = (NATIVE_FD)WINDOWS::CreateFileA(coordinatorName.c_str(), GENERIC_READ |  // read and write access 
 				GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0,
 				NULL);
 			if (coordinatorPipe != -1)
@@ -1331,11 +1331,11 @@ DWORD connect_coordinator_pipe(std::wstring coordinatorName, NATIVE_FD& coordina
 	return lastErr;
 }
 
-DWORD extract_pipes(std::string programname, std::string& cmdPipe, std::string& cmdResponsePipe, std::string& bbName)
+DWORD extract_pipes(std::string programname, std::string coordinatorPipeName, std::string& cmdPipe, std::string& cmdResponsePipe, std::string& bbName)
 {
 	NATIVE_FD coordinatorPipe;
-	const std::wstring coordinatorName = L"\\\\.\\pipe\\rgatCoordinator";
-	DWORD lastErr = connect_coordinator_pipe(coordinatorName, coordinatorPipe);
+	const std::string coordinatorPath = "\\\\.\\pipe\\"+ coordinatorPipeName;
+	DWORD lastErr = connect_coordinator_pipe(coordinatorPath, coordinatorPipe);
 	if (lastErr != 0)
 	{
 		if (lastErr == 2)
@@ -1344,7 +1344,7 @@ DWORD extract_pipes(std::string programname, std::string& cmdPipe, std::string& 
 		}
 		else
 		{
-			wprintf(L"[pingat]Failed to connect to %S, error: 0x%x\n", coordinatorName.c_str(), lastErr);
+			wprintf(L"[pingat]Failed to connect to %S, error: 0x%x\n", coordinatorPath.c_str(), lastErr);
 		}
 		return false;
 	}
@@ -1357,7 +1357,7 @@ DWORD extract_pipes(std::string programname, std::string& cmdPipe, std::string& 
 	OS_RETURN_CODE result = OS_WriteFD(coordinatorPipe, msg, &count);
 	if (result.generic_err != OS_RETURN_CODE_NO_ERROR)
 	{
-		wprintf(L"[pingat]Failed to send data to coordinator pipe %S, error: 0x%x\n", coordinatorName.c_str(), result.os_specific_err);
+		wprintf(L"[pingat]Failed to send data to coordinator pipe %S, error: 0x%x\n", coordinatorPath.c_str(), result.os_specific_err);
 		return false;
 	}
 	else
@@ -1365,7 +1365,7 @@ DWORD extract_pipes(std::string programname, std::string& cmdPipe, std::string& 
 		result = OS_ReadFD(coordinatorPipe, &count, msg);
 		if (result.generic_err != OS_RETURN_CODE_NO_ERROR)
 		{
-			wprintf(L"[pingat]Failed to read data from coordinator pipe %S, error: 0x%x\n", coordinatorName.c_str(), result.os_specific_err);
+			wprintf(L"[pingat]Failed to read data from coordinator pipe %S, error: 0x%x\n", coordinatorPath.c_str(), result.os_specific_err);
 		}
 		else
 		{
@@ -1405,11 +1405,10 @@ DWORD extract_pipes(std::string programname, std::string& cmdPipe, std::string& 
 
 // I can't get full duplex async named pipes to work between PIN and the .net core NamedPipeServerStream, so use seperate pipes for cmds/responses
 // outgoing block (ie: disassembly) data also gets its own pipe
-bool establishRGATConnection(std::string programName)
+bool establishRGATConnection(std::string programName, std::string coordinatorPipeName)
 {
-
 	std::string bbpipename, cmdpipename, eventpipename;
-	if (!extract_pipes(programName, cmdpipename, eventpipename, bbpipename))
+	if (!extract_pipes(programName, coordinatorPipeName, cmdpipename, eventpipename, bbpipename))
 	{
 		std::cout << "[pingat]Failed to establish process pipes" << std::endl;
 		return false;
@@ -1898,10 +1897,17 @@ int main(int argc, char* argv[])
 	{
 		std::cerr << "Error: No app argument [-- app_path]" << std::endl;
 		PIN_ExitProcess(1);
+	}	
+	
+	std::string coordinatorPipeName = PipeNameValue.Value();
+	if (coordinatorPipeName == "change_me")
+	{
+		std::cerr << "Error: No coordinator pipe name argument [-P]" << std::endl;
+		PIN_ExitProcess(1);
 	}
 
 	//TraceChoiceFileList.push_back(programName); for default ignore mode
-	if (!establishRGATConnection(programName))
+	if (!establishRGATConnection(programName, coordinatorPipeName))
 	{
 		std::cerr << "Failed to establish connection to rgat" << std::endl;
 		PIN_ExitProcess(1);

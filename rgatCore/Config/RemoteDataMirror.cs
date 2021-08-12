@@ -54,24 +54,28 @@ namespace rgat.Config
  
                 if (_pendingCommandCallbacks.TryGetValue(commandID, out ProcessResponseCallback cb))
                 {
-
+                    string cmdref = _pendingEventsReverse[commandID];
                     bool success = false;
                     try
                     {
                         success = cb(response);
+                        if (!success)
+                        {
+                            Logging.RecordLogEvent($"Invocation of callback for request {commandID} ({cmdref}) failed", Logging.LogFilterType.TextError);
+                        }
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Exception invoking callback for command {commandID}: {e}", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Exception invoking callback for request {commandID} ({cmdref}): {e}", Logging.LogFilterType.TextError);
+                    }
+                    if (!success)
+                    {
+                        rgatState.NetworkBridge.Teardown($"Command failed: {commandID}:{cmdref}");
                     }
                     _pendingCommandCallbacks.Remove(commandID);
                     _pendingEvents.Remove(_pendingEventsReverse[commandID]);
                     _pendingEventsReverse.Remove(commandID);
-                    if (!success)
-                    {
-                        Logging.RecordLogEvent($"Invocation of callback for {commandID} failed", Logging.LogFilterType.TextError);
 
-                    }
                 }
             }
         }

@@ -799,7 +799,7 @@ namespace rgat
                     return false;
                 }
 
-                if (evt.LogType == Logging.eLogType.TimeLine)
+                if (evt.LogType == Logging.eLogFilterBaseType.TimeLine)
                 {
                     switch (evt.TimelineEventType)
                     {

@@ -157,6 +157,19 @@ namespace rgat.OperationModes
                     RemoteDataMirror.DeliverResponse(commandID, response);
                     break;
 
+                case emsgType.Log:
+                    {
+                        int typeEnd = item.Item2.IndexOf(',');
+                        string msgTypeStr = item.Item2.Substring(0, typeEnd);
+                        if (!Enum.TryParse(typeof(Logging.LogFilterType), msgTypeStr, out object logtype))
+                        {
+                            rgatState.NetworkBridge.Teardown($"Bad Log Format");
+                            return;
+                        }
+                        Console.WriteLine($"Logging { (Logging.LogFilterType)logtype} from remote: {item.Item2}");
+                        Logging.RecordLogEvent(item.Item2.Substring(typeEnd + 1), filter: (Logging.LogFilterType)logtype);
+                        break;
+                    }
                 default:
                     rgatState.NetworkBridge.Teardown($"Bad message type ({item.Item1})");
                     Logging.RecordLogEvent($"Unhandled message type {item.Item1} => {item.Item2}", filter: Logging.LogFilterType.TextError );
@@ -232,6 +245,9 @@ namespace rgat.OperationModes
                 case "LoadTarget":
                     rgatState.NetworkBridge.SendResponseObject(cmdID, GatherTargetInitData(paramfield));
                     break;
+                case "StartTrace":
+                    StartTrace(paramfield);
+                    break;
                 default:
                     Logging.RecordLogEvent($"Unknown command: {actualCmd} ({cmd})", Logging.LogFilterType.TextError);
                     rgatState.NetworkBridge.Teardown("Bad Command");
@@ -240,6 +256,16 @@ namespace rgat.OperationModes
 
         }
 
+        void StartTrace(string paramfield)
+        {
+            int testIdIdx = paramfield.LastIndexOf(',');
+            string path = paramfield.Substring(0, testIdIdx);
+            long testID = long.Parse(paramfield.Substring(testIdIdx + 1));
+            BinaryTarget target = rgatState.targets.AddTargetByPath(path);
+
+            Process p = ProcessLaunching.StartLocalTrace(target.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64, path, testID);
+            rgatState.NetworkBridge.SendLog($"Trace of {path} launched as remote process ID {p.Id}", Logging.LogFilterType.TextAlert);
+        }
 
         JsonLoadSettings _JSONLoadSettings = new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error };
 
@@ -298,8 +324,9 @@ namespace rgat.OperationModes
 
         JToken GatherTargetInitData(string path)
         {
-            BinaryTarget targ = new BinaryTarget(path);
-            return (JToken)targ.GetRemoteLoadInitData();
+            BinaryTarget target = rgatState.targets.AddTargetByPath(path);          
+
+            return (JToken)target.GetRemoteLoadInitData();
         }
 
 

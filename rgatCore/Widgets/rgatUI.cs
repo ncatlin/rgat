@@ -153,6 +153,8 @@ namespace rgat
                 CheckMissingPaths();
                 _scheduleMissingPathCheck = false;
             }
+            _activeTargetRunnable = _rgatState.ActiveTarget != null && _rgatState.ActiveTarget.IsRunnable;
+
         }
 
         // keep checking the files in the loading panes so we can highlight if they are deleted (or appear)
@@ -961,6 +963,18 @@ namespace rgat
         private void DrawTraceTab_FileInfo(BinaryTarget activeTarget, float width)
         {
             ImGui.BeginChildFrame(22, new Vector2(width, 300), ImGuiWindowFlags.AlwaysAutoResize);
+
+            if (activeTarget.RemoteHost != null && !activeTarget.RemoteInitialised)
+            {
+                if (rgatState.ConnectedToRemote)
+                    ImguiUtils.DrawRegionCenteredText("Initialising from remote host");
+                else
+                    ImguiUtils.DrawRegionCenteredText("Disconnected from remote host before metadata could be retrieved");
+
+                ImGui.EndChildFrame();
+                return;
+            }
+
             ImGui.BeginGroup();
             {
                 if (ImGui.BeginTable("#BasicStaticFields", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, ImGui.GetContentRegionAvail()))
@@ -1195,6 +1209,7 @@ namespace rgat
         bool _checkStartPausedState;
         bool _recordVideoOnStart;
         bool _diagnosticMode;
+        bool _activeTargetRunnable;
         private void DrawTraceTab_ExecutionSettings(float width)
         {
             ImGui.BeginGroup();
@@ -1246,12 +1261,23 @@ namespace rgat
 
                 string pintoolpath = _rgatState.ActiveTarget.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
 
-                if (ImGui.Button("Start Trace"))
+                bool runnable = _activeTargetRunnable;
+
+                ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourImGui(ImGuiCol.Button) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
+                if (ImGui.Button("Start Trace") && runnable)
                 {
-                    _WaitingNewTraceCount = _rgatState.InstrumentationCount;
-                    System.Diagnostics.Process p = ProcessLaunching.StartTracedProcess(pintoolpath, _rgatState.ActiveTarget.FilePath);
-                    Console.WriteLine($"Started process id {p.Id}");
+                    _OldTraceCount = _rgatState.TotalTraceCount;
+                    if (_rgatState.ActiveTarget.RemoteBinary)
+                    {
+                       ProcessLaunching.StartRemoteTrace(_rgatState.ActiveTarget);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Process p = ProcessLaunching.StartLocalTrace(pintoolpath, _rgatState.ActiveTarget.FilePath);
+                        Console.WriteLine($"Started local process id {p.Id}");
+                    }
                 }
+                ImGui.PopStyleColor();
                 ImGui.SameLine();
 
                 if (ImGui.Checkbox("Start Paused", ref _checkStartPausedState))
@@ -1463,7 +1489,7 @@ namespace rgat
                     if (ImGui.BeginTable("#RecentBinTableList", 1, ImGuiTableFlags.ScrollY, tableSz))
                     {
                         ImGui.Indent(5);
-                        ImGui.TableSetupColumn("Recent Binaries");
+                        ImGui.TableSetupColumn("Recent Binaries"+$"{(rgatState.ConnectedToRemote ? " (Remote Files)" : "")}");
                         ImGui.TableSetupScrollFreeze(0, 1);
                         ImGui.TableHeadersRow();
                         int bincount = recentBins.Count;
@@ -1476,7 +1502,7 @@ namespace rgat
                             {
                                 if (File.Exists(entry.path))
                                 {
-                                    if (!LoadSelectedBinary(entry.path) && !_badPaths.Contains(entry.path))
+                                    if (!LoadSelectedBinary(entry.path, rgatState.ConnectedToRemote) && !_badPaths.Contains(entry.path))
                                     {
                                         _badPaths.Add(entry.path);
                                     }
@@ -2956,7 +2982,7 @@ namespace rgat
                         string sourceString;
                         switch (msg.LogType)
                         {
-                            case eLogType.Text:
+                            case eLogFilterBaseType.Text:
                                 {
                                     Logging.TEXT_LOG_EVENT text_evt = (Logging.TEXT_LOG_EVENT)msg;
                                     sourceString = $"{msg.LogType} - {text_evt._filter}";
@@ -2964,7 +2990,7 @@ namespace rgat
                                     break;
                                 }
 
-                            case eLogType.TimeLine:
+                            case eLogFilterBaseType.TimeLine:
                                 {
                                     Logging.TIMELINE_EVENT tl_evt = (Logging.TIMELINE_EVENT)msg;
                                     sourceString = $"{tl_evt.Filter}";
@@ -3016,7 +3042,10 @@ namespace rgat
                     {
                         foreach (var entry in recentbins.Take(Math.Min(10, recentbins.Count)))
                         {
-                            if (DrawRecentPathEntry(entry, true)) LoadSelectedBinary(entry.path);
+                            if (DrawRecentPathEntry(entry, true))
+                            {
+                                LoadSelectedBinary(entry.path, rgatState.ConnectedToRemote);
+                            }
                         }
                         ImGui.EndMenu();
                     }
@@ -3067,7 +3096,7 @@ namespace rgat
         private unsafe bool DrawTargetBar()
         {
 
-            if (_rgatState.targets.count() == 0)
+            if (rgatState.targets.count() == 0)
             {
                 ImGui.Text("No target selected or trace loaded");
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
@@ -3077,7 +3106,7 @@ namespace rgat
             BinaryTarget activeTarget = _rgatState.ActiveTarget;
             //there shouldn't actually be a way to select a null target once one is loaded
             string activeString = (activeTarget == null) ? "No target selected" : activeTarget.FilePath;
-            List<string> paths = _rgatState.targets.GetTargetPaths();
+            List<string> paths = rgatState.targets.GetTargetPaths();
             ImGuiComboFlags flags = 0;
             if (ImGui.BeginCombo("Selected Binary", activeString, flags))
             {
@@ -3100,7 +3129,7 @@ namespace rgat
 
         bool _SwitchToLogsTab = false;
         bool _SwitchToVisualiserTab = false;
-        int _WaitingNewTraceCount = -1;
+        int _OldTraceCount = -1;
         string _currentTab = "";
 
         private unsafe void DrawTabs()
@@ -3108,11 +3137,10 @@ namespace rgat
             bool tabDrawn = false;
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
 
-            if (_WaitingNewTraceCount != -1 && _rgatState.InstrumentationCount > _WaitingNewTraceCount)
+            if (_OldTraceCount != -1 && _rgatState.TotalTraceCount > _OldTraceCount)
             {
-                _WaitingNewTraceCount = -1;
+                _OldTraceCount = -1;
                 _SwitchToVisualiserTab = true;
-                //MainGraphWidget.SetActiveGraph(null);
                 PreviewGraphWidget.SetActiveTrace(null);
                 _rgatState.SelectActiveTrace(newest: true);
             }
@@ -3160,8 +3188,11 @@ namespace rgat
 
         }
 
-        bool LoadSelectedBinary(string path)
+        bool LoadSelectedBinary(string path, bool isRemote)
         {
+            if (isRemote)
+                return LoadRemoteBinary(path);
+
             if (!File.Exists(path))
             {
                 Logging.RecordLogEvent($"Loading binary {path} failed: File does not exist", filter: LogFilterType.TextAlert);
@@ -3227,10 +3258,7 @@ namespace rgat
                 {
                     if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
                     {
-                        if (isRemote)
-                            LoadRemoteBinary(picker.SelectedFile);
-                        else 
-                            LoadSelectedBinary(picker.SelectedFile);
+                        LoadSelectedBinary(picker.SelectedFile, rgatState.ConnectedToRemote);
                         rgatFilePicker.FilePicker.RemoveFilePicker(this);
                     }
                     show_select_exe_window = false;

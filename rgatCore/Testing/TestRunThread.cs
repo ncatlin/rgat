@@ -44,9 +44,8 @@ namespace rgat.Testing
             Console.WriteLine($"Started test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
             int countDown = 2;
 
-            string pintoolpath = GlobalConfig.PinToolPath32;//_rgatstate.ActiveTarget.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
             Console.WriteLine($"Starting test process {_testCase.BinaryPath} test id {_thisTest.TestID}");
-            ProcessLaunching.StartTracedProcess(pintoolpath, _testCase.BinaryPath, testID: _thisTest.TestID);
+            ProcessLaunching.StartLocalTrace(_testCase.TestBits == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64, _testCase.BinaryPath, testID: _thisTest.TestID);
 
             //GetTestTrace
             while (!rgatState.RgatIsExiting && !Finished)

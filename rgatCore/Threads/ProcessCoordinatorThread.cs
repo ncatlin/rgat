@@ -28,6 +28,15 @@ namespace rgat.Threads
         {
 
             int bytesRead = coordPipe.EndRead(ir);
+
+            if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.GUIMode)
+            {
+                if (coordPipe.IsConnected) coordPipe.Disconnect();
+                Logging.RecordLogEvent($"Ignoring incoming coordinator request {System.Text.Encoding.ASCII.GetString(buf)} while in remote tracing mode", Logging.LogFilterType.TextAlert);
+                return;
+            }
+
+
             bytesRead = Array.FindIndex(buf, elem => elem == 0);
 
             if (bytesRead > 0 && bytesRead < 1024)
@@ -90,7 +99,7 @@ namespace rgat.Threads
             try
             {
 
-                coordPipe = new NamedPipeServerStream("rgatCoordinator", PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
+                coordPipe = new NamedPipeServerStream(rgatState.LocalCoordinatorPipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
             }
             catch (System.IO.IOException e)
             {
@@ -160,6 +169,7 @@ namespace rgat.Threads
 
         private void process_new_pin_connection(uint PID, int arch, long ID, string programName, long testID = -1)
         {
+
             string binaryName = Path.GetFileName(programName);
             string shortName = binaryName.Substring(0, Math.Min(binaryName.Length, 20));
             bool isTest = testID > -1;
@@ -172,7 +182,7 @@ namespace rgat.Threads
             Logging.RecordLogEvent(msg, Logging.LogFilterType.TextDebug);
 
             BinaryTarget target;
-            if (!_clientState.targets.GetTargetByPath(programName, out target))
+            if (!rgatState.targets.GetTargetByPath(programName, out target))
             {
                 target = _clientState.AddTargetByPath(programName, arch, true);
             }
@@ -190,7 +200,7 @@ namespace rgat.Threads
 
             //TraceRecord tr = new TraceRecord(PID, ID, target, DateTime.Now, TraceRecord.eTracePurpose.eVisualiser, arch);
 
-            _clientState.RecordInstrumentationConnection();
+            _clientState.IncreaseTraceCount();
 
             target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr);
             if (isTest)

@@ -9,18 +9,18 @@ namespace rgat
     public class Logging
     {
 
-        public enum eLogType { TimeLine, Text }
+        public enum eLogFilterBaseType { TimeLine, Text }
         public class LOG_EVENT
         {
-            public LOG_EVENT(eLogType type)
+            public LOG_EVENT(eLogFilterBaseType type)
             {
                 _eventTimeMS = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                 _type = type;
             }
             public long EventTimeMS => _eventTimeMS;
-            public eLogType LogType => _type;
+            public eLogFilterBaseType LogType => _type;
             long _eventTimeMS;
-            eLogType _type;
+            eLogFilterBaseType _type;
             public LogFilterType Filter;
             public ProtoGraph _graph;
             public TraceRecord Trace;
@@ -49,7 +49,7 @@ namespace rgat
 
         public class TIMELINE_EVENT : LOG_EVENT
         {
-            public TIMELINE_EVENT(eTimelineEvent timelineEventType, object item) : base(eLogType.TimeLine)
+            public TIMELINE_EVENT(eTimelineEvent timelineEventType, object item) : base(eLogFilterBaseType.TimeLine)
             {
                 _eventType = timelineEventType;
                 _item = item;
@@ -74,7 +74,7 @@ namespace rgat
             }
 
 
-            public TIMELINE_EVENT(JObject jobj, TraceRecord trace) : base(eLogType.TimeLine)
+            public TIMELINE_EVENT(JObject jobj, TraceRecord trace) : base(eLogFilterBaseType.TimeLine)
             {
                 if (!jobj.TryGetValue("EvtType", out JToken evtType) || evtType.Type != JTokenType.Integer)
                 {
@@ -261,7 +261,7 @@ namespace rgat
 
         public class TEXT_LOG_EVENT : LOG_EVENT
         {
-            public TEXT_LOG_EVENT(LogFilterType filter, string text) : base(eLogType.Text)
+            public TEXT_LOG_EVENT(LogFilterType filter, string text) : base(eLogFilterBaseType.Text)
             {
                 _filter = filter;
                 _text = text;
@@ -374,7 +374,7 @@ namespace rgat
         {
             lock (_messagesLock)
             {
-                return _logMessages.Where(x => x.LogType == eLogType.Text && x.Filter == LogFilterType.TextError).ToArray();
+                return _logMessages.Where(x => x.LogType == eLogFilterBaseType.Text && x.Filter == LogFilterType.TextError).ToArray();
 
             }
         }

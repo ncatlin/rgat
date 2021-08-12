@@ -17,7 +17,7 @@ namespace rgat
 {
     public class BridgeConnection
     {
-        public enum emsgType { Meta, TracerCommand, CommandResponse, Data };
+        public enum emsgType { Meta, TracerCommand, CommandResponse, Data, Log };
 
         public delegate void OnGotDataCallback(Tuple<emsgType, string> data);
         public delegate void OnConnectSuccessCallback();
@@ -327,21 +327,35 @@ namespace rgat
         public int SendCommand(string command, string recipientID, RemoteDataMirror.ProcessResponseCallback callback, string param = null)
         {
             Debug.Assert(!command.Contains('&'));
-            Debug.Assert(recipientID != null);
 
             lock (_sendQueueLock)
             {
                 commandCount += 1;
                 string fulltext = $"{command}&{commandCount}";
                 if (param != null)
-                    fulltext +=  "&"+param;
+                    fulltext += "&" + param;
                 fulltext += '&';
                 Console.WriteLine("Send cmd  " + fulltext);
-                RemoteDataMirror.RegisterPendingResponse(commandCount, command, recipientID, callback);
+                if (callback != null)
+                {
+                    Debug.Assert(recipientID != null);
+                    RemoteDataMirror.RegisterPendingResponse(commandCount, command, recipientID, callback); 
+                }
                 _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.TracerCommand, fulltext));
                 NewOutDataEvent.Set();
                 return commandCount;
             }
+        }
+
+        public void SendLog(string message, Logging.LogFilterType msgType)
+        {
+            lock (_sendQueueLock)
+            {
+                Console.WriteLine($"Sending {msgType} message: " + message);
+                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.Log, $"{(int)msgType},{message}"));
+                NewOutDataEvent.Set();
+            }
+
         }
 
 
@@ -401,7 +415,7 @@ namespace rgat
             {
                 if (_ActiveClient != null && _ActiveClient.Connected)
                 {
-                    RawSendData(new BinaryWriter(_ActiveClient.GetStream()), new Tuple<emsgType, string>(emsgType.Meta, "Teardown:"+ reason));
+                    RawSendData(new BinaryWriter(_ActiveClient.GetStream()), new Tuple<emsgType, string>(emsgType.Meta, "Teardown:" + reason));
                     AddDisplayLogMessage("Disconnected", null);
                 }
                 else
