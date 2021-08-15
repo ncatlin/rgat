@@ -181,7 +181,7 @@ namespace rgat.Widgets
 
         void CreateOptionsPane_Signatures()
         {
-            if (_rgatState.YARALib == null || _rgatState.DIELib == null) return; //loading
+            if (rgatState.YARALib == null || rgatState.DIELib == null) return; //loading
 
             //available/enabled/loaded signatures pane
             //scanning controls
@@ -200,7 +200,7 @@ namespace rgat.Widgets
                     {
                         if (ImGui.BeginChild("YaraSigsList", ImGui.GetContentRegionAvail(), true))
                         {
-                            var ruleList = _rgatState.YARALib.GetRuleData();
+                            var ruleList = rgatState.YARALib.GetRuleData();
 
                             ImGuiTableFlags flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg;
                             if (ImGui.BeginTable("#SettsYaraRuleList", 3, flags, ImGui.GetContentRegionAvail()))//))
@@ -241,7 +241,7 @@ namespace rgat.Widgets
                     {
                         if (ImGui.BeginChild("DieSigsList", ImGui.GetContentRegionAvail(), true))
                         {
-                            var ruleList = _rgatState.DIELib.GetSignatures;
+                            var ruleList = rgatState.DIELib.GetSignatures;
 
                             ImGuiTableFlags flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg;
                             if (ImGui.BeginTable("#SettsDieRuleList", 2, flags, ImGui.GetContentRegionAvail()))//))
@@ -285,7 +285,7 @@ namespace rgat.Widgets
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, formatCellColour);
-                    uint yaraSigsCount = _rgatState.YARALib.LoadedRuleCount();
+                    uint yaraSigsCount = rgatState.YARALib.LoadedRuleCount();
                     ImGui.Text($"YARA ({yaraSigsCount} rules)");
                     ImGui.TableNextColumn();
                     ImGui.Checkbox($"##fycheck", ref GlobalConfig.ScanFilesYARA);
@@ -295,7 +295,7 @@ namespace rgat.Widgets
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, formatCellColour);
-                    int dieFileSigsCount = _rgatState.DIELib.NumScriptsLoaded;
+                    int dieFileSigsCount = rgatState.DIELib.NumScriptsLoaded;
                     ImGui.Text($"DiE ({dieFileSigsCount} scripts)");
                     ImGui.TableNextColumn();
                     ImGui.Checkbox($"##fdcheck", ref GlobalConfig.ScanFilesDiE);
@@ -813,7 +813,7 @@ namespace rgat.Widgets
 
         void CreateOptionsPane_VideoEncode()
         {
-            _rgatState.VideoRecorder?.DrawSettingsPane();
+            rgatState.VideoRecorder?.DrawSettingsPane();
         }
 
 

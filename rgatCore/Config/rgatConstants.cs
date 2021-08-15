@@ -122,4 +122,9 @@ namespace rgat
         public const int TotalLockoutLimit = 15;
         public const int InterfaceRefreshIntervalMS = 6000; 
     }
+
+    static class TRACING_CONSTANTS
+    {
+        public const int TagCacheSize = 1024;
+    }
 }

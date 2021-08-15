@@ -368,13 +368,13 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("This sets the speed of graph layout and slows over time");
 
-                    if (_rgatState.VideoRecorder.Recording)
+                    if (rgatState.VideoRecorder.Recording)
                     {
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         ImGui.Text($"Video Frame Backlog");
                         ImGui.TableNextColumn();
-                        ImGui.Text($"{_rgatState.VideoRecorder.FrameQueueSize}");
+                        ImGui.Text($"{rgatState.VideoRecorder.FrameQueueSize}");
                         ImGui.TableNextColumn();
                         ImGui.Text("Number of recorded frames awaiting commit to video");
                     }
@@ -604,20 +604,20 @@ namespace rgat
                         switch (boundAction)
                         {
                             case eKeybind.ToggleVideo:
-                                if (_rgatState.VideoRecorder.Recording)
+                                if (rgatState.VideoRecorder.Recording)
                                 {
-                                    _rgatState.VideoRecorder.Done();
+                                    rgatState.VideoRecorder.Done();
                                 }
                                 else
                                 {
-                                    _rgatState.VideoRecorder.StartRecording();
+                                    rgatState.VideoRecorder.StartRecording();
                                 }
                                 continue;
 
                             case eKeybind.PauseVideo:
-                                if (_rgatState.VideoRecorder.Recording)
+                                if (rgatState.VideoRecorder.Recording)
                                 {
-                                    _rgatState.VideoRecorder.CapturePaused = !_rgatState.VideoRecorder.CapturePaused;
+                                    rgatState.VideoRecorder.CapturePaused = !rgatState.VideoRecorder.CapturePaused;
                                 }
                                 continue;
 
@@ -675,12 +675,12 @@ namespace rgat
 
         private void DrawDetectItEasyProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
-            if (_rgatState.DIELib == null)
+            if (rgatState.DIELib == null)
             {
                 ImGui.Text("Not Loaded");
                 return;
             }
-            DiELibDotNet.DieScript.SCANPROGRESS DEProgress = _rgatState.DIELib.GetDIEScanProgress(activeTarget);
+            DiELibDotNet.DieScript.SCANPROGRESS DEProgress = rgatState.DIELib.GetDIEScanProgress(activeTarget);
             ImGui.BeginGroup();
             {
                 uint textColour = Themes.GetThemeColourImGui(ImGuiCol.Text);
@@ -730,7 +730,7 @@ namespace rgat
                     }
                     if (ImGui.IsItemClicked())
                     {
-                        _rgatState.DIELib.CancelDIEScan(activeTarget);
+                        rgatState.DIELib.CancelDIEScan(activeTarget);
                     }
                 }
                 else if (!DEProgress.running && !DEProgress.loading)
@@ -752,15 +752,15 @@ namespace rgat
                         ImGui.PopStyleColor();
                         ImGui.EndTooltip();
                     }
-                    if (_rgatState.DIELib.ScriptsLoaded && ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                    if (rgatState.DIELib.ScriptsLoaded && ImGui.IsItemClicked(ImGuiMouseButton.Left))
                     {
-                        _rgatState.DIELib.StartDetectItEasyScan(activeTarget);
+                        rgatState.DIELib.StartDetectItEasyScan(activeTarget);
                     }
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
-                        _rgatState.DIELib.ReloadDIEScripts(GlobalConfig.DiESigsPath);
-                        if (_rgatState.DIELib.ScriptsLoaded)
-                            _rgatState.DIELib.StartDetectItEasyScan(activeTarget);
+                        rgatState.DIELib.ReloadDIEScripts(GlobalConfig.DiESigsPath);
+                        if (rgatState.DIELib.ScriptsLoaded)
+                            rgatState.DIELib.StartDetectItEasyScan(activeTarget);
                     }
                 }
                 else if (DEProgress.loading)
@@ -781,12 +781,12 @@ namespace rgat
         //YARA
         private void DrawYARAProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
-            if (_rgatState.YARALib == null)
+            if (rgatState.YARALib == null)
             {
                 ImGui.Text("Not Loaded");
                 return;
             }
-            YARAScan.eYaraScanProgress progress = _rgatState.YARALib.Progress(activeTarget);
+            YARAScan.eYaraScanProgress progress = rgatState.YARALib.Progress(activeTarget);
             string caption;
             float progressAmount = 0;
             uint barColour = 0;
@@ -797,7 +797,7 @@ namespace rgat
                     break;
                 case YARAScan.eYaraScanProgress.eComplete:
                     {
-                        uint rulecount = _rgatState.YARALib.LoadedRuleCount();
+                        uint rulecount = rgatState.YARALib.LoadedRuleCount();
                         caption = $"YARA:{rulecount}/{rulecount}"; //wrong if reloaded?
                         barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
                         progressAmount = 1;
@@ -824,7 +824,7 @@ namespace rgat
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();
-                ImGui.Text($"{caption} with {_rgatState.YARALib.LoadedRuleCount()} loaded rules");
+                ImGui.Text($"{caption} with {rgatState.YARALib.LoadedRuleCount()} loaded rules");
                 ImGui.Separator();
                 ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
                 ImGui.Text("Left Click  - Rescan");
@@ -832,15 +832,15 @@ namespace rgat
                 ImGui.PopStyleColor();
                 ImGui.EndTooltip();
             }
-            if (_rgatState.YARALib.LoadedRuleCount() > 0 && ImGui.IsItemClicked(ImGuiMouseButton.Left))
+            if (rgatState.YARALib.LoadedRuleCount() > 0 && ImGui.IsItemClicked(ImGuiMouseButton.Left))
             {
-                _rgatState.YARALib.StartYARATargetScan(activeTarget);
+                rgatState.YARALib.StartYARATargetScan(activeTarget);
             }
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
-                _rgatState.YARALib.RefreshRules(forceRecompile: true);
-                if (_rgatState.YARALib.LoadedRuleCount() > 0)
-                    _rgatState.YARALib.StartYARATargetScan(activeTarget);
+                rgatState.YARALib.RefreshRules(forceRecompile: true);
+                if (rgatState.YARALib.LoadedRuleCount() > 0)
+                    rgatState.YARALib.StartYARATargetScan(activeTarget);
             }
 
         }
@@ -1277,6 +1277,11 @@ namespace rgat
                         Console.WriteLine($"Started local process id {p.Id}");
                     }
                 }
+                if (!runnable)
+                {
+                    SmallWidgets.MouseoverText("File not available");
+                }
+
                 ImGui.PopStyleColor();
                 ImGui.SameLine();
 
@@ -1284,10 +1289,10 @@ namespace rgat
                 {
                     _rgatState.ActiveTarget.SetTraceConfig("PAUSE_ON_START", _checkStartPausedState ? "TRUE" : "FALSE");
                 }
-                if (_rgatState.VideoRecorder.Loaded)
+                if (rgatState.VideoRecorder.Loaded)
                 {
                     ImGui.SameLine();
-                    if (_rgatState.VideoRecorder.Loaded)
+                    if (rgatState.VideoRecorder.Loaded)
                     {
                         ImGui.Checkbox("Capture Video", ref _recordVideoOnStart);
                     }
@@ -1747,7 +1752,7 @@ namespace rgat
             Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
-                MainGraphWidget.Draw(graphSize, _rgatState.ActiveGraph, _rgatState.VideoRecorder.Recording);
+                MainGraphWidget.Draw(graphSize, _rgatState.ActiveGraph, rgatState.VideoRecorder.Recording);
 
                 Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1 * graphSize.Y);
                 MainGraphWidget.DisplayEventMessages(msgpos);
@@ -2029,14 +2034,14 @@ namespace rgat
         {
             if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
             {
-                if (_rgatState.VideoRecorder.Recording)
+                if (rgatState.VideoRecorder.Recording)
                 {
-                    if (_rgatState.VideoRecorder.CapturePaused)
+                    if (rgatState.VideoRecorder.CapturePaused)
                     {
                         ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
                         if (ImGui.Button("Resume Capture")) //this is more intended as an indicator than a control
                         {
-                            _rgatState.VideoRecorder.CapturePaused = false;
+                            rgatState.VideoRecorder.CapturePaused = false;
                         }
                         ImGui.PopStyleColor();
                     }
@@ -2045,7 +2050,7 @@ namespace rgat
                         ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
                         if (ImGui.Button("Stop Capture"))
                         {
-                            _rgatState.VideoRecorder.Done();
+                            rgatState.VideoRecorder.Done();
                         }
                         ImGui.PopStyleColor();
                     }
@@ -2054,7 +2059,7 @@ namespace rgat
                 {
                     if (ImGui.Button("Start Capture"))
                     {
-                        _rgatState.VideoRecorder.StartRecording();
+                        rgatState.VideoRecorder.StartRecording();
                     }
                 }
 
@@ -2438,7 +2443,7 @@ namespace rgat
 
                     if (_recordVideoOnStart)
                     {
-                        _rgatState.VideoRecorder.StartRecording();
+                        rgatState.VideoRecorder.StartRecording();
                         _recordVideoOnStart = false;
                     }
                     PreviewGraphWidget.SetActiveTrace(_rgatState.ActiveTrace);
@@ -2457,7 +2462,7 @@ namespace rgat
 
                 if (_recordVideoOnStart)
                 {
-                    _rgatState.VideoRecorder.StartRecording();
+                    rgatState.VideoRecorder.StartRecording();
                     _recordVideoOnStart = false;
                 }
 
@@ -3221,7 +3226,7 @@ namespace rgat
 
         bool LoadRemoteBinary(string path)
         {
-            if (!rgatState.NetworkBridge.Connected)
+            if (!rgatState.ConnectedToRemote)
             {
                 Logging.RecordLogEvent($"Loading remote binary {path} failed: Not Connected", filter: LogFilterType.TextAlert);
                 return false;
@@ -3286,8 +3291,8 @@ namespace rgat
             BinaryTarget target = trace.binaryTarg;
 
             //todo only if signatures not stored in trace + file exists on disk
-            _rgatState.DIELib?.StartDetectItEasyScan(target);
-            _rgatState.YARALib?.StartYARATargetScan(target);
+            rgatState.DIELib?.StartDetectItEasyScan(target);
+            rgatState.YARALib?.StartYARATargetScan(target);
 
             launch_all_trace_threads(trace, _rgatState);
 

@@ -27,7 +27,6 @@ namespace rgat.OperationModes
         private rgatState _rgatState;
 
         Threads.HeatRankingThread heatRankThreadObj = null;
-        ProcessCoordinatorThread processCoordinatorThreadObj = null;
 
         rgatUI _rgatUI;
 
@@ -235,16 +234,16 @@ namespace rgat.OperationModes
         unsafe public void RecordFramebuffer(Framebuffer fbuf, CommandList cl)
         {
             //exit if no video capture or screenshot pending
-            VideoEncoder recorder = _rgatState?.VideoRecorder;
+            VideoEncoder recorder = rgatState.VideoRecorder;
             if ((recorder == null || !recorder.Recording) && _rgatUI.PendingScreenshot == VideoEncoder.CaptureContent.Invalid) return;
 
 
-            if (_rgatState.VideoRecorder.Recording && !_rgatState.VideoRecorder.CapturePaused)
+            if (rgatState.VideoRecorder.Recording && !rgatState.VideoRecorder.CapturePaused)
             {
 
-                _rgatUI.GetFrameDimensions(_rgatState.VideoRecorder.GetCapturedContent(), out int startX, out int startY, out int width, out int height);
+                _rgatUI.GetFrameDimensions(rgatState.VideoRecorder.GetCapturedContent(), out int startX, out int startY, out int width, out int height);
                 System.Drawing.Bitmap videoBmp = MediaDrawing.CreateRecordingFrame(fbuf, startX, startY, width, height);
-                _rgatState.VideoRecorder.QueueFrame(videoBmp, _rgatState.ActiveGraph);
+                rgatState.VideoRecorder.QueueFrame(videoBmp, _rgatState.ActiveGraph);
             }
 
             if (_rgatUI.PendingScreenshot != VideoEncoder.CaptureContent.Invalid)
@@ -253,7 +252,7 @@ namespace rgat.OperationModes
                 {
                     _rgatUI.GetFrameDimensions(_rgatUI.PendingScreenshot, out int startX, out int startY, out int width, out int height);
                     System.Drawing.Bitmap screenBmp = MediaDrawing.CreateRecordingFrame(fbuf, startX, startY, width, height);
-                    _rgatState.VideoRecorder.TakeScreenshot(_rgatState.ActiveGraph, screenBmp);
+                    rgatState.VideoRecorder.TakeScreenshot(_rgatState.ActiveGraph, screenBmp);
                 }
                 catch (Exception e)
                 {
@@ -311,7 +310,7 @@ namespace rgat.OperationModes
 
 
 
-            _rgatState.VideoRecorder.Load();
+            rgatState.VideoRecorder.Load();
 
             Logging.RecordLogEvent("Startup: Initing graph rendering threads", Logging.LogFilterType.TextDebug);
 
@@ -320,8 +319,8 @@ namespace rgat.OperationModes
             heatRankThreadObj = null;// new HeatRankingThread(_rgatstate);           
 
             //todo - conditional thread here instead of new trace
-            processCoordinatorThreadObj = new ProcessCoordinatorThread();
-            processCoordinatorThreadObj.Begin();
+            rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
+            rgatState.processCoordinatorThreadObj.Begin();
             _rgatUI.StartupProgress = 0.95;
 
             Logging.RecordLogEvent("Startup: Initing layout engines", Logging.LogFilterType.TextDebug);
@@ -344,7 +343,7 @@ namespace rgat.OperationModes
             if (GlobalConfig.BulkLogging)
                 Logging.RecordLogEvent("rgat Exit() triggered", Logging.LogFilterType.BulkDebugLogFile);
 
-            _rgatState?.ShutdownRGAT();
+            rgatState.Shutdown();
 
             //wait for the ui stop stop and the main renderer to quit
             while (

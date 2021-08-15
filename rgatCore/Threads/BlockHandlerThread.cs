@@ -19,25 +19,61 @@ namespace rgat
         NamedPipeServerStream blockPipe = null;
         int bitWidth;
         CapstoneX86Disassembler disassembler;
-        string _controlPipeName;
+        uint? _remotePipeID;
 
-        public BlockHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, string pipename)
+        public delegate void ProcessPipeMessageAction(byte[] buf, int bytesRead);
+        public BlockHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, uint? remotePipeID = null)
         {
             target = binaryTarg;
             trace = runrecord;
             bitWidth = target.BitWidth;
-            _controlPipeName = pipename;
+            _remotePipeID = remotePipeID;
 
+                //todo don't create in headless mode
             X86DisassembleMode disasMode = (bitWidth == 32) ? X86DisassembleMode.Bit32 : X86DisassembleMode.Bit64;
             disassembler = CapstoneDisassembler.CreateX86Disassembler(disasMode);
         }
 
+        public static string GetBlockPipeName(uint PID, long instanceID)
+        {
+            return "BB" + PID.ToString() + instanceID.ToString();
+        }
+
         public override void Begin()
         {
+
+            ProcessPipeMessageAction param;
+            if (_remotePipeID != null)
+            {
+                if (rgatState.ConnectedToRemote)
+                {
+                    if (rgatState.NetworkBridge.HeadlessMode)
+                    {
+                        WorkerThread = new Thread(LocalListener);
+                        param = MirrorMessageToUI;
+                    }
+                    else
+                    {
+                        WorkerThread = new Thread(RemoteListener);
+                        param = IngestBlockLocal;
+                    }
+                    WorkerThread.Name = $"TraceModuleHandler_Remote_{_remotePipeID}";
+                }
+                else
+                {
+                    Logging.RecordLogEvent("Refusing to start block handler with remote pipe without being connected", filter: Logging.LogFilterType.TextError);
+                    return;
+                }
+            }
+            else
+            {
+                param = IngestBlockLocal;
+                WorkerThread = new Thread(LocalListener);
+                WorkerThread.Name = $"TraceModuleHandler_{trace.PID}_{trace.randID}";
+            }
+
             base.Begin();
-            WorkerThread = new Thread(new ParameterizedThreadStart(Listener));
-            WorkerThread.Name = "Block" + trace.PID;
-            WorkerThread.Start(_controlPipeName);
+            WorkerThread.Start(param);
         }
 
         void ConnectCallback(IAsyncResult ar)
@@ -54,15 +90,19 @@ namespace rgat
         }
 
 
-
-        void IngestBlock(byte[] buf, int bytesRead)
+        void MirrorMessageToUI(byte[] buf, int bytesRead)
         {
-            buf[bytesRead] = 0;
+            //Console.WriteLine($"Mirrormsg len {bytesRead}/{buf.Length} to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(buf, 0, bytesRead));
+            rgatState.NetworkBridge.SendRawTraceData(_remotePipeID.Value, buf, bytesRead);
+        }
+
+
+        void IngestBlockLocal(byte[] buf, int bytesRead)
+        {
+            //buf[bytesRead] = 0;
             if (buf[0] != 'B')
             {
-                Console.WriteLine("BlockHandler pipe read unhandled entry from PID {trace.PID}");
-                Console.WriteLine("\t" + System.Text.ASCIIEncoding.ASCII.GetString(buf));
-                return;
+                throw new ArgumentException($"IngestBlockLocal: BlockHandler pipe read unhandled entry from PID {trace.PID}");
             }
 
             int pointerSize = (bitWidth / 8);
@@ -78,6 +118,10 @@ namespace rgat
             Debug.Assert(buf[bufPos] == '@'); bufPos++;
 
             int globalModNum = trace.DisassemblyData.modIDTranslationVec[(int)localmodnum];
+            if (globalModNum < 0 || globalModNum >= trace.DisassemblyData.LoadedModuleBounds.Count)
+            {
+                throw new IndexOutOfRangeException($"Bad module ID {globalModNum} not recorded");
+            }
             ulong moduleStart = trace.DisassemblyData.LoadedModuleBounds[globalModNum].Item1;
             ulong modoffset = BlockAddress - moduleStart;
 
@@ -111,7 +155,7 @@ namespace rgat
             //Console.WriteLine($"Ingesting block ID {blockID} address 0x{insaddr:X}");
 
             int dbginscount = -1;
-            while (buf[bufPos] == '@')
+            while (bufPos < buf.Length && buf[bufPos] == '@') //er here
             {
                 bufPos++;
                 byte insByteCount = buf[bufPos];
@@ -165,11 +209,11 @@ namespace rgat
                     //need to move this out of the lock
                     if (ProcessRecord.DisassembleIns(disassembler, insaddr, ref instruction) < 1)
                     {
-                        Console.WriteLine($"[rgat]ERROR: Bad dissasembly in PID {trace.PID}. Corrupt trace?");
+                        Logging.RecordLogEvent($"[rgat]ERROR: Bad dissasembly in PID {trace.PID}. Corrupt trace?", Logging.LogFilterType.TextError);
                         return;
                     }
 
-                    //Console.WriteLine($"[rgatBlkHandler]\t Block {blockID} new      ins {dbginscount}-0x{insaddr:X}: {instruction.ins_text}");
+                   // Console.WriteLine($"[rgatBlkHandler]\t Block {blockID} new      ins {dbginscount}-0x{insaddr:X}: {instruction.ins_text}");
 
                     if (foundList == null)
                     {
@@ -205,20 +249,78 @@ namespace rgat
             catch { return; }
         }
 
-        async void Listener(Object pipenameO)
+        public void AddRemoteBlockData(byte[] data, int startIndex)
         {
-            string name = (string)pipenameO;
+            lock (_lock)
+            {
+                _incomingRemoteBlockData.Enqueue(data);
+                NewDataEvent.Set();
+            }
+        }
+
+        Queue<byte[]> _incomingRemoteBlockData = new Queue<byte[]>();
+        ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
+        readonly object _lock = new object();
+
+
+        void RemoteListener(object ProcessMessageobj)
+        {
+            byte[][] newItems;
+            while (!rgatState.RgatIsExiting)
+            {
+                try
+                {
+                    NewDataEvent.Wait(rgatState.NetworkBridge.CancelToken);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordLogEvent($"BlockThread::RemoteListener exception {e.Message}");
+                    break;
+                }
+                lock (_lock)
+                {
+                    newItems = _incomingRemoteBlockData.ToArray();
+                    _incomingRemoteBlockData.Clear();
+                    NewDataEvent.Reset();
+                }
+                foreach(byte[] item in newItems)
+                {
+                    //try
+                    {
+                        IngestBlockLocal(item, item.Length);
+                    }
+                    /*
+                    catch (Exception e)
+                    {
+                        Logging.RecordLogEvent($"Remote Block processing exception: {e.Message}", Logging.LogFilterType.TextError);
+                        rgatState.NetworkBridge.Teardown("Block Ingest Exception");
+                        base.Finished();
+                        return;
+                    }*/
+                }
+
+                //todo: remote trace termination -> loop exit condition
+            }
+
+
+            base.Finished();
+        }
+
+
+        async void LocalListener(object ProcessMessageobj)
+        {
+            string name = GetBlockPipeName(trace.PID, trace.randID);
+            ProcessPipeMessageAction ProcessMessage = (ProcessPipeMessageAction)ProcessMessageobj;
             blockPipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
             IAsyncResult res1 = blockPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Block");
 
 
             int totalWaited = 0;
-            while (!rgatState.RgatIsExiting)
+            while (!rgatState.RgatIsExiting && !blockPipe.IsConnected)
             {
-                if (blockPipe.IsConnected) break;
                 Thread.Sleep(1000);
                 totalWaited += 1000;
-                Console.WriteLine($"ModuleHandlerThread Waiting BlockPipeConnected:{blockPipe.IsConnected} TotalTime:{totalWaited}");
+                Console.WriteLine($"BlockPipeThread Waiting BlockPipeConnected:{blockPipe.IsConnected} TotalTime:{totalWaited}");
                 if (totalWaited > 8000)
                 {
                     Console.WriteLine($"Timeout waiting for rgat client sub-connections. BlockPipeConnected:{blockPipe.IsConnected} ");
@@ -254,7 +356,17 @@ namespace rgat
                     //Logging.RecordLogEvent("IncomingMessageCallback: " + Encoding.ASCII.GetString(buf, 0, bytesread), filter: Logging.LogFilterType.BulkDebugLogFile);
                     if (bytesRead > 0)
                     {
-                        IngestBlock(buf, bytesRead);
+                        try
+                        {
+                            ProcessMessage(buf, bytesRead);
+                        }
+                        catch (Exception e)
+                        {
+                            Logging.RecordLogEvent($"Local Block processing exception: {e}");
+                            rgatState.NetworkBridge.Teardown();
+                            base.Finished();
+                            return;
+                        }
                     }
                     else
                     {

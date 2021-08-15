@@ -175,7 +175,6 @@ void SetProcessBrokenState(bool newState)
 //this is a blocking call so watch out for performance impact
 void write_sync_bb(char* buf, USIZE strsize)
 {
-
 	OS_RETURN_CODE osretcd = OS_WriteFD(bbpipe, buf, &strsize);
 	if (osretcd.generic_err != OS_RETURN_CODE_NO_ERROR) //fprintf truncates to internal buffer size!
 	{
@@ -1917,6 +1916,8 @@ int main(int argc, char* argv[])
 
 	ReadConfiguration();
 
+
+	std::cout << "Settings fetched, registering callbacks" << std::endl;
 
 	// Register function to be called to instrument traces
 

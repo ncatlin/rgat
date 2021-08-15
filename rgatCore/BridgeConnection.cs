@@ -17,9 +17,9 @@ namespace rgat
 {
     public class BridgeConnection
     {
-        public enum emsgType { Meta, TracerCommand, CommandResponse, Data, Log };
+        public enum emsgType { Meta, Command, CommandResponse, TraceMeta, TraceData, TraceCommand, Log, BAD };
 
-        public delegate void OnGotDataCallback(Tuple<emsgType, string> data);
+        public delegate void OnGotDataCallback(NETWORK_MSG data);
         public delegate void OnConnectSuccessCallback();
 
         public bool Connected => BridgeState == eBridgeState.Connected;
@@ -48,8 +48,15 @@ namespace rgat
         /// It does not do the opposite. Ever.
         /// </summary>
         public bool GUIMode { get; private set; }
+        public bool HeadlessMode => !GUIMode;
 
-        Queue<Tuple<emsgType, string>> _OutDataQueue = new Queue<Tuple<emsgType, string>>();
+        public struct NETWORK_MSG
+        {
+            public emsgType msgType;
+            public uint destinationID;
+            public byte[] data;
+        }
+        Queue<NETWORK_MSG> _OutDataQueue = new Queue<NETWORK_MSG>();
         ManualResetEventSlim NewOutDataEvent = new ManualResetEventSlim(false);
 
         CancellationTokenSource cancelTokens;
@@ -149,7 +156,7 @@ namespace rgat
                     AddDisplayLogMessage($"Connection Failed (NoFault)", Themes.eThemeColour.eWarnStateColour);
                 }
             }
-            Teardown();
+            Teardown("Connect Mode Finished");
         }
 
         void AddDisplayLogMessage(string msg, Themes.eThemeColour? colour)
@@ -303,15 +310,15 @@ namespace rgat
             Task sender = Task.Run(() => SendOutgoingTraffic(client));
         }
 
-
-        public void SendOutgoingData(Tuple<emsgType, string> data)
+        /*
+        public void SendOutgoingData(Tuple<emsgType, byte[]> data)
         {
             lock (_sendQueueLock)
             {
                 _OutDataQueue.Enqueue(data);
                 NewOutDataEvent.Set();
             }
-        }
+        }*/
 
 
         static int commandCount = 0;
@@ -339,32 +346,81 @@ namespace rgat
                 if (callback != null)
                 {
                     Debug.Assert(recipientID != null);
-                    RemoteDataMirror.RegisterPendingResponse(commandCount, command, recipientID, callback); 
+                    RemoteDataMirror.RegisterPendingResponse(commandCount, command, recipientID, callback);
                 }
-                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.TracerCommand, fulltext));
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.Command, destinationID = 0, data = Encoding.ASCII.GetBytes(fulltext) });
                 NewOutDataEvent.Set();
                 return commandCount;
             }
         }
+
+
+        public void SendTraceCommand(uint pipe, string message)
+        {
+            lock (_sendQueueLock)
+            {
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.TraceCommand, destinationID = pipe, data = Encoding.ASCII.GetBytes(message) });
+                NewOutDataEvent.Set();
+            }
+        }
+
 
         public void SendLog(string message, Logging.LogFilterType msgType)
         {
             lock (_sendQueueLock)
             {
                 Console.WriteLine($"Sending {msgType} message: " + message);
-                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.Log, $"{(int)msgType},{message}"));
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.Log, destinationID = (uint)msgType, data = Encoding.ASCII.GetBytes(message) });
                 NewOutDataEvent.Set();
             }
 
         }
 
 
+        public void SendRawTraceData(uint pipeID, byte[] buf, int bufSize)
+        {
+            Debug.Assert(rgatState.NetworkBridge.HeadlessMode);
+            byte[] data;
+            if (bufSize != buf.Length)
+            {
+                data = new byte[bufSize];
+                Array.Copy(buf, data, bufSize);
+            }
+            else
+            {
+                data = buf;
+            }
+
+
+            lock (_sendQueueLock)
+            {
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.TraceData, destinationID = pipeID, data = data });
+                NewOutDataEvent.Set();
+            }
+        }
+
+
+        public void SendTraceMeta(TraceRecord trace, string info)
+        {
+            Debug.Assert(rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode);
+            lock (_sendQueueLock)
+            {
+                Console.WriteLine($"SendTraceMeta message {info}");
+                byte[] Jsnbytes = Encoding.ASCII.GetBytes($"{trace.binaryTarg.GetSHA1Hash()},{trace.PID},{trace.randID},{info}");
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.TraceMeta, destinationID = 0, data = Jsnbytes });
+                NewOutDataEvent.Set();
+            }
+        }
+
+
+
+
         //https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca2328
-        Newtonsoft.Json.JsonSerializer serialiserIn = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
+        readonly Newtonsoft.Json.JsonSerializer serialiserIn = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
         {
             TypeNameHandling = TypeNameHandling.None,
         });
-        Newtonsoft.Json.JsonSerializer serialiserOut = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
+        readonly Newtonsoft.Json.JsonSerializer serialiserOut = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
         {
             TypeNameHandling = TypeNameHandling.None,
         });
@@ -386,7 +442,8 @@ namespace rgat
                 serialiserOut.Serialize(writer, response);
                 JObject responseObj = new JObject() { new JProperty("CommandID", commandID), new JProperty("Response", JToken.Parse(sb.ToString())) };
 
-                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.CommandResponse, responseObj.ToString(formatting: Formatting.None)));
+                byte[] Jsnbytes = Encoding.ASCII.GetBytes(responseObj.ToString(formatting: Formatting.None));
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.CommandResponse, destinationID = 0, data = Jsnbytes });
                 NewOutDataEvent.Set();
             }
         }
@@ -403,7 +460,8 @@ namespace rgat
             lock (_sendQueueLock)
             {
                 JObject responseObj = new JObject() { new JProperty("CommandID", commandID), new JProperty("Response", response) };
-                _OutDataQueue.Enqueue(new Tuple<emsgType, string>(emsgType.CommandResponse, responseObj.ToString(formatting: Formatting.None)));
+                byte[] Jsnbytes = Encoding.ASCII.GetBytes(responseObj.ToString(formatting: Formatting.None));
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.CommandResponse, destinationID = 0, data = Jsnbytes });
                 NewOutDataEvent.Set();
             }
         }
@@ -411,20 +469,24 @@ namespace rgat
 
         public void Teardown(string reason = "")
         {
-            if (BridgeState != eBridgeState.Teardown)
+            lock (_lock)
             {
-                if (_ActiveClient != null && _ActiveClient.Connected)
+                if (BridgeState != eBridgeState.Teardown)
                 {
-                    RawSendData(new BinaryWriter(_ActiveClient.GetStream()), new Tuple<emsgType, string>(emsgType.Meta, "Teardown:" + reason));
-                    AddDisplayLogMessage("Disconnected", null);
-                }
-                else
-                    AddDisplayLogMessage("Connection Disabled", null);
+                    if (_ActiveClient != null && _ActiveClient.Connected)
+                    {
+                        RawSendData(new BinaryWriter(_ActiveClient.GetStream()), emsgType.Meta, "Teardown:" + reason);
+                        AddDisplayLogMessage($"Disconnected{(reason.Length > 0 ? $": {reason}" : "")}", Themes.eThemeColour.eWarnStateColour);
+                    }
+                    else
+                        AddDisplayLogMessage($"Connection Disabled{(reason.Length > 0 ? $": {reason}" : "")}", null);
 
-                BridgeState = eBridgeState.Teardown;
-                cancelTokens.Cancel();
-                if (_ActiveClient != null && _ActiveClient.Connected) _ActiveClient.Close();
-                if (_ActiveListener != null) _ActiveListener.Stop();
+                    Thread.Sleep(250); //give the UI a chance to close the connection gracefully so the right error message appears first. 
+                    BridgeState = eBridgeState.Teardown;
+                    cancelTokens.Cancel();
+                    if (_ActiveClient != null && _ActiveClient.Connected) _ActiveClient.Close();
+                    if (_ActiveListener != null) _ActiveListener.Stop();
+                }
             }
         }
 
@@ -437,14 +499,14 @@ namespace rgat
             BinaryReader reader = new BinaryReader(stream);
             while (client.Connected && !cancelTokens.IsCancellationRequested)
             {
-                bool success = ReadData(reader, out Tuple<emsgType, string> newdata);
+                bool success = ReadData(reader, out NETWORK_MSG? newdata);
                 if (!success || newdata == null)
                 {
                     if (!cancelTokens.IsCancellationRequested)
                         AddDisplayLogMessage("Connection terminated unexpectedly", Themes.eThemeColour.eWarnStateColour);
                     break;
                 }
-                _registeredIncomingDataCallback(newdata);
+                _registeredIncomingDataCallback(newdata.Value);
 
             }
             Logging.RecordLogEvent("ReceiveIncomingTraffic ServeClientIncoming dropout", filter: Logging.LogFilterType.TextError);
@@ -471,7 +533,7 @@ namespace rgat
                     break;
                 }
 
-                Tuple<emsgType, string>[] items = null;
+                NETWORK_MSG[] items = null;
                 lock (_sendQueueLock)
                 {
                     items = _OutDataQueue.ToArray();
@@ -496,27 +558,37 @@ namespace rgat
         public bool AuthenticateOutgoingConnection(TcpClient client, NetworkStream stream)
         {
             Console.WriteLine($"AuthenticateOutgoingConnection Sending prelude '{(GUIMode ? connectPreludeGUI : connectPreludeHeadless)}'");
-            if (!RawSendData(new BinaryWriter(stream), new Tuple<emsgType, string>(emsgType.Meta, GUIMode ? connectPreludeGUI : connectPreludeHeadless)))
+            if (!RawSendData(new BinaryWriter(stream), emsgType.Meta, GUIMode ? connectPreludeGUI : connectPreludeHeadless))
             {
                 Console.WriteLine($"Failed to send prelude using {client}");
                 return false;
             }
 
 
-            bool success = ReadData(new BinaryReader(stream), out Tuple<emsgType, string> response);
-            if (!success || response.Item2 == null || response.Item1 != emsgType.Meta) return false;
+            bool success = ReadData(new BinaryReader(stream), out NETWORK_MSG? response) && response != null;
+            if (!success || response.Value.data == null || response.Value.msgType != emsgType.Meta) return false;
+            string authString;
 
+            try
+            {
+                authString = ASCIIEncoding.ASCII.GetString(response.Value.data);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Exception {e} parsing auth response", Logging.LogFilterType.TextError);
+                return false;
+            }
             string expectedConnectResponse = GUIMode ? connectResponseHeadless : connectResponseGUI;
 
             Console.WriteLine($"AuthenticateOutgoingConnection Comparing response '{response}' to gui:{GUIMode} expected '{expectedConnectResponse}'");
-            if (response.Item2 == expectedConnectResponse)
+            if (authString == expectedConnectResponse)
             {
                 Console.WriteLine($"Auth succeeded");
                 return true;
             }
             else
             {
-                if (response.Item2 == (GUIMode ? connectResponseGUI : connectResponseHeadless) || response.Item2 == "Bad Mode")
+                if (authString == (GUIMode ? connectResponseGUI : connectResponseHeadless) || authString == "Bad Mode")
                 {
                     if (GUIMode)
                         AddDisplayLogMessage("GUI<->GUI Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
@@ -536,9 +608,7 @@ namespace rgat
 
         public bool AuthenticateIncomingConnection(TcpClient client, NetworkStream stream)
         {
-
-
-            Tuple<emsgType, string> recvd;
+            NETWORK_MSG? recvd;
             BinaryReader reader = null;
             try
             {
@@ -550,9 +620,11 @@ namespace rgat
                 return false;
             }
 
-            if (!ReadData(reader, out recvd)) return false;
+            if (!ReadData(reader, out recvd) || recvd == null) return false;
+            NETWORK_MSG msg = recvd.Value;
+            string authString = ASCIIEncoding.ASCII.GetString(recvd.Value.data);
 
-            if (recvd == null || recvd.Item1 != emsgType.Meta || recvd.Item2.Length == 0)
+            if (recvd == null || msg.msgType != emsgType.Meta || msg.data.Length == 0)
             {
                 AddDisplayLogMessage("Authentication failed - no vald data", Themes.eThemeColour.eBadStateColour);
                 Console.WriteLine($"AuthenticateIncomingConnection No prelude from {client}, ignoring");
@@ -561,21 +633,21 @@ namespace rgat
             }
 
             string connectPrelude = GUIMode ? connectPreludeHeadless : connectPreludeGUI;
-            if (recvd.Item2 == connectPrelude && RawSendData(new BinaryWriter(stream), new Tuple<emsgType, string>(emsgType.Meta, GUIMode ? connectResponseGUI : connectResponseHeadless)))
+            if (authString == connectPrelude && RawSendData(new BinaryWriter(stream), emsgType.Meta, GUIMode ? connectResponseGUI : connectResponseHeadless))
             {
                 Console.WriteLine($"Auth succeeded");
                 return true;
             }
             else
             {
-                if (recvd.Item2 == (GUIMode ? connectPreludeGUI : connectPreludeHeadless))
+                if (authString == (GUIMode ? connectPreludeGUI : connectPreludeHeadless))
                 {
                     if (GUIMode)
                         AddDisplayLogMessage("GUI<->GUI Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
                     else
                         AddDisplayLogMessage("Cmdline<->Cmdline Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
                     Logging.RecordLogEvent($"Connection refused - Connection can only be made between rgat in GUI and command-line modes", Logging.LogFilterType.TextError);
-                    RawSendData(new BinaryWriter(stream), new Tuple<emsgType, string>(emsgType.Meta, "Bad Mode"));
+                    RawSendData(new BinaryWriter(stream), emsgType.Meta, "Bad Mode");
                 }
                 else
                 {
@@ -587,10 +659,6 @@ namespace rgat
 
         }
 
-
-        int fragmentIndex = -1;
-        byte[] assembledMessage;
-
         Queue<byte[]> _incomingData = new Queue<byte[]>();
 
         readonly object _lock = new object();
@@ -598,12 +666,14 @@ namespace rgat
         ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
 
 
-        bool ReadData(BinaryReader reader, out Tuple<emsgType, string> data)
+        bool ReadData(BinaryReader reader, out NETWORK_MSG? data)
         {
             try
             {
                 emsgType msgType = (emsgType)reader.ReadByte();
-                data = new Tuple<emsgType, string>(msgType, reader.ReadString());
+                uint destination = reader.ReadUInt32();
+                int count = reader.ReadInt32();
+                data = new NETWORK_MSG() { msgType = msgType, destinationID = destination, data = reader.ReadBytes(count) };
                 return true;
             }
             catch (System.IO.IOException IOExcep)
@@ -643,24 +713,29 @@ namespace rgat
 
 
 
-        bool RawSendData(BinaryWriter writer, Tuple<emsgType, string> data)
+        bool RawSendData(BinaryWriter writer, emsgType msgtype, string textdata)
+        {
+            return RawSendData(writer, new NETWORK_MSG() { msgType = msgtype, destinationID = 0, data = Encoding.ASCII.GetBytes(textdata) });
+        }
+
+        bool RawSendData(BinaryWriter writer, NETWORK_MSG msg)
         {
             Task write = null;
             try
             {
-                writer.Write((byte)data.Item1);
-                writer.Write(data.Item2);
+                writer.Write((byte)msg.msgType);
+                writer.Write(msg.destinationID);
+                writer.Write(msg.data.Length);
+                writer.Write(msg.data);
                 return !cancelTokens.IsCancellationRequested;
             }
             catch (System.IO.IOException e)
             {
-                Console.WriteLine($"\t! IO exception reading from client");
-                Console.WriteLine($"\t! {e.InnerException}");
-                Console.WriteLine($"\t! {e.Message}");
+                Logging.RecordLogEvent($"\t! IO exception reading from client\n {e.InnerException}\n {e.Message}", Logging.LogFilterType.TextError);
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Exception during send: {e.Message}");
+                Logging.RecordLogEvent($"Exception during send: {e.Message}", Logging.LogFilterType.TextError);
                 if (write != null && write.IsCanceled)
                 {
                     Console.WriteLine("Cancellation during send data");

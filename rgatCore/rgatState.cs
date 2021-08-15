@@ -21,14 +21,17 @@ namespace rgat
         public PlottedGraph ActiveGraph { get; private set; }
         public Veldrid.GraphicsDevice _GraphicsDevice;
         public Veldrid.CommandList _CommandList;
-        public DetectItEasy DIELib;
-        public YARAScan YARALib;
-        public VideoEncoder VideoRecorder = new VideoEncoder();
+        public static DetectItEasy DIELib;
+        public static YARAScan YARALib;
+        public static VideoEncoder VideoRecorder = new VideoEncoder();
         public static BridgeConnection NetworkBridge;
         public static bool ConnectedToRemote => NetworkBridge != null && NetworkBridge.Connected;
         public static string LocalCoordinatorPipeName;
 
         public PreviewGraphsWidget PreviewWidget;
+
+
+        public static Threads.ProcessCoordinatorThread processCoordinatorThreadObj = null;
 
         public rgatState()
         {
@@ -65,12 +68,14 @@ namespace rgat
         /// <summary>
         /// Terminate all spawned processes and internal workers, then exit
         /// </summary>
-        public void ShutdownRGAT()
+        public static void Shutdown()
         {
             RgatIsExiting = true;
+            if (rgatState.ConnectedToRemote) rgatState.NetworkBridge.Teardown("Exiting");
+
             DIELib?.CancelAllScans();
             YARALib?.CancelAllScans();
-            VideoRecorder.Done();
+            VideoRecorder?.Done();
 
             foreach (BinaryTarget targ in targets.GetBinaryTargets())
             {

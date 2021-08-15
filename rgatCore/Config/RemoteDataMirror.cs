@@ -19,6 +19,52 @@ namespace rgat.Config
 
         static Dictionary<string, int> _pendingEvents = new Dictionary<string, int>();
         static Dictionary<int, string> _pendingEventsReverse = new Dictionary<int, string>();
+
+        static Dictionary<string, uint> _pipeIDDictionary = new Dictionary<string, uint>();
+
+
+        public delegate void ProcessIncomingWorkerData(byte[] arg, int startIndex);
+
+        static Dictionary<uint, Threads.TraceProcessorWorker> _remoteDataWorkers = new Dictionary<uint, Threads.TraceProcessorWorker>();
+        static Dictionary<uint, ProcessIncomingWorkerData> _pipeInterfaces = new Dictionary<uint, ProcessIncomingWorkerData>();
+
+        public static void RegisterRemotePipe(uint pipeID, Threads.TraceProcessorWorker worker, ProcessIncomingWorkerData func)
+        {
+            lock (_lock)
+            {
+                _remoteDataWorkers.Add(pipeID, worker);
+                _pipeInterfaces.Add(pipeID, func);
+            }
+        }
+
+        public static bool GetPipeWorker(uint pipeID, out Threads.TraceProcessorWorker worker)
+        {
+            lock (_lock)
+            {
+                return _remoteDataWorkers.TryGetValue(pipeID, out worker);
+            }
+        }
+        
+        public static bool GetPipeInterface(uint pipeID, out ProcessIncomingWorkerData func)
+        {
+            lock (_lock)
+            {
+                return _pipeInterfaces.TryGetValue(pipeID, out func);
+            }
+        }
+
+
+        static uint pipeCount = 0;
+        public static uint RegisterPipe(string pipename)
+        {
+            lock (_lock)
+            {
+                pipeCount++;
+                _pipeIDDictionary[pipename] = pipeCount;
+                return pipeCount;
+            }
+        }
+
         public static void RegisterPendingResponse(int commandID, string cmd, string recipient, ProcessResponseCallback callback = null)
         {
             string addressedCmd = cmd + recipient;

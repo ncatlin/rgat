@@ -1,10 +1,12 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using rgat.Config;
+using rgat.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -25,7 +27,7 @@ namespace rgat.OperationModes
         {
         }
 
-        Queue<Tuple<emsgType, string>> _incomingData = new Queue<Tuple<emsgType, string>>();
+        Queue<NETWORK_MSG> _incomingData = new Queue<NETWORK_MSG>();
         readonly object _lock = new object();
 
         ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
@@ -50,9 +52,13 @@ namespace rgat.OperationModes
 
         }
 
+
         public void RunHeadless(BridgeConnection connection)
         {
             GlobalConfig.LoadConfig(); //todo a lightweight headless config
+
+            rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
+            rgatState.processCoordinatorThreadObj.Begin();
 
             if (GlobalConfig.StartOptions.ListenPort != null)
             {
@@ -72,6 +78,7 @@ namespace rgat.OperationModes
             }
 
             Console.WriteLine("Headless mode complete");
+            rgatState.Shutdown();
         }
 
         void RunConnection(BridgeConnection connection)
@@ -81,7 +88,7 @@ namespace rgat.OperationModes
                 Console.WriteLine($"Waiting for connection: {connection.BridgeState}");
                 System.Threading.Thread.Sleep(500);
             }
-            List<Tuple<emsgType, string>> incoming = new List<Tuple<emsgType, string>>();
+            List<NETWORK_MSG> incoming = new List<NETWORK_MSG>();
             while (!rgatState.RgatIsExiting && connection.Connected)
             {
                 Console.WriteLine($"Headless bridge running while connected {connection.BridgeState}");
@@ -96,18 +103,27 @@ namespace rgat.OperationModes
                     NewDataEvent.Reset();
                 }
 
-                foreach (Tuple<emsgType, string> item in incoming)
+                foreach (NETWORK_MSG item in incoming)
                 {
-                    Console.WriteLine($"Processing indata: {item}");
-                    if (item.Item2.Length > 0)
+                    //Console.WriteLine($"RunConnection Processing indata {item.msgType}: {GetString(item.data)}");
+                    if (item.data.Length > 0)
                     {
-                        ProcessData(item);
+                        try
+                        {
+                            ProcessData(item);
+                        }
+                        catch (Exception e)
+                        {
+                            Logging.RecordLogEvent($"RunConnection Error: ProcessData exception {e.Message} <{item.msgType}>, data:{GetString(item.data)}", Logging.LogFilterType.TextError);
+                            connection.Teardown("RunConnection ProcessData Exception");
+                            return;
+                        }
                     }
                     else
                     {
-                        Logging.RecordLogEvent($"RunConnection Error: null data");
+                        Logging.RecordLogEvent($"RunConnection Error: null data", Logging.LogFilterType.TextError);
                         connection.Teardown("Null indata");
-                        break;
+                        return;
                     }
                 }
             }
@@ -115,67 +131,219 @@ namespace rgat.OperationModes
         }
 
 
-        void ProcessData(Tuple<emsgType, string> item)
+        void ProcessData(NETWORK_MSG item)
         {
 
-            switch (item.Item1)
+            switch (item.msgType)
             {
                 case emsgType.Meta:
-                    if(item.Item2 != null && item.Item2.StartsWith("Teardown:"))
+                    string metaparam = GetString(item.data); 
+                    if (metaparam != null && metaparam.StartsWith("Teardown:"))
                     {
-                        var split = item.Item2.Split(':');
+                        var split = metaparam.Split(':');
                         string reason = "";
                         if (split.Length > 1 && split[1].Length > 0)
-                            reason += ": " +split[1];
-                        Logging.RecordLogEvent($"Disconnected - Remote party tore down the connection{((reason.Length > 0) ? reason : "")}", Logging.LogFilterType.TextError);
-                        rgatState.NetworkBridge.Teardown();
+                            reason = split[1];
+                        Logging.RecordLogEvent($"Disconnected - Remote party tore down the connection{((reason.Length > 0) ? $": {reason}" : "")}", Logging.LogFilterType.TextError);
+                        rgatState.NetworkBridge.Teardown(reason);
                         return;
                     }
 
-                    Console.WriteLine($"Unhandled meta message: {item.Item2}");
+                    Console.WriteLine($"Unhandled meta message: {metaparam}");
                     break;
-                case emsgType.TracerCommand:
+
+                case emsgType.Command:
                     try
                     {
-                        ProcessCommand(item.Item2);
+                        ProcessCommand(GetString(item.data));
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
-                        Console.WriteLine($"Exception processing command  {item.Item1} {item.Item2}: {e}");
-                        rgatState.NetworkBridge.Teardown($"Command Exception ({item.Item2})");
+                        Console.WriteLine($"Exception processing command  {item.msgType} {GetString(item.data)}: {e}");
+                        rgatState.NetworkBridge.Teardown($"Command Exception ({GetString(item.data)})");
                     }
-                    
-                    break;
-                case emsgType.CommandResponse:
 
-                    if (!ParseResponse(item.Item2, out int commandID, out JToken response))
+                    break;
+
+                case emsgType.CommandResponse:
+                    try
                     {
-                        rgatState.NetworkBridge.Teardown($"Bad command ({commandID}) response");
+                        string responseStr = GetString(item.data);
+                        if (!ParseResponse(responseStr, out int commandID, out JToken response))
+                        {
+                            rgatState.NetworkBridge.Teardown($"Bad command ({commandID}) response");
+                            break;
+                        }
+                        Console.WriteLine($"Delivering response {response}");
+                        RemoteDataMirror.DeliverResponse(commandID, response);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Exception processing command response {item.msgType} {GetString(item.data)}: {e}");
+                        rgatState.NetworkBridge.Teardown($"Command Reponse Exception ({GetString(item.data)})");
+                    }
+
+                    break;
+
+                case emsgType.TraceMeta:
+                    
+                    if (!ParseTraceMeta(item.data, out TraceRecord trace, out string[] items))
+                    {
+                        rgatState.NetworkBridge.Teardown($"Bad Trace Metadata");
                         break;
                     }
-                    Console.WriteLine($"Delivering response {response}");
-                    RemoteDataMirror.DeliverResponse(commandID, response);
+                    Console.WriteLine($"Processing trace meta {GetString(item.data)}");
+                    if (!HandleTraceMeta(trace, items))
+                    {
+                        Logging.RecordLogEvent($"Failed processing trace meta {GetString(item.data)}", Logging.LogFilterType.TextError);
+                        rgatState.NetworkBridge.Teardown($"Trace Meta processing failed");
+                    }
                     break;
+
+                case emsgType.TraceData:
+                    {
+
+                        //Console.WriteLine("handletracedata to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(item.data, 0, item.data.Length));
+                        if (RemoteDataMirror.GetPipeInterface(item.destinationID, out RemoteDataMirror.ProcessIncomingWorkerData dataFunc))
+                        {
+                            dataFunc(item.data, 0);
+                        }
+                        else
+                        {
+                            Logging.RecordLogEvent($"Trace data sent to bad pipe {item.destinationID}", Logging.LogFilterType.TextError);
+                            rgatState.NetworkBridge.Teardown($"Trace Data processing failed");
+                        }
+
+                        break;
+                    }
+
+                case emsgType.TraceCommand: 
+                    {
+                        Console.WriteLine("Incoming trace command:" + GetString(item.data));
+                        if (rgatState.NetworkBridge.HeadlessMode &&
+                            RemoteDataMirror.GetPipeWorker(item.destinationID, out TraceProcessorWorker moduleHandler) &&
+                            moduleHandler.GetType() == typeof(ModuleHandlerThread))
+                        {
+                            ((ModuleHandlerThread)moduleHandler).ProcessIncomingTraceCommand(item.data, 0);
+                        }
+                        else
+                        {
+                            Logging.RecordLogEvent($"Invalid tracecommand addressing {item.destinationID}", Logging.LogFilterType.TextError);
+                            rgatState.NetworkBridge.Teardown($"TraceCommand addressing failure");
+                        }
+
+                        break;
+                    }
 
                 case emsgType.Log:
                     {
-                        int typeEnd = item.Item2.IndexOf(',');
-                        string msgTypeStr = item.Item2.Substring(0, typeEnd);
-                        if (!Enum.TryParse(typeof(Logging.LogFilterType), msgTypeStr, out object logtype))
+                        byte[] data = item.data;
+
+                        Logging.LogFilterType filter = (Logging.LogFilterType)item.destinationID;
+                        if (!Enum.IsDefined(typeof(Logging.LogFilterType), filter))
                         {
-                            rgatState.NetworkBridge.Teardown($"Bad Log Format");
+                            Logging.RecordLogEvent("Bad log filter for " + GetString(item.data));
                             return;
                         }
-                        Console.WriteLine($"Logging { (Logging.LogFilterType)logtype} from remote: {item.Item2}");
-                        Logging.RecordLogEvent(item.Item2.Substring(typeEnd + 1), filter: (Logging.LogFilterType)logtype);
+                        Console.WriteLine($"Logging { filter} from remote: {GetString(item.data)}");
+                        Logging.RecordLogEvent(GetString(item.data), filter: filter);
                         break;
                     }
                 default:
-                    rgatState.NetworkBridge.Teardown($"Bad message type ({item.Item1})");
-                    Logging.RecordLogEvent($"Unhandled message type {item.Item1} => {item.Item2}", filter: Logging.LogFilterType.TextError );
+                    rgatState.NetworkBridge.Teardown($"Bad message type ({item.data})");
+                    Logging.RecordLogEvent($"Unhandled message type {item.msgType} => {GetString(item.data)}", filter: Logging.LogFilterType.TextError);
                     break;
             }
         }
+
+
+        bool ParseTraceMeta(byte[] infoBytes, out TraceRecord trace, out string[] metaparams)
+        {
+            trace = null;
+            metaparams = null;
+            string info;
+            if (infoBytes == null) return false;
+            try
+            {
+                info = Encoding.ASCII.GetString(infoBytes);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Exeption {e} decoding tracemeta", Logging.LogFilterType.TextError);
+                return false;
+            }
+
+
+            string[] splitmain = info.Split(',');
+            if (splitmain.Length < 4)
+            {
+                Logging.RecordLogEvent($"Insufficient fields in tracemeta message", Logging.LogFilterType.TextError);
+                return false;
+            }
+
+            string sha1 = splitmain[0];
+            string pidstr = splitmain[1];
+            string idstr = splitmain[2];
+            string infostr = splitmain[3];
+
+            if (!uint.TryParse(pidstr, out uint pid) || !long.TryParse(idstr, out long id)) return false;
+
+            if (sha1 != null && sha1.Length > 0 && rgatState.targets.GetTargetBySHA1(sha1, out BinaryTarget target))
+            {
+                target.GetTraceByIDs(pid, id, out trace);
+                if (trace == null)
+                {
+                    target.CreateNewTrace(DateTime.Now, pid, id, out trace);
+                }
+            }
+
+            metaparams = infostr.Split('@');
+            return true;
+        }
+
+        bool HandleTraceMeta(TraceRecord trace, string[] inparams)
+        {
+            Debug.Assert(trace != null);
+
+
+            if (inparams.Length == 7 && inparams[0] == "InitialPipes")
+            {
+                //start block handler
+                if (inparams[1] == "C" && uint.TryParse(inparams[2], out uint cmdPipeID) &&
+                    inparams[3] == "E" && uint.TryParse(inparams[4], out uint eventPipeID) &&
+                    inparams[5] == "B" && uint.TryParse(inparams[6], out uint blockPipeID))
+                {
+
+                    ModuleHandlerThread moduleHandler = new ModuleHandlerThread(trace.binaryTarg, trace, blockPipeID);
+                    trace.ProcessThreads.Register(moduleHandler);
+                    moduleHandler.RemoteCommandPipeID = cmdPipeID;
+                    RemoteDataMirror.RegisterRemotePipe(cmdPipeID, moduleHandler, null);
+                    RemoteDataMirror.RegisterRemotePipe(eventPipeID, moduleHandler, moduleHandler.AddRemoteEventData);
+                    moduleHandler.Begin();
+
+
+                    BlockHandlerThread blockHandler = new BlockHandlerThread(trace.binaryTarg, trace, eventPipeID);
+                    trace.ProcessThreads.Register(blockHandler);
+                    RemoteDataMirror.RegisterRemotePipe(blockPipeID, blockHandler, blockHandler.AddRemoteBlockData);
+                    blockHandler.Begin();
+
+                }
+
+
+
+                //start cmd handler
+
+                return true;
+            }
+
+            Logging.RecordLogEvent($"Error unhandled cmd {String.Join("", inparams)}");
+            return false;
+
+        }
+
+
+
+
 
         bool ParseCommandFields(string cmd, out string actualCmd, out int cmdID, out string paramfield)
         {
@@ -222,7 +390,7 @@ namespace rgat.OperationModes
                 return;
             }
 
-            if(!ParseCommandFields(cmd, out string actualCmd, out int cmdID, out string paramfield))
+            if (!ParseCommandFields(cmd, out string actualCmd, out int cmdID, out string paramfield))
             {
                 rgatState.NetworkBridge.Teardown("Command parse failure");
                 return;
@@ -246,7 +414,13 @@ namespace rgat.OperationModes
                     rgatState.NetworkBridge.SendResponseObject(cmdID, GatherTargetInitData(paramfield));
                     break;
                 case "StartTrace":
-                    StartTrace(paramfield);
+                    StartHeadlessTrace(paramfield);
+                    break;
+                case "ThreadIngest":
+                    if (!StartThreadIngestWorker(cmdID, paramfield))
+                    {
+                        rgatState.NetworkBridge.Teardown("Failed ThreadIngest Command");
+                    }
                     break;
                 default:
                     Logging.RecordLogEvent($"Unknown command: {actualCmd} ({cmd})", Logging.LogFilterType.TextError);
@@ -256,7 +430,7 @@ namespace rgat.OperationModes
 
         }
 
-        void StartTrace(string paramfield)
+        void StartHeadlessTrace(string paramfield)
         {
             int testIdIdx = paramfield.LastIndexOf(',');
             string path = paramfield.Substring(0, testIdIdx);
@@ -267,9 +441,58 @@ namespace rgat.OperationModes
             rgatState.NetworkBridge.SendLog($"Trace of {path} launched as remote process ID {p.Id}", Logging.LogFilterType.TextAlert);
         }
 
+
+
+        bool StartThreadIngestWorker(int cmdID, string paramfield)
+        {
+            JObject paramObj;
+            try
+            {
+                paramObj = JObject.Parse(paramfield);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent("Failed to parse StartThreadIngestWorker params", Logging.LogFilterType.TextError);
+                return false;
+            }
+
+            if (paramObj.TryGetValue("TID", out JToken tidTok) && tidTok.Type == JTokenType.Integer &&
+                paramObj.TryGetValue("PID", out JToken pidTok) && tidTok.Type == JTokenType.Integer &&
+                paramObj.TryGetValue("RID", out JToken ridTok) && tidTok.Type == JTokenType.Integer &&
+                paramObj.TryGetValue("ref", out JToken refTok) && tidTok.Type == JTokenType.Integer)
+            {
+                string pipename = ModuleHandlerThread.GetTracePipeName(pidTok.ToObject<uint>(), ridTok.ToObject<long>(), tidTok.ToObject<ulong>());
+                Console.WriteLine("Opening pipe " + pipename);
+                uint pipeID = RemoteDataMirror.RegisterPipe(pipename);
+                NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
+
+                JObject response = new JObject();
+                response.Add("Thread#", refTok);
+                response.Add("Pipe#", pipeID);
+
+
+                rgatState.NetworkBridge.SendResponseJSON(cmdID, response);
+                Console.WriteLine("Waiting for thread connection... ");
+                threadListener.WaitForConnection();
+
+                PipeTraceIngestThread worker = new PipeTraceIngestThread(null, threadListener, tidTok.ToObject<uint>(), pipeID);
+
+                RemoteDataMirror.RegisterRemotePipe(pipeID, worker, null);
+                worker.Begin();
+
+                return true;
+            }
+
+            Logging.RecordLogEvent("Bad StartThreadIngestWorker params", Logging.LogFilterType.TextError);
+            return false;
+        }
+
+
+
+
         JsonLoadSettings _JSONLoadSettings = new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error };
 
- 
+
 
         JObject GetDirectoryInfo(string dir)
         {
@@ -324,7 +547,7 @@ namespace rgat.OperationModes
 
         JToken GatherTargetInitData(string path)
         {
-            BinaryTarget target = rgatState.targets.AddTargetByPath(path);          
+            BinaryTarget target = rgatState.targets.AddTargetByPath(path);
 
             return (JToken)target.GetRemoteLoadInitData();
         }
@@ -360,7 +583,7 @@ namespace rgat.OperationModes
 
 
 
-        public void GotData(Tuple<emsgType, string> data)
+        public void GotData(NETWORK_MSG data)
         {
             //Console.WriteLine($"BridgedRunner ({(rgatState.NetworkBridge.GUIMode ? "GUI mode" : "Headless mode")}) got new {data.Item1} data: {data.Item2}");
             lock (_lock)
@@ -392,7 +615,7 @@ namespace rgat.OperationModes
         {
             Thread dataProcessor = new Thread(new ParameterizedThreadStart(ResponseHandlerThread));
             dataProcessor.Start(rgatState.NetworkBridge.CancelToken);
-            rgatState.NetworkBridge.SendCommand("GetRecentBinaries", recipientID:"GUI",  callback: RemoteDataMirror.HandleRecentBinariesList);
+            rgatState.NetworkBridge.SendCommand("GetRecentBinaries", recipientID: "GUI", callback: RemoteDataMirror.HandleRecentBinariesList);
         }
 
 
@@ -504,7 +727,7 @@ namespace rgat.OperationModes
             {
                 _incomingData.Clear();
             }
-            Tuple<emsgType, string>[] incoming = null;
+            NETWORK_MSG[] incoming = null;
             while (!rgatState.RgatIsExiting)
             {
                 try
@@ -527,14 +750,34 @@ namespace rgat.OperationModes
                 {
                     foreach (var item in incoming)
                     {
-                        ProcessData(item);
+                       // try
+                        {
+                            ProcessData(item);
+                        }
+                        /*
+                        catch (Exception e)
+                        {
+                            Logging.RecordLogEvent($"ResponseHandlerThread Error: ProcessData exception {e.Message} <{item.msgType}>, data:{GetString(item.data)}", Logging.LogFilterType.TextError);
+                            rgatState.NetworkBridge.Teardown("Processing response exception");
+                            return;
+                        }*/
                     }
                     incoming = null;
                 }
             }
         }
 
-
+        static string GetString(byte[] bytes)
+        {
+            try
+            {
+               return Encoding.ASCII.GetString(bytes);
+            }
+            catch
+            {
+                return "<DecodeError>";
+            };
+        }
 
 
     }

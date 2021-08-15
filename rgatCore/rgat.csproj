@@ -54,7 +54,6 @@
     <PackageReference Include="FFMpegCore" Version="4.4.0" />
     <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
     <PackageReference Include="GraphShape" Version="1.2.0" />
-    <PackageReference Include="HexMate" Version="0.0.3" />
     <PackageReference Include="Humanizer.Core" Version="2.11.10" />
     <PackageReference Include="KaitaiStruct.Runtime.CSharp" Version="0.9.0" />
     <PackageReference Include="Microsoft.Msagl" Version="1.1.3" />

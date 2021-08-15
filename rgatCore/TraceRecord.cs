@@ -922,7 +922,7 @@ namespace rgat
 
 
             byte[] buf = System.Text.Encoding.ASCII.GetBytes(command + '@' + threadID.ToString() + "\n\x00");
-            if (ProcessThreads.modThread.SendCommand(buf) == -1)
+            if (!ProcessThreads.modThread.SendCommand(buf))
             {
                 Logging.RecordLogEvent("Error sending command to control pipe", Logging.LogFilterType.TextError);
             }

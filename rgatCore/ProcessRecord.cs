@@ -91,7 +91,7 @@ namespace rgat
 
         //returns address once it does
         //todo - failure on limit excess
-        public ulong EnsureBlockExistsGetAddress(uint blockID)
+        public bool EnsureBlockExistsGetAddress(uint blockID, out ulong address)
         {
             int timewaited = 0;
             while (true)
@@ -101,15 +101,24 @@ namespace rgat
                 {
                     if (BasicBlocksList.Count > blockID && BasicBlocksList[(int)blockID] != null)
                     {
-                        return BasicBlocksList[(int)blockID].Item1;
+                        address = BasicBlocksList[(int)blockID].Item1;
+                        return true;
                     }
                 }
-                if (dieFlag) return 0;
+                if (dieFlag) {
+                    address = 0;
+                    return false; 
+                }
                 Thread.Sleep(2);
                 timewaited += 2;
                 if (timewaited > 2500 && (timewaited % 1000) == 0)
                 {
                     Console.WriteLine($"Warning, long wait for block {blockID}. Currently {timewaited / 1000}s");
+                    if (timewaited > 5000)
+                    {
+                        address = 0;
+                        return false;
+                    }
                 }
 
             }

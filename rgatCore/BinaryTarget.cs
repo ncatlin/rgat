@@ -63,7 +63,7 @@ namespace rgat
         private long fileSize = 0;
         public string RemoteHost { get; private set; }  = null;
         public bool RemoteBinary => RemoteHost != null;
-        public bool RemoteAccessible => RemoteHost == rgatState.NetworkBridge.LastAddress;
+        public bool RemoteAccessible => rgatState.ConnectedToRemote && RemoteHost == rgatState.NetworkBridge.LastAddress;
         public bool RemoteInitialised { get; private set; } = false;
         public bool IsRunnable => RemoteBinary ? RemoteAccessible : File.Exists(FilePath);
 
@@ -80,6 +80,8 @@ namespace rgat
         public string ASCIIPreview { get; private set; } = "";
 
         string _hexTooltip;
+
+        public bool ProxyTarget = false;
 
 
 
@@ -108,7 +110,6 @@ namespace rgat
 
             traceChoices.InitDefaultExclusions();
         }
-
 
 
         public JToken GetRemoteLoadInitData()
@@ -152,6 +153,9 @@ namespace rgat
             InitPreviews();
 
             _sha1hash = sha1Tok.ToObject<string>() ?? "";
+            if (_sha1hash != null && _sha1hash.Length > 0)
+                rgatState.targets.RegisterTargetSHA1(_sha1hash, this);
+
             _sha256hash = sha256Tok.ToObject<string>() ?? "";
             BitWidth = bitTok.ToObject<int>();
 
@@ -260,6 +264,7 @@ namespace rgat
 
         private readonly Object tracesLock = new Object();
         private Dictionary<DateTime, TraceRecord> RecordedTraces = new Dictionary<DateTime, TraceRecord>();
+        private Dictionary<string, TraceRecord> RecordedTraceIDs = new Dictionary<string, TraceRecord>();
         private List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
 
         public int TracesCount => TraceRecordsList.Count;
@@ -275,7 +280,15 @@ namespace rgat
             }
         }
 
-
+        public bool GetTraceByIDs(uint pid, long ID, out TraceRecord result)
+        {
+            result = null;
+            lock (tracesLock)
+            {
+                result = TraceRecordsList.Find(x => x.PID == pid && x.randID == ID);
+                return (result != null);
+            }
+        }
 
         public List<Tuple<DateTime, TraceRecord>> GetTracesUIList()
         {
@@ -337,6 +350,9 @@ namespace rgat
 
                 SHA1 sha1 = new SHA1Managed();
                 _sha1hash = BitConverter.ToString(sha1.ComputeHash(fs)).Replace("-", "");
+                if (_sha1hash != null && _sha1hash.Length > 0)
+                    rgatState.targets.RegisterTargetSHA1(_sha1hash, this);
+
                 SHA256 sha256 = new SHA256Managed();
                 _sha256hash = BitConverter.ToString(sha256.ComputeHash(fs)).Replace("-", "");
 
@@ -385,7 +401,7 @@ namespace rgat
 
 
 
-        public bool CreateNewTrace(DateTime timeStarted, uint PID, uint ID, out TraceRecord newRecord)
+        public bool CreateNewTrace(DateTime timeStarted, uint PID, long ID, out TraceRecord newRecord)
         {
             lock (tracesLock)
             {

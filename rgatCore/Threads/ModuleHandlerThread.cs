@@ -1,6 +1,8 @@
-﻿using rgat.Threads;
+﻿using Newtonsoft.Json.Linq;
+using rgat.Threads;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Linq;
 using System.Text;
@@ -16,27 +18,78 @@ namespace rgat
         TraceRecord trace;
         NamedPipeServerStream commandPipe = null;
         NamedPipeServerStream eventPipe = null;
+        uint? _remoteEventPipeID;
+        uint? _remoteCommandPipeID = null;
+        System.Threading.Tasks.Task _headlessCommandListener = null;
 
-        public ModuleHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord)
+        public uint? RemoteCommandPipeID
+        {
+            get => _remoteCommandPipeID;
+            set
+            {
+                if (!_remoteCommandPipeID.HasValue)
+                    _remoteCommandPipeID = value;
+                else
+                    throw new InvalidOperationException("Remote command pipe ID has already been set");
+            }
+        }
+
+        public delegate void ProcessPipeMessageAction(byte[] buf, int bytesRead);
+
+        public ModuleHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord = null, uint? remotePipeID = null)
         {
             target = binaryTarg;
             trace = runrecord;
+            _remoteEventPipeID = remotePipeID;
+
         }
 
         public override void Begin()
         {
             base.Begin();
-            WorkerThread = new Thread(ControlEventListener);
-            WorkerThread.Name = $"TraceModuleHandler_{trace.PID}_{trace.randID}";
-            WorkerThread.Start();
+            ProcessPipeMessageAction param;
+            if (_remoteEventPipeID != null)
+            {
+                if (rgatState.ConnectedToRemote)
+                {
+                    if (rgatState.NetworkBridge.HeadlessMode)
+                    {
+                        param = MirrorMessageToUI;
+                        WorkerThread = new Thread(PipeEventListener);
+                        _headlessCommandListener = System.Threading.Tasks.Task.Run(() => { RemoteCommandListener(); });
+                    }
+                    else
+                    {
+                        param = ProcessMessageLocal;
+                        WorkerThread = new Thread(RemoteEventListener);
+                    }
+                    WorkerThread.Name = $"ModuleHandler_Remote_{_remoteEventPipeID}";
+                }
+                else
+                {
+                    Logging.RecordLogEvent("Refusing to start block handler with remote pipe without being connected", filter: Logging.LogFilterType.TextError);
+                    return;
+                }
+            }
+            else
+            {
+                Debug.Assert(_remoteEventPipeID == null);
+                WorkerThread = new Thread(PipeEventListener);
+                WorkerThread.Name = $"TraceModuleHandler_{trace.PID}_{trace.randID}";
+                param = ProcessMessageLocal;
+            }
+            WorkerThread.Start((object)param);
         }
 
         private string GetTracePipeName(ulong TID)
         {
-            return "TR" + trace.PID.ToString() + trace.randID.ToString() + TID.ToString();
+          return GetTracePipeName(trace.PID, trace.randID, TID);
         }
 
-
+        public static string GetTracePipeName(uint PID, long randID, ulong TID)
+        {
+            return "TR" + PID.ToString() + randID.ToString() + TID.ToString();
+        }
 
 
 
@@ -65,9 +118,9 @@ namespace rgat
         }
 
 
-        void HandleNewVisualiserThread(uint TID)
+        void SpawnPipeTraceProcessorThreads(ProtoGraph graph)
         {
-            string pipename = GetTracePipeName(TID);
+            string pipename = GetTracePipeName(graph.ThreadID);
 
             Console.WriteLine("Opening pipe " + pipename);
             NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
@@ -76,19 +129,18 @@ namespace rgat
             threadListener.WaitForConnection();
             Console.WriteLine("Trace thread connected");
 
-            ProtoGraph newProtoGraph = new ProtoGraph(trace, TID);
-            if (!_clientState.CreateNewPlottedGraph(newProtoGraph, out PlottedGraph MainGraph))
+            if (!_clientState.CreateNewPlottedGraph(graph, out PlottedGraph MainGraph))
             {
                 Console.WriteLine("ERROR: Failed to create plotted graphs for new thread, abandoning");
                 return;
             }
 
-            newProtoGraph.TraceReader = new ThreadTraceIngestThread(newProtoGraph, threadListener);
-            newProtoGraph.TraceProcessor = new ThreadTraceProcessingThread(newProtoGraph);
-            newProtoGraph.TraceReader.Begin();
-            newProtoGraph.TraceProcessor.Begin();
+            graph.TraceReader = new PipeTraceIngestThread(graph, threadListener, graph.ThreadID);
+            graph.TraceProcessor = new ThreadTraceProcessingThread(graph);
+            graph.TraceReader.Begin();
+            graph.TraceProcessor.Begin();
 
-            newProtoGraph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph: newProtoGraph);
+            graph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph: graph);
             if (!trace.InsertNewThread(MainGraph))
             {
                 Console.WriteLine("[rgat]ERROR: Trace rendering thread creation failed");
@@ -97,6 +149,58 @@ namespace rgat
 
         }
 
+
+        bool SpawnRemoteTraceProcessorThreads(JToken paramsTok)
+        {
+            if (paramsTok.Type == JTokenType.Object)
+            {
+                JObject parameters = (JObject)paramsTok;
+                if (parameters.TryGetValue("Thread#", out JToken threadTok) && (threadTok.Type == JTokenType.Integer) &&
+                    parameters.TryGetValue("Pipe#", out JToken pipeTok) && (pipeTok.Type == JTokenType.Integer))
+                {
+                    ProtoGraph graph = null;
+                    ulong ThreadRef = threadTok.ToObject<ulong>();
+                    uint pipeID = pipeTok.ToObject<uint>();
+                    lock (_lock)
+                    {
+                        if (!_pendingPipeThreads.TryGetValue(ThreadRef, out graph))
+                        {
+                            Logging.RecordLogEvent($"Error: SpawnRemoteTraceProcessorThreads has no pending pipe with ref {ThreadRef}", Logging.LogFilterType.TextError);
+                            return false;
+                        }
+                        _pendingPipeThreads.Remove(pipeID);
+                    }
+
+                    SocketTraceIngestThread reader = new SocketTraceIngestThread(graph);
+                    graph.TraceReader = reader;
+                    reader.Begin();
+
+                    graph.TraceProcessor = new ThreadTraceProcessingThread(graph);
+                    graph.TraceProcessor.Begin();
+
+
+                    Config.RemoteDataMirror.RegisterRemotePipe(pipeID, reader, reader.QueueData);
+
+                    graph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph: graph);
+                    if (!_clientState.CreateNewPlottedGraph(graph, out PlottedGraph MainGraph))
+                    {
+                        Logging.RecordLogEvent("ERROR: Failed to create plotted graph for new thread, abandoning", Logging.LogFilterType.TextError);
+                        return false;
+                    }
+
+                    if (!trace.InsertNewThread(MainGraph))
+                    {
+                        Logging.RecordLogEvent("ERROR: Trace rendering thread creation failed", Logging.LogFilterType.TextError);
+                        return false;
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        ulong spawnedThreadCount = 0;
+        Dictionary<ulong, ProtoGraph> _pendingPipeThreads = new Dictionary<ulong, ProtoGraph>();
 
         void HandleNewThread(byte[] buf)
         {
@@ -110,7 +214,27 @@ namespace rgat
             switch (trace.TraceType)
             {
                 case eTracePurpose.eVisualiser:
-                    HandleNewVisualiserThread(TID);
+
+
+                    ProtoGraph newProtoGraph = new ProtoGraph(trace, TID);
+                    if (!rgatState.ConnectedToRemote)
+                        SpawnPipeTraceProcessorThreads(newProtoGraph);
+                    else
+                    {
+                        ulong traceRef;
+                        lock (_lock)
+                        {
+                            traceRef = spawnedThreadCount++;
+                            _pendingPipeThreads.Add(traceRef, newProtoGraph);
+                        }
+                        JObject params_ = new JObject();
+                        params_.Add("TID", TID);
+                        params_.Add("PID", trace.PID);
+                        params_.Add("RID", trace.randID);
+                        params_.Add("ref", traceRef);
+                        rgatState.NetworkBridge.SendCommand("ThreadIngest", trace.randID.ToString()+ spawnedThreadCount.ToString(), SpawnRemoteTraceProcessorThreads, params_.ToString());
+                    }
+
                     break;
                 case eTracePurpose.eFuzzer:
                     {
@@ -180,8 +304,9 @@ namespace rgat
 
 
 
-        public int SendCommand(byte[] cmd)
+        public bool SendCommand(byte[] cmd)
         {
+            Debug.Assert(commandPipe != null);
             if (commandPipe.IsConnected)
             {
                 try
@@ -192,16 +317,27 @@ namespace rgat
                 catch (Exception e)
                 {
                     Logging.RecordLogEvent($"MH:SendCommand failed with exception {e.Message}");
-                    return -1;
+                    return false;
                 }
 
-                return cmd.Length;
+                return true;
             }
-            return -1;
+            return false;
         }
 
         bool CommandWrite(string msg)
         {
+            if (_remoteCommandPipeID != null)
+            {
+                if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.GUIMode)
+                {
+                    rgatState.NetworkBridge.SendTraceCommand(this._remoteCommandPipeID.Value, msg);
+                    return true;
+                }
+                return false;
+            }
+
+
             byte[] buf = Encoding.UTF8.GetBytes(msg);
             try { commandPipe.Write(buf, 0, buf.Length); }
             catch (Exception e)
@@ -285,6 +421,7 @@ namespace rgat
         }
 
 
+
         void ConnectCallback(IAsyncResult ar)
         {
             string pipeType = (string)ar.AsyncState;
@@ -307,7 +444,12 @@ namespace rgat
         }
 
 
-        void ProcessMessage(byte[] buf, int bytesRead)
+        void MirrorMessageToUI(byte[] buf, int bytesRead)
+        {
+            rgatState.NetworkBridge.SendRawTraceData(_remoteEventPipeID.Value, buf, bytesRead);
+        }
+
+        void ProcessMessageLocal(byte[] buf, int bytesRead)
         {
 
             if (bytesRead < 3) //probably pipe ended
@@ -316,7 +458,6 @@ namespace rgat
                 {
                     Logging.RecordLogEvent($"MH:ReadCallback() Unhandled tiny control pipe message: {buf}", Logging.LogFilterType.TextError);
                 }
-
                 return;
             }
 
@@ -415,8 +556,137 @@ namespace rgat
 
         }
 
-        async void ControlEventListener(object instanceID)
+        public void AddRemoteEventData(byte[] data, int startIndex)
         {
+            lock (_lock)
+            {
+                _incomingRemoteEvents.Enqueue(data);
+                NewDataEvent.Set();
+            }
+        }
+
+        public void ProcessIncomingTraceCommand(byte[] data, int startIndex)
+        {
+            lock (_lock)
+            {
+                if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode)
+                {
+                    _incomingTraceCommands.Enqueue(ASCIIEncoding.ASCII.GetString(data, startIndex, data.Length - startIndex));
+                    NewDataEvent.Set();
+                }
+            }
+        }
+
+
+        Queue<byte[]> _incomingRemoteEvents = new Queue<byte[]>();
+        Queue<string> _incomingTraceCommands = new Queue<string>();
+        ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
+        readonly object _lock = new object();
+
+        /// <summary>
+        /// This runs in headless mode, taking commands from the UI and passing them to the instrumentation tool
+        /// in the target process
+        /// </summary>
+        void RemoteCommandListener()
+        {
+            CancellationToken cancelToken = rgatState.NetworkBridge.CancelToken;
+            while (!cancelToken.IsCancellationRequested && (commandPipe == null || commandPipe.IsConnected == false))
+            {
+                Thread.Sleep(25);
+            }
+
+            while (!rgatState.RgatIsExiting)
+            {
+                string[] newCommands;
+                try
+                {
+                    NewDataEvent.Wait(cancelToken);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordLogEvent($"BlockThread::RemoteCommandListener exception {e.Message}");
+                    break;
+                }
+                lock (_lock)
+                {
+                    newCommands = _incomingTraceCommands.ToArray();
+                    _incomingTraceCommands.Clear();
+                    NewDataEvent.Reset();
+                }
+
+                foreach (string item in newCommands)
+                {
+                    try
+                    {
+                        SendCommand(System.Text.ASCIIEncoding.ASCII.GetBytes(item));
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordLogEvent($"Remote command processing exception: {e}");
+                        rgatState.NetworkBridge.Teardown();
+                        base.Finished();
+                        return;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// This is run by the UI in remote mode, passing trace events to the trace processor
+        /// </summary>
+        /// <param name="ProcessMessageobj"></param>
+        void RemoteEventListener(object ProcessMessageobj)
+        {
+            ProcessPipeMessageAction ProcessMessage = (ProcessPipeMessageAction)ProcessMessageobj;
+
+            SendTraceSettings();
+
+            byte[][] newEvents;
+            while (!rgatState.RgatIsExiting)
+            {
+                try
+                {
+                    NewDataEvent.Wait(rgatState.NetworkBridge.CancelToken);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordLogEvent($"BlockThread::RemoteEventListener exception {e.Message}");
+                    break;
+                }
+                lock (_lock)
+                {
+                    newEvents = _incomingRemoteEvents.ToArray();
+                    _incomingRemoteEvents.Clear();
+                    NewDataEvent.Reset();
+                }
+                //these come from the remote tracer
+                foreach (byte[] item in newEvents)
+                {
+                    try
+                    {
+                        ProcessMessage(item, item.Length);
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordLogEvent($"Remote Event processing exception: {e}");
+                        rgatState.NetworkBridge.Teardown();
+                        base.Finished();
+                        return;
+                    }
+                }
+
+
+                //todo: remote trace termination -> loop exit condition
+            }
+        }
+
+
+
+
+
+        async void PipeEventListener(object ProcessMessageobj)
+        {
+            ProcessPipeMessageAction ProcessMessage = (ProcessPipeMessageAction)ProcessMessageobj;
             string cmdPipeName = GetCommandPipeName(trace.PID, trace.randID);
             string eventPipeName = GetEventPipeName(trace.PID, trace.randID);
 
@@ -441,7 +711,7 @@ namespace rgat
                 if (eventPipe.IsConnected & commandPipe.IsConnected) break;
                 Thread.Sleep(1000);
                 totalWaited += 1000;
-                Console.WriteLine($"ModuleHandlerThread Waiting ControlPipeConnected:{eventPipe.IsConnected} TotalTime:{totalWaited}");
+                Console.WriteLine($"ModuleHandlerThread Awaiting Pipe Connections: Command:{commandPipe.IsConnected}, Event:{eventPipe.IsConnected}, TotalTime:{totalWaited}");
                 if (totalWaited > 8000)
                 {
                     Console.WriteLine($"Timeout waiting for rgat client sub-connections. ControlPipeConnected:{eventPipe.IsConnected} ");
@@ -449,7 +719,7 @@ namespace rgat
                 }
             }
 
-            if (commandPipe.IsConnected)
+            if (commandPipe.IsConnected && !rgatState.ConnectedToRemote)
             {
                 SendTraceSettings();
             }
@@ -461,7 +731,6 @@ namespace rgat
             while (!rgatState.RgatIsExiting && eventPipe.IsConnected)
             {
                 byte[] buf = new byte[BufMax];
-                //controlPipe.Read(buf);
                 try
                 {
                     bytesRead = await eventPipe.ReadAsync(buf, 0, BufMax, cancelTokens.Token);
@@ -483,7 +752,17 @@ namespace rgat
                     //Logging.RecordLogEvent("IncomingMessageCallback: " + Encoding.ASCII.GetString(buf, 0, bytesread), filter: Logging.LogFilterType.BulkDebugLogFile);
                     if (bytesRead > 0)
                     {
-                        ProcessMessage(buf, bytesRead);
+                        try
+                        {
+                            ProcessMessage(buf, bytesRead);
+                        }
+                        catch (Exception e)
+                        {
+                            Logging.RecordLogEvent($"Local Event processing exception: {e}");
+                            rgatState.NetworkBridge.Teardown();
+                            base.Finished();
+                            return;
+                        }
                     }
                     else
                     {

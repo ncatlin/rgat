@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace rgat.Threads
 {
-    class ProcessCoordinatorThread : TraceProcessorWorker
+    public class ProcessCoordinatorThread : TraceProcessorWorker
     {
         byte[] buf = new byte[1024];
         NamedPipeServerStream coordPipe = null;
@@ -28,14 +28,6 @@ namespace rgat.Threads
         {
 
             int bytesRead = coordPipe.EndRead(ir);
-
-            if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.GUIMode)
-            {
-                if (coordPipe.IsConnected) coordPipe.Disconnect();
-                Logging.RecordLogEvent($"Ignoring incoming coordinator request {System.Text.Encoding.ASCII.GetString(buf)} while in remote tracing mode", Logging.LogFilterType.TextAlert);
-                return;
-            }
-
 
             bytesRead = Array.FindIndex(buf, elem => elem == 0);
 
@@ -61,7 +53,8 @@ namespace rgat.Threads
                         string programName = fields[4];
                         string cmdPipeName = ModuleHandlerThread.GetCommandPipeName(PID, randno);
                         string eventPipeName = ModuleHandlerThread.GetEventPipeName(PID, randno);
-                        string response = $"CM@{cmdPipeName}@CR@{eventPipeName}@BB@{GetBBPipeName(PID, randno)}@\x00";
+                        string blockPipeName = BlockHandlerThread.GetBlockPipeName(PID, randno);
+                        string response = $"CM@{cmdPipeName}@CR@{eventPipeName}@BB@{blockPipeName}@\x00";
                         byte[] outBuffer = System.Text.Encoding.UTF8.GetBytes(response);
                         coordPipe.Write(outBuffer);
                         Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, randno, programName, testRunID));
@@ -161,10 +154,6 @@ namespace rgat.Threads
 
 
 
-        static string GetBBPipeName(uint PID, long instanceID)
-        {
-            return "BB" + PID.ToString() + instanceID.ToString();
-        }
 
 
         private void process_new_pin_connection(uint PID, int arch, long ID, string programName, long testID = -1)
@@ -196,32 +185,63 @@ namespace rgat.Threads
                 }
                 target.BitWidth = arch;
             }
-            int ret = 0;
-
-            //TraceRecord tr = new TraceRecord(PID, ID, target, DateTime.Now, TraceRecord.eTracePurpose.eVisualiser, arch);
-
-            _clientState.IncreaseTraceCount();
 
             target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr);
-            if (isTest)
+            _clientState.IncreaseTraceCount();
+
+            if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode)
             {
-                tr.SetTestRunID(testID);
-                target.MarkTestBinary();
-                _clientState.RecordTestRunConnection(testID, tr);
+                //SpawnTracePipeProxy();
+
+                string pipename = ModuleHandlerThread.GetEventPipeName(tr.PID, tr.randID);
+                uint eventPipeID = Config.RemoteDataMirror.RegisterPipe(pipename);
+                pipename = ModuleHandlerThread.GetCommandPipeName(tr.PID, tr.randID); 
+                uint cmdPipeID = Config.RemoteDataMirror.RegisterPipe(pipename);
+                pipename = BlockHandlerThread.GetBlockPipeName(tr.PID, tr.randID); 
+                uint blockPipeID = Config.RemoteDataMirror.RegisterPipe(pipename);
+
+                string pipeMessage = $"InitialPipes@C@{cmdPipeID}@E@{eventPipeID}@B@{blockPipeID}";
+                rgatState.NetworkBridge.SendTraceMeta(tr, pipeMessage);
+
+                ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr, eventPipeID);
+                moduleHandler.RemoteCommandPipeID = cmdPipeID;
+                Config.RemoteDataMirror.RegisterRemotePipe(cmdPipeID, moduleHandler, moduleHandler.ProcessIncomingTraceCommand);
+                tr.ProcessThreads.Register(moduleHandler);
+                moduleHandler.Begin();
+
+                BlockHandlerThread blockHandler = new BlockHandlerThread(target, tr, blockPipeID);
+                tr.ProcessThreads.Register(blockHandler);
+                blockHandler.Begin();
+
+            }
+            else
+            {
+                StartLocalTraceThreads(tr, testID);
+            }
+        }
+
+
+        public void StartLocalTraceThreads(TraceRecord trace, long testID = -1)
+        {
+            if (testID != -1)
+            {
+                trace.SetTestRunID(testID);
+                trace.binaryTarg.MarkTestBinary();
+                _clientState.RecordTestRunConnection(testID, trace);
             }
 
-            ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr);
-            tr.ProcessThreads.Register(moduleHandler);
+            ModuleHandlerThread moduleHandler = new ModuleHandlerThread(trace.binaryTarg, trace);
+            trace.ProcessThreads.Register(moduleHandler);
             moduleHandler.Begin();
 
-            tr.RecordTimelineEvent(Logging.eTimelineEvent.ProcessStart, tr);
+            trace.RecordTimelineEvent(Logging.eTimelineEvent.ProcessStart, trace);
 
 
-            BlockHandlerThread blockHandler = new BlockHandlerThread(target, tr, GetBBPipeName(PID, ID));
-            tr.ProcessThreads.Register(blockHandler);
+            BlockHandlerThread blockHandler = new BlockHandlerThread(trace.binaryTarg, trace);
+            trace.ProcessThreads.Register(blockHandler);
             blockHandler.Begin();
 
-            ProcessLaunching.launch_new_visualiser_threads(target, tr, _clientState);
+            ProcessLaunching.launch_new_visualiser_threads(trace.binaryTarg, trace, _clientState);
         }
     }
 }

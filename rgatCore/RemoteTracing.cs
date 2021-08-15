@@ -13,11 +13,6 @@ namespace rgat
 {
     class RemoteTracing
     {
-
-
-
-
-
         public static void PrintInterfaces(bool PrintInvalid = false)
         {
             NetworkInterface[] interfaces = GetInterfaces(PrintInvalid);

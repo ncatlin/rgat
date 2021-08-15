@@ -41,6 +41,12 @@ namespace rgat.Threads
         public ThreadTraceProcessingThread(ProtoGraph newProtoGraph)
         {
             protograph = newProtoGraph;
+
+            if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode)
+            {
+                Logging.RecordLogEvent("Error: Trace processor created in headless mode", Logging.LogFilterType.TextError);
+                rgatState.NetworkBridge.Teardown("TraceProcessor created in wrong mode");
+            }
         }
 
 
@@ -337,8 +343,20 @@ namespace rgat.Threads
             for (; tokenpos < entry.Length; tokenpos++) if (entry[tokenpos] == ',') break;
 
             thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry, 1, tokenpos - 1), NumberStyles.HexNumber);
-            thistag.blockaddr = protograph.ProcessData.EnsureBlockExistsGetAddress(thistag.blockID);
+            //this may be a bad idea, could just be running faster than the dissassembler thread
+            while (thistag.blockID >= protograph.ProcessData.BasicBlocksList.Count)
+            {
+                Thread.Sleep(50);
+                Console.WriteLine("Waiting for disas");
+            }
             Debug.Assert(thistag.blockID < protograph.ProcessData.BasicBlocksList.Count, "ProcessTraceTag tried to process block that hasn't been disassembled");
+
+            if (!protograph.ProcessData.EnsureBlockExistsGetAddress(thistag.blockID, out thistag.blockaddr))
+            {
+                Logging.RecordLogEvent($"Error - EnsureBlockExistsGetAddress failed for {protograph.TraceData.binaryTarg.FileName} block {thistag.blockID}. Discarding trace.");
+                protograph.TraceReader.Terminate();
+                return;
+            }
 
             ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
             animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
@@ -823,6 +841,8 @@ namespace rgat.Threads
         private readonly Object debug_tag_lock = new Object();
         void Processor()
         {
+
+
             //process traces until program exits or the trace ingest stops + the queues are empty
             while (!rgatState.RgatIsExiting && (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData()))
             {
@@ -889,8 +909,7 @@ namespace rgat.Threads
                             Logging.RecordLogEvent($"Bad trace tag: {msg[0]} - likely a corrupt trace", Logging.LogFilterType.TextError);
                             Console.WriteLine($"Handle unknown tag {(char)msg[0]}");
                             Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
-                            protograph.TraceReader.StopFlag = true;
-
+                            protograph.TraceReader.Terminate();
                             break;
                     }
                 }

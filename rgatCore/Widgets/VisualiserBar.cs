@@ -39,7 +39,7 @@ namespace rgat.Widgets
 
         void InitGraphics()
         {
-
+            //todo exceptions here if we quite early in loading
             _iconsTextureView = _controller.IconTexturesView;
             _paramsBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<BarShaderParams>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "VisBarShaderParams");
             _rsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(

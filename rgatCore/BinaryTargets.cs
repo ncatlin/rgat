@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace rgat
@@ -6,6 +7,7 @@ namespace rgat
     public class BinaryTargets
     {
         private Dictionary<string, BinaryTarget> targets = new Dictionary<string, BinaryTarget>();
+        private Dictionary<string, BinaryTarget> sha1s = new Dictionary<string, BinaryTarget>();
         public BinaryTargets() { }
         public int count() => targets.Count;
 
@@ -53,8 +55,29 @@ namespace rgat
             }
         }
                 
-    
+        public void RegisterTargetSHA1(string sha1, BinaryTarget target)
+        {
+            lock(targetslock)
+            {
+                if (!this.sha1s.TryGetValue(sha1, out BinaryTarget existingTarget))
+                {
+                    this.sha1s.Add(sha1, target);
+                }
+                else
+                {
+                    Debug.Assert(existingTarget.GetSHA1Hash() == sha1);
+                }
+            }
+        }
 
+        public bool GetTargetBySHA1(string sha1, out BinaryTarget target)
+        {
+            target = null;
+            lock (targetslock)
+            {
+                return sha1s.TryGetValue(sha1, out target);
+            }
+        }
 
         private readonly object targetslock = new object();
 

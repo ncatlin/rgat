@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Linq;
 using System.Threading;
@@ -9,24 +10,16 @@ using System.Timers;
 
 namespace rgat
 {
-    public class ThreadTraceIngestThread : TraceProcessorWorker
+    public class PipeTraceIngestThread : TraceIngestWorker
     {
         uint TraceBufSize = GlobalConfig.TraceBufferSize;
         ProtoGraph protograph;
         NamedPipeServerStream threadpipe;
         Thread splittingThread;
-        ulong PendingDataSize = 0;
-        ulong ProcessedDataSize = 0;
-        ulong TotalProcessedData = 0;
-        public bool StopFlag = false;
         bool PipeBroke = false;
 
-        public ManualResetEventSlim TagDataReadyEvent = new ManualResetEventSlim(false);
         public ManualResetEventSlim RawIngestCompleteEvent = new ManualResetEventSlim(false);
-        bool WakeupRequested = false;
-
-        public bool HasPendingData() { return PendingDataSize != 0; }
-        public void RequestWakeupOnData() { if (!StopFlag) { WakeupRequested = true; TagDataReadyEvent.Reset(); } }
+        delegate void QueueIngestedData(byte[] data);
 
         private readonly object QueueSwitchLock = new object();
         int readIndex = 0;
@@ -35,36 +28,20 @@ namespace rgat
         List<byte[]> ReadingQueue = null;
         List<byte[]> WritingQueue = null;
         ConcurrentQueue<Tuple<byte[], int>> RawQueue = new ConcurrentQueue<Tuple<byte[], int>>();
-        public ulong QueueSize = 0;
 
-        long _recentMsgCount = 0;
+        uint _threadID;
+        uint? _remotePipe;
 
-        System.Timers.Timer StatsTimer;
-        DateTime _lastStatsUpdate = DateTime.Now;
-        private List<float> _updateRates = new List<float>();
-        private readonly Object _statsLock = new Object();
-        int _StatCacheSize = (int)Math.Floor(GlobalConfig.IngestStatWindow * GlobalConfig.IngestStatsPerSecond);
-
-
-        CancellationTokenSource cancelTokens = new CancellationTokenSource();
-        public CancellationToken CancelToken => cancelTokens.Token;
-
-        public ThreadTraceIngestThread(ProtoGraph newProtoGraph, NamedPipeServerStream _threadpipe)
+        public PipeTraceIngestThread(ProtoGraph newProtoGraph, NamedPipeServerStream _threadpipe, uint threadID, uint? remotePipe = null)
         {
+            Debug.Assert(newProtoGraph == null || newProtoGraph.ThreadID == threadID);
+            _threadID = threadID;
             TraceBufSize = GlobalConfig.TraceBufferSize;
             protograph = newProtoGraph;
             threadpipe = _threadpipe;
-            List<byte[]> ReadingQueue = FirstQueue;
-            List<byte[]> WritingQueue = SecondQueue;
-
-
-
-            _updateRates = Enumerable.Repeat(0.0f, _StatCacheSize).ToList();
-
-            StatsTimer = new System.Timers.Timer(1000.0 / GlobalConfig.IngestStatsPerSecond);
-            StatsTimer.Elapsed += StatsTimerFired;
-            StatsTimer.AutoReset = true;
-            StatsTimer.Start();
+            ReadingQueue = FirstQueue;
+            WritingQueue = SecondQueue;
+            _remotePipe = remotePipe;
         }
 
 
@@ -72,59 +49,33 @@ namespace rgat
         {
             base.Begin();
             WorkerThread = new Thread(Reader);
-            WorkerThread.Name = "TraceReader" + this.protograph.ThreadID;
+            WorkerThread.Name = "TraceReader" + _threadID;
             WorkerThread.Start();
 
             splittingThread = new Thread(MessageSplitterThread);
-            splittingThread.Name = "MessageSplitter" + this.protograph.ThreadID;
-            splittingThread.Start();
+            splittingThread.Name = "MessageSplitter" + _threadID;
+
+            QueueIngestedData queueFunction;
+
+            if (_remotePipe.HasValue)
+                queueFunction = MirrorMessageToUI;
+            else 
+                queueFunction = EnqueueData;
+
+            splittingThread.Start(queueFunction);
         }
 
 
-        /*
-         * The purpose of this is for plotting a little thread activity graph on the
-         * preview pane, we don't really care about precision and want to minimise 
-         * performance impact, so don't use any locks that contend with the I/O.
-         */
-        private void StatsTimerFired(object sender, ElapsedEventArgs e)
+        void MirrorMessageToUI(byte[] buf)
         {
-            long messagesSinceLastUpdate = _recentMsgCount;
-            DateTime lastUpdate = _lastStatsUpdate;
-
-            _lastStatsUpdate = DateTime.Now;
-            _recentMsgCount = 0;
-
-            float elapsedTimeS = ((float)(DateTime.Now - lastUpdate).Milliseconds) / 1000.0f;
-
-            float updateRate = (float)(messagesSinceLastUpdate) / elapsedTimeS;
-            lock (_statsLock)
-            {
-                if (_updateRates.Count > _StatCacheSize)
-                {
-                    _updateRates.RemoveAt(0);
-                }
-                _updateRates.Add(updateRate);
-
-                if (StopFlag)
-                {
-                    //stop updating once all activity has gone
-                    if (_updateRates.Max() == 0) StatsTimer.Stop();
-                }
-            }
-
+            rgatState.NetworkBridge.SendRawTraceData(_remotePipe.Value, buf, buf.Length);
         }
 
-        public float[] RecentMessageRates()
-        {
-            lock (_statsLock)
-            {
-                return _updateRates.ToArray();
-            }
-        }
 
-        public byte[] DeQueueData()
+
+        public override byte[] DeQueueData()
         {
-            byte[] nextMessage = null;
+            byte[] nextMessage;
             lock (QueueSwitchLock)
             {
                 if (ReadingQueue == null) return null;
@@ -155,9 +106,9 @@ namespace rgat
                 TotalProcessedData += (ulong)nextMessage.Length;
                 return nextMessage;
             }
-
-
         }
+
+
 
         void EnqueueData(byte[] datamsg)
         {
@@ -211,8 +162,9 @@ namespace rgat
          * Could possibly have the ingest thread deal with this but then the full buffers 
          * are in the main queues
          */
-        void MessageSplitterThread()
+        void MessageSplitterThread(object queueFunc)
         {
+            QueueIngestedData AddData = (QueueIngestedData)queueFunc;
             while (!rgatState.RgatIsExiting && (threadpipe.IsConnected || RawQueue.Count > 0))
             {
                 if (!RawQueue.TryDequeue(out Tuple<byte[], int> buf_sz))
@@ -254,28 +206,24 @@ namespace rgat
                         byte[] msg = new byte[msgsize];
                         Buffer.BlockCopy(buf, msgstart, msg, 0, msgsize);
                         //Console.WriteLine($"\tQueued [{msgstart}]: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
-                        EnqueueData(msg);
-                        _recentMsgCount += 1;
+                        AddData(msg);
+                        IncreaseMessageCount();
                         msgstart = tokenpos + 1;
                     }
                 }
             }
         }
 
-        public void Terminate()
+        public override void Terminate()
         {
             if (!StopFlag)
             {
                 try
                 {
-                    StopFlag = true;
                     RawIngestCompleteEvent.Set();
-                    cancelTokens.Cancel();
                 }
-                catch
-                {
-                    return;
-                }
+                catch { }
+                base.Terminate();
             }
         }
 
@@ -297,13 +245,13 @@ namespace rgat
                 ReadingQueue = SecondQueue;
             }
 
+
             while (!StopFlag && !PipeBroke)
             {
-                const int TAGCACHESIZE = 1024;
-                byte[] TagReadBuffer = new byte[TAGCACHESIZE];
-                int bytesRead = await threadpipe.ReadAsync(TagReadBuffer, 0, TAGCACHESIZE, CancelToken);// new AsyncCallback(IncomingMessageCallback), TagReadBuffer);
+                byte[] TagReadBuffer = new byte[TRACING_CONSTANTS.TagCacheSize];
+                int bytesRead = await threadpipe.ReadAsync(TagReadBuffer, 0, TRACING_CONSTANTS.TagCacheSize, CancelToken);
 
-                if (bytesRead < 1024)
+                if (bytesRead < TRACING_CONSTANTS.TagCacheSize)
                 {
                     if (pendingBuf != null)
                     {
@@ -341,14 +289,14 @@ namespace rgat
                 if (WakeupRequested) TagDataReadyEvent.Set();
                 Thread.Sleep(25);
             }
-            StopFlag = true;
+            Terminate();
 
             RawIngestCompleteEvent.Set();
             TagDataReadyEvent.Set();
 
             Console.WriteLine(WorkerThread.Name + " finished after ingesting " + TotalProcessedData + " bytes of trace data");
 
-            if (!protograph.Terminated)
+            if (protograph != null && !protograph.Terminated)
                 protograph.SetTerminated();
             Finished();
         }
