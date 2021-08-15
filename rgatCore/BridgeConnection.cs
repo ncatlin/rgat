@@ -252,11 +252,13 @@ namespace rgat
                 if (AuthenticateIncomingConnection(_ActiveClient, _ActiveClient.GetStream()))
                 {
                     AddDisplayLogMessage("Connected to rgat", Themes.eThemeColour.eGoodStateColour);
+                    Logging.RecordLogEvent($"New connection from {clientEndpoint}", Logging.LogFilterType.TextAlert);
                     ServeAuthenticatedConnection(_ActiveClient, connectCallback);
                 }
                 else
                 {
                     Teardown();
+                    Logging.RecordLogEvent($"Failed connection from {clientEndpoint}", Logging.LogFilterType.TextAlert);
                     _ActiveClient = null;
                     BridgeState = eBridgeState.Errored;
                     return;

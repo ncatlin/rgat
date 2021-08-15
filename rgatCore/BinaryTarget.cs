@@ -412,6 +412,7 @@ namespace rgat
                 newRecord = new TraceRecord(PID, ID, this, timeStarted);
                 RecordedTraces.Add(timeStarted, newRecord);
                 TraceRecordsList.Add(newRecord);
+                rgatState.IncreaseLoadedTraceCount();
                 return true;
             }
         }

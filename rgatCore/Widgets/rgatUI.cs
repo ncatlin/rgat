@@ -227,7 +227,13 @@ namespace rgat
             if (_show_load_trace_window) DrawTraceLoadBox(ref _show_load_trace_window);
             if (_show_stats_dialog) DrawGraphStatsDialog(ref _show_stats_dialog);
             if (_show_test_harness) _testHarness.Draw(ref _show_test_harness);
-            if (_show_remote_dialog) _RemoteDialog.Draw(ref _show_remote_dialog);
+            if (_show_remote_dialog) {
+                if (_RemoteDialog == null)
+                {
+                    _RemoteDialog = new RemoteDialog(_rgatState);
+                }
+                _RemoteDialog.Draw(ref _show_remote_dialog); 
+            }
         }
 
         public void DrawGraphStatsDialog(ref bool hideme)
@@ -415,7 +421,21 @@ namespace rgat
             int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
             if (alerts.Length == 0) return false;
 
-            const float width = 250;
+            float widestAlert = 0;
+            if (alerts.Length <= 2)
+            {
+                for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
+                {
+                    widestAlert = ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[i])._text).X + 50;
+                }
+            }
+            else
+            {
+                widestAlert = ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[^1])._text).X + 50;
+            }
+
+            float width = Math.Max(widestAlert, 250);
+            width = Math.Min(widestAlert, ImGui.GetContentRegionAvail().X - 30);
             Vector2 size = new Vector2(width, 38);
             ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - (width + 6));
 
@@ -424,7 +444,7 @@ namespace rgat
             ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBorder));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
-            Vector2 popupBR = ImGui.GetCursorPos() + new Vector2(0, 150);
+            Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), ImGui.GetWindowSize().X - (widestAlert+100)), ImGui.GetCursorPosY() + 150);
             if (ImGui.BeginChild(78789, size, true))
             {
                 if (alerts.Length <= 2)
@@ -669,6 +689,8 @@ namespace rgat
 
             _show_load_trace_window = false;
             _settings_window_shown = false;
+            _show_remote_dialog = false;
+            _show_test_harness = false;
             _show_select_exe_window = false;
         }
 
@@ -1266,7 +1288,7 @@ namespace rgat
                 ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourImGui(ImGuiCol.Button) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
                 if (ImGui.Button("Start Trace") && runnable)
                 {
-                    _OldTraceCount = _rgatState.TotalTraceCount;
+                    _OldTraceCount = rgatState.TotalTraceCount;
                     if (_rgatState.ActiveTarget.RemoteBinary)
                     {
                        ProcessLaunching.StartRemoteTrace(_rgatState.ActiveTarget);
@@ -3080,6 +3102,8 @@ namespace rgat
 
 
                 ImGui.MenuItem("Settings", null, ref _settings_window_shown);
+                ImGui.MenuItem("Network", null, ref _show_remote_dialog);
+
                 ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - 30);
                 bool isShown = _show_test_harness;
                 if (ImGui.MenuItem("Tests", null, ref isShown, true))
@@ -3113,6 +3137,9 @@ namespace rgat
             string activeString = (activeTarget == null) ? "No target selected" : activeTarget.FilePath;
             List<string> paths = rgatState.targets.GetTargetPaths();
             ImGuiComboFlags flags = 0;
+            float textWidth = Math.Max(ImGui.GetContentRegionAvail().X/2.5f, ImGui.CalcTextSize(activeString).X + 50);
+            textWidth = Math.Min(ImGui.GetContentRegionAvail().X - 300, textWidth);
+            ImGui.SetNextItemWidth(textWidth);
             if (ImGui.BeginCombo("Selected Binary", activeString, flags))
             {
                 foreach (string path in paths)
@@ -3142,7 +3169,7 @@ namespace rgat
             bool tabDrawn = false;
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
 
-            if (_OldTraceCount != -1 && _rgatState.TotalTraceCount > _OldTraceCount)
+            if (_OldTraceCount != -1 && rgatState.TotalTraceCount > _OldTraceCount)
             {
                 _OldTraceCount = -1;
                 _SwitchToVisualiserTab = true;

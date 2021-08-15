@@ -187,7 +187,6 @@ namespace rgat.Threads
             }
 
             target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr);
-            _clientState.IncreaseTraceCount();
 
             if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode)
             {
@@ -195,9 +194,9 @@ namespace rgat.Threads
 
                 string pipename = ModuleHandlerThread.GetEventPipeName(tr.PID, tr.randID);
                 uint eventPipeID = Config.RemoteDataMirror.RegisterPipe(pipename);
-                pipename = ModuleHandlerThread.GetCommandPipeName(tr.PID, tr.randID); 
+                pipename = ModuleHandlerThread.GetCommandPipeName(tr.PID, tr.randID);
                 uint cmdPipeID = Config.RemoteDataMirror.RegisterPipe(pipename);
-                pipename = BlockHandlerThread.GetBlockPipeName(tr.PID, tr.randID); 
+                pipename = BlockHandlerThread.GetBlockPipeName(tr.PID, tr.randID);
                 uint blockPipeID = Config.RemoteDataMirror.RegisterPipe(pipename);
 
                 string pipeMessage = $"InitialPipes@C@{cmdPipeID}@E@{eventPipeID}@B@{blockPipeID}";

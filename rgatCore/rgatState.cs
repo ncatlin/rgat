@@ -57,8 +57,8 @@ namespace rgat
 
 
         public static bool RgatIsExiting { private set; get; } = false;
-        public int TotalTraceCount { private set; get; } = 0;
-        public void IncreaseTraceCount() => TotalTraceCount += 1;
+        public static int TotalTraceCount { private set; get; } = 0;
+        public static void IncreaseLoadedTraceCount() => TotalTraceCount += 1;
 
         public LayoutStyles.Style newGraphLayout = LayoutStyles.Style.ForceDirected3DNodes;
 
