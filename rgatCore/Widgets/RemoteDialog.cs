@@ -161,7 +161,7 @@ namespace rgat.Widgets
             string title = "Remote Tracing Setup";
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(5, 5));
-            ImGui.Begin(title + "###Settings", ref window_shown_flag, window_flags);
+            ImGui.Begin(title + "###RemoteDlg", ref window_shown_flag, window_flags);
             {
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 10);
@@ -216,6 +216,11 @@ namespace rgat.Widgets
         void DrawActivationToggle(float itemsWidth)
         {
             Vector2 togStart = ImGui.GetCursorScreenPos();
+
+            ImGui.PushStyleColor(ImGuiCol.Border, col: rgatState.ConnectedToRemote ?  
+                Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour) : 
+                Themes.GetThemeColourImGui(ImGuiCol.Border));
+
             if (ImGui.BeginChild("##RemoteActiveTogFrame", new Vector2(itemsWidth, 30), true, flags: ImGuiWindowFlags.NoScrollbar))
             {
                 bool activeNetworking = rgatState.NetworkBridge.ActiveNetworking;
@@ -284,6 +289,7 @@ namespace rgat.Widgets
                     }
                 }
                 ImGui.EndChildFrame();
+                ImGui.PopStyleColor();
             }
 
             if (ImGui.IsMouseHoveringRect(togStart, new Vector2(ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X - 10, ImGui.GetCursorScreenPos().Y)))
@@ -558,9 +564,9 @@ namespace rgat.Widgets
             if (ImGui.IsMouseHoveringRect(togStart, new Vector2(ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X - 10, ImGui.GetCursorScreenPos().Y)))
             {
                 ImGui.BeginTooltip();
-                ImGui.Text("rgat supports two methods of connecting rgat instances to support different network environments");
-                string listenTip = "Listen Mode: The GUI instance of rgat will listen for connections from the headless instance";
-                string connectTip = "Connect Mode: The GUI instance of rgat will connect to the headless instance.";
+                ImGui.Text("rgat supports two methods of connecting rgat instances for different network setups");
+                string listenTip = "Listen Mode: This GUI instance of rgat will listen for connections from the headless instance";
+                string connectTip = "Connect Mode: This GUI instance of rgat will connect out to the headless instance.";
                 if (ListenMode)
                 {
                     ImGui.Text(listenTip);

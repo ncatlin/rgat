@@ -371,7 +371,6 @@ namespace rgat
         {
             lock (_sendQueueLock)
             {
-                Console.WriteLine($"Sending {msgType} message: " + message);
                 _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.Log, destinationID = (uint)msgType, data = Encoding.ASCII.GetBytes(message) });
                 NewOutDataEvent.Set();
             }

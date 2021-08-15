@@ -78,7 +78,7 @@ namespace rgat
             {
                 if (!jobj.TryGetValue("EvtType", out JToken evtType) || evtType.Type != JTokenType.Integer)
                 {
-                    Logging.RecordLogEvent("Bad timeline event type in saved timeline");
+                    Logging.RecordError("Bad timeline event type in saved timeline");
                     return;
                 }
 
@@ -88,7 +88,7 @@ namespace rgat
                 if (!jobj.TryGetValue("ID", out idtok) || idtok.Type != JTokenType.Integer ||
                     !jobj.TryGetValue("PID", out pidtok) || pidtok.Type != JTokenType.Integer)
                 {
-                    Logging.RecordLogEvent("Bad timeline id/parent id in saved timeline");
+                    Logging.RecordError("Bad timeline id/parent id in saved timeline");
                     return;
                 }
 
@@ -355,6 +355,13 @@ namespace rgat
                 Console.ForegroundColor = ConsoleColor.White;
             }
         }
+
+        //Helper function for logging errors
+        public static void RecordError(string text, ProtoGraph graph = null, TraceRecord trace = null)
+        {
+            RecordLogEvent(text: text, graph: graph, trace: trace, filter: LogFilterType.TextError);
+        }
+
 
         static System.IO.StreamWriter _logFile = null;
         static void WriteToDebugFile(TEXT_LOG_EVENT log)

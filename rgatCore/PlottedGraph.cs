@@ -1,5 +1,4 @@
-﻿//using Microsoft.Msagl.Core.Layout;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -25,12 +24,9 @@ namespace rgat
     {
         public enum REPLAY_STATE { eStopped, ePlaying, ePaused, eEnded };
 
+        
+
         /*
- * The drawing graph has one way edges. 
- * This makes them 2 way for the purpose of attraction during velocity computation 
-    before "[[1],        [0],        [1],[1],[0],[0],[0],[0],[1],[1]]";
-    after  "[[1,4,5,6,7],[0,2,3,8,9],[1],[1],[0],[0],[0],[0],[1],[1]]";
-*/
         static List<List<int>> DoubleEdgeify(List<List<int>> ingraph)
         {
             List<List<int>> outgraph = new List<List<int>>(ingraph);
@@ -48,7 +44,7 @@ namespace rgat
 
             }
             return outgraph;
-        }
+        }*/
 
 
         public PlottedGraph(ProtoGraph protoGraph, GraphicsDevice device, List<WritableRgbaFloat> graphColourslist)
@@ -76,21 +72,21 @@ namespace rgat
             render_new_blocks();
         }
 
+
         //for tracking how big the graph gets
+        /*
         protected void updateStats(float a, float b, float c)
         {
             //the extra work of 2xabs() happens so rarely that its worth avoiding
             //the stack allocations of a variable every call
             if (Math.Abs(a) > maxA) maxA = Math.Abs(a);
             if (Math.Abs(b) > maxB) maxB = Math.Abs(b);
-        }
+        }*/
 
 
         public void UpdateMainRender()
         {
-
             render_graph();
-
         }
 
 
@@ -107,6 +103,7 @@ namespace rgat
             Console.WriteLine($"Animation set index: {NewPosition}, last: {_lastReplayedIndex}");
 
         }
+
 
         public void ProcessReplayUpdates()
         {
@@ -151,7 +148,6 @@ namespace rgat
             if (InternalProtoGraph.SavedAnimationData.Count == 0) return 0;
             return (float)((float)AnimationIndex / (float)InternalProtoGraph.SavedAnimationData.Count);
         }
-
 
         public bool beingDeleted { private set; get; } = false;
 
@@ -200,10 +196,11 @@ namespace rgat
         public void ResetClicked()
         {
             ReplayState = REPLAY_STATE.eEnded;
-
         }
 
+
         public bool RenderingComplete() => DrawnEdgesCount >= InternalProtoGraph.EdgeList.Count;
+
 
         protected void render_new_blocks()
         {
@@ -242,8 +239,6 @@ namespace rgat
         }
 
 
-
-        public bool BufferDownloadActive { get; private set; } = false;
 
         float GetAttractionForce(EdgeData edge)
         {
@@ -1591,8 +1586,7 @@ namespace rgat
                     foreach (int x in nodeIDListFFF) s += $"{x},";
                 }
 
-                Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.blockID}: " + s,
-                Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.blockID}: " + s,  Logging.LogFilterType.BulkDebugLogFile);
                 currentUnchainedBlocks.Add(entry); //todo see if removable
                 brightTime = Anim_Constants.KEEP_BRIGHT;
             }
@@ -2198,12 +2192,6 @@ namespace rgat
         public bool Opt_TextEnabledLive { get; set; } = true;
         public bool Opt_LiveNodeEdgeEnabled { get; set; } = true;
 
-
-        
-
-
-
-
         public Vector3 _unprojWorldCoordTL, _unprojWorldCoordBR;
 
 
@@ -2239,7 +2227,7 @@ namespace rgat
 
 
         /*
-         * I'm not good enough at graphics to work out how far to move the camera in one click, instead move towards the click location
+         * I'm not good enough at graphics to work out how far to move the camera in one click. Instead move towards the click location
          * In a few frames it will get there.
          */
         public void MoveCameraToPreviewClick(Vector2 pos, Vector2 previewSize, Vector2 mainGraphWidgetSize, Matrix4x4 previewProjection)
@@ -2317,6 +2305,7 @@ namespace rgat
             textureLock.ExitReadLock();
         }
 
+
         /// <summary>
         /// Update the graph computation time stats
         /// </summary>
@@ -2326,6 +2315,7 @@ namespace rgat
             ComputeLayoutTime += ms;
             ComputeLayoutSteps += 1;
         }
+
 
         public void ResetLayoutStats()
         {
@@ -2371,6 +2361,8 @@ namespace rgat
         private readonly object animationLock = new object();
 
 
+        public bool BufferDownloadActive { get; private set; } = false;
+
         //public float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, scalefactors.plotSize); }
 
 
@@ -2384,25 +2376,29 @@ namespace rgat
         int updateProcessingIndex = 0;
         protected float maxA = 0, maxB = 0, maxC = 0;
 
-        int threadReferences = 0;
-        bool schedule_performSymbolResolve = false;
-
         protected readonly Object textLock = new Object();
 
+
+        public int GraphNodeCount() { return InternalProtoGraph.NodeList.Count; }
+        public int RenderedNodeCount() { return _graphStructureLinear.Count; }
+
+        /*
+        Linear   "[[1,4,5,6,7],[0,2,3,8,9],[1],[1],[0],[0],[0],[0],[1],[1]]";
+        Balanced "[[1],        [0],        [1],[1],[0],[0],[0],[0],[1],[1]]";
+         */
+        /// <summary>
+        /// The list of nodes and edges where each node connects to its partner and that node connects back
+        /// This is used for the attraction velocity computation
+        /// </summary>
+        ///        
+        List<List<int>> _graphStructureBalanced = new List<List<int>>();
 
         /// <summary>
         /// The raw list of nodes with a one way edge they connect to
         /// This is used for drawing nodes and edges
         /// </summary>
         List<List<int>> _graphStructureLinear = new List<List<int>>();
-        public int GraphNodeCount() { return InternalProtoGraph.NodeList.Count; }
-        public int RenderedNodeCount() { return _graphStructureLinear.Count; }
 
-        /// <summary>
-        /// The list of nodes and edges where each node connects to its partner and that node connects back
-        /// This is used for the attraction velocity computation
-        /// </summary>
-        List<List<int>> _graphStructureBalanced = new List<List<int>>();
         public float temperature = 100f;
 
     }

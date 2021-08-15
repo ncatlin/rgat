@@ -353,7 +353,7 @@ namespace rgat.Threads
 
             if (!protograph.ProcessData.EnsureBlockExistsGetAddress(thistag.blockID, out thistag.blockaddr))
             {
-                Logging.RecordLogEvent($"Error - EnsureBlockExistsGetAddress failed for {protograph.TraceData.binaryTarg.FileName} block {thistag.blockID}. Discarding trace.");
+                Logging.RecordError($"Error - EnsureBlockExistsGetAddress failed for {protograph.TraceData.binaryTarg.FileName} block {thistag.blockID}. Discarding trace.");
                 protograph.TraceReader.Terminate();
                 return;
             }

@@ -242,16 +242,15 @@ namespace rgat.OperationModes
                         Logging.LogFilterType filter = (Logging.LogFilterType)item.destinationID;
                         if (!Enum.IsDefined(typeof(Logging.LogFilterType), filter))
                         {
-                            Logging.RecordLogEvent("Bad log filter for " + GetString(item.data));
+                            Logging.RecordError("Bad log filter for " + GetString(item.data));
                             return;
                         }
-                        Console.WriteLine($"Logging { filter} from remote: {GetString(item.data)}");
                         Logging.RecordLogEvent(GetString(item.data), filter: filter);
                         break;
                     }
                 default:
                     rgatState.NetworkBridge.Teardown($"Bad message type ({item.data})");
-                    Logging.RecordLogEvent($"Unhandled message type {item.msgType} => {GetString(item.data)}", filter: Logging.LogFilterType.TextError);
+                    Logging.RecordError($"Unhandled message type {item.msgType} => {GetString(item.data)}");
                     break;
             }
         }
@@ -269,7 +268,7 @@ namespace rgat.OperationModes
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Exeption {e} decoding tracemeta", Logging.LogFilterType.TextError);
+                Logging.RecordError($"Exeption {e} decoding tracemeta");
                 return false;
             }
 
@@ -277,7 +276,7 @@ namespace rgat.OperationModes
             string[] splitmain = info.Split(',');
             if (splitmain.Length < 4)
             {
-                Logging.RecordLogEvent($"Insufficient fields in tracemeta message", Logging.LogFilterType.TextError);
+                Logging.RecordError($"Insufficient fields in tracemeta message");
                 return false;
             }
 
@@ -336,7 +335,7 @@ namespace rgat.OperationModes
                 return true;
             }
 
-            Logging.RecordLogEvent($"Error unhandled cmd {String.Join("", inparams)}");
+            Logging.RecordError($"Error unhandled cmd {String.Join("", inparams)}");
             return false;
 
         }
@@ -354,13 +353,13 @@ namespace rgat.OperationModes
             int cmdEndIDx = cmd.IndexOf('&');
             if (cmdEndIDx == -1)
             {
-                Logging.RecordLogEvent("Error: No command seperator in command.", Logging.LogFilterType.TextError);
+                Logging.RecordError("Error: No command seperator in command.");
                 return false;
             }
             int idEndIDx = cmd.IndexOf('&', cmdEndIDx + 1);
             if (idEndIDx == -1)
             {
-                Logging.RecordLogEvent("Error: No command ID seperator in command.", Logging.LogFilterType.TextError);
+                Logging.RecordError("Error: No command ID seperator in command.");
                 return false;
             }
 
@@ -375,7 +374,7 @@ namespace rgat.OperationModes
             int.TryParse(cmd.Substring(cmdEndIDx + 1, idEndIDx - cmdEndIDx - 1), out cmdID);
             if (cmdID == -1)
             {
-                Logging.RecordLogEvent("Error: No command ID in command.", Logging.LogFilterType.TextError);
+                Logging.RecordError("Error: No command ID in command.");
                 return false;
             }
             return true;
@@ -385,7 +384,7 @@ namespace rgat.OperationModes
         {
             if (rgatState.NetworkBridge.GUIMode)
             {
-                Logging.RecordLogEvent("Error: The GUI sent a tracer-only command.", Logging.LogFilterType.TextError);
+                Logging.RecordError("Error: The GUI sent a tracer-only command.");
                 rgatState.NetworkBridge.Teardown("GUI only command");
                 return;
             }
@@ -401,7 +400,6 @@ namespace rgat.OperationModes
             switch (actualCmd)
             {
                 case "GetRecentBinaries":
-                    Console.WriteLine($"Sending {GlobalConfig.RecentBinaries.Count} recent");
                     rgatState.NetworkBridge.SendResponseObject(cmdID, GlobalConfig.RecentBinaries);
                     break;
                 case "DirectoryInfo":
@@ -423,7 +421,7 @@ namespace rgat.OperationModes
                     }
                     break;
                 default:
-                    Logging.RecordLogEvent($"Unknown command: {actualCmd} ({cmd})", Logging.LogFilterType.TextError);
+                    Logging.RecordError($"Unknown command: {actualCmd} ({cmd})");
                     rgatState.NetworkBridge.Teardown("Bad Command");
                     break;
             }
@@ -452,7 +450,7 @@ namespace rgat.OperationModes
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent("Failed to parse StartThreadIngestWorker params", Logging.LogFilterType.TextError);
+                Logging.RecordError("Failed to parse StartThreadIngestWorker params");
                 return false;
             }
 
@@ -472,7 +470,6 @@ namespace rgat.OperationModes
 
 
                 rgatState.NetworkBridge.SendResponseJSON(cmdID, response);
-                Console.WriteLine("Waiting for thread connection... ");
                 threadListener.WaitForConnection();
 
                 PipeTraceIngestThread worker = new PipeTraceIngestThread(null, threadListener, tidTok.ToObject<uint>(), pipeID);
@@ -483,7 +480,7 @@ namespace rgat.OperationModes
                 return true;
             }
 
-            Logging.RecordLogEvent("Bad StartThreadIngestWorker params", Logging.LogFilterType.TextError);
+            Logging.RecordError("Bad StartThreadIngestWorker params");
             return false;
         }
 

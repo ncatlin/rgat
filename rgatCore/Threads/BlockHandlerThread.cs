@@ -362,7 +362,7 @@ namespace rgat
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordLogEvent($"Local Block processing exception: {e}");
+                            Logging.RecordError($"Local Block processing exception: {e}");
                             rgatState.NetworkBridge.Teardown();
                             base.Finished();
                             return;

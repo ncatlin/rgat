@@ -286,7 +286,7 @@ namespace rgat
             UpdateNodePositions(destinationReadView, destbuffers.PositionsArray);
             _gd.Unmap(destinationReadback);
             VeldridGraphBuffers.DoDispose(destinationReadback);
-            Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph finished");
+            Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph finished", Logging.LogFilterType.BulkDebugLogFile);
 
         }
 

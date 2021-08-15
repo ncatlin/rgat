@@ -604,7 +604,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordLogEvent($"BlockThread::RemoteCommandListener exception {e.Message}");
+                    Logging.RecordError($"BlockThread::RemoteCommandListener exception {e.Message}");
                     break;
                 }
                 lock (_lock)
@@ -622,7 +622,7 @@ namespace rgat
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Remote command processing exception: {e}");
+                        Logging.RecordError($"Remote command processing exception: {e}");
                         rgatState.NetworkBridge.Teardown();
                         base.Finished();
                         return;
@@ -650,7 +650,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordLogEvent($"BlockThread::RemoteEventListener exception {e.Message}");
+                    Logging.RecordError($"BlockThread::RemoteEventListener exception {e.Message}");
                     break;
                 }
                 lock (_lock)
@@ -668,7 +668,7 @@ namespace rgat
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Remote Event processing exception: {e}");
+                        Logging.RecordError($"Remote Event processing exception: {e}");
                         rgatState.NetworkBridge.Teardown();
                         base.Finished();
                         return;
@@ -699,7 +699,7 @@ namespace rgat
             }
             catch (System.IO.IOException e)
             {
-                Logging.RecordLogEvent("IO Exception on ModuleHandlerThreadListener: " + e.Message);
+                Logging.RecordError("IO Exception on ModuleHandlerThreadListener: " + e.Message);
                 eventPipe = null;
                 Finished();
                 return;
@@ -758,7 +758,7 @@ namespace rgat
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordLogEvent($"Local Event processing exception: {e}");
+                            Logging.RecordError($"Local Event processing exception: {e}");
                             rgatState.NetworkBridge.Teardown();
                             base.Finished();
                             return;

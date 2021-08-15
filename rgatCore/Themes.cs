@@ -381,7 +381,7 @@ namespace rgat
 
                 if (!LoadMetadataStrings(theme, out pendingMetadata, out string errorMsg))
                 {
-                    Logging.RecordLogEvent(errorMsg); return false;
+                    Logging.RecordError(errorMsg); return false;
                 }
 
                 if (theme.TryGetValue("CustomColours", out JToken customColTok) && customColTok.Type == JTokenType.Object)
@@ -395,15 +395,15 @@ namespace rgat
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key}-{e.Message}"); return false;
+                            Logging.RecordError($"Theme has invalid custom colour type {item.Key}-{e.Message}"); return false;
                         }
                         if (customcolType >= eThemeColour.COUNT)
                         {
-                            Logging.RecordLogEvent($"Theme has invalid custom colour type {item.Key}"); return false;
+                            Logging.RecordError($"Theme has invalid custom colour type {item.Key}"); return false;
                         }
                         if (item.Value.Type != JTokenType.Integer)
                         {
-                            Logging.RecordLogEvent($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
+                            Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
                         }
                         pendingColsCustom[customcolType] = item.Value.ToObject<uint>();
                     }
@@ -420,15 +420,15 @@ namespace rgat
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordLogEvent($"Theme has invalid standard colour type {item.Key.ToString()}"); return false;
+                            Logging.RecordError($"Theme has invalid standard colour type {item.Key.ToString()}"); return false;
                         }
                         if (stdcolType >= ImGuiCol.COUNT)
                         {
-                            Logging.RecordLogEvent($"Theme has invalid standard colour type {item.Key}"); return false;
+                            Logging.RecordError($"Theme has invalid standard colour type {item.Key}"); return false;
                         }
                         if (item.Value.Type != JTokenType.Integer)
                         {
-                            Logging.RecordLogEvent($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
+                            Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
                         }
                         pendingColsStd[stdcolType] = item.Value.ToObject<uint>();
                     }
@@ -445,15 +445,15 @@ namespace rgat
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordLogEvent($"Theme has invalid size type {item.Key}"); return false;
+                            Logging.RecordError($"Theme has invalid size type {item.Key}"); return false;
                         }
                         if (sizeType >= eThemeSize.COUNT)
                         {
-                            Logging.RecordLogEvent($"Theme has invalid size type {item.Key}"); return false;
+                            Logging.RecordError($"Theme has invalid size type {item.Key}"); return false;
                         }
                         if (item.Value.Type != JTokenType.Float)
                         {
-                            Logging.RecordLogEvent($"Theme has size with non-float size entry {item.Key}"); return false;
+                            Logging.RecordError($"Theme has size with non-float size entry {item.Key}"); return false;
                         }
                         ThemeSizesCustom[sizeType] = item.Value.ToObject<float>();
                     }
@@ -471,7 +471,7 @@ namespace rgat
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordLogEvent($"Theme has invalid sizelimit type {item.Key}"); return false;
+                            Logging.RecordError($"Theme has invalid sizelimit type {item.Key}"); return false;
                         }
                         if (sizeType >= eThemeSize.COUNT)
                         {
@@ -479,12 +479,12 @@ namespace rgat
                         }
                         if (item.Value.Type != JTokenType.Array)
                         {
-                            Logging.RecordLogEvent($"Theme has sizelimit with non-array entry {item.Key}"); return false;
+                            Logging.RecordError($"Theme has sizelimit with non-array entry {item.Key}"); return false;
                         }
                         JArray limits = item.Value.ToObject<JArray>();
                         if (limits.Count != 2 || limits[0].Type != JTokenType.Float || limits[1].Type != JTokenType.Float)
                         {
-                            Logging.RecordLogEvent($"Theme has sizelimit with invalid array size or item types (should be 2 floats) {item.Key}"); return false;
+                            Logging.RecordError($"Theme has sizelimit with invalid array size or item types (should be 2 floats) {item.Key}"); return false;
                         }
                         pendingLimits[sizeType] = new Vector2(limits[0].ToObject<float>(), limits[1].ToObject<float>());
                     }
@@ -832,7 +832,7 @@ namespace rgat
                     ActivateThemeObject(themeObj);
                     return;
                 }
-                Logging.RecordLogEvent($"Could not find default theme {DefaultTheme}");
+                Logging.RecordError($"Default theme {DefaultTheme} is unavailable");
             }
 
             if (BuiltinThemes.Count > 0)

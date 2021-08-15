@@ -392,7 +392,7 @@ namespace rgat
                     {
                         if (bindTok.Type != JTokenType.Object)
                         {
-                            Logging.RecordLogEvent("Bad type in loaded user keybinds array", Logging.LogFilterType.TextError);
+                            Logging.RecordError("Bad type in loaded user keybinds array");
                             continue;
                         }
                         JObject bindObj = (JObject)bindTok;
@@ -402,7 +402,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Error loading keybinds: {e.Message}");
+                Logging.RecordError($"Error loading keybinds: {e.Message}");
             }
         }
 
@@ -433,7 +433,7 @@ namespace rgat
 
             if (error)
             {
-                Logging.RecordLogEvent($"Error loading keybind {bindobj}: {errorString}");
+                Logging.RecordError($"Error loading keybind {bindobj}: {errorString}");
             }
         }
 
@@ -1047,7 +1047,7 @@ namespace rgat
                 }
                 else
                 {
-                    Logging.RecordLogEvent($"Binary signature validation failed for {path}: {error}");
+                    Logging.RecordError($"Binary signature validation failed for {path}: {error}");
                     lock (_settingsLock) { BinaryValidationErrors[path] = error; }
                 }
                 PinPath = path;
@@ -1060,7 +1060,7 @@ namespace rgat
                 }
                 else
                 {
-                    Logging.RecordLogEvent($"Binary signature validation failed for {path}: {error}");
+                    Logging.RecordError($"Binary signature validation failed for {path}: {error}");
                     lock (_settingsLock) { BinaryValidationErrors[path] = error; }
                 }
                 PinToolPath32 = path;
@@ -1073,7 +1073,7 @@ namespace rgat
                 }
                 else
                 {
-                    Logging.RecordLogEvent($"Binary signature validation failed for {path}: {error}");
+                    Logging.RecordError($"Binary signature validation failed for {path}: {error}");
                     lock (_settingsLock) { BinaryValidationErrors[path] = error; }
                 }
                 PinToolPath64 = path;
