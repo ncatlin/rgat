@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "rgat": {
+      "commandName": "Project",
+      "commandLineArgs": "-t C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\rgatCore\\bin\\Debug\\netcoreapp3.1\\tests\\1_Basic\\functions32.exe"
+    },
+    "rgatConnect": {
+      "commandName": "Project",
+      "commandLineArgs": " -r 192.168.1.54:13000 -i 0"
+    }
+  }
+}
