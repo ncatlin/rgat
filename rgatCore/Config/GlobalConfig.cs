@@ -503,8 +503,9 @@ namespace rgat
         public static List<CachedPathData> RecentTraces => _cachedRecentTraces;
         public static List<CachedPathData> RecentBinaries => _cachedRecentBins;
 
-        static void LoadRecentPaths(string pathType, ref List<CachedPathData> store)
+        static List<CachedPathData> LoadRecentPaths(string pathType)
         {
+            List<CachedPathData> result = new List<CachedPathData>();
             try
             {
                 var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
@@ -531,16 +532,17 @@ namespace rgat
                                 lastSeen = lastOpenTok.ToObject<DateTime>(),
                                 count = ocountTok.ToObject<uint>()
                             };
-                            store.Add(pd);
+                            result.Add(pd);
                         }
                     }
                 }
-                store = store.OrderByDescending(x => x.lastSeen).Take(MaxStoredRecentPaths).ToList();
+                result = result.OrderByDescending(x => x.lastSeen).Take(MaxStoredRecentPaths).ToList();
             }
             catch (Exception e)
             {
                 Logging.RecordLogEvent($"Error loading recent paths: {e.Message}", Logging.LogFilterType.TextError);
             }
+            return result;
         }
 
 
@@ -1230,8 +1232,8 @@ namespace rgat
             LoadProgress = 0.7;
 
             InitPaths();
-            LoadRecentPaths("RecentTraces", ref _cachedRecentTraces);
-            LoadRecentPaths("RecentBinaries", ref _cachedRecentBins);
+            _cachedRecentTraces = LoadRecentPaths("RecentTraces" );
+            _cachedRecentBins = LoadRecentPaths("RecentBinaries" );
 
             LoadProgress = 0.9;
             defaultGraphColours = new List<WritableRgbaFloat> {

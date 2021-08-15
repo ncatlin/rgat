@@ -51,15 +51,16 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.0-preview3" />
-    <PackageReference Include="FFMpegCore" Version="4.4.0" />
+    <PackageReference Include="FFMpegCore" Version="4.5.0" />
     <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
     <PackageReference Include="GraphShape" Version="1.2.0" />
     <PackageReference Include="Humanizer.Core" Version="2.11.10" />
+    <PackageReference Include="Jint" Version="3.0.0-beta-2033" />
     <PackageReference Include="KaitaiStruct.Runtime.CSharp" Version="0.9.0" />
     <PackageReference Include="Microsoft.Msagl" Version="1.1.3" />
     <PackageReference Include="Microsoft.Msagl.Drawing" Version="1.1.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="PeNet" Version="2.6.3" />
+    <PackageReference Include="PeNet" Version="2.6.4" />
     <PackageReference Include="QuikGraph" Version="2.3.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.3" />
     <PackageReference Include="Sodium.Core" Version="1.2.3" />

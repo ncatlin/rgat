@@ -733,7 +733,7 @@ namespace rgat
                 else
                 {
                     float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    string caption = $"DiE:({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
+                    string caption = $"DIE:({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111, textColour);
                 }
 
@@ -760,8 +760,8 @@ namespace rgat
                     if (ImGui.IsItemHovered())
                     {
                         ImGui.BeginTooltip();
-                        ImGui.Text($"{DEProgress.scriptsFinished} DetectItEasy scripts were executed out of {DEProgress.scriptCount} applicable");
-                        ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
+                        ImGui.Text($"{DEProgress.scriptsFinished} Detect-It-Easy scripts were executed out of {DEProgress.scriptCount} loaded for this file format");
+                        ImGui.Text($"Note that rgat does not use the original DIE codebase - the original may provide better results.");
                         ImGui.Separator();
                         if (DEProgress.errored && DEProgress.error.Length > 0)
                         {
@@ -882,7 +882,7 @@ namespace rgat
                     {
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text("DetectItEasy");
+                        ImGui.Text("DIE");
                         ImGui.TableNextColumn();
                         _controller.PushOriginalFont();
                         ImGui.AlignTextToFramePadding();
