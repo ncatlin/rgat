@@ -18,7 +18,7 @@ namespace rgat.Config
         // if present - trace target file and exit
         // this mode does not require a GPU, unless paired with the draw or mp4 options
         [Option('t', "target", SetName = "HeadlessMode", MetaValue = "\"path_to_binary\"", Required = false, 
-            HelpText = "Run rgat in Headless tracing mode. Requires the file path of the target binary to execute and generate a trace for." +
+            HelpText = "Run rgat in Headless tracing mode. Requires the file path of the target binary to generate a trace for.\n" +
             "Traces are saved to the standard save directory, unless accompanied by the -o option.\n" +
             "This mode does not require a GPU, unless accompanied by the 'draw' and/or 'mp4' options"
             )]
@@ -27,9 +27,9 @@ namespace rgat.Config
 
         //if present - go into headless bridge mode and act as a proxy for the specified rgat instance on a remote machine
         [Option('r', "remote", SetName = "ConnectMode", Required = false, MetaValue = "address:port", 
-            HelpText = "Run rgat in headless network bridge mode (beaconing) which allows the rgat to control tracing from another computer.\n" + 
-            "Requires the address:port of an rgat instance with listening mode activated. \n"+
-            "Not compatible with the 'port' option. --key parameter is mandatory if no preconfigured key is set.\n" +
+            HelpText = "Run rgat in headless network mode (connecting out) which allows the rgat to control tracing from another computer.\n" + 
+            "Requires the address:port of an rgat instance in GUI mode with listening activated.\n"+
+            "Not compatible with the listening mode optins. --key parameter is mandatory if no preconfigured key is set.\n" +
             "This mode does not require a GPU.")]
         public string ConnectModeAddress { get; set; }
 
@@ -48,9 +48,10 @@ namespace rgat.Config
 
         // the interface to use for network connections
         [Option('i', "interface", Required = false, MetaValue ="IP/ID/MAC/name",
-            HelpText = "A network interface to use for remote control options (r or p). By default all available interfaces will be used, so it's a good idea to pick the one you will be using.\n" +
+            HelpText = "A network interface to use for remote control options (r or p).\n"+
+            "By default all available interfaces will be used, so it's a good idea to pick the one you will be using.\n" +
             "The argument can be an interface name, ID, MAC or IP address.\n" +
-            "Use without an argument to list valid interfaces and exit.")]
+            "Use without an argument to list valid interfaces.")]
         public string Interface { get; set; }
 
         // the encryption key to use for network connections
@@ -67,20 +68,20 @@ namespace rgat.Config
 
         // write the collected trace to this path, for opening later by rgat in UI mode
         [Option('o', "output", SetName = "HeadlessMode", Required = false, MetaValue = "\"filepath\"",
-            HelpText = "Optional file path or directory to save the output trace to when in headless tracing mode")]
-        public string OutputPath { get; set; }
+            HelpText = "Optional destination directory for saving the output traces, videos and images when in headless tracing mode")]
+        public string TraceSaveDirectory { get; set; }
 
         // draw the rendered graph to a png image
-        [Option('d', "draw", Required = false, MetaValue = "[\"path_to_image.png\"]", HelpText = "Draw a png of the final rendering of the trace. Requires GPU access with Vulkan drivers.")]
-        public string DrawPath { get; set; }
+        [Option('d', "draw", Required = false, HelpText = "Draw a png of the final rendering of the trace. Requires GPU access with Vulkan drivers.")]
+        public bool DrawImage { get; set; }
 
         // once tracing and graph layout is complete, record playback to an mp4 video. 
-        [Option('M', "mp4_playback", Required = false, MetaValue = "[\"path_to_video.mp4\"]", HelpText = "Record a video of a playback of the final trace. Takes an optional mp4 file outout path.  Requires FFMpeg.")]
-        public string VideoReplayPath { get; set; }
+        [Option('M', "mp4_playback", Required = false,  HelpText = "Record a video of a playback of the final trace. Requires FFMpeg.")]
+        public bool RecordVideoReplay { get; set; }
 
         // record a video of tracing and layout. 
-        [Option('m', "mp4_recording", Required = false, MetaValue = "[\"path_to_video.mp4\"]", HelpText = "Record a video of the trace as it is being reecorded. Takes an optional mp4 file outout path. Requires FFMpeg.")]
-        public string VideoTracingPath { get; set; }
+        [Option('m', "mp4_recording", Required = false, HelpText = "Record a video of the trace as it is being generated. Requires FFMpeg.")]
+        public bool RecordVideoLive { get; set; }
 
         [Option("ffmpeg", Required = false, MetaValue = "[\"path_to_ffmpeg.exe\"]", HelpText = "Provide a path to FFMpeg.exe to enable video recording if one is not configured. With no argument, prints status of configured FFMpeg.")]
         public string FFmpegPath { get; set; }
@@ -140,32 +141,7 @@ namespace rgat.Config
         /// </summary>
         /// <param name="originalParams"></param>
         void DeNullifyArgumentless(string[] originalParams)
-        {
-            if (FFmpegPath == null && originalParams.Contains("-M"))
-            {
-                FFmpegPath = "";
-            }
-
-            if (OutputPath == null && originalParams.Contains("-o"))
-            {
-                OutputPath = "";
-            }
-
-            if (VideoReplayPath == null && originalParams.Contains("-V"))
-            {
-                VideoReplayPath = "";
-            }
-
-            if (VideoTracingPath == null && originalParams.Contains("-v"))
-            {
-                VideoTracingPath = "";
-            }
-
-            if (DrawPath == null && (originalParams.Contains("-d") || originalParams.Contains("-draw") || originalParams.Contains("--draw")))
-            {
-                DrawPath = "";
-            }
-                        
+        {                        
             if (Interface == null && (originalParams.Contains("-i") || originalParams.Contains("-interface") || originalParams.Contains("--interface")))
             {
                 Interface = "";
@@ -191,7 +167,7 @@ namespace rgat.Config
 
             if (TargetPath != null)
             {
-                if (VideoReplayPath != null || DrawPath != null)
+                if (RecordVideoLive || RecordVideoReplay || DrawImage )
                 {
                     RunMode = eRunMode.GPURenderCommand;
                 }
@@ -252,8 +228,8 @@ namespace rgat.Config
                                     case "target":
                                         TargetPath = valuestring;
                                         break;
-                                    case "output":
-                                        OutputPath = valuestring;
+                                    case "savedirectory":
+                                        TraceSaveDirectory = valuestring;
                                         break;
                                     case "remote":
                                         ConnectModeAddress = valuestring;

@@ -3220,7 +3220,7 @@ namespace rgat
 
         }
 
-        bool LoadSelectedBinary(string path, bool isRemote)
+        public bool LoadSelectedBinary(string path, bool isRemote)
         {
             if (isRemote)
                 return LoadRemoteBinary(path);

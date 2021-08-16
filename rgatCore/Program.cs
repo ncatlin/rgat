@@ -1,6 +1,7 @@
 ﻿using CommandLine;
 using rgat;
 using rgat.Config;
+using rgat.OperationModes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,22 +27,37 @@ namespace ImGuiNET
 
             InitialSetup();
 
-            if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.GUI)
+            switch(GlobalConfig.StartOptions.RunMode)
             {
-                rgat.OperationModes.ImGuiRunner Ui = new rgat.OperationModes.ImGuiRunner(_rgatState);
-                Ui.Run();
-            }
-            else if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.Bridged)
-            {
-                BridgeConnection connection = new BridgeConnection(false);
-                rgatState.NetworkBridge = connection;
-                rgat.OperationModes.BridgedRunner bridge = new rgat.OperationModes.BridgedRunner();
-                bridge.RunHeadless(connection);
+                case LaunchConfig.eRunMode.GUI:
+                    ImGuiRunner Ui = new ImGuiRunner(_rgatState);
+                    Ui.Run();
+                    break;
 
-            }
-            else
-            {
-                CommandLineGPU();
+                case LaunchConfig.eRunMode.Bridged:
+                    BridgeConnection connection = new BridgeConnection(false);
+                    rgatState.NetworkBridge = connection;
+                    BridgedRunner bridge = new BridgedRunner();
+                    bridge.RunHeadless(connection);
+                    break;
+
+                case LaunchConfig.eRunMode.NoGPUTraceCommand:
+                    CommandLineRunner runner = new CommandLineRunner();
+                    runner.InitNoGPU();
+                    runner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: false);
+                    break;
+
+                case LaunchConfig.eRunMode.GPURenderCommand:
+                    runner = new CommandLineRunner();
+                    runner.InitGPU();
+                    runner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: GlobalConfig.StartOptions.RecordVideoLive);
+
+                    break;
+
+
+                default:
+                    Logging.RecordError($"Bad Run Mode: {GlobalConfig.StartOptions.RunMode}");
+                    break;
             }
         }
 
@@ -194,43 +210,6 @@ namespace ImGuiNET
         static void InitialSetup()
         {
             rgat.Threads.TraceProcessorWorker.SetRgatState(_rgatState);
-        }
-
-
-
-        /// <summary>
-        /// Runs in headless mode which either connects to (command line -r) or waits for connections
-        /// from (command line -p) a controlling UI mode rgat instance
-        /// This does not use the GPU
-        /// </summary>
-        static void BridgedMain()
-        {
-            if (GlobalConfig.StartOptions.TargetPath != null)
-            {
-                Console.WriteLine("Starting headless file output mode");
-                return;
-            }
-
-
-        }
-
-
-        /// <summary>
-        /// Run a single trace operation and then quits
-        ///
-        /// </summary>
-        static void CommandLineGPU()
-        {
-
-        }
-
-        /// <summary>
-        /// Run a single trace operation and then quits
-        ///
-        /// </summary>
-        static void CommandLineNoGPU()
-        {
-
         }
 
 

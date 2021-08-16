@@ -175,6 +175,7 @@ namespace rgat.OperationModes
             _window.KeyUp += (KeyEvent k) => HeldResponsiveKeys.RemoveAll(key => key == k.Key);
             _window.MouseWheel += (MouseWheelEventArgs mw) => AlertMouseWheel(mw);
             _window.MouseMove += (MouseMoveEventArgs mm) => AlertMouseMove(mm, _lastMousePos - mm.MousePosition);
+            _window.DragDrop += (DragDropEvent dd) => AlertDragDrop(dd);
 
             _lastMousePos = new Vector2(0, 0);
 
@@ -364,6 +365,11 @@ namespace rgat.OperationModes
         public void AlertKeyEvent(Tuple<Key, ModifierKeys> keyCombo) => _rgatUI.AddKeyPress(keyCombo);
 
         public void AlertResponsiveKeyEvent(Key key) => _rgatUI.AddKeyPress(new Tuple<Key, ModifierKeys>(key, ModifierKeys.None));
+
+        public void AlertDragDrop(DragDropEvent dd)
+        {
+            _rgatUI.LoadSelectedBinary(dd.File, false);
+        } 
 
         public void AlertMouseWheel(MouseWheelEventArgs mw)
         {
