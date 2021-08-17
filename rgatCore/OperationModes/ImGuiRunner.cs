@@ -190,6 +190,7 @@ namespace rgat.OperationModes
             _longTimer.Start();
         }
 
+
         private void Update()
         {
             InputSnapshot snapshot = _window.PumpEvents();

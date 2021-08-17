@@ -177,6 +177,36 @@ namespace rgat.Widgets
 
 
 
+        class SIGNATURE_SET
+        {
+            public string source_repo;
+            public string source_name;
+            public int already_downloaded;
+            public bool is_selected;
+            public DateTime last_download;
+            public DateTime last_updated;
+        }
+        SIGNATURE_SET[] SignatureSets = new SIGNATURE_SET[2]
+        {
+            new SIGNATURE_SET()
+            {
+                source_name = "Repo1",
+                source_repo = "REPO1",
+                already_downloaded = 46,
+                is_selected = false,
+                last_download = DateTime.Now.AddDays(-23),
+                last_updated = DateTime.Now.AddDays(-1)
+            },new SIGNATURE_SET()
+            {
+                source_name = "Repo2",
+                source_repo = "REPO2",
+                already_downloaded = 146,
+                is_selected = false,
+                last_download = DateTime.Now.AddDays(-13),
+                last_updated = DateTime.Now.AddDays(-43)
+            }
+
+        };
 
 
         void CreateOptionsPane_Signatures()
@@ -188,6 +218,7 @@ namespace rgat.Widgets
             //download more btn
 
             Vector2 tabsize = ImGui.GetContentRegionAvail() - new Vector2(0, 100);
+            int tabType = -1;
             if (ImGui.BeginChild("#SignaturesPane", tabsize, false, ImGuiWindowFlags.None))
             {
                 ImGui.Text("Available Signatures");
@@ -198,6 +229,7 @@ namespace rgat.Widgets
                 {
                     if (ImGui.BeginTabItem("YARA Rules"))
                     {
+                        tabType = 1;
                         if (ImGui.BeginChild("YaraSigsList", ImGui.GetContentRegionAvail(), true))
                         {
                             var ruleList = rgatState.YARALib.GetRuleData();
@@ -237,8 +269,9 @@ namespace rgat.Widgets
                         }
                         ImGui.EndTabItem();
                     }
-                    if (ImGui.BeginTabItem("Detect It Easy Scripts"))
+                    if (ImGui.BeginTabItem("DIE Scripts"))
                     {
+                        tabType = 1;
                         if (ImGui.BeginChild("DieSigsList", ImGui.GetContentRegionAvail(), true))
                         {
                             var ruleList = rgatState.DIELib.GetSignatures;
@@ -267,14 +300,81 @@ namespace rgat.Widgets
                         }
                         ImGui.EndTabItem();
                     }
+
+                    if (ImGui.BeginTabItem("Download Signatures"))
+                    {
+                        tabType = 2;
+                        if (ImGui.BeginChild("DownloadSigs", ImGui.GetContentRegionAvail(), true))
+                        {
+
+                            ImGuiTableFlags flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg;
+                            if (ImGui.BeginTable("#SettsDownloadSigRules", 5, flags, ImGui.GetContentRegionAvail()))//))
+                            {
+
+                                ImGui.TableSetupColumn("###SigChk", ImGuiTableColumnFlags.WidthFixed, 26);
+                                ImGui.TableSetupColumn("Source");
+                                ImGui.TableSetupColumn("# Rules", ImGuiTableColumnFlags.WidthFixed, 60);
+                                ImGui.TableSetupColumn("Last Update", ImGuiTableColumnFlags.WidthFixed, 120);
+                                ImGui.TableSetupColumn("Last Download", ImGuiTableColumnFlags.WidthFixed, 120);
+                                ImGui.TableSetupScrollFreeze(0, 1);
+
+                                ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
+                                for (int column = 0; column < 5; column++)
+                                {
+                                    ImGui.TableSetColumnIndex(column);
+                                    string column_name = ImGui.TableGetColumnName(column); // Retrieve name passed to TableSetupColumn()
+                                    ImGui.PushID(column);
+                                    if (column == 0)
+                                    {
+                                        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
+                                        bool allSigsSelected = !SignatureSets.Any(x => x.is_selected == false);
+                                        if (ImGui.Checkbox("##checkall", ref allSigsSelected))
+                                        {
+                                            Array.ForEach(SignatureSets, (x) => { x.is_selected = allSigsSelected; });
+                                        }
+                                        ImGui.PopStyleVar();
+                                        ImGui.SameLine(0.0f, ImGui.GetStyle().ItemInnerSpacing.X);
+                                    }
+                                    ImGui.TableHeader(column_name);
+                                    ImGui.PopID();
+                                }
+
+                                for (var seti = 0; seti < SignatureSets.Length; seti++) 
+                                {
+                                    SIGNATURE_SET sigset = SignatureSets[seti];
+                                    ImGui.TableNextRow();
+                                    ImGui.TableNextColumn();
+
+                                    ImGui.Checkbox("##SigChkSrc" + seti, ref sigset.is_selected);
+                                    ImGui.TableNextColumn();
+                                    ImGui.Text(sigset.source_name);
+                                    ImGui.TableNextColumn();
+                                    ImGui.Text(sigset.already_downloaded.ToString());
+                                    ImGui.TableNextColumn();
+                                    ImGui.Text(sigset.last_updated.ToString());
+                                    ImGui.TableNextColumn();
+                                    if (sigset.last_updated > sigset.last_download)
+                                    {
+                                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0x400000ff); 
+                                    }
+                                    ImGui.Text(sigset.last_download.ToString());
+                                }
+
+
+                                ImGui.EndTable();
+                            }
+                            ImGui.EndChild();
+                        }
+                        ImGui.EndTabItem();
+                    }
                     ImGui.EndTabBar();
                 }
                 ImGui.EndChild();
             }
-            bool test = true;
+
             if (ImGui.BeginChild("#SignatureOptsPane", ImGui.GetContentRegionAvail(), true, ImGuiWindowFlags.None))
             {
-                if (ImGui.BeginTable("#ScanConditionsTable", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX))
+                if (tabType == 1 && ImGui.BeginTable("#ScanConditionsTable", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX))
                 {
                     ImGui.TableSetupColumn("Format", ImGuiTableColumnFlags.WidthFixed, 140);
                     ImGui.TableSetupColumn("Scan File On Load", ImGuiTableColumnFlags.WidthFixed, 130);
@@ -305,6 +405,36 @@ namespace rgat.Widgets
                     ImGui.EndTable();
                 }
 
+                if (tabType == 2 && ImGui.BeginTable("#SigDownloadControls", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX))
+                {
+                    ImGui.TableSetupColumn("SigDLBtns", ImGuiTableColumnFlags.WidthFixed, 85);
+                    ImGui.TableSetupColumn("SigDLProgressBar", ImGuiTableColumnFlags.WidthFixed, 85);
+                    ImGui.TableSetupColumn("SigDLProgressTxt");
+
+                    uint formatCellColour = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg)).ToUint(0xd0);
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+
+                    ImGui.Button("Refresh");
+                    SmallWidgets.MouseoverText("Check for new updates to the selected signature repositories");
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Progress bar");
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Progress text");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Button("Download");
+                    SmallWidgets.MouseoverText("Download signatures from the selected signature repositories");
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Progress bar");
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Progress text");
+
+                    ImGui.EndTable();
+                }
 
                 ImGui.EndChild();
             }
