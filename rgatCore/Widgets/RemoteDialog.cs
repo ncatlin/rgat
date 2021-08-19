@@ -37,6 +37,14 @@ namespace rgat.Widgets
             _refreshTimer.AutoReset = true;
             _refreshTimerFired = true;
 
+            string addr = GlobalConfig.StartOptions.ConnectModeAddress;
+            if (addr != null) currentAddress = addr;
+            else
+            {
+                List<string> recentAddrs = GlobalConfig.RecentConnectedAddresses();
+                if (recentAddrs.Any())
+                    currentAddress = recentAddrs[0];
+            }
 
         }
 
@@ -170,7 +178,7 @@ namespace rgat.Widgets
                     DrawStatusBanner();
                     DrawActivationToggle(itemsWidth);
                     DrawOptionsFrame(itemsWidth);
-                    DrawModeToggle();
+                    //DrawModeToggle();
                     DrawMessagesList(itemsWidth);
 
                     ImGui.EndChild();
@@ -217,8 +225,8 @@ namespace rgat.Widgets
         {
             Vector2 togStart = ImGui.GetCursorScreenPos();
 
-            ImGui.PushStyleColor(ImGuiCol.Border, col: rgatState.ConnectedToRemote ?  
-                Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour) : 
+            ImGui.PushStyleColor(ImGuiCol.Border, col: rgatState.ConnectedToRemote ?
+                Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour) :
                 Themes.GetThemeColourImGui(ImGuiCol.Border));
 
             if (ImGui.BeginChild("##RemoteActiveTogFrame", new Vector2(itemsWidth, 30), true, flags: ImGuiWindowFlags.NoScrollbar))
@@ -256,6 +264,7 @@ namespace rgat.Widgets
                         {
                             GlobalConfig.StartOptions.Interface = _connectIFID;
                             System.Threading.Tasks.Task.Run(() => runner.StartGUIConnect(rgatState.NetworkBridge, () => { runner.CompleteGUIConnection(); }));
+                            GlobalConfig.RecordRecentConnectAddress(GlobalConfig.StartOptions.ConnectModeAddress);
                         }
                     }
                 }
@@ -356,48 +365,95 @@ namespace rgat.Widgets
 
         void DrawOptionsFrame(float itemsWidth)
         {
-            if (ImGui.BeginChildFrame(ImGui.GetID("NetworkContent"), new Vector2(itemsWidth, 180), flags: ImGuiWindowFlags.NoScrollbar))
-            {
-                if (ImGui.BeginTable("#LoptsTab", 2))
-                {
-                    ImGui.TableSetupColumn("Field", ImGuiTableColumnFlags.WidthFixed, 90);
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Network Key");
-                    ImGui.TableNextColumn();
-                    string keystring = GlobalConfig.StartOptions.NetworkKey;
-                    if (ImGui.InputText("##nwkKeytxt", ref keystring, 64))
-                    {
-                        GlobalConfig.StartOptions.NetworkKey = keystring;
-                    }
-                    if (ImGui.IsItemHovered())
-                    {
-                        ImGui.BeginTooltip();
-                        ImGui.Text("Remote tracing is intended for use between a Host/Guest VM or machines on a LAN.");
-                        ImGui.Text("While traffic is encrypted and connections attempts are heavily rate-limited, exposing this port to the internet is discouraged.");
-                        ImGui.Text("This key should be the value passed to the headless rgat instance on the other machine with the 'key' or -k option.");
-                        ImGui.EndTooltip();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Button("O##rkeybtn"))
-                    {
-                        RegenerateKey();
-                    }
-                    SmallWidgets.MouseoverText("Generate new key");
+            bool showTabTooltip = false;
+            if (ImGui.IsMouseHoveringRect(ImGui.GetCursorScreenPos(), ImGui.GetCursorScreenPos() + new Vector2(ImGui.GetContentRegionAvail().X, 25)))
+                showTabTooltip = true;
 
+            if (ImGui.BeginTabBar("#NetModeTabs")) // ImGui.GetID("NetworkContent"), new Vector2(itemsWidth, 180), flags: ImGuiWindowFlags.NoScrollbar))
+            {
+                if (ImGui.BeginTabItem("Listen Mode"))
+                {
+                    if (!ListenMode) ListenMode = true;
+
+                    if (ImGui.BeginTable("#LoptsTab", 2))
+                    {
+                        ImGui.TableSetupColumn("Field", ImGuiTableColumnFlags.WidthFixed, 90);
+
+                        DrawBothModeOptions();
+                        DrawListenOptsFrame();
+
+                        ImGui.EndTable();
+                    }
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Connect Mode"))
+                {
+                    if (ListenMode) ListenMode = false;
+
+                    if (ImGui.BeginTable("#ConoptsTab", 2))
+                    {
+                        ImGui.TableSetupColumn("Field", ImGuiTableColumnFlags.WidthFixed, 90);
+
+                        DrawBothModeOptions();
+                        DrawConnectOptsFrame();
+
+                        ImGui.EndTable();
+                    }
+                    ImGui.EndTabItem();
+
+                }
+                if (ImGui.IsItemClicked() && ListenMode) ListenMode = false;
+                ImGui.EndTabBar();
+
+                if (showTabTooltip)
+                {
+                    ImGui.BeginTooltip();
+                    ImGui.Text("rgat supports two methods of connecting rgat instances for different network setups");
+                    string listenTip = "Listen Mode: This GUI instance of rgat will listen for connections from the headless instance";
+                    string connectTip = "Connect Mode: This GUI instance of rgat will connect out to the headless instance.";
                     if (ListenMode)
                     {
-                        DrawListenOptsFrame();
+                        ImGui.Text(listenTip);
+                        ImGui.TextDisabled(connectTip);
                     }
                     else
                     {
-                        DrawConnectOptsFrame();
+                        ImGui.TextDisabled(listenTip);
+                        ImGui.Text(connectTip);
                     }
-                    ImGui.EndTable();
+                    ImGui.EndTooltip();
                 }
-                ImGui.EndChildFrame();
             }
         }
+
+        void DrawBothModeOptions()
+        {
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
+            ImGui.Text("Network Key");
+            ImGui.TableNextColumn();
+            string keystring = GlobalConfig.StartOptions.NetworkKey;
+            if (ImGui.InputText("##nwkKeytxt", ref keystring, 64))
+            {
+                GlobalConfig.StartOptions.NetworkKey = keystring;
+            }
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.BeginTooltip();
+                ImGui.Text("Remote tracing is intended for use between a Host/Guest VM or machines on a LAN.");
+                ImGui.Text("While traffic is encrypted and connections attempts are heavily rate-limited, exposing this port to the internet is discouraged.");
+                ImGui.Text("This key should be the value passed to the headless rgat instance on the other machine with the 'key' or -k option.");
+                ImGui.EndTooltip();
+            }
+            ImGui.SameLine();
+            if (ImGui.Button("O##rkeybtn"))
+            {
+                RegenerateKey();
+            }
+            SmallWidgets.MouseoverText("Generate new key");
+        }
+
 
         void DrawListenOptsFrame()
         {
@@ -505,20 +561,21 @@ namespace rgat.Widgets
             }
         }
 
-
+        string currentAddress;
+        bool _remoteDropdownOpen = false;
         void DrawConnectOptsFrame()
         {
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
             ImGui.Text("Remote Address");
             ImGui.TableNextColumn();
-            string addr = GlobalConfig.StartOptions.ConnectModeAddress ?? "";
-            if (ImGui.InputText("##nwkConAddr", ref addr, 512))
+            if (ImGui.InputText("##nwkConAddr", ref currentAddress, 512))
             {
-                GlobalConfig.StartOptions.ConnectModeAddress = addr;
-                GlobalConfig.DefaultHeadlessAddress = addr;
-                GlobalConfig.AddUpdateAppSettings("DefaultHeadlessAddress", addr);
+                GlobalConfig.StartOptions.ConnectModeAddress = currentAddress;
+                GlobalConfig.DefaultHeadlessAddress = currentAddress;
+                GlobalConfig.AddUpdateAppSettings("DefaultHeadlessAddress", currentAddress);
             }
+            Vector2 textPos = new Vector2(ImGui.GetItemRectMin().X, ImGui.GetItemRectMax().Y);
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();
@@ -531,56 +588,62 @@ namespace rgat.Widgets
                 ImGui.EndTooltip();
             }
 
+            if (ImGui.IsItemActive())
+            {
+                ImGui.OpenPopup("##prevAddrSearchBar");
+                _remoteDropdownOpen = true;
+            }
+            else
+            {
+                if (_remoteDropdownOpen)
+                {
+                    _remoteDropdownOpen = false;
+                }
+            }
+
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
             ImGui.Text("Interface");
             ImGui.TableNextColumn();
             DrawInterfaceSelector();
 
+            if (_remoteDropdownOpen)
+            {
+                ImGui.SetNextWindowPos(textPos);
+            }
+            if (ImGui.BeginPopup("##prevAddrSearchBar", ImGuiWindowFlags.ChildWindow))
+            {
+                ImGui.PushAllowKeyboardFocus(false);
+
+                int numHints = 0;
+                List<string> recentAddrs = GlobalConfig.RecentConnectedAddresses(); //todo cache
+                foreach (string address in recentAddrs)
+                {
+                    if (ImGui.Selectable(address + "##" + numHints.ToString()))
+                    {
+                        currentAddress = address;
+                        ImGui.CloseCurrentPopup();
+                    }
+                    ++numHints;
+
+                    if (numHints > 6)
+                    {
+                        ImGui.Text("...");
+                        break;
+                    }
+                }
+
+                ImGui.PopAllowKeyboardFocus();
+                ImGui.EndPopup();
+                if (!_remoteDropdownOpen) ImGui.CloseCurrentPopup();
+            }
+
+
+
+
+
         }
 
-
-        void DrawModeToggle()
-        {
-            Vector2 togStart = ImGui.GetCursorScreenPos();
-            {
-                if (ListenMode)
-                    ImGui.Text("Listen Mode");
-                else
-                    ImGui.TextDisabled("Listen Mode");
-            }
-            ImGui.SameLine();
-            if (SmallWidgets.ToggleButton("NwkListenModeTog", !ListenMode, "Toggle remote tracing mode"))
-            {
-                ListenMode = !ListenMode;
-            }
-            ImGui.SameLine();
-            {
-                if (!ListenMode)
-                    ImGui.Text("Connect Mode");
-                else
-                    ImGui.TextDisabled("Connect Mode");
-            }
-            if (ImGui.IsMouseHoveringRect(togStart, new Vector2(ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X - 10, ImGui.GetCursorScreenPos().Y)))
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text("rgat supports two methods of connecting rgat instances for different network setups");
-                string listenTip = "Listen Mode: This GUI instance of rgat will listen for connections from the headless instance";
-                string connectTip = "Connect Mode: This GUI instance of rgat will connect out to the headless instance.";
-                if (ListenMode)
-                {
-                    ImGui.Text(listenTip);
-                    ImGui.TextDisabled(connectTip);
-                }
-                else
-                {
-                    ImGui.TextDisabled(listenTip);
-                    ImGui.Text(connectTip);
-                }
-                ImGui.EndTooltip();
-
-            }
-        }
 
         void DrawMessagesList(float itemsWidth)
         {

@@ -15,7 +15,7 @@ using Veldrid;
 
 namespace rgat
 {
-   public class GlobalConfig
+    public class GlobalConfig
     {
         public class JSONBlobConverter : TypeConverter
         {
@@ -123,6 +123,38 @@ namespace rgat
                 }
             }
         }
+
+        public sealed class RecentAddressesSection : ConfigurationSection
+        {
+
+            private static ConfigurationPropertyCollection _Properties;
+            private static readonly ConfigurationProperty _addrJSON = new ConfigurationProperty(
+                "RecentAddresses",
+                typeof(JArray),
+                new JArray(),
+                new GlobalConfig.JSONBlobConverter(),
+                null,
+                ConfigurationPropertyOptions.None);
+
+            public RecentAddressesSection()
+            {
+                _Properties = new ConfigurationPropertyCollection();
+                _Properties.Add(_addrJSON);
+            }
+
+            protected override object GetRuntimeObject() => base.GetRuntimeObject();
+            protected override ConfigurationPropertyCollection Properties => _Properties;
+
+            public JArray RecentAddresses
+            {
+                get => (JArray)this["RecentAddresses"];
+                set
+                {
+                    this["RecentAddresses"] = value;
+                }
+            }
+        }
+
 
 
         public struct SYMS_VISIBILITY
@@ -336,7 +368,71 @@ namespace rgat
         public static string DefaultNetworkKey = "";
         public static string DefaultListenModeIF = "";
         public static string DefaultConnectModeIF = "";
+        public static List<string> _recentConnectedAddresses = new List<string>();
+        public static List<string> RecentConnectedAddresses()
+        {
+            lock (_settingsLock)
+            {
+                return _recentConnectedAddresses.ToList();
+            }
+        }
 
+        public static void RecordRecentConnectAddress(string address)
+        {
+            lock (_settingsLock)
+            {
+                _recentConnectedAddresses.Remove(address);
+                _recentConnectedAddresses.Insert(0, address);
+                if (_recentConnectedAddresses.Count > 6)
+                    _recentConnectedAddresses.RemoveRange(5, _recentConnectedAddresses.Count - 1);
+
+                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                RecentAddressesSection sec = (RecentAddressesSection)configFile.GetSection("RecentAddresses");
+                
+                if (sec == null)
+                {
+                    sec = new RecentAddressesSection();
+                    sec.RecentAddresses = new JArray();
+                    configFile.Sections.Add("RecentAddresses", sec);
+                }
+
+                sec.RecentAddresses.Clear();
+
+                foreach (string item in _recentConnectedAddresses)
+                {
+                    sec.RecentAddresses.Add(item);
+                }
+                sec.SectionInformation.ForceSave = true;
+                configFile.Save();
+            }
+        }
+
+        static void LoadRecentAddresses()
+        {
+            lock (_settingsLock)
+            {
+                List<string> result = new List<string>();
+                try
+                {
+                    var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                    RecentAddressesSection sec = (RecentAddressesSection)configFile.GetSection("RecentAddresses");
+                    if (sec != null && sec.RecentAddresses.Type == JTokenType.Array)
+                    {
+                        foreach (JToken entry in sec.RecentAddresses.ToObject<JArray>())
+                        {
+                            if (entry.Type != JTokenType.String) continue;
+                            string address = entry.ToString();
+                            result.Add(address);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordLogEvent($"Error loading recent addresses: {e.Message}", Logging.LogFilterType.TextError);
+                }
+                _recentConnectedAddresses = result;
+            }
+        }
 
         /*
          * Keybinds config
@@ -1232,8 +1328,9 @@ namespace rgat
             LoadProgress = 0.7;
 
             InitPaths();
-            _cachedRecentTraces = LoadRecentPaths("RecentTraces" );
-            _cachedRecentBins = LoadRecentPaths("RecentBinaries" );
+            _cachedRecentTraces = LoadRecentPaths("RecentTraces");
+            _cachedRecentBins = LoadRecentPaths("RecentBinaries");
+            LoadRecentAddresses();
 
             LoadProgress = 0.9;
             defaultGraphColours = new List<WritableRgbaFloat> {

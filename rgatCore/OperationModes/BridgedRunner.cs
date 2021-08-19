@@ -72,10 +72,7 @@ namespace rgat.OperationModes
                 ConnectToListener(connection, () => RunConnection(connection));
             }
 
-            while (connection.ActiveNetworking)
-            {
-                Thread.Sleep(500); //todo on disconnected callback
-            }
+            WaitHandle.WaitAny(new[] { rgatState.NetworkBridge.CancelToken.WaitHandle });
 
             Console.WriteLine("Headless mode complete");
             rgatState.Shutdown();
