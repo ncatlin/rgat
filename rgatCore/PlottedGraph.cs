@@ -6,6 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using Veldrid;
+using static rgat.RGAT_CONSTANTS;
 using static rgat.VeldridGraphBuffers;
 
 namespace rgat

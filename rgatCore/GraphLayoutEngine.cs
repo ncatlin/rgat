@@ -413,7 +413,7 @@ namespace rgat
             bool forceComputationActive =
                 GlobalConfig.LayoutPositionsActive &&
                 graph.temperature > 0 && (
-                graph.LayoutState.ActivatingPreset || LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle)
+                graph.LayoutState.ActivatingPreset || RGAT_CONSTANTS.LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle)
                 );
 
             if (forceComputationActive)
@@ -422,8 +422,8 @@ namespace rgat
                 RenderPosition(cl, graph, posRS, delta);
                 layout.IncrementVersion();
 
-                graph.temperature *= Layout_Constants.TemperatureStepMultiplier;
-                if (graph.temperature <= Layout_Constants.MinimumTemperature)
+                graph.temperature *= RGAT_CONSTANTS.Layout_Constants.TemperatureStepMultiplier;
+                if (graph.temperature <= RGAT_CONSTANTS.Layout_Constants.MinimumTemperature)
                     graph.temperature = 0;
             }
 
@@ -521,7 +521,7 @@ namespace rgat
             uint height = textureSize;
 
             uint fixedNodes = 0;
-            if (graph.ActiveLayoutStyle == LayoutStyles.Style.ForceDirected3DBlocks) fixedNodes = 1;
+            if (graph.ActiveLayoutStyle == RGAT_CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks) fixedNodes = 1;
             PositionShaderParams parms = new PositionShaderParams
             {
                 delta = delta,
@@ -548,7 +548,7 @@ namespace rgat
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             var textureSize = graph.LinearIndexTextureSize();
             uint fixedNodes = 0;
-            if (graph.ActiveLayoutStyle == LayoutStyles.Style.ForceDirected3DBlocks) fixedNodes = 1;
+            if (graph.ActiveLayoutStyle == RGAT_CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks) fixedNodes = 1;
 
             VelocityShaderParams parms = new VelocityShaderParams
             {

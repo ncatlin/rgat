@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using Veldrid;
 using Veldrid.Sdl2;
 using static rgat.Logging;
+using static rgat.RGAT_CONSTANTS;
 
 namespace rgat
 {
@@ -190,7 +191,7 @@ namespace rgat
                     break;
                 case VideoEncoder.CaptureContent.GraphAndPreviews:
                     height = (int)MainGraphWidget.WidgetSize.Y;
-                    width = (int)MainGraphWidget.WidgetSize.X + UI_Constants.PREVIEW_PANE_WIDTH;
+                    width = (int)MainGraphWidget.WidgetSize.X + UI.PREVIEW_PANE_WIDTH;
                     startX = (int)MainGraphWidget.WidgetPos.X;
                     startY = (int)MainGraphWidget.WidgetPos.Y;
                     break;
@@ -1771,7 +1772,7 @@ namespace rgat
 
         private void DrawVisualiserGraphs(float height)
         {
-            Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI_Constants.PREVIEW_PANE_WIDTH, height);
+            Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI.PREVIEW_PANE_WIDTH, height);
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
                 MainGraphWidget.Draw(graphSize, _rgatState.ActiveGraph, rgatState.VideoRecorder.Recording);
@@ -1783,7 +1784,7 @@ namespace rgat
 
             ImGui.SameLine(0, 0);
 
-            Vector2 previewPaneSize = new Vector2(UI_Constants.PREVIEW_PANE_WIDTH, height);
+            Vector2 previewPaneSize = new Vector2(UI.PREVIEW_PANE_WIDTH, height);
             ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewPaneBorder));
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewPaneBackground));
 
@@ -2431,7 +2432,7 @@ namespace rgat
                 PlottedGraph activeGraph = _rgatState.ActiveGraph;
                 if (activeGraph != null)
                 {
-                    if (ImGui.BeginChild("ControlsInner", new Vector2(controlsWidth - UI_Constants.PREVIEW_PANE_WIDTH, frameHeight)))
+                    if (ImGui.BeginChild("ControlsInner", new Vector2(controlsWidth - UI.PREVIEW_PANE_WIDTH, frameHeight)))
                     {
                         if (!activeGraph.InternalProtoGraph.Terminated)
                         {
@@ -2445,7 +2446,7 @@ namespace rgat
                     }
                 }
                 ImGui.SameLine();
-                DrawTraceSelector(frameHeight, UI_Constants.PREVIEW_PANE_WIDTH);
+                DrawTraceSelector(frameHeight, UI.PREVIEW_PANE_WIDTH);
                 ImGui.EndChild();
             }
 

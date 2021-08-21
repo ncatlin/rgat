@@ -3,8 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Numerics;
+using System.Threading;
+using System.Threading.Tasks;
 using Veldrid;
+using static rgat.RGAT_CONSTANTS;
 
 namespace rgat.Widgets
 {
@@ -34,6 +38,12 @@ namespace rgat.Widgets
             settingTips["YaraRulesPath"] = "The directory containing YARA rules for file and memory scanning";
             settingTips["MediaCapturePath"] = "The directory where videos recordings and images are saved";
         }
+
+        ~SettingsMenu()
+        {
+            if (_cancelTokens != null && !_cancelTokens.IsCancellationRequested) _cancelTokens.Cancel();
+        }
+
 
         PendingKeybind _pendingKeybind = new PendingKeybind();
         public bool HasPendingKeybind
@@ -136,6 +146,8 @@ namespace rgat.Widgets
             optionsSelectStates[(int)eSettingsCategory.eUITheme] = true;
             optionsSelectStates[(int)eSettingsCategory.eVideoEncode] = false;
             optionsSelectStates[(int)eSettingsCategory.eMisc] = false;
+
+            GlobalConfig.InitSignatureSources();
         }
 
         void DeclareError(string msg, long MSDuration = 5500)
@@ -175,40 +187,7 @@ namespace rgat.Widgets
             }
         }
 
-
-
-        class SIGNATURE_SET
-        {
-            public string source_repo;
-            public string source_name;
-            public int already_downloaded;
-            public bool is_selected;
-            public DateTime last_download;
-            public DateTime last_updated;
-        }
-        SIGNATURE_SET[] SignatureSets = new SIGNATURE_SET[2]
-        {
-            new SIGNATURE_SET()
-            {
-                source_name = "Repo1",
-                source_repo = "REPO1",
-                already_downloaded = 46,
-                is_selected = false,
-                last_download = DateTime.Now.AddDays(-23),
-                last_updated = DateTime.Now.AddDays(-1)
-            },new SIGNATURE_SET()
-            {
-                source_name = "Repo2",
-                source_repo = "REPO2",
-                already_downloaded = 146,
-                is_selected = false,
-                last_download = DateTime.Now.AddDays(-13),
-                last_updated = DateTime.Now.AddDays(-43)
-            }
-
-        };
-
-
+        static List<string> _selectedRepos = new List<string>();
         void CreateOptionsPane_Signatures()
         {
             if (rgatState.YARALib == null || rgatState.DIELib == null) return; //loading
@@ -222,8 +201,6 @@ namespace rgat.Widgets
             if (ImGui.BeginChild("#SignaturesPane", tabsize, false, ImGuiWindowFlags.None))
             {
                 ImGui.Text("Available Signatures");
-                ImGui.SameLine();
-                ImGui.Button("Get More");
 
                 if (ImGui.BeginTabBar("#SigsAvailableTab", ImGuiTabBarFlags.None))
                 {
@@ -314,11 +291,16 @@ namespace rgat.Widgets
                                 ImGui.TableSetupColumn("###SigChk", ImGuiTableColumnFlags.WidthFixed, 26);
                                 ImGui.TableSetupColumn("Source");
                                 ImGui.TableSetupColumn("# Rules", ImGuiTableColumnFlags.WidthFixed, 60);
-                                ImGui.TableSetupColumn("Last Update", ImGuiTableColumnFlags.WidthFixed, 120);
-                                ImGui.TableSetupColumn("Last Download", ImGuiTableColumnFlags.WidthFixed, 120);
+                                ImGui.TableSetupColumn("Last Updated", ImGuiTableColumnFlags.WidthFixed, 140);
+                                ImGui.TableSetupColumn("Last Downloaded", ImGuiTableColumnFlags.WidthFixed, 140);
                                 ImGui.TableSetupScrollFreeze(0, 1);
 
                                 ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
+
+                                GlobalConfig.SignatureSource[] sources = GlobalConfig.GetSignatureSources();
+                                bool[] selectedStates = sources.Select(source => _selectedRepos.Contains(source.GithubPath)).ToArray();
+                                bool allSigsSelected = !Array.Exists<bool>(selectedStates, x => x == false);
+
                                 for (int column = 0; column < 5; column++)
                                 {
                                     ImGui.TableSetColumnIndex(column);
@@ -327,10 +309,13 @@ namespace rgat.Widgets
                                     if (column == 0)
                                     {
                                         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
-                                        bool allSigsSelected = !SignatureSets.Any(x => x.is_selected == false);
                                         if (ImGui.Checkbox("##checkall", ref allSigsSelected))
                                         {
-                                            Array.ForEach(SignatureSets, (x) => { x.is_selected = allSigsSelected; });
+                                            if (allSigsSelected)
+                                                _selectedRepos = sources.Select(x => x.GithubPath).ToList();
+                                            else
+                                                _selectedRepos.Clear();
+                                            selectedStates = Enumerable.Repeat(allSigsSelected, selectedStates.Length).ToArray();
                                         }
                                         ImGui.PopStyleVar();
                                         ImGui.SameLine(0.0f, ImGui.GetStyle().ItemInnerSpacing.X);
@@ -339,25 +324,87 @@ namespace rgat.Widgets
                                     ImGui.PopID();
                                 }
 
-                                for (var seti = 0; seti < SignatureSets.Length; seti++) 
+                                string activeRepoOperation = _githubSigDownloader.TaskType;
+                                List<string> activeRepoTasks = _githubSigDownloader.GetActive();
+                                for (var seti = 0; seti < sources.Length; seti++)
                                 {
-                                    SIGNATURE_SET sigset = SignatureSets[seti];
+                                    GlobalConfig.SignatureSource sigset = sources[seti];
                                     ImGui.TableNextRow();
                                     ImGui.TableNextColumn();
 
-                                    ImGui.Checkbox("##SigChkSrc" + seti, ref sigset.is_selected);
-                                    ImGui.TableNextColumn();
-                                    ImGui.Text(sigset.source_name);
-                                    ImGui.TableNextColumn();
-                                    ImGui.Text(sigset.already_downloaded.ToString());
-                                    ImGui.TableNextColumn();
-                                    ImGui.Text(sigset.last_updated.ToString());
-                                    ImGui.TableNextColumn();
-                                    if (sigset.last_updated > sigset.last_download)
+                                    bool isSelected = selectedStates[seti];
+                                    if (ImGui.Checkbox("##SigChkSrc" + seti, ref isSelected))
                                     {
-                                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0x400000ff); 
+                                        if (isSelected)
+                                            _selectedRepos.Add(sigset.GithubPath);
+                                        else
+                                            _selectedRepos.RemoveAll(x => x == sigset.GithubPath);
+                                        selectedStates[seti] = isSelected;
                                     }
-                                    ImGui.Text(sigset.last_download.ToString());
+                                    ImGui.TableNextColumn();
+                                    ImGui.Text(sigset.RepoName);
+                                    SmallWidgets.MouseoverText(sigset.GithubPath);
+                                    ImGui.TableNextColumn();
+                                    ImguiUtils.DrawHorizCenteredText(sigset.RuleCount == -1 ? "-" : sigset.RuleCount.ToString());
+                                    ImGui.TableNextColumn();
+                                    bool newAvailable = sigset.LastFetch < sigset.LastUpdate;
+
+
+                                    if (_githubSigDownloader.Running && _githubSigDownloader.TaskType == "Refresh" && activeRepoTasks.Contains(sigset.GithubPath))
+                                    {
+                                        ImguiUtils.DrawHorizCenteredText("Updating");
+                                    }
+                                    else
+                                    {
+                                        string refreshError = sigset.LastRefreshError == null ? null : new string(sigset.LastRefreshError);
+                                        
+                                        if (refreshError != null)
+                                        {
+                                            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff000030);
+                                            if (refreshError.Length > 22)
+                                            {
+                                                ImguiUtils.DrawHorizCenteredText(refreshError.Substring(0, 22) + "..");
+                                                SmallWidgets.MouseoverText("Error checking for update: "+refreshError);
+                                            }
+                                            else
+                                                ImguiUtils.DrawHorizCenteredText(refreshError);
+                                        }
+                                        else
+                                        {
+                                            if (newAvailable)
+                                            {
+                                                ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff004000);
+                                            }
+                                            ImguiUtils.DrawHorizCenteredText(sigset.LastUpdate == DateTime.MinValue ? "Never Checked" :
+                                                Humanizer.TimeSpanHumanizeExtensions.Humanize(DateTime.Now - sigset.LastUpdate) + " ago");
+                                            string mouseoverText = "";
+                                            if (sigset.LastUpdate == DateTime.MinValue)
+                                                mouseoverText += "Select this source and press \"Refresh\" to check for signature updates\n";
+                                            else
+                                                mouseoverText += "Last check: " + sigset.LastCheck.ToString() + "\n";
+                                            if (newAvailable)
+                                                mouseoverText += "Updates are available for these signatures";
+                                            SmallWidgets.MouseoverText(mouseoverText);
+                                        }
+
+                                    }
+
+
+                                    ImGui.TableNextColumn();
+
+                                    if (_githubSigDownloader.Running && _githubSigDownloader.TaskType == "Download" && activeRepoTasks.Contains(sigset.GithubPath))
+                                    {
+                                        ImguiUtils.DrawHorizCenteredText("Downloading");
+                                    }
+                                    else
+                                    {
+                                        ImguiUtils.DrawHorizCenteredText(sigset.LastFetch == DateTime.MinValue ? "Never Downloaded" :
+                                            Humanizer.TimeSpanHumanizeExtensions.Humanize(DateTime.Now - sigset.LastFetch) + " ago");
+
+                                        if (sigset.LastFetch != DateTime.MinValue)
+                                            SmallWidgets.MouseoverText($"Last Successful Download: {sigset.LastFetch.ToString()}");
+                                    }
+
                                 }
 
 
@@ -416,22 +463,67 @@ namespace rgat.Widgets
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
 
-                    ImGui.Button("Refresh");
-                    SmallWidgets.MouseoverText("Check for new updates to the selected signature repositories");
+                    float progress = 0;
+                    if (_githubSigDownloader.Running)
+                    {
+                        progress = (float)_githubSigDownloader.CompletedTaskCount / (float)_githubSigDownloader.InitialTaskCount;
+                        progress = Math.Max(0, progress);
+                    }
 
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Progress bar");
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Progress text");
 
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Button("Download");
-                    SmallWidgets.MouseoverText("Download signatures from the selected signature repositories");
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Progress bar");
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Progress text");
+                    Vector2 btnSize = new Vector2(80, 25);
+                    if (_githubSigDownloader == null || !_githubSigDownloader.Running)
+                    {
+                        if (SmallWidgets.DisableableButton("Refresh", size: btnSize, enabled: _selectedRepos.Any())) RefreshSelectedSignatureSources();
+                        SmallWidgets.MouseoverText("Check for new updates to the selected signature repositories");
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        if (SmallWidgets.DisableableButton("Download", size: btnSize, enabled: _selectedRepos.Any())) DownloadSelectedSignatureSources();
+                        SmallWidgets.MouseoverText("Download signatures from the selected signature repositories");
+                        ImGui.TableNextColumn();
+                        ImGui.TableNextColumn();
+                    }
+                    else
+                    {
+                        if (_githubSigDownloader.TaskType == "Refresh")
+                        {
+                            if (SmallWidgets.DisableableButton("Cancel", size: btnSize, enabled: true)) _cancelTokens.Cancel();
+                            SmallWidgets.MouseoverText("Cancel signature refresh");
+
+                            ImGui.TableNextColumn();
+                            ImGui.ProgressBar(progress, btnSize);
+                            ImGui.TableNextColumn();
+                            ImGui.Text($"Refreshing");
+                        }
+                        else
+                        {
+                            SmallWidgets.DisableableButton("Refresh", size: btnSize, enabled: false);
+                            SmallWidgets.MouseoverText("Signature download is currently in progress");
+                        }
+
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+
+                        if (_githubSigDownloader.TaskType == "Download")
+                        {
+                            if (SmallWidgets.DisableableButton("Cancel", size: btnSize, enabled: true)) _cancelTokens.Cancel();
+                            SmallWidgets.MouseoverText("Cancel signature download");
+
+                            ImGui.TableNextColumn();
+                            ImGui.ProgressBar(progress, btnSize);
+                            ImGui.TableNextColumn();
+                            ImGui.Text($"Downloading");
+                        }
+                        else
+                        {
+                            SmallWidgets.DisableableButton("Download", size: btnSize, enabled: false);
+                            SmallWidgets.MouseoverText("Signature Refresh is currently in progress");
+                        }
+
+                    }
+
 
                     ImGui.EndTable();
                 }
@@ -440,6 +532,28 @@ namespace rgat.Widgets
             }
 
         }
+
+        CancellationTokenSource _cancelTokens = null;
+        GithubSignatureManager _githubSigDownloader = new GithubSignatureManager();
+
+        void RefreshSelectedSignatureSources()
+        {
+            if (_githubSigDownloader.Running) return;
+            _cancelTokens = new CancellationTokenSource();
+            var allSources = GlobalConfig.GetSignatureSources();
+            var repos = allSources.Where(x => _selectedRepos.Contains(x.GithubPath)).ToList();
+            _githubSigDownloader.StartRefresh(repos, 3, _cancelTokens.Token);
+        }
+
+        void DownloadSelectedSignatureSources()
+        {
+            if (_githubSigDownloader.Running) return;
+            _cancelTokens = new CancellationTokenSource();
+            var allSources = GlobalConfig.GetSignatureSources();
+            var repos = allSources.Where(x => _selectedRepos.Contains(x.GithubPath)).ToList();
+            _githubSigDownloader.StartDownloads(repos, 3, _cancelTokens.Token);
+        }
+
 
         void CreateOptionsPane_Text()
         {

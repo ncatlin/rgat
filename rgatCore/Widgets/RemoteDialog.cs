@@ -17,7 +17,7 @@ namespace rgat.Widgets
         string _listenIFID = "";
         string _connectIFID = "";
         string activeInterfaceID;
-        System.Timers.Timer _refreshTimer = new System.Timers.Timer(NETWORK_CONSTANTS.InterfaceRefreshIntervalMS);
+        System.Timers.Timer _refreshTimer = new System.Timers.Timer(RGAT_CONSTANTS.NETWORK.InterfaceRefreshIntervalMS);
         bool _refreshTimerFired = false;
         int listenPort = -1;
         OperationModes.BridgedRunner runner;
@@ -141,12 +141,12 @@ namespace rgat.Widgets
         {
             Regex matchSimilar = new Regex(@"[\.1IO0]");
             string newkey = "";
-            while (newkey.Length != NETWORK_CONSTANTS.DefaultKeyLength) //avoid hard to distinguish characters
+            while (newkey.Length != RGAT_CONSTANTS.NETWORK.DefaultKeyLength) //avoid hard to distinguish characters
             {
                 newkey = System.IO.Path.GetRandomFileName().ToUpper();
                 newkey = matchSimilar.Replace(newkey, "");
-                if (newkey.Length < NETWORK_CONSTANTS.DefaultKeyLength) continue;
-                newkey = newkey.Substring(0, NETWORK_CONSTANTS.DefaultKeyLength);
+                if (newkey.Length < RGAT_CONSTANTS.NETWORK.DefaultKeyLength) continue;
+                newkey = newkey.Substring(0, RGAT_CONSTANTS.NETWORK.DefaultKeyLength);
                 break;
             }
             GlobalConfig.DefaultNetworkKey = newkey;

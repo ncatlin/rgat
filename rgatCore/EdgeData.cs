@@ -4,17 +4,17 @@ namespace rgat
 {
     public class EdgeData
     {
-        public EdgeData(int index, eEdgeNodeType sourceType, ulong execCount = 0)
+        public EdgeData(int index, RGAT_CONSTANTS.eEdgeNodeType sourceType, ulong execCount = 0)
         {
             EdgeListIndex = index;
             sourceNodeType = sourceType;
             executionCount = execCount;
         }
 
-        public EdgeData(JArray serialised, int index, eEdgeNodeType sourceType)
+        public EdgeData(JArray serialised, int index, RGAT_CONSTANTS.eEdgeNodeType sourceType)
         {
             EdgeListIndex = index;
-            edgeClass = (eEdgeNodeType)serialised[2].ToObject<uint>();
+            edgeClass = (RGAT_CONSTANTS.eEdgeNodeType)serialised[2].ToObject<uint>();
             executionCount = serialised[3].ToObject<ulong>();
             sourceNodeType = sourceType;
         }
@@ -33,8 +33,8 @@ namespace rgat
 
 
         //type of edge (call,extern,etc)
-        public eEdgeNodeType edgeClass;
-        public eEdgeNodeType sourceNodeType;
+        public RGAT_CONSTANTS.eEdgeNodeType edgeClass;
+        public RGAT_CONSTANTS.eEdgeNodeType sourceNodeType;
 
         public ulong executionCount { get; private set; } = 0;
         public void SetExecutionCount(ulong value)

@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using static rgat.RGAT_CONSTANTS;
 
 namespace rgat
 {
@@ -1181,8 +1181,8 @@ namespace rgat
             moduleBase = TraceData.DisassemblyData.LoadedModuleBounds[exeModuleID].Item1;
 
 
-            if (ModulePath.Length > UI_Constants.MAX_DIFF_PATH_LENGTH)
-                ModulePath = ".." + ModulePath.Substring(ModulePath.Length - UI_Constants.MAX_DIFF_PATH_LENGTH, UI_Constants.MAX_DIFF_PATH_LENGTH);
+            if (ModulePath.Length > UI.MAX_DIFF_PATH_LENGTH)
+                ModulePath = ".." + ModulePath.Substring(ModulePath.Length - UI.MAX_DIFF_PATH_LENGTH, UI.MAX_DIFF_PATH_LENGTH);
         }
         /*
 		public ulong BacklogOutgoing = 0;

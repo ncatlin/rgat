@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using Veldrid;
+using static rgat.RGAT_CONSTANTS;
 
 namespace rgat
 {
@@ -148,14 +149,198 @@ namespace rgat
             public JArray RecentAddresses
             {
                 get => (JArray)this["RecentAddresses"];
+                set { this["RecentAddresses"] = value; }
+            }
+        }
+
+        /************* Signature sources ***************/
+
+        public sealed class SignatureSourcesSection : ConfigurationSection
+        {
+
+            private static ConfigurationPropertyCollection _Properties;
+            private static readonly ConfigurationProperty _addrJSON = new ConfigurationProperty(
+                "SignatureSources",
+                typeof(JArray),
+                new JArray(),
+                new GlobalConfig.JSONBlobConverter(),
+                null,
+                ConfigurationPropertyOptions.None);
+
+            public SignatureSourcesSection()
+            {
+                _Properties = new ConfigurationPropertyCollection();
+                _Properties.Add(_addrJSON);
+            }
+
+            protected override object GetRuntimeObject() => base.GetRuntimeObject();
+            protected override ConfigurationPropertyCollection Properties => _Properties;
+
+            public JArray SignatureSources
+            {
+                get => (JArray)this["SignatureSources"];
                 set
                 {
-                    this["RecentAddresses"] = value;
+                    this["SignatureSources"] = value;
                 }
             }
         }
 
 
+        public class SignatureSource
+        {
+            public string RepoName;
+            public string GithubPath;
+            //when rgat last checked the repo
+            public DateTime LastCheck;
+            //when the repo itself was last updated
+            public DateTime LastUpdate;
+            //when rgat last downloaded the repo
+            public DateTime LastFetch;
+            public int RuleCount;
+
+            public string LastRefreshError = null;
+            public string LastDownload = null;
+
+            public JObject ToJObject()
+            {
+                JObject result = new JObject();
+                result.Add("RepoName", RepoName);
+                result.Add("GithubPath", GithubPath);
+                result.Add("LastCheck", LastCheck);
+                result.Add("LastUpdate", LastUpdate);
+                result.Add("LastFetch", LastFetch);
+                result.Add("RuleCount", RuleCount);
+                return result;
+            }
+        }
+
+
+        static Dictionary<string, SignatureSource> _signatureSources = null;
+
+        public static void SaveSignatureSources()
+        {
+            lock(_settingsLock)
+            {
+                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                SignatureSourcesSection sec = (SignatureSourcesSection)configFile.GetSection("SignatureSources");
+
+                if (sec == null)
+                {
+                    sec = new SignatureSourcesSection();
+                    sec.SignatureSources = new JArray();
+                    configFile.Sections.Add("SignatureSources", sec);
+                }
+
+                sec.SignatureSources.Clear();
+
+                foreach (SignatureSource item in _signatureSources.Values)
+                {
+                    sec.SignatureSources.Add(item.ToJObject());
+                }
+                sec.SectionInformation.ForceSave = true;
+                configFile.Save();
+            }
+        }
+
+        public void ReplaceSignatureSources(List<SignatureSource> sources)
+        {
+            lock (_settingsLock)
+            {
+                _signatureSources = new Dictionary<string, SignatureSource>();
+                foreach(var src in sources)
+                {
+                    _signatureSources[src.GithubPath] = src;
+                }
+                SaveSignatureSources();
+            }
+        }
+
+        public static void UpdateSignatureSource(SignatureSource source)
+        {
+            lock (_settingsLock)
+            {
+                if (_signatureSources == null) _signatureSources = new Dictionary<string, SignatureSource>(); 
+                _signatureSources[source.GithubPath] = source;
+                SaveSignatureSources();
+            }
+        }
+
+
+        public static SignatureSourcesSection InitSignatureSourcesToDefault()
+        {
+            SignatureSourcesSection result = new SignatureSourcesSection();
+            result.SignatureSources = new JArray();
+
+            JObject item = new JObject();
+            item.Add("GithubPath", "x64dbg/yarasigs");
+            item.Add("RepoName", "x64dbg");
+            item.Add("LastUpdate", DateTime.MinValue);
+            item.Add("LastCheck", DateTime.MinValue);
+            item.Add("LastFetch", DateTime.MinValue);
+            item.Add("RuleCount", -1);
+            result.SignatureSources.Add(item);
+
+            item = new JObject();
+            item.Add("GithubPath", "f0wl/yara_rules");
+            item.Add("RepoName", "f0wl");
+            item.Add("LastUpdate", DateTime.MinValue);
+            item.Add("LastCheck", DateTime.MinValue);
+            item.Add("LastFetch", DateTime.MinValue);
+            item.Add("RuleCount", -1);
+            result.SignatureSources.Add(item);
+
+            return result;
+        }
+
+
+        public static void InitSignatureSources()
+        {
+            if (_signatureSources != null) return;
+
+            lock (_settingsLock)
+            {
+                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                SignatureSourcesSection sec = (SignatureSourcesSection)configFile.GetSection("SignatureSources");
+                if (sec == null || sec.SignatureSources.Type != JTokenType.Array)
+                {
+                    sec = InitSignatureSourcesToDefault();
+                }
+
+                _signatureSources = new Dictionary<string, SignatureSource>();
+                foreach (var entry in sec.SignatureSources)
+                {
+                    if (entry.Type != JTokenType.Object) continue;
+                    JObject data = (JObject)entry;
+                    if (!data.TryGetValue("GithubPath", out JToken pathTok) || pathTok.Type != JTokenType.String ||
+                        !data.TryGetValue("RepoName", out JToken nameTok) || nameTok.Type != JTokenType.String ||
+                        !data.TryGetValue("LastUpdate", out JToken modifiedTok) || modifiedTok.Type != JTokenType.Date ||
+                        !data.TryGetValue("LastFetch", out JToken fetchTok) || fetchTok.Type != JTokenType.Date ||
+                        !data.TryGetValue("LastCheck", out JToken checkTok) || checkTok.Type != JTokenType.Date ||
+                        !data.TryGetValue("RuleCount", out JToken countTok) || countTok.Type != JTokenType.Integer)
+                        continue;
+
+                    SignatureSource src = new SignatureSource
+                    {
+                        GithubPath = pathTok.ToString(),
+                        RepoName = nameTok.ToString(),
+                        LastCheck = modifiedTok.ToObject<DateTime>(),
+                        LastFetch = fetchTok.ToObject<DateTime>(),
+                        LastUpdate = modifiedTok.ToObject<DateTime>(),
+                        RuleCount = countTok.ToObject<int>()
+                    };
+                    _signatureSources[src.GithubPath] = src;
+                }
+            }
+        }
+
+        public static SignatureSource[] GetSignatureSources()
+        {
+            lock (_settingsLock)
+            {
+                return _signatureSources.Values.ToArray();
+            }
+        }
 
         public struct SYMS_VISIBILITY
         {
@@ -388,7 +573,7 @@ namespace rgat
 
                 var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
                 RecentAddressesSection sec = (RecentAddressesSection)configFile.GetSection("RecentAddresses");
-                
+
                 if (sec == null)
                 {
                     sec = new RecentAddressesSection();
@@ -713,6 +898,8 @@ namespace rgat
             sec.SectionInformation.ForceSave = true;
             configFile.Save();
         }
+
+
 
 
         /// <summary>
@@ -1248,7 +1435,7 @@ namespace rgat
                 }
             }
 
-            //video
+            // video encoding settings
 
             if (GetAppSetting("VideoCodec_Speed", out string vidspeed))
             {

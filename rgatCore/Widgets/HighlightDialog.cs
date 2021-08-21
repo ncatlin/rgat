@@ -105,13 +105,13 @@ namespace rgat.Widgets
             _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[] attribsArray);
             if (syminfo.selected)
             {
-                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, attribsArray, eHighlightType.eExternals);
+                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, attribsArray, RGAT_CONSTANTS.eHighlightType.eExternals);
                 _activeHighlights.SelectedSymbols.Add(syminfo);
 
             }
             else
             {
-                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, attribsArray, eHighlightType.eExternals);
+                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, attribsArray, RGAT_CONSTANTS.eHighlightType.eExternals);
                 _activeHighlights.SelectedSymbols = _activeHighlights.SelectedSymbols.Where(s => s.address != syminfo.address).ToList();
 
             }
@@ -126,11 +126,11 @@ namespace rgat.Widgets
             _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[] attribsArray);
             if (syminfo.hovered)
             {
-                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, attribsArray, eHighlightType.eExternals);
+                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, attribsArray, RGAT_CONSTANTS.eHighlightType.eExternals);
             }
             else
             {
-                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, attribsArray, eHighlightType.eExternals);
+                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, attribsArray, RGAT_CONSTANTS.eHighlightType.eExternals);
             }
 
         }
@@ -318,7 +318,7 @@ namespace rgat.Widgets
 
                         _ActiveGraph.LayoutState.Lock.EnterUpgradeableReadLock();
                         _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[] attribsArray);
-                        _ActiveGraph.RemoveHighlightedNodes(_ActiveGraph.HighlightedSymbolNodes, attribsArray, eHighlightType.eExternals);
+                        _ActiveGraph.RemoveHighlightedNodes(_ActiveGraph.HighlightedSymbolNodes, attribsArray, RGAT_CONSTANTS.eHighlightType.eExternals);
                         _ActiveGraph.LayoutState.Lock.ExitUpgradeableReadLock();
 
                         _activeHighlights.SelectedSymbols.Clear();

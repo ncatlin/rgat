@@ -248,7 +248,7 @@ namespace rgat
         {
             List<object> args = (List<object>)argslist;
             BinaryTarget targ = (BinaryTarget)args[0];
-            targ.ClearSignatureHits(eSignatureType.eYARA);
+            targ.ClearSignatureHits(RGAT_CONSTANTS.eSignatureType.eYARA);
 
             try
             {

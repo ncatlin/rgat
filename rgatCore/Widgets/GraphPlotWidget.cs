@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Veldrid;
+using static rgat.RGAT_CONSTANTS;
 using static rgat.VeldridGraphBuffers;
 
 namespace rgat

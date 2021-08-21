@@ -60,7 +60,7 @@ namespace rgat
         public static int TotalTraceCount { private set; get; } = 0;
         public static void IncreaseLoadedTraceCount() => TotalTraceCount += 1;
 
-        public LayoutStyles.Style newGraphLayout = LayoutStyles.Style.ForceDirected3DNodes;
+        public RGAT_CONSTANTS.LayoutStyles.Style newGraphLayout = RGAT_CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes;
 
         Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
         Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
@@ -390,7 +390,7 @@ namespace rgat
         {
             switch (newGraphLayout)
             {
-                case LayoutStyles.Style.ForceDirected3DNodes:
+                case RGAT_CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes:
                     {
                         MainGraph = new PlottedGraph(protoGraph, _GraphicsDevice, GlobalConfig.defaultGraphColours);
                         return true;

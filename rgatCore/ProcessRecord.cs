@@ -654,17 +654,17 @@ namespace rgat
                 {
                     insdata.branchAddress = 0;
                 }
-                insdata.itype = eNodeType.eInsCall;
+                insdata.itype = RGAT_CONSTANTS.eNodeType.eInsCall;
             }
 
             else if (insdata.mnemonic == "ret") //todo: iret
             {
-                insdata.itype = eNodeType.eInsReturn;
+                insdata.itype = RGAT_CONSTANTS.eNodeType.eInsReturn;
             }
             else if (insdata.mnemonic == "jmp")
             {
 
-                insdata.itype = eNodeType.eInsJump;
+                insdata.itype = RGAT_CONSTANTS.eNodeType.eInsJump;
 
                 if (insn.Operand.Contains("["))
                 {
@@ -688,12 +688,12 @@ namespace rgat
 
                 if (insdata.branchAddress == (address + (ulong)insdata.numbytes))
                 {
-                    insdata.itype = eNodeType.eInsUndefined; //junp to next address is nop
+                    insdata.itype = RGAT_CONSTANTS.eNodeType.eInsUndefined; //junp to next address is nop
                 }
             }
             else
             {
-                insdata.itype = eNodeType.eInsUndefined;
+                insdata.itype = RGAT_CONSTANTS.eNodeType.eInsUndefined;
                 //assume all j+ instructions aside from jmp are conditional (todo: bother to check)
                 if (insdata.mnemonic[0] == 'j')
                 {
@@ -982,9 +982,9 @@ namespace rgat
                 return;
             }
 
-            saveObject.Add("RGATVersionMaj", Version_Constants.RGAT_VERSION_MAJOR);
-            saveObject.Add("RGATVersionMin", Version_Constants.RGAT_VERSION_MINOR);
-            saveObject.Add("RGATVersionFeature", Version_Constants.RGAT_VERSION_FEATURE);
+            saveObject.Add("RGATVersionMaj", RGAT_CONSTANTS.VERSION.MAJOR);
+            saveObject.Add("RGATVersionMin", RGAT_CONSTANTS.VERSION.MINOR);
+            saveObject.Add("RGATVersionFeature", RGAT_CONSTANTS.VERSION.FEATURE);
         }
 
         private void SerialiseDisassembly(ref JObject saveObject)

@@ -29,7 +29,7 @@ namespace rgat
         public List<uint> ContainingBlockIDs;
 
         public string ins_text;
-        public eNodeType itype;
+        public RGAT_CONSTANTS.eNodeType itype;
         public bool conditional;
         public bool dataEx;
         public bool hasSymbol;
@@ -896,7 +896,7 @@ namespace rgat
             if (nodes.Count == 0) return;
 
             NodeData n = graph.safe_get_node(nodes[^1]);
-            if (n.ins.itype != eNodeType.eInsCall)
+            if (n.ins.itype != RGAT_CONSTANTS.eNodeType.eInsCall)
             {
                 SendDebugStep(graph.ThreadID);
                 return;

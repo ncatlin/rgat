@@ -223,5 +223,16 @@ namespace rgat.Widgets
                 ImGui.PopStyleVar();
             }
         }
+
+        public static bool DisableableButton(string text, Vector2 size, bool enabled = true)
+        {
+            bool activated = false;
+            if (!enabled) ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull2));
+
+            activated = (size == null) ? ImGui.Button(text) : ImGui.Button(text, size);
+
+            if (!enabled) ImGui.PopStyleColor();
+            return enabled && activated;
+        }
     }
 }
