@@ -237,10 +237,10 @@ namespace rgat
 
             switch (sigType)
             {
-                case RGAT_CONSTANTS.eSignatureType.eDetectItEasy:
+                case RGAT_CONSTANTS.eSignatureType.DIE:
                     lock (signaturesLock) { signatureHitsDIE?.Clear(); }
                     break;
-                case RGAT_CONSTANTS.eSignatureType.eYARA:
+                case RGAT_CONSTANTS.eSignatureType.YARA:
                     lock (signaturesLock) { signatureHitsYARA?.Clear(); }
                     break;
                 default:

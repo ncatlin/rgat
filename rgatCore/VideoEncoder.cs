@@ -467,7 +467,9 @@ namespace rgat
                 }
                 SmallWidgets.MouseoverText("Slower speed yields smaller video file sizes. Increase if you have performance issues");
 
-                if (ImGui.InputInt("Framerate", ref GlobalConfig.VideoCodec_FPS))
+                ImGui.SetNextItemWidth(180);
+                double min = 0, max = 500;
+                if (ImguiUtils.DragDouble("Framerate", ref GlobalConfig.VideoCodec_FPS, 0.25f, ref min, ref max))
                 {
                     GlobalConfig.AddUpdateAppSettings("VideoCodec_FPS", GlobalConfig.VideoCodec_FPS.ToString());
                 }

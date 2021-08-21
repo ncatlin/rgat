@@ -85,10 +85,22 @@ namespace rgat
             draw_list.AddLine(new Vector2(pos.X, pos.Y + half_sz.Y + 1), new Vector2(pos.X, pos.Y + bar_w + 1), 0xffffffff);
         }
 
+
         public static Veldrid.RgbaFloat ColToRgbaF(Color inColour)
         {
             return new Veldrid.RgbaFloat(inColour.R, inColour.G, inColour.G, inColour.A);
         }
 
+
+        //https://github.com/mellinoe/ImGui.NET/issues/255
+        public static unsafe bool DragDouble(string label, ref double value, float speed, ref double min, ref double max)
+        {
+            fixed (double* valPtr = &value, minPtr = &min, maxPtr = &max)
+            {
+                
+                    return ImGui.DragScalar(label, ImGuiDataType.Double, (IntPtr)valPtr, speed, (IntPtr)minPtr, (IntPtr)maxPtr, format: "%.2f");
+                
+            }
+        }
     }
 }

@@ -176,18 +176,20 @@ namespace rgat
             protected override object GetRuntimeObject() => base.GetRuntimeObject();
             protected override ConfigurationPropertyCollection Properties => _Properties;
 
+            public bool Inited;
             public JArray SignatureSources
             {
                 get => (JArray)this["SignatureSources"];
                 set
                 {
+                    Inited = true;
                     this["SignatureSources"] = value;
                 }
             }
         }
 
 
-        public class SignatureSource
+        public struct SignatureSource
         {
             public string RepoName;
             public string GithubPath;
@@ -199,8 +201,9 @@ namespace rgat
             public DateTime LastFetch;
             public int RuleCount;
 
-            public string LastRefreshError = null;
-            public string LastDownload = null;
+            public string LastRefreshError;
+            public string LastDownloadError;
+            public eSignatureType SignatureType;
 
             public JObject ToJObject()
             {
@@ -279,6 +282,7 @@ namespace rgat
             item.Add("LastCheck", DateTime.MinValue);
             item.Add("LastFetch", DateTime.MinValue);
             item.Add("RuleCount", -1);
+            item.Add("SignatureType", eSignatureType.YARA.ToString());
             result.SignatureSources.Add(item);
 
             item = new JObject();
@@ -288,6 +292,7 @@ namespace rgat
             item.Add("LastCheck", DateTime.MinValue);
             item.Add("LastFetch", DateTime.MinValue);
             item.Add("RuleCount", -1);
+            item.Add("SignatureType", eSignatureType.YARA.ToString());
             result.SignatureSources.Add(item);
 
             return result;
@@ -302,12 +307,13 @@ namespace rgat
             {
                 var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
                 SignatureSourcesSection sec = (SignatureSourcesSection)configFile.GetSection("SignatureSources");
-                if (sec == null || sec.SignatureSources.Type != JTokenType.Array)
+                if (sec == null || sec.SignatureSources.Type != JTokenType.Array || !sec.Inited)
                 {
                     sec = InitSignatureSourcesToDefault();
                 }
 
                 _signatureSources = new Dictionary<string, SignatureSource>();
+                List<JToken> badSources = new List<JToken>();
                 foreach (var entry in sec.SignatureSources)
                 {
                     if (entry.Type != JTokenType.Object) continue;
@@ -317,8 +323,14 @@ namespace rgat
                         !data.TryGetValue("LastUpdate", out JToken modifiedTok) || modifiedTok.Type != JTokenType.Date ||
                         !data.TryGetValue("LastFetch", out JToken fetchTok) || fetchTok.Type != JTokenType.Date ||
                         !data.TryGetValue("LastCheck", out JToken checkTok) || checkTok.Type != JTokenType.Date ||
-                        !data.TryGetValue("RuleCount", out JToken countTok) || countTok.Type != JTokenType.Integer)
-                        continue;
+                        !data.TryGetValue("RuleCount", out JToken countTok) || countTok.Type != JTokenType.Integer ||
+                        !data.TryGetValue("SignatureType", out JToken typeTok) || typeTok.Type != JTokenType.String
+                        )
+                    {
+                        Logging.RecordError($"Signature repo entry had invalid data");
+                        continue; 
+                    }
+
 
                     SignatureSource src = new SignatureSource
                     {
@@ -329,7 +341,16 @@ namespace rgat
                         LastUpdate = modifiedTok.ToObject<DateTime>(),
                         RuleCount = countTok.ToObject<int>()
                     };
-                    _signatureSources[src.GithubPath] = src;
+
+                    if (Enum.TryParse(typeof(eSignatureType), typeTok.ToString(), out object setType)){
+                        src.SignatureType = (eSignatureType)setType;
+                        _signatureSources[src.GithubPath] = src;
+                    }
+                    else
+                    {
+                        Logging.RecordError($"Unable to parse signature set type for {src.RepoName}: {typeTok}");
+                    }
+
                 }
             }
         }
@@ -541,7 +562,7 @@ namespace rgat
         public static string FFmpegPath = @"";
         public static string VideoCodec_Speed = "Medium";
         public static int VideoCodec_Quality = 6;
-        public static int VideoCodec_FPS = 30;
+        public static double VideoCodec_FPS = 30;
         public static string VideoCodec_Content = "Graph";
         public static string ImageCapture_Format = "PNG";
 
@@ -1447,7 +1468,7 @@ namespace rgat
             }
             if (GetAppSetting("VideoCodec_FPS", out vid1))
             {
-                int.TryParse(vid1, out VideoCodec_FPS);
+                double.TryParse(vid1, out VideoCodec_FPS);
             }
             if (GetAppSetting("VideoCodec_Content", out string content) && content.Length > 0)
             {

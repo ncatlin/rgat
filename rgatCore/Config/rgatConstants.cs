@@ -4,45 +4,13 @@ namespace rgat
 {
     public class RGAT_CONSTANTS
     {
-        public enum eNodeType { eInsUndefined, eInsJump, eInsReturn, eInsCall };
-        public enum eEdgeNodeType
+        public static class VERSION
         {
-            eEdgeCall = 0, eEdgeOld, eEdgeReturn, eEdgeLib, eEdgeNew,
-            eEdgeException, eNodeNonFlow, eNodeJump, eNodeCall, eNodeReturn, eNodeExternal, eNodeException, eENLAST, eFIRST_IN_THREAD = 99
-        };
-
-        public enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals, eDegree }
-        public enum eHighlightType { eExternals, eAddresses, eExceptions };
-
-        public enum eConditionalType
-        {
-            NOTCONDITIONAL = 0, ISCONDITIONAL = 1,
-            CONDFELLTHROUGH = 2, CONDTAKEN = 4,
-            CONDCOMPLETE = (ISCONDITIONAL | CONDFELLTHROUGH | CONDTAKEN)
+            public const int MAJOR = 0;
+            public const int MINOR = 6;
+            public const int FEATURE = 0;
         }
 
-
-        public enum eKeybind
-        {
-            MoveLeft, MoveRight, MoveUp, MoveDown,
-            ZoomIn, ZoomOut, PitchXFwd, PitchXBack, YawYLeft, YawYRight, RollGraphZAnti, RollGraphZClock,
-            CenterFrame, LockCenterFrame, Cancel, ToggleHeatmap, ToggleConditionals, RaiseForceTemperature,
-            ToggleAllText, ToggleInsText, ToggleLiveText, QuickMenu,
-            CaptureGraphImage, CaptureGraphPreviewImage, CaptureWindowImage, ToggleVideo, PauseVideo
-        }
-
-        public enum eSignatureType { eYARA, eDetectItEasy };
-
-        public static class LayoutStyles
-        {
-
-            public enum Style { CylinderLayout, ForceDirected3DNodes, ForceDirected3DBlocks, Circle, Invalid };
-
-            static readonly List<Style> _cacheLayouts = new List<Style>() { Style.ForceDirected3DBlocks, Style.ForceDirected3DNodes };
-
-            public static bool RequiresCaching(Style layout) => _cacheLayouts.Contains(layout);
-            public static bool IsForceDirected(Style layout) => RequiresCaching(layout);
-        }
 
         public static class UI
         {
@@ -96,26 +64,6 @@ namespace rgat
             public const float TemperatureStepMultiplier = 0.99f;
         }
 
-        public static class VERSION
-        {
-            public const int MAJOR = 0;
-            public const int MINOR = 6;
-            public const int FEATURE = 0;
-        }
-        public static string RGAT_VERSION => $"{VERSION.MAJOR}.{VERSION.MINOR}.{VERSION.FEATURE}";
-
-        public static class SIGNERS
-        {
-            public const string PIN_SIGNER = "Intel Corporation";
-            public const string PINTOOL_SIGNER = "rgat dev";
-            public const string CISCO_SIGNER = "Cisco WebEx LLC";
-        }
-
-        public static class TEST
-        {
-            public const string testextension = ".test.json";
-        }
-
         public static class NETWORK
         {
             public const int DefaultKeyLength = 9;
@@ -130,5 +78,73 @@ namespace rgat
         {
             public const int TagCacheSize = 1024;
         }
+
+
+        public static class SIGNERS
+        {
+            public const string PIN_SIGNER = "Intel Corporation";
+            public const string PINTOOL_SIGNER = "rgat dev";
+            public const string CISCO_SIGNER = "Cisco WebEx LLC";
+        }
+
+
+        public static class TEST
+        {
+            public const string testextension = ".test.json";
+        }
+
+        /*
+         * 
+         * Enums
+         * 
+         */
+        public enum eNodeType { eInsUndefined, eInsJump, eInsReturn, eInsCall };
+        public enum eEdgeNodeType
+        {
+            eEdgeCall = 0, eEdgeOld, eEdgeReturn, eEdgeLib, eEdgeNew,
+            eEdgeException, eNodeNonFlow, eNodeJump, eNodeCall, eNodeReturn, eNodeExternal, eNodeException, eENLAST, eFIRST_IN_THREAD = 99
+        };
+
+        public enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals, eDegree }
+        public enum eHighlightType { eExternals, eAddresses, eExceptions };
+
+        public enum eConditionalType
+        {
+            NOTCONDITIONAL = 0, ISCONDITIONAL = 1,
+            CONDFELLTHROUGH = 2, CONDTAKEN = 4,
+            CONDCOMPLETE = (ISCONDITIONAL | CONDFELLTHROUGH | CONDTAKEN)
+        }
+
+
+        public enum eKeybind
+        {
+            MoveLeft, MoveRight, MoveUp, MoveDown,
+            ZoomIn, ZoomOut, PitchXFwd, PitchXBack, YawYLeft, YawYRight, RollGraphZAnti, RollGraphZClock,
+            CenterFrame, LockCenterFrame, Cancel, ToggleHeatmap, ToggleConditionals, RaiseForceTemperature,
+            ToggleAllText, ToggleInsText, ToggleLiveText, QuickMenu,
+            CaptureGraphImage, CaptureGraphPreviewImage, CaptureWindowImage, ToggleVideo, PauseVideo
+        }
+
+        public enum eSignatureType { YARA, DIE };
+
+        public static class LayoutStyles
+        {
+
+            public enum Style { CylinderLayout, ForceDirected3DNodes, ForceDirected3DBlocks, Circle, Invalid };
+
+            static readonly List<Style> _cacheLayouts = new List<Style>() { Style.ForceDirected3DBlocks, Style.ForceDirected3DNodes };
+
+            public static bool RequiresCaching(Style layout) => _cacheLayouts.Contains(layout);
+            public static bool IsForceDirected(Style layout) => RequiresCaching(layout);
+        }
+
+
+        /*
+         * 
+         * Helper functions
+         * 
+         */
+        public static string RGAT_VERSION => $"{VERSION.MAJOR}.{VERSION.MINOR}.{VERSION.FEATURE}";
+
     }
 }

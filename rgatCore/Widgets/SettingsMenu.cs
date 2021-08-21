@@ -357,14 +357,14 @@ namespace rgat.Widgets
                                     else
                                     {
                                         string refreshError = sigset.LastRefreshError == null ? null : new string(sigset.LastRefreshError);
-                                        
+
                                         if (refreshError != null)
                                         {
                                             ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff000030);
                                             if (refreshError.Length > 22)
                                             {
                                                 ImguiUtils.DrawHorizCenteredText(refreshError.Substring(0, 22) + "..");
-                                                SmallWidgets.MouseoverText("Error checking for update: "+refreshError);
+                                                SmallWidgets.MouseoverText("Error checking for update: " + refreshError);
                                             }
                                             else
                                                 ImguiUtils.DrawHorizCenteredText(refreshError);
@@ -381,7 +381,13 @@ namespace rgat.Widgets
                                             if (sigset.LastUpdate == DateTime.MinValue)
                                                 mouseoverText += "Select this source and press \"Refresh\" to check for signature updates\n";
                                             else
-                                                mouseoverText += "Last check: " + sigset.LastCheck.ToString() + "\n";
+                                            {
+
+                                                if (sigset.LastCheck != DateTime.MinValue)
+                                                    mouseoverText += $"Last checked: {sigset.LastCheck}\n";
+                                                mouseoverText += $"Last updated: {sigset.LastUpdate}\n";
+                                            }
+
                                             if (newAvailable)
                                                 mouseoverText += "Updates are available for these signatures";
                                             SmallWidgets.MouseoverText(mouseoverText);
@@ -392,17 +398,32 @@ namespace rgat.Widgets
 
                                     ImGui.TableNextColumn();
 
-                                    if (_githubSigDownloader.Running && _githubSigDownloader.TaskType == "Download" && activeRepoTasks.Contains(sigset.GithubPath))
+                                    string downloadError = sigset.LastDownloadError == null ? null : new string(sigset.LastDownloadError);
+                                    if (downloadError != null)
                                     {
-                                        ImguiUtils.DrawHorizCenteredText("Downloading");
+                                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff000030);
+                                        if (downloadError.Length > 22)
+                                        {
+                                            ImguiUtils.DrawHorizCenteredText(downloadError.Substring(0, 22) + "..");
+                                            SmallWidgets.MouseoverText("Error downloading signatures: " + downloadError);
+                                        }
+                                        else
+                                            ImguiUtils.DrawHorizCenteredText(downloadError);
                                     }
                                     else
                                     {
-                                        ImguiUtils.DrawHorizCenteredText(sigset.LastFetch == DateTime.MinValue ? "Never Downloaded" :
-                                            Humanizer.TimeSpanHumanizeExtensions.Humanize(DateTime.Now - sigset.LastFetch) + " ago");
+                                        if (_githubSigDownloader.Running && _githubSigDownloader.TaskType == "Download" && activeRepoTasks.Contains(sigset.GithubPath))
+                                        {
+                                            ImguiUtils.DrawHorizCenteredText("Downloading");
+                                        }
+                                        else
+                                        {
+                                            ImguiUtils.DrawHorizCenteredText(sigset.LastFetch == DateTime.MinValue ? "Never Downloaded" :
+                                                Humanizer.TimeSpanHumanizeExtensions.Humanize(DateTime.Now - sigset.LastFetch) + " ago");
 
-                                        if (sigset.LastFetch != DateTime.MinValue)
-                                            SmallWidgets.MouseoverText($"Last Successful Download: {sigset.LastFetch.ToString()}");
+                                            if (sigset.LastFetch != DateTime.MinValue)
+                                                SmallWidgets.MouseoverText($"Last Successful Download: {sigset.LastFetch.ToString()}");
+                                        }
                                     }
 
                                 }

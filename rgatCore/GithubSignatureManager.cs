@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -88,7 +89,7 @@ namespace rgat
         void GetRepoLastUpdated(GlobalConfig.SignatureSource repo)
         {
             System.Net.Http.HttpClient client = new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", RGAT_CONSTANTS.RGAT_VERSION)); // set your own values here
+            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", RGAT_CONSTANTS.RGAT_VERSION));
             try
             {
                 Task<HttpResponseMessage> request = client.GetAsync("https://api.github.com/repos/" + repo.GithubPath, _token);
@@ -133,18 +134,129 @@ namespace rgat
             }
         }
 
-        void DownloadRepo(GlobalConfig.SignatureSource repo)
+
+        string GetRepoDirectory(ref GlobalConfig.SignatureSource repo, string sigsdir)
         {
+
             try
             {
-                Task.Delay(new Random().Next(1000, 4000)).Wait(_token);
-                DateTime result = DateTime.Now.AddDays(-1 * new Random().Next(30, 100));
-                repo.LastFetch = result;
+                if (!Directory.Exists(sigsdir))
+                {
+                    Logging.RecordError($"Base signatures directory {sigsdir} does not exist");
+                    return null;
+                }
+
+                if (!sigsdir.ToLower().Contains("signature"))
+                {
+                    Logging.RecordError($"Base signatures directory {sigsdir} does not contain the word 'signature' anywhere in the path." +
+                        $" This is a safety measure as the contents will be deleted on download. Please change it in the Settings->Files menu");
+                    return null;
+                }
+
+                string repoDirectory = Path.Combine(sigsdir, repo.RepoName);
+                if (!new Uri(GlobalConfig.YARARulesDir).IsBaseOf(new Uri(repoDirectory)))
+                {
+                    repo.LastDownloadError = "Bad Repo Name";
+                    Logging.RecordError($"Repo download directory {repoDirectory} is not in the signatures directory {sigsdir}");
+                    GlobalConfig.UpdateSignatureSource(repo);
+                    return null;
+                }
+
+                return repoDirectory;
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Error initing signature directory for repo {repo.GithubPath}: {e.Message}");
+                return null;
+            }
+            return null;
+        }
+
+        bool CleanDirectory(string repoDirectory)
+        {
+            Logging.RecordLogEvent($"Deleting existing contents of directory {repoDirectory}", filter: Logging.LogFilterType.TextDebug);
+            try
+            {
+                System.IO.DirectoryInfo di = new DirectoryInfo(repoDirectory);
+                if (Directory.Exists(repoDirectory))
+                {
+                    foreach (FileInfo file in di.EnumerateFiles())
+                    {
+                        file.Delete();
+                    }
+                    foreach (DirectoryInfo dir in di.EnumerateDirectories())
+                    {
+                        dir.Delete(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Error: {e.Message} when cleaning directory {repoDirectory}");
+                return false;
+            }
+            return true;
+        }
+
+        void DownloadRepo(GlobalConfig.SignatureSource repo)
+        {
+            System.Net.Http.HttpClient client = new HttpClient();
+            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", RGAT_CONSTANTS.RGAT_VERSION));
+            try
+            {
+                string repoDirectory = null;
+
+                if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.YARA)
+                {
+                    repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.YARARulesDir);
+                }
+                else if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.DIE)
+                {
+                    repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.DiESigsPath);
+                }
+                if (repoDirectory == null)
+                {
+                    repo.LastDownloadError = "Can't Get Save Dir";
+                    GlobalConfig.UpdateSignatureSource(repo);
+                    return;
+                }
+
+                Task<byte[]> repobytes = client.GetByteArrayAsync("https://api.github.com/repos/" + repo.GithubPath + "/zipball");
+                repobytes.Wait(cancellationToken: _token);
+                Console.WriteLine($"Downloaded {repobytes.Result.Length} bytes of signaturedata");
+                string tempname = Path.GetTempFileName();
+                using (var fs = new FileStream(tempname, FileMode.Open, FileAccess.Write, FileShare.None, 4096))
+                {
+                    fs.Write(repobytes.Result);
+                }
+
+                if (!CleanDirectory(repoDirectory))
+                {
+                    repo.LastDownloadError = "Can't Delete Existing";
+                    GlobalConfig.UpdateSignatureSource(repo);
+                    return;
+                }
+
+                System.IO.Compression.ZipFile.ExtractToDirectory(tempname, repoDirectory, true);
+                File.Delete(tempname);
+
+                repo.LastFetch = DateTime.Now;
+                repo.LastDownloadError = null;
                 GlobalConfig.UpdateSignatureSource(repo);
             }
-            catch
+            catch (Exception e)
             {
-                return;
+                if (e.InnerException != null && e.InnerException.GetType() == typeof(HttpRequestException))
+                {
+                    string message = ((HttpRequestException)e.InnerException).Message;
+                    repo.LastDownloadError = message;
+                }
+                else
+                {
+                    repo.LastDownloadError = "See Logs";
+                }
+                GlobalConfig.UpdateSignatureSource(repo);
+                Logging.RecordError($"Exception downloading {repo.GithubPath} => {e.Message}");
             }
         }
     }
