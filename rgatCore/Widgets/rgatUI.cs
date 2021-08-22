@@ -221,6 +221,7 @@ namespace rgat
             }
         }
 
+
         public void DrawDialogs()
         {
             if (_settings_window_shown) _SettingsMenu.Draw(ref _settings_window_shown);
@@ -228,14 +229,19 @@ namespace rgat
             if (_show_load_trace_window) DrawTraceLoadBox(ref _show_load_trace_window);
             if (_show_stats_dialog) DrawGraphStatsDialog(ref _show_stats_dialog);
             if (_show_test_harness) _testHarness.Draw(ref _show_test_harness);
-            if (_show_remote_dialog) {
-                if (_RemoteDialog == null)
-                {
-                    _RemoteDialog = new RemoteDialog(_rgatState);
-                }
-                _RemoteDialog.Draw(ref _show_remote_dialog); 
+            if (_show_remote_dialog)
+            {
+                if (_RemoteDialog == null) { _RemoteDialog = new RemoteDialog(_rgatState); }
+                _RemoteDialog.Draw(ref _show_remote_dialog);
             }
         }
+
+        public void CleanupFrame()
+        {
+            if (!_tooltipScrollingActive && _tooltipScroll != 0)
+                _tooltipScroll = 0;
+        }
+
 
         public void DrawGraphStatsDialog(ref bool hideme)
         {
@@ -445,7 +451,7 @@ namespace rgat
             ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBorder));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
-            Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), ImGui.GetWindowSize().X - (widestAlert+100)), ImGui.GetCursorPosY() + 150);
+            Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), ImGui.GetWindowSize().X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
             if (ImGui.BeginChild(78789, size, true))
             {
                 if (alerts.Length <= 2)
@@ -527,13 +533,17 @@ namespace rgat
         public void HandleUserInput()
         {
             if (StartupProgress < 1) return;
-            if (_hexTooltipShown && _mouseWheelDelta != 0)
+            if (_mouseWheelDelta != 0)
             {
-                _hexTooltipScroll -= _mouseWheelDelta * 60;
-                if (_hexTooltipScroll < 0) _hexTooltipScroll = 0;
-                _mouseWheelDelta = 0;
-                return;
+                if (_tooltipScrollingActive)
+                {
+                    _tooltipScroll -= _mouseWheelDelta * 60;
+                    if (_tooltipScroll < 0) _tooltipScroll = 0;
+                    _mouseWheelDelta = 0;
+                    return;
+                }
             }
+            _tooltipScrollingActive = false;
 
             bool currentTabVisualiser = _currentTab == "Visualiser";
             bool currentTabTimeline = _currentTab == "Timeline";
@@ -871,10 +881,12 @@ namespace rgat
 
         private void DrawSignaturesBox(BinaryTarget activeTarget, float width)
         {
-            if (ImGui.BeginTable("#SigHitsTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, new Vector2(width, ImGui.GetContentRegionAvail().Y - 6)))
+            if (ImGui.BeginTable("#SigHitsTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY |
+                ImGuiTableFlags.NoHostExtendX, new Vector2(width, ImGui.GetContentRegionAvail().Y - 6)))
             {
                 ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 90);
                 ImGui.TableSetupColumn("Rule", ImGuiTableColumnFlags.WidthFixed, width - 92);
+                ImGui.TableSetupScrollFreeze(0, 1);
                 ImGui.TableHeadersRow();
 
                 if (activeTarget.GetDieHits(out string[] diehits))
@@ -912,8 +924,27 @@ namespace rgat
                         ImGui.PopFont();
                         if (ImGui.IsItemHovered())
                         {
-                            DrawYaraTooltip(hit);
+                            if (_yaraPopupHit == null)
+                            {
+                                _hitHoverOnly = true;
+                                _yaraPopupHit = hit;
+                            }
+                            if (ImGui.IsItemClicked())
+                            {
+                                _hitHoverOnly = false;
+                                _hitClickTime = DateTime.Now;
+                            }
+                            if (_hitHoverOnly)
+                            {
+                                DrawYaraPopup(true);
+                            }
                         }
+                        else
+                        {
+                            if (_hitHoverOnly == true)
+                                _yaraPopupHit = null;
+                        }
+
                     }
                 }
 
@@ -921,65 +952,104 @@ namespace rgat
             }
         }
 
-
-        private void DrawYaraTooltip(dnYara.ScanResult hit)
+        dnYara.ScanResult _yaraPopupHit = null;
+        DateTime _hitClickTime;
+        bool _hitHoverOnly;
+        private void DrawYaraPopup(bool tooltip)
         {
-            ImGui.BeginTooltip();
-
-            string idTags = "Rule: " + hit.MatchingRule.Identifier;
-
-            foreach (string tag in hit.MatchingRule.Tags)
-                idTags += $" [{tag}]";
-            ImGui.Text(idTags);
-
-            foreach (var kvp in hit.MatchingRule.Metas)
-                ImGui.Text($"\"{kvp.Key}\": \"{kvp.Value}\"");
-
-            if (hit.Matches.Count > 0)
+            if (tooltip)
             {
-                if (ImGui.BeginTable("#YaraHitTablToolTip", 4, ImGuiTableFlags.Borders))
-                {
-                    ImGui.TableSetupColumn("String Name");
-                    ImGui.TableSetupColumn("Offset");
-                    ImGui.TableSetupColumn("Size");
-                    ImGui.TableSetupColumn("Match Data");
-                    ImGui.TableHeadersRow();
-
-                    foreach (var matchList in hit.Matches)
-                    {
-                        foreach (var match in matchList.Value)
-                        {
-                            ImGui.TableNextRow();
-
-                            ImGui.TableNextColumn();
-                            ImGui.Text($"{matchList.Key}");
-
-                            ImGui.TableNextColumn();
-                            ImGui.Text($"0x{(match.Base + match.Offset):X}");
-
-                            ImGui.TableNextColumn();
-                            ImGui.Text($"{match.Data.Length}");
-
-                            ImGui.TableNextColumn();
-
-                            int maxlen = 16;
-                            int previewLen = Math.Min(match.Data.Length, maxlen);
-                            string strillus = "";
-                            strillus += TextUtils.IllustrateASCIIBytesCompact(match.Data, previewLen);
-                            if (previewLen < maxlen)
-                                strillus += "...";
-                            strillus += "  {";
-                            strillus += BitConverter.ToString(match.Data, 0, previewLen).Replace("-", " ");
-                            strillus += "}";
-
-                            ImGui.Text($"{strillus}");
-                        }
-                    }
-                    ImGui.EndTable();
-                }
-
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(2,2));
+                ImGui.BeginTooltip();
+                YaraTooltipContents(false);
+                ImGui.EndTooltip();
+                ImGui.PopStyleVar();
             }
-            ImGui.EndTooltip();
+            else
+            {
+                ImGui.OpenPopup("#YaraHitPopup");
+                if (ImGui.BeginPopup("#YaraHitPopup"))
+                {
+                    YaraTooltipContents(true);
+                    ImGui.EndPopup();
+                }
+            }
+        }
+
+        void YaraTooltipContents(bool borders)
+        {
+            Vector2 start = ImGui.GetCursorScreenPos();
+ 
+            if (ImGui.BeginChild("#YaraHitPopupWind", new Vector2(650, 300), borders, ImGuiWindowFlags.NoScrollbar))
+            {
+                if (!borders)
+                {
+                    float prevY = ImGui.GetCursorPosY();
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetContentRegionMax().X - 150);
+                    ImGui.Text("Click to persist this popup");
+                    ImGui.SetCursorPosY(prevY);
+                }
+                string idTags = "Rule: " + _yaraPopupHit.MatchingRule.Identifier;
+
+                foreach (string tag in _yaraPopupHit.MatchingRule.Tags)
+                    idTags += $" [{tag}]";
+                ImGui.Text(idTags);
+
+                foreach (var kvp in _yaraPopupHit.MatchingRule.Metas)
+                    ImGui.Text($"\"{kvp.Key}\": \"{kvp.Value}\"");
+
+                int allMatcCount = _yaraPopupHit.Matches.Sum(x => x.Value.Count);
+                if (allMatcCount > 0)
+                {
+                    if (ImGui.BeginTable("#YaraHitTablToolTip", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.ScrollX))
+                    {
+                        ImGui.TableSetupColumn("String Name");
+                        ImGui.TableSetupColumn("Offset", ImGuiTableColumnFlags.WidthFixed, 65);
+                        ImGui.TableSetupColumn("Size", ImGuiTableColumnFlags.WidthFixed, 45);
+                        ImGui.TableSetupColumn("Match Data", ImGuiTableColumnFlags.WidthStretch);
+                        ImGui.TableSetupScrollFreeze(0, 1);
+                        ImGui.TableHeadersRow();
+
+                        foreach (var matchList in _yaraPopupHit.Matches)
+                        {
+                            foreach (var match in matchList.Value)
+                            {
+                                ImGui.TableNextRow();
+
+                                ImGui.TableNextColumn();
+                                ImGui.Text($"{matchList.Key}");
+
+                                ImGui.TableNextColumn();
+                                ImGui.Text($"0x{(match.Base + match.Offset):X}");
+
+                                ImGui.TableNextColumn();
+                                ImGui.Text($"{match.Data.Length}");
+
+                                ImGui.TableNextColumn();
+
+                                int maxlen = 16;
+                                int previewLen = Math.Min(match.Data.Length, maxlen);
+                                string strillus = "";
+                                strillus += TextUtils.IllustrateASCIIBytesCompact(match.Data, previewLen);
+                                if (previewLen < maxlen)
+                                    strillus += "...";
+                                strillus += "  {";
+                                strillus += BitConverter.ToString(match.Data, 0, previewLen).Replace("-", " ");
+                                strillus += "}";
+
+                                ImGui.Text($"{strillus}");
+                            }
+                        }
+                        ImGui.EndTable();
+                    }
+                }
+                ImGui.EndChild();
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsMouseHoveringRect(start, start + ImGui.GetContentRegionMax()))
+                {
+                    if (DateTime.Now > _hitClickTime.AddMilliseconds(600))
+                        _yaraPopupHit = null;
+                }
+            }
         }
 
 
@@ -1032,12 +1102,11 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("Hex Preview");
                     ImGui.TableNextColumn();
-                    _hexTooltipShown = false;
                     _controller.PushOriginalFont(); //original imgui font is monospace and UTF8, good for this
                     {
                         _dataInput = Encoding.UTF8.GetBytes(activeTarget.HexPreview);
                         ImGui.InputText("##hexprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
-                        _hexTooltipShown = _hexTooltipShown || ImGui.IsItemHovered();
+                        _tooltipScrollingActive = _tooltipScrollingActive || ImGui.IsItemHovered();
                         if (ImGui.IsItemHovered())
                         {
                             ShowHexPreviewTooltip(activeTarget);
@@ -1053,16 +1122,16 @@ namespace rgat
                     {
                         _dataInput = Encoding.ASCII.GetBytes(activeTarget.ASCIIPreview);
                         ImGui.InputText("##ascprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
-                        _hexTooltipShown = _hexTooltipShown || ImGui.IsItemHovered();
+                        _tooltipScrollingActive = _tooltipScrollingActive || ImGui.IsItemHovered();
                         if (ImGui.IsItemHovered())
                         {
+                            _tooltipScrollingActive = true;
                             ShowHexPreviewTooltip(activeTarget);
                         }
                         ImGui.PopFont();
 
                     }
 
-                    if (!_hexTooltipShown) _hexTooltipScroll = 0;
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
@@ -1083,10 +1152,12 @@ namespace rgat
             // ImGui.Columns(1);
             ImGui.EndGroup();
             ImGui.EndChildFrame();
+
+            if (_yaraPopupHit != null && !_hitHoverOnly) DrawYaraPopup(false);
         }
 
-        float _hexTooltipScroll = 0;
-        bool _hexTooltipShown;
+        float _tooltipScroll = 0;
+        bool _tooltipScrollingActive;
         private void ShowHexPreviewTooltip(BinaryTarget target)
         {
             string hexline = target.HexTooltip();
@@ -1099,11 +1170,11 @@ namespace rgat
                 ImGuiInputTextFlags flags = ImGuiInputTextFlags.ReadOnly;
                 flags |= ImGuiInputTextFlags.Multiline;
                 flags |= ImGuiInputTextFlags.NoHorizontalScroll;
-                ImGui.SetScrollY(_hexTooltipScroll);
+                ImGui.SetScrollY(_tooltipScroll);
                 float BoxSize = Math.Max(ImGui.GetContentRegionAvail().Y, (hexline.Length / 4608f) * 845f);
                 ImGui.InputTextMultiline("##inplin1", ref hexline, (uint)hexline.Length, new Vector2(530, BoxSize), flags);
-                if (_hexTooltipScroll > ImGui.GetScrollMaxY())
-                    _hexTooltipScroll = ImGui.GetScrollMaxY();
+                if (_tooltipScroll > ImGui.GetScrollMaxY())
+                    _tooltipScroll = ImGui.GetScrollMaxY();
 
                 ImGui.EndTooltip();
             }
@@ -1292,7 +1363,7 @@ namespace rgat
                     _OldTraceCount = rgatState.TotalTraceCount;
                     if (_rgatState.ActiveTarget.RemoteBinary)
                     {
-                       ProcessLaunching.StartRemoteTrace(_rgatState.ActiveTarget);
+                        ProcessLaunching.StartRemoteTrace(_rgatState.ActiveTarget);
                     }
                     else
                     {
@@ -1517,7 +1588,7 @@ namespace rgat
                     if (ImGui.BeginTable("#RecentBinTableList", 1, ImGuiTableFlags.ScrollY, tableSz))
                     {
                         ImGui.Indent(5);
-                        ImGui.TableSetupColumn("Recent Binaries"+$"{(rgatState.ConnectedToRemote ? " (Remote Files)" : "")}");
+                        ImGui.TableSetupColumn("Recent Binaries" + $"{(rgatState.ConnectedToRemote ? " (Remote Files)" : "")}");
                         ImGui.TableSetupScrollFreeze(0, 1);
                         ImGui.TableHeadersRow();
                         int bincount = recentBins.Count;
@@ -1765,7 +1836,7 @@ namespace rgat
             }
             else
             {
-                _hexTooltipShown = false;
+                _tooltipScrollingActive = false;
             }
         }
 
@@ -3096,7 +3167,7 @@ namespace rgat
                     if (ImGui.MenuItem("Exit"))
                     {
                         ExitFlag = true;
-                       // Task.Run(() => { Exit(); });
+                        // Task.Run(() => { Exit(); });
                     }
                     ImGui.EndMenu();
                 }
@@ -3138,7 +3209,7 @@ namespace rgat
             string activeString = (activeTarget == null) ? "No target selected" : activeTarget.FilePath;
             List<string> paths = rgatState.targets.GetTargetPaths();
             ImGuiComboFlags flags = 0;
-            float textWidth = Math.Max(ImGui.GetContentRegionAvail().X/2.5f, ImGui.CalcTextSize(activeString).X + 50);
+            float textWidth = Math.Max(ImGui.GetContentRegionAvail().X / 2.5f, ImGui.CalcTextSize(activeString).X + 50);
             textWidth = Math.Min(ImGui.GetContentRegionAvail().X - 300, textWidth);
             ImGui.SetNextItemWidth(textWidth);
             if (ImGui.BeginCombo("Selected Binary", activeString, flags))
@@ -3260,9 +3331,9 @@ namespace rgat
                 return false;
             }
 
-           BinaryTarget target = _rgatState.AddRemoteTargetByPath(path, rgatState.NetworkBridge.LastAddress);
+            BinaryTarget target = _rgatState.AddRemoteTargetByPath(path, rgatState.NetworkBridge.LastAddress);
             rgatState.NetworkBridge.SendCommand("LoadTarget", "GUI", target.InitialiseFromRemoteData, path);
-            
+
             return true;
         }
 
@@ -3282,8 +3353,8 @@ namespace rgat
                     picker = rgatFilePicker.FilePicker.GetRemoteFilePicker(this, rgatState.NetworkBridge);
                 }
                 else
-                { 
-                    picker = rgatFilePicker.FilePicker.GetFilePicker(this, Environment.CurrentDirectory); 
+                {
+                    picker = rgatFilePicker.FilePicker.GetFilePicker(this, Environment.CurrentDirectory);
                 }
 
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);

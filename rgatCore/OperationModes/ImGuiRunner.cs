@@ -431,6 +431,8 @@ namespace rgat.OperationModes
                 _rgatUI.HandleUserInput();
                 _rgatUI.DrawMain();
                 _rgatUI.DrawDialogs();
+                _rgatUI.CleanupFrame();
+                
 
 
                 Themes.ResetThemeColours();
