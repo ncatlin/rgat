@@ -45,6 +45,16 @@ namespace rgat.Widgets
         }
 
 
+        class PendingKeybind
+        {
+            public PendingKeybind() { }
+            public bool active;
+            public string actionText = "";
+            public eKeybind action;
+            public int bindIndex;
+            public string currentKey = "";
+            public bool IsResponsive;
+        }
         PendingKeybind _pendingKeybind = new PendingKeybind();
         public bool HasPendingKeybind
         {

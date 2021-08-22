@@ -31,6 +31,10 @@ namespace rgat
         public PreviewGraphsWidget PreviewWidget;
 
 
+        public static double UIDrawFPS = 0;
+
+        public static bool RecordVideoOnNextTrace = false;
+
         public static Threads.ProcessCoordinatorThread processCoordinatorThreadObj = null;
 
         public rgatState()
