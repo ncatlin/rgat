@@ -959,9 +959,9 @@ namespace rgat
         {
             if (tooltip)
             {
-                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(2,2));
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(3, 4));
                 ImGui.BeginTooltip();
-                YaraTooltipContents(false);
+                YaraTooltipContents(true);
                 ImGui.EndTooltip();
                 ImGui.PopStyleVar();
             }
@@ -970,86 +970,124 @@ namespace rgat
                 ImGui.OpenPopup("#YaraHitPopup");
                 if (ImGui.BeginPopup("#YaraHitPopup"))
                 {
-                    YaraTooltipContents(true);
+                    if (ImGui.BeginChild("#YaraHitPopupWind", new Vector2(650, 300), true, ImGuiWindowFlags.NoScrollbar))
+                    {
+                        YaraTooltipContents(false);
+                        ImGui.EndChild();
+                    }
                     ImGui.EndPopup();
                 }
             }
         }
 
-        void YaraTooltipContents(bool borders)
+
+        void YaraTooltipContents(bool tooltip)
         {
             Vector2 start = ImGui.GetCursorScreenPos();
- 
-            if (ImGui.BeginChild("#YaraHitPopupWind", new Vector2(650, 300), borders, ImGuiWindowFlags.NoScrollbar))
+            if (ImGui.BeginTable("#YaraHitTableMetaToolTip", 2, ImGuiTableFlags.Borders))
             {
-                if (!borders)
-                {
-                    float prevY = ImGui.GetCursorPosY();
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetContentRegionMax().X - 150);
-                    ImGui.Text("Click to persist this popup");
-                    ImGui.SetCursorPosY(prevY);
-                }
-                string idTags = "Rule: " + _yaraPopupHit.MatchingRule.Identifier;
+                ImGui.TableSetupColumn("Meta");
+                ImGui.TableSetupColumn("Value");
+                ImGui.TableHeadersRow();
 
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text("Rule Name");
+                ImGui.TableNextColumn();
+                ImGui.Text(_yaraPopupHit.MatchingRule.Identifier);
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text("Tags");
+                ImGui.TableNextColumn();
+                string tags = "";
                 foreach (string tag in _yaraPopupHit.MatchingRule.Tags)
-                    idTags += $" [{tag}]";
-                ImGui.Text(idTags);
+                    tags += $" [{tag}]";
+                ImGui.Text(tags);
 
                 foreach (var kvp in _yaraPopupHit.MatchingRule.Metas)
-                    ImGui.Text($"\"{kvp.Key}\": \"{kvp.Value}\"");
-
-                int allMatcCount = _yaraPopupHit.Matches.Sum(x => x.Value.Count);
-                if (allMatcCount > 0)
                 {
-                    if (ImGui.BeginTable("#YaraHitTablToolTip", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.ScrollX))
-                    {
-                        ImGui.TableSetupColumn("String Name");
-                        ImGui.TableSetupColumn("Offset", ImGuiTableColumnFlags.WidthFixed, 65);
-                        ImGui.TableSetupColumn("Size", ImGuiTableColumnFlags.WidthFixed, 45);
-                        ImGui.TableSetupColumn("Match Data", ImGuiTableColumnFlags.WidthStretch);
-                        ImGui.TableSetupScrollFreeze(0, 1);
-                        ImGui.TableHeadersRow();
-
-                        foreach (var matchList in _yaraPopupHit.Matches)
-                        {
-                            foreach (var match in matchList.Value)
-                            {
-                                ImGui.TableNextRow();
-
-                                ImGui.TableNextColumn();
-                                ImGui.Text($"{matchList.Key}");
-
-                                ImGui.TableNextColumn();
-                                ImGui.Text($"0x{(match.Base + match.Offset):X}");
-
-                                ImGui.TableNextColumn();
-                                ImGui.Text($"{match.Data.Length}");
-
-                                ImGui.TableNextColumn();
-
-                                int maxlen = 16;
-                                int previewLen = Math.Min(match.Data.Length, maxlen);
-                                string strillus = "";
-                                strillus += TextUtils.IllustrateASCIIBytesCompact(match.Data, previewLen);
-                                if (previewLen < maxlen)
-                                    strillus += "...";
-                                strillus += "  {";
-                                strillus += BitConverter.ToString(match.Data, 0, previewLen).Replace("-", " ");
-                                strillus += "}";
-
-                                ImGui.Text($"{strillus}");
-                            }
-                        }
-                        ImGui.EndTable();
-                    }
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text(kvp.Key);
+                    ImGui.TableNextColumn();
+                    ImGui.Text(kvp.Value.ToString());
                 }
-                ImGui.EndChild();
-                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsMouseHoveringRect(start, start + ImGui.GetContentRegionMax()))
-                {
-                    if (DateTime.Now > _hitClickTime.AddMilliseconds(600))
-                        _yaraPopupHit = null;
-                }
+                ImGui.EndTable();
             }
+
+
+            int displayCount = 0; 
+            int allMatchCount = _yaraPopupHit.Matches.Sum(x => x.Value.Count);
+
+            if (allMatchCount > 0 && ImGui.BeginTable("#YaraHitTablToolTip", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.ScrollX))
+            {
+                ImGui.TableSetupColumn("Match Name");
+                ImGui.TableSetupColumn("Offset", ImGuiTableColumnFlags.WidthFixed, 65);
+                ImGui.TableSetupColumn("Size", ImGuiTableColumnFlags.WidthFixed, 45);
+                ImGui.TableSetupColumn("Match Data", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupScrollFreeze(0, 1);
+                ImGui.TableHeadersRow();
+
+                foreach (var matchList in _yaraPopupHit.Matches)
+                {
+                    for (var matchi = 0; matchi < matchList.Value.Count; matchi++)
+                    {
+                        dnYara.Match match = matchList.Value[matchi];
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{matchList.Key}");
+
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"0x{(match.Base + match.Offset):X}");
+
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{match.Data.Length}");
+
+                        ImGui.TableNextColumn();
+
+                        int maxlen = 16;
+                        int previewLen = Math.Min(match.Data.Length, maxlen);
+                        string strillus = "";
+                        strillus += TextUtils.IllustrateASCIIBytesCompact(match.Data, previewLen);
+                        if (previewLen < maxlen)
+                            strillus += "...";
+                        strillus += "  {";
+                        strillus += BitConverter.ToString(match.Data, 0, previewLen).Replace("-", " ");
+                        strillus += "}";
+
+                        ImGui.Text($"{strillus}");
+                        displayCount += 1;
+                        if (tooltip && displayCount > 15) break;
+
+
+                        if (tooltip && matchi > 3 && matchList.Value.Count > 4)
+                        {
+                            ImGui.TableNextRow();
+                            ImGui.TableNextColumn();
+                            ImGui.Text($"And {(matchList.Value.Count - matchi)} more hits of {matchList.Key} (click to display)");
+                            break;
+                        }
+
+                    }
+                    if (tooltip && displayCount > 15)
+                    {
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"And {(allMatchCount - displayCount)} more hits (click to display)");
+                        break;
+                    }
+
+                }
+                ImGui.EndTable();
+            }
+
+            if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsMouseHoveringRect(start, start + ImGui.GetContentRegionMax()))
+            {
+                if (DateTime.Now > _hitClickTime.AddMilliseconds(600))
+                    _yaraPopupHit = null;
+            }
+
         }
 
 
