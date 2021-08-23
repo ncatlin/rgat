@@ -434,8 +434,6 @@ namespace rgat
 
 
                     bool isKeybind = GlobalConfig.Keybinds.TryGetValue(KeyModifierTuple, out eKeybind boundAction);
-
-
                     if (isKeybind)
                     {
                         if (visualiserTab.AlertKeybindPressed(boundAction, KeyModifierTuple)) continue;
@@ -449,7 +447,7 @@ namespace rgat
                     //could be a quickmenu shortcut
                     if (visualiserTab.AlertRawKeyPress(KeyModifierTuple)) continue;
 
-                    if (isKeybind)
+                    if (isKeybind && !_settings_window_shown)
                     {
                         switch (boundAction)
                         {

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
 namespace rgat
@@ -27,9 +28,14 @@ namespace rgat
                 string parent = Directory.GetParent(sigsDiEPath).FullName;
                 if (Directory.Exists(parent)) sigsDiEPath = parent;
             }
-            if (File.Exists(Path.Combine(sigsDiEPath, "db", "_init")))
+
+            //Don't trust arbitrary scripts passed to jint, so only use original repo
+            foreach (string path in Directory.GetDirectories(sigsDiEPath).Where(dirpath => Path.GetFileName(dirpath).StartsWith("horsicq_")))
             {
-                return Path.Combine(sigsDiEPath, "db");
+                if (File.Exists(Path.Combine(path, "db", "_init")))
+                {
+                    return Path.Combine(path, "db");
+                }
             }
             if (File.Exists(Path.Combine(sigsDiEPath, "db.zip")))
             {

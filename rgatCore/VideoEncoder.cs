@@ -162,8 +162,16 @@ namespace rgat
         public string GenerateVideoFilepath(PlottedGraph graph)
         {
             string storedir = GetCaptureDirectory();
-            string targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.binaryTarg.FilePath);
-            string vidname = $"rgat_{targetname}_{graph.pid}_{DateTime.Now.ToString("MMdd_HHMMss")}";
+            string targetname, vidname;
+            if (graph != null)
+            {
+                targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.binaryTarg.FilePath);
+                vidname = $"rgat_{targetname}_{graph.pid}_{DateTime.Now.ToString("MMdd_HHMMss")}";
+            }
+            else
+            {
+                vidname = $"rgat_nograph_{DateTime.Now.ToString("MMdd_HHMMss")}";
+            }
             string targetfile = Path.Combine(storedir, $"{vidname}.mp4");
             int attempt = 1;
             while (File.Exists(targetfile))

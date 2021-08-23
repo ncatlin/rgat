@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -70,12 +71,12 @@ namespace rgat
 
                 lock (_lock)
                 {
-                    _currentRepos.Add(repo.GithubPath);
+                    _currentRepos.Add(repo.FetchPath);
                 }
                 activeTaskAction(repo);
                 lock (_lock)
                 {
-                    _currentRepos.Remove(repo.GithubPath);
+                    _currentRepos.Remove(repo.FetchPath);
                     CompletedTaskCount += 1;
                 }
             }
@@ -92,13 +93,20 @@ namespace rgat
             client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", RGAT_CONSTANTS.RGAT_VERSION));
             try
             {
-                Task<HttpResponseMessage> request = client.GetAsync("https://api.github.com/repos/" + repo.GithubPath, _token);
+                string commitsPath = $"https://api.github.com/repos/{repo.OrgName}/{repo.RepoName}/commits/master";
+                
+                Task<HttpResponseMessage> request = client.GetAsync(commitsPath, _token);
                 request.Wait(_token);
                 if (request.Result.StatusCode == System.Net.HttpStatusCode.OK)
                 {
                     Task<string> content = request.Result.Content.ReadAsStringAsync();
                     content.Wait(_token);
-                    if (Newtonsoft.Json.Linq.JObject.Parse(content.Result).TryGetValue("updated_at", out Newtonsoft.Json.Linq.JToken updateTok))
+
+                    if (JObject.Parse(content.Result).TryGetValue("commit", out Newtonsoft.Json.Linq.JToken tok1) && 
+                        tok1.Type == JTokenType.Object &&
+                        ((JObject)tok1).TryGetValue("committer", out JToken tok2) && 
+                        tok2.Type == JTokenType.Object &&
+                        ((JObject)tok2).TryGetValue("date", out JToken updateTok))         
                     {
                         if (updateTok.Type == Newtonsoft.Json.Linq.JTokenType.Date)
                         {
@@ -109,13 +117,13 @@ namespace rgat
                             return;
                         }
                     }
-                    Logging.RecordError($"No valid 'updated_at' field in repo response from github while refreshing {repo.GithubPath}");
+                    Logging.RecordError($"No valid 'updated_at' field in repo response from github while refreshing {repo.FetchPath}");
                     repo.LastRefreshError = "Github Error";
                     GlobalConfig.UpdateSignatureSource(repo);
                     return;
                 }
                 repo.LastRefreshError = $"{request.Result.StatusCode}";
-                Logging.RecordError($"Error updating {repo.GithubPath} => {request.Result.StatusCode}:{request.Result.ReasonPhrase}");
+                Logging.RecordError($"Error updating {repo.FetchPath} => {request.Result.StatusCode}:{request.Result.ReasonPhrase}");
                 return;
             }
             catch (Exception e)
@@ -130,7 +138,7 @@ namespace rgat
                     repo.LastRefreshError = "See Logs";
                 }
                 GlobalConfig.UpdateSignatureSource(repo);
-                Logging.RecordError($"Exception updating {repo.GithubPath} => {e.Message}");
+                Logging.RecordError($"Exception updating {repo.FetchPath} => {e.Message}");
             }
         }
 
@@ -153,7 +161,9 @@ namespace rgat
                     return null;
                 }
 
-                string repoDirectory = Path.Combine(sigsdir, repo.RepoName);
+                string repoSpecific = repo.RepoName + repo.SubDir;
+                string repoDirectory = Path.Combine(sigsdir, repo.OrgName + "_" + MurmurHash.MurmurHash2.Hash(repoSpecific));
+
                 if (!new Uri(GlobalConfig.YARARulesDir).IsBaseOf(new Uri(repoDirectory)))
                 {
                     repo.LastDownloadError = "Bad Repo Name";
@@ -166,13 +176,12 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Error initing signature directory for repo {repo.GithubPath}: {e.Message}");
+                Logging.RecordError($"Error initing signature directory for repo {repo.FetchPath}: {e.Message}");
                 return null;
             }
-            return null;
         }
 
-        bool CleanDirectory(string repoDirectory)
+        bool PurgeDirectory(string repoDirectory)
         {
             Logging.RecordLogEvent($"Deleting existing contents of directory {repoDirectory}", filter: Logging.LogFilterType.TextDebug);
             try
@@ -188,6 +197,7 @@ namespace rgat
                     {
                         dir.Delete(true);
                     }
+                    Directory.Delete(repoDirectory);
                 }
             }
             catch (Exception e)
@@ -197,6 +207,7 @@ namespace rgat
             }
             return true;
         }
+
 
         void DownloadRepo(GlobalConfig.SignatureSource repo)
         {
@@ -221,7 +232,7 @@ namespace rgat
                     return;
                 }
 
-                Task<byte[]> repobytes = client.GetByteArrayAsync("https://api.github.com/repos/" + repo.GithubPath + "/zipball");
+                Task<byte[]> repobytes = client.GetByteArrayAsync($"https://api.github.com/repos/{repo.OrgName}/{repo.RepoName}/zipball");
                 repobytes.Wait(cancellationToken: _token);
                 Console.WriteLine($"Downloaded {repobytes.Result.Length} bytes of signaturedata");
                 string tempname = Path.GetTempFileName();
@@ -230,15 +241,42 @@ namespace rgat
                     fs.Write(repobytes.Result);
                 }
 
-                if (!CleanDirectory(repoDirectory))
+                if (!PurgeDirectory(repoDirectory))
                 {
                     repo.LastDownloadError = "Can't Delete Existing";
                     GlobalConfig.UpdateSignatureSource(repo);
                     return;
                 }
 
-                System.IO.Compression.ZipFile.ExtractToDirectory(tempname, repoDirectory, true);
+                string tempExtractDir = Path.Combine(Path.GetTempPath(), "repoDL_" + Path.GetFileNameWithoutExtension(Path.GetRandomFileName()));
+                System.IO.Compression.ZipFile.ExtractToDirectory(tempname, tempExtractDir, true);
                 File.Delete(tempname);
+
+                //should only be one
+                string exdir = Directory.GetDirectories(tempExtractDir)[0];
+
+                string fromDir;
+                if (repo.SubDir == "")
+                {
+                    Directory.Move(exdir, repoDirectory);
+                }
+                else
+                {
+                    string subDirPath = Path.Combine(exdir, repo.SubDir);
+                    if (Directory.Exists(subDirPath))
+                    {
+                        Directory.CreateDirectory(repoDirectory);
+                        string targDirPath = Path.Combine(repoDirectory, Path.GetFileName(subDirPath));
+                        Directory.CreateDirectory(repoDirectory);
+
+                        Directory.Move(subDirPath, targDirPath);
+
+                    }
+                    else
+                    {
+                        Logging.RecordError($"Downloaded repo did not contain the path '{subDirPath}'");
+                    }
+                }
 
                 repo.LastFetch = DateTime.Now;
                 repo.LastDownloadError = null;
@@ -256,8 +294,41 @@ namespace rgat
                     repo.LastDownloadError = "See Logs";
                 }
                 GlobalConfig.UpdateSignatureSource(repo);
-                Logging.RecordError($"Exception downloading {repo.GithubPath} => {e.Message}");
+                Logging.RecordError($"Exception downloading {repo.FetchPath} => {e.Message}");
             }
+        }
+
+
+        /// <summary>
+        /// Remove the associated signature download directory for this repo
+        /// Must be called before the removal of the repo metadata via DeleteSignatureSource
+        /// </summary>
+        /// <param name="repopath">Repo key</param>
+        public void PurgeRepoFiles(GlobalConfig.SignatureSource repo)
+        {
+            string repoDirectory = null;
+            if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.YARA)
+            {
+                repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.YARARulesDir);
+            }
+            else if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.DIE)
+            {
+                repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.DiESigsPath);
+            }
+            else
+            {
+                Logging.RecordError("unknown signature type " + repo.SignatureType + " in purgeRepofiles for path " + repo.FetchPath);
+                return;
+            }
+            try
+            {
+                PurgeDirectory(repoDirectory);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Failed to purge signatures folder {repoDirectory} for path {repopath}: {e.Message}");
+            }
+
         }
     }
 

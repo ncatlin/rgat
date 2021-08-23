@@ -295,7 +295,7 @@ namespace rgat.Widgets
                         {
 
                             ImGuiTableFlags flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg;
-                            if (ImGui.BeginTable("#SettsDownloadSigRules", 5, flags, ImGui.GetContentRegionAvail()))//))
+                            if (ImGui.BeginTable("#SettsDownloadSigRules", 5, flags, ImGui.GetContentRegionAvail() - new Vector2(0, 25)))
                             {
 
                                 ImGui.TableSetupColumn("###SigChk", ImGuiTableColumnFlags.WidthFixed, 26);
@@ -308,7 +308,7 @@ namespace rgat.Widgets
                                 ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
 
                                 GlobalConfig.SignatureSource[] sources = GlobalConfig.GetSignatureSources();
-                                bool[] selectedStates = sources.Select(source => _selectedRepos.Contains(source.GithubPath)).ToArray();
+                                bool[] selectedStates = sources.Select(source => _selectedRepos.Contains(source.FetchPath)).ToArray();
                                 bool allSigsSelected = !Array.Exists<bool>(selectedStates, x => x == false);
 
                                 for (int column = 0; column < 5; column++)
@@ -322,7 +322,7 @@ namespace rgat.Widgets
                                         if (ImGui.Checkbox("##checkall", ref allSigsSelected))
                                         {
                                             if (allSigsSelected)
-                                                _selectedRepos = sources.Select(x => x.GithubPath).ToList();
+                                                _selectedRepos = sources.Select(x => x.FetchPath).ToList();
                                             else
                                                 _selectedRepos.Clear();
                                             selectedStates = Enumerable.Repeat(allSigsSelected, selectedStates.Length).ToArray();
@@ -346,21 +346,21 @@ namespace rgat.Widgets
                                     if (ImGui.Checkbox("##SigChkSrc" + seti, ref isSelected))
                                     {
                                         if (isSelected)
-                                            _selectedRepos.Add(sigset.GithubPath);
+                                            _selectedRepos.Add(sigset.FetchPath);
                                         else
-                                            _selectedRepos.RemoveAll(x => x == sigset.GithubPath);
+                                            _selectedRepos.RemoveAll(x => x == sigset.FetchPath);
                                         selectedStates[seti] = isSelected;
                                     }
                                     ImGui.TableNextColumn();
-                                    ImGui.Text(sigset.RepoName);
-                                    SmallWidgets.MouseoverText(sigset.GithubPath);
+                                    ImGui.Text($"{sigset.OrgName}/{sigset.RepoName}{(sigset.SubDir.Any() ? ("/" + sigset.SubDir) : "")}");
+                                    SmallWidgets.MouseoverText(sigset.FetchPath);
                                     ImGui.TableNextColumn();
                                     ImguiUtils.DrawHorizCenteredText(sigset.RuleCount == -1 ? "-" : sigset.RuleCount.ToString());
                                     ImGui.TableNextColumn();
                                     bool newAvailable = sigset.LastFetch < sigset.LastUpdate;
 
 
-                                    if (_githubSigDownloader.Running && _githubSigDownloader.TaskType == "Refresh" && activeRepoTasks.Contains(sigset.GithubPath))
+                                    if (_githubSigDownloader.Running && _githubSigDownloader.TaskType == "Refresh" && activeRepoTasks.Contains(sigset.FetchPath))
                                     {
                                         ImguiUtils.DrawHorizCenteredText("Updating");
                                     }
@@ -422,7 +422,9 @@ namespace rgat.Widgets
                                     }
                                     else
                                     {
-                                        if (_githubSigDownloader.Running && _githubSigDownloader.TaskType == "Download" && activeRepoTasks.Contains(sigset.GithubPath))
+                                        if (_githubSigDownloader.Running &&
+                                            _githubSigDownloader.TaskType == "Download" &&
+                                            activeRepoTasks.Contains(sigset.FetchPath))
                                         {
                                             ImguiUtils.DrawHorizCenteredText("Downloading");
                                         }
@@ -440,6 +442,20 @@ namespace rgat.Widgets
 
 
                                 ImGui.EndTable();
+                                Vector2 btnSizes = new Vector2(150, 24);
+                                if (ImGui.Button("Add Signature Source", btnSizes))
+                                {
+                                    _repoChangeState = _repoChangeState == eRepoChangeState.Add ? eRepoChangeState.Inactive : eRepoChangeState.Add;
+                                }
+                                ImGui.SameLine();
+                                bool someSelected = _selectedRepos.Any();
+                                if (someSelected) ImGui.PushStyleColor(ImGuiCol.Button, 0xff000040);
+                                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - btnSizes.X);
+                                if (SmallWidgets.DisableableButton("Delete Selected", enabled: someSelected, size: btnSizes))
+                                {
+                                    _repoChangeState = _repoChangeState == eRepoChangeState.Delete ? eRepoChangeState.Inactive : eRepoChangeState.Delete;
+                                }
+                                if (someSelected) ImGui.PopStyleColor();
                             }
                             ImGui.EndChild();
                         }
@@ -562,7 +578,184 @@ namespace rgat.Widgets
                 ImGui.EndChild();
             }
 
+            bool popupOpen = false;
+            switch (_repoChangeState)
+            {
+                case eRepoChangeState.Add:
+                    ImGui.OpenPopup("Add Signature Source");
+                    popupOpen = true;
+                    break;
+                case eRepoChangeState.Delete:
+                    ImGui.OpenPopup("SigRepoDeleteConfirm");
+                    popupOpen = true;
+                    break;
+                default:
+                    break;
+            }
+
+
+            if (ImGui.BeginPopupModal("Add YARA Rule Source", ref popupOpen))
+            {
+                ImGui.Text("Add a new Github repo containing YARA rules");
+                ImGui.Text("This can be any Github repository containing rules in the master branch");
+                ImGui.Indent(15);
+                ImGui.Text("Specify a repo, eg: https://github.com/Neo23x0/signature-base");
+                ImGui.Text("Or a repo directory, eg: https://github.com/h3x2b/yara-rules/tree/master/malware");
+                ImGui.Text("You can also add a comma seperated list of sources");
+                ImGui.Indent(-15);
+
+                if (ImGui.BeginChild("#RepoAddControls", new Vector2(500, 200), true))
+                {
+                    if (ImGui.InputTextMultiline("##RepoPathinput", ref currentRepoTextEntry, 1024 * 1024, ImGui.GetContentRegionAvail() - new Vector2(0, 28)))
+                    {
+                        _validInputRepos.Clear();
+                        string joinedTextEntry = currentRepoTextEntry.Replace(" ", "").Replace("\r", "").Replace("\n", "");
+                        string[] repoSplit = joinedTextEntry.Split(',');
+                        foreach (string currentRepoPath in repoSplit)
+                        {
+                            bool validRepo = false;
+                            string currentOrg = "";
+                            string currentRepo = "";
+                            string currentDirectory = "";
+                            string[] slashSplit = currentRepoPath.ToLower().Split('/');
+                            if (slashSplit.Length > 0)
+                            {
+                                int slashIndex = 0;
+                                if (slashSplit[slashIndex] == "http:" || slashSplit[slashIndex] == "https:") slashIndex += 1;
+                                while (slashIndex < slashSplit.Length && slashSplit[slashIndex].Length == 0) slashIndex += 1;
+                                if (slashIndex < slashSplit.Length && slashSplit[slashIndex] == "github.com") slashIndex += 1;
+                                if (slashIndex < slashSplit.Length && slashSplit[slashIndex].Length > 0)
+                                {
+                                    currentOrg = slashSplit[slashIndex];
+                                    slashIndex += 1;
+                                }
+                                if (slashIndex < slashSplit.Length && slashSplit[slashIndex].Length > 0)
+                                {
+                                    validRepo = true;
+                                    currentRepo = slashSplit[slashIndex];
+                                    slashIndex += 1;
+                                }
+                                if (slashIndex < slashSplit.Length && slashSplit[slashIndex] == "tree")
+                                {
+                                    validRepo = false;
+                                    slashIndex += 1;
+                                    if (slashIndex < slashSplit.Length && slashSplit[slashIndex] == "master")
+                                    {
+                                        slashIndex += 1;
+                                        if (slashIndex < slashSplit.Length && slashSplit[slashIndex].Length > 0)
+                                        {
+                                            validRepo = true;
+                                            currentDirectory = string.Join("/", slashSplit.Skip(slashIndex).Take(slashSplit.Length - slashIndex).ToArray());
+                                        }
+                                    }
+                                }
+                            }
+
+                            string githubPath = GlobalConfig.RepoComponentsToPath(currentOrg, currentRepo, currentDirectory);
+                            validRepo = validRepo && !GlobalConfig.RepoExists(githubPath);
+                            if (validRepo)
+                            {
+                                GlobalConfig.SignatureSource src = new GlobalConfig.SignatureSource()
+                                {
+                                    OrgName = currentOrg,
+                                    RepoName = currentRepo,
+                                    SubDir = currentDirectory,
+                                    FetchPath = githubPath,
+                                    LastCheck = DateTime.MinValue,
+                                    LastUpdate = DateTime.MinValue,
+                                    LastFetch = DateTime.MinValue,
+                                    SignatureType = eSignatureType.YARA
+                                };
+                                _validInputRepos.Add(src);
+                            }
+                        }
+
+                    }
+
+                    if (SmallWidgets.DisableableButton($"Add {_validInputRepos.Count} new valid sources", enabled: _validInputRepos.Count > 0))
+                    {
+                        AddInputSources(_validInputRepos);
+                        _validInputRepos.Clear();
+                        popupOpen = false;
+                    }
+                    if (ImGui.IsItemHovered() && _validInputRepos.Any())
+                    {
+                        int printCount = Math.Min(_validInputRepos.Count, 10);
+                        ImGui.BeginTooltip();
+                        for (var i = 0; i < printCount; i++)
+                        {
+                            ImGui.Text(_validInputRepos[i].FetchPath);
+                        }
+                        if (printCount < _validInputRepos.Count) ImGui.Text($"...And {(_validInputRepos.Count - printCount)} more sources");
+                        ImGui.EndTooltip();
+                    }
+                    ImGui.EndChild();
+                }
+                ImGui.EndPopup();
+            }
+
+            if (ImGui.BeginPopupModal("SigRepoDeleteConfirm", ref popupOpen, flags: ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                if (ImGui.BeginChild("#RepoDeleteConfirmFrame", new Vector2(350, 105)))
+                {
+                    ImGui.Text($"Delete {_selectedRepos.Count} signature source{(_selectedRepos.Count == 1 ? "" : "s")}?");
+                    ImGui.Checkbox("Also delete downloaded signatures", ref alsoEraseFiles);
+                    ImGui.SetCursorPos(ImGui.GetCursorPos() + ImGui.GetContentRegionAvail() - new Vector2(50, 25));
+                    if (ImGui.Button("Confirm"))
+                    {
+                        DeleteSources(_selectedRepos, alsoEraseFiles);
+                        _selectedRepos.Clear();
+                        popupOpen = false;
+                    }
+                    ImGui.EndChild();
+                }
+                ImGui.EndPopup();
+            }
+            if (!popupOpen)
+            {
+                ImGui.CloseCurrentPopup();
+                _repoChangeState = eRepoChangeState.Inactive;
+            }
         }
+
+        bool alsoEraseFiles = false;
+        string currentRepoTextEntry = "";
+        List<GlobalConfig.SignatureSource> _validInputRepos = new List<GlobalConfig.SignatureSource>();
+        enum eRepoChangeState { Inactive, Delete, Add };
+        eRepoChangeState _repoChangeState = eRepoChangeState.Inactive;
+
+        void DeleteSources(List<string> sources, bool eraseFiles)
+        {
+            foreach (string path in sources)
+            {
+                GlobalConfig.SignatureSource? source = GlobalConfig.GetSignatureRepo(path);
+                if (source.HasValue)
+                {
+                    if (source!.Value.SignatureType == eSignatureType.DIE)
+                    {
+                        Logging.RecordError("The DetectItEasy repo cannot be deleted from the UI because there is no way of re-adding it from the UI");
+                    }
+                    else
+                    {
+                        _githubSigDownloader.PurgeRepoFiles(source.Value);
+                        GlobalConfig.DeleteSignatureSource(path);
+                    }
+                }
+            }
+            if (sources.Any()) GlobalConfig.SaveSignatureSources();
+        }
+
+        void AddInputSources(List<GlobalConfig.SignatureSource> repoPaths)
+        {
+            for (var i = 0; i < repoPaths.Count; i++)
+            {
+                GlobalConfig.SignatureSource source = repoPaths[i];
+                GlobalConfig.AddSignatureSource(source);
+            }
+            if (repoPaths.Any()) GlobalConfig.SaveSignatureSources();
+        }
+
+
 
         CancellationTokenSource _cancelTokens = null;
         GithubSignatureManager _githubSigDownloader = new GithubSignatureManager();
@@ -572,7 +765,7 @@ namespace rgat.Widgets
             if (_githubSigDownloader.Running) return;
             _cancelTokens = new CancellationTokenSource();
             var allSources = GlobalConfig.GetSignatureSources();
-            var repos = allSources.Where(x => _selectedRepos.Contains(x.GithubPath)).ToList();
+            var repos = allSources.Where(x => _selectedRepos.Contains(x.FetchPath)).ToList();
             _githubSigDownloader.StartRefresh(repos, 3, _cancelTokens.Token);
         }
 
@@ -581,7 +774,7 @@ namespace rgat.Widgets
             if (_githubSigDownloader.Running) return;
             _cancelTokens = new CancellationTokenSource();
             var allSources = GlobalConfig.GetSignatureSources();
-            var repos = allSources.Where(x => _selectedRepos.Contains(x.GithubPath)).ToList();
+            var repos = allSources.Where(x => _selectedRepos.Contains(x.FetchPath)).ToList();
             _githubSigDownloader.StartDownloads(repos, 3, _cancelTokens.Token);
         }
 
