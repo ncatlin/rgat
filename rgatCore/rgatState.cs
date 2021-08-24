@@ -16,7 +16,7 @@ namespace rgat
     public class rgatState
     {
         public static BinaryTargets targets = new BinaryTargets();
-        public BinaryTarget ActiveTarget;// { get; private set; } = null;
+        public BinaryTarget ActiveTarget;
         public TraceRecord ActiveTrace;
         public PlottedGraph ActiveGraph { get; private set; }
         public Veldrid.GraphicsDevice _GraphicsDevice;

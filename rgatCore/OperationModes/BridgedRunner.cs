@@ -592,12 +592,16 @@ namespace rgat.OperationModes
         {
 
             IPAddress localBinding = GetLocalAddress();
-            if (localBinding == null) return;
+            if (localBinding == null)
+            {
+                Logging.RecordError($"Failed to get local address");
+                return;
+            }
 
-            Console.WriteLine($"Initialising Connection to {GlobalConfig.StartOptions.ConnectModeAddress}");
+            Logging.RecordLogEvent($"Initialising Connection to {GlobalConfig.StartOptions.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
             if (!GetRemoteAddress(GlobalConfig.StartOptions.ConnectModeAddress, out string address, out int port))
             {
-                Console.WriteLine($"Failed to parse address/port from param {GlobalConfig.StartOptions.ConnectModeAddress}");
+                Logging.RecordError($"Failed to parse address/port from param {GlobalConfig.StartOptions.ConnectModeAddress}");
                 return;
             }
 

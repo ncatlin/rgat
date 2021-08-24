@@ -91,8 +91,8 @@ namespace rgat
                         {
                             ShowHexPreviewTooltip(activeTarget);
                         }
-                        ImGui.PopFont();
                     }
+                    ImGui.PopFont();
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
@@ -108,9 +108,8 @@ namespace rgat
                             _tooltipScrollingActive = true;
                             ShowHexPreviewTooltip(activeTarget);
                         }
-                        ImGui.PopFont();
-
                     }
+                    ImGui.PopFont();
 
 
                     ImGui.TableNextRow();
@@ -335,10 +334,12 @@ namespace rgat
 
                 string pintoolpath = _rgatState.ActiveTarget.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
 
+
                 bool runnable = _activeTargetRunnable;
 
                 ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourImGui(ImGuiCol.Button) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
-                if (ImGui.Button("Start Trace") && runnable)
+                ImGui.AlignTextToFramePadding();
+                if (ImGui.Button("Start Trace "+ ImGuiController.FA_PLAY_CIRCLE) && runnable)
                 {
                     _OldTraceCount = rgatState.TotalTraceCount;
                     if (_rgatState.ActiveTarget.RemoteBinary)

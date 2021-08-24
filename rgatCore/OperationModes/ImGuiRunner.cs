@@ -250,17 +250,18 @@ namespace rgat.OperationModes
 
             if (_rgatUI.PendingScreenshot != VideoEncoder.CaptureContent.Invalid)
             {
+                string savePath = null;
                 try
                 {
                     _rgatUI.GetFrameDimensions(_rgatUI.PendingScreenshot, out int startX, out int startY, out int width, out int height);
                     System.Drawing.Bitmap screenBmp = MediaDrawing.CreateRecordingFrame(fbuf, startX, startY, width, height);
-                    rgatState.VideoRecorder.TakeScreenshot(_rgatState.ActiveGraph, screenBmp);
+                    savePath = rgatState.VideoRecorder.SaveImage(_rgatState.ActiveGraph, screenBmp);
                 }
                 catch (Exception e)
                 {
                     Logging.RecordLogEvent($"Unhandled exception while taking screenshot {_rgatUI.PendingScreenshot}: {e.Message}");
                 }
-                _rgatUI.PendingScreenshot = VideoEncoder.CaptureContent.Invalid;
+                _rgatUI.NotifyScreenshotComplete(savePath);
             }
         }
 

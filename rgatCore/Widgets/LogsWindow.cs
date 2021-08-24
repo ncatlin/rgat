@@ -47,53 +47,39 @@ namespace rgat
 
                 string label = $"{msgs.Length} log entries displayed from ({activeCount}/{_LogFilters.Length}) sources";
 
-                ImGui.SetNextItemOpen(true);
-                bool isOpen = ImGui.TreeNode("##FiltersTree", label);
-                if (isOpen)
+
+                Vector2 boxSize = new Vector2(75, 40);
+                Vector2 marginSize = new Vector2(70, 40);
+
+                ImGuiSelectableFlags flags = ImGuiSelectableFlags.DontClosePopups;
+                uint tableHdrBG = 0xff333333;
+
+                var textFilterCounts = Logging.GetTextFilterCounts();
+                List<Tuple<string, LogFilterType>> filters = new List<Tuple<string, LogFilterType>>(){
+                        new Tuple<string, LogFilterType>("Debug", LogFilterType.TextDebug),
+                        new Tuple<string, LogFilterType>("Info", LogFilterType.TextInfo),
+                        new Tuple<string, LogFilterType>("Alert", LogFilterType.TextAlert),
+                        new Tuple<string, LogFilterType>("Error", LogFilterType.TextError)
+                    };
+
+                if (ImGui.BeginTable("LogFilterTable", filters.Count+1, ImGuiTableFlags.Borders, new Vector2(boxSize.X * (filters.Count+1), 41)))
                 {
-                    Vector2 boxSize = new Vector2(75, 40);
-                    Vector2 marginSize = new Vector2(70, 40);
-
-                    ImGuiSelectableFlags flags = ImGuiSelectableFlags.DontClosePopups;
-                    uint tableHdrBG = 0xff333333;
-
-
-                    var textFilterCounts = Logging.GetTextFilterCounts();
-
-                    if (ImGui.BeginTable("LogFilterTable", 7, ImGuiTableFlags.Borders, new Vector2(boxSize.X * 7, 41)))
+                    
+                    ImGui.TableNextRow();
+                    ImGui.TableSetColumnIndex(0);
+                    ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
+                    if (ImGui.Selectable("Message", false, flags, marginSize))
                     {
-                        ImGui.TableNextRow();
-
-                        ImGui.TableSetColumnIndex(0);
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
-                        if (ImGui.Selectable("Message", false, flags, marginSize))
-                        {
-                            rowLastSelected[0] = !rowLastSelected[0];
-                            _LogFilters[(int)LogFilterType.TextDebug] = rowLastSelected[0];
-                            _LogFilters[(int)LogFilterType.TextInfo] = rowLastSelected[0];
-                            _LogFilters[(int)LogFilterType.TextAlert] = rowLastSelected[0];
-                            _LogFilters[(int)LogFilterType.TextError] = rowLastSelected[0];
-                        }
-
-
-                        ImGui.TableNextColumn();
-                        ImGui.Selectable($"Debug ({textFilterCounts[LogFilterType.TextDebug]})",
-                            ref _LogFilters[(int)LogFilterType.TextDebug], flags, boxSize);
-
-                        ImGui.TableNextColumn();
-                        ImGui.Selectable($"Info ({textFilterCounts[LogFilterType.TextInfo]})",
-                            ref _LogFilters[(int)LogFilterType.TextInfo], flags, boxSize);
-
-                        ImGui.TableNextColumn();
-                        ImGui.Selectable($"Alert ({textFilterCounts[LogFilterType.TextAlert]})",
-                            ref _LogFilters[(int)LogFilterType.TextAlert], flags, boxSize);
-
-                        ImGui.TableNextColumn();
-                        ImGui.Selectable($"Error ({textFilterCounts[LogFilterType.TextError]})",
-                            ref _LogFilters[(int)LogFilterType.TextError], flags, boxSize);
-
-                        ImGui.EndTable();
+                        rowLastSelected[0] = !rowLastSelected[0];
+                        filters.ForEach((filter) => { _LogFilters[(int)filter.Item2] = rowLastSelected[0]; });
                     }
+                    foreach(var filter in filters)
+                    {
+                        ImGui.TableNextColumn();
+                        ImGui.Selectable($"{filter.Item1} ({textFilterCounts[filter.Item2]})", ref _LogFilters[(int)filter.Item2], flags, boxSize);
+                    }
+                    ImGui.EndTable();
+
 
                     if (ImGui.BeginPopupContextItem("FlterTableRightCtx", ImGuiPopupFlags.MouseButtonRight))
                     {
@@ -107,15 +93,15 @@ namespace rgat
                         }
                         ImGui.EndPopup();
                     }
-
-
-                    ImGui.BeginGroup();
+                    ImGui.SameLine();
+                    
+                    ImGui.BeginGroup(); //filter text box
                     {
                         ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
                         ImGui.Indent(8);
                         ImGui.Text("Log Text Filter");
                         ImGui.SameLine();
-                        ImGui.SetNextItemWidth(280);
+                        ImGui.SetNextItemWidth(Math.Min(ImGui.GetContentRegionAvail().X - 50, 350));
                         ImGui.InputText("##IT1", textFilterValue, (uint)textFilterValue.Length);
 
                         ImGui.SameLine();
@@ -123,17 +109,16 @@ namespace rgat
 
                         ImGui.EndGroup();
                     }
-
-
-                    ImGui.TreePop();
                 }
 
                 int filterLen = Array.FindIndex(textFilterValue, x => x == '\0');
                 string textFilterString = Encoding.ASCII.GetString(textFilterValue, 0, filterLen);
 
-                ImGuiTableFlags tableFlags = ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable |
-                    ImGuiTableFlags.Reorderable | ImGuiTableFlags.ScrollY | ImGuiTableFlags.ScrollX;
-                //this is causing issues with the last column
+                ImGuiTableFlags tableFlags = 
+                    ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | 
+                    ImGuiTableFlags.Resizable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.ScrollY | 
+                    ImGuiTableFlags.ScrollX;
+                //this is causing issues with the last column. using 4 columns makes it a bit better
                 tableFlags |= ImGuiTableFlags.Sortable;
                 tableFlags |= ImGuiTableFlags.SortMulti;
 
@@ -169,7 +154,6 @@ namespace rgat
                                     msgString = text_evt._text;
                                     break;
                                 }
-
                             case eLogFilterBaseType.TimeLine:
                                 {
                                     Logging.TIMELINE_EVENT tl_evt = (Logging.TIMELINE_EVENT)msg;
@@ -181,15 +165,13 @@ namespace rgat
                                 sourceString = "";
                                 msgString = "Other event type " + msg.LogType.ToString();
                                 break;
-
                         }
-
-
 
                         if (filterLen > 0)
                         {
-                            if (!msgString.Contains(textFilterString) &&
-                                !sourceString.Contains(textFilterString) &&
+                            string lowerFilter = textFilterString.ToLowerInvariant();
+                            if (!msgString.ToLowerInvariant().Contains(textFilterString) &&  
+                                !sourceString.ToLowerInvariant().Contains(textFilterString) &&
                                 !timeString.Contains(textFilterString))
                                 continue;
                         }

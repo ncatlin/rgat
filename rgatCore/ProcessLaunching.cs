@@ -1,6 +1,7 @@
 ﻿using rgat.Threads;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 
 namespace rgat
@@ -63,6 +64,20 @@ namespace rgat
     {
         public static System.Diagnostics.Process StartLocalTrace(string pintool, string targetBinary, long testID = -1)
         {
+
+
+            if (!File.Exists(pintool))
+            {
+                if (pintool == null)
+                {
+                    Logging.RecordError($"Pintool path was not set");
+                }
+                else
+                {
+                    Logging.RecordError($"Pintool {pintool} path was not found");
+                }
+            }
+
             string runargs = $"-t \"{pintool}\" ";
             if (testID > -1)
                 runargs += $"-T {testID} ";

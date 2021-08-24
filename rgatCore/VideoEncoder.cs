@@ -187,7 +187,13 @@ namespace rgat
             return targetfile;
         }
 
-        public void TakeScreenshot(PlottedGraph graph, Bitmap bmp)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="graph"></param>
+        /// <param name="bmp"></param>
+        /// <returns></returns>
+        public string SaveImage(PlottedGraph graph, Bitmap bmp)
         {
             if (GlobalConfig.ImageCapture_Format == null || GlobalConfig.ImageCapture_Format.Length < 2)
                 GlobalConfig.AddUpdateAppSettings("ImageCapture_Format", "PNG");
@@ -217,9 +223,8 @@ namespace rgat
                             format = ImageFormat.Gif;
                             break;
                         default:
-                            Logging.RecordLogEvent("Unhandled image format: " + GlobalConfig.ImageCapture_Format);
-                            return;
-                            break;
+                            Logging.RecordError("Unhandled image format: " + GlobalConfig.ImageCapture_Format);
+                            return "bad format";
                     }
                 }
             }
@@ -254,6 +259,7 @@ namespace rgat
             {
                 Logging.RecordLogEvent($"Error saving image {targetfile} as format {format}: {e.Message}");
             }
+            return targetfile;
         }
 
 

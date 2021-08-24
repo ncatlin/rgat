@@ -782,7 +782,37 @@ namespace rgat.Widgets
         void CreateOptionsPane_Text()
         {
 
-            ImGui.Text("todo");
+            ImGuiIOPtr io = ImGui.GetIO();
+            ImFontAtlasPtr atlas = io.Fonts;
+
+            ImGui.ShowFontSelector("fs");
+
+            _controller.PushUnicodeFont();
+
+            int ct = 0;
+            string s = "";
+            for (var i = 0xe000; i < 0xffff; i += 1)
+            {
+                if (_controller.GlyphExists((ushort)(i)))
+                {
+                    ct += 1;
+                    s += $"{i:X}:{char.ConvertFromUtf32(i)},";
+                }
+
+                if (ct % 16 == 0)
+                {
+                    ImGui.Text(s);
+                    s = "";
+                    ct += 1;
+                }
+            }
+            ImGui.PopFont();
+
+            Vector4 tint_col = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+            Vector4 border_col = new Vector4(1.0f, 1.0f, 1.0f, 0.5f);
+            ImGui.Image(atlas.TexID, new Vector2((float)atlas.TexWidth, (float)atlas.TexHeight), new Vector2(0.0f, 0.0f), new Vector2(1.0f, 1.0f), tint_col, border_col);
+
+
         }
 
         string _errorBanner = "";

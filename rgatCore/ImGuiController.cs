@@ -63,9 +63,14 @@ namespace ImGuiNET
         public bool ShowDemoWindow = false;
         public GraphicsDevice graphicsDevice => _gd;
 
-        /// <summary>
-        /// Constructs a new ImGuiController.
-        /// </summary>
+        public static readonly char FA_ICON_NETWORK = '\uf6ff';
+        public static readonly char FA_ICON_LOCALCODE = '\uf5fc';
+        public static readonly char FA_ICON_SAMPLE = '\ue05a';
+        public static readonly char FA_ICON_LOADFILE = '\uf56e';
+        public static readonly char FA_PLAY_CIRCLE = '\uf144';
+        public static readonly char FA_VIDEO_CAMERA = '\uf03d';
+        public static readonly char FA_STILL_CAMERA = '\uf030';
+
         public unsafe ImGuiController(GraphicsDevice gd, OutputDescription outputDescription, int width, int height)
         {
             _gd = gd;
@@ -88,8 +93,11 @@ namespace ImGuiNET
             LoadImages();
             SetPerFrameImGuiData(1f / 60f);
 
+            //should be fixed now
+
             Debug.Assert(_unicodeFont.GetCharAdvance('a') == _unicodeFont.FindGlyph('a').AdvanceX,
-"The ImGui.NET used is not handling bitfields properly, preventing fonts from rendering correctly in the graph. https://github.com/mellinoe/ImGui.NET/issues/206");
+                    "The ImGui.NET used is not handling bitfields properly, preventing fonts " +
+                    "from rendering correctly in the graph. https://github.com/mellinoe/ImGui.NET/issues/206");
 
 
             ImGui.NewFrame();
@@ -105,6 +113,7 @@ namespace ImGuiNET
             //TODO - make these options
             //TODO - see if they can be loaded on the side after start
             var fonts = ImGui.GetIO().Fonts;
+            //for (ushort i = 0; i < 0xff; i++) builder.AddChar(i);
             builder.AddRanges(fonts.GetGlyphRangesDefault());
             //builder.AddRanges(fonts.GetGlyphRangesChineseSimplifiedCommon());
             //builder.AddRanges(fonts.GetGlyphRangesChineseFull());  //crash - needs higher version of veldrid (update: updated!)
@@ -115,7 +124,10 @@ namespace ImGuiNET
             //builder.AddRanges(fonts.GetGlyphRangesKorean());
             //builder.AddRanges(fonts.GetGlyphRangesThai());
             //builder.AddRanges(fonts.GetGlyphRangesVietnamese());
-
+            //builder.AddChar(0xe0dd);
+            //builder.AddChar(0xe0d3);
+            //for (ushort i = 0xe000; i < 0xe0fe; i++)
+            //    builder.AddChar((ushort)i);
             ImVector ranges;
             builder.BuildRanges(out ranges);
 
@@ -128,18 +140,82 @@ namespace ImGuiNET
                 return;
             }
 
-            _unicodeFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 17, null, ranges.Data);
+            ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+            fontConfig.MergeMode = true;
+            fontConfig.FontDataOwnedByAtlas = true;
+            fontConfig.OversampleH = 2;
+            fontConfig.PixelSnapH = true;
+            fontConfig.OversampleV = 1;
+            fontConfig.GlyphOffset = new Vector2(0, 2);
+            fontConfig.GlyphMaxAdvanceX = float.MaxValue;
+            fontConfig.RasterizerMultiply = 1f;
+
             _splashButtonFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 40, null, ranges.Data);
+
+            _unicodeFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 17, null, ranges.Data);
+            //ImGui.GetIO().Fonts. = _unicodeFont;
+            unsafe
+            {
+                ImGui.GetIO().NativePtr->FontDefault = _unicodeFont;
+            }
+            string faFreeSolid = @"C:\Users\nia\Desktop\rgatstuff\fontawesome-free-5.15.4-desktop\otfs\Font Awesome 5 Free-Solid-900.otf";
+            string faFreeLight = @"C:\Users\nia\Desktop\rgatstuff\fontawesome-free-5.15.4-desktop\otfs\Font Awesome 5 Free-Regular-400.otf";
+
+            System.Runtime.InteropServices.GCHandle rangeHandle = System.Runtime.InteropServices.GCHandle.Alloc(new ushort[]
+             { 0xe000,0xffff,0}, System.Runtime.InteropServices.GCHandleType.Pinned);
+
+
+            try
+            {
+                _fafont = ImGui.GetIO().Fonts.AddFontFromFileTTF(faFreeSolid, 17, fontConfig, rangeHandle.AddrOfPinnedObject());
+                _fafont2 = ImGui.GetIO().Fonts.AddFontFromFileTTF(faFreeLight, 17, fontConfig, rangeHandle.AddrOfPinnedObject());
+                fontConfig.MergeMode = false;
+                _iconsLargeFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(faFreeSolid, LargeIconSize.X, fontConfig, rangeHandle.AddrOfPinnedObject());
+
+            }
+            finally
+            {
+                /*
+                fontConfig.Destroy();
+                if (rangeHandle.IsAllocated)
+                {
+                    rangeHandle.Free();
+                }
+                */
+            }
+
+            builder.Clear();
+            builder.AddChar('r');
+            builder.AddChar('g');
+            builder.AddChar('a');
+            builder.AddChar('t');
+            ImVector rangesTitle;
+            builder.BuildRanges(out rangesTitle);
+            _titleFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 70, null, rangesTitle.Data);
+
             _unicodeFontLoaded = true;
         }
 
+        public readonly Vector2 LargeIconSize = new Vector2(65, 65);
+        ImFontPtr _fafont;
+        ImFontPtr _fafont2;
+        ImFontPtr _iconsLargeFont;
 
-        public ImFontPtr SplashButtonFont
+        public unsafe bool GlyphExists(ushort code)
         {
-            get
-            {
-                return _splashButtonFont.Value;
-            }
+            ImFontGlyphPtr result = _unicodeFont.FindGlyphNoFallback(code);
+            return (ulong)result.NativePtr != 0;
+        }
+
+        public ImFontPtr SplashLargeFont {
+            get { return _splashButtonFont.Value; }
+            private set { _splashButtonFont = value; }
+        }
+
+        ImFontPtr? _titleFont;
+        public ImFontPtr rgatLargeFont {
+            get { return _titleFont.Value; }
+            private set { _titleFont = value; }
         }
 
         Dictionary<string, Texture> _imageTextures = new Dictionary<string, Texture>();
@@ -236,14 +312,17 @@ namespace ImGuiNET
         {
             ImGui.PushFont(_unicodeFont);
         }
-
+        public void PushBigIconFont()
+        {
+            ImGui.PushFont(_iconsLargeFont);
+        }
 
         public void CreateDeviceResources(GraphicsDevice gd, OutputDescription outputDescription)
         {
             _gd = gd;
             ResourceFactory factory = gd.ResourceFactory;
             //can fail if we run out of graphics memory
-            _vertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 10000, BufferUsage.VertexBuffer | BufferUsage.Dynamic, name: "ImGui.NET Vertex Buffer");
+            _vertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 200000, BufferUsage.VertexBuffer | BufferUsage.Dynamic, name: "ImGui.NET Vertex Buffer");
             _indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 2000, BufferUsage.IndexBuffer | BufferUsage.Dynamic, name: "ImGui.NET Index Buffer");
             RecreateFontDeviceTexture(gd);
             _projMatrixBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 64, BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "ImGui.NET Projection Buffer");
@@ -469,23 +548,14 @@ namespace ImGuiNET
             // Store our identifier
             io.Fonts.SetTexID(_fontAtlasID);
 
-            TextureDescription td = TextureDescription.Texture2D(
-                (uint)width,
-                (uint)height,
-                1,
-                1,
-                PixelFormat.R8_G8_B8_A8_UNorm,
-                TextureUsage.Sampled);
+            TextureDescription td = TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled);
             _fontTexture = gd.ResourceFactory.CreateTexture(td);
             _fontTexture.Name = "ImGui.NET Font Texture";
             //Crashes on veldrid versions before 2019 with 4096**2 textures
             gd.UpdateTexture(
-                _fontTexture,
-                pixels,
-                (uint)(bytesPerPixel * width * height),
-                0, 0, 0,
-                (uint)width, (uint)height, 1,
-                0, 0);
+                texture: _fontTexture, source: pixels, sizeInBytes: (uint)(bytesPerPixel * width * height),
+                x: 0, y: 0, z: 0, width: (uint)width,
+                height: (uint)height, depth: 1, mipLevel: 0, arrayLayer: 0);
             _fontTextureView = gd.ResourceFactory.CreateTextureView(_fontTexture);
 
             io.Fonts.ClearTexData();

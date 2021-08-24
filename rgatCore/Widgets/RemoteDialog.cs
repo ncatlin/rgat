@@ -410,8 +410,8 @@ namespace rgat.Widgets
                 {
                     ImGui.BeginTooltip();
                     ImGui.Text("rgat supports two methods of connecting rgat instances for different network setups");
-                    string listenTip = "Listen Mode: This GUI instance of rgat will listen for connections from the headless instance";
-                    string connectTip = "Connect Mode: This GUI instance of rgat will connect out to the headless instance.";
+                    string listenTip = "Listen Mode: This GUI instance of rgat will listen for connections from another computer running rgat in connect mode";
+                    string connectTip = "Connect Mode: This GUI instance of rgat will connect out to another computer running rgat in listen mode";
                     if (ListenMode)
                     {
                         ImGui.Text(listenTip);
@@ -490,7 +490,7 @@ namespace rgat.Widgets
             }
 
 
-            if (ImGui.BeginTable("#IFListtable", 1, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY))
+            if (ImGui.BeginTable("#IFListtable", 1, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.NoHostExtendY))
             {
                 int i = 0;
                 foreach (var iface in _netIFList)
@@ -498,10 +498,13 @@ namespace rgat.Widgets
                     i++;
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-                    bool selected = (ListenMode && iface.Id == _listenIFID) || (!ListenMode && iface.Id == _connectIFID);
-                    if (ImGui.Selectable(iface.Name + "##" + iface.Id + i.ToString(), selected))
+                    bool previousSelectionState = (ListenMode && iface.Id == _listenIFID) || (!ListenMode && iface.Id == _connectIFID);
+                    bool selectionChanged = ImGui.Selectable(iface.Name + "##" + iface.Id + i.ToString(), previousSelectionState);
+                    if (ImGui.IsItemHovered()) DrawIFToolTip(iface);
+
+                    if (selectionChanged)
                     {
-                        if (selected)
+                        if (previousSelectionState == true) 
                         {
                             GlobalConfig.StartOptions.Interface = "0.0.0.0";
                             if (ListenMode)
@@ -510,9 +513,8 @@ namespace rgat.Widgets
                                 GlobalConfig.AddUpdateAppSettings("DefaultListenModeIF", _listenIFID);
                                 GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(_listenIFID);
                             }
-                            else
-                            {
-
+                            else 
+                            { 
                                 _connectIFID = "";
                                 GlobalConfig.AddUpdateAppSettings("DefaultConnectModeIF", _connectIFID);
                                 GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(_connectIFID);
@@ -534,46 +536,51 @@ namespace rgat.Widgets
                             }
                         }
                     }
-                    if (ImGui.IsItemHovered())
-                    {
-                        ImGui.BeginTooltip();
-                        ImGui.Text($"{iface.Name}: {iface.Description}");
-                        var addresses = iface.GetIPProperties().UnicastAddresses;
-                        if (addresses.Count > 0)
-                        {
-                            ImGui.Text($"\t\tAddresses:");
-                            foreach (var addr in addresses.Reverse())
-                                ImGui.Text($"\t\t\t{addr.Address}");
-                        }
-                        else
-                        {
-                            ImGui.Text("\t\tInterface has no addresses");
-                        }
-                        string MAC = RemoteTracing.hexMAC(iface.GetPhysicalAddress());
-                        if (MAC.Length > 0)
-                            ImGui.Text($"\t\tMAC: {MAC}");
-                        ImGui.Text($"\t\tType: {iface.NetworkInterfaceType}");
-                        ImGui.Text($"\t\tID: {iface.Id}");
-                        ImGui.EndTooltip();
-                    }
+
                 }
                 ImGui.EndTable();
             }
         }
 
+
+        void DrawIFToolTip(NetworkInterface iface)
+        {
+            ImGui.BeginTooltip();
+            ImGui.Text($"{iface.Name}: {iface.Description}");
+            var addresses = iface.GetIPProperties().UnicastAddresses;
+            if (addresses.Count > 0)
+            {
+                ImGui.Text($"\t\tAddresses:");
+                foreach (var addr in addresses.Reverse())
+                    ImGui.Text($"\t\t\t{addr.Address}");
+            }
+            else
+            {
+                ImGui.Text("\t\tInterface has no addresses");
+            }
+            string MAC = RemoteTracing.hexMAC(iface.GetPhysicalAddress());
+            if (MAC.Length > 0)
+                ImGui.Text($"\t\tMAC: {MAC}");
+            ImGui.Text($"\t\tType: {iface.NetworkInterfaceType}");
+            ImGui.Text($"\t\tID: {iface.Id}");
+            ImGui.EndTooltip();
+
+        }
+
+
         string currentAddress;
         bool _remoteDropdownOpen = false;
         void DrawConnectOptsFrame()
         {
+            //////////
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
             ImGui.Text("Remote Address");
             ImGui.TableNextColumn();
+            if (currentAddress == null) currentAddress = "";
             if (ImGui.InputText("##nwkConAddr", ref currentAddress, 512))
             {
-                GlobalConfig.StartOptions.ConnectModeAddress = currentAddress;
-                GlobalConfig.DefaultHeadlessAddress = currentAddress;
-                GlobalConfig.AddUpdateAppSettings("DefaultHeadlessAddress", currentAddress);
+                SelectRemoteAddress(currentAddress);
             }
             Vector2 textPos = new Vector2(ImGui.GetItemRectMin().X, ImGui.GetItemRectMax().Y);
             if (ImGui.IsItemHovered())
@@ -588,6 +595,7 @@ namespace rgat.Widgets
                 ImGui.EndTooltip();
             }
 
+            bool closeSuggestor = false;
             if (ImGui.IsItemActive())
             {
                 ImGui.OpenPopup("##prevAddrSearchBar");
@@ -595,12 +603,10 @@ namespace rgat.Widgets
             }
             else
             {
-                if (_remoteDropdownOpen)
-                {
-                    _remoteDropdownOpen = false;
-                }
+                if (_remoteDropdownOpen) { closeSuggestor = true;  }
             }
 
+            //////////
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
             ImGui.Text("Interface");
@@ -619,9 +625,11 @@ namespace rgat.Widgets
                 List<string> recentAddrs = GlobalConfig.RecentConnectedAddresses(); //todo cache
                 foreach (string address in recentAddrs)
                 {
-                    if (ImGui.Selectable(address + "##" + numHints.ToString()))
+                    ImGui.Selectable(address + "##" + numHints.ToString());
+                    if (ImGui.IsItemActivated()) //selectable() doesn't return true for some reason
                     {
                         currentAddress = address;
+                        SelectRemoteAddress(currentAddress);
                         ImGui.CloseCurrentPopup();
                     }
                     ++numHints;
@@ -634,14 +642,22 @@ namespace rgat.Widgets
                 }
 
                 ImGui.PopAllowKeyboardFocus();
-                ImGui.EndPopup();
                 if (!_remoteDropdownOpen) ImGui.CloseCurrentPopup();
+                ImGui.EndPopup();
             }
 
+            if (closeSuggestor)
+            {
+                ImGui.CloseCurrentPopup();
+                _remoteDropdownOpen = false;
+            }
+        }
 
-
-
-
+        void SelectRemoteAddress(string address)
+        {
+            GlobalConfig.StartOptions.ConnectModeAddress = currentAddress;
+            GlobalConfig.DefaultHeadlessAddress = currentAddress;
+            GlobalConfig.AddUpdateAppSettings("DefaultHeadlessAddress", currentAddress);
         }
 
 

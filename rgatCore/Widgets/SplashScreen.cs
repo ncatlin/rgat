@@ -40,6 +40,12 @@ namespace rgat
             float blockHeight = (regionHeight * 0.95f) - headerHeight;
             float blockStart = headerHeight + 40f;
 
+            //ImGui.PushFont(_controller.f)
+            ImGui.PushFont(_controller.rgatLargeFont);
+            Vector2 titleSize = ImGui.CalcTextSize("rgat");
+            ImGui.SetCursorScreenPos(new Vector2((ImGui.GetWindowContentRegionMax().X / 2) - (titleSize.X/2), (ImGui.GetWindowContentRegionMax().Y / 5) - (titleSize.Y/2)));
+            ImGui.Text("rgat");
+            ImGui.PopFont();
 
 
             //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff0000ff);
@@ -48,89 +54,7 @@ namespace rgat
             bool boxBorders = false;
 
             ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0x45ffffff);
-            /*
-        if (ImGui.BeginChild("header", new Vector2(ImGui.GetContentRegionAvail().X, headerHeight), boxBorders))
-        {
-            Texture settingsIcon = _controller.GetImage("Menu");
-            GraphicsDevice gd = _controller.graphicsDevice;
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(gd.ResourceFactory, settingsIcon, "TestStarFull");
 
-            ImGui.BeginGroup();
-            {
-                float headerBtnsY = 65;
-                float btnSize = 65;
-                float btnIconSize = 40;
-                ImGui.BeginGroup();
-                {
-                    float btnX = regionWidth - (btnSize+10);
-                    float btnY = headerBtnsY;
-                    ImGui.SetCursorPos(new Vector2(btnX, btnY));
-
-                    if (ImGui.Selectable("##SettingsDlg", false, ImGuiSelectableFlags.None, new Vector2(btnSize, btnSize)))
-                    {
-                        if (_SettingsMenu != null)
-                        {
-                            _settings_window_shown = true;
-                        }
-                    }
-                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
-                    {
-                        ImGui.SetTooltip("Open Settings Menu");
-                    }
-
-                    float iconOffset = (btnSize / 2) - (btnIconSize / 2);
-                    ImGui.SetCursorPos(new Vector2(btnX + iconOffset, btnY + iconOffset));
-                    ImGui.Image(CPUframeBufferTextureId, new Vector2(btnIconSize, btnIconSize), Vector2.Zero, Vector2.One, Vector4.One);
-
-                    if (_splashHeaderHover)
-                    {
-                        ImGui.PushFont(_controller.SplashButtonFont);
-                        Vector2 textsz = ImGui.CalcTextSize("Settings");
-                        ImGui.SetCursorPosX(btnX - (textsz.X + 10));
-                        ImGui.SetCursorPosY(btnY + btnSize / 2 - textsz.Y / 2);
-                        ImGui.Text("Settings");
-                        ImGui.PopFont();
-                    }
-                    ImGui.EndGroup();
-                }
-
-                ImGui.BeginGroup();
-                {
-
-                    float btnX = regionWidth - (btnSize + 10);
-                    float btnY = headerBtnsY + btnSize;
-                    ImGui.SetCursorPos(new Vector2(btnX, btnY + btnSize));
-                    if (ImGui.Selectable("##NetworkDlg", false, ImGuiSelectableFlags.None, new Vector2(btnSize, btnSize)))
-                    {
-                        ToggleRemoteDialog();
-                    }
-                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
-                    {
-                        ImGui.SetTooltip("Setup Remote Tracing");
-                    }
-
-                    float iconOffset = (btnSize / 2) - (btnIconSize / 2);
-                    ImGui.SetCursorPos(new Vector2(btnX + iconOffset, btnY + iconOffset));
-                    ImGui.Image(CPUframeBufferTextureId, new Vector2(btnIconSize, btnIconSize), Vector2.Zero, Vector2.One, Vector4.One);
-
-                    if (_splashHeaderHover)
-                    {
-                        ImGui.PushFont(_controller.SplashButtonFont);
-                        Vector2 textsz = ImGui.CalcTextSize("Remote Tracing");
-                        ImGui.SetCursorPosX(btnX - (btnSize + 10));
-                        ImGui.SetCursorPosY(btnY + btnSize / 2 - textsz.Y / 2);
-                        ImGui.TextWrapped("Remote Tracing");
-                        ImGui.PopFont();
-                    }
-
-                    ImGui.EndGroup();
-                }
-
-            ImGui.EndGroup();
-        }
-        ImGui.EndChild();
-    }
-            */
             _splashHeaderHover = ImGui.GetMousePos().Y < (ImGui.GetWindowSize().Y / 3f);
             ImGui.PopStyleColor();
 
@@ -138,6 +62,7 @@ namespace rgat
             float voidspace = Math.Max(0, (regionWidth - (2 * buttonBlockWidth)) / 3);
             float runGrpX = voidspace;
             float iconTableYSep = 18;
+            float iconTitleYSep = 10;
 
             ImGuiTableFlags tblflags = ImGuiTableFlags.NoHostExtendX;
             if (boxBorders) tblflags |= ImGuiTableFlags.Borders;
@@ -146,32 +71,39 @@ namespace rgat
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0);
             if (ImGui.BeginChild("##RunGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
             {
-                Texture btnIcon = _controller.GetImage("Crosshair");
-                GraphicsDevice gd = _controller.graphicsDevice;
-                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon, "CrossHairIcon");
-
-                ImGui.PushFont(_controller.SplashButtonFont);
+                ImGui.PushFont(_controller.SplashLargeFont);
                 float captionHeight = ImGui.CalcTextSize("Load Binary").Y;
-                Vector2 iconsize = new Vector2(80, 80);
-                ImGui.BeginTable("##LoadBinBtnBox", 3, tblflags);
-                float iconColumnWidth = 200;
-                float paddingX = (buttonBlockWidth - iconColumnWidth) / 2;
-                ImGui.TableSetupColumn("##BBSPadL", ImGuiTableColumnFlags.WidthFixed, paddingX);
-                ImGui.TableSetupColumn("##LoadBinBtnIcn", ImGuiTableColumnFlags.WidthFixed, iconColumnWidth);
-                ImGui.TableSetupColumn("##BBSPadR", ImGuiTableColumnFlags.WidthFixed, paddingX);
-                ImGui.TableNextRow();
-                ImGui.TableSetColumnIndex(1);
-                Vector2 selectableSize = new Vector2(iconColumnWidth, captionHeight + iconsize.Y);
-                if (ImGui.Selectable("##Load Binary", false, ImGuiSelectableFlags.None, selectableSize))
+                if (ImGui.BeginTable("##LoadBinBtnBox", 3, tblflags))
                 {
-                    _show_select_exe_window = true;
+                    Vector2 LargeIconSize = _controller.LargeIconSize;
+                    float iconColumnWidth = 200;
+                    float paddingX = (buttonBlockWidth - iconColumnWidth) / 2;
+                    ImGui.TableSetupColumn("##BBSPadL", ImGuiTableColumnFlags.WidthFixed, paddingX);
+                    ImGui.TableSetupColumn("##LoadBinBtnIcn", ImGuiTableColumnFlags.WidthFixed, iconColumnWidth);
+                    ImGui.TableSetupColumn("##BBSPadR", ImGuiTableColumnFlags.WidthFixed, paddingX);
+                    ImGui.TableNextRow();
+                    ImGui.TableSetColumnIndex(1);
+
+                    Vector2 selectableSize = new Vector2(iconColumnWidth, captionHeight + LargeIconSize.Y + iconTitleYSep + 12);
+
+                    if (ImGui.Selectable("##Load Binary", false, ImGuiSelectableFlags.None, selectableSize))
+                    {
+                        _show_select_exe_window = true;
+                    }
+                    Widgets.SmallWidgets.MouseoverText("Load an executable or DLL for examination. It will not be executed.");
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
+                    ImguiUtils.DrawHorizCenteredText("Load Binary");
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (LargeIconSize.X / 2));
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTitleYSep);
+
+                    _controller.PushBigIconFont();
+                    ImGui.Text($"{ImGuiController.FA_ICON_SAMPLE}");
+                    ImGui.PopFont();
+
+                    ImGui.EndTable();
                 }
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
-                ImguiUtils.DrawHorizCenteredText("Load Binary");
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (iconsize.X / 2));
-                ImGui.Image(CPUframeBufferTextureId, iconsize, Vector2.Zero, Vector2.One, Vector4.One);
-                ImGui.EndTable();
                 ImGui.PopFont();
+
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);
                 Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y - 25);
 
@@ -224,31 +156,35 @@ namespace rgat
             ImGui.SetCursorPosX(runGrpX + buttonBlockWidth + voidspace);
             if (ImGui.BeginChild("##LoadGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
             {
-                Texture btnIcon = _controller.GetImage("Crosshair");
-                GraphicsDevice gd = _controller.graphicsDevice;
-                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(gd.ResourceFactory, btnIcon, "LoadGrpIcon");
-
-                ImGui.PushFont(_controller.SplashButtonFont);
+                ImGui.PushFont(_controller.SplashLargeFont);
                 float captionHeight = ImGui.CalcTextSize("Load Trace").Y;
-                Vector2 iconsize = new Vector2(80, 80);
-                ImGui.BeginTable("##LoadBtnBox", 3, tblflags);
-                float iconColumnWidth = 200;
-                float paddingX = (buttonBlockWidth - iconColumnWidth) / 2;
-                ImGui.TableSetupColumn("##LBSPadL", ImGuiTableColumnFlags.WidthFixed, paddingX);
-                ImGui.TableSetupColumn("##LoadBtnIcn", ImGuiTableColumnFlags.WidthFixed, iconColumnWidth);
-                ImGui.TableSetupColumn("##LBSPadR", ImGuiTableColumnFlags.WidthFixed, paddingX);
-                ImGui.TableNextRow();
-                ImGui.TableSetColumnIndex(1);
-                Vector2 selectableSize = new Vector2(iconColumnWidth, captionHeight + iconsize.Y);
-                if (ImGui.Selectable("##Load Trace", false, ImGuiSelectableFlags.None, selectableSize))
+                if (ImGui.BeginTable("##LoadBtnBox", 3, tblflags))
                 {
-                    _show_load_trace_window = true;
+                    Vector2 LargeIconSize = _controller.LargeIconSize;
+                    float iconColumnWidth = 200;
+                    float paddingX = (buttonBlockWidth - iconColumnWidth) / 2;
+                    ImGui.TableSetupColumn("##LBSPadL", ImGuiTableColumnFlags.WidthFixed, paddingX);
+                    ImGui.TableSetupColumn("##LoadBtnIcn", ImGuiTableColumnFlags.WidthFixed, iconColumnWidth);
+                    ImGui.TableSetupColumn("##LBSPadR", ImGuiTableColumnFlags.WidthFixed, paddingX);
+                    ImGui.TableNextRow();
+                    ImGui.TableSetColumnIndex(1);
+                    Vector2 selectableSize = new Vector2(iconColumnWidth, captionHeight + LargeIconSize.Y + iconTitleYSep + 12);
+                    if (ImGui.Selectable("##Load Trace", false, ImGuiSelectableFlags.None, selectableSize))
+                    {
+                        _show_load_trace_window = true;
+                    }
+                    Widgets.SmallWidgets.MouseoverText("Load a previously generated trace");
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
+                    ImguiUtils.DrawHorizCenteredText("Load Trace");
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (LargeIconSize.X / 2) + 8); //shift a bit to the right to balance it 
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTitleYSep); 
+
+                    _controller.PushBigIconFont();
+                    ImGui.Text($"{ImGuiController.FA_ICON_LOADFILE}");
+                    ImGui.PopFont();
+
+                    ImGui.EndTable();
                 }
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
-                ImguiUtils.DrawHorizCenteredText("Load Trace");
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (iconsize.X / 2));
-                ImGui.Image(CPUframeBufferTextureId, iconsize, Vector2.Zero, Vector2.One, Vector4.One);
-                ImGui.EndTable();
                 ImGui.PopFont();
 
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);

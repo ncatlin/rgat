@@ -118,6 +118,12 @@ namespace rgat
                 Teardown();
                 return;
             }
+            catch (OperationCanceledException e)
+            {
+                Logging.RecordLogEvent($"User cancelled connection attempt", Logging.LogFilterType.TextDebug);
+                Teardown();
+                return;
+            }
             catch (Exception e)
             {
                 Logging.RecordLogEvent($"Exception {e} in StartConnectOut", Logging.LogFilterType.TextError);

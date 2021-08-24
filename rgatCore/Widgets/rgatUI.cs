@@ -55,11 +55,16 @@ namespace rgat
         float _mouseWheelDelta = 0;
         Vector2 _mouseDragDelta = new Vector2(0, 0);
 
-        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover);
+        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover || _activeNotification);
         bool _splashHeaderHover = false;
+        bool _activeNotification = false;
         bool _scheduleMissingPathCheck = true;
 
-        public VideoEncoder.CaptureContent PendingScreenshot = VideoEncoder.CaptureContent.Invalid;
+        public VideoEncoder.CaptureContent PendingScreenshot { get; private set; } = VideoEncoder.CaptureContent.Invalid;
+        VideoEncoder.CaptureContent _lastScreenShot = VideoEncoder.CaptureContent.Invalid;
+        string _lastScreenShotPath = "";
+        DateTime _screenShotTime;
+
 
         private readonly object _inputLock = new object();
 
@@ -155,7 +160,7 @@ namespace rgat
             _lastFrameTimeMS.Add(elapsedMS);
             if (_lastFrameTimeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
                 _lastFrameTimeMS = _lastFrameTimeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
-            
+
             if (visualiserTab != null)
                 visualiserTab.UIFrameAverage = _lastFrameTimeMS.Average();
         }
@@ -192,8 +197,6 @@ namespace rgat
 
         public void DrawMain()
         {
-            if (MenuBarVisible)
-                DrawMainMenu();
 
             if (_rgatState?.ActiveTarget == null)
             {
@@ -203,12 +206,14 @@ namespace rgat
             {
                 DrawWindowContent();
             }
+            if (MenuBarVisible)
+                DrawMainMenu();
         }
 
 
         public void DrawDialogs()
         {
-            if (_settings_window_shown) _SettingsMenu.Draw(ref _settings_window_shown);
+            if (_settings_window_shown && _SettingsMenu != null) _SettingsMenu.Draw(ref _settings_window_shown);
             if (_show_select_exe_window) DrawFileSelectBox(ref _show_select_exe_window);
             if (_show_load_trace_window) DrawTraceLoadBox(ref _show_load_trace_window);
             if (_show_test_harness) _testHarness.Draw(ref _show_test_harness);
@@ -518,7 +523,7 @@ namespace rgat
             _show_test_harness = false;
             _show_select_exe_window = false;
         }
-               
+
 
         void ToggleTestHarness()
         {
@@ -622,63 +627,216 @@ namespace rgat
 
         private unsafe void DrawMainMenu()
         {
+            _activeNotification = false;
             if (ImGui.BeginMenuBar())
             {
-                if (ImGui.BeginMenu("Target"))
-                {
-                    if (ImGui.MenuItem("Select Target Executable")) { _show_select_exe_window = true; }
-                    var recentbins = GlobalConfig.RecentBinaries;
-                    if (ImGui.BeginMenu("Recent Binaries", recentbins.Any()))
-                    {
-                        foreach (var entry in recentbins.Take(Math.Min(10, recentbins.Count)))
-                        {
-                            if (DrawRecentPathEntry(entry, true))
-                            {
-                                LoadSelectedBinary(entry.path, rgatState.ConnectedToRemote);
-                            }
-                        }
-                        ImGui.EndMenu();
-                    }
-                    var recenttraces = GlobalConfig.RecentTraces;
-                    if (ImGui.BeginMenu("Recent Traces", recenttraces.Any()))
-                    {
-                        foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Count)))
-                        {
-                            if (DrawRecentPathEntry(entry, true)) LoadTraceByPath(entry.path);
-                        }
-                        ImGui.EndMenu();
-                    }
-                    if (ImGui.MenuItem("Open Saved Trace")) { _show_load_trace_window = true; }
-                    ImGui.Separator();
-                    if (ImGui.MenuItem("Save Thread Trace")) { } //todo
-                    if (ImGui.MenuItem("Save Process Traces")) { } //todo
-                    if (ImGui.MenuItem("Save All Traces")) { _rgatState.SaveAllTargets(); }
-                    if (ImGui.MenuItem("Export Pajek")) { _rgatState.ExportTraceAsPajek(_rgatState.ActiveTrace, _rgatState.ActiveGraph.tid); }
-                    ImGui.Separator();
-                    if (ImGui.MenuItem("Exit"))
-                    {
-                        ExitFlag = true;
-                        // Task.Run(() => { Exit(); });
-                    }
-                    ImGui.EndMenu();
-                }
-
-
-                ImGui.MenuItem("Settings", null, ref _settings_window_shown);
-                ImGui.MenuItem("Network", null, ref _show_remote_dialog);
-
-                ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - 30);
-                ImGui.MenuItem("Logs", null, ref _show_logs_window);
-                bool isShown = _show_test_harness;
-                if (ImGui.MenuItem("Tests", null, ref isShown, true))
-                {
-                    ToggleTestHarness();
-                }
-
-                ImGui.MenuItem("Demo", null, ref _controller.ShowDemoWindow, true);
+                DrawOuterLeftMenuItems();
+                DrawInnerLeftMenuItems();
+                DrawInnerRightMenuItems();
+                DrawOuterRightMenuItems();
                 ImGui.EndMenuBar();
             }
         }
+
+
+        void DrawOuterLeftMenuItems()
+        {
+            if (ImGui.BeginMenu("Target"))
+            {
+                if (ImGui.MenuItem("Select Target Executable")) { _show_select_exe_window = true; }
+                var recentbins = GlobalConfig.RecentBinaries;
+                if (ImGui.BeginMenu("Recent Binaries", recentbins.Any()))
+                {
+                    foreach (var entry in recentbins.Take(Math.Min(10, recentbins.Count)))
+                    {
+                        if (DrawRecentPathEntry(entry, true))
+                        {
+                            LoadSelectedBinary(entry.path, rgatState.ConnectedToRemote);
+                        }
+                    }
+                    ImGui.EndMenu();
+                }
+                var recenttraces = GlobalConfig.RecentTraces;
+                if (ImGui.BeginMenu("Recent Traces", recenttraces.Any()))
+                {
+                    foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Count)))
+                    {
+                        if (DrawRecentPathEntry(entry, true)) LoadTraceByPath(entry.path);
+                    }
+                    ImGui.EndMenu();
+                }
+                if (ImGui.MenuItem("Open Saved Trace")) { _show_load_trace_window = true; }
+                ImGui.Separator();
+                if (ImGui.MenuItem("Save Thread Trace")) { } //todo
+                if (ImGui.MenuItem("Save Process Traces")) { } //todo
+                if (ImGui.MenuItem("Save All Traces")) { _rgatState.SaveAllTargets(); }
+                if (ImGui.MenuItem("Export Pajek")) { _rgatState.ExportTraceAsPajek(_rgatState.ActiveTrace, _rgatState.ActiveGraph.tid); }
+                ImGui.Separator();
+                if (ImGui.MenuItem("Exit"))
+                {
+                    ExitFlag = true;
+                    // Task.Run(() => { Exit(); });
+                }
+                ImGui.EndMenu();
+            }
+
+            ImGui.MenuItem("Settings", null, ref _settings_window_shown);
+        }
+
+        void DrawInnerLeftMenuItems()
+        {
+            float quarter = ImGui.GetContentRegionMax().X / 4f;
+            ImGui.SetCursorPosX(quarter);
+            if (rgatState.ConnectedToRemote)
+            {
+                ImGui.MenuItem(ImGuiController.FA_ICON_NETWORK + " Remote Mode", null, ref _show_remote_dialog);
+                SmallWidgets.MouseoverText($"Samples will be executed on {rgatState.NetworkBridge.RemoteEndPoint.Address}");
+            }
+            else
+            {
+                ImGui.MenuItem(ImGuiController.FA_ICON_LOCALCODE + " Local Mode", null, ref _show_remote_dialog);
+                SmallWidgets.MouseoverText("Samples will be executed on this computer");
+            }
+        }
+
+
+        //todo recording status
+        //todo screencap fade effect
+
+        void DrawInnerRightMenuItems()
+        {
+            float quarter = 3 * (ImGui.GetContentRegionMax().X / 5f) - 50;
+            ImGui.SetCursorPosX(quarter);
+
+            //ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA}" , false);
+
+            if (_lastScreenShot != VideoEncoder.CaptureContent.Invalid)
+            {
+                _activeNotification = true;
+                try
+                {
+                    DisplayScreenshotNotification();
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Exception processing screenshot notification: {e.Message}");
+                    _lastScreenShot = VideoEncoder.CaptureContent.Invalid;
+                }
+            }
+        }
+
+
+        void DisplayScreenshotNotification()
+        {
+            const double displaySeconds = UI.SCREENSHOT_ICON_LINGER_TIME;
+
+            TimeSpan timeSince = DateTime.Now - _screenShotTime;
+            if (timeSince.TotalSeconds > displaySeconds)
+            {
+                _lastScreenShot = VideoEncoder.CaptureContent.Invalid;
+                return;
+            }
+
+            double progress = timeSince.TotalSeconds / displaySeconds;
+            double remainingProgress = 1.0 - progress;
+
+            uint alpha = (uint)Math.Max((255.0 * remainingProgress), 255f * 0.25f);
+            uint textColour = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.Text)).ToUint(alpha);
+            ImGui.PushStyleColor(ImGuiCol.Text, textColour);
+            ImGui.MenuItem($"{ImGuiController.FA_STILL_CAMERA}");
+            ImGui.PopStyleColor();
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.BeginTooltip();
+                ImGui.Text($"Screenshot saved to {_lastScreenShotPath}");
+                ImGui.Text($"Click to open screenshot directory");
+                ImGui.EndTooltip();
+            }
+            if (ImGui.IsItemClicked())
+            {
+                string screenshotDirectory = Path.GetDirectoryName(_lastScreenShotPath);
+                if (Directory.Exists(screenshotDirectory))
+                {
+                    Logging.RecordLogEvent($"Opening screenshot directory in file browser: {screenshotDirectory}");
+                    var openScreenshotDir = new System.Diagnostics.ProcessStartInfo() { FileName = screenshotDirectory, UseShellExecute = true };
+                    System.Diagnostics.Process.Start(openScreenshotDir);
+                }
+            }
+
+            double animationProgress = progress * UI.SCREENSHOT_ANIMATION_RECT_SPEED;
+            if (animationProgress < 1)
+            {
+                Vector2? rectSize, startCenter;
+                switch (_lastScreenShot)
+                {
+                    case VideoEncoder.CaptureContent.Graph:
+                        Vector2 graphpos = visualiserTab.GraphPosition;
+                        rectSize = visualiserTab.GraphSize;
+                        startCenter = new Vector2(graphpos.X + rectSize.Value.X / 2, ImGui.GetWindowSize().Y - (graphpos.Y + rectSize.Value.Y / 2));
+                        break;
+                    case VideoEncoder.CaptureContent.GraphAndPreviews:
+                        Vector2 graphpos2 = visualiserTab.GraphPosition;
+                        rectSize = visualiserTab.GraphSize + new Vector2(RGAT_CONSTANTS.UI.PREVIEW_PANE_WIDTH, 0);
+                        startCenter = new Vector2(graphpos2.X + rectSize.Value.X / 2, ImGui.GetWindowSize().Y - (graphpos2.Y + rectSize.Value.Y / 2));
+                        break;
+                    case VideoEncoder.CaptureContent.Window:
+                    default:
+                        rectSize = ImGui.GetWindowSize();
+                        startCenter = new Vector2(rectSize.Value.X / 2, rectSize.Value.Y / 2);
+                        break;
+                }
+
+                rectSize = new Vector2(rectSize.Value.X * (float)(1 - animationProgress), rectSize.Value.Y * (float)(1 - animationProgress));
+                Vector2 endCenter = ImGui.GetCursorScreenPos() + new Vector2(-15, ImGui.GetWindowSize().Y - 8);
+                float currentXOffset = (endCenter.X - startCenter.Value.X) * (float)animationProgress;
+                float currentYOffset = (endCenter.Y - startCenter.Value.Y) * (float)animationProgress;
+                Vector2 currentCenter = new Vector2(startCenter.Value.X + currentXOffset, ImGui.GetWindowSize().Y - (startCenter.Value.Y + currentYOffset));
+                Vector2 currentCorner = new Vector2(currentCenter.X - rectSize.Value.X / 2, currentCenter.Y - rectSize.Value.Y / 2);
+                ImGui.GetForegroundDrawList().AddRect(currentCorner, currentCorner + rectSize.Value, textColour);
+            }
+        }
+
+
+
+
+
+        void DrawOuterRightMenuItems()
+        {
+            int unseenErrors = Logging.UnseenErrors;
+            if (unseenErrors > 0) ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour));
+            ImGui.SetCursorPosX(ImGui.GetContentRegionMax().X - 250);
+            ImGui.MenuItem($"Logs{(unseenErrors > 0 ? $" ({unseenErrors})" : "")}", null, ref _show_logs_window);
+            ImGui.PopStyleColor();
+
+            bool isShown = _show_test_harness;
+            if (ImGui.MenuItem("Tests", null, ref isShown, true))
+            {
+                ToggleTestHarness();
+            }
+
+            ImGui.MenuItem("Demo", null, ref _controller.ShowDemoWindow, true);
+        }
+
+
+
+        public void NotifyScreenshotComplete(string savePath)
+        {
+            _lastScreenShot = PendingScreenshot;
+            _lastScreenShotPath = savePath;
+            PendingScreenshot = VideoEncoder.CaptureContent.Invalid;
+            _screenShotTime = DateTime.Now;
+            _activeNotification = true;
+        }
+
+
+
+
+
+
+
+
+
+
 
         public bool ExitFlag = false;
 
