@@ -36,16 +36,11 @@ namespace rgat
             float regionHeight = ImGui.GetContentRegionAvail().Y;
             float regionWidth = ImGui.GetContentRegionAvail().X;
             float buttonBlockWidth = Math.Min(400f, regionWidth / 2.1f);
-            float headerHeight = regionHeight / 3;
+            float headerHeight = ImGui.GetWindowSize().Y / 3;
             float blockHeight = (regionHeight * 0.95f) - headerHeight;
             float blockStart = headerHeight + 40f;
 
-            if (StartupProgress < 1)
-            {
-                float ypos = ImGui.GetCursorPosY();
-                ImGui.ProgressBar((float)StartupProgress, new Vector2(-1, 4f));
-                ImGui.SetCursorPosY(ypos);
-            }
+
 
             //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff0000ff);
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new WritableRgbaFloat(0, 0, 0, 255).ToUint());
@@ -53,81 +48,90 @@ namespace rgat
             bool boxBorders = false;
 
             ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0x45ffffff);
-            if (ImGui.BeginChild("header", new Vector2(ImGui.GetContentRegionAvail().X, headerHeight), boxBorders))
-            {
-                Texture settingsIcon = _controller.GetImage("Menu");
-                GraphicsDevice gd = _controller.graphicsDevice;
-                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(gd.ResourceFactory, settingsIcon, "SettingsIcon");
+            /*
+        if (ImGui.BeginChild("header", new Vector2(ImGui.GetContentRegionAvail().X, headerHeight), boxBorders))
+        {
+            Texture settingsIcon = _controller.GetImage("Menu");
+            GraphicsDevice gd = _controller.graphicsDevice;
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(gd.ResourceFactory, settingsIcon, "TestStarFull");
 
-                int groupSep = 100;
+            ImGui.BeginGroup();
+            {
+                float headerBtnsY = 65;
+                float btnSize = 65;
+                float btnIconSize = 40;
+                ImGui.BeginGroup();
+                {
+                    float btnX = regionWidth - (btnSize+10);
+                    float btnY = headerBtnsY;
+                    ImGui.SetCursorPos(new Vector2(btnX, btnY));
+
+                    if (ImGui.Selectable("##SettingsDlg", false, ImGuiSelectableFlags.None, new Vector2(btnSize, btnSize)))
+                    {
+                        if (_SettingsMenu != null)
+                        {
+                            _settings_window_shown = true;
+                        }
+                    }
+                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
+                    {
+                        ImGui.SetTooltip("Open Settings Menu");
+                    }
+
+                    float iconOffset = (btnSize / 2) - (btnIconSize / 2);
+                    ImGui.SetCursorPos(new Vector2(btnX + iconOffset, btnY + iconOffset));
+                    ImGui.Image(CPUframeBufferTextureId, new Vector2(btnIconSize, btnIconSize), Vector2.Zero, Vector2.One, Vector4.One);
+
+                    if (_splashHeaderHover)
+                    {
+                        ImGui.PushFont(_controller.SplashButtonFont);
+                        Vector2 textsz = ImGui.CalcTextSize("Settings");
+                        ImGui.SetCursorPosX(btnX - (textsz.X + 10));
+                        ImGui.SetCursorPosY(btnY + btnSize / 2 - textsz.Y / 2);
+                        ImGui.Text("Settings");
+                        ImGui.PopFont();
+                    }
+                    ImGui.EndGroup();
+                }
 
                 ImGui.BeginGroup();
                 {
-                    float headerBtnsY = 65;
-                    float btnSize = 50;
-                    ImGui.BeginGroup();
+
+                    float btnX = regionWidth - (btnSize + 10);
+                    float btnY = headerBtnsY + btnSize;
+                    ImGui.SetCursorPos(new Vector2(btnX, btnY + btnSize));
+                    if (ImGui.Selectable("##NetworkDlg", false, ImGuiSelectableFlags.None, new Vector2(btnSize, btnSize)))
                     {
-                        float btnX = (regionWidth / 2) - (btnSize + groupSep / 2);
-                        ImGui.SetCursorPos(new Vector2(btnX, headerBtnsY));
-                        ImGui.Image(CPUframeBufferTextureId, new Vector2(btnSize, btnSize), Vector2.Zero, Vector2.One, Vector4.One);
-
-                        ImGui.SetCursorPos(new Vector2(btnX - 35, headerBtnsY - 35));
-
-                        if (ImGui.Selectable("##SettingsDlg", false, ImGuiSelectableFlags.None, new Vector2(120, 120)))
-                        {
-                            if (_SettingsMenu != null)
-                            {
-                                _settings_window_shown = true;
-                            }
-                        }
-                        if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
-                        {
-                            ImGui.SetTooltip("Open Settings Menu");
-                        }
-                        if (_splashHeaderHover)
-                        {
-                            ImGui.PushFont(_controller.SplashButtonFont);
-                            Vector2 textsz = ImGui.CalcTextSize("Settings");
-                            ImGui.SetCursorPosX(btnX - (textsz.X + 35));
-                            ImGui.SetCursorPosY(headerBtnsY + btnSize / 2 - textsz.Y / 2);
-                            ImGui.Text("Settings");
-                            ImGui.PopFont();
-                        }
-                        ImGui.EndGroup();
+                        ToggleRemoteDialog();
                     }
-                    ImGui.BeginGroup();
+                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
                     {
-                        float btnX = (regionWidth / 2) + groupSep / 2;
-                        ImGui.SetCursorPos(new Vector2(btnX, headerBtnsY));
-                        ImGui.Image(CPUframeBufferTextureId, new Vector2(btnSize, btnSize), Vector2.Zero, Vector2.One, Vector4.One);
+                        ImGui.SetTooltip("Setup Remote Tracing");
+                    }
 
-                        ImGui.SetCursorPos(new Vector2(btnX - 35, headerBtnsY - 35));
-                        if (ImGui.Selectable("##NetworkDlg", false, ImGuiSelectableFlags.None, new Vector2(120, 120)))
-                        {
-                            ToggleRemoteDialog();
-                        }
-                        if (ImGui.IsItemHovered(ImGuiHoveredFlags.None))
-                        {
-                            ImGui.SetTooltip("Setup Remote Tracing");
-                        }
-                        if (_splashHeaderHover)
-                        {
-                            ImGui.PushFont(_controller.SplashButtonFont);
-                            Vector2 textsz = ImGui.CalcTextSize("Settings");
-                            ImGui.SetCursorPosX(btnX + btnSize + 35);
-                            ImGui.SetCursorPosY(headerBtnsY + btnSize / 2 - textsz.Y / 2);
-                            ImGui.TextWrapped("Remote Tracing");
-                            ImGui.PopFont();
-                        }
+                    float iconOffset = (btnSize / 2) - (btnIconSize / 2);
+                    ImGui.SetCursorPos(new Vector2(btnX + iconOffset, btnY + iconOffset));
+                    ImGui.Image(CPUframeBufferTextureId, new Vector2(btnIconSize, btnIconSize), Vector2.Zero, Vector2.One, Vector4.One);
 
-                        ImGui.EndGroup();
+                    if (_splashHeaderHover)
+                    {
+                        ImGui.PushFont(_controller.SplashButtonFont);
+                        Vector2 textsz = ImGui.CalcTextSize("Remote Tracing");
+                        ImGui.SetCursorPosX(btnX - (btnSize + 10));
+                        ImGui.SetCursorPosY(btnY + btnSize / 2 - textsz.Y / 2);
+                        ImGui.TextWrapped("Remote Tracing");
+                        ImGui.PopFont();
                     }
 
                     ImGui.EndGroup();
                 }
-                ImGui.EndChild();
-            }
-            _splashHeaderHover = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem | ImGuiHoveredFlags.AllowWhenBlockedByPopup);
+
+            ImGui.EndGroup();
+        }
+        ImGui.EndChild();
+    }
+            */
+            _splashHeaderHover = ImGui.GetMousePos().Y < (ImGui.GetWindowSize().Y / 3f);
             ImGui.PopStyleColor();
 
             //Run group
@@ -298,7 +302,7 @@ namespace rgat
             ImGui.PopStyleVar(5);
 
 
-            ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(100, 40));
+            ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(100, 50));
             if (ImGui.BeginChild("##SplashCorner", new Vector2(80, 35)))
             {
 
@@ -312,6 +316,13 @@ namespace rgat
                 ImGui.EndChild();
             }
             ImGui.PopStyleColor();
+
+            if (StartupProgress < 1)
+            {
+                float ypos = ImGui.GetWindowSize().Y - 12;
+                ImGui.SetCursorPosY(ypos);
+                ImGui.ProgressBar((float)StartupProgress, new Vector2(-1, 4f));
+            }
             //String msg = "No target binary is selected\nOpen a binary or saved trace from the target menu фä洁ф";
             //ImguiUtils.DrawRegionCenteredText(msg);
         }

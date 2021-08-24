@@ -36,6 +36,7 @@ namespace rgat
         RemoteDialog _RemoteDialog;
         TestsWindow _testHarness;
         SettingsMenu _SettingsMenu;
+        LogsWindow _logsWindow;
 
 
 
@@ -43,6 +44,7 @@ namespace rgat
         private bool _show_select_exe_window = false;
         private bool _show_load_trace_window = false;
         private bool _show_test_harness = false;
+        private bool _show_logs_window = false;
         private bool _show_remote_dialog = false;
 
         public double StartupProgress;
@@ -53,7 +55,7 @@ namespace rgat
         float _mouseWheelDelta = 0;
         Vector2 _mouseDragDelta = new Vector2(0, 0);
 
-
+        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover);
         bool _splashHeaderHover = false;
         bool _scheduleMissingPathCheck = true;
 
@@ -67,6 +69,8 @@ namespace rgat
             _rgatState = state;
             _controller = controller;
             _gd = _controller.graphicsDevice;
+            _logsWindow = new LogsWindow(_rgatState);
+
         }
 
         ~rgatUI()
@@ -76,7 +80,6 @@ namespace rgat
         public void InitWidgets()
         {
             StartupProgress = 0.55;
-
 
             Logging.RecordLogEvent("Startup: Initing graph display widgets", Logging.LogFilterType.TextDebug);
 
@@ -92,12 +95,6 @@ namespace rgat
             _SettingsMenu = new SettingsMenu(_controller, _rgatState); //call after config init, so theme gets generated
 
 
-
-
-            _LogFilters[(int)Logging.LogFilterType.TextDebug] = true;
-            _LogFilters[(int)Logging.LogFilterType.TextInfo] = true;
-            _LogFilters[(int)Logging.LogFilterType.TextError] = true;
-            _LogFilters[(int)Logging.LogFilterType.TextAlert] = true;
         }
 
         public void AddMouseWheelDelta(float delta)
@@ -195,13 +192,15 @@ namespace rgat
 
         public void DrawMain()
         {
+            if (MenuBarVisible)
+                DrawMainMenu();
+
             if (_rgatState?.ActiveTarget == null)
             {
                 DrawStartSplash();
             }
             else
             {
-                DrawMainMenu();
                 DrawWindowContent();
             }
         }
@@ -213,6 +212,7 @@ namespace rgat
             if (_show_select_exe_window) DrawFileSelectBox(ref _show_select_exe_window);
             if (_show_load_trace_window) DrawTraceLoadBox(ref _show_load_trace_window);
             if (_show_test_harness) _testHarness.Draw(ref _show_test_harness);
+            if (_show_logs_window) _logsWindow.Draw(ref _show_logs_window);
             if (_show_remote_dialog)
             {
                 if (_RemoteDialog == null) { _RemoteDialog = new RemoteDialog(_rgatState); }
@@ -307,11 +307,8 @@ namespace rgat
             {
                 if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
-                    //switch to the logs tab
-                    _SwitchToLogsTab = true;
-                    //select only the alerts filter
-                    Array.Clear(_LogFilters, 0, _LogFilters.Length);
-                    _LogFilters[(int)LogFilterType.TextAlert] = true;
+                    _logsWindow.ShowAlerts();
+                    _show_logs_window = true;
 
                     Logging.ClearAlertsBox();
                 }
@@ -671,6 +668,7 @@ namespace rgat
                 ImGui.MenuItem("Network", null, ref _show_remote_dialog);
 
                 ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - 30);
+                ImGui.MenuItem("Logs", null, ref _show_logs_window);
                 bool isShown = _show_test_harness;
                 if (ImGui.MenuItem("Tests", null, ref isShown, true))
                 {
@@ -725,7 +723,6 @@ namespace rgat
             return true;
         }
 
-        bool _SwitchToLogsTab = false;
         bool _SwitchToVisualiserTab = false;
         int _OldTraceCount = -1;
         string _currentTab = "";
@@ -766,21 +763,6 @@ namespace rgat
 
 
                 DrawMemDataTab();
-
-
-                if (_SwitchToLogsTab)
-                {
-                    tabDrawn = ImGui.BeginTabItem("Logs", ref tabDrawn, ImGuiTabItemFlags.SetSelected);
-                    _SwitchToLogsTab = false;
-                }
-                else
-                    tabDrawn = ImGui.BeginTabItem("Logs");
-                if (tabDrawn)
-                {
-                    _currentTab = "Logs";
-                    DrawLogsTab();
-                }
-
                 ImGui.EndTabBar();
             }
 

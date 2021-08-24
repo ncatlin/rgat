@@ -284,6 +284,8 @@ namespace rgat.OperationModes
 
             Logging.RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug); //about 800 ish ms
             double currentUIProgress = _rgatUI.StartupProgress;
+
+
             Task confloader = Task.Run(() => GlobalConfig.LoadConfig());
             while (!confloader.IsCompleted)
             {
@@ -402,15 +404,11 @@ namespace rgat.OperationModes
             var timer = new System.Diagnostics.Stopwatch();
             timer.Start();
 
-            bool hasActiveTrace = _rgatState?.ActiveTarget != null;
-
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
             window_flags |= ImGuiWindowFlags.NoDecoration;
-            if (hasActiveTrace)
-            {
-                window_flags |= ImGuiWindowFlags.MenuBar;
-            }
             window_flags |= ImGuiWindowFlags.DockNodeHost;
+            if(_rgatUI.MenuBarVisible)
+                window_flags |= ImGuiWindowFlags.MenuBar;
             window_flags |= ImGuiWindowFlags.NoBringToFrontOnFocus;
 
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;

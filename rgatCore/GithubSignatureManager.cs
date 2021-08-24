@@ -326,7 +326,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to purge signatures folder {repoDirectory} for path {repopath}: {e.Message}");
+                Logging.RecordError($"Failed to purge signatures folder {repoDirectory} for path {repo.FetchPath}: {e.Message}");
             }
 
         }

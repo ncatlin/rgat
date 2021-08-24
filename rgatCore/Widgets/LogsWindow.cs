@@ -8,15 +8,39 @@ using static rgat.Logging;
 
 namespace rgat
 {
-    partial class rgatUI
+    partial class LogsWindow
     {
+        public LogsWindow(rgatState _state)
+        {
+            _rgatState = _state;
+            _LogFilters[(int)Logging.LogFilterType.TextDebug] = true;
+            _LogFilters[(int)Logging.LogFilterType.TextInfo] = true;
+            _LogFilters[(int)Logging.LogFilterType.TextError] = true;
+            _LogFilters[(int)Logging.LogFilterType.TextAlert] = true;
+
+            _refreshTimer = new System.Timers.Timer(750);
+            _refreshTimer.Elapsed += FireTimer;
+            _refreshTimer.AutoReset = false;
+            _refreshTimer.Start();
+        }
+
+        rgatState _rgatState;
         static bool[] _LogFilters = new bool[(int)LogFilterType.COUNT];
         static bool[] rowLastSelected = new bool[3];
         static byte[] textFilterValue = new byte[500];
         static string _logSort = "Time<";
-        private void DrawLogsTab()
+        System.Timers.Timer _refreshTimer;
+
+        bool _refreshTimerFired = false;
+        private void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _refreshTimerFired = true; }
+
+
+        List<LOG_EVENT> _sortedMsgs = new List<LOG_EVENT>();
+
+        public void Draw(ref bool show)
         {
-            if (ImGui.BeginChildFrame(ImGui.GetID("logtableframe"), ImGui.GetContentRegionAvail()))
+            ImGui.SetNextWindowSize(new Vector2(800, 500), ImGuiCond.Appearing);
+            if (ImGui.Begin("logtableframe", ref show))
             {
                 Logging.LOG_EVENT[] msgs = Logging.GetLogMessages(null, _LogFilters);
                 int activeCount = _LogFilters.Where(x => x == true).Count();
@@ -104,61 +128,32 @@ namespace rgat
                     ImGui.TreePop();
                 }
 
-
-
-                List<LOG_EVENT> shownMsgs = new List<LOG_EVENT>(msgs);
-                if (_LogFilters.Any(f => f == true))
-                {
-                    var TLmsgs = _rgatState.ActiveTrace?.GetTimeLineEntries();
-                    if (TLmsgs != null)
-                    {
-                        foreach (TIMELINE_EVENT ev in TLmsgs)
-                        {
-                            if (_LogFilters[(int)ev.Filter])
-                                shownMsgs.Add(ev);
-                        }
-                    }
-                }
-
-                List<LOG_EVENT> sortedMsgs = shownMsgs;
-
                 int filterLen = Array.FindIndex(textFilterValue, x => x == '\0');
                 string textFilterString = Encoding.ASCII.GetString(textFilterValue, 0, filterLen);
 
-                ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Sortable | ImGuiTableFlags.SortMulti;
-                if (ImGui.BeginTable("LogsTable", 3, tableFlags, ImGui.GetContentRegionAvail()))
+                ImGuiTableFlags tableFlags = ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable |
+                    ImGuiTableFlags.Reorderable | ImGuiTableFlags.ScrollY | ImGuiTableFlags.ScrollX;
+                //this is causing issues with the last column
+                tableFlags |= ImGuiTableFlags.Sortable;
+                tableFlags |= ImGuiTableFlags.SortMulti;
+
+                if (ImGui.BeginTable("LogsTableContent", 4, tableFlags))
                 {
                     var ss = ImGui.TableGetSortSpecs();
-                    //if (ss.SpecsDirty) //todo - caching
+                    if (ss.SpecsDirty || _refreshTimerFired)
                     {
-                        switch (ss.Specs.ColumnIndex)
-                        {
-                            case 0:
-                                if (ss.Specs.SortDirection == ImGuiSortDirection.Ascending)
-                                    sortedMsgs = shownMsgs.OrderBy(o => o.EventTimeMS).ToList();
-                                else
-                                    sortedMsgs = shownMsgs.OrderByDescending(o => o.EventTimeMS).ToList();
-                                break;
-                            case 1:
-                                if (ss.Specs.SortDirection == ImGuiSortDirection.Ascending)
-                                    sortedMsgs = shownMsgs.OrderBy(o => o.Filter).ToList();
-                                else
-                                    sortedMsgs = shownMsgs.OrderByDescending(o => o.Filter).ToList();
-                                break;
-                            case 2:
-                                //todo - caching
-                                break;
-                        }
-                        ss.SpecsDirty = false;
+                        RegenerateRows(new List<LOG_EVENT>(msgs));
+                        _refreshTimerFired = false;
+                        _refreshTimer.Start();
                     }
 
                     ImGui.TableSetupScrollFreeze(0, 1);
-                    ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 90);
-                    ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 100);
-                    ImGui.TableSetupColumn("Details");
+                    ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending);
+                    ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed);
+                    ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoSort);
                     ImGui.TableHeadersRow();
 
-                    foreach (LOG_EVENT msg in sortedMsgs)
+                    foreach (LOG_EVENT msg in _sortedMsgs)
                     {
                         DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
                         string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
@@ -200,19 +195,65 @@ namespace rgat
                         }
 
                         ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
+                        ImGui.TableSetColumnIndex(0);
                         ImGui.Text(timeString);
-                        ImGui.TableNextColumn();
+                        ImGui.TableSetColumnIndex(1);
                         ImGui.Text(sourceString);
-                        ImGui.TableNextColumn();
-                        ImGui.TextWrapped(msgString);
+                        ImGui.TableSetColumnIndex(2);
+                        ImGui.Text(msgString);
                     }
                     ImGui.EndTable(); ;
                 }
                 ImGui.EndChildFrame();
             }
-            ImGui.EndTabItem();
+            ImGui.End();
         }
 
+        void RegenerateRows(List<LOG_EVENT> shownMsgs)
+        {
+            _sortedMsgs.Clear();
+            if (_LogFilters.Any(f => f == true))
+            {
+                var TLmsgs = _rgatState.ActiveTrace?.GetTimeLineEntries();
+                if (TLmsgs != null)
+                {
+                    foreach (TIMELINE_EVENT ev in TLmsgs)
+                    {
+                        if (_LogFilters[(int)ev.Filter])
+                            shownMsgs.Add(ev);
+                    }
+                }
+            }
+            var ss = ImGui.TableGetSortSpecs();
+
+            switch (ss.Specs.ColumnIndex)
+            {
+                case 0:
+                    if (ss.Specs.SortDirection == ImGuiSortDirection.Ascending)
+                        _sortedMsgs = shownMsgs.OrderBy(o => o.EventTimeMS).ToList();
+                    else
+                        _sortedMsgs = shownMsgs.OrderByDescending(o => o.EventTimeMS).ToList();
+                    break;
+                case 1:
+                    if (ss.Specs.SortDirection == ImGuiSortDirection.Ascending)
+                        _sortedMsgs = shownMsgs.OrderBy(o => o.Filter).ToList();
+                    else
+                        _sortedMsgs = shownMsgs.OrderByDescending(o => o.Filter).ToList();
+                    break;
+                case 2:
+                default:
+                    _sortedMsgs = shownMsgs.ToList();
+                    break;
+            }
+            ss.SpecsDirty = false;
+
+        }
+
+        public void ShowAlerts()
+        {
+            //select only the alerts filter
+            Array.Clear(_LogFilters, 0, _LogFilters.Length);
+            _LogFilters[(int)LogFilterType.TextAlert] = true;
+        }
     }
 }
