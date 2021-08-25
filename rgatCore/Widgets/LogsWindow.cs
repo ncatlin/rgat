@@ -236,6 +236,7 @@ namespace rgat
             //select only the alerts filter
             Array.Clear(_LogFilters, 0, _LogFilters.Length);
             _LogFilters[(int)LogFilterType.TextAlert] = true;
+            _LogFilters[(int)LogFilterType.TextError] = true;
         }
     }
 }

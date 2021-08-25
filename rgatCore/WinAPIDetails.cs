@@ -8,7 +8,7 @@ namespace rgat
     public class WinAPIDetails
     {
         public static bool Loaded { get; private set; }
-        public static void Load(string datapath)
+        public static void Load(string datapath, IProgress<float> progress)
         {
             if (!File.Exists(datapath))
             {
@@ -45,7 +45,7 @@ namespace rgat
 
             if (apiDataJSON != null)
             {
-                LoadJSON(apiDataJSON);
+                LoadJSON(apiDataJSON, progress);
                 Loaded = true;
             }
 
@@ -81,11 +81,14 @@ namespace rgat
             public int referenceIndex;
         }
 
-        static void LoadJSON(Newtonsoft.Json.Linq.JArray JItems)
+        static void LoadJSON(Newtonsoft.Json.Linq.JArray JItems, IProgress<float> progress)
         {
-            foreach (JToken moduleEntryTok in JItems)
-            {
+            float moduleCount = JItems.Count;
 
+            for (var moduleI = 0; moduleI < moduleCount; moduleI++)
+            {
+                JToken moduleEntryTok = JItems[moduleI];
+            
                 if (moduleEntryTok.Type != JTokenType.Object)
                 {
                     Logging.RecordLogEvent("API Data JSON has a library entry which is not an object. Abandoning Load.", Logging.LogFilterType.TextError);
@@ -168,16 +171,13 @@ namespace rgat
                         {
                             APIItem.Label = interactionTok.ToObject<string>();
                         }
-                        
-
-
 
                         moduleSyms.Add(apiname, APIItem);
                     }
                     _configuredSymbols.Add(moduleReference, moduleSyms);
                 }
 
-
+                progress.Report(moduleCount / (float)moduleI);
             }
         }
 

@@ -341,11 +341,13 @@ namespace rgat
 
                 if (filter != LogFilterType.BulkDebugLogFile)
                 {
-                    if (filter == LogFilterType.TextError)
-                        UnseenErrors += 1;
-
                     _logMessages.Add(log);
-                    if (log._filter == LogFilterType.TextAlert) _alertNotifications.Add(log);
+                    if (log._filter == LogFilterType.TextAlert || log.Filter == LogFilterType.TextError)
+                    {
+                        UnseenAlerts += 1;
+                        _alertNotifications.Add(log);
+                        _lastAlert = DateTime.Now;
+                    }
                     MessageCounts[(int)filter] += 1;
                 }
             }
@@ -386,7 +388,7 @@ namespace rgat
         {
             lock (_messagesLock)
             {
-                UnseenErrors = 0;
+                UnseenAlerts = 0;
                 return _logMessages.Where(x => x.LogType == eLogFilterBaseType.Text && x.Filter == LogFilterType.TextError).ToArray();
 
             }
@@ -396,7 +398,7 @@ namespace rgat
         {
             lock (_messagesLock)
             {
-                UnseenErrors = 0;
+                UnseenAlerts = 0;
                 if (trace == null) return _logMessages.Where(x => filters[(int)x.Filter] == true).ToArray();
                 else
                 {
@@ -405,7 +407,10 @@ namespace rgat
             }
         }
 
-        public static int UnseenErrors { get; set; } = 0;
+        public static int UnseenAlerts { get; set; } = 0;
+
+        static DateTime _lastAlert = DateTime.MinValue;
+        public static TimeSpan TimeSinceLastAlert => DateTime.Now - _lastAlert;
 
 
         /*

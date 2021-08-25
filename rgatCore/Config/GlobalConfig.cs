@@ -1595,11 +1595,14 @@ namespace rgat
 
         public static double LoadProgress { get; private set; } = 0;
 
-        public static void LoadConfig()
+
+        public static void LoadConfig(IProgress<float> progress)
         {
-            LoadProgress = 0;
+            System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
+            timer.Start();
+
             LoadResources();
-            LoadProgress = 0.3;
+            progress?.Report(0.3f);
 
             try
             {
@@ -1619,7 +1622,7 @@ namespace rgat
                 Logging.RecordLogEvent($"Error loading custom themes: {e.Message}", Logging.LogFilterType.TextError);
             }
             Themes.ActivateDefaultTheme();
-            LoadProgress = 0.5;
+            progress?.Report(0.5f);
 
             //load base keybinds
             InitDefaultKeybinds();
@@ -1629,14 +1632,14 @@ namespace rgat
 
             LoadCustomKeybinds();
 
-            LoadProgress = 0.7;
+            progress?.Report(0.7f);
 
             InitPaths();
             _cachedRecentTraces = LoadRecentPaths("RecentTraces");
             _cachedRecentBins = LoadRecentPaths("RecentBinaries");
             LoadRecentAddresses();
 
-            LoadProgress = 0.9;
+            progress?.Report(0.9f);
             defaultGraphColours = new List<WritableRgbaFloat> {
                 mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
                 mainColours.nodeStd, mainColours.nodeJump, mainColours.nodeCall, mainColours.nodeRet, mainColours.nodeExtern, mainColours.nodeExcept
@@ -1693,7 +1696,9 @@ namespace rgat
                 extraDetail = true //only show control flow
             };
 
-            LoadProgress = 1;
+            Logging.RecordLogEvent($"Startup: Config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            timer.Stop();
+            progress?.Report(1f);
         }
     }
 }

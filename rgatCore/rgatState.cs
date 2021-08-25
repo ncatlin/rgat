@@ -49,14 +49,19 @@ namespace rgat
             PlottedGraph.clientState = this;
         }
 
-        public void LoadSignatures()
+        public void LoadSignatures(IProgress<float> progress)
         {
+            //todo - inner progress reporting based on signature count
+
             Logging.RecordLogEvent("Loading DiELib", Logging.LogFilterType.TextDebug);
             DIELib = new DetectItEasy(GlobalConfig.DiESigsPath);
             Logging.RecordLogEvent("DiELib loaded. loading YARA", Logging.LogFilterType.TextDebug);
+            progress.Report(0.5f);
 
             YARALib = new YARAScan(GlobalConfig.YARARulesDir);
             Logging.RecordLogEvent("YARA loaded", Logging.LogFilterType.TextDebug);
+            progress.Report(1f);
+
         }
 
 

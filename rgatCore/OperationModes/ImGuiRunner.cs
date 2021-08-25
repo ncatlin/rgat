@@ -280,63 +280,74 @@ namespace rgat.OperationModes
 
 
         //todo - make Exit wait until this returns
-        void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd)
+        async void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd)
         {
 
-            Logging.RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug); //about 800 ish ms
+            Logging.RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug);
             double currentUIProgress = _rgatUI.StartupProgress;
 
+            System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
+            timer.Start();
+            System.Diagnostics.Stopwatch timerTotal = new System.Diagnostics.Stopwatch();
+            timerTotal.Start();
 
-            Task confloader = Task.Run(() => GlobalConfig.LoadConfig());
-            while (!confloader.IsCompleted)
-            {
-                _rgatUI.StartupProgress = currentUIProgress + 0.3 * GlobalConfig.LoadProgress;
-                Thread.Sleep(10);
-            }
+            float configProgress = 0, widgetProgress = 0;
+            void UpdateProgressConfWidgets() { _rgatUI.StartupProgress = currentUIProgress + 0.2 * configProgress + 0.5 * widgetProgress; };
+            Progress<float> IProgressConfig = new Progress<float>(progress => { configProgress = progress; UpdateProgressConfWidgets(); });
+            Progress<float> IProgressWidgets = new Progress<float>(progress => { widgetProgress = progress; UpdateProgressConfWidgets(); });
 
-            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
-            {
-                WinAPIDetails.Load(System.IO.Path.Combine(AppContext.BaseDirectory, "APIData.json"));
-            }
+            Task confloader = Task.Run(() => GlobalConfig.LoadConfig(IProgressConfig)); // 900ms~ depending on themes
+            Task widgetLoader = Task.Run(() => _rgatUI.InitWidgets(IProgressWidgets)); //2000ms~ fairly flat
 
-            Logging.RecordLogEvent("Startup: Config Inited", Logging.LogFilterType.TextDebug);
-            _rgatUI.StartupProgress = 0.4;
+            await Task.WhenAll( widgetLoader, confloader );
 
-            Logging.RecordLogEvent("Startup: Initing State Object", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Startup: Widgets+config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            timer.Restart();
 
+            _rgatUI.StartupProgress = 0.85;
+            currentUIProgress = _rgatUI.StartupProgress;
 
-            Logging.RecordLogEvent("Startup: State created", Logging.LogFilterType.TextDebug);
-            _rgatUI.StartupProgress = 0.5;
+            rgatState.VideoRecorder.Load(); //0 ms
+            _rgatUI.InitSettingsMenu(); //50ms ish
 
-
-            Logging.RecordLogEvent("Startup: Initing Settings Window", Logging.LogFilterType.TextDebug);
-
-            _rgatUI.InitWidgets();
-
-
-
-            rgatState.VideoRecorder.Load();
-
-            Logging.RecordLogEvent("Startup: Initing graph rendering threads", Logging.LogFilterType.TextDebug);
-
-
+            Logging.RecordLogEvent($"Startup: Settings menu loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            timer.Restart();
 
             heatRankThreadObj = null;// new HeatRankingThread(_rgatstate);           
 
             //todo - conditional thread here instead of new trace
             rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
             rgatState.processCoordinatorThreadObj.Begin();
-            _rgatUI.StartupProgress = 0.95;
 
-            Logging.RecordLogEvent("Startup: Initing layout engines", Logging.LogFilterType.TextDebug);
-            _rgatUI.StartupProgress = 0.99;
+            _rgatUI.StartupProgress = 0.86;
+            currentUIProgress = _rgatUI.StartupProgress;
 
+            float apiProgress = 0, sigProgress = 0;
+            void UpdateProgressAPISig() { _rgatUI.StartupProgress = currentUIProgress + 0.07 * sigProgress + 0.7f * apiProgress; };
+            Progress<float> IProgressAPI = new Progress<float>(progress => { apiProgress = progress; UpdateProgressAPISig(); });
+            Progress<float> IProgressSigs = new Progress<float>(progress => { sigProgress = progress; UpdateProgressAPISig(); });
 
-            Logging.RecordLogEvent("Startup: rgatUI created", Logging.LogFilterType.TextDebug);
+            Task sigsTask = Task.Run(() => _rgatState.LoadSignatures(IProgressSigs));
 
-            _rgatState.LoadSignatures();
+            // api data is the startup item that can be loaded latest as it's only needed when looking at traces
+            // we could load it in parallel with the widgets/config but if it gets big then it will be the limiting factor in start up speed
+            // doing it last means the user can do stuff while it loads
+            Task apiTask = null;
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+            {
+                apiTask = Task.Run(() => WinAPIDetails.Load(System.IO.Path.Combine(AppContext.BaseDirectory, "APIData.json"), IProgressAPI));
+            }
+            else
+            {
+                apiTask = Task.Run(() => Console.WriteLine("TODO: linux API loading"));
+            }
 
-            Logging.RecordLogEvent("Startup: Signatures Loaded", Logging.LogFilterType.TextDebug);
+            await Task.WhenAll(sigsTask, apiTask);
+
+            Logging.RecordLogEvent($"Startup: Signatures + API info inited in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            timer.Stop();
+            Logging.RecordLogEvent($"Startup: Loading thread took {timerTotal.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            timer.Stop();
 
             _rgatUI.StartupProgress = 1;
 

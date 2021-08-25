@@ -55,7 +55,7 @@ namespace rgat.OperationModes
 
         public void RunHeadless(BridgeConnection connection)
         {
-            GlobalConfig.LoadConfig(); //todo a lightweight headless config
+            GlobalConfig.LoadConfig(null); //todo a lightweight headless config
 
             rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
             rgatState.processCoordinatorThreadObj.Begin();

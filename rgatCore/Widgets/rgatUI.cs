@@ -38,6 +38,10 @@ namespace rgat
         SettingsMenu _SettingsMenu;
         LogsWindow _logsWindow;
 
+        /// <summary>
+        /// Causes the UI to fall out of the update loop and initiate rgat shutdown
+        /// </summary>
+        public bool ExitFlag = false;
 
 
         private bool _settings_window_shown = false;
@@ -78,29 +82,37 @@ namespace rgat
 
         }
 
-        ~rgatUI()
-        {
-        }
+        ~rgatUI() { }
 
-        public void InitWidgets()
+        public void InitWidgets(IProgress<float> progress)
         {
-            StartupProgress = 0.55;
+            System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
+            timer.Start();
 
             Logging.RecordLogEvent("Startup: Initing graph display widgets", Logging.LogFilterType.TextDebug);
 
-            StartupProgress = 0.60;
             visualiserTab = new VisualiserTab(_rgatState);
-            visualiserTab.Init(_gd, _controller);
 
+
+            Logging.RecordLogEvent($"Startup: Visualiser tab created in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            timer.Restart();
+            visualiserTab.Init(_gd, _controller, progress);
+
+            Logging.RecordLogEvent($"Startup: Visualiser tab initialised in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            timer.Restart();
 
             chart = new SandboxChart();
 
-            StartupProgress = 0.9;
-
-            _SettingsMenu = new SettingsMenu(_controller, _rgatState); //call after config init, so theme gets generated
-
-
+            Logging.RecordLogEvent($"Startup: Analysis chart loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            timer.Stop();
         }
+
+        public void InitSettingsMenu()
+        {
+            _SettingsMenu = new SettingsMenu(_controller, _rgatState); //call after config init, so theme gets generated
+        }
+
+        //public delegate UpdateProgress(ref float progress)
 
         public void AddMouseWheelDelta(float delta)
         {
@@ -239,11 +251,7 @@ namespace rgat
             if (ImGui.BeginChild("MainWindow", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoScrollbar))
             {
                 DrawTargetBar();
-                if (DrawAlertBox())
-                {
-                    //raise the tabs up so the alert box nestles into the space
-                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 12);
-                }
+                DrawAlerts();
 
                 BinaryTarget activeTarget = _rgatState.ActiveTarget;
                 if (activeTarget == null)
@@ -259,108 +267,6 @@ namespace rgat
         }
 
 
-        bool DrawAlertBox()
-        {
-            int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
-            if (alerts.Length == 0) return false;
-
-            float widestAlert = 0;
-            if (alerts.Length <= 2)
-            {
-                for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
-                {
-                    widestAlert = ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[i])._text).X + 50;
-                }
-            }
-            else
-            {
-                widestAlert = ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[^1])._text).X + 50;
-            }
-
-            float width = Math.Max(widestAlert, 250);
-            width = Math.Min(widestAlert, ImGui.GetContentRegionAvail().X - 30);
-            Vector2 size = new Vector2(width, 38);
-            ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - (width + 6));
-
-
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
-            ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBorder));
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
-            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
-            Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), ImGui.GetWindowSize().X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
-            if (ImGui.BeginChild(78789, size, true))
-            {
-                if (alerts.Length <= 2)
-                {
-                    for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
-                    {
-                        ImGui.Text(((TEXT_LOG_EVENT)alerts[i])._text);
-                    }
-                }
-                else
-                {
-                    ImGui.Text($"{alerts.Length} Alerts");
-                    ImGui.Text(((TEXT_LOG_EVENT)alerts[^1])._text);
-                }
-                ImGui.EndChild();
-            }
-            ImGui.PopStyleVar();
-            ImGui.PopStyleVar();
-            ImGui.PopStyleColor();
-            ImGui.PopStyleColor();
-            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup))
-            {
-                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-                {
-                    _logsWindow.ShowAlerts();
-                    _show_logs_window = true;
-
-                    Logging.ClearAlertsBox();
-                }
-                if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-                {
-                    Logging.ClearAlertsBox();
-                }
-
-                ImGui.SetNextWindowPos(new Vector2(popupBR.X, popupBR.Y));
-                ImGui.OpenPopup("##AlertsCtx");
-
-                if (ImGui.BeginPopup("##AlertsCtx"))
-                {
-                    if (ImGui.BeginTable("##AlertsCtxTbl", 2))
-                    {
-                        ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 60);
-                        ImGui.TableSetupColumn("Event");
-                        ImGui.TableHeadersRow();
-                        foreach (LOG_EVENT log in alerts)
-                        {
-                            TEXT_LOG_EVENT msg = (TEXT_LOG_EVENT)log;
-                            ImGui.TableNextRow();
-                            ImGui.TableNextColumn();
-                            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
-                            string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
-                            ImGui.Text(timeString);
-                            ImGui.TableNextColumn();
-                            ImGui.Text(msg._text);
-                        }
-                        ImGui.EndTable();
-                    }
-                    if (alertCount > alerts.Length)
-                    {
-                        ImGui.Text($"...and {alertCount - alerts.Length} more");
-                    }
-                    ImGui.Separator();
-                    ImGui.Indent(5);
-                    ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
-                    ImGui.Text($"Left click to view in logs tab. Right click to dismiss.");
-                    ImGui.PopStyleColor();
-                    ImGui.EndPopup();
-                }
-            }
-
-
-            return true;
-        }
 
 
         public void HandleUserInput()
@@ -634,6 +540,7 @@ namespace rgat
                 DrawInnerLeftMenuItems();
                 DrawInnerRightMenuItems();
                 DrawOuterRightMenuItems();
+                DrawAlerts();
                 ImGui.EndMenuBar();
             }
         }
@@ -672,16 +579,13 @@ namespace rgat
                 if (ImGui.MenuItem("Save All Traces")) { _rgatState.SaveAllTargets(); }
                 if (ImGui.MenuItem("Export Pajek")) { _rgatState.ExportTraceAsPajek(_rgatState.ActiveTrace, _rgatState.ActiveGraph.tid); }
                 ImGui.Separator();
-                if (ImGui.MenuItem("Exit"))
-                {
-                    ExitFlag = true;
-                    // Task.Run(() => { Exit(); });
-                }
+                ExitFlag = ImGui.MenuItem("Exit");
                 ImGui.EndMenu();
             }
 
             ImGui.MenuItem("Settings", null, ref _settings_window_shown);
         }
+
 
         void DrawInnerLeftMenuItems()
         {
@@ -725,7 +629,12 @@ namespace rgat
             }
         }
 
-
+        /// <summary>
+        /// Displays the video camera icon on the menu bar
+        /// Displays an animated rectangle drawing the eye to it, from the region captured
+        /// UI.SCREENSHOT_ICON_LINGER_TIME controls how long the icon is displayed
+        /// UI.SCREENSHOT_ANIMATION_RECT_SPEED controls how fast the rectangle travels/disappears
+        /// </summary>
         void DisplayScreenshotNotification()
         {
             const double displaySeconds = UI.SCREENSHOT_ICON_LINGER_TIME;
@@ -757,9 +666,19 @@ namespace rgat
                 string screenshotDirectory = Path.GetDirectoryName(_lastScreenShotPath);
                 if (Directory.Exists(screenshotDirectory))
                 {
-                    Logging.RecordLogEvent($"Opening screenshot directory in file browser: {screenshotDirectory}");
+                    Logging.RecordLogEvent($"Opening screenshot directory in file browser: {screenshotDirectory}", LogFilterType.TextDebug);
                     var openScreenshotDir = new System.Diagnostics.ProcessStartInfo() { FileName = screenshotDirectory, UseShellExecute = true };
                     System.Diagnostics.Process.Start(openScreenshotDir);
+                }
+                else if (File.Exists(screenshotDirectory))
+                {
+                    //probably a bit paranoid but no harm in being careful around process.start
+                    Logging.RecordError("Screenshot directory became a file. Unconfiguring it");
+                    GlobalConfig.SetDirectoryPath("MediaCapturePath", "", true);
+                }
+                else
+                {
+                    Logging.RecordError($"Screenshot directory {screenshotDirectory} was not found");
                 }
             }
 
@@ -799,14 +718,20 @@ namespace rgat
 
 
 
-
+        /// <summary>
+        /// Displays less-used utilities like logs, tests 
+        /// </summary>
         void DrawOuterRightMenuItems()
         {
-            int unseenErrors = Logging.UnseenErrors;
+            int unseenErrors = Logging.UnseenAlerts;
+
             if (unseenErrors > 0) ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour));
             ImGui.SetCursorPosX(ImGui.GetContentRegionMax().X - 250);
-            ImGui.MenuItem($"Logs{(unseenErrors > 0 ? $" ({unseenErrors})" : "")}", null, ref _show_logs_window);
-            ImGui.PopStyleColor();
+            if(ImGui.MenuItem($"Logs{(unseenErrors > 0 ? $" ({unseenErrors})" : "")}", null, ref _show_logs_window))
+            {
+                _logsWindow.ShowAlerts();
+            }
+            if (unseenErrors > 0) ImGui.PopStyleColor();
 
             bool isShown = _show_test_harness;
             if (ImGui.MenuItem("Tests", null, ref isShown, true))
@@ -819,6 +744,147 @@ namespace rgat
 
 
 
+
+
+
+        bool DrawAlerts()
+        {
+            const long lingerTime = UI.ALERT_TEXT_LINGER_TIME;
+            if (Logging.TimeSinceLastAlert.TotalMilliseconds > lingerTime) return false;
+            int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
+            if (alerts.Length == 0) return false;
+
+            Vector2 originalCursorPos = ImGui.GetCursorScreenPos();
+
+            float widestAlert = 0;
+            if (alerts.Length <= 2)
+            {
+                for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
+                {
+                    widestAlert = ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[i])._text).X + 50;
+                }
+            }
+            else
+            {
+                widestAlert = ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[^1])._text).X + 50;
+            }
+
+            float width = Math.Min(widestAlert + 10, 500);
+            Vector2 size = new Vector2(width, 38);
+            ImGui.SetCursorScreenPos(new Vector2(ImGui.GetWindowSize().X - width, 40));
+
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
+            Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), ImGui.GetWindowSize().X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
+            if (ImGui.BeginChild(78789, size, false))
+            {
+                uint textColour = Themes.GetThemeColourImGui(ImGuiCol.Text);
+                uint errColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                uint alertColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eTextEmphasis1);
+
+                long nowTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+                for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
+                {
+                    TEXT_LOG_EVENT item = (TEXT_LOG_EVENT)alerts[i];
+                    long alertAge = nowTime - item.EventTimeMS;
+                    long timeRemaining = lingerTime - alertAge;
+                    uint alpha = 255;
+                    if (timeRemaining < 1000) //fade out over a second
+                    {
+                        float fade = (timeRemaining / 1000);
+                        alpha = (uint)(Math.Min(255f, 255f * fade));
+                    }
+
+                    if (item.Filter == LogFilterType.TextAlert)
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Text, new WritableRgbaFloat(alertColour).ToUint(alpha));
+                        ImGui.Text($"{ImGuiController.FA_ICON_WARNING}");
+                        ImGui.PopStyleColor();
+                    }
+                    else
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Text, new WritableRgbaFloat(errColour).ToUint(alpha));
+                        ImGui.Text($"{ImGuiController.FA_ICON_EXCLAIM}");
+                        ImGui.PopStyleColor();
+                    }
+                    ImGui.SameLine();
+                    textColour = new WritableRgbaFloat(textColour).ToUint(alpha);
+                    ImGui.PushStyleColor(ImGuiCol.Text, textColour);
+                    ImGui.Text(item._text);
+                    ImGui.PopStyleColor();
+
+                }
+                ImGui.EndChild();
+            }
+            ImGui.PopStyleVar();
+            ImGui.PopStyleVar();
+            ImGui.PopStyleColor();
+
+            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup))
+            {
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                {
+                    _logsWindow.ShowAlerts();
+                    _show_logs_window = true;
+
+                    Logging.ClearAlertsBox();
+                }
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+                {
+                    Logging.ClearAlertsBox();
+                }
+
+                ImGui.SetNextWindowPos(new Vector2(popupBR.X, popupBR.Y));
+                ImGui.OpenPopup("##AlertsCtx");
+
+                if (ImGui.BeginPopup("##AlertsCtx"))
+                {
+                    if (ImGui.BeginTable("##AlertsCtxTbl", 2))
+                    {
+                        ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 60);
+                        ImGui.TableSetupColumn("Event");
+                        ImGui.TableHeadersRow();
+                        foreach (LOG_EVENT log in alerts)
+                        {
+                            TEXT_LOG_EVENT msg = (TEXT_LOG_EVENT)log;
+                            ImGui.TableNextRow();
+                            ImGui.TableNextColumn();
+                            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
+                            string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
+                            ImGui.Text(timeString);
+                            ImGui.TableNextColumn();
+                            ImGui.Text(msg._text);
+                        }
+                        ImGui.EndTable();
+                    }
+                    if (alertCount > alerts.Length)
+                    {
+                        ImGui.Text($"...and {alertCount - alerts.Length} more");
+                    }
+                    ImGui.Separator();
+                    ImGui.Indent(5);
+                    ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                    ImGui.Text($"Left click to view in logs tab. Right click to dismiss.");
+                    ImGui.PopStyleColor();
+                    ImGui.EndPopup();
+                }
+            }
+
+            ImGui.SetCursorScreenPos(originalCursorPos);
+            return true;
+        }
+
+
+
+
+
+
+
+        /// <summary>
+        /// Call this after a screenshot is complete to begin the screenshot display animation
+        /// </summary>
+        /// <param name="savePath">Path of the screenshot, for use in the mouseover text</param>
         public void NotifyScreenshotComplete(string savePath)
         {
             _lastScreenShot = PendingScreenshot;
@@ -829,16 +895,6 @@ namespace rgat
         }
 
 
-
-
-
-
-
-
-
-
-
-        public bool ExitFlag = false;
 
         /// <summary>
         /// Draws a dropdown allowing selection of one of the loaded target binaries

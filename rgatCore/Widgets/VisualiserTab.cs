@@ -30,17 +30,16 @@ namespace rgat
             _rgatState = _state;
         }
 
-        public void Init(GraphicsDevice gd, ImGuiController controller) //todo progress callback
+        public void Init(GraphicsDevice gd, ImGuiController controller, IProgress<float> progress)
         {
-            float progress = 0;
             _visualiserBar = new VisualiserBar(gd, controller); //200~ ms
-            progress = 0.3f;
+            progress.Report(0.3f);
             MainGraphWidget = new GraphPlotWidget(controller, gd, _rgatState, new Vector2(1000, 500)); //1000~ ms
 
-            progress = 0.8f;
+            progress.Report(0.8f);
             PreviewGraphWidget = new PreviewGraphsWidget(controller, gd, _rgatState); //350~ ms
 
-            progress = 0.99f;
+            progress.Report(0.99f);
             MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
             _rgatState.PreviewWidget = PreviewGraphWidget;
@@ -50,7 +49,7 @@ namespace rgat
 
             visbarRenderThreadObj = new VisualiserBarRendererThread(_visualiserBar);
             visbarRenderThreadObj.Begin();
-            progress = 1f;
+            progress.Report(1f);
         }
 
 
