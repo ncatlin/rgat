@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using static rgat.Logging;
+using static rgat.RGAT_CONSTANTS;
 
 namespace rgat
 {
@@ -37,20 +38,17 @@ namespace rgat
 
         List<LOG_EVENT> _sortedMsgs = new List<LOG_EVENT>();
 
+
+
         public void Draw(ref bool show)
         {
             ImGui.SetNextWindowSize(new Vector2(800, 500), ImGuiCond.Appearing);
             if (ImGui.Begin("logtableframe", ref show))
             {
-                Logging.LOG_EVENT[] msgs = Logging.GetLogMessages(null, _LogFilters);
-                int activeCount = _LogFilters.Where(x => x == true).Count();
-
-                string label = $"{msgs.Length} log entries displayed from ({activeCount}/{_LogFilters.Length}) sources";
-
+                //string label = $"{msgs.Length} log entries displayed from ({activeCount}/{_LogFilters.Length}) sources";
 
                 Vector2 boxSize = new Vector2(75, 40);
                 Vector2 marginSize = new Vector2(70, 40);
-
                 ImGuiSelectableFlags flags = ImGuiSelectableFlags.DontClosePopups;
                 uint tableHdrBG = 0xff333333;
 
@@ -62,9 +60,8 @@ namespace rgat
                         new Tuple<string, LogFilterType>("Error", LogFilterType.TextError)
                     };
 
-                if (ImGui.BeginTable("LogFilterTable", filters.Count+1, ImGuiTableFlags.Borders, new Vector2(boxSize.X * (filters.Count+1), 41)))
+                if (ImGui.BeginTable("LogFilterTable", filters.Count + 1, ImGuiTableFlags.Borders, new Vector2(boxSize.X * (filters.Count + 1), 41)))
                 {
-                    
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
                     ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, tableHdrBG);
@@ -73,7 +70,7 @@ namespace rgat
                         rowLastSelected[0] = !rowLastSelected[0];
                         filters.ForEach((filter) => { _LogFilters[(int)filter.Item2] = rowLastSelected[0]; });
                     }
-                    foreach(var filter in filters)
+                    foreach (var filter in filters)
                     {
                         ImGui.TableNextColumn();
                         ImGui.Selectable($"{filter.Item1} ({textFilterCounts[filter.Item2]})", ref _LogFilters[(int)filter.Item2], flags, boxSize);
@@ -94,7 +91,7 @@ namespace rgat
                         ImGui.EndPopup();
                     }
                     ImGui.SameLine();
-                    
+
                     ImGui.BeginGroup(); //filter text box
                     {
                         ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
@@ -109,87 +106,96 @@ namespace rgat
 
                         ImGui.EndGroup();
                     }
+                    WriteLogContentTable();
                 }
-
-                int filterLen = Array.FindIndex(textFilterValue, x => x == '\0');
-                string textFilterString = Encoding.ASCII.GetString(textFilterValue, 0, filterLen);
-
-                ImGuiTableFlags tableFlags = 
-                    ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | 
-                    ImGuiTableFlags.Resizable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.ScrollY | 
-                    ImGuiTableFlags.ScrollX;
-                //this is causing issues with the last column. using 4 columns makes it a bit better
-                tableFlags |= ImGuiTableFlags.Sortable;
-                tableFlags |= ImGuiTableFlags.SortMulti;
-
-                if (ImGui.BeginTable("LogsTableContent", 4, tableFlags))
-                {
-                    var ss = ImGui.TableGetSortSpecs();
-                    if (ss.SpecsDirty || _refreshTimerFired)
-                    {
-                        RegenerateRows(new List<LOG_EVENT>(msgs));
-                        _refreshTimerFired = false;
-                        _refreshTimer.Start();
-                    }
-
-                    ImGui.TableSetupScrollFreeze(0, 1);
-                    ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending);
-                    ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed);
-                    ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoSort);
-                    ImGui.TableHeadersRow();
-
-                    foreach (LOG_EVENT msg in _sortedMsgs)
-                    {
-                        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
-                        string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
-
-                        string msgString;
-                        string sourceString;
-                        switch (msg.LogType)
-                        {
-                            case eLogFilterBaseType.Text:
-                                {
-                                    Logging.TEXT_LOG_EVENT text_evt = (Logging.TEXT_LOG_EVENT)msg;
-                                    sourceString = $"{msg.LogType} - {text_evt._filter}";
-                                    msgString = text_evt._text;
-                                    break;
-                                }
-                            case eLogFilterBaseType.TimeLine:
-                                {
-                                    Logging.TIMELINE_EVENT tl_evt = (Logging.TIMELINE_EVENT)msg;
-                                    sourceString = $"{tl_evt.Filter}";
-                                    msgString = String.Join("", tl_evt.Label().Select(l => l.Item1));
-                                    break;
-                                }
-                            default:
-                                sourceString = "";
-                                msgString = "Other event type " + msg.LogType.ToString();
-                                break;
-                        }
-
-                        if (filterLen > 0)
-                        {
-                            string lowerFilter = textFilterString.ToLowerInvariant();
-                            if (!msgString.ToLowerInvariant().Contains(textFilterString) &&  
-                                !sourceString.ToLowerInvariant().Contains(textFilterString) &&
-                                !timeString.Contains(textFilterString))
-                                continue;
-                        }
-
-                        ImGui.TableNextRow();
-                        ImGui.TableSetColumnIndex(0);
-                        ImGui.Text(timeString);
-                        ImGui.TableSetColumnIndex(1);
-                        ImGui.Text(sourceString);
-                        ImGui.TableSetColumnIndex(2);
-                        ImGui.Text(msgString);
-                    }
-                    ImGui.EndTable(); ;
-                }
-                ImGui.EndChildFrame();
+                ImGui.End();
             }
-            ImGui.End();
         }
+
+
+
+        void WriteLogContentTable()
+        {
+            Logging.LOG_EVENT[] msgs = Logging.GetLogMessages(null, _LogFilters);
+            int activeCount = _LogFilters.Where(x => x == true).Count();
+
+            int filterLen = Array.FindIndex(textFilterValue, x => x == '\0');
+            string textFilterString = Encoding.ASCII.GetString(textFilterValue, 0, filterLen);
+
+            ImGuiTableFlags tableFlags =
+                ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders |
+                ImGuiTableFlags.Resizable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.ScrollY |
+                ImGuiTableFlags.ScrollX;
+            //this is causing issues with the last column. using 4 columns makes it a bit better
+            tableFlags |= ImGuiTableFlags.Sortable;
+            tableFlags |= ImGuiTableFlags.SortMulti;
+
+            if (ImGui.BeginTable("LogsTableContent", 4, tableFlags))
+            {
+                var ss = ImGui.TableGetSortSpecs();
+                if (ss.SpecsDirty || _refreshTimerFired)
+                {
+                    RegenerateRows(new List<LOG_EVENT>(msgs));
+                    _refreshTimerFired = false;
+                    _refreshTimer.Start();
+                }
+
+                ImGui.TableSetupScrollFreeze(0, 1);
+                ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending);
+                ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoSort);
+                ImGui.TableHeadersRow();
+
+                foreach (LOG_EVENT msg in _sortedMsgs)
+                {
+                    DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
+                    string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
+
+                    string msgString;
+                    string sourceString;
+                    switch (msg.LogType)
+                    {
+                        case eLogFilterBaseType.Text:
+                            {
+                                Logging.TEXT_LOG_EVENT text_evt = (Logging.TEXT_LOG_EVENT)msg;
+                                sourceString = $"{msg.LogType} - {text_evt._filter}";
+                                msgString = text_evt._text;
+                                break;
+                            }
+                        case eLogFilterBaseType.TimeLine:
+                            {
+                                Logging.TIMELINE_EVENT tl_evt = (Logging.TIMELINE_EVENT)msg;
+                                sourceString = $"{tl_evt.Filter}";
+                                msgString = String.Join("", tl_evt.Label().Select(l => l.Item1));
+                                break;
+                            }
+                        default:
+                            sourceString = "";
+                            msgString = "Other event type " + msg.LogType.ToString();
+                            break;
+                    }
+
+                    if (filterLen > 0)
+                    {
+                        string lowerFilter = textFilterString.ToLowerInvariant();
+                        if (!msgString.ToLowerInvariant().Contains(textFilterString) &&
+                            !sourceString.ToLowerInvariant().Contains(textFilterString) &&
+                            !timeString.Contains(textFilterString))
+                            continue;
+                    }
+
+                    ImGui.TableNextRow();
+                    ImGui.TableSetColumnIndex(0);
+                    ImGui.Text(timeString);
+                    ImGui.TableSetColumnIndex(1);
+                    ImGui.Text(sourceString);
+                    ImGui.TableSetColumnIndex(2);
+                    ImGui.Text(msgString);
+                }
+                ImGui.EndTable();
+            }
+        }
+
 
         void RegenerateRows(List<LOG_EVENT> shownMsgs)
         {
@@ -237,6 +243,13 @@ namespace rgat
             Array.Clear(_LogFilters, 0, _LogFilters.Length);
             _LogFilters[(int)LogFilterType.TextAlert] = true;
             _LogFilters[(int)LogFilterType.TextError] = true;
+        }
+
+        public bool RecentAlert()
+        {
+            const long lingerTime = UI.ALERT_TEXT_LINGER_TIME;
+            double timeSinceLast = Logging.TimeSinceLastAlert.TotalMilliseconds;
+            return (timeSinceLast < lingerTime);
         }
     }
 }

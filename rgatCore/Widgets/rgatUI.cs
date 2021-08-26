@@ -59,7 +59,7 @@ namespace rgat
         float _mouseWheelDelta = 0;
         Vector2 _mouseDragDelta = new Vector2(0, 0);
 
-        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover || _activeNotification);
+        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover || _activeNotification || _logsWindow.RecentAlert());
         bool _splashHeaderHover = false;
         bool _activeNotification = false;
         bool _scheduleMissingPathCheck = true;
@@ -251,7 +251,6 @@ namespace rgat
             if (ImGui.BeginChild("MainWindow", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoScrollbar))
             {
                 DrawTargetBar();
-                DrawAlerts();
 
                 BinaryTarget activeTarget = _rgatState.ActiveTarget;
                 if (activeTarget == null)
@@ -540,9 +539,9 @@ namespace rgat
                 DrawInnerLeftMenuItems();
                 DrawInnerRightMenuItems();
                 DrawOuterRightMenuItems();
-                DrawAlerts();
                 ImGui.EndMenuBar();
             }
+            DrawAlerts(new Vector2(ImGui.GetWindowSize().X - 235, 18));
         }
 
 
@@ -744,17 +743,27 @@ namespace rgat
 
 
 
-
-
-
-        bool DrawAlerts()
+   
+        bool DrawAlerts(Vector2 logMenuPosition)
         {
+
             const long lingerTime = UI.ALERT_TEXT_LINGER_TIME;
-            if (Logging.TimeSinceLastAlert.TotalMilliseconds > lingerTime) return false;
+            double timeSinceLast = Logging.TimeSinceLastAlert.TotalMilliseconds;
+            if (timeSinceLast > lingerTime) return false;
+
             int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
             if (alerts.Length == 0) return false;
+            _activeNotification = true;
 
             Vector2 originalCursorPos = ImGui.GetCursorScreenPos();
+
+            float animCircleTime = 600;
+            float animCircleRadius = 100;
+            if (timeSinceLast < animCircleTime)
+            {
+                uint color = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.Text)).ToUint(150);
+               ImGui.GetForegroundDrawList().AddCircle(logMenuPosition, (float)(animCircleRadius * (1 - (timeSinceLast / animCircleTime))), color);
+            }
 
             float widestAlert = 0;
             if (alerts.Length <= 2)
@@ -768,16 +777,17 @@ namespace rgat
             {
                 widestAlert = ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[^1])._text).X + 50;
             }
-
-            float width = Math.Min(widestAlert + 10, 500);
+            Vector2 windowSize = ImGui.GetWindowSize();
+            float width = Math.Min(widestAlert + 10, windowSize.X/2f);
             Vector2 size = new Vector2(width, 38);
-            ImGui.SetCursorScreenPos(new Vector2(ImGui.GetWindowSize().X - width, 40));
+            ImGui.SetCursorScreenPos(new Vector2(windowSize.X - width, 32));
+
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
-            Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), ImGui.GetWindowSize().X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
-            if (ImGui.BeginChild(78789, size, false))
+            Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), windowSize.X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
+            if (ImGui.BeginChild("##alertpopchildfrm", size))
             {
                 uint textColour = Themes.GetThemeColourImGui(ImGuiCol.Text);
                 uint errColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
@@ -799,13 +809,13 @@ namespace rgat
                     if (item.Filter == LogFilterType.TextAlert)
                     {
                         ImGui.PushStyleColor(ImGuiCol.Text, new WritableRgbaFloat(alertColour).ToUint(alpha));
-                        ImGui.Text($"{ImGuiController.FA_ICON_WARNING}");
+                        ImGui.Text($"{ImGuiController.FA_ICON_WARNING} ");
                         ImGui.PopStyleColor();
                     }
                     else
                     {
                         ImGui.PushStyleColor(ImGuiCol.Text, new WritableRgbaFloat(errColour).ToUint(alpha));
-                        ImGui.Text($"{ImGuiController.FA_ICON_EXCLAIM}");
+                        ImGui.Text($"{ImGuiController.FA_ICON_EXCLAIM} ");
                         ImGui.PopStyleColor();
                     }
                     ImGui.SameLine();
