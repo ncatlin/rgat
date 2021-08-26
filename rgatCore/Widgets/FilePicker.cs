@@ -7,6 +7,7 @@ using ImGuiNET;
 using Newtonsoft.Json.Linq;
 using rgat;
 using rgat.Config;
+using rgat.Widgets;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -62,6 +63,7 @@ namespace rgatFilePicker
             public bool isDeleted = false;
             public bool isNew = false;
             public bool expired = false;
+            public long FileSize = 0;
             public void refreshStates()
             {
                 if (isNew && (DateTime.Now - timeFound).TotalSeconds > 5) isNew = false;
@@ -71,8 +73,11 @@ namespace rgatFilePicker
                 }
             }
 
-            public void SetFileSize(long size) => size_str = String.Format("{0:n0}", size);
-
+            public void SetFileSize(long size)
+            {
+                FileSize = size;
+                size_str = String.Format("{0:n0}", size);
+            }
             public void UpdateLocalFileMetadata()
             {
                 if (isDeleted) return;
@@ -227,8 +232,8 @@ namespace rgatFilePicker
                 Dictionary<string, FileMetadata> newFileData = new Dictionary<string, FileMetadata>();
                 foreach (string path in latestFilePaths)
                 {
-                    newFileData[path] = newContentsObj.fileData[path];                
-                    
+                    newFileData[path] = newContentsObj.fileData[path];
+
                     //newly created while window was open
                     if ((bool)addedFilePaths?.Contains(path))
                     {
@@ -486,30 +491,56 @@ namespace rgatFilePicker
 
         public static void RemoveFilePicker(object o) => _filePickers.Remove(o);
 
-
-        private void EmitFileSelectableEntry(string path, FileMetadata data)
+        /// <summary>
+        /// Draw a non-directory file in the file list
+        /// </summary>
+        /// <param name="path">Full path of the file</param>
+        /// <param name="filemeta">FileMetadata information for the file</param>
+        /// <returns>True if the entry was activated (select+enter or double clicked)</returns>
+        private bool EmitFileSelectableEntry(string path, FileMetadata filemeta)
         {
+            bool wasActivated = false;
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
-            ImGui.PushStyleColor(ImGuiCol.Text, data.ListingColour());
+            ImGui.PushStyleColor(ImGuiCol.Text, filemeta.ListingColour());
             bool isSelected = SelectedFile == path;
-            if (ImGui.Selectable(data.filename, isSelected, ImGuiSelectableFlags.SpanAllColumns))
-                SelectedFile = path;
+            string label = filemeta.filename;
+            if (filemeta.extension == "exe" || filemeta.extension == "dll")
+            {
+                label = $"{ImGuiController.FA_ICON_FILECODE} {label}";
+            }
+            else if (filemeta.extension == "rgat")
+            {
+                label = $"{ImGuiController.FA_ICON_FILEPLAIN} {label}";
+            }
+
+            if (ImGui.Selectable(label, isSelected, ImGuiSelectableFlags.SpanAllColumns))
+            {
+                this.SelectedFile = path;
+            }
+            wasActivated = (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(0));
+            wasActivated = wasActivated || (isSelected && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Enter)));
             ImGui.TableNextColumn();
-            ImGui.Text(data.extension);
+            ImGui.Text(filemeta.extension);
             ImGui.TableNextColumn();
-            ImGui.Text(data.size_str);
+            ImGui.Text(filemeta.size_str);
             ImGui.TableNextColumn();
-            string modified = data.LastWriteTime.ToShortDateString() + " ?" + data.LastWriteTime.ToShortTimeString();
+            string modified = filemeta.LastWriteTime.ToShortTimeString() + " " + filemeta.LastWriteTime.ToShortDateString();
             ImGui.Text(modified);
             ImGui.TableNextColumn();
 
             ImGui.PopStyleColor();
+            return wasActivated;
         }
 
 
 
-
+        /// <summary>
+        /// Fill out the listing of the remote directory
+        /// lock must be held
+        /// </summary>
+        /// <param name="responseTok">JToken containing information about the current directory</param>
+        /// <returns>true if the data was valid</returns>
         bool InitCurrentDirInfo(JToken responseTok)
         {
             if (responseTok.Type != JTokenType.Object) return false;
@@ -528,6 +559,8 @@ namespace rgatFilePicker
 
             if (Data.Contents != null && Data.CurrentDirectory == currentDirTok.ToString() && Data.NextRemoteDirectory == Data.CurrentDirectory)
             {
+                _sortedDirs = null;
+                _sortedFiles = null;
                 Data.Contents.RefreshDirectoryContents(newDirContents.AllPaths(), newDirContents);
             }
             else
@@ -538,7 +571,6 @@ namespace rgatFilePicker
                 Data.CurrentDirectoryParent = parentTok.ToString();
                 Data.CurrentDirectoryParentExists = ptokexists.ToObject<bool>();
                 SetFileSystemEntries(Data.CurrentDirectory, newDirContents.AllPaths(), newDirContents);
-
             }
 
 
@@ -628,7 +660,7 @@ namespace rgatFilePicker
 
         int pendingCmdCount = 0;
 
-        public PickerResult Draw(object objKey)
+        public unsafe PickerResult Draw(object objKey)
         {
             if (Data.CurrentDirectory == null || Data.NextRemoteDirectory != null)
             {
@@ -681,14 +713,65 @@ namespace rgatFilePicker
                     }
                     else
                     {
-                        SetFileSystemEntries(Data.CurrentDirectory, GetFileSystemEntries());                       
+                        _sortedDirs = null;
+                        _sortedFiles = null;
+                        SetFileSystemEntries(Data.CurrentDirectory, GetFileSystemEntries());
                     }
 
                 }
             }
 
+
+            DrawPickerControlsBar();
+            PickerResult result = DrawFilesContents(objKey);
+            if (result != PickerResult.eNoAction && SelectedFile == null) result = PickerResult.eFalse;
+            return result;
+        }
+
+        void DrawPickerControlsBar()
+        {
             string root = Path.GetPathRoot(Data.CurrentDirectory);
-            ImGui.Text("Path: " + root + Data.CurrentDirectory.Replace(root, ""));
+            bool enabled = _directoryHistoryPosition < (_directoryHistory.Count - 1);
+            if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_LEFTCIRCLE}", enabled: enabled))
+            {
+                _directoryHistoryPosition += 1;
+                SetActiveDirectory(_directoryHistory.ToArray()[_directoryHistoryPosition], false);
+            }
+            if (enabled && ImGui.IsItemHovered())
+            {
+                ShowDirectoryHistory();
+            }
+            ImGui.SameLine();
+            if (ImGui.Button($"{ImGuiController.FA_ICON_UPCIRCLE}"))
+            {
+                SetActiveDirectory(Directory.GetParent(Data.CurrentDirectory).FullName);
+            }
+            SmallWidgets.MouseoverText("Parent Directory");
+            ImGui.SameLine();
+            enabled = _directoryHistoryPosition > 0;
+            if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_RIGHTCIRCLE}", enabled: enabled))
+            {
+                _directoryHistoryPosition -= 1;
+                SetActiveDirectory(_directoryHistory.ToArray()[_directoryHistoryPosition], false);
+            }
+            if (enabled && ImGui.IsItemHovered())
+            {
+                ShowDirectoryHistory();
+            }
+            ImGui.SameLine();
+            string currentDirString = Data.CurrentDirectory;
+            ImGuiInputTextFlags flags = ImGuiInputTextFlags.EnterReturnsTrue;
+            if (ImGui.InputText("Path", ref currentDirString, 4096, flags))
+            {
+                if (Path.GetDirectoryName(currentDirString + "\\") != Data.CurrentDirectory)
+                {
+                    SetActiveDirectory(currentDirString);
+                }
+            }
+        }
+
+        PickerResult DrawFilesContents(object objKey)
+        {
             const int LEFTCOLWIDTH = 150;
 
             float BTNSGRPHEIGHT = 28;
@@ -708,11 +791,29 @@ namespace rgatFilePicker
             }
             ImGui.EndGroup();
             ImGui.SameLine();
-
             PickerResult result = DrawFilesList(FILEPANEHEIGHT, objKey);
-            if (result != PickerResult.eNoAction && SelectedFile == null) result = PickerResult.eFalse;
+
             return result;
         }
+
+        void ShowDirectoryHistory()
+        {
+            ImGui.BeginTooltip();
+            ImGui.Text($"Directory History");
+            ImGui.Separator();
+            ImGui.Indent(6);
+            for (var historyi = 0; historyi < _directoryHistory.Count; historyi++)
+            {
+                string dir = _directoryHistory[historyi];
+                uint textcolour = historyi == _directoryHistoryPosition ? Themes.GetThemeColourUINT(Themes.eThemeColour.eTextEmphasis1) : Themes.GetThemeColourImGui(ImGuiCol.Text);
+                ImGui.PushStyleColor(ImGuiCol.Text, textcolour);
+                ImGui.Text(dir);
+                ImGui.PopStyleColor();
+            }
+            ImGui.Indent(-6);
+            ImGui.EndTooltip();
+        }
+
 
 
         PickerResult DrawButtons(float btnHeight)
@@ -759,8 +860,10 @@ namespace rgatFilePicker
             return PickerResult.eNoAction;
         }
 
+        List<string> _directoryHistory = new List<string>();
+        int _directoryHistoryPosition = 0;
 
-        void SetActiveDirectory(string dir)
+        void SetActiveDirectory(string dir, bool modifyHistory = true)
         {
             if (_remoteMirror == null)
             {
@@ -777,6 +880,17 @@ namespace rgatFilePicker
             DirectoryInfo thisdir = new DirectoryInfo(dir);
             Data.CurrentDirectory = thisdir.FullName;
             Data.CurrentDirectoryExists = Directory.Exists(Data.CurrentDirectory);
+            if (modifyHistory && Data.CurrentDirectoryExists)
+            {
+                if (_directoryHistory.Contains(dir))
+                    _directoryHistory.Remove(dir);
+                _directoryHistory.Insert(0, dir);
+                if (_directoryHistory.Count > RGAT_CONSTANTS.UI.FILEPICKER_HISTORY_MAX)
+                {
+                    _directoryHistory.RemoveRange(RGAT_CONSTANTS.UI.FILEPICKER_HISTORY_MAX, _directoryHistory.Count - RGAT_CONSTANTS.UI.FILEPICKER_HISTORY_MAX);
+                }
+            }
+
             Data.CurrentDirectoryParentExists = thisdir.Parent != null && Directory.Exists(thisdir.Parent.FullName);
             if (Data.CurrentDirectoryParentExists)
             {
@@ -793,12 +907,14 @@ namespace rgatFilePicker
         }
 
 
+        List<KeyValuePair<string, FileMetadata>> _sortedDirs;
+        List<KeyValuePair<string, FileMetadata>> _sortedFiles;
         PickerResult DrawFilesList(float height, object objKey)
         {
             PickerResult result = PickerResult.eNoAction;
-            bool currentBadDir = false;
+            bool currentBadDir = !Data.CurrentDirectoryExists;
 
-            if (_badDir) ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x55000040);
+            if (currentBadDir) ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x55000040);
 
             uint width = (uint)ImGui.GetContentRegionAvail().X;
             Vector2 listSize = new Vector2(width, height);
@@ -807,90 +923,59 @@ namespace rgatFilePicker
 
                 if (!Data.CurrentDirectoryExists)
                 {
-                    currentBadDir = true;
+                    string[] msgs = new string[] {
+                        $"{ImGuiController.FA_ICON_WARNING} Not Found",
+                        $"Directory '{Data.CurrentDirectory}' does not exist"
+                    };
+                    ImguiUtils.DrawRegionCenteredText(msgs);
                 }
                 else
                 {
                     Vector2 sz = ImGui.GetContentRegionAvail();
-                    if (ImGui.BeginTable("FileTable", 4, ImGuiTableFlags.ScrollY, sz))
+
+                    if (Data.ErrMsg != null && Data.ErrMsg.Length > 0)
                     {
-                        ImGui.TableSetupScrollFreeze(0, 2);
-                        ImGui.TableSetupColumn("File");
-                        ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 80);
-                        ImGui.TableSetupColumn("Size");
-                        ImGui.TableSetupColumn("Modified");
-                        ImGui.TableHeadersRow();
-
-                        if (Data.CurrentDirectoryParent != null && Data.CurrentDirectory != Path.GetPathRoot(Data.CurrentDirectory))
+                        string[] msgs = new string[] { $"{ImGuiController.FA_ICON_WARNING} Error",  Data.ErrMsg};
+                        ImguiUtils.DrawRegionCenteredText(msgs);
+                    }
+                    else
+                    {
+                        if (ImGui.BeginTable("FileTable", 4, ImGuiTableFlags.ScrollY | ImGuiTableFlags.Sortable, sz))
                         {
-                            ImGui.TableNextRow();
-                            ImGui.TableNextColumn();
-                            if (ImGui.Selectable("../", false, ImGuiSelectableFlags.SpanAllColumns))
+                            ImGui.TableSetupScrollFreeze(0, 2);
+                            ImGui.TableSetupColumn("File", ImGuiTableColumnFlags.DefaultSort);
+                            ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 80);
+                            ImGui.TableSetupColumn("Size");
+                            ImGui.TableSetupColumn("Modified");
+                            ImGui.TableHeadersRow();
+
+                            if (Data.CurrentDirectoryParent != null && Data.CurrentDirectory != Path.GetPathRoot(Data.CurrentDirectory))
                             {
-                                SetActiveDirectory(Data.CurrentDirectoryParent);
+                                ImGui.TableNextRow();
+                                ImGui.TableNextColumn();
+                                if (ImGui.Selectable("../", false, ImGuiSelectableFlags.SpanAllColumns))
+                                {
+                                    SetActiveDirectory(Data.CurrentDirectoryParent);
+                                }
+                                ImGui.TableNextColumn();
+                                ImGui.TableNextColumn();
+                                ImGui.TableNextColumn();
                             }
-                            ImGui.TableNextColumn();
-                            ImGui.TableNextColumn();
-                            ImGui.TableNextColumn();
-                        }
 
-                        if (Data.ErrMsg != null && Data.ErrMsg.Length > 0)
-                        {
-                            ImGui.TableNextRow();
-                            ImGui.TableNextColumn();
-                            ImGui.TextWrapped("Failed to read directory: " + Data.ErrMsg);
-                            ImGui.TableNextColumn();
-                            ImGui.TableNextColumn();
-                            ImGui.TableNextColumn();
-                            currentBadDir = true;
-                        }
-                        else
-                        {
+
                             if (Data.Contents != null)
                             {
-                                currentBadDir = false;
-                                float longestFilename = 100;
-                                foreach (var path_data in Data.Contents.dirData)
+                                var ss = ImGui.TableGetSortSpecs();
+                                if (_sortedDirs == null || _sortedFiles == null || ss.SpecsDirty)
                                 {
-                                    ImGui.TableNextRow();
-                                    ImGui.TableNextColumn();
-
-                                    //file
-                                    FileMetadata md = path_data.Value;
-                                    ImGui.PushStyleColor(ImGuiCol.Text, md.ListingColour());
-                                    if (ImGui.Selectable(path_data.Value.filename + "/", false, ImGuiSelectableFlags.SpanAllColumns))
-                                    {
-                                        SetActiveDirectory(path_data.Key);
-                                    }
-                                    if (path_data.Value.namewidth > longestFilename)
-                                        longestFilename = path_data.Value.namewidth;
-
-                                    ImGui.TableNextColumn();
-                                    //type
-                                    ImGui.Text("Dir");
-                                    ImGui.TableNextColumn();
-                                    //size
-                                    ImGui.Text(path_data.Value.size_str);
-                                    ImGui.TableNextColumn();
-                                    ImGui.Text("");
-                                    ImGui.TableNextColumn();
-                                    ImGui.PopStyleColor();
+                                    SortDisplayFiles(ss.Specs);
                                 }
 
-                                foreach (var path_data in Data.Contents.fileData)
-                                {
-                                    EmitFileSelectableEntry(path_data.Key, path_data.Value);
-                                    if (path_data.Value.namewidth > longestFilename)
-                                        longestFilename = path_data.Value.namewidth;
-                                    if (ImGui.IsMouseDoubleClicked(0))
-                                    {
-                                        result = PickerResult.eTrue;
-                                        ImGui.CloseCurrentPopup();
-                                    }
-                                }
+                                result = DrawDirsFilesList();
                             }
+
+                            ImGui.EndTable();
                         }
-                        ImGui.EndTable();
                     }
                     //ImGui.SetColumnWidth(0, longestFilename + 20);
 
@@ -899,8 +984,7 @@ namespace rgatFilePicker
 
             ImGui.EndChildFrame();
 
-            if (_badDir) ImGui.PopStyleColor();
-            _badDir = currentBadDir;
+            if (currentBadDir) ImGui.PopStyleColor();
 
             if (ImGui.IsAnyMouseDown())
             {
@@ -917,20 +1001,133 @@ namespace rgatFilePicker
             return result;
         }
 
+        void SortDisplayFiles(ImGuiTableColumnSortSpecsPtr sortSpecs)
+        {
+            _sortedDirs = new List<KeyValuePair<string, FileMetadata>>();
+            switch (sortSpecs.ColumnIndex)
+            {
+                case 0:
+                    if (sortSpecs.SortDirection == ImGuiSortDirection.Ascending)
+                        _sortedDirs = Data.Contents.dirData.OrderBy(o => o.Value.filename.ToLower()).ToList();
+                    else
+                        _sortedDirs = Data.Contents.dirData.OrderByDescending(o => o.Value.filename.ToLower()).ToList();
+                    break;
+                default:
+                    _sortedDirs = Data.Contents.dirData.ToList();
+                    break;
+            }
+
+            _sortedFiles = new List<KeyValuePair<string, FileMetadata>>();
+            switch (sortSpecs.ColumnIndex)
+            {
+                case 0:
+                    if (sortSpecs.SortDirection == ImGuiSortDirection.Ascending)
+                        _sortedFiles = Data.Contents.fileData.OrderBy(o => o.Value.filename.ToLower()).ToList();
+                    else
+                        _sortedFiles = Data.Contents.fileData.OrderByDescending(o => o.Value.filename.ToLower()).ToList();
+                    break;
+                case 1:
+                    if (sortSpecs.SortDirection == ImGuiSortDirection.Ascending)
+                        _sortedFiles = Data.Contents.fileData.OrderBy(o => o.Value.extension.ToLower()).ToList();
+                    else
+                        _sortedFiles = Data.Contents.fileData.OrderByDescending(o => o.Value.extension.ToLower()).ToList();
+                    break;
+                case 2:
+                    if (sortSpecs.SortDirection == ImGuiSortDirection.Ascending)
+                        _sortedFiles = Data.Contents.fileData.OrderBy(o => o.Value.FileSize).ToList();
+                    else
+                        _sortedFiles = Data.Contents.fileData.OrderByDescending(o => o.Value.FileSize).ToList();
+                    break;
+                case 3:
+                    if (sortSpecs.SortDirection == ImGuiSortDirection.Ascending)
+                        _sortedFiles = Data.Contents.fileData.OrderBy(o => o.Value.LastWriteTime).ToList();
+                    else
+                        _sortedFiles = Data.Contents.fileData.OrderByDescending(o => o.Value.LastWriteTime).ToList();
+                    break;
+                default:
+                    _sortedFiles = Data.Contents.fileData.ToList();
+                    break;
+            }
+
+
+
+        }
+
+
+        PickerResult DrawDirsFilesList()
+        {
+            PickerResult result = PickerResult.eNoAction;
+            float longestFilename = 100;
+            foreach (var path_data in _sortedDirs)
+            {
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+
+                //file
+                FileMetadata md = path_data.Value;
+                ImGui.PushStyleColor(ImGuiCol.Text, md.ListingColour());
+                if (ImGui.Selectable($"{ImGuiController.FA_ICON_DIRECTORY} {path_data.Value.filename}/", false, ImGuiSelectableFlags.SpanAllColumns))
+                {
+                    SetActiveDirectory(path_data.Key);
+                }
+                if (path_data.Value.namewidth > longestFilename)
+                    longestFilename = path_data.Value.namewidth;
+
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+                //size
+                ImGui.Text(path_data.Value.size_str);
+                ImGui.TableNextColumn();
+                ImGui.Text("");
+                ImGui.TableNextColumn();
+                ImGui.PopStyleColor();
+            }
+
+            foreach (var path_data in _sortedFiles)
+            {
+                FileMetadata filemd = path_data.Value;
+                if (EmitFileSelectableEntry(path: path_data.Key, filemeta: filemd))
+                {
+                    this.SelectedFile = path_data.Key;
+                    ImGui.CloseCurrentPopup();
+                    result = PickerResult.eTrue;
+                }
+                if (path_data.Value.namewidth > longestFilename)
+                    longestFilename = path_data.Value.namewidth;
+                if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(0))
+                {
+                    result = PickerResult.eTrue;
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+            return result;
+        }
+
+
         void DrawRecentDirsList(Vector2 framesize)
         {
             if (ImGui.BeginChildFrame(ImGui.GetID("#RecentDirListFrm"), framesize, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 if (ImGui.BeginTable("##RecentPathsTab", 1))
                 {
+                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg));
+                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg));
                     ImGui.TableSetupScrollFreeze(0, 1);
                     ImGui.TableSetupColumn("Recent Places");
                     ImGui.TableHeadersRow();
-                    for (var i = 0; i < 3; i++)
+                    ImGui.PopStyleColor(2);
+
+                    var recentDirs = GlobalConfig.RecentDirectories;
+                    foreach (var dir in recentDirs)
                     {
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Selectable("test/", false, ImGuiSelectableFlags.SpanAllColumns);
+                        string label = Path.GetFileName(dir.path);
+                        if (ImGui.Selectable(label, false, ImGuiSelectableFlags.SpanAllColumns))
+                        {
+                            SetActiveDirectory(dir.path);
+                        }
+                        SmallWidgets.MouseoverText(dir.path);
                     }
                     ImGui.EndTable();
                 }
@@ -966,9 +1163,10 @@ namespace rgatFilePicker
                     if (File.Exists(path)) newFileListing.Add(new Tuple<string, bool>(path, false));
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                Logging.RecordLogEvent($"Failed to list directory {Data.CurrentDirectory} contents: {e.Message}");
+                Data.ErrMsg = $"Failed to list directory '{Data.CurrentDirectory}' contents: {e.Message}";
+                Logging.RecordLogEvent(Data.ErrMsg);
             }
             return newFileListing;
         }
@@ -1091,9 +1289,13 @@ namespace rgatFilePicker
                 List<Tuple<string, string>> drives = GetDriveListStrings();
                 if (ImGui.BeginTable("##DrivesTable", 1))
                 {
+                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg));
+                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg));
                     ImGui.TableSetupScrollFreeze(0, 1);
                     ImGui.TableSetupColumn("Drives");
                     ImGui.TableHeadersRow();
+                    ImGui.PopStyleColor(2);
+
                     foreach (Tuple<string, string> d_l in drives)
                     {
                         ImGui.TableNextRow();

@@ -72,6 +72,12 @@ namespace ImGuiNET
         public static readonly char FA_STILL_CAMERA = '\uf030';
         public static readonly char FA_ICON_WARNING = '\uf071';
         public static readonly char FA_ICON_EXCLAIM = '\uf12a';
+        public static readonly char FA_ICON_UPCIRCLE = '\uf062';
+        public static readonly char FA_ICON_LEFTCIRCLE = '\uf060';
+        public static readonly char FA_ICON_RIGHTCIRCLE = '\uf061';
+        public static readonly char FA_ICON_DIRECTORY = '\uf07b';
+        public static readonly char FA_ICON_FILEPLAIN = '\uf15b';
+        public static readonly char FA_ICON_FILECODE = '\uf1c9';
 
         public unsafe ImGuiController(GraphicsDevice gd, OutputDescription outputDescription, int width, int height)
         {

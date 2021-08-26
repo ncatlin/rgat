@@ -218,7 +218,16 @@ namespace rgat
 
         public enum LogFilterType
         {
-            TextDebug, TextInfo, TextError, TextAlert, BulkDebugLogFile, COUNT
+            //Uninteresting events which may be useful for debugging
+            TextDebug, 
+            //Events a user might want to know about if they check the logs
+            TextInfo, 
+            //Something bad happened. Alert the user
+            TextError, 
+            //Something interesting happened. Alert the user
+            TextAlert, 
+            //Something very common and routine happened. Log it to a file if bulk debug logging is enabled.
+            BulkDebugLogFile, COUNT
         };
         static int[] MessageCounts = new int[(int)LogFilterType.COUNT];
 
@@ -227,6 +236,10 @@ namespace rgat
         readonly static object _messagesLock = new object();
 
 
+        /// <summary>
+        /// Get the number of log messages recorded for each filter
+        /// </summary>
+        /// <returns> A dictionary of filter/count values</returns>
         public static Dictionary<LogFilterType, int> GetTextFilterCounts()
         {
             Dictionary<LogFilterType, int> result = new Dictionary<LogFilterType, int>();
@@ -241,7 +254,12 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Get the most recent alerts/errors to inform the user about
+        /// </summary>
+        /// <param name="max">Maximum number to retrieve</param>
+        /// <param name="alerts">An output array of alert events</param>
+        /// <returns>The number of events returned</returns>
         public static int GetAlerts(int max, out LOG_EVENT[] alerts)
         {
             lock (_messagesLock)
@@ -251,10 +269,14 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Acknowledge the latest alerts, stop displaying them on the UI
+        /// </summary>
         public static void ClearAlertsBox()
         {
             lock (_messagesLock)
             {
+                UnseenAlerts = 0;
                 _alertNotifications.Clear();
             }
         }
@@ -266,27 +288,6 @@ namespace rgat
                 _filter = filter;
                 _text = text;
                 Filter = filter;
-                /*
-
-                switch (filter)
-                {
-                    case LogFilterType.TextDebug:
-                        Filter = LogFilterType.TextDebug;
-                        break;
-                    case LogFilterType.TextInfo:
-                        Filter = LogFilterType.TextInfo;
-                        break;
-                    case LogFilterType.TextAlert:
-                        Filter = LogFilterType.TextAlert;
-                        break;
-                    case LogFilterType.TextError:
-                        Filter = LogFilterType.TextError;
-                        break;
-                    default:
-                        Debug.Assert(false, "Bad text log event");
-                        break;
-                }
-                */
             }
 
             public void SetAssociatedGraph(ProtoGraph graph)
@@ -306,13 +307,10 @@ namespace rgat
 
         /// <summary>      
         /// Display a message in the logfile/message window
-        /// Also will show on the UI alert pane with the Alert option
+        /// Also will show on the UI alert pane with the Alert/Error options
         /// </summary>
         /// <param name="message">Message to display</param>
-        /// <param name="visibility">    
-        /// Debug -     Diagnostic debug log visible messages generally uninteresting to users
-        /// Log -       Information messages users might want to seek out
-        /// Alert -     Information the user needs to see to enable proper functionality. Will be shown somewhere prominent.
+        /// <param name="visibility">The LogFilterType category of the log entry
         /// </param>
         /// <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
         /// <param name="colour">Optional colour, otherwise default will be used</param>

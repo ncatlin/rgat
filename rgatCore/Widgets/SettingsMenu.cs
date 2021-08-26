@@ -1326,11 +1326,28 @@ namespace rgat.Widgets
 
             float minGraphAlpha = GlobalConfig.MinimumAlpha;
             ImGui.SetNextItemWidth(80);
-            if (ImGui.DragFloat("Minimum Animation Alpha", ref minGraphAlpha, 0.01f, 0, 1))
+            if (ImGui.DragFloat("Graph Minimum Animation Alpha", ref minGraphAlpha, 0.01f, 0, 1))
             {
                 GlobalConfig.MinimumAlpha = minGraphAlpha;
                 GlobalConfig.AddUpdateAppSettings("MinimumGraphAlpha", minGraphAlpha.ToString());
             }
+
+            bool screencapAnim = GlobalConfig.ScreencapAnimation;
+            if (ImGui.Checkbox("Enable Screen Capture Animation", ref screencapAnim))
+            {
+                GlobalConfig.ScreencapAnimation = screencapAnim;
+                GlobalConfig.AddUpdateAppSettings("ScreencapAnimation", screencapAnim ? "True" : "False");
+            }
+            SmallWidgets.MouseoverText("Display an animated rectangle to give feedback for screen captures");
+
+            bool alertAnim = GlobalConfig.AlertAnimation;
+            if (ImGui.Checkbox("Enable Alert Animation", ref alertAnim))
+            {
+                GlobalConfig.AlertAnimation = alertAnim;
+                GlobalConfig.AddUpdateAppSettings("AlertAnimation", alertAnim ? "True" : "False");
+            }
+            SmallWidgets.MouseoverText("Display a shrinking circle to draw the eye to new alert messages");
+
         }
 
 

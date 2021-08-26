@@ -24,7 +24,11 @@ namespace rgat
             public const uint UI_LONG_TIMER_INTERVAL = 60000;
             public const double SCREENSHOT_ICON_LINGER_TIME = 3;
             public const double SCREENSHOT_ANIMATION_RECT_SPEED = 10; //this will be 1/10th of the linger time
-            public const uint ALERT_TEXT_LINGER_TIME = 9000; //this will be 1/10th of the linger time
+            public const double ALERT_TEXT_LINGER_TIME = 9000;
+            public const double ALERT_CIRCLE_ANIMATION_TIME = 600;
+            public const double ALERT_CIRCLE_ANIMATION_RADIUS = 100;
+
+            public const int FILEPICKER_HISTORY_MAX = 10;
         }
 
         public static class GL_Constants

@@ -27,6 +27,18 @@ namespace rgat
             ImGui.Text(msg);
         }
 
+        public static void DrawRegionCenteredText(string[] msgs)
+        {
+            float textHeight = ImGui.CalcTextSize(msgs[0]).Y;
+            ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - (msgs.Length * textHeight * 0.5f));
+            foreach (string msg in msgs)
+            {
+                float xsize = ImGui.CalcTextSize(msg).X;
+                ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - xsize / 2);
+                ImGui.Text(msg);
+            }
+        }
+
 
         public static void HelpMarker(string desc)
         {

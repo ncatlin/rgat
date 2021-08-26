@@ -84,7 +84,7 @@ namespace rgat
 
             DIELib?.CancelAllScans();
             YARALib?.CancelAllScans();
-            VideoRecorder?.Done();
+            VideoRecorder?.StopRecording();
 
             foreach (BinaryTarget targ in targets.GetBinaryTargets())
             {

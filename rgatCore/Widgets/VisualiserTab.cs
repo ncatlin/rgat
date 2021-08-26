@@ -412,7 +412,7 @@ namespace rgat
                         ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
                         if (ImGui.Button("Stop Capture"))
                         {
-                            rgatState.VideoRecorder.Done();
+                            rgatState.VideoRecorder.StopRecording();
                         }
                         ImGui.PopStyleColor();
                     }

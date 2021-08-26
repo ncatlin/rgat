@@ -59,9 +59,15 @@ namespace rgat
         float _mouseWheelDelta = 0;
         Vector2 _mouseDragDelta = new Vector2(0, 0);
 
-        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover || _activeNotification || _logsWindow.RecentAlert());
+        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover || _logsWindow.RecentAlert() || _activeDialog || (DateTime.Now - _lastNotification).TotalMilliseconds < 500);
         bool _splashHeaderHover = false;
-        bool _activeNotification = false;
+        DateTime _lastNotification = DateTime.MinValue;
+
+        /// <summary>
+        /// Tells the UI that something is happening on the menu bar so it should be displayed
+        /// Currently its always displayed except on the splash screen
+        /// </summary>
+        void ActivateNotification() => _lastNotification = DateTime.Now;
         bool _scheduleMissingPathCheck = true;
 
         public VideoEncoder.CaptureContent PendingScreenshot { get; private set; } = VideoEncoder.CaptureContent.Invalid;
@@ -222,19 +228,43 @@ namespace rgat
                 DrawMainMenu();
         }
 
-
+        bool _activeDialog = false;
         public void DrawDialogs()
         {
-            if (_settings_window_shown && _SettingsMenu != null) _SettingsMenu.Draw(ref _settings_window_shown);
-            if (_show_select_exe_window) DrawFileSelectBox(ref _show_select_exe_window);
-            if (_show_load_trace_window) DrawTraceLoadBox(ref _show_load_trace_window);
-            if (_show_test_harness) _testHarness.Draw(ref _show_test_harness);
-            if (_show_logs_window) _logsWindow.Draw(ref _show_logs_window);
+            bool dialogShown = false;
+
+            if (_settings_window_shown && _SettingsMenu != null)
+            {
+                _SettingsMenu.Draw(ref _settings_window_shown);
+                dialogShown = true;
+            }
+            if (_show_select_exe_window)
+            {
+                DrawFileSelectBox(ref _show_select_exe_window);
+                dialogShown = true;
+            }
+            if (_show_load_trace_window)
+            {
+                DrawTraceLoadBox(ref _show_load_trace_window);
+                dialogShown = true;
+            }
+            if (_show_test_harness)
+            {
+                _testHarness.Draw(ref _show_test_harness);
+                dialogShown = true;
+            }
+            if (_show_logs_window)
+            {
+                _logsWindow.Draw(ref _show_logs_window);
+                dialogShown = true;
+            }
             if (_show_remote_dialog)
             {
                 if (_RemoteDialog == null) { _RemoteDialog = new RemoteDialog(_rgatState); }
                 _RemoteDialog.Draw(ref _show_remote_dialog);
+                dialogShown = true;
             }
+            _activeDialog = dialogShown;
         }
 
         public void CleanupFrame()
@@ -271,6 +301,7 @@ namespace rgat
         public void HandleUserInput()
         {
             if (StartupProgress < 1) return;
+
             if (_mouseWheelDelta != 0)
             {
                 if (_tooltipScrollingActive)
@@ -330,11 +361,11 @@ namespace rgat
                             case Key.ControlRight:
                                 continue;
                             case Key.Unknown:
-                                Console.WriteLine($"Unknown keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}");
+                                Logging.RecordError($"Unknown keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}");
                                 break;
                             default:
                                 _SettingsMenu.AssignPendingKeybind(KeyModifierTuple);
-                                Console.WriteLine($"Known keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}");
+                                Logging.RecordError($"Known keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}");
                                 continue;
                         }
                     }
@@ -359,9 +390,11 @@ namespace rgat
                         switch (boundAction)
                         {
                             case eKeybind.ToggleVideo:
+                                if (_activeDialog) continue;
+                                ActivateNotification();
                                 if (rgatState.VideoRecorder.Recording)
                                 {
-                                    rgatState.VideoRecorder.Done();
+                                    rgatState.VideoRecorder.StopRecording();
                                 }
                                 else
                                 {
@@ -370,6 +403,8 @@ namespace rgat
                                 continue;
 
                             case eKeybind.PauseVideo:
+                                if (_activeDialog) continue;
+                                ActivateNotification();
                                 if (rgatState.VideoRecorder.Recording)
                                 {
                                     rgatState.VideoRecorder.CapturePaused = !rgatState.VideoRecorder.CapturePaused;
@@ -377,19 +412,19 @@ namespace rgat
                                 continue;
 
                             case eKeybind.CaptureGraphImage:
-                                if (currentTabVisualiser)
-                                {
-                                    PendingScreenshot = VideoEncoder.CaptureContent.Graph;
-                                }
+                                if (_activeDialog) continue;
+                                PendingScreenshot = VideoEncoder.CaptureContent.Graph;
+
                                 continue;
                             case eKeybind.CaptureGraphPreviewImage:
-                                if (currentTabVisualiser)
-                                {
-                                    PendingScreenshot = VideoEncoder.CaptureContent.GraphAndPreviews;
-                                }
+                                if (_activeDialog) continue;
+                                PendingScreenshot = VideoEncoder.CaptureContent.GraphAndPreviews;
+
                                 continue;
                             case eKeybind.CaptureWindowImage:
+                                if (_activeDialog) continue;
                                 PendingScreenshot = VideoEncoder.CaptureContent.Window;
+
                                 continue;
                             default:
                                 break;
@@ -532,16 +567,16 @@ namespace rgat
 
         private unsafe void DrawMainMenu()
         {
-            _activeNotification = false;
+            float logMenuX = 0;
             if (ImGui.BeginMenuBar())
             {
                 DrawOuterLeftMenuItems();
                 DrawInnerLeftMenuItems();
                 DrawInnerRightMenuItems();
-                DrawOuterRightMenuItems();
+                logMenuX = DrawOuterRightMenuItems();
                 ImGui.EndMenuBar();
             }
-            DrawAlerts(new Vector2(ImGui.GetWindowSize().X - 235, 18));
+            DrawAlerts(new Vector2(logMenuX, 18));
         }
 
 
@@ -553,7 +588,7 @@ namespace rgat
                 var recentbins = GlobalConfig.RecentBinaries;
                 if (ImGui.BeginMenu("Recent Binaries", recentbins.Any()))
                 {
-                    foreach (var entry in recentbins.Take(Math.Min(10, recentbins.Count)))
+                    foreach (var entry in recentbins.Take(Math.Min(10, recentbins.Length)))
                     {
                         if (DrawRecentPathEntry(entry, true))
                         {
@@ -565,7 +600,7 @@ namespace rgat
                 var recenttraces = GlobalConfig.RecentTraces;
                 if (ImGui.BeginMenu("Recent Traces", recenttraces.Any()))
                 {
-                    foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Count)))
+                    foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Length)))
                     {
                         if (DrawRecentPathEntry(entry, true)) LoadTraceByPath(entry.path);
                     }
@@ -603,21 +638,19 @@ namespace rgat
         }
 
 
-        //todo recording status
-        //todo screencap fade effect
-
+        /// <summary>
+        /// Display media actions like recording and screen capture
+        /// </summary>
         void DrawInnerRightMenuItems()
         {
-            float quarter = 3 * (ImGui.GetContentRegionMax().X / 5f) - 50;
-            ImGui.SetCursorPosX(quarter);
-
-            //ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA}" , false);
+            float iconsStart = 3 * (ImGui.GetContentRegionMax().X / 5f) - 50;
 
             if (_lastScreenShot != VideoEncoder.CaptureContent.Invalid)
             {
-                _activeNotification = true;
                 try
                 {
+                    ImGui.SetCursorPosX(iconsStart);
+                    ActivateNotification();
                     DisplayScreenshotNotification();
                 }
                 catch (Exception e)
@@ -626,10 +659,16 @@ namespace rgat
                     _lastScreenShot = VideoEncoder.CaptureContent.Invalid;
                 }
             }
+
+
+            ImGui.SetCursorPosX(iconsStart + 40);
+            DisplayVideoRecordingNotification();
+
         }
 
+
         /// <summary>
-        /// Displays the video camera icon on the menu bar
+        /// Displays the still camera icon on the menu bar
         /// Displays an animated rectangle drawing the eye to it, from the region captured
         /// UI.SCREENSHOT_ICON_LINGER_TIME controls how long the icon is displayed
         /// UI.SCREENSHOT_ANIMATION_RECT_SPEED controls how fast the rectangle travels/disappears
@@ -662,27 +701,11 @@ namespace rgat
             }
             if (ImGui.IsItemClicked())
             {
-                string screenshotDirectory = Path.GetDirectoryName(_lastScreenShotPath);
-                if (Directory.Exists(screenshotDirectory))
-                {
-                    Logging.RecordLogEvent($"Opening screenshot directory in file browser: {screenshotDirectory}", LogFilterType.TextDebug);
-                    var openScreenshotDir = new System.Diagnostics.ProcessStartInfo() { FileName = screenshotDirectory, UseShellExecute = true };
-                    System.Diagnostics.Process.Start(openScreenshotDir);
-                }
-                else if (File.Exists(screenshotDirectory))
-                {
-                    //probably a bit paranoid but no harm in being careful around process.start
-                    Logging.RecordError("Screenshot directory became a file. Unconfiguring it");
-                    GlobalConfig.SetDirectoryPath("MediaCapturePath", "", true);
-                }
-                else
-                {
-                    Logging.RecordError($"Screenshot directory {screenshotDirectory} was not found");
-                }
+                OpenDirectoryInFileBrowser(Path.GetDirectoryName(_lastScreenShotPath), "Screenshot");
             }
 
             double animationProgress = progress * UI.SCREENSHOT_ANIMATION_RECT_SPEED;
-            if (animationProgress < 1)
+            if (GlobalConfig.ScreencapAnimation && animationProgress < 1)
             {
                 Vector2? rectSize, startCenter;
                 switch (_lastScreenShot)
@@ -715,54 +738,209 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Displays the video camera icon on the menu bar
+        /// 
+        /// </summary>
+        void DisplayVideoRecordingNotification()
+        {
+            double MSago = rgatState.VideoRecorder.RecordingStateChangeTimeAgo;
+            const double StateChangeLingerTime = 1000;
+            const double StateChangeFadeTime = 400;
+            const double StateChangeSolidTime = StateChangeLingerTime - StateChangeFadeTime;
+
+            if (MSago < StateChangeLingerTime)
+            {
+                ActivateNotification();
+                if (rgatState.VideoRecorder.Recording)
+                {
+                    //fade in
+                    uint alpha = MSago > StateChangeFadeTime ? 255 : (uint)(255.0 * (((MSago - StateChangeFadeTime) / StateChangeFadeTime)));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1).ToUint(alpha));
+                    ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Started");
+                    ImGui.PopStyleColor();
+                }
+                else
+                {
+                    //fade out
+                    uint alpha = MSago < StateChangeSolidTime ? 255 : (uint)(255.0 * (1.0 - ((MSago - StateChangeSolidTime) / StateChangeFadeTime)));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis2).ToUint(alpha));
+                    ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Stopped");
+                    ImGui.PopStyleColor();
+                }
+            }
+            else
+            {
+                if (!rgatState.VideoRecorder.Recording) return;
+
+                ActivateNotification();
+                if (rgatState.VideoRecorder.CapturePaused)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                    ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Paused");
+                    ImGui.PopStyleColor();
+                }
+                else
+                {
+                    ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA}");
+                }
+            }
+
+            SmallWidgets.MouseoverText("Left click to open output directory. Right click to end recording.");
+            if (ImGui.IsItemClicked(mouse_button: ImGuiMouseButton.Left))
+            {
+                OpenDirectoryInFileBrowser(VideoEncoder.GetCaptureDirectory(), "Video");
+            }
+            if (ImGui.IsItemClicked(mouse_button: ImGuiMouseButton.Right))
+            {
+                rgatState.VideoRecorder.StopRecording();
+            }
+        }
+
+
+        void OpenDirectoryInFileBrowser(string path, string label)
+        {
+            try
+            {
+                if (!Directory.Exists(path))
+                    path = Path.GetDirectoryName(path);
+                if (!Directory.Exists(path))
+                {
+                    Logging.RecordError($"Requested {label} directory {path} was not available");
+                    return;
+                }
+
+                Logging.RecordLogEvent($"Opening {label} directory in file browser: {path}", LogFilterType.TextDebug);
+                System.Diagnostics.ProcessStartInfo openRequestedDir = new System.Diagnostics.ProcessStartInfo() { FileName = path, UseShellExecute = true };
+                System.Diagnostics.Process.Start(startInfo: openRequestedDir);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Exception {e.Message} opening {label} directory {path}");
+                return;
+            }
+        }
 
 
         /// <summary>
         /// Displays less-used utilities like logs, tests 
         /// </summary>
-        void DrawOuterRightMenuItems()
+        float DrawOuterRightMenuItems()
         {
-            int unseenErrors = Logging.UnseenAlerts;
+            //draw right to left
+            float LogButtonCenter;
+            float X = ImGui.GetContentRegionMax().X - (ImGui.CalcTextSize("Demo ").X + 15);
+            ImGui.SetCursorPosX(X);
+            ImGui.MenuItem("Demo", null, ref _controller.ShowDemoWindow, true);
 
-            if (unseenErrors > 0) ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour));
-            ImGui.SetCursorPosX(ImGui.GetContentRegionMax().X - 250);
-            if(ImGui.MenuItem($"Logs{(unseenErrors > 0 ? $" ({unseenErrors})" : "")}", null, ref _show_logs_window))
-            {
-                _logsWindow.ShowAlerts();
-            }
-            if (unseenErrors > 0) ImGui.PopStyleColor();
 
+            X -= (ImGui.CalcTextSize("Tests ").X + 20);
+            ImGui.SetCursorPosX(X);
             bool isShown = _show_test_harness;
             if (ImGui.MenuItem("Tests", null, ref isShown, true))
             {
                 ToggleTestHarness();
             }
 
-            ImGui.MenuItem("Demo", null, ref _controller.ShowDemoWindow, true);
+
+            Vector2 logBtnTextSize = ImGui.CalcTextSize("Logs (25) ");
+            X -= (logBtnTextSize.X + 20);
+            LogButtonCenter = X + logBtnTextSize.X / 2f;
+            ImGui.SetCursorPosX(X);
+            int unseenErrors = Logging.UnseenAlerts;
+            uint itemColour = unseenErrors > 0 ? Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour) : Themes.GetThemeColourImGui(ImGuiCol.Text);
+            ImGui.PushStyleColor(ImGuiCol.Text, itemColour);
+            bool menuDrawn = ImGui.MenuItem($"Logs{(unseenErrors > 0 ? $" ({unseenErrors})" : "")}", null, ref _show_logs_window);
+            ImGui.PopStyleColor();
+
+            if (menuDrawn)
+            {
+                _show_logs_window = true;
+                _logsWindow.ShowAlerts();
+            }
+
+            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup))
+            {
+                DrawLogMouseover();
+            }
+
+            return LogButtonCenter;
+        }
+
+
+        void DrawLogMouseover()
+        {
+            if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+            {
+                _logsWindow.ShowAlerts();
+                _show_logs_window = true;
+
+                Logging.ClearAlertsBox();
+            }
+            if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            {
+                Logging.ClearAlertsBox();
+            }
+
+            //
+            //Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), windowSize.X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
+            //ImGui.SetNextWindowPos(new Vector2(popupBR.X, popupBR.Y));
+            int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
+            if (alertCount == 0) return;
+            ImGui.OpenPopup("##AlertsCtx");
+
+            if (ImGui.BeginPopup("##AlertsCtx"))
+            {
+                if (ImGui.BeginTable("##AlertsCtxTbl", 2))
+                {
+                    ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 60);
+                    ImGui.TableSetupColumn("Event");
+                    ImGui.TableHeadersRow();
+                    foreach (LOG_EVENT log in alerts)
+                    {
+                        TEXT_LOG_EVENT msg = (TEXT_LOG_EVENT)log;
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
+                        string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
+                        ImGui.Text(timeString);
+                        ImGui.TableNextColumn();
+                        ImGui.Text(msg._text);
+                    }
+                    ImGui.EndTable();
+                }
+                if (alertCount > alerts.Length)
+                {
+                    ImGui.Text($"...and {alertCount - alerts.Length} more");
+                }
+                ImGui.Separator();
+                ImGui.Indent(5);
+                ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                ImGui.Text($"Left click to view in logs tab. Right click to dismiss.");
+                ImGui.PopStyleColor();
+                ImGui.EndPopup();
+            }
         }
 
 
 
-   
         bool DrawAlerts(Vector2 logMenuPosition)
         {
 
-            const long lingerTime = UI.ALERT_TEXT_LINGER_TIME;
+            const double lingerTime = UI.ALERT_TEXT_LINGER_TIME;
             double timeSinceLast = Logging.TimeSinceLastAlert.TotalMilliseconds;
             if (timeSinceLast > lingerTime) return false;
 
             int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
             if (alerts.Length == 0) return false;
-            _activeNotification = true;
+            ActivateNotification();
 
             Vector2 originalCursorPos = ImGui.GetCursorScreenPos();
-
-            float animCircleTime = 600;
-            float animCircleRadius = 100;
-            if (timeSinceLast < animCircleTime)
+            if (GlobalConfig.AlertAnimation && timeSinceLast < UI.ALERT_CIRCLE_ANIMATION_TIME)
             {
                 uint color = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.Text)).ToUint(150);
-               ImGui.GetForegroundDrawList().AddCircle(logMenuPosition, (float)(animCircleRadius * (1 - (timeSinceLast / animCircleTime))), color);
+                float radius = (float)(UI.ALERT_CIRCLE_ANIMATION_RADIUS * (1 - (timeSinceLast / UI.ALERT_CIRCLE_ANIMATION_TIME)));
+                ImGui.GetForegroundDrawList().AddCircle(logMenuPosition, radius, color);
             }
 
             float widestAlert = 0;
@@ -778,7 +956,7 @@ namespace rgat
                 widestAlert = ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[^1])._text).X + 50;
             }
             Vector2 windowSize = ImGui.GetWindowSize();
-            float width = Math.Min(widestAlert + 10, windowSize.X/2f);
+            float width = Math.Min(widestAlert + 10, windowSize.X / 2f);
             Vector2 size = new Vector2(width, 38);
             ImGui.SetCursorScreenPos(new Vector2(windowSize.X - width, 32));
 
@@ -786,19 +964,18 @@ namespace rgat
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
-            Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), windowSize.X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
             if (ImGui.BeginChild("##alertpopchildfrm", size))
             {
                 uint textColour = Themes.GetThemeColourImGui(ImGuiCol.Text);
-                uint errColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
-                uint alertColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eTextEmphasis1);
+                WritableRgbaFloat errColour = Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour);
+                WritableRgbaFloat alertColour = Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1);
 
                 long nowTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                 for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
                 {
                     TEXT_LOG_EVENT item = (TEXT_LOG_EVENT)alerts[i];
                     long alertAge = nowTime - item.EventTimeMS;
-                    long timeRemaining = lingerTime - alertAge;
+                    long timeRemaining = (long)lingerTime - alertAge;
                     uint alpha = 255;
                     if (timeRemaining < 1000) //fade out over a second
                     {
@@ -808,13 +985,13 @@ namespace rgat
 
                     if (item.Filter == LogFilterType.TextAlert)
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new WritableRgbaFloat(alertColour).ToUint(alpha));
+                        ImGui.PushStyleColor(ImGuiCol.Text, alertColour.ToUint(alpha));
                         ImGui.Text($"{ImGuiController.FA_ICON_WARNING} ");
                         ImGui.PopStyleColor();
                     }
                     else
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new WritableRgbaFloat(errColour).ToUint(alpha));
+                        ImGui.PushStyleColor(ImGuiCol.Text, errColour.ToUint(alpha));
                         ImGui.Text($"{ImGuiController.FA_ICON_EXCLAIM} ");
                         ImGui.PopStyleColor();
                     }
@@ -830,56 +1007,6 @@ namespace rgat
             ImGui.PopStyleVar();
             ImGui.PopStyleVar();
             ImGui.PopStyleColor();
-
-            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup))
-            {
-                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-                {
-                    _logsWindow.ShowAlerts();
-                    _show_logs_window = true;
-
-                    Logging.ClearAlertsBox();
-                }
-                if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-                {
-                    Logging.ClearAlertsBox();
-                }
-
-                ImGui.SetNextWindowPos(new Vector2(popupBR.X, popupBR.Y));
-                ImGui.OpenPopup("##AlertsCtx");
-
-                if (ImGui.BeginPopup("##AlertsCtx"))
-                {
-                    if (ImGui.BeginTable("##AlertsCtxTbl", 2))
-                    {
-                        ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 60);
-                        ImGui.TableSetupColumn("Event");
-                        ImGui.TableHeadersRow();
-                        foreach (LOG_EVENT log in alerts)
-                        {
-                            TEXT_LOG_EVENT msg = (TEXT_LOG_EVENT)log;
-                            ImGui.TableNextRow();
-                            ImGui.TableNextColumn();
-                            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
-                            string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
-                            ImGui.Text(timeString);
-                            ImGui.TableNextColumn();
-                            ImGui.Text(msg._text);
-                        }
-                        ImGui.EndTable();
-                    }
-                    if (alertCount > alerts.Length)
-                    {
-                        ImGui.Text($"...and {alertCount - alerts.Length} more");
-                    }
-                    ImGui.Separator();
-                    ImGui.Indent(5);
-                    ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
-                    ImGui.Text($"Left click to view in logs tab. Right click to dismiss.");
-                    ImGui.PopStyleColor();
-                    ImGui.EndPopup();
-                }
-            }
 
             ImGui.SetCursorScreenPos(originalCursorPos);
             return true;
@@ -901,7 +1028,7 @@ namespace rgat
             _lastScreenShotPath = savePath;
             PendingScreenshot = VideoEncoder.CaptureContent.Invalid;
             _screenShotTime = DateTime.Now;
-            _activeNotification = true;
+            ActivateNotification();
         }
 
 
@@ -1040,7 +1167,7 @@ namespace rgat
 
         public void DrawFileSelectBox(ref bool show_select_exe_window)
         {
-            string title = "Select Executable";
+            string title = "Select Binary";
             if (rgatState.ConnectedToRemote) title += " (Remote Machine)";
             ImGui.OpenPopup(title);
             if (ImGui.BeginPopupModal(title, ref show_select_exe_window, ImGuiWindowFlags.NoScrollbar))
@@ -1077,13 +1204,13 @@ namespace rgat
         {
             if (!File.Exists(filepath))
             {
-                Logging.RecordLogEvent($"Failed to load missing trace file: {filepath}", filter: LogFilterType.TextAlert);
+                Logging.RecordError($"Failed to load missing trace file: {filepath}");
                 return false;
             }
 
             if (!_rgatState.LoadTraceByPath(filepath, out TraceRecord trace))
             {
-                Logging.RecordLogEvent($"Failed to load invalid trace: {filepath}", filter: LogFilterType.TextAlert);
+                Logging.RecordError($"Failed to load invalid trace: {filepath}");
                 return false;
             }
             GlobalConfig.RecordRecentPath(filepath, GlobalConfig.eRecentPathType.Trace);

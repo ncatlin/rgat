@@ -67,7 +67,6 @@ namespace rgat.OperationModes
         /// </summary>
         public void Run()
         {
-            Console.WriteLine("Runstart");
             Logging.RecordLogEvent("rgat is starting in GUI mode", Logging.LogFilterType.TextDebug);
 
             if (!Setup())

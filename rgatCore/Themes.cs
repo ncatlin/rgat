@@ -191,23 +191,36 @@ namespace rgat
 
         public static uint GetThemeColourUINT(eThemeColour item)
         {
-            Debug.Assert(ThemeColoursCustom.ContainsKey(item));
-            Debug.Assert((uint)item < ThemeColoursCustom.Count);
-            return ThemeColoursCustom[item];
+            lock (_lock)
+            {
+                Debug.Assert(ThemeColoursCustom.ContainsKey(item));
+                Debug.Assert((uint)item < ThemeColoursCustom.Count);
+                return ThemeColoursCustom[item];
+            }
         }
 
         public static WritableRgbaFloat GetThemeColourWRF(eThemeColour item)
         {
-            Debug.Assert(ThemeColoursCustom.ContainsKey(item));
-            Debug.Assert((uint)item < ThemeColoursCustom.Count);
-            return new WritableRgbaFloat(ThemeColoursCustom[item]);
+            lock (_lock)
+            {
+                Debug.Assert(ThemeColoursCustom.ContainsKey(item));
+                Debug.Assert((uint)item < ThemeColoursCustom.Count);
+                return new WritableRgbaFloat(ThemeColoursCustom[item]);
+            }
         }
 
         public static uint GetThemeColourImGui(ImGuiCol item)
         {
-            Debug.Assert(ThemeColoursStandard.ContainsKey(item));
-            Debug.Assert((uint)item < ThemeColoursStandard.Count);
-            lock (_lock) { return ThemeColoursStandard[item]; }
+            lock (_lock) {
+
+                if (!ThemeColoursStandard.TryGetValue(item, out uint value))
+                {
+                    return 0x00000000;
+                }
+                Debug.Assert(ThemeColoursStandard.ContainsKey(item));
+                Debug.Assert((uint)item < ThemeColoursStandard.Count);
+                return ThemeColoursStandard[item]; 
+            }
         }
 
         public static void SetThemeColourImGui(ImGuiCol item, uint color)

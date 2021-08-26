@@ -25,7 +25,7 @@ namespace rgat
         }
 
 
-        void DrawSplash(List<GlobalConfig.CachedPathData> recentBins, List<GlobalConfig.CachedPathData> recentTraces)
+        void DrawSplash(GlobalConfig.CachedPathData[] recentBins, GlobalConfig.CachedPathData[] recentTraces)
         {
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
@@ -90,7 +90,9 @@ namespace rgat
                     {
                         _show_select_exe_window = true;
                     }
-                    Widgets.SmallWidgets.MouseoverText("Load an executable or DLL for examination. It will not be executed.");
+                    _controller.PushUnicodeFont();
+                    Widgets.SmallWidgets.MouseoverText("Load an executable or DLL for examination. It will not be executed at this stage.");
+                    ImGui.PopFont();
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
                     ImguiUtils.DrawHorizCenteredText("Load Binary");
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (LargeIconSize.X / 2));
@@ -107,7 +109,7 @@ namespace rgat
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);
                 Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y - 25);
 
-                if (recentBins?.Count > 0)
+                if (recentBins?.Length > 0)
                 {
                     ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
                     if (ImGui.BeginTable("#RecentBinTableList", 1, ImGuiTableFlags.ScrollY, tableSz))
@@ -116,7 +118,7 @@ namespace rgat
                         ImGui.TableSetupColumn("Recent Binaries" + $"{(rgatState.ConnectedToRemote ? " (Remote Files)" : "")}");
                         ImGui.TableSetupScrollFreeze(0, 1);
                         ImGui.TableHeadersRow();
-                        int bincount = recentBins.Count;
+                        int bincount = recentBins.Length;
                         for (var bini = 0; bini < bincount; bini++)
                         {
                             var entry = recentBins[bini];
@@ -173,7 +175,9 @@ namespace rgat
                     {
                         _show_load_trace_window = true;
                     }
+                    _controller.PushUnicodeFont();
                     Widgets.SmallWidgets.MouseoverText("Load a previously generated trace");
+                    ImGui.PopFont();
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
                     ImguiUtils.DrawHorizCenteredText("Load Trace");
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (LargeIconSize.X / 2) + 8); //shift a bit to the right to balance it 
@@ -191,7 +195,7 @@ namespace rgat
 
                 Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y - 25);
 
-                if (recentTraces?.Count > 0)
+                if (recentTraces?.Length > 0)
                 {
                     ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
                     if (ImGui.BeginTable("#RecentTraceTableList", 1, ImGuiTableFlags.ScrollY, tableSz))

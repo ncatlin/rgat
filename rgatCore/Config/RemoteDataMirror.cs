@@ -185,11 +185,11 @@ namespace rgat.Config
 
 
 
-        public static List<CachedPathData> GetRecentBins()
+        public static CachedPathData[] GetRecentBins()
         {
             lock (_lock)
             {
-                return new List<CachedPathData>(_cachedRecentBins);
+                return _cachedRecentBins.ToArray();
             }
         }
 

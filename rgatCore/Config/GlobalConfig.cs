@@ -633,6 +633,10 @@ namespace rgat
 
         public static int StatisticsTimeAvgWindow = 10; //how many timing values to store for calculating recent average
 
+        public static bool ScreencapAnimation = true;
+        public static bool AlertAnimation = true;
+
+
         /*
          * Trace related config
          */
@@ -894,12 +898,33 @@ namespace rgat
             public uint count;
         }
 
-        public enum eRecentPathType { Binary, Trace };
+        public enum eRecentPathType { Binary, Trace, Directory };
         static List<CachedPathData> _cachedRecentBins = new List<CachedPathData>();
         static List<CachedPathData> _cachedRecentTraces = new List<CachedPathData>();
+        static List<CachedPathData> _cachedRecentDirectories = new List<CachedPathData>();
 
-        public static List<CachedPathData> RecentTraces => _cachedRecentTraces;
-        public static List<CachedPathData> RecentBinaries => _cachedRecentBins;
+        public static CachedPathData[] RecentTraces
+        {
+            get
+            {
+                lock (_settingsLock) { return _cachedRecentTraces.ToArray(); }
+            }
+        }
+        public static CachedPathData[] RecentBinaries
+        {
+            get
+            {
+                lock (_settingsLock) { return _cachedRecentBins.ToArray(); }
+            }
+        }
+        public static CachedPathData[] RecentDirectories
+        {
+            get
+            {
+                lock (_settingsLock) { return _cachedRecentDirectories.ToArray(); }
+            }
+        }
+
 
         static List<CachedPathData> LoadRecentPaths(string pathType)
         {
@@ -922,7 +947,8 @@ namespace rgat
                                 !data.TryGetValue("FirstOpen", out JToken firstOpenTok) || firstOpenTok.Type != JTokenType.Date ||
                                 !data.TryGetValue("LastOpen", out JToken lastOpenTok) || lastOpenTok.Type != JTokenType.Date)
                                 continue;
-                            if (!File.Exists(entry.Key)) continue;
+                            //todo remote
+                            if (!File.Exists(entry.Key) && !Directory.Exists(entry.Key)) continue;
                             CachedPathData pd = new CachedPathData
                             {
                                 path = entry.Key,
@@ -946,7 +972,6 @@ namespace rgat
 
         public static void RecordRecentPath(string path, eRecentPathType pathType)
         {
-
             var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             RecentPathSection sec = (RecentPathSection)configFile.GetSection("RecentPaths");
             JObject SectionObj;
@@ -956,6 +981,7 @@ namespace rgat
                 SectionObj = new JObject();
                 SectionObj.Add("RecentBinaries", new JObject());
                 SectionObj.Add("RecentTraces", new JObject());
+                SectionObj.Add("RecentDirectories", new JObject());
                 sec.RecentPaths = SectionObj;
                 configFile.Sections.Add("RecentPaths", sec);
             }
@@ -964,17 +990,37 @@ namespace rgat
                 SectionObj = sec.RecentPaths;
                 if (!SectionObj.ContainsKey("RecentBinaries")) SectionObj.Add("RecentBinaries", new JObject());
                 if (!SectionObj.ContainsKey("RecentTraces")) SectionObj.Add("RecentTraces", new JObject());
+                if (!SectionObj.ContainsKey("RecentDirectories")) SectionObj.Add("RecentDirectories", new JObject());
             }
 
             try
             {
-                string sectionTarget = (pathType == eRecentPathType.Binary) ? "RecentBinaries" : "RecentTraces";
+                List<CachedPathData> targetList;
+                string sectionTarget;
+                switch (pathType)
+                {
+                    case eRecentPathType.Binary:
+                        sectionTarget = "RecentBinaries";
+                        targetList = _cachedRecentBins;
+                        break;
+                    case eRecentPathType.Directory:
+                        sectionTarget = "RecentDirectories";
+                        targetList = _cachedRecentDirectories;
+                        break;
+                    case eRecentPathType.Trace:
+                        sectionTarget = "RecentTraces";
+                        targetList = _cachedRecentTraces;
+                        break;
+                    default:
+                        throw new InvalidEnumArgumentException("Bad recent path: " + pathType);
+                }
+                targetList.Clear();
+
                 JObject targetObj = (JObject)SectionObj[sectionTarget];
                 if (targetObj.TryGetValue(path, out JToken ExistingTok) && ExistingTok.Type == JTokenType.Object)
                 {
                     JObject ExistingPathObj = ExistingTok.ToObject<JObject>();
-                    if (ExistingPathObj.TryGetValue("OpenCount", out JToken countTok) &&
-                        countTok.Type == JTokenType.Integer)
+                    if (ExistingPathObj.TryGetValue("OpenCount", out JToken countTok) && countTok.Type == JTokenType.Integer)
                     {
                         ExistingPathObj["OpenCount"] = countTok.ToObject<uint>() + 1;
                     }
@@ -1005,15 +1051,48 @@ namespace rgat
                         }
                     }
                 }
+
+
+                foreach (var recentPath in targetObj)
+                {
+                    var x = recentPath.Value;
+                    JObject xval = x.ToObject<JObject>();
+                    var item = new CachedPathData()
+                    {
+                        count = recentPath.Value["OpenCount"].ToObject<uint>(),
+                        firstSeen = recentPath.Value["FirstOpen"].ToObject<DateTime>(),
+                        lastSeen = recentPath.Value["LastOpen"].ToObject<DateTime>(),
+                        path = recentPath.Key
+                    };
+                    lock (_settingsLock)
+                    {
+                        targetList.Add(item);
+                        targetList = targetList.OrderByDescending(x => x.lastSeen).ToList();
+                    }
+                }
             }
             catch (Exception e)
             {
                 Logging.RecordLogEvent($"exception {e.Message} storing path {pathType} - {path}", Logging.LogFilterType.TextError);
             }
 
+
             sec.RecentPaths = SectionObj;
             sec.SectionInformation.ForceSave = true;
             configFile.Save();
+
+            if (pathType != eRecentPathType.Directory)
+            {
+                try
+                {
+                    RecordRecentPath(Path.GetDirectoryName(path), eRecentPathType.Directory);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordLogEvent($"Failed to record recent directory containing {path}: {e.Message}");
+                }
+            }
+
         }
 
 
@@ -1225,8 +1304,11 @@ namespace rgat
         }
 
 
-        static bool VerifyCertificate(string path, string expectedSigner, out string error)
+        static bool VerifyCertificate(string path, string expectedSigner, out string error, out string warning)
         {
+            error = null;
+            warning = null;
+
             try
             {
                 X509Certificate signer = X509Certificate.CreateFromSignedFile(path);
@@ -1237,22 +1319,26 @@ namespace rgat
                 }
 
                 X509Certificate2 certificate = new X509Certificate2(signer);
-
                 if (certificate.NotBefore > DateTime.Now)
                 {
-                    error = $"Signature Validity Starts {certificate.NotBefore.ToLongDateString() + " " + certificate.NotBefore.ToLongTimeString()}";
-                    return false;
+                    DateTime limit = certificate.NotBefore;
+                    warning = $"Signature Validity Starts {limit.ToLongDateString() + " " + limit.ToLongTimeString()} ({limit.Humanize()})";
+                    return true;
                 }
                 if (certificate.NotAfter < DateTime.Now)
                 {
-                    error = $"Signature Validity Ended {certificate.NotAfter.ToLongDateString() + " " + certificate.NotAfter.ToLongTimeString()}";
-                    return false;
+                    DateTime limit = certificate.NotAfter;
+                    warning = $"Signature Validity Ended {limit.ToLongDateString() + " " + limit.ToLongTimeString()} ({limit.Humanize()})";
+                    return true; //the pin.exe cert has expired at the time of writing, not worth alerting about
                 }
 
                 var certificateChain = new X509Chain
                 {
-                    ChainPolicy = {RevocationFlag = X509RevocationFlag.EntireChain,  RevocationMode = X509RevocationMode.Online,
-                                UrlRetrievalTimeout = new TimeSpan(0, 1, 0),  VerificationFlags = X509VerificationFlags.NoFlag}
+                    ChainPolicy = {
+                        RevocationFlag = X509RevocationFlag.EntireChain,
+                        RevocationMode = X509RevocationMode.Online,
+                        UrlRetrievalTimeout = new TimeSpan(0, 1, 0),
+                        VerificationFlags = X509VerificationFlags.NoFlag}
                 };
 
                 if (!certificateChain.Build(certificate))
@@ -1278,6 +1364,7 @@ namespace rgat
         }
 
 
+
         static void InitPaths()
         {
             //directories
@@ -1290,7 +1377,7 @@ namespace rgat
                 TraceSaveDirectory = GetStorageDirectoryPath("traces");
                 if (!Directory.Exists(TraceSaveDirectory))
                 {
-                    Logging.RecordLogEvent("Warning: Failed to load an existing trace storage path");
+                    Logging.RecordError("Warning: Failed to load an existing trace storage path");
                 }
                 else
                 {
@@ -1441,8 +1528,9 @@ namespace rgat
             bool validSignature = false;
             if (setting == "PinPath")
             {
-                if (VerifyCertificate(path, SIGNERS.PIN_SIGNER, out string error))
+                if (VerifyCertificate(path, SIGNERS.PIN_SIGNER, out string error, out string warning))
                 {
+                    Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
                     validSignature = true;
                 }
                 else
@@ -1454,8 +1542,9 @@ namespace rgat
             }
             if (setting == "PinToolPath32")
             {
-                if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error))
+                if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error, out string warning))
                 {
+                    Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
                     validSignature = true;
                 }
                 else
@@ -1467,8 +1556,9 @@ namespace rgat
             }
             if (setting == "PinToolPath64")
             {
-                if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error))
+                if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error, out string warning))
                 {
+                    Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
                     validSignature = true;
                 }
                 else
@@ -1541,6 +1631,16 @@ namespace rgat
             if (GetAppSetting("BulkLogging", out string bulklogging))
             {
                 BulkLogging = (bulklogging.ToLower() == "true");
+            }
+
+            if (GetAppSetting("ScreencapAnimation", out string animScreencap))
+            {
+                ScreencapAnimation = (animScreencap.ToLower() == "true");
+            }
+
+            if (GetAppSetting("AlertAnimation", out string animAlert))
+            {
+                AlertAnimation = (animAlert.ToLower() == "true");
             }
 
             //rendering
@@ -1635,8 +1735,16 @@ namespace rgat
             progress?.Report(0.7f);
 
             InitPaths();
-            _cachedRecentTraces = LoadRecentPaths("RecentTraces");
-            _cachedRecentBins = LoadRecentPaths("RecentBinaries");
+            var recentTraces = LoadRecentPaths("RecentTraces");
+            var recentBins = LoadRecentPaths("RecentBinaries");
+            var recentDirectories = LoadRecentPaths("RecentDirectories");
+
+            lock (_settingsLock)
+            {
+                _cachedRecentTraces = recentTraces;
+                _cachedRecentBins = recentBins;
+                _cachedRecentDirectories = recentDirectories;
+            }
             LoadRecentAddresses();
 
             progress?.Report(0.9f);

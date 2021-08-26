@@ -96,13 +96,26 @@ namespace rgat
             }
         }
 
+        DateTime _recordingStateChanged = DateTime.MinValue;
         public bool StartRecording()
         {
             System.Diagnostics.Debug.Assert(!_recording);
             _recording = true;
+            _recordingStateChanged = DateTime.Now;
             return true;
         }
 
+        public void StopRecording()
+        {
+            _recordingStateChanged = DateTime.Now;
+            _recording = false;
+        }
+
+
+        /// <summary>
+        /// How long ago the recording stopped/started in milliseconds
+        /// </summary>
+        public double RecordingStateChangeTimeAgo => (DateTime.Now - _recordingStateChanged).TotalMilliseconds;
 
         IEnumerable<IVideoFrame> GetNextFrame()
         {
@@ -113,7 +126,7 @@ namespace rgat
                     if (_bmpQueue.Count > 1024)
                     {
                         Logging.RecordLogEvent($"Warning: Recording has amassed {_bmpQueue.Count} frames in backlog, stopping recording");
-                        _recording = false;
+                        StopRecording();
                     }
                     if (_bmpQueue.TryDequeue(out Bitmap frame))
                     {
@@ -128,7 +141,7 @@ namespace rgat
             yield break;
         }
 
-        public string GetCaptureDirectory()
+        public static string GetCaptureDirectory()
         {
             string result;
             if (Directory.Exists(GlobalConfig.MediaCapturePath)) return GlobalConfig.MediaCapturePath;
@@ -180,7 +193,7 @@ namespace rgat
                 if (attempt == 255)
                 {
                     Logging.RecordLogEvent("Bizarre error finding place to store media.", filter: Logging.LogFilterType.TextError);
-                    _recording = false;
+                    StopRecording();
                     return Path.GetRandomFileName();
                 }
             }
@@ -283,12 +296,10 @@ namespace rgat
 
         async public void Go(PlottedGraph graph)
         {
-            if (GlobalConfig.FFmpegPath == null ||
-                GlobalConfig.FFmpegPath == "" ||
-                !File.Exists(GlobalConfig.FFmpegPath))
+            if (!File.Exists(GlobalConfig.FFmpegPath))
             {
-                Logging.RecordLogEvent($"Unable to start recording: FFmpeg path not configured");
-                _recording = false;
+                Logging.RecordLogEvent($"Unable to start recording: Path to ffmpeg.exe not configured");
+                StopRecording();
                 Loaded = false;
                 return;
             }
@@ -300,7 +311,7 @@ namespace rgat
             catch (Exception e)
             {
                 Logging.RecordLogEvent($"Unable to start recording: Exception '{e.Message}' configuring recorder");
-                _recording = false;
+                StopRecording();
                 Loaded = false;
                 return;
             }
@@ -332,8 +343,8 @@ namespace rgat
             }
 
 
-            Initialised = false;
-            _recording = false;
+            Initialised = false; 
+            StopRecording();
             CapturePaused = false;
             _bmpQueue.Clear();
 
@@ -360,10 +371,6 @@ namespace rgat
             }
         }
 
-        public void Done()
-        {
-            _recording = false;
-        }
 
 
         public void DrawSettingsPane()

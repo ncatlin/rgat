@@ -247,7 +247,7 @@ namespace rgat
 
         public bool RecentAlert()
         {
-            const long lingerTime = UI.ALERT_TEXT_LINGER_TIME;
+            const double lingerTime = UI.ALERT_TEXT_LINGER_TIME;
             double timeSinceLast = Logging.TimeSinceLastAlert.TotalMilliseconds;
             return (timeSinceLast < lingerTime);
         }
