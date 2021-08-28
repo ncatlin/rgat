@@ -300,9 +300,10 @@ namespace rgat
                 if (ImGui.BeginPopupModal("#NewVersionChangesDialog", ref isopen, flags: ImGuiWindowFlags.Modal))
                 {
                     Updates.DrawChangesDialog();
+                    isopen = isopen && !ImGui.IsKeyDown(ImGui.GetKeyIndex(ImGuiKey.Escape));
+                    if (!isopen) { ImGui.CloseCurrentPopup();  }
                     ImGui.EndPopup();
                 }
-                if (!isopen) { ImGui.CloseCurrentPopup(); }
             }
         }
 

@@ -203,96 +203,96 @@ namespace rgat
         static int NewVersions = -1;
 
         public static void DrawChangesDialog()
-    {
-        ImGui.PushStyleColor(ImGuiCol.Text, 0xffffffff);
-        ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xff000000);
-        Version currentVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
-        Version newVersion = GlobalConfig.UpdateLastCheckVersion;
-        ImGui.Text($"Current Version: {currentVersion}. New Version: {newVersion}");
-
-        string[] changes = GlobalConfig.UpdateLastChanges.Split('\n');
-
-        if (ImGui.BeginTabBar("#ChangesTabs"))
         {
-            for (var i = 0; i < changes.Length; i++)
+            ImGui.PushStyleColor(ImGuiCol.Text, 0xffffffff);
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xff000000);
+            Version currentVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
+            Version newVersion = GlobalConfig.UpdateLastCheckVersion;
+            ImGui.Text($"Current Version: {currentVersion}. New Version: {newVersion}");
+
+            string[] changes = GlobalConfig.UpdateLastChanges.Split('\n');
+
+            if (ImGui.BeginTabBar("#ChangesTabs"))
             {
-                string item = changes[i].Trim();
-                if (item.StartsWith("####"))
+                for (var i = 0; i < changes.Length; i++)
                 {
-                    string category = item.Substring(4, item.Length - 4);
-                    if (category.StartsWith("CHANGES")) continue;
-                    GetChangeIcon(category, out char icon, out WritableRgbaFloat colour);
-                    ImGui.PushStyleColor(ImGuiCol.Tab, colour.ToUint(customAlpha: 150));
-                    ImGui.PushStyleColor(ImGuiCol.TabHovered, colour.ToUint(customAlpha: 190));
-                    ImGui.PushStyleColor(ImGuiCol.TabActive, colour.ToUint(customAlpha: 255));
-                    if (ImGui.BeginTabItem($"{icon} {category}##{i}"))
+                    string item = changes[i].Trim();
+                    if (item.StartsWith("####"))
                     {
-                        if (ImGui.BeginTable("#ChangesDlgChild", 1, flags: ImGuiTableFlags.ScrollY | ImGuiTableFlags.ScrollX | ImGuiTableFlags.RowBg, ImGui.GetContentRegionAvail()))
+                        string category = item.Substring(4, item.Length - 4);
+                        if (category.StartsWith("CHANGES")) continue;
+                        GetChangeIcon(category, out char icon, out WritableRgbaFloat colour);
+                        ImGui.PushStyleColor(ImGuiCol.Tab, colour.ToUint(customAlpha: 150));
+                        ImGui.PushStyleColor(ImGuiCol.TabHovered, colour.ToUint(customAlpha: 190));
+                        ImGui.PushStyleColor(ImGuiCol.TabActive, colour.ToUint(customAlpha: 255));
+                        if (ImGui.BeginTabItem($"{icon} {category}##{i}"))
                         {
-                            i += 1;
-                            while (i < changes.Length)
+                            if (ImGui.BeginTable("#ChangesDlgChild", 1, flags: ImGuiTableFlags.ScrollY | ImGuiTableFlags.ScrollX | ImGuiTableFlags.RowBg, ImGui.GetContentRegionAvail()))
                             {
-                                string text = changes[i].Trim();
-                                if (text.Length < 2)
-                                {
-                                    i += 1;
-                                    continue;
-                                }
-
-                                ImGui.TableNextRow();
-                                ImGui.TableNextColumn();
-                                ImGui.Text(text);
-
                                 i += 1;
-                                if (i < (changes.Length - 1) && changes[i + 1].StartsWith("####"))
-                                    break;
+                                while (i < changes.Length)
+                                {
+                                    string text = changes[i].Trim();
+                                    if (text.Length < 2)
+                                    {
+                                        i += 1;
+                                        continue;
+                                    }
+
+                                    ImGui.TableNextRow();
+                                    ImGui.TableNextColumn();
+                                    ImGui.Text(text);
+
+                                    i += 1;
+                                    if (i < (changes.Length - 1) && changes[i + 1].StartsWith("####"))
+                                        break;
+                                }
+                                ImGui.EndTable();
                             }
-                            ImGui.EndTable();
+                            ImGui.EndTabItem();
                         }
-                        ImGui.EndTabItem();
+                        ImGui.PopStyleColor(3);
                     }
-                    ImGui.PopStyleColor(3);
                 }
+                ImGui.EndTabBar();
             }
-            ImGui.EndTabBar();
+            ImGui.PopStyleColor(2);
         }
-        ImGui.PopStyleColor(2);
-    }
 
-    static void GetChangeIcon(string changeType, out char icon, out WritableRgbaFloat colour)
-    {
-        switch (changeType)
+        static void GetChangeIcon(string changeType, out char icon, out WritableRgbaFloat colour)
         {
-            case "Added":
-                icon = ImGuiController.FA_ICON_PLUS;
-                colour = new WritableRgbaFloat(System.Drawing.Color.Green);
-                break;
-            case "Changed":
-                icon = ImGuiController.FA_ICON_RIGHT;
-                colour = new WritableRgbaFloat(System.Drawing.Color.Blue);
-                break;
-            case "Fixed":
-                icon = ImGuiController.FA_ICON_WRENCH;
-                colour = new WritableRgbaFloat(System.Drawing.Color.Blue);
-                break;
-            case "Security":
-                icon = ImGuiController.FA_ICON_WARNING;
-                colour = new WritableRgbaFloat(System.Drawing.Color.Red);
-                break;
-            case "Deprecated":
-                icon = ImGuiController.FA_ICON_DOWN;
-                colour = new WritableRgbaFloat(0xff131313);
-                break;
-            case "Removed":
-                icon = ImGuiController.FA_ICON_CROSS;
-                colour = new WritableRgbaFloat(0x00737373);
-                break;
-            default:
-                icon = '?';
-                colour = new WritableRgbaFloat(0xff353535);
-                break;
+            switch (changeType)
+            {
+                case "Added":
+                    icon = ImGuiController.FA_ICON_PLUS;
+                    colour = new WritableRgbaFloat(System.Drawing.Color.Green);
+                    break;
+                case "Changed":
+                    icon = ImGuiController.FA_ICON_RIGHT;
+                    colour = new WritableRgbaFloat(System.Drawing.Color.Blue);
+                    break;
+                case "Fixed":
+                    icon = ImGuiController.FA_ICON_WRENCH;
+                    colour = new WritableRgbaFloat(System.Drawing.Color.Blue);
+                    break;
+                case "Security":
+                    icon = ImGuiController.FA_ICON_WARNING;
+                    colour = new WritableRgbaFloat(System.Drawing.Color.Red);
+                    break;
+                case "Deprecated":
+                    icon = ImGuiController.FA_ICON_DOWN;
+                    colour = new WritableRgbaFloat(0xff131313);
+                    break;
+                case "Removed":
+                    icon = ImGuiController.FA_ICON_CROSS;
+                    colour = new WritableRgbaFloat(0x00737373);
+                    break;
+                default:
+                    icon = '?';
+                    colour = new WritableRgbaFloat(0xff353535);
+                    break;
+            }
         }
-    }
 
-}
+    }
 }
