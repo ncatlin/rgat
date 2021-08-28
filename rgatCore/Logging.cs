@@ -306,8 +306,8 @@ namespace rgat
 
 
         /// <summary>      
-        /// Display a message in the logfile/message window
-        /// Also will show on the UI alert pane with the Alert/Error options
+        /// Display a message in the logfile/message window.
+        /// Will also be shown on the UI alert pane with the Alert/Error options
         /// </summary>
         /// <param name="message">Message to display</param>
         /// <param name="visibility">The LogFilterType category of the log entry
@@ -359,7 +359,13 @@ namespace rgat
             }
         }
 
-        //Helper function for logging errors
+
+        /// <summary>
+        /// This is just an alias for  RecordLogEvent( filter: TextError);
+        /// </summary>
+        /// <param name="text">Error text</param>
+        /// <param name="graph">Graph the error applies to (optional)</param>
+        /// <param name="trace">Trace the error applies to (optional)</param>
         public static void RecordError(string text, ProtoGraph graph = null, TraceRecord trace = null)
         {
             RecordLogEvent(text: text, graph: graph, trace: trace, filter: LogFilterType.TextError);

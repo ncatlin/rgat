@@ -16,7 +16,7 @@ using static rgat.RGAT_CONSTANTS;
 
 namespace rgat
 {
-    public class GlobalConfig
+    public partial class GlobalConfig
     {
         public class JSONBlobConverter : TypeConverter
         {
@@ -122,10 +122,7 @@ namespace rgat
             public JObject RecentPaths
             {
                 get => (JObject)this["RecentPaths"];
-                set
-                {
-                    this["RecentPaths"] = value;
-                }
+                set { this["RecentPaths"] = value; }
             }
         }
 
@@ -134,12 +131,12 @@ namespace rgat
 
             private static ConfigurationPropertyCollection _Properties;
             private static readonly ConfigurationProperty _addrJSON = new ConfigurationProperty(
-                "RecentAddresses",
-                typeof(JArray),
-                new JArray(),
-                new GlobalConfig.JSONBlobConverter(),
-                null,
-                ConfigurationPropertyOptions.None);
+                name: "RecentAddresses",
+                type: typeof(JArray),
+                defaultValue: new JArray(),
+                typeConverter: new GlobalConfig.JSONBlobConverter(),
+                validator: null,
+                options: ConfigurationPropertyOptions.None);
 
             public RecentAddressesSection()
             {
@@ -157,307 +154,6 @@ namespace rgat
             }
         }
 
-        /************* Signature sources ***************/
-
-        public sealed class SignatureSourcesSection : ConfigurationSection
-        {
-
-            public SignatureSourcesSection()
-            {
-                _Properties = new ConfigurationPropertyCollection();
-                _Properties.Add(_sourcesJSON);
-            }
-
-            private static ConfigurationPropertyCollection _Properties;
-            private static readonly ConfigurationProperty _sourcesJSON = new ConfigurationProperty(
-                "SignatureSources",
-                typeof(JArray),
-                new JArray(),
-                new GlobalConfig.JSONBlobConverter(),
-                null,
-                ConfigurationPropertyOptions.None);
-
-            protected override object GetRuntimeObject() => base.GetRuntimeObject();
-            protected override ConfigurationPropertyCollection Properties => _Properties;
-
-
-            public JArray SignatureSources
-            {
-                get => (JArray)this["SignatureSources"];
-                set
-                {
-                    this["SignatureSources"] = value;
-                }
-            }
-        }
-
-
-        public struct SignatureSource
-        {
-            public string RepoName;
-            public string OrgName;
-            public string SubDir;
-            //when rgat last checked the repo
-            public DateTime LastCheck;
-            //when the repo itself was last updated
-            public DateTime LastUpdate;
-            //when rgat last downloaded the repo
-            public DateTime LastFetch;
-            public int RuleCount;
-
-            public eSignatureType SignatureType;// probably no point, done by extension?
-
-            //ephemeral data
-            public string LastRefreshError;
-            public string LastDownloadError;
-            public string FetchPath;
-
-            public JObject ToJObject()
-            {
-                JObject result = new JObject();
-                result.Add("OrgName", OrgName);
-                result.Add("RepoName", RepoName);
-                result.Add("SubDir", SubDir);
-                result.Add("LastCheck", LastCheck);
-                result.Add("LastUpdate", LastUpdate);
-                result.Add("LastFetch", LastFetch);
-                result.Add("RuleCount", RuleCount);
-                result.Add("SignatureType", SignatureType.ToString());
-                return result;
-            }
-
-            public void InitFetchPath()
-            {
-                FetchPath = GlobalConfig.RepoComponentsToPath(OrgName, RepoName, SubDir);
-            }
-        }
-
-
-        static Dictionary<string, SignatureSource> _signatureSources = null;
-
-        public static void SaveSignatureSources()
-        {
-            lock (_settingsLock)
-            {
-                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-
-                SignatureSourcesSection sec = null;
-                try
-                {
-                    sec = (SignatureSourcesSection)configFile.GetSection("SignatureSources");
-                }
-                catch (Exception e)
-                {
-                    Logging.RecordError($"Error loading SignatureSources section: {e.Message}");
-                    InitSignatureSources();
-                }
-
-
-                if (sec == null)
-                {
-                    sec = new SignatureSourcesSection();
-                    sec.SignatureSources = new JArray();
-                    try
-                    {
-                        configFile.Sections.Remove("SignatureSources");
-                    }
-                    catch (Exception) { }
-                    configFile.Sections.Add("SignatureSources", sec);
-                }
-
-                sec.SignatureSources.Clear();
-
-                foreach (SignatureSource item in _signatureSources.Values)
-                {
-                    sec.SignatureSources.Add(item.ToJObject());
-                }
-                sec.SectionInformation.ForceSave = true;
-                configFile.Save();
-            }
-        }
-
-        public void ReplaceSignatureSources(List<SignatureSource> sources)
-        {
-            lock (_settingsLock)
-            {
-                _signatureSources = new Dictionary<string, SignatureSource>();
-                foreach (var src in sources)
-                {
-                    _signatureSources[src.FetchPath] = src;
-                }
-                SaveSignatureSources();
-            }
-        }
-
-        public static void UpdateSignatureSource(SignatureSource source)
-        {
-            lock (_settingsLock)
-            {
-                if (_signatureSources == null) _signatureSources = new Dictionary<string, SignatureSource>();
-                _signatureSources[source.FetchPath] = source;
-                SaveSignatureSources();
-            }
-        }
-
-
-        public static void AddSignatureSource(SignatureSource source)
-        {
-            lock (_settingsLock)
-            {
-                if (_signatureSources == null) _signatureSources = new Dictionary<string, SignatureSource>();
-                _signatureSources[source.FetchPath] = source;
-            }
-        }
-
-        public static void DeleteSignatureSource(string sourcePath)
-        {
-            lock (_settingsLock)
-            {
-                if (_signatureSources == null) _signatureSources = new Dictionary<string, SignatureSource>();
-                //there is no way to re-add the DIE path other than manually editing the config, so disallow deletion
-                if (_signatureSources.ContainsKey(sourcePath))
-                {
-                    _signatureSources.Remove(sourcePath);
-                }
-            }
-        }
-
-        public static SignatureSource? GetSignatureRepo(string path)
-        {
-            lock (_settingsLock)
-            {
-                if (_signatureSources != null && _signatureSources.TryGetValue(path, out SignatureSource value)) return value;
-                return null;
-            }
-        }
-
-
-        public static SignatureSourcesSection InitSignatureSourcesToDefault()
-        {
-            SignatureSourcesSection result = new SignatureSourcesSection();
-            result.SignatureSources = new JArray();
-
-            JObject item = new JObject();
-            item.Add("OrgName", "horsicq");
-            item.Add("RepoName", "Detect-It-Easy");
-            item.Add("SubDir", "db");
-            item.Add("LastUpdate", DateTime.MinValue);
-            item.Add("LastCheck", DateTime.MinValue);
-            item.Add("LastFetch", DateTime.MinValue);
-            item.Add("RuleCount", -1);
-            item.Add("SignatureType", eSignatureType.DIE.ToString());
-            result.SignatureSources.Add(item);
-
-            item = new JObject();
-            item.Add("OrgName", "h3x2b");
-            item.Add("RepoName", "yara-rules");
-            item.Add("SubDir", "malware");
-            item.Add("LastUpdate", DateTime.MinValue);
-            item.Add("LastCheck", DateTime.MinValue);
-            item.Add("LastFetch", DateTime.MinValue);
-            item.Add("RuleCount", -1);
-            item.Add("SignatureType", eSignatureType.YARA.ToString());
-            result.SignatureSources.Add(item);
-            return result;
-        }
-
-
-        public static void InitSignatureSources()
-        {
-            if (_signatureSources != null) return;
-
-            lock (_settingsLock)
-            {
-                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                SignatureSourcesSection sec;
-                try
-                {
-                    sec = (SignatureSourcesSection)configFile.GetSection("SignatureSources");
-                    if (sec == null || sec.SignatureSources.Type != JTokenType.Array)
-                    {
-                        sec = InitSignatureSourcesToDefault();
-                    }
-                }
-                catch (Exception e)
-                {
-                    Logging.RecordError($"Error: {e.Message} when loading SignatureSources config");
-                    sec = InitSignatureSourcesToDefault();
-                }
-
-                _signatureSources = new Dictionary<string, SignatureSource>();
-                List<JToken> badSources = new List<JToken>();
-                foreach (var entry in sec.SignatureSources)
-                {
-                    if (entry.Type != JTokenType.Object) continue;
-                    JObject data = (JObject)entry;
-                    if (!data.TryGetValue("OrgName", out JToken orgTok) || orgTok.Type != JTokenType.String ||
-                        !data.TryGetValue("RepoName", out JToken repoTok) || repoTok.Type != JTokenType.String ||
-                        !data.TryGetValue("SubDir", out JToken dirTok) || dirTok.Type != JTokenType.String ||
-                        !data.TryGetValue("LastUpdate", out JToken modifiedTok) || modifiedTok.Type != JTokenType.Date ||
-                        !data.TryGetValue("LastFetch", out JToken fetchTok) || fetchTok.Type != JTokenType.Date ||
-                        !data.TryGetValue("LastCheck", out JToken checkTok) || checkTok.Type != JTokenType.Date ||
-                        !data.TryGetValue("RuleCount", out JToken countTok) || countTok.Type != JTokenType.Integer ||
-                        !data.TryGetValue("SignatureType", out JToken typeTok) || typeTok.Type != JTokenType.String
-                        )
-                    {
-                        Logging.RecordError($"Signature repo entry had invalid data");
-                        continue;
-                    }
-
-
-                    SignatureSource src = new SignatureSource
-                    {
-                        OrgName = orgTok.ToString(),
-                        RepoName = repoTok.ToString(),
-                        SubDir = dirTok.ToString(),
-                        LastCheck = modifiedTok.ToObject<DateTime>(),
-                        LastFetch = fetchTok.ToObject<DateTime>(),
-                        LastUpdate = modifiedTok.ToObject<DateTime>(),
-                        RuleCount = countTok.ToObject<int>()
-                    };
-                    src.InitFetchPath();
-
-                    if (Enum.TryParse(typeof(eSignatureType), typeTok.ToString(), out object setType))
-                    {
-                        src.SignatureType = (eSignatureType)setType;
-                        _signatureSources[src.FetchPath] = src;
-                    }
-                    else
-                    {
-                        Logging.RecordError($"Unable to parse signature set type for {src.RepoName}: {typeTok}");
-                    }
-
-                }
-                SaveSignatureSources();
-            }
-        }
-
-        public static SignatureSource[] GetSignatureSources()
-        {
-            lock (_settingsLock)
-            {
-                return _signatureSources.Values.ToArray();
-            }
-        }
-
-        public static string RepoComponentsToPath(string org, string repo, string directory = "")
-        {
-            if (org.Length == 0 || repo.Length == 0) return "";
-            string result = $"https://github.com/{org}/{repo}";
-            if (directory.Any())
-            {
-                result += "/tree/master/" + directory;
-            }
-            return result;
-        }
-
-        public static bool RepoExists(string githubPath)
-        {
-            lock (_settingsLock)
-            {
-                return _signatureSources.ContainsKey(githubPath);
-            }
-        }
 
         public struct SYMS_VISIBILITY
         {
@@ -635,6 +331,10 @@ namespace rgat
 
         public static bool ScreencapAnimation = true;
         public static bool AlertAnimation = true;
+        public static bool DoUpdateCheck = true;
+        public static DateTime UpdateLastCheckTime = DateTime.MinValue;
+        public static Version UpdateLastCheckVersion = RGAT_VERSION_SEMANTIC;
+        public static string UpdateLastChanges = "";
 
 
         /*
@@ -890,6 +590,68 @@ namespace rgat
         }
 
 
+
+        static void LoadUpdateDetails()
+        {
+            try
+            {
+                if (GetAppSetting("UpdateLastTime", out string updTime))
+                {
+                    if (DateTime.TryParse(updTime, out UpdateLastCheckTime) && UpdateLastCheckTime != DateTime.MinValue)
+                    {
+                        if (GetAppSetting("UpdateLastVersion", out string verString))
+                        {
+                            UpdateLastCheckVersion = new Version(verString);
+                            //if (UpdateLastCheckVersion == RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC) return; //todo uncomment after dev
+                            if (GetAppSetting("UpdateLastChanges", out string updateLastChangesb64))
+                            {
+                                NewVersionAvailable = true;
+                                UpdateLastChanges = System.Text.Encoding.ASCII.GetString(Convert.FromBase64String(updateLastChangesb64));
+                                return; 
+                            }
+                            else
+                            {
+                                Logging.RecordLogEvent("No UpdateLastChanges string for last fetch update", Logging.LogFilterType.TextDebug);
+                            }
+                        }
+                    }
+                }
+                UpdateLastChanges = null;
+                UpdateLastCheckVersion = null;
+                UpdateLastCheckTime = DateTime.MinValue;
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Error loading recent updates: {e.Message}");
+            }
+        }
+
+        public static bool NewVersionAvailable = false;
+        public static void RecordAvailableUpdateDetails(Version releaseVersion, string releaseCumulativeChanges)
+        {
+            try
+            {
+                lock (_settingsLock)
+                {
+                    UpdateLastCheckTime = DateTime.Now;
+                    UpdateLastCheckVersion = releaseVersion;
+                    UpdateLastChanges = releaseCumulativeChanges;
+
+                    AddUpdateAppSettings("UpdateLastTime", UpdateLastCheckTime.ToString());
+                    AddUpdateAppSettings("UpdateLastVersion", UpdateLastCheckVersion.ToString());
+                    AddUpdateAppSettings("UpdateLastChanges", Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes(releaseCumulativeChanges)));
+                    NewVersionAvailable = true;
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Error loading recent updates: {e.Message}");
+            }
+        }
+
+
+
+
         public struct CachedPathData
         {
             public string path;
@@ -964,7 +726,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Error loading recent paths: {e.Message}", Logging.LogFilterType.TextError);
+                Logging.RecordError($"Error loading recent paths: {e.Message}");
             }
             return result;
         }
@@ -995,26 +757,22 @@ namespace rgat
 
             try
             {
-                List<CachedPathData> targetList;
+                List<CachedPathData> targetList = new List<CachedPathData>();
                 string sectionTarget;
                 switch (pathType)
                 {
                     case eRecentPathType.Binary:
                         sectionTarget = "RecentBinaries";
-                        targetList = _cachedRecentBins;
                         break;
                     case eRecentPathType.Directory:
                         sectionTarget = "RecentDirectories";
-                        targetList = _cachedRecentDirectories;
                         break;
                     case eRecentPathType.Trace:
                         sectionTarget = "RecentTraces";
-                        targetList = _cachedRecentTraces;
                         break;
                     default:
                         throw new InvalidEnumArgumentException("Bad recent path: " + pathType);
                 }
-                targetList.Clear();
 
                 JObject targetObj = (JObject)SectionObj[sectionTarget];
                 if (targetObj.TryGetValue(path, out JToken ExistingTok) && ExistingTok.Type == JTokenType.Object)
@@ -1069,6 +827,21 @@ namespace rgat
                         targetList.Add(item);
                         targetList = targetList.OrderByDescending(x => x.lastSeen).ToList();
                     }
+                }
+
+                switch (pathType)
+                {
+                    case eRecentPathType.Binary:
+                        _cachedRecentBins = targetList;
+                        break;
+                    case eRecentPathType.Directory:
+                        _cachedRecentDirectories = targetList;
+                        break;
+                    case eRecentPathType.Trace:
+                        _cachedRecentTraces = targetList;
+                        break;
+                    default:
+                        throw new InvalidEnumArgumentException("Bad recent path: " + pathType);
                 }
             }
             catch (Exception e)
@@ -1691,6 +1464,73 @@ namespace rgat
             }
             GetAppSetting("DefaultListenModeIF", out DefaultListenModeIF);
             GetAppSetting("DefaultConnectModeIF", out DefaultConnectModeIF);
+
+            // updates
+            if (GetAppSetting("DoUpdateCheck", out string updateState))
+            {
+                DoUpdateCheck = (updateState.ToLower() == "true");
+            }
+
+        }
+
+        static void LoadTextSettingsColours()
+        {
+            defaultGraphColours = new List<WritableRgbaFloat> {
+                mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
+                mainColours.nodeStd, mainColours.nodeJump, mainColours.nodeCall, mainColours.nodeRet, mainColours.nodeExtern, mainColours.nodeExcept
+            };
+
+            const int EXTERN_VISIBLE_ZOOM_FACTOR = 40;
+            const int INSTEXT_VISIBLE_ZOOMFACTOR = 5;
+
+            externalSymbolVisibility = new SYMS_VISIBILITY
+            {
+                enabled = true,
+                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
+                offsets = true,
+                addresses = false,
+                fullPaths = false,
+                extraDetail = true,
+                duringAnimationFaded = false,
+                duringAnimationHighlighted = true,
+                notAnimated = true
+            };
+
+            internalSymbolVisibility = new SYMS_VISIBILITY
+            {
+                enabled = true,
+                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
+                addresses = false,
+                fullPaths = false,
+                extraDetail = true,
+                duringAnimationFaded = false,
+                duringAnimationHighlighted = true,
+                notAnimated = true
+            };
+
+            placeholderLabelVisibility = new SYMS_VISIBILITY
+            {
+                enabled = true,
+                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
+                addresses = false,
+                fullPaths = false,
+                extraDetail = true,
+                duringAnimationFaded = false,
+                duringAnimationHighlighted = true,
+                notAnimated = true
+            };
+
+
+            instructionTextVisibility = new SYMS_VISIBILITY
+            {
+                enabled = true,
+                autoVisibleZoom = INSTEXT_VISIBLE_ZOOMFACTOR,
+                addresses = true,
+                offsets = true,
+                fullPaths = true, //label for targets of calls/jmps
+                extraDetail = true //only show control flow
+            };
+
         }
 
         public static double LoadProgress { get; private set; } = 0;
@@ -1748,61 +1588,9 @@ namespace rgat
             LoadRecentAddresses();
 
             progress?.Report(0.9f);
-            defaultGraphColours = new List<WritableRgbaFloat> {
-                mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
-                mainColours.nodeStd, mainColours.nodeJump, mainColours.nodeCall, mainColours.nodeRet, mainColours.nodeExtern, mainColours.nodeExcept
-            };
 
-            const int EXTERN_VISIBLE_ZOOM_FACTOR = 40;
-            const int INSTEXT_VISIBLE_ZOOMFACTOR = 5;
-
-            externalSymbolVisibility = new SYMS_VISIBILITY
-            {
-                enabled = true,
-                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
-                offsets = true,
-                addresses = false,
-                fullPaths = false,
-                extraDetail = true,
-                duringAnimationFaded = false,
-                duringAnimationHighlighted = true,
-                notAnimated = true
-            };
-
-            internalSymbolVisibility = new SYMS_VISIBILITY
-            {
-                enabled = true,
-                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
-                addresses = false,
-                fullPaths = false,
-                extraDetail = true,
-                duringAnimationFaded = false,
-                duringAnimationHighlighted = true,
-                notAnimated = true
-            };
-
-            placeholderLabelVisibility = new SYMS_VISIBILITY
-            {
-                enabled = true,
-                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
-                addresses = false,
-                fullPaths = false,
-                extraDetail = true,
-                duringAnimationFaded = false,
-                duringAnimationHighlighted = true,
-                notAnimated = true
-            };
-
-
-            instructionTextVisibility = new SYMS_VISIBILITY
-            {
-                enabled = true,
-                autoVisibleZoom = INSTEXT_VISIBLE_ZOOMFACTOR,
-                addresses = true,
-                offsets = true,
-                fullPaths = true, //label for targets of calls/jmps
-                extraDetail = true //only show control flow
-            };
+            LoadTextSettingsColours();
+            LoadUpdateDetails();
 
             Logging.RecordLogEvent($"Startup: Config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Stop();

@@ -24,7 +24,6 @@ namespace rgat
             }
         }
 
-
         void DrawSplash(GlobalConfig.CachedPathData[] recentBins, GlobalConfig.CachedPathData[] recentTraces)
         {
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
@@ -43,7 +42,7 @@ namespace rgat
             //ImGui.PushFont(_controller.f)
             ImGui.PushFont(_controller.rgatLargeFont);
             Vector2 titleSize = ImGui.CalcTextSize("rgat");
-            ImGui.SetCursorScreenPos(new Vector2((ImGui.GetWindowContentRegionMax().X / 2) - (titleSize.X/2), (ImGui.GetWindowContentRegionMax().Y / 5) - (titleSize.Y/2)));
+            ImGui.SetCursorScreenPos(new Vector2((ImGui.GetWindowContentRegionMax().X / 2) - (titleSize.X / 2), (ImGui.GetWindowContentRegionMax().Y / 5) - (titleSize.Y / 2)));
             ImGui.Text("rgat");
             ImGui.PopFont();
 
@@ -181,7 +180,7 @@ namespace rgat
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
                     ImguiUtils.DrawHorizCenteredText("Load Trace");
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (LargeIconSize.X / 2) + 8); //shift a bit to the right to balance it 
-                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTitleYSep); 
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTitleYSep);
 
                     _controller.PushBigIconFont();
                     ImGui.Text($"{ImGuiController.FA_ICON_LOADFILE}");
@@ -241,20 +240,48 @@ namespace rgat
 
             ImGui.PopStyleVar(5);
 
+            ImGui.BeginGroup();
+            string versionString = $"rgat {RGAT_CONSTANTS.RGAT_VERSION}";
+            float width = ImGui.CalcTextSize(versionString).X;
+            ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(width + 25, 40));
+            ImGui.Text(versionString);
 
-            ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(100, 50));
-            if (ImGui.BeginChild("##SplashCorner", new Vector2(80, 35)))
+            Version currentVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
+            Version newVersion = GlobalConfig.UpdateLastCheckVersion;
+            if (GlobalConfig.NewVersionAvailable)
             {
-
-
-
-                if (ImGui.Selectable("rgat v0.6.0"))
+                string updateString;
+                if (newVersion.Major > currentVersion.Major ||
+                    (newVersion.Major == currentVersion.Major && newVersion.Minor > currentVersion.Minor))
                 {
-                    ToggleTestHarness();
+                    updateString = "New version available ";
                 }
+                else
+                {
+                    updateString = "Updates available ";
+                }
+                updateString += $"({newVersion})";
 
-                ImGui.EndChild();
+                Vector2 textSize = ImGui.CalcTextSize(updateString);
+                ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(textSize.X + 25, 55));
+                
+                if (ImGui.Selectable(updateString, false, flags: ImGuiSelectableFlags.None, size: new Vector2(textSize.X, textSize.Y)))
+                {
+                    ImGui.OpenPopup("#NewVersionChangesDialog");
+                }
+                if (ImGui.IsItemHovered())
+                {
+                    Updates.ChangesCounts(out int changes, out int versions);
+                    if (changes > 0)
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text($"Click to see {changes} changes in {versions} newer rgat versions");
+                        ImGui.EndTooltip();
+                    }
+                }
             }
+            ImGui.EndGroup();
+
             ImGui.PopStyleColor();
 
             if (StartupProgress < 1)
@@ -265,6 +292,18 @@ namespace rgat
             }
             //String msg = "No target binary is selected\nOpen a binary or saved trace from the target menu фä洁ф";
             //ImguiUtils.DrawRegionCenteredText(msg);
+
+            if (ImGui.IsPopupOpen("#NewVersionChangesDialog"))
+            {
+                ImGui.SetNextWindowPos((ImGui.GetWindowSize()/2) - new Vector2(450f / 2f, 350f / 2f), ImGuiCond.Appearing);
+                bool isopen = true;
+                if (ImGui.BeginPopupModal("#NewVersionChangesDialog", ref isopen, flags: ImGuiWindowFlags.Modal))
+                {
+                    Updates.DrawChangesDialog();
+                    ImGui.EndPopup();
+                }
+                if (!isopen) { ImGui.CloseCurrentPopup(); }
+            }
         }
 
 

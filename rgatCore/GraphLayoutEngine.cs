@@ -213,10 +213,6 @@ namespace rgat
         }
 
 
-
-
-
-
         unsafe void SetupComputeResources()
         {
             if (!_gd.Features.ComputeShader) { Console.WriteLine("Error: No computeshader feature"); return; }

@@ -78,7 +78,7 @@ namespace rgat.Threads
 
         public void ThreadProc()
         {
-            while (!rgatState.RgatIsExiting)
+            while (!rgatState.rgatIsExiting)
             {
 
                 PlottedGraph graph = _clientState.ActiveGraph;

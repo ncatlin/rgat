@@ -90,7 +90,7 @@ namespace rgat
         void GetRepoLastUpdated(GlobalConfig.SignatureSource repo)
         {
             System.Net.Http.HttpClient client = new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", RGAT_CONSTANTS.RGAT_VERSION));
+            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC.ToString()));
             try
             {
                 string commitsPath = $"https://api.github.com/repos/{repo.OrgName}/{repo.RepoName}/commits/master";
@@ -212,7 +212,7 @@ namespace rgat
         void DownloadRepo(GlobalConfig.SignatureSource repo)
         {
             System.Net.Http.HttpClient client = new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", RGAT_CONSTANTS.RGAT_VERSION));
+            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC.ToString()));
             try
             {
                 string repoDirectory = null;

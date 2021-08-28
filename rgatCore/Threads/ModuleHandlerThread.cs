@@ -472,7 +472,7 @@ namespace rgat
 
                 if (buf[1] == 'Z')
                 {
-                    if (!rgatState.RgatIsExiting) HandleTerminatedThread(buf);
+                    if (!rgatState.rgatIsExiting) HandleTerminatedThread(buf);
 
                     return;
                 }
@@ -595,7 +595,7 @@ namespace rgat
                 Thread.Sleep(25);
             }
 
-            while (!rgatState.RgatIsExiting)
+            while (!rgatState.rgatIsExiting)
             {
                 string[] newCommands;
                 try
@@ -642,7 +642,7 @@ namespace rgat
             SendTraceSettings();
 
             byte[][] newEvents;
-            while (!rgatState.RgatIsExiting)
+            while (!rgatState.rgatIsExiting)
             {
                 try
                 {
@@ -706,7 +706,7 @@ namespace rgat
             }
 
             int totalWaited = 0;
-            while (!rgatState.RgatIsExiting)
+            while (!rgatState.rgatIsExiting)
             {
                 if (eventPipe.IsConnected & commandPipe.IsConnected) break;
                 Thread.Sleep(1000);
@@ -728,7 +728,7 @@ namespace rgat
             byte[] pendingBuf = null;
             const int BufMax = 4096;
             int bytesRead = 0;
-            while (!rgatState.RgatIsExiting && eventPipe.IsConnected)
+            while (!rgatState.rgatIsExiting && eventPipe.IsConnected)
             {
                 byte[] buf = new byte[BufMax];
                 try
@@ -779,7 +779,7 @@ namespace rgat
             trace.RecordTimelineEvent(Logging.eTimelineEvent.ProcessEnd, trace);
 
             bool alldone = false;
-            while (!rgatState.RgatIsExiting && !alldone)
+            while (!rgatState.rgatIsExiting && !alldone)
             {
                 var graphs = trace.GetPlottedGraphs();
                 alldone = !graphs.Any(g => g.InternalProtoGraph.TraceProcessor.Running);

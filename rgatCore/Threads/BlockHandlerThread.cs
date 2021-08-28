@@ -266,7 +266,7 @@ namespace rgat
         void RemoteListener(object ProcessMessageobj)
         {
             byte[][] newItems;
-            while (!rgatState.RgatIsExiting)
+            while (!rgatState.rgatIsExiting)
             {
                 try
                 {
@@ -316,7 +316,7 @@ namespace rgat
 
 
             int totalWaited = 0;
-            while (!rgatState.RgatIsExiting && !blockPipe.IsConnected)
+            while (!rgatState.rgatIsExiting && !blockPipe.IsConnected)
             {
                 Thread.Sleep(1000);
                 totalWaited += 1000;
@@ -332,7 +332,7 @@ namespace rgat
             byte[] pendingBuf = null;
             const int BufMax = 4096; //todo experiment for perfomance
             int bytesRead = 0;
-            while (!rgatState.RgatIsExiting && blockPipe.IsConnected)
+            while (!rgatState.rgatIsExiting && blockPipe.IsConnected)
             {
                 byte[] buf = new byte[BufMax];
                 try

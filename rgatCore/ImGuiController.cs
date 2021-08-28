@@ -72,12 +72,21 @@ namespace ImGuiNET
         public static readonly char FA_STILL_CAMERA = '\uf030';
         public static readonly char FA_ICON_WARNING = '\uf071';
         public static readonly char FA_ICON_EXCLAIM = '\uf12a';
-        public static readonly char FA_ICON_UPCIRCLE = '\uf062';
-        public static readonly char FA_ICON_LEFTCIRCLE = '\uf060';
-        public static readonly char FA_ICON_RIGHTCIRCLE = '\uf061';
+        public static readonly char FA_ICON_UP = '\uf062';
+        public static readonly char FA_ICON_LEFT = '\uf060';
+        public static readonly char FA_ICON_RIGHT = '\uf061';
+        public static readonly char FA_ICON_DOWN = '\uf063';
         public static readonly char FA_ICON_DIRECTORY = '\uf07b';
         public static readonly char FA_ICON_FILEPLAIN = '\uf15b';
         public static readonly char FA_ICON_FILECODE = '\uf1c9';
+        public static readonly char FA_ICON_CROSS = '\uf00d';
+        public static readonly char FA_ICON_PLUS = '\uf067';
+        public static readonly char FA_ICON_UPCIRCLE = '\uf0aa';
+        public static readonly char FA_ICON_DOWNCIRCLE = '\uf0ab';
+        public static readonly char FA_ICON_LEFTCIRCLE = '\uf0a8';
+        public static readonly char FA_ICON_RIGHTCIRCLE = '\uf0a9';
+        public static readonly char FA_ICON_TRASHCAN = '\uf2ed';
+        public static readonly char FA_ICON_WRENCH = '\uf0ad';
 
         public unsafe ImGuiController(GraphicsDevice gd, OutputDescription outputDescription, int width, int height)
         {

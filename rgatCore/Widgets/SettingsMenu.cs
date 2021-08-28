@@ -1184,8 +1184,6 @@ namespace rgat.Widgets
         bool _UI_JSON_edited = false;
         bool _expanded_theme_json = false;
         string pendingPresetName = "";
-        bool popejn = true;
-
         unsafe void CreateOptionsPane_UITheme()
         {
             Themes.GetMetadataValue("Name", out string activeThemeName);
@@ -1347,6 +1345,14 @@ namespace rgat.Widgets
                 GlobalConfig.AddUpdateAppSettings("AlertAnimation", alertAnim ? "True" : "False");
             }
             SmallWidgets.MouseoverText("Display a shrinking circle to draw the eye to new alert messages");
+
+            bool updateCheckEnable = GlobalConfig.DoUpdateCheck;
+            if (ImGui.Checkbox("Check for new releases", ref updateCheckEnable))
+            {
+                GlobalConfig.DoUpdateCheck = alertAnim;
+                GlobalConfig.AddUpdateAppSettings("DoUpdateCheck", updateCheckEnable ? "True" : "False");
+            }
+            SmallWidgets.MouseoverText("Check for new rgat releases");
 
         }
 

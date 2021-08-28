@@ -102,7 +102,7 @@ namespace rgat.Threads
                 return;
             }
 
-            while (!rgatState.RgatIsExiting)
+            while (!rgatState.rgatIsExiting)
             {
                 try
                 {
@@ -125,28 +125,47 @@ namespace rgat.Threads
 
                 while (!coordPipe.IsConnected)
                 {
-                    if (rgatState.RgatIsExiting)
+                    if (rgatState.rgatIsExiting)
                     {
+                        Logging.RecordLogEvent("rgat exited before the coordinator connection completed", Logging.LogFilterType.TextDebug);
                         Finished();
                         return;
                     }
                     Thread.Sleep(100);
                 }
 
-
-                Logging.RecordLogEvent($"rgatCoordinator pipe connected", Logging.LogFilterType.TextDebug);
-
-                var readres = coordPipe.BeginRead(buf, 0, 1024, new AsyncCallback(GotMessage), null);
-
-                Logging.RecordLogEvent("rgatCoordinator began read", Logging.LogFilterType.TextDebug);
-
-                int mush = WaitHandle.WaitAny(new WaitHandle[] { readres.AsyncWaitHandle }, 2000);
-
-                if (!readres.IsCompleted)
+                try
                 {
-                    Logging.RecordLogEvent("Warning: Read timeout for coordinator connection, abandoning");
+                    Logging.RecordLogEvent($"rgatCoordinator pipe connected", Logging.LogFilterType.TextDebug);
+
+                    var readres = coordPipe.BeginRead(buf, 0, 1024, new AsyncCallback(GotMessage), null);
+
+                    Logging.RecordLogEvent("rgatCoordinator began read", Logging.LogFilterType.TextDebug);
+
+                    _ = WaitHandle.WaitAny(new WaitHandle[] { readres.AsyncWaitHandle }, 2000);
+
+                    if (!readres.IsCompleted)
+                    {
+                        Logging.RecordLogEvent("Warning: Read timeout for coordinator connection, abandoning");
+                    }
+
+                    int connectionMax = 0;
+                    while (coordPipe.IsConnected && !rgatState.rgatIsExiting)
+                    {
+                        connectionMax += 5;
+                        Thread.Sleep(5);
+                        if (connectionMax > 1000)
+                        {
+                            Logging.RecordError("Trace connection took too long to negotiatiate. Terminating it.");
+                            coordPipe.Disconnect();
+                        }
+                    }
                 }
-                while (coordPipe.IsConnected && !rgatState.RgatIsExiting) Thread.Sleep(5);
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Trace connection experienced an unknown error: {e.Message}");
+                    if (coordPipe.IsConnected) coordPipe.Disconnect();
+                }
             }
             Finished();
 

@@ -573,7 +573,7 @@ namespace rgat
                 DrawOuterLeftMenuItems();
                 DrawInnerLeftMenuItems();
                 DrawInnerRightMenuItems();
-                logMenuX = DrawOuterRightMenuItems();
+                DrawOuterRightMenuItems(out logMenuX);
                 ImGui.EndMenuBar();
             }
             DrawAlerts(new Vector2(logMenuX, 18));
@@ -825,10 +825,10 @@ namespace rgat
         /// <summary>
         /// Displays less-used utilities like logs, tests 
         /// </summary>
-        float DrawOuterRightMenuItems()
+        /// <param name="logMenuX">Set to the center X position of the log menu button, for alert animations</param>
+        void DrawOuterRightMenuItems(out float logMenuX)
         {
             //draw right to left
-            float LogButtonCenter;
             float X = ImGui.GetContentRegionMax().X - (ImGui.CalcTextSize("Demo ").X + 15);
             ImGui.SetCursorPosX(X);
             ImGui.MenuItem("Demo", null, ref _controller.ShowDemoWindow, true);
@@ -845,7 +845,7 @@ namespace rgat
 
             Vector2 logBtnTextSize = ImGui.CalcTextSize("Logs (25) ");
             X -= (logBtnTextSize.X + 20);
-            LogButtonCenter = X + logBtnTextSize.X / 2f;
+            logMenuX = X + logBtnTextSize.X / 2f;
             ImGui.SetCursorPosX(X);
             int unseenErrors = Logging.UnseenAlerts;
             uint itemColour = unseenErrors > 0 ? Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour) : Themes.GetThemeColourImGui(ImGuiCol.Text);
@@ -863,8 +863,6 @@ namespace rgat
             {
                 DrawLogMouseover();
             }
-
-            return LogButtonCenter;
         }
 
 

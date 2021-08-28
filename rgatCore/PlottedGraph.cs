@@ -233,7 +233,7 @@ namespace rgat
                 UpdateNodeLinks((int)edgeNodes.Item1, (int)edgeNodes.Item2);
                 DrawnEdgesCount++;
 
-                if (rgatState.RgatIsExiting) break;
+                if (rgatState.rgatIsExiting) break;
 
                 if (DrawnEdgesCount > dbglimit) return;
             }
@@ -1735,7 +1735,7 @@ namespace rgat
                 {
                     Thread.Sleep(15);
                     Console.WriteLine($"[rgat] process_replay_update waiting for block 0x{entry.blockAddr:x}");
-                    if (rgatState.RgatIsExiting) return;
+                    if (rgatState.rgatIsExiting) return;
                 }
             }
 

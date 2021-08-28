@@ -118,7 +118,7 @@ namespace rgat.Widgets
         List<TestCase> FindTests(string dirpath, string category)
         {
             List<TestCase> results = new List<TestCase>();
-            string[] tests = Directory.GetFiles(dirpath).Where(x => x.EndsWith(RGAT_CONSTANTS.TEST.testextension)).ToArray();
+            string[] tests = Directory.GetFiles(dirpath).Where(x => x.EndsWith(RGAT_CONSTANTS.TESTS.testextension)).ToArray();
             foreach (string testfile in tests)
             {
                 try

@@ -732,7 +732,7 @@ namespace rgatFilePicker
         {
             string root = Path.GetPathRoot(Data.CurrentDirectory);
             bool enabled = _directoryHistoryPosition < (_directoryHistory.Count - 1);
-            if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_LEFTCIRCLE}", enabled: enabled))
+            if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_LEFT}", enabled: enabled))
             {
                 _directoryHistoryPosition += 1;
                 SetActiveDirectory(_directoryHistory.ToArray()[_directoryHistoryPosition], false);
@@ -742,14 +742,14 @@ namespace rgatFilePicker
                 ShowDirectoryHistory();
             }
             ImGui.SameLine();
-            if (ImGui.Button($"{ImGuiController.FA_ICON_UPCIRCLE}"))
+            if (ImGui.Button($"{ImGuiController.FA_ICON_UP}"))
             {
                 SetActiveDirectory(Directory.GetParent(Data.CurrentDirectory).FullName);
             }
             SmallWidgets.MouseoverText("Parent Directory");
             ImGui.SameLine();
             enabled = _directoryHistoryPosition > 0;
-            if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_RIGHTCIRCLE}", enabled: enabled))
+            if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_RIGHT}", enabled: enabled))
             {
                 _directoryHistoryPosition -= 1;
                 SetActiveDirectory(_directoryHistory.ToArray()[_directoryHistoryPosition], false);

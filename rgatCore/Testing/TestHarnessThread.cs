@@ -100,7 +100,7 @@ namespace rgat.Testing
             {
                 TestCaseRun tcr = _testRuns[testID];
                 TestRunThread testThread = _runningTests[testID];
-                Debug.Assert(testThread.Finished || rgatState.RgatIsExiting);
+                Debug.Assert(testThread.Finished || rgatState.rgatIsExiting);
 
                 _runningTests.Remove(testID);
 
@@ -112,7 +112,7 @@ namespace rgat.Testing
 
         void Listener(Object pipenameO)
         {
-            while (!rgatState.RgatIsExiting)
+            while (!rgatState.rgatIsExiting)
             {
                 Thread.Sleep(1000);
                 lock (_lock)

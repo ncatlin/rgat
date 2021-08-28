@@ -65,7 +65,13 @@ namespace rgat
         }
 
 
-        public static bool RgatIsExiting { private set; get; } = false;
+        static CancellationTokenSource _exitTokenSource = new CancellationTokenSource();
+        public static bool rgatIsExiting => _exitTokenSource.IsCancellationRequested;
+        /// <summary>
+        /// Get a cancellation token which will be cancelled when rgat is exiting
+        /// </summary>
+        public static CancellationToken ExitToken => _exitTokenSource.Token;
+
         public static int TotalTraceCount { private set; get; } = 0;
         public static void IncreaseLoadedTraceCount() => TotalTraceCount += 1;
 
@@ -79,7 +85,8 @@ namespace rgat
         /// </summary>
         public static void Shutdown()
         {
-            RgatIsExiting = true;
+            _exitTokenSource.Cancel();
+            
             if (rgatState.ConnectedToRemote) rgatState.NetworkBridge.Teardown("Exiting");
 
             DIELib?.CancelAllScans();

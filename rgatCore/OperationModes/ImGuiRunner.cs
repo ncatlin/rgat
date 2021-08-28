@@ -1,8 +1,10 @@
 ﻿using ImGuiNET;
+using Newtonsoft.Json.Linq;
 using rgat.Threads;
 using rgat.Widgets;
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Numerics;
 using System.Text;
 using System.Threading;
@@ -75,7 +77,7 @@ namespace rgat.OperationModes
                 Console.WriteLine($"The rgat UI and graph layout engine is GPU based, requiring access to the Vulkan API");
                 Console.WriteLine($"If https://github.com/skeeto/vulkan-test doesn't work then neither will rgat rendering.");
                 Console.WriteLine($"If your GPU or analysis environment does does not support this then you can still perform\n" +
-                    $"tracing and load the result using rgat on another machine, or perform tracing directly over a network."); 
+                    $"tracing and load the result using rgat on another machine, or perform tracing directly over a network.");
                 Console.WriteLine("Run 'rgat.exe ?' for the available options");
                 Console.WriteLine($"------------------------------------------------------------------------------------");
                 return;
@@ -298,7 +300,7 @@ namespace rgat.OperationModes
             Task confloader = Task.Run(() => GlobalConfig.LoadConfig(IProgressConfig)); // 900ms~ depending on themes
             Task widgetLoader = Task.Run(() => _rgatUI.InitWidgets(IProgressWidgets)); //2000ms~ fairly flat
 
-            await Task.WhenAll( widgetLoader, confloader );
+            await Task.WhenAll(widgetLoader, confloader);
 
             Logging.RecordLogEvent($"Startup: Widgets+config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
@@ -341,17 +343,21 @@ namespace rgat.OperationModes
                 apiTask = Task.Run(() => Console.WriteLine("TODO: linux API loading"));
             }
 
+            if (GlobalConfig.DoUpdateCheck)
+            {
+                _ = Task.Run(() => Updates.CheckForUpdates()); //functionality does not depend on this so we don't wait for it
+            }
+
             await Task.WhenAll(sigsTask, apiTask);
 
-            Logging.RecordLogEvent($"Startup: Signatures + API info inited in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Stop();
-            Logging.RecordLogEvent($"Startup: Loading thread took {timerTotal.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
-            timer.Stop();
+            timerTotal.Stop();
 
+            Logging.RecordLogEvent($"Startup: Signatures + API info inited in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Startup: Loading thread took {timerTotal.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             _rgatUI.StartupProgress = 1;
 
         }
-
 
         public void Exit()
         {
@@ -383,7 +389,7 @@ namespace rgat.OperationModes
         public void AlertDragDrop(DragDropEvent dd)
         {
             _rgatUI.LoadSelectedBinary(dd.File, false);
-        } 
+        }
 
         public void AlertMouseWheel(MouseWheelEventArgs mw)
         {
@@ -406,7 +412,7 @@ namespace rgat.OperationModes
         bool _UIStopped = false;
         public bool DrawUI()
         {
-            if (rgatState.RgatIsExiting)
+            if (rgatState.rgatIsExiting)
             {
                 _UIStopped = true;
                 return false;
@@ -418,7 +424,7 @@ namespace rgat.OperationModes
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
             window_flags |= ImGuiWindowFlags.NoDecoration;
             window_flags |= ImGuiWindowFlags.DockNodeHost;
-            if(_rgatUI.MenuBarVisible)
+            if (_rgatUI.MenuBarVisible)
                 window_flags |= ImGuiWindowFlags.MenuBar;
             window_flags |= ImGuiWindowFlags.NoBringToFrontOnFocus;
 
@@ -441,7 +447,7 @@ namespace rgat.OperationModes
                 _rgatUI.DrawMain();
                 _rgatUI.DrawDialogs();
                 _rgatUI.CleanupFrame();
-                
+
 
 
                 Themes.ResetThemeColours();

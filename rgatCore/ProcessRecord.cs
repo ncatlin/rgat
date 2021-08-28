@@ -982,9 +982,9 @@ namespace rgat
                 return;
             }
 
-            saveObject.Add("RGATVersionMaj", RGAT_CONSTANTS.VERSION.MAJOR);
-            saveObject.Add("RGATVersionMin", RGAT_CONSTANTS.VERSION.MINOR);
-            saveObject.Add("RGATVersionFeature", RGAT_CONSTANTS.VERSION.FEATURE);
+            saveObject.Add("RGATVersionMaj", RGAT_CONSTANTS.PROGRAMVERSION.MAJOR);
+            saveObject.Add("RGATVersionMin", RGAT_CONSTANTS.PROGRAMVERSION.MINOR);
+            saveObject.Add("RGATVersionPatch", RGAT_CONSTANTS.PROGRAMVERSION.PATCH);
         }
 
         private void SerialiseDisassembly(ref JObject saveObject)

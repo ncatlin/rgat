@@ -48,7 +48,7 @@ namespace rgat.Testing
             ProcessLaunching.StartLocalTrace(_testCase.TestBits == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64, _testCase.BinaryPath, testID: _thisTest.TestID);
 
             //GetTestTrace
-            while (!rgatState.RgatIsExiting && !Finished)
+            while (!rgatState.rgatIsExiting && !Finished)
             {
                 Console.WriteLine($"\tWaiting for test {_thisTest.TestID} to start...");
                 if (_rgatState.GetTestTrace(_thisTest.TestID, out TraceRecord testTrace))
@@ -56,7 +56,7 @@ namespace rgat.Testing
                     _thisTest.SetFirstTrace(testTrace);
                     Console.WriteLine($"\tGot first trace of test {_thisTest.TestID}");
 
-                    while (!rgatState.RgatIsExiting && !Finished)
+                    while (!rgatState.rgatIsExiting && !Finished)
                     {
                         Thread.Sleep(100);
                         if (!testTrace.IsRunning && !testTrace.ProcessingRemaining)

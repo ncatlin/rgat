@@ -80,13 +80,13 @@ namespace rgat.OperationModes
 
         void RunConnection(BridgeConnection connection)
         {
-            while (!rgatState.RgatIsExiting && !connection.Connected && connection.ActiveNetworking)
+            while (!rgatState.rgatIsExiting && !connection.Connected && connection.ActiveNetworking)
             {
                 Console.WriteLine($"Waiting for connection: {connection.BridgeState}");
                 System.Threading.Thread.Sleep(500);
             }
             List<NETWORK_MSG> incoming = new List<NETWORK_MSG>();
-            while (!rgatState.RgatIsExiting && connection.Connected)
+            while (!rgatState.rgatIsExiting && connection.Connected)
             {
                 Console.WriteLine($"Headless bridge running while connected {connection.BridgeState}");
                 NewDataEvent.Wait();
@@ -726,7 +726,7 @@ namespace rgat.OperationModes
                 _incomingData.Clear();
             }
             NETWORK_MSG[] incoming = null;
-            while (!rgatState.RgatIsExiting)
+            while (!rgatState.rgatIsExiting)
             {
                 try
                 {

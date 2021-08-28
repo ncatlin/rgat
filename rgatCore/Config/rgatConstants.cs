@@ -4,11 +4,16 @@ namespace rgat
 {
     public class RGAT_CONSTANTS
     {
-        public static class VERSION
+        public static class PROGRAMVERSION
         {
             public const int MAJOR = 0;
             public const int MINOR = 6;
-            public const int FEATURE = 0;
+            public const int PATCH = 0;
+            /// <summary>
+            /// Optional, non-unique name for the given version (preview, release, bugfix, etc)
+            /// Other values must still be unique (eg: '1.1.1 Preview' and '1.1.1 Release' cannot both exist)
+            /// </summary>
+            public const string PATCHNAME = null;
         }
 
 
@@ -79,6 +84,10 @@ namespace rgat
             //number of wrong-key connections allowed before the listener disables itself
             public const int TotalLockoutLimit = 15;
             public const int InterfaceRefreshIntervalMS = 6000;
+            /// <summary>
+            /// How long to wait between checks for new versions (check only happens on startup)
+            /// </summary>
+            public const int UpdateCheckMinimumDelayMinutes = 6*60;
         }
 
         public static class TRACING
@@ -95,7 +104,7 @@ namespace rgat
         }
 
 
-        public static class TEST
+        public static class TESTS
         {
             public const string testextension = ".test.json";
         }
@@ -151,7 +160,8 @@ namespace rgat
          * Helper functions
          * 
          */
-        public static string RGAT_VERSION => $"{VERSION.MAJOR}.{VERSION.MINOR}.{VERSION.FEATURE}";
+        public static string RGAT_VERSION => $"{PROGRAMVERSION.MAJOR}.{PROGRAMVERSION.MINOR}.{PROGRAMVERSION.PATCH}";
+        public static System.Version RGAT_VERSION_SEMANTIC => new System.Version(RGAT_VERSION);
 
     }
 }
