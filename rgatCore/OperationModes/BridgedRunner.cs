@@ -57,7 +57,14 @@ namespace rgat.OperationModes
         {
             GlobalConfig.LoadConfig(null); //todo a lightweight headless config
 
-            rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
+            if (GlobalConfig.NewVersionAvailable)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"A new version of rgat is available! ({RGAT_CONSTANTS.RGAT_VERSION} -> {GlobalConfig.UpdateLastCheckVersion})");
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+
+                rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
             rgatState.processCoordinatorThreadObj.Begin();
 
             if (GlobalConfig.StartOptions.ListenPort != null)

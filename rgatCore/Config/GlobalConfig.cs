@@ -605,7 +605,7 @@ namespace rgat
                             //if (UpdateLastCheckVersion == RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC) return; //todo uncomment after dev
                             if (GetAppSetting("UpdateLastChanges", out string updateLastChangesb64))
                             {
-                                NewVersionAvailable = true;
+                                NewVersionAvailable = UpdateLastCheckVersion > RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
                                 UpdateLastChanges = System.Text.Encoding.ASCII.GetString(Convert.FromBase64String(updateLastChangesb64));
                                 return; 
                             }
@@ -640,7 +640,7 @@ namespace rgat
                     AddUpdateAppSettings("UpdateLastTime", UpdateLastCheckTime.ToString());
                     AddUpdateAppSettings("UpdateLastVersion", UpdateLastCheckVersion.ToString());
                     AddUpdateAppSettings("UpdateLastChanges", Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes(releaseCumulativeChanges)));
-                    NewVersionAvailable = true;
+                    NewVersionAvailable = UpdateLastCheckVersion > RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
                 }
             }
             catch (Exception e)
