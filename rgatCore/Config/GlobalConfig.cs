@@ -607,7 +607,7 @@ namespace rgat
                             {
                                 NewVersionAvailable = UpdateLastCheckVersion > RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
                                 UpdateLastChanges = System.Text.Encoding.ASCII.GetString(Convert.FromBase64String(updateLastChangesb64));
-                                return; 
+                                return;
                             }
                             else
                             {
@@ -731,8 +731,7 @@ namespace rgat
             return result;
         }
 
-
-        public static void RecordRecentPath(string path, eRecentPathType pathType)
+        static void RecordRecentPathLocked(string path, eRecentPathType pathType)
         {
             var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             RecentPathSection sec = (RecentPathSection)configFile.GetSection("RecentPaths");
@@ -865,7 +864,16 @@ namespace rgat
                     Logging.RecordLogEvent($"Failed to record recent directory containing {path}: {e.Message}");
                 }
             }
+        }
 
+
+
+        public static void RecordRecentPath(string path, eRecentPathType pathType)
+        {
+            lock (_settingsLock)
+            {
+                RecordRecentPathLocked(path, pathType);
+            }
         }
 
 

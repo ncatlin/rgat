@@ -5,6 +5,7 @@ using rgat.Threads;
 using rgat.Widgets;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -43,8 +44,9 @@ namespace rgat
         /// </summary>
         public bool ExitFlag = false;
 
-
-        private bool _settings_window_shown = false;
+        int _dialogsOpen = 0;
+        public bool DialogOpen => _dialogsOpen > 0;
+        private bool _show_settings_window = false;
         private bool _show_select_exe_window = false;
         private bool _show_load_trace_window = false;
         private bool _show_test_harness = false;
@@ -59,7 +61,7 @@ namespace rgat
         float _mouseWheelDelta = 0;
         Vector2 _mouseDragDelta = new Vector2(0, 0);
 
-        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover || _logsWindow.RecentAlert() || _activeDialog || (DateTime.Now - _lastNotification).TotalMilliseconds < 500);
+        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover || _logsWindow.RecentAlert() || DialogOpen || (DateTime.Now - _lastNotification).TotalMilliseconds < 500);
         bool _splashHeaderHover = false;
         DateTime _lastNotification = DateTime.MinValue;
 
@@ -103,6 +105,7 @@ namespace rgat
             Logging.RecordLogEvent($"Startup: Visualiser tab created in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
             visualiserTab.Init(_gd, _controller, progress);
+            visualiserTab.SetDialogStateChangeCallback((bool state) => { _dialogsOpen += state ? 1 : -1; });
 
             Logging.RecordLogEvent($"Startup: Visualiser tab initialised in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
@@ -228,43 +231,55 @@ namespace rgat
                 DrawMainMenu();
         }
 
-        bool _activeDialog = false;
+
         public void DrawDialogs()
         {
-            bool dialogShown = false;
-
-            if (_settings_window_shown && _SettingsMenu != null)
+            Debug.Assert(_dialogsOpen >= 0);
+            if (_dialogsOpen == 0) return;
+            bool shown;
+            if (_show_settings_window && _SettingsMenu != null)
             {
-                _SettingsMenu.Draw(ref _settings_window_shown);
-                dialogShown = true;
+                shown = _show_settings_window;
+                _SettingsMenu.Draw(ref shown);
+                if (!shown) ToggleSettingsWindow();
+                Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_select_exe_window)
             {
-                DrawFileSelectBox(ref _show_select_exe_window);
-                dialogShown = true;
+                shown = _show_select_exe_window;
+                DrawFileSelectBox(ref shown);
+                if (!shown) ToggleLoadExeWindow();
+                Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_load_trace_window)
             {
-                DrawTraceLoadBox(ref _show_load_trace_window);
-                dialogShown = true;
+                shown = _show_load_trace_window;
+                DrawTraceLoadBox(ref shown);
+                if (!shown) ToggleLoadTraceWindow();
+                Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_test_harness)
             {
-                _testHarness.Draw(ref _show_test_harness);
-                dialogShown = true;
+                shown = _show_test_harness;
+                _testHarness.Draw(ref shown);
+                if (!shown) ToggleTestHarness();
+                Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_logs_window)
             {
-                _logsWindow.Draw(ref _show_logs_window);
-                dialogShown = true;
+                shown = _show_logs_window;
+                _logsWindow.Draw(ref shown);
+                if (!shown) ToggleLogsWindow();
+                Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_remote_dialog)
             {
                 if (_RemoteDialog == null) { _RemoteDialog = new RemoteDialog(_rgatState); }
-                _RemoteDialog.Draw(ref _show_remote_dialog);
-                dialogShown = true;
+                shown = _show_remote_dialog;
+                _RemoteDialog.Draw(ref shown);
+                if (!shown) ToggleRemoteDialog();
+                Debug.Assert(_dialogsOpen >= 0);
             }
-            _activeDialog = dialogShown;
         }
 
         public void CleanupFrame()
@@ -294,8 +309,6 @@ namespace rgat
                 ImGui.EndChild();
             }
         }
-
-
 
 
         public void HandleUserInput()
@@ -374,8 +387,6 @@ namespace rgat
                     bool isKeybind = GlobalConfig.Keybinds.TryGetValue(KeyModifierTuple, out eKeybind boundAction);
                     if (isKeybind)
                     {
-                        if (visualiserTab.AlertKeybindPressed(boundAction, KeyModifierTuple)) continue;
-
                         //cancel any open dialogs
                         if (boundAction == eKeybind.Cancel)
                             CloseDialogs();
@@ -385,12 +396,12 @@ namespace rgat
                     //could be a quickmenu shortcut
                     if (visualiserTab.AlertRawKeyPress(KeyModifierTuple)) continue;
 
-                    if (isKeybind && !_settings_window_shown)
+                    if (isKeybind && !_show_settings_window)
                     {
                         switch (boundAction)
                         {
                             case eKeybind.ToggleVideo:
-                                if (_activeDialog) continue;
+                                if (DialogOpen) continue;
                                 ActivateNotification();
                                 if (rgatState.VideoRecorder.Recording)
                                 {
@@ -403,7 +414,7 @@ namespace rgat
                                 continue;
 
                             case eKeybind.PauseVideo:
-                                if (_activeDialog) continue;
+                                if (DialogOpen) continue;
                                 ActivateNotification();
                                 if (rgatState.VideoRecorder.Recording)
                                 {
@@ -412,17 +423,17 @@ namespace rgat
                                 continue;
 
                             case eKeybind.CaptureGraphImage:
-                                if (_activeDialog) continue;
+                                if (DialogOpen) continue;
                                 PendingScreenshot = VideoEncoder.CaptureContent.Graph;
 
                                 continue;
                             case eKeybind.CaptureGraphPreviewImage:
-                                if (_activeDialog) continue;
+                                if (DialogOpen) continue;
                                 PendingScreenshot = VideoEncoder.CaptureContent.GraphAndPreviews;
 
                                 continue;
                             case eKeybind.CaptureWindowImage:
-                                if (_activeDialog) continue;
+                                if (DialogOpen) continue;
                                 PendingScreenshot = VideoEncoder.CaptureContent.Window;
 
                                 continue;
@@ -457,11 +468,12 @@ namespace rgat
                 return;
             }
 
-            _show_load_trace_window = false;
-            _settings_window_shown = false;
-            _show_remote_dialog = false;
-            _show_test_harness = false;
-            _show_select_exe_window = false;
+            if (_show_select_exe_window) ToggleLoadExeWindow();
+            if (_show_load_trace_window) ToggleLoadTraceWindow();
+            if (_show_settings_window) ToggleSettingsWindow();
+            if (_show_remote_dialog) ToggleRemoteDialog();
+            if (_show_test_harness) ToggleTestHarness();
+            if (_show_logs_window) ToggleLogsWindow();
         }
 
 
@@ -472,6 +484,8 @@ namespace rgat
                 if (_testHarness == null) _testHarness = new TestsWindow(_rgatState, _controller);
             }
             _show_test_harness = !_show_test_harness;
+            _dialogsOpen += _show_test_harness ? 1 : -1;
+            Debug.Assert(_dialogsOpen >= 0);
         }
 
         void ToggleRemoteDialog()
@@ -481,7 +495,40 @@ namespace rgat
                 if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog(_rgatState);// _rgatState, _controller);
             }
             _show_remote_dialog = !_show_remote_dialog;
+            _dialogsOpen += _show_remote_dialog ? 1 : -1;
+            Debug.Assert(_dialogsOpen >= 0);
         }
+
+
+        void ToggleLoadTraceWindow()
+        {
+            _show_load_trace_window = !_show_load_trace_window;
+            _dialogsOpen += _show_load_trace_window ? 1 : -1;
+            Debug.Assert(_dialogsOpen >= 0);
+        }
+
+        void ToggleLoadExeWindow()
+        {
+            _show_select_exe_window = !_show_select_exe_window;
+            _dialogsOpen += _show_select_exe_window ? 1 : -1;
+            Debug.Assert(_dialogsOpen >= 0);
+        }
+
+        void ToggleSettingsWindow()
+        {
+            _show_settings_window = !_show_settings_window;
+            _dialogsOpen += _show_settings_window ? 1 : -1;
+            Debug.Assert(_dialogsOpen >= 0);
+        }
+
+        void ToggleLogsWindow()
+        {
+            Console.WriteLine($"Logwindow toggle {_show_logs_window}");
+            _show_logs_window = !_show_logs_window;
+            _dialogsOpen += _show_logs_window ? 1 : -1;
+            Debug.Assert(_dialogsOpen >= 0);
+        }
+
 
 
         bool DrawRecentPathEntry(GlobalConfig.CachedPathData pathdata, bool menu)
@@ -606,7 +653,7 @@ namespace rgat
                     }
                     ImGui.EndMenu();
                 }
-                if (ImGui.MenuItem("Open Saved Trace")) { _show_load_trace_window = true; }
+                if (ImGui.MenuItem("Open Saved Trace")) { ToggleLoadTraceWindow(); }
                 ImGui.Separator();
                 if (ImGui.MenuItem("Save Thread Trace")) { } //todo
                 if (ImGui.MenuItem("Save Process Traces")) { } //todo
@@ -617,7 +664,11 @@ namespace rgat
                 ImGui.EndMenu();
             }
 
-            ImGui.MenuItem("Settings", null, ref _settings_window_shown);
+            bool settingsVisible = _show_settings_window;
+            if(ImGui.MenuItem("Settings", null, ref settingsVisible))
+            {
+                ToggleSettingsWindow();
+            }
         }
 
 
@@ -625,14 +676,21 @@ namespace rgat
         {
             float quarter = ImGui.GetContentRegionMax().X / 4f;
             ImGui.SetCursorPosX(quarter);
+            bool rdlgshown = _show_remote_dialog;
             if (rgatState.ConnectedToRemote)
             {
-                ImGui.MenuItem(ImGuiController.FA_ICON_NETWORK + " Remote Mode", null, ref _show_remote_dialog);
+                if (ImGui.MenuItem(ImGuiController.FA_ICON_NETWORK + " Remote Mode", null, ref rdlgshown))
+                {
+                    ToggleRemoteDialog();
+                }
                 SmallWidgets.MouseoverText($"Samples will be executed on {rgatState.NetworkBridge.RemoteEndPoint.Address}");
             }
             else
             {
-                ImGui.MenuItem(ImGuiController.FA_ICON_LOCALCODE + " Local Mode", null, ref _show_remote_dialog);
+                if (ImGui.MenuItem(ImGuiController.FA_ICON_LOCALCODE + " Local Mode", null, ref rdlgshown))
+                {
+                    ToggleRemoteDialog();
+                }
                 SmallWidgets.MouseoverText("Samples will be executed on this computer");
             }
         }
@@ -850,15 +908,9 @@ namespace rgat
             int unseenErrors = Logging.UnseenAlerts;
             uint itemColour = unseenErrors > 0 ? Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour) : Themes.GetThemeColourImGui(ImGuiCol.Text);
             ImGui.PushStyleColor(ImGuiCol.Text, itemColour);
-            bool menuDrawn = ImGui.MenuItem($"Logs{(unseenErrors > 0 ? $" ({unseenErrors})" : "")}", null, ref _show_logs_window);
+            bool menuDrawn = _show_logs_window;
+            ImGui.MenuItem($"Logs{(unseenErrors > 0 ? $" ({unseenErrors})" : "")}", null, ref menuDrawn);
             ImGui.PopStyleColor();
-
-            if (menuDrawn)
-            {
-                _show_logs_window = true;
-                _logsWindow.ShowAlerts();
-            }
-
             if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup))
             {
                 DrawLogMouseover();
@@ -868,23 +920,26 @@ namespace rgat
 
         void DrawLogMouseover()
         {
+
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
             {
+                ToggleLogsWindow();
                 _logsWindow.ShowAlerts();
-                _show_logs_window = true;
-
                 Logging.ClearAlertsBox();
             }
+
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
                 Logging.ClearAlertsBox();
             }
 
+            if (_show_logs_window) return;
             //
             //Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), windowSize.X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
             //ImGui.SetNextWindowPos(new Vector2(popupBR.X, popupBR.Y));
             int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
             if (alertCount == 0) return;
+
             ImGui.OpenPopup("##AlertsCtx");
 
             if (ImGui.BeginPopup("##AlertsCtx"))

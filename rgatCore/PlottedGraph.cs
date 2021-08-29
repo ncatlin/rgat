@@ -295,9 +295,6 @@ namespace rgat
 
 
 
-
-
-        //returns true if there are actually preset nodes to return to, false if a blank preset
         public float[] GeneratePresetPositions(LayoutStyles.Style style)
         {
             //_presetEdgeCount = InternalProtoGraph.get_num_edges();

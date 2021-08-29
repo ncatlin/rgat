@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Veldrid;
+using System.Linq;
 
 namespace rgat.Widgets
 {
@@ -19,6 +20,10 @@ namespace rgat.Widgets
             }
             set
             {
+                if (value != _baseMenuEntry.active && stateChangeCallback != null)
+                {
+                    stateChangeCallback(value);
+                }
                 _baseMenuEntry.active = value;
             }
         }
@@ -47,6 +52,7 @@ namespace rgat.Widgets
             public bool CloseMenu;
             public Key Shortcut;
             public List<MenuEntry> children;
+            public MenuEntry parent;
             bool _isActive;
             public bool active
             {
@@ -56,18 +62,18 @@ namespace rgat.Widgets
                     if (value)
                     {
                         if (!_isActive) _isActive = true;
+                        return;
                     }
-                    else
+
+                    _isActive = false;
+                    if (children != null)
                     {
-                        _isActive = false;
-                        if (children != null)
+                        foreach (var e in children)
                         {
-                            foreach (var e in children)
-                            {
-                                if (e.active) e.active = false;
-                            }
+                            if (e.active) e.active = false;
                         }
                     }
+
                 }
             }
         }
@@ -102,7 +108,7 @@ namespace rgat.Widgets
             visEntries.Add(new MenuEntry { Shortcut = Key.S, CloseMenu = true, Action = ActionName.ToggleTextSymbols, Label = "Symbol Labels", ToolTip = "Display API information next to API calls" });
             visEntries.Add(new MenuEntry { Shortcut = Key.X, CloseMenu = true, Action = ActionName.ToggleNodeIndexes, Label = "Indexes", ToolTip = "Display of node indexes (the order nodes appeared on the graph)." });
             visEntries.Add(new MenuEntry { Shortcut = Key.A, CloseMenu = true, Action = ActionName.ToggleNodeAddresses, Label = "Addresses", ToolTip = "Display of the memory address of nodes" });
-            visEntries.Add(new MenuEntry { Shortcut = Key.M, CloseMenu = true, Action = ActionName.ToggleSymbolModules, Label = "Modules", ToolTip = "Display of the module API nodes are located in"});
+            visEntries.Add(new MenuEntry { Shortcut = Key.M, CloseMenu = true, Action = ActionName.ToggleSymbolModules, Label = "Modules", ToolTip = "Display of the module API nodes are located in" });
             visEntries.Add(new MenuEntry { Shortcut = Key.P, CloseMenu = true, Action = ActionName.ToggleSymbolFullPaths, Label = "Full Module Paths", ToolTip = "Display the full path on disk of API modules instead of just the filename" });
             visEntries.Add(new MenuEntry { Shortcut = Key.H, CloseMenu = true, Action = ActionName.ToggleActiveHighlight, Label = "Highlight Active", ToolTip = "Display a highlight line indicating the most recently executed instruction." });
             visEntries.Add(new MenuEntry { Shortcut = Key.O, CloseMenu = true, Action = ActionName.ToggleNodeTooltips, Label = "Node Tooltips", ToolTip = "Show information about a node on mouseover" });
@@ -115,8 +121,13 @@ namespace rgat.Widgets
             PopulateMenuActionsList(_baseMenuEntry);
         }
 
+        /// <summary>
+        /// Called whenever the menu is opened/closed
+        /// </summary>
+        /// <param name="action">Function to call when opened/closed. Param is open/closed state.</param>
+        public void SetStateChangeCallback(Action<bool> action) => stateChangeCallback = action;
 
-
+        Action<bool> stateChangeCallback = null;
 
         void DrawVisibilityFrame()
         {
@@ -138,21 +149,21 @@ namespace rgat.Widgets
                 if (ShowTooltipToggle(2, ActionName.ToggleTextAll, _currentGraph.Opt_TextEnabled)) ActivateAction(ActionName.ToggleTextAll, hotKey: false);
                 if (ShowTooltipToggle(4, ActionName.ToggleNodeTooltips, GlobalConfig.ShowNodeMouseoverTooltip)) ActivateAction(ActionName.ToggleNodeTooltips, hotKey: false);
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(0, ActionName.ToggleNodes, _currentGraph.Opt_NodesVisible))ActivateAction(ActionName.ToggleNodes, hotKey: false);
-                if (ShowTooltipToggle(2, ActionName.ToggleTextInstructions, _currentGraph.Opt_TextEnabledIns))ActivateAction(ActionName.ToggleTextInstructions, hotKey: false);
+                if (ShowTooltipToggle(0, ActionName.ToggleNodes, _currentGraph.Opt_NodesVisible)) ActivateAction(ActionName.ToggleNodes, hotKey: false);
+                if (ShowTooltipToggle(2, ActionName.ToggleTextInstructions, _currentGraph.Opt_TextEnabledIns)) ActivateAction(ActionName.ToggleTextInstructions, hotKey: false);
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(0, ActionName.ToggleActiveHighlight, _currentGraph.Opt_LiveNodeEdgeEnabled))ActivateAction(ActionName.ToggleActiveHighlight, hotKey: false);
-                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbols, _currentGraph.Opt_TextEnabledSym))ActivateAction(ActionName.ToggleTextSymbols, hotKey: false);
+                if (ShowTooltipToggle(0, ActionName.ToggleActiveHighlight, _currentGraph.Opt_LiveNodeEdgeEnabled)) ActivateAction(ActionName.ToggleActiveHighlight, hotKey: false);
+                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbols, _currentGraph.Opt_TextEnabledSym)) ActivateAction(ActionName.ToggleTextSymbols, hotKey: false);
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbolsLive, _currentGraph.Opt_TextEnabledLive))ActivateAction(ActionName.ToggleTextSymbolsLive, hotKey: false);
+                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbolsLive, _currentGraph.Opt_TextEnabledLive)) ActivateAction(ActionName.ToggleTextSymbolsLive, hotKey: false);
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleNodeAddresses, _currentGraph.Opt_ShowNodeAddresses))ActivateAction(ActionName.ToggleNodeAddresses, hotKey: false);
+                if (ShowTooltipToggle(2, ActionName.ToggleNodeAddresses, _currentGraph.Opt_ShowNodeAddresses)) ActivateAction(ActionName.ToggleNodeAddresses, hotKey: false);
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleNodeIndexes, _currentGraph.Opt_ShowNodeIndexes))ActivateAction(ActionName.ToggleNodeIndexes, hotKey: false);
+                if (ShowTooltipToggle(2, ActionName.ToggleNodeIndexes, _currentGraph.Opt_ShowNodeIndexes)) ActivateAction(ActionName.ToggleNodeIndexes, hotKey: false);
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleSymbolModules, _currentGraph.Opt_ShowSymbolModules))ActivateAction(ActionName.ToggleSymbolModules, hotKey: false);
+                if (ShowTooltipToggle(2, ActionName.ToggleSymbolModules, _currentGraph.Opt_ShowSymbolModules)) ActivateAction(ActionName.ToggleSymbolModules, hotKey: false);
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleSymbolFullPaths, _currentGraph.Opt_ShowSymbolModulePaths))ActivateAction(ActionName.ToggleSymbolFullPaths, hotKey: false);
+                if (ShowTooltipToggle(2, ActionName.ToggleSymbolFullPaths, _currentGraph.Opt_ShowSymbolModulePaths)) ActivateAction(ActionName.ToggleSymbolFullPaths, hotKey: false);
 
 
                 ImGui.EndTable();
@@ -175,8 +186,16 @@ namespace rgat.Widgets
             return clicked || SmallWidgets.ToggleButton("##Toggle" + menuitem.Label, value, null);
         }
 
-        bool ActivateAction(ActionName actionName, bool hotKey)
+        /// <summary>
+        /// Performs whatever action is assigned to a shortcut or button click
+        /// </summary>
+        /// <param name="actionName">Action associated with the icon or shortcut</param>
+        /// <param name="hotKey">true if a keyboard shortcut, false if clicked</param>
+        /// <param name="resultText">something to describe what happened on the key combo display</param>
+        /// <returns>Whether the action was a non-menu 'action' which will trigger display of the keyboard combo used</returns>
+        bool ActivateAction(ActionName actionName, bool hotKey, out string? resultText)
         {
+            resultText = null;
             if (!menuActions.TryGetValue(actionName, out MenuEntry action))
             {
                 Logging.RecordLogEvent("Bad quickmenu action:" + actionName);
@@ -188,36 +207,47 @@ namespace rgat.Widgets
             {
                 case ActionName.ToggleNodes:
                     _currentGraph.Opt_NodesVisible = !_currentGraph.Opt_NodesVisible;
+                    resultText = _currentGraph.Opt_NodesVisible ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleEdges:
                     _currentGraph.Opt_EdgesVisible = !_currentGraph.Opt_EdgesVisible;
+                    resultText = _currentGraph.Opt_EdgesVisible ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleTextAll:
                     _currentGraph.Opt_TextEnabled = !_currentGraph.Opt_TextEnabled;
+                    resultText = _currentGraph.Opt_TextEnabled ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleTextInstructions:
                     _currentGraph.Opt_TextEnabledIns = !_currentGraph.Opt_TextEnabledIns;
+                    resultText = _currentGraph.Opt_TextEnabledIns ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleTextSymbols:
                     _currentGraph.Opt_TextEnabledSym = !_currentGraph.Opt_TextEnabledSym;
+                    resultText = _currentGraph.Opt_TextEnabledSym ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleTextSymbolsLive:
                     _currentGraph.Opt_TextEnabledLive = !_currentGraph.Opt_TextEnabledLive;
+                    resultText = _currentGraph.Opt_TextEnabledLive ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleActiveHighlight:
                     _currentGraph.Opt_LiveNodeEdgeEnabled = !_currentGraph.Opt_LiveNodeEdgeEnabled;
+                    resultText = _currentGraph.Opt_LiveNodeEdgeEnabled ? "Active" : "Inactive";
                     break;
                 case ActionName.ToggleNodeAddresses:
                     _currentGraph.Opt_ShowNodeAddresses = !_currentGraph.Opt_ShowNodeAddresses;
+                    resultText = _currentGraph.Opt_ShowNodeAddresses ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleNodeIndexes:
                     _currentGraph.Opt_ShowNodeIndexes = !_currentGraph.Opt_ShowNodeIndexes;
+                    resultText = _currentGraph.Opt_ShowNodeIndexes ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleSymbolModules:
                     _currentGraph.Opt_ShowSymbolModules = !_currentGraph.Opt_ShowSymbolModules;
+                    resultText = _currentGraph.Opt_ShowSymbolModules ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleSymbolFullPaths:
                     _currentGraph.Opt_ShowSymbolModulePaths = !_currentGraph.Opt_ShowSymbolModulePaths;
+                    resultText = _currentGraph.Opt_ShowSymbolModulePaths ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleMenu:
                     MenuPressed();
@@ -228,14 +258,16 @@ namespace rgat.Widgets
                 case ActionName.ToggleVisMenu:
                 case ActionName.ToggleSearchMenu:
                 case ActionName.ToggleLayoutMenu:
+                    action.parent = _activeEntry;
                     _activeEntry = action;
                     _activeMenuPopupName = action.Popup;
-                    break;
+                    return false;
                 default:
                     Logging.RecordLogEvent("Unhandled quickmenu action: " + actionName);
                     break;
             }
-            if (action.children == null)
+
+            if (action.children == null) //the menu button works on all leaf submenus
             {
                 if (hotKey && action.CloseMenu)
                 {
@@ -244,6 +276,11 @@ namespace rgat.Widgets
                 return true;
             }
             return false;
+        }
+
+        bool ActivateAction(ActionName actionName, bool hotKey)
+        {
+            return ActivateAction(actionName, hotKey, out string? ignored);
         }
 
 
@@ -266,6 +303,7 @@ namespace rgat.Widgets
         public void CancelPressed()
         {
             _expanded = false;
+
             if (_activeMenuPopupName != null)
             {
                 ImGui.CloseCurrentPopup();
@@ -286,6 +324,12 @@ namespace rgat.Widgets
 
             _RecentKeypress = keyModTuple;
 
+            if (keyModTuple.Item1 == Key.Escape)
+            {
+                Contract();
+                return true;
+            }
+
             for (var i = 0; i < _activeEntry.children?.Count; i++)
             {
                 MenuEntry entry = _activeEntry.children[i];
@@ -293,18 +337,35 @@ namespace rgat.Widgets
                 {
                     if (entry.Action != null)
                     {
-                        if (ActivateAction(entry.Action, hotKey: true))
+                        if (ActivateAction(entry.Action, hotKey: true, out string? resultText))
                         {
                             string combo = String.Join("-", keyCombo.ToArray());
-                            ComboAction = new Tuple<string, string>(combo, entry.Label);
+                            string label = entry.Label;
+                            if (resultText != null)
+                                label += $": {resultText}";
+                            ComboAction = new Tuple<string, string>(combo, label);
                         }
                     }
                     return true;
                 }
+            }
 
+            if (keyModTuple.Item1 == _activeEntry.Shortcut)
+            {
+                Console.WriteLine($"Closing menu {_activeEntry.Action} because it is the active entry");
+                _activeEntry.active = false;
+                _activeEntry = _activeEntry.parent;
+
+                _activeMenuPopupName = _activeEntry?.Popup;
+
+                if (keyCombo.Any() && keyCombo.Last() == keyModTuple.Item1)
+                    keyCombo.RemoveAt(keyCombo.Count - 1);
+
+                return true;
             }
             return true;
         }
+
 
         public void MenuPressed()
         {
@@ -386,7 +447,7 @@ namespace rgat.Widgets
             Vector2 padding = new Vector2(16f, 6f);
             _menuBase = new Vector2((position.X) + padding.X, ((position.Y - _iconSize.Y) - 4) - padding.Y);
 
-            float iconCount = _baseMenuEntry.children.Count + 1;
+            float iconCount = _baseMenuEntry.children.Where(x => x.Icon != null).Count() + 1;
             float currentExpansion = (float)(_expandProgress / iconCount);
 
             float expandedHeight = iconCount * (_iconSize.Y + _menuYPad);
@@ -432,6 +493,7 @@ namespace rgat.Widgets
             _expandProgress = Math.Min(_expandProgress, iconCount);
             _expandProgress = Math.Max(_expandProgress, 0);
         }
+
 
         MenuEntry? __activeEntry_; //todo wtf
         MenuEntry? _activeEntry
@@ -479,6 +541,7 @@ namespace rgat.Widgets
                         ImGui.CloseCurrentPopup();
                         _activeMenuPopupName = null;
                     }
+                    entry.parent = _activeEntry;
                     _activeEntry = entry;
                 }
                 ImGui.SetTooltip($"{entry.ToolTip} ({entry.Shortcut})");

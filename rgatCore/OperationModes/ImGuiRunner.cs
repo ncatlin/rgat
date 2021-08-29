@@ -163,7 +163,7 @@ namespace rgat.OperationModes
 
             _window.KeyDown += (KeyEvent k) =>
             {
-                if (GlobalConfig.ResponsiveKeys.Contains(k.Key))
+                if (GlobalConfig.ResponsiveKeys.Contains(k.Key) && !_rgatUI.DialogOpen)
                 {
                     if (!HeldResponsiveKeys.Contains(k.Key)) HeldResponsiveKeys.Add(k.Key);
                 }
@@ -197,7 +197,9 @@ namespace rgat.OperationModes
             InputSnapshot snapshot = _window.PumpEvents();
             if (!_window.Exists) { return; }
 
+
             HeldResponsiveKeys.ForEach(key => AlertResponsiveKeyEvent(key));
+
 
             _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
 
@@ -384,7 +386,10 @@ namespace rgat.OperationModes
 
         public void AlertKeyEvent(Tuple<Key, ModifierKeys> keyCombo) => _rgatUI.AddKeyPress(keyCombo);
 
-        public void AlertResponsiveKeyEvent(Key key) => _rgatUI.AddKeyPress(new Tuple<Key, ModifierKeys>(key, ModifierKeys.None));
+        public void AlertResponsiveKeyEvent(Key key)
+        {
+            _rgatUI.AddKeyPress(new Tuple<Key, ModifierKeys>(key, ModifierKeys.None));
+        }
 
         public void AlertDragDrop(DragDropEvent dd)
         {

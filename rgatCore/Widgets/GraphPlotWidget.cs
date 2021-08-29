@@ -55,6 +55,18 @@ namespace rgat
         }
 
 
+
+        /// <summary>
+        /// Called whenever the widget opens/closes an inner dialog
+        /// </summary>
+        /// <param name="action">Function to call when dialog is opened/closed. Param is open/closed state.</param>
+        public void SetStateChangeCallback(Action<bool> action)
+        {
+            _dialogStateChangeCallback = action;
+            _QuickMenu.SetStateChangeCallback(action);
+        }
+        Action<bool> _dialogStateChangeCallback = null;
+
         public void Dispose()
         {
             Exiting = true;
@@ -281,6 +293,7 @@ namespace rgat
                 }
                 return swallowKeypress;
             }
+
             return false;
         }
 
@@ -346,15 +359,18 @@ namespace rgat
                 return;
             }
 
+            string resultText = null;
             float shiftModifier = ImGui.GetIO().KeyShift ? 1 : 0;
             switch (boundAction)
             {
                 case eKeybind.ToggleHeatmap:
                     ToggleRenderingMode(eRenderingMode.eHeatmap);
+                    resultText = _renderingMode == eRenderingMode.eHeatmap ? "Activated" : "Deactivated";
                     break;
 
                 case eKeybind.ToggleConditionals:
                     ToggleRenderingMode(eRenderingMode.eConditionals);
+                    resultText = _renderingMode == eRenderingMode.eConditionals ? "Activated" : "Deactivated";
                     break;
 
                 case eKeybind.MoveUp:
@@ -422,10 +438,12 @@ namespace rgat
 
                 case eKeybind.CenterFrame:
                     StartCenterGraphInFrameStepping(false);
+                    resultText = _centeringInFrame  > 0 ? "Activated" : "Deactivated";
                     break;
 
                 case eKeybind.LockCenterFrame:
                     StartCenterGraphInFrameStepping(true);
+                    resultText = _centeringInFrame > 0 ? "Activated" : "Deactivated";
                     break;
 
                 case eKeybind.RaiseForceTemperature:
@@ -434,14 +452,17 @@ namespace rgat
 
                 case eKeybind.ToggleAllText:
                     graph.Opt_TextEnabled = !graph.Opt_TextEnabled;
+                    resultText = graph.Opt_TextEnabled ? "Visible" : "Hidden";
                     break;
 
                 case eKeybind.ToggleInsText:
                     graph.Opt_TextEnabledIns = !graph.Opt_TextEnabledIns;
+                    resultText = graph.Opt_TextEnabledIns ? "Visible" : "Hidden";
                     break;
 
                 case eKeybind.ToggleLiveText:
                     graph.Opt_TextEnabledLive = !graph.Opt_TextEnabledLive;
+                    resultText = graph.Opt_TextEnabledLive ? "Visible" : "Hidden";
                     break;
 
                 case eKeybind.Cancel:
@@ -458,7 +479,11 @@ namespace rgat
             }
 
             if (GlobalConfig.ShowKeystrokes)
-                DisplayKeyPress(keyPressed, boundAction.ToString());
+            {
+                string caption = boundAction.ToString();
+                if (resultText != null) caption += $": {resultText}";
+                DisplayKeyPress(keyPressed, caption);
+            }
 
             _graphLock.ExitReadLock();
         }

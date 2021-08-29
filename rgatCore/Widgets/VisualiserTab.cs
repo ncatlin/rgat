@@ -52,6 +52,17 @@ namespace rgat
             progress.Report(1f);
         }
 
+        /// <summary>
+        /// Called whenever the widget opens/closes an inner dialog
+        /// </summary>
+        /// <param name="action">Function to call when dialog is opened/closed. Param is open/closed state.</param>
+        public void SetDialogStateChangeCallback(Action<bool> callback)
+        {
+            _dialogStateChangeCallback = callback;
+            MainGraphWidget.SetStateChangeCallback(callback);
+        }
+        Action<bool> _dialogStateChangeCallback = null;
+
 
         public void Draw()
         {
@@ -142,16 +153,13 @@ namespace rgat
         
         public bool AlertKeybindPressed(eKeybind action, Tuple<Key, ModifierKeys> KeyModifierTuple)
         {
-            if (MainGraphWidget.QuickMenuActive && (action == eKeybind.QuickMenu || action == eKeybind.Cancel))
-            {
-                MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, eKeybind.Cancel);
-                return true;
-            }
             if (action == eKeybind.Cancel && _show_stats_dialog)
             {
                 _show_stats_dialog = false;
                 return true;
             }
+
+            MainGraphWidget.AlertKeybindPressed(KeyModifierTuple, action);
             return false;
         }
 

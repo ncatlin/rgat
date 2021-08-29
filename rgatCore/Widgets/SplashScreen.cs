@@ -87,7 +87,7 @@ namespace rgat
 
                     if (ImGui.Selectable("##Load Binary", false, ImGuiSelectableFlags.None, selectableSize))
                     {
-                        _show_select_exe_window = true;
+                        ToggleLoadExeWindow();
                     }
                     _controller.PushUnicodeFont();
                     Widgets.SmallWidgets.MouseoverText("Load an executable or DLL for examination. It will not be executed at this stage.");
@@ -172,7 +172,7 @@ namespace rgat
                     Vector2 selectableSize = new Vector2(iconColumnWidth, captionHeight + LargeIconSize.Y + iconTitleYSep + 12);
                     if (ImGui.Selectable("##Load Trace", false, ImGuiSelectableFlags.None, selectableSize))
                     {
-                        _show_load_trace_window = true;
+                        ToggleLoadTraceWindow();
                     }
                     _controller.PushUnicodeFont();
                     Widgets.SmallWidgets.MouseoverText("Load a previously generated trace");
@@ -290,8 +290,6 @@ namespace rgat
                 ImGui.SetCursorPosY(ypos);
                 ImGui.ProgressBar((float)StartupProgress, new Vector2(-1, 4f));
             }
-            //String msg = "No target binary is selected\nOpen a binary or saved trace from the target menu фä洁ф";
-            //ImguiUtils.DrawRegionCenteredText(msg);
 
             if (ImGui.IsPopupOpen("#NewVersionChangesDialog"))
             {
