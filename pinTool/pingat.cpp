@@ -12,6 +12,7 @@ a pin implementation of the drgat client
 #include "utilities.h"
 #include "blockdata.h"
 
+
 #include "crt\include\os-apis\memory.h"
 #include "crt\include\os-apis\file.h"
 
@@ -621,7 +622,7 @@ VOID inline outputUnchained(threadObject* threadObj, BLOCK_IDENTIFIER finalBlock
 		for each (std::pair<ADDRINT, unsigned long> targCount in busyBlockStats->targets)
 		{
 			if (outputcount > TAGCACHESIZE) std::cerr << "BXbuffer overflow? output count is " << outputcount << std::endl;
-			outputcount += snprintf(threadObj->BXbuffer + outputcount, TAGCACHESIZE - outputcount, ",%lx,%lx", targCount.first, targCount.second);
+			outputcount += snprintf(threadObj->BXbuffer + outputcount, TAGCACHESIZE - outputcount, "," PTR_prefix ",%lx", targCount.first, targCount.second);
 		}
 		busyBlockStats->targets.clear();
 		fprintf(threadObj->threadpipeFILE, "%s\x01", threadObj->BXbuffer);
@@ -747,14 +748,14 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 		//tell rgat about execution of this block and where the branch led to
 		//todo - tag cache
 		//printf("Full Instrumented Add Blockid %d \n", sourceBlock->blockID);
-		fprintf(threadObj->threadpipeFILE, TRACE_TAG_MARKER"%lx,%lx\x01", sourceBlock->blockID, targblockAddr);
+		fprintf(threadObj->threadpipeFILE, TRACE_TAG_MARKER"%lx," PTR_prefix "\x01", sourceBlock->blockID, targblockAddr);
 		fflush(threadObj->threadpipeFILE);
 	}
 }
 
 VOID RecordStep(threadObject* threadObj, BLOCKDATA* block, ADDRINT thisAddress, ADDRINT nextAddress)
 {
-	fprintf(threadObj->threadpipeFILE, STEP_MARKER"%lx,%lx,%lx\x01", block->blockID, thisAddress, nextAddress);
+	fprintf(threadObj->threadpipeFILE, STEP_MARKER"%lx," PTR_prefix "," PTR_prefix "\x01", block->blockID, thisAddress, nextAddress);
 	fflush(threadObj->threadpipeFILE);
 }
 
@@ -783,7 +784,7 @@ VOID at_non_branch(BLOCKDATA* block_data, ADDRINT nextIns, THREADID threadid)
 VOID single_ins_block(BLOCKDATA* block_data, ADDRINT afterAddress, THREADID threadid)
 {
 
-	writeEventPipe("!At single insinstruction 0x%lx. ", block_data->appc);// repCountBefore);
+	writeEventPipe("!At single insinstruction 0x" PTR_prefix ". ", block_data->appc);// repCountBefore);
 
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
 	RecordEdge(thread, block_data, afterAddress);
@@ -994,7 +995,7 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		else if (INS_IsSyscall(lastins))
 		{
 			std::string disas = INS_Disassemble(lastins);
-			writeEventPipe("!Error: Unhandled block end syscall instruction 0x%lx: %s", INS_Address(lastins), disas.c_str());
+			writeEventPipe("!Error: Unhandled block end syscall instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
 			//COUNTER *pedg = Lookup(EDGE(INS_Address(ins), ADDRINT(~0), INS_NextAddress(ins), ETYPE_SYSCALL));
 			//INS_InsertPredicatedCall(lastins, IPOINT_BEFORE, (AFUNPTR)docount, IARG_ADDRINT, pedg, IARG_END);
 			std::cout << "syscall end" << std::endl;
@@ -1002,7 +1003,7 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		else if (!INS_IsBranch(lastins))
 		{
 			std::string disas = INS_Disassemble(lastins);
-			writeEventPipe("!Non branch block end instruction 0x%lx: %s", INS_Address(lastins), disas.c_str());
+			writeEventPipe("!Non branch block end instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
 			INS_InsertCall(lastins, IPOINT_AFTER, (AFUNPTR)at_non_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
 				IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
 		}
@@ -1011,7 +1012,7 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 			printf("------------HALP------------------\n");
 			printf("------------%x------------------\n", &lastins);
 			std::string disas = INS_Disassemble(lastins);
-			writeEventPipe("!Error: Unhandled block end instruction 0x%lx: %s", INS_Address(lastins), disas.c_str());
+			writeEventPipe("!Error: Unhandled block end instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
 			std::cout << "------------------------------" << std::endl;
 			std::cout << "------------------------------" << std::endl;
 			std::cout << "WARNING: non branch/call/syscall block end at " << std::hex << block_data->lastInsAddress << std::endl;
@@ -1069,7 +1070,7 @@ static VOID HandleWindowsContextSwitch(THREADID threadIndex, CONTEXT_CHANGE_REAS
 	case CONTEXT_CHANGE_REASON_EXCEPTION:    ///< Receipt of Windows exception
 		ctxswitch_ss << "EXCEPTION - Receipt of windows exception code 0x" << std::hex << info << " (" << windowsExceptionName(info) << ")";
 		printTagCache(threaddata);
-		fprintf(threaddata->threadpipeFILE, EXCEPTION_MARKER",%lx,%lx,%lx\x01", srcAddress, info, 0);
+		fprintf(threaddata->threadpipeFILE, EXCEPTION_MARKER"," PTR_prefix ",%lx,%lx\x01", srcAddress, info, 0);
 		break;
 	case CONTEXT_CHANGE_REASON_CALLBACK:      ///< Receipt of Windows call-back
 		std::cout << "WINDOWS CALLBACK " << std::endl;

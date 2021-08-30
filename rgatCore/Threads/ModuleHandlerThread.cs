@@ -759,7 +759,7 @@ namespace rgat
                         catch (Exception e)
                         {
                             Logging.RecordError($"Local Event processing exception: {e}");
-                            rgatState.NetworkBridge.Teardown();
+                            rgatState.NetworkBridge?.Teardown();
                             base.Finished();
                             return;
                         }

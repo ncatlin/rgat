@@ -339,7 +339,7 @@ namespace rgat
             }
         }
 
-
+        //Debug here
         public ulong GetBlockAtAddress(ulong address)
         {
             bool hasBlock = false;

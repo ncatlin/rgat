@@ -4,6 +4,7 @@
 #include "modules.h"
 #include "windows_include.h"
 #include "winapi_wrap_utils.h"
+#include "utilities.h"
 
 
 
@@ -11,7 +12,7 @@
 	{
 		threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 		if (threaddata->lastBlock->blockID == -1) return;
-		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
 		fflush(threaddata->threadpipeFILE);
 	}
 
@@ -36,17 +37,17 @@
 			std::string key = HKEY_to_string(hKey);
 
 			if (!key.empty())
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
 			else
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
 			
 			if (lpSubKey != 0)
 			{
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpSubKey);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%s\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpSubKey);
 			}
 			else
 			{
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
 			}
 		}
 
@@ -66,8 +67,8 @@
 
 		if (threaddata->lastBlock->blockID != -1)
 		{
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 7, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, *phkResult);
-			fprintf(threaddata->threadpipeFILE, RETVAL_MARKER",%lx,%lx,%s\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, ErrorCodeToString(retval).c_str());
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 7, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, *phkResult);
+			fprintf(threaddata->threadpipeFILE, RETVAL_MARKER"," PTR_prefix ",%lx,%s\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, ErrorCodeToString(retval).c_str());
 			fflush(threaddata->threadpipeFILE);
 		}
 		return retval;
@@ -95,19 +96,19 @@
 			std::string key = HKEY_to_string(hKey);
 
 			if (!key.empty())
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
 			else
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
 			
 			if (lpSubKey != 0)
 			{
 				char keypath[PATH_MAX];
 				wcstombs(keypath, lpSubKey, PATH_MAX);
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, keypath);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%s\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, keypath);
 			}
 			else
 			{
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
 			}
 		}
 
@@ -128,9 +129,9 @@
 		if (threaddata->lastBlock->blockID != -1)
 		{
 			if (retval == ERROR_SUCCESS) {
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 7, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, *phkResult);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 7, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, *phkResult);
 			}
-			fprintf(threaddata->threadpipeFILE, RETVAL_MARKER",%lx,%lx,%s\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, ErrorCodeToString(retval).c_str());
+			fprintf(threaddata->threadpipeFILE, RETVAL_MARKER"," PTR_prefix ",%lx,%s\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, ErrorCodeToString(retval).c_str());
 			fflush(threaddata->threadpipeFILE);
 		}
 		return retval;
@@ -153,17 +154,17 @@
 			std::string key = HKEY_to_string(hKey);
 
 			if (!key.empty())
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
 			else
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
 
 			if (lpSubKey != 0)
 			{
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,%s\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpSubKey);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%s\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpSubKey);
 			}
 			else
 			{
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
 			}
 		}
 
@@ -180,9 +181,9 @@
 		if (threaddata->lastBlock->blockID != -1)
 		{
 			if (retval == ERROR_SUCCESS) {
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 4, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, *phkResult);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 4, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, *phkResult);
 			}
-			fprintf(threaddata->threadpipeFILE, RETVAL_MARKER",%lx,%lx,%s\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, ErrorCodeToString(retval).c_str());
+			fprintf(threaddata->threadpipeFILE, RETVAL_MARKER"," PTR_prefix ",%lx,%s\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, ErrorCodeToString(retval).c_str());
 			fflush(threaddata->threadpipeFILE);
 		}
 		return retval;
@@ -206,19 +207,19 @@
 			std::string key = HKEY_to_string(hKey);
 
 			if (!key.empty())
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,'%s'\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,'%s'\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
 			else
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
 
 			if (lpSubKey != 0)
 			{
 				char keypath[PATH_MAX];
 				wcstombs(keypath, lpSubKey, PATH_MAX);
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,'%s'\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, keypath);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,'%s'\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, keypath);
 			}
 			else
 			{
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
 			}
 		}
 
@@ -235,9 +236,9 @@
 		if (threaddata->lastBlock->blockID != -1)
 		{
 			if (retval == ERROR_SUCCESS) {
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 4, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, *phkResult);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 4, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, *phkResult);
 			}
-			fprintf(threaddata->threadpipeFILE, RETVAL_MARKER",%lx,%lx,%s\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, ErrorCodeToString(retval).c_str());
+			fprintf(threaddata->threadpipeFILE, RETVAL_MARKER"," PTR_prefix ",%lx,%s\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, ErrorCodeToString(retval).c_str());
 			fflush(threaddata->threadpipeFILE);
 		}
 		return retval;
@@ -255,17 +256,17 @@
 		std::string key = HKEY_to_string(hKey);
 
 		if (!key.empty())
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,'%s'\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,'%s'\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
 		else
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
 
 		if (lpSubKey != 0)
 		{
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,'%s'\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpSubKey);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,'%s'\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpSubKey);
 		}
 		else
 		{
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
 		}
 
 		fflush(threaddata->threadpipeFILE);
@@ -280,19 +281,19 @@
 		std::string key = HKEY_to_string(hKey);
 
 		if (!key.empty())
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,'%s'\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,'%s'\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
 		else
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
 
 		if (lpSubKey != 0)
 		{
 			char keypath[PATH_MAX];
 			wcstombs(keypath, lpSubKey, PATH_MAX);
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,'%s'\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, keypath);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,'%s'\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, keypath);
 		}
 		else
 		{
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
 		}
 
 		fflush(threaddata->threadpipeFILE);
@@ -309,17 +310,17 @@
 		std::string key = HKEY_to_string(hKey);
 
 		if (!key.empty())
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,'%s'\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,'%s'\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
 		else
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
 
 		if (lpSubKey != 0)
 		{
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,'%s'\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpSubKey);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,'%s'\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpSubKey);
 		}
 		else
 		{
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
 		}
 
 		if (lpData != 0)
@@ -334,14 +335,14 @@
 			}
 			sample[31] = 0;
 			if (i  < 31)
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,'%s'\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, sample);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,'%s'\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, sample);
 			else
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,'%s...'\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, sample);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,'%s...'\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, sample);
 
 		}
 		else
 		{
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,NULL\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,NULL\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
 		}
 
 		fflush(threaddata->threadpipeFILE);
@@ -357,19 +358,19 @@
 		std::string key = HKEY_to_string(hKey);
 
 		if (!key.empty())
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,'%s'\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,'%s'\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, key.c_str());
 		else
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,0x%lx\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, hKey);
 
 		if (lpSubKey != 0)
 		{
 			char keypath[PATH_MAX];
 			wcstombs(keypath, lpSubKey, PATH_MAX);
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,'%s'\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, keypath);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,'%s'\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, keypath);
 		}
 		else
 		{
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
 		}
 
 		if (lpData != 0)
@@ -387,14 +388,14 @@
 			char samplec[64];
 			wcstombs(samplec, sample, PATH_MAX);
 			if (i < 31)
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,'%s'\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, samplec);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,'%s'\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, samplec);
 			else
-				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,'%s...'\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, samplec);
+				fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,'%s...'\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, samplec);
 
 		}
 		else
 		{
-			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d,%lx,%lx,E,NULL\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+			fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,NULL\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
 		}
 
 		fflush(threaddata->threadpipeFILE);

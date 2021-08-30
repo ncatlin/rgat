@@ -19,9 +19,9 @@ void printTagCache(threadObject *thread)
 		byteswritten += fprintf(thread->threadpipeFILE, "RS%d\x01", thread->cacheRepeats); //loop start <count> marker
 		for (int i = 0; i <= cacheEnd; ++i)
 		{
-			//byteswritten += fprintf(thread->threadpipeFILE, TRACE_TAG_MARKER"%p,%p,%llx\x01",
+			//byteswritten += fprintf(thread->threadpipeFILE, TRACE_TAG_MARKER"" PTR_prefix "," PTR_prefix ",%llx\x01",
 			//	thread->tagCache[i], thread->targetAddresses[i], thread->blockID_counts[i]);
-			byteswritten += fprintf(thread->threadpipeFILE, TRACE_TAG_MARKER"%lx,%lx\x01", thread->blockIDCache[i], thread->targetAddresses[i]);
+			byteswritten += fprintf(thread->threadpipeFILE, TRACE_TAG_MARKER"%lx," PTR_prefix "\x01", thread->blockIDCache[i], thread->targetAddresses[i]);
 			//printf("WritingA: j%lx,%lx\x01\n", thread->blockIDCache[i], thread->targetAddresses[i]);
 		}
 		byteswritten += fprintf(thread->threadpipeFILE, "RE\x01"); //loop end marker
@@ -34,13 +34,13 @@ void printTagCache(threadObject *thread)
 	{
 		for (int fragmenti = 0; fragmenti < 20; ++tagi && ++fragmenti) 
 		{
-			byteswritten += fprintf(thread->threadpipeFILE, TRACE_TAG_MARKER"%lx,%lx\x01", thread->blockIDCache[tagi], thread->targetAddresses[tagi]);
+			byteswritten += fprintf(thread->threadpipeFILE, TRACE_TAG_MARKER"%lx," PTR_prefix "\x01", thread->blockIDCache[tagi], thread->targetAddresses[tagi]);
 			//printf("WritingB: j%lx,%lx\x01\n", thread->blockIDCache[tagi], thread->targetAddresses[tagi]);
 		}
 		fflush(thread->threadpipeFILE);
 	}
 	for (; tagi < cacheEnd; ++tagi)	{
-		byteswritten += fprintf(thread->threadpipeFILE, TRACE_TAG_MARKER"%lx,%lx\x01", thread->blockIDCache[tagi], thread->targetAddresses[tagi]);
+		byteswritten += fprintf(thread->threadpipeFILE, TRACE_TAG_MARKER"%lx," PTR_prefix "\x01", thread->blockIDCache[tagi], thread->targetAddresses[tagi]);
 		//printf("WritingC: j%lx,%lx\x01\n", thread->blockIDCache[tagi], thread->targetAddresses[tagi]);
 	}
 

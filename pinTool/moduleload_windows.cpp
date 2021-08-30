@@ -29,7 +29,7 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 	thisModule->ID = imageID;
 	loadedModulesInfo[imageID] = thisModule;
 
-	writeEventPipe("mn@%s@%d@%p@%p@%d@", path.c_str(), imageID, thisModule->start, thisModule->end, isInstrumented);
+	writeEventPipe("mn@%s@%d@" PTR_prefix "@" PTR_prefix "@%d@", path.c_str(), imageID, thisModule->start, thisModule->end, isInstrumented);
 
 	//std::cerr << "Module loaded: " << path << " ID: " << imageID << std::hex << " addrs: " << IMG_LowAddress(img) << "-" << IMG_HighAddress(img) << std::endl;
 
@@ -42,7 +42,7 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 	}
 	*/
 
-	/*
+	
 	if (path.find("\\kernel32.dll") != std::string::npos)
 	{
 		wrapKernel32Funcs(img, (UINT32)threadData_TLSKEY);
@@ -51,7 +51,7 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 	{
 		wrapAdvapi32Funcs(img, (UINT32)threadData_TLSKEY);
 	}
-	*/
+	
 	
 
 	//std::cout << "Module " << path << std::endl;
@@ -59,7 +59,7 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 	{
 		//std::cout << "wsm "<< imageID << " , " << SYM_Value(sym) << ", "<<SYM_Name(sym) << std::endl;
 		std::string symname = SYM_Name(sym); //sym_name memory seems to become invalid in this call on x86-32
-		writeEventPipe("s!@%d@%p@%s@", imageID, SYM_Value(sym), symname.c_str());
+		writeEventPipe("s!@%d@" PTR_prefix "@%s@", imageID, SYM_Value(sym), symname.c_str());
 	}
 	//std::cout << "mod done" << std::endl;
 

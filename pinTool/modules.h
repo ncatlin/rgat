@@ -2,11 +2,8 @@
 
 #include "pin.H"
 
-#ifdef HOST_IA32E
-#define ADDR_FMT "%llx"
-#elif HOST_IA32
-#define ADDR_FMT "%lx"
-#endif
+
+#include "utilities.h"
 
 bool module_should_be_instrumented(std::string path);
 

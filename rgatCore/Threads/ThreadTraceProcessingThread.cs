@@ -365,6 +365,7 @@ namespace rgat.Threads
             protograph.PushAnimUpdate(animUpdate);
 
             int addrstart = ++tokenpos;
+            string result = ASCIIEncoding.ASCII.GetString(entry);
             nextBlockAddress = ulong.Parse(Encoding.ASCII.GetString(entry, addrstart, entry.Length - addrstart), NumberStyles.HexNumber);
 
             thistag.jumpModifier = eCodeInstrumentation.eInstrumentedCode;
