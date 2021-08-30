@@ -42,5 +42,6 @@ struct BLOCKDATA {
 	bool repexec;
 	unsigned long unchainedRepeats;
 	ThreadBlockInfo ** threadRecords;
+	unsigned int allocatedThreadRecords;
 };
 

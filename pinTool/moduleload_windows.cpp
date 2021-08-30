@@ -1,11 +1,12 @@
+
 #include "moduleload_windows.h"
 
 #include "yekneb_string.h"
-#include <iostream>
 
 //pin client lock is held
 VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 {
+	
 	//std::cout << "mod start" << std::endl;
 	UINT32 imageID = IMG_Id(img);
 
@@ -41,6 +42,7 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 	}
 	*/
 
+	/*
 	if (path.find("\\kernel32.dll") != std::string::npos)
 	{
 		wrapKernel32Funcs(img, (UINT32)threadData_TLSKEY);
@@ -49,6 +51,7 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 	{
 		wrapAdvapi32Funcs(img, (UINT32)threadData_TLSKEY);
 	}
+	*/
 	
 
 	//std::cout << "Module " << path << std::endl;

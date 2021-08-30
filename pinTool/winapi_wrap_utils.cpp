@@ -25,7 +25,7 @@ std::string ErrorCodeToString(WINDOWS::DWORD result)
 	case ERROR_DIRECTORY: return "ERROR_DIRECTORY";
 	default:
 		std::ostringstream os;
-		os << std::hex << result;
+	    os << std::hex << result;
 		return os.str();
 	}
 }

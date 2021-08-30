@@ -4,7 +4,6 @@
 a pin implementation of the drgat client
 */
 
-
 //#undef _WINDOWS_H_PATH_
 #include "pin.H"
 //extern "C" {#include "xed-interface.h"}
@@ -16,13 +15,9 @@ a pin implementation of the drgat client
 #include "crt\include\os-apis\memory.h"
 #include "crt\include\os-apis\file.h"
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <algorithm>
-#include <cctype>
-#include <map>
 #include <io.h>
+#include <iostream>
+#include <string>
 
 
 #ifdef WIN32
@@ -603,6 +598,7 @@ inline ThreadBlockInfo* GetThreadBlockInfo(threadObject* threadObj, BLOCKDATA* b
 	{
 		//this block has never seen a thread with this index, create a new object to store thread specific data for it
 		block_data->threadRecords[threadBlocksIndex] = new ThreadBlockInfo(threadObj->uniqueThreadID);
+
 		blockSlotCurrentThread = block_data->threadRecords[threadBlocksIndex];
 	}
 	else if (blockSlotCurrentThread->threadObjectID != threadObj->uniqueThreadID)
@@ -906,6 +902,10 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		block_data->lastTargetID = 0;
 		block_data->lastInsAddress = INS_Address(lastins);
 		block_data->threadRecords = (ThreadBlockInfo**)malloc(MAXRUNNINGTHREADS * sizeof(ThreadBlockInfo*));
+
+		block_data->allocatedThreadRecords = 0;
+		memset(block_data->threadRecords, 0, MAXRUNNINGTHREADS * sizeof(ThreadBlockInfo*)); //todo - performance improvement by getting rid of this and using allocatedThreadRecords
+
 		blockIDMap[blockAddress] = blockCounter;
 
 
@@ -1805,6 +1805,7 @@ VOID ReadConfiguration()
 	USIZE readsz = 100;
 	readCommandPipe(recvBuf, &readsz);
 	const char startToken[] = "INCLUDELISTS";
+	
 	if (strncmp(recvBuf, startToken, sizeof(startToken) - 1) != 0) {
 		std::cout << "Got: '" << recvBuf << "' size " << readsz << ", expected: " << startToken << " size (" << sizeof(startToken) << ")" << std::endl;
 

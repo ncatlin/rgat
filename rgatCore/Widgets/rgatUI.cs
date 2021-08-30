@@ -631,7 +631,7 @@ namespace rgat
         {
             if (ImGui.BeginMenu("Target"))
             {
-                if (ImGui.MenuItem("Select Target Executable")) { _show_select_exe_window = true; }
+                if (ImGui.MenuItem("Select Target Executable")) { ToggleLoadExeWindow(); }
                 var recentbins = GlobalConfig.RecentBinaries;
                 if (ImGui.BeginMenu("Recent Binaries", recentbins.Any()))
                 {

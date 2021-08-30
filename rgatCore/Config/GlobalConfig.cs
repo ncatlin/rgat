@@ -1093,7 +1093,7 @@ namespace rgat
             try
             {
                 X509Certificate signer = X509Certificate.CreateFromSignedFile(path);
-                if (!signer.Issuer.Contains($"O={expectedSigner},"))
+                if (!signer.Subject.Contains($"O={expectedSigner},"))
                 {
                     error = "Unexpected signer " + signer.Issuer;
                     return false;

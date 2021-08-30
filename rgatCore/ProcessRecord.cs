@@ -351,7 +351,7 @@ namespace rgat
                 }
                 if (hasBlock) break;
                 int moduleNo = FindContainingModule(address);
-                if (ModuleTraceStates.Count <= moduleNo)
+                if (ModuleTraceStates.Count <= moduleNo || moduleNo == -1)
                 {
                     Console.WriteLine($"Warning: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
                     Thread.Sleep(15);

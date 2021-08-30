@@ -645,9 +645,14 @@ namespace rgat
         //Adapted from analytics textureGenerator.js 
         float[] GenerateCircleLayout()
         {
+
             int nodeCount = _graphStructureLinear.Count;
             uint textureSize = LinearIndexTextureSize();
 
+            if (InternalProtoGraph.EdgeList.Count > RenderedEdgeCount)
+            {
+                Console.WriteLine($"Drawing preset {InternalProtoGraph.EdgeList.Count }  > {RenderedEdgeCount}  edges with {nodeCount} nodes tex size {textureSize}");
+            }
             float increase = ((float)Math.PI * 2.0f) / (float)_graphStructureLinear.Count;
             float angle = 0;
             float radius = nodeCount * 4f * 2f;

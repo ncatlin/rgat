@@ -356,9 +356,11 @@ namespace rgat
 
             CreateEdgeDataBuffers(graph);
             CreateBlockMetadataBuffer(graph);
-            //if (_VRAMBuffers.PresetPositions == null)
-            //{
             RegeneratePresetBuffer(graph);
+            if (!LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle))//todo and not done
+            {
+                ActivatingPreset = true;
+            }
             //}
 
             Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {graph.tid} complete", Logging.LogFilterType.BulkDebugLogFile);
@@ -367,13 +369,13 @@ namespace rgat
 
         public void RegeneratePresetBuffer(PlottedGraph graph)
         {
-            if (_VRAMBuffers.PresetPositions == null)
+
+
+            if (!LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle))
             {
-                _VRAMBuffers.PresetPositions = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, stride: 4, "DummyPresetAlloc");
+                VeldridGraphBuffers.DoDispose(_VRAMBuffers.PresetPositions);
+                _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.GeneratePresetPositions(PresetStyle), _gd, "Preset1");
             }
-
-
-            //preset.PositionsArray = graph.CreateBlankPresetLayout();
 
             //VeldridGraphBuffers.DoDispose(_VRAMBuffers.PresetPositions);
             // _VRAMBuffers.PresetPositions = _VRAMBuffers.Positions1;
@@ -460,6 +462,11 @@ namespace rgat
                 }
             }
 
+            //just to avoid passing null as a resource
+            if (_VRAMBuffers.PresetPositions == null)
+            {
+                _VRAMBuffers.PresetPositions = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, stride: 4, "DummyPresetAlloc");
+            }
 
             Logging.RecordLogEvent($"CreateEdgeDataBuffers done", Logging.LogFilterType.BulkDebugLogFile);
             //PrintBufferArray(textureArray, "Created data texture:");
