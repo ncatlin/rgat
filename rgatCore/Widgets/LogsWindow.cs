@@ -123,17 +123,22 @@ namespace rgat
             string textFilterString = Encoding.ASCII.GetString(textFilterValue, 0, filterLen);
 
             ImGuiTableFlags tableFlags =
-                ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders |
-                ImGuiTableFlags.Resizable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.ScrollY |
+                ImGuiTableFlags.SizingFixedFit |
+                ImGuiTableFlags.RowBg | 
+                ImGuiTableFlags.Borders |
+                ImGuiTableFlags.Resizable | 
+                ImGuiTableFlags.Reorderable | 
+                ImGuiTableFlags.ScrollY |
                 ImGuiTableFlags.ScrollX;
             //this is causing issues with the last column. using 4 columns makes it a bit better
-            tableFlags |= ImGuiTableFlags.Sortable;
-            tableFlags |= ImGuiTableFlags.SortMulti;
+            //tableFlags |= ImGuiTableFlags.Sortable;
+            //tableFlags |= ImGuiTableFlags.SortMulti;
 
-            if (ImGui.BeginTable("LogsTableContent", 4, tableFlags))
+            if (ImGui.BeginTable("LogsTableContent", 3, tableFlags))
             {
                 var ss = ImGui.TableGetSortSpecs();
-                if (ss.SpecsDirty || _refreshTimerFired)
+                //if (ss.SpecsDirty || _refreshTimerFired)
+                if ( _refreshTimerFired)
                 {
                     RegenerateRows(new List<LOG_EVENT>(msgs));
                     _refreshTimerFired = false;
@@ -141,9 +146,9 @@ namespace rgat
                 }
 
                 ImGui.TableSetupScrollFreeze(0, 1);
-                ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending);
-                ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoSort);
+                ImGui.TableSetupColumn("Time");//, ImGuiTableColumnFlags.WidthFixed);// | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending);
+                ImGui.TableSetupColumn("Source");//;//", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Details");//, ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoSort);
                 ImGui.TableHeadersRow();
 
                 foreach (LOG_EVENT msg in _sortedMsgs)
@@ -185,12 +190,12 @@ namespace rgat
                     }
 
                     ImGui.TableNextRow();
-                    ImGui.TableSetColumnIndex(0);
+                    ImGui.TableNextColumn();
                     ImGui.Text(timeString);
-                    ImGui.TableSetColumnIndex(1);
+                    ImGui.TableNextColumn();
                     ImGui.Text(sourceString);
-                    ImGui.TableSetColumnIndex(2);
-                    ImGui.Text(msgString);
+                    ImGui.TableNextColumn();
+                    ImGui.TextWrapped(msgString);
                 }
                 ImGui.EndTable();
             }
@@ -212,6 +217,9 @@ namespace rgat
                     }
                 }
             }
+
+            _sortedMsgs = shownMsgs.OrderBy(o => o.EventTimeMS).ToList();
+            /*
             var ss = ImGui.TableGetSortSpecs();
 
             switch (ss.Specs.ColumnIndex)
@@ -234,7 +242,7 @@ namespace rgat
                     break;
             }
             ss.SpecsDirty = false;
-
+            */
         }
 
         public void ShowAlerts()

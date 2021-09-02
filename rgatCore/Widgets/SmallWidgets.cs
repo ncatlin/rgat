@@ -218,9 +218,12 @@ namespace rgat.Widgets
 
             if (text?.Length > 0 && ImGui.IsItemHovered())
             {
-                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(3, 3));
+                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 5));
                 ImGui.SetTooltip(text);
                 ImGui.PopStyleVar();
+                ImGui.PopStyleColor();
             }
         }
 

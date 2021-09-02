@@ -22,7 +22,7 @@ namespace rgat
         }
 
         private eModuleTracingMode _tracingMode = eModuleTracingMode.eDefaultTrace;
-        public int _tracingModeRef;
+        public int _tracingModeRef = 1;
 
         //Binaries in these directories will be traced in default ignore mode
         HashSet<string> traceDirs = new HashSet<string>();
@@ -40,10 +40,29 @@ namespace rgat
         HashSet<string> ignoreFiles = new HashSet<string>();
         public int ignoreFilesCount => ignoreFiles.Count;
 
-        public List<string> GetIgnoredDirs() => ignoreDirs.ToList<string>();
-        public List<string> GetIgnoredFiles() => ignoreFiles.ToList<string>();
-        public List<string> GetTracedDirs() => traceDirs.ToList<string>();
-        public List<string> GetTracedFiles() => traceFiles.ToList<string>();
+        readonly object _lock = new object();
+
+        public List<string> GetIgnoredDirs() { lock (_lock) { return ignoreDirs.ToList<string>(); } }
+        public void ClearIgnoredDirs() { lock (_lock) { ignoreDirs.Clear(); } }
+        public List<string> GetIgnoredFiles() { lock (_lock) { return ignoreFiles.ToList<string>(); } }
+        public void ClearIgnoredFiles() { lock (_lock) { ignoreFiles.Clear(); } }
+        public List<string> GetTracedDirs() { lock (_lock) { return traceDirs.ToList<string>(); } }
+        public void ClearTracedDirs() { lock (_lock) { traceDirs.Clear(); } }
+        public List<string> GetTracedFiles() { lock (_lock) { return traceFiles.ToList<string>(); } }
+        public void ClearTracedFiles() { lock (_lock) { traceFiles.Clear(); } }
+
+        public void AddTracedDirectory(string path) { lock (_lock) { if (!traceDirs.Contains(path)) traceDirs.Add(path); } }
+        public void RemoveTracedDirectory(string path) { lock (_lock) { traceDirs.Remove(path); } }
+
+        public void AddTracedFile(string path) { lock (_lock) { if (!traceFiles.Contains(path)) traceFiles.Add(path); } }
+        public void RemoveTracedFile(string path) { lock (_lock) { traceFiles.Remove(path); } }
+
+        public void AddIgnoredDirectory(string path) { lock (_lock) { if (!ignoreDirs.Contains(path)) ignoreDirs.Add(path); } }
+        public void RemoveIgnoredDirectory(string path) { lock (_lock) {ignoreDirs.Remove(path); } }
+
+        public void AddIgnoredFile(string path) { lock (_lock) { if (!ignoreFiles.Contains(path)) ignoreFiles.Add(path); } }
+        public void RemoveIgnoredFile(string path) { lock (_lock) {  ignoreFiles.Remove(path); } }
+
 
         public void InitDefaultExclusions()
         {
@@ -61,7 +80,7 @@ namespace rgat
         private string _sha1hash = "";
         private string _sha256hash = "";
         private long fileSize = 0;
-        public string RemoteHost { get; private set; }  = null;
+        public string RemoteHost { get; private set; } = null;
         public bool RemoteBinary => RemoteHost != null;
         public bool RemoteAccessible => rgatState.ConnectedToRemote && RemoteHost == rgatState.NetworkBridge.LastAddress;
         public bool RemoteInitialised { get; private set; } = false;
@@ -83,7 +102,8 @@ namespace rgat
 
         public bool ProxyTarget = false;
 
-
+        public int SelectedExportIndex = -1;
+        public string LoaderName = "rgatLoadDll.exe";
 
         public BinaryTarget(string filepath, int bitWidth_ = 0, string remoteAddr = null)
         {
@@ -101,7 +121,8 @@ namespace rgat
                         Console.WriteLine($"Warning: bitwidth changed from provided value {bitWidth_} to {BitWidth}");
                     }
                 }
-                catch (Exception e){
+                catch (Exception e)
+                {
                     Logging.RecordError($"BinaryTarget.Parse threw exception {e.Message}");
                 }
             }
@@ -132,8 +153,8 @@ namespace rgat
                 Logging.RecordLogEvent($"Got non-obj InitialiseFromRemoteData param <{dataTok.Type}>", Logging.LogFilterType.TextError);
                 return false;
             }
-            
-        
+
+
             JObject data = dataTok.ToObject<JObject>();
             bool success = true;
             JToken sizeTok = null, snipTok = null, sha1Tok = null, sha256Tok = null, bitTok = null;

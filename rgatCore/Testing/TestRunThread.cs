@@ -45,35 +45,35 @@ namespace rgat.Testing
             int countDown = 2;
 
             Console.WriteLine($"Starting test process {_testCase.BinaryPath} test id {_thisTest.TestID}");
-            ProcessLaunching.StartLocalTrace(_testCase.TestBits == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64, _testCase.BinaryPath, testID: _thisTest.TestID);
 
-            //GetTestTrace
-            while (!rgatState.rgatIsExiting && !Finished)
+            string pintool = _testCase.TestBits == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
+            System.Diagnostics.Process testProcess = ProcessLaunching.StartLocalTrace(pintool, _testCase.BinaryPath, testID: _thisTest.TestID);
+            if (testProcess != null)
             {
-                Console.WriteLine($"\tWaiting for test {_thisTest.TestID} to start...");
-                if (_rgatState.GetTestTrace(_thisTest.TestID, out TraceRecord testTrace))
+                //GetTestTrace
+                while (!rgatState.rgatIsExiting && !Finished)
                 {
-                    _thisTest.SetFirstTrace(testTrace);
-                    Console.WriteLine($"\tGot first trace of test {_thisTest.TestID}");
-
-                    while (!rgatState.rgatIsExiting && !Finished)
+                    Console.WriteLine($"\tWaiting for test {_thisTest.TestID} to start...");
+                    if (_rgatState.GetTestTrace(_thisTest.TestID, out TraceRecord testTrace))
                     {
-                        Thread.Sleep(100);
-                        if (!testTrace.IsRunning && !testTrace.ProcessingRemaining)
-                            Finished = true;
-                    }
-                }
-                else { Thread.Sleep(100); }
-            }
+                        _thisTest.SetFirstTrace(testTrace);
+                        Console.WriteLine($"\tGot first trace of test {_thisTest.TestID}");
 
+                        while (!rgatState.rgatIsExiting && !Finished)
+                        {
+                            Thread.Sleep(100);
+                            if (!testTrace.IsRunning && !testTrace.ProcessingRemaining)
+                                Finished = true;
+                        }
+                    }
+                    else { Thread.Sleep(100); }
+                }
+            }
 
 
             Console.WriteLine($"Finished test [Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}]");
 
             Running = false;
-
-            
-
 
             _testCase.RecordFinished();
             _harness.NotifyComplete(_thisTest.TestID);

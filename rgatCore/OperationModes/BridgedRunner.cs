@@ -299,6 +299,11 @@ namespace rgat.OperationModes
                     target.CreateNewTrace(DateTime.Now, pid, id, out trace);
                 }
             }
+            else
+            {
+                Logging.RecordError($"Received trace start notification for unknown target hash {sha1}");
+                return false;
+            }
 
             metaparams = infostr.Split('@');
             return true;
@@ -438,9 +443,17 @@ namespace rgat.OperationModes
             string path = paramfield.Substring(0, testIdIdx);
             long testID = long.Parse(paramfield.Substring(testIdIdx + 1));
             BinaryTarget target = rgatState.targets.AddTargetByPath(path);
+            string pintool = target.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
 
-            Process p = ProcessLaunching.StartLocalTrace(target.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64, path, testID);
-            rgatState.NetworkBridge.SendLog($"Trace of {path} launched as remote process ID {p.Id}", Logging.LogFilterType.TextAlert);
+            Process p = ProcessLaunching.StartLocalTrace(pintool, path, target.PEFileObj, testID: testID);
+            if (p != null)
+            {
+                rgatState.NetworkBridge.SendLog($"Trace of {path} launched as remote process ID {p.Id}", Logging.LogFilterType.TextAlert);
+            }
+            else
+            {
+                rgatState.NetworkBridge.SendLog($"Trace of {path} failed to start", Logging.LogFilterType.TextAlert);
+            }
         }
 
 

@@ -417,7 +417,7 @@ namespace rgat.Threads
 
                         thunkInstruction.AddThreadVert(protograph.ThreadID, protograph.ProtoLastVertID);
                         //todo this can be bad idx
-                        if (protograph.ProtoLastLastVertID > protograph.NodeList.Count)
+                        if (protograph.ProtoLastLastVertID < protograph.NodeList.Count)
                         {
                             protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller = true;
                         }
@@ -867,8 +867,8 @@ namespace rgat.Threads
 
 
 
-                //if (msg[0] != 'A') Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
-                Logging.RecordLogEvent("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length), filter: Logging.LogFilterType.BulkDebugLogFile);
+                if (msg[0] != 'A') Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                //Logging.RecordLogEvent("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length), filter: Logging.LogFilterType.BulkDebugLogFile);
 
                 lock (debug_tag_lock) //todo dont forget to remove this
                 {

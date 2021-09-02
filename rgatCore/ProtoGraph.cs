@@ -911,7 +911,7 @@ namespace rgat
 
             else if (thistag.jumpModifier == eCodeInstrumentation.eUninstrumentedCode)
             {
-                if (ProtoLastVertID == 0) return;
+                //if (ProtoLastVertID == 0) return;
 
                 //find caller,external vertids if old + add node to graph if new
                 if (RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint> resultPair)) //todo skipfirstedge

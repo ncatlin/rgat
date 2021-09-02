@@ -49,6 +49,7 @@ namespace rgat
         private bool _show_settings_window = false;
         private bool _show_select_exe_window = false;
         private bool _show_load_trace_window = false;
+        private bool _show_tracelist_selection_window = false;
         private bool _show_test_harness = false;
         private bool _show_logs_window = false;
         private bool _show_remote_dialog = false;
@@ -232,6 +233,11 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Draws any open dialogs
+        /// </summary>
+        /// 
+        /// This isn't great but coming up with something more elegant can wait
         public void DrawDialogs()
         {
             Debug.Assert(_dialogsOpen >= 0);
@@ -256,6 +262,13 @@ namespace rgat
                 shown = _show_load_trace_window;
                 DrawTraceLoadBox(ref shown);
                 if (!shown) ToggleLoadTraceWindow();
+                Debug.Assert(_dialogsOpen >= 0);
+            }
+            if (_show_tracelist_selection_window)
+            {
+                shown = _show_tracelist_selection_window;
+                DrawTraceListSelectBox(ref shown);
+                if (!shown) ToggleTraceListSelectionWindow();
                 Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_test_harness)
@@ -468,8 +481,10 @@ namespace rgat
                 return;
             }
 
+            //should really be maintaining a list of dialogs rather than this
             if (_show_select_exe_window) ToggleLoadExeWindow();
             if (_show_load_trace_window) ToggleLoadTraceWindow();
+            if (_show_tracelist_selection_window) ToggleTraceListSelectionWindow();
             if (_show_settings_window) ToggleSettingsWindow();
             if (_show_remote_dialog) ToggleRemoteDialog();
             if (_show_test_harness) ToggleTestHarness();
@@ -513,6 +528,14 @@ namespace rgat
             _dialogsOpen += _show_select_exe_window ? 1 : -1;
             Debug.Assert(_dialogsOpen >= 0);
         }
+
+        void ToggleTraceListSelectionWindow()
+        {
+            _show_tracelist_selection_window = !_show_tracelist_selection_window;
+            _dialogsOpen += _show_tracelist_selection_window ? 1 : -1;
+            Debug.Assert(_dialogsOpen >= 0);
+        }
+
 
         void ToggleSettingsWindow()
         {
@@ -1297,11 +1320,11 @@ namespace rgat
         }
 
 
-        public void DrawTraceLoadBox(ref bool show_load_trace_window)
+        public void DrawTraceLoadBox(ref bool shown)
         {
             ImGui.OpenPopup("Select Trace File");
 
-            if (ImGui.BeginPopupModal("Select Trace File", ref show_load_trace_window, ImGuiWindowFlags.NoScrollbar))
+            if (ImGui.BeginPopupModal("Select Trace File", ref shown, ImGuiWindowFlags.NoScrollbar))
             {
                 string savedir = GlobalConfig.TraceSaveDirectory;
                 if (!Directory.Exists(savedir)) savedir = Environment.CurrentDirectory;
@@ -1314,10 +1337,80 @@ namespace rgat
                         LoadTraceByPath(picker.SelectedFile);
                     }
                     rgatFilePicker.FilePicker.RemoveFilePicker(this);
-                    show_load_trace_window = false;
+                    shown = false;
                 }
 
                 ImGui.EndPopup();
+            }
+        }
+
+
+        public void DrawTraceListSelectBox(ref bool shown)
+        {
+
+            string startdir = Path.GetDirectoryName(_rgatState.ActiveTarget.FilePath);
+            if (!Directory.Exists(startdir)) startdir = Environment.CurrentDirectory;
+            var picker = rgatFilePicker.FilePicker.GetFilePicker(this, startdir, allowMulti: true);
+
+            string title = "Select Files to List";
+            if (picker != null && picker.AllowMultiSelect)
+            {
+                title += $" ({picker.SelectedFiles.Count + picker.SelectedDirectories.Count} selected)";
+            }
+            title += "###TraceListSelector";
+            ImGui.OpenPopup(title);
+            if (ImGui.BeginPopupModal(title, ref shown, ImGuiWindowFlags.NoScrollbar))
+            {
+                rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
+                if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
+                {
+                    if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
+                    {
+                        AddDirectoriesToTracingList(picker.SelectedDirectories);
+                        AddFilesToTracingList(picker.SelectedFiles);
+                    }
+                    rgatFilePicker.FilePicker.RemoveFilePicker(this);
+                    shown = false;
+                }
+
+                ImGui.EndPopup();
+            }
+        }
+
+        public void AddDirectoriesToTracingList(List<string> files)
+        {
+            if (_rgatState.ActiveTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+            {
+                foreach (string f in files)
+                {
+                    _rgatState.ActiveTarget.traceChoices.AddTracedDirectory(f);
+                }
+            }
+            else
+            {
+                foreach (string f in files)
+                {
+                    _rgatState.ActiveTarget.traceChoices.AddIgnoredDirectory(f);
+                }
+            }
+        }
+
+        public void AddFilesToTracingList (List<string> files)
+        {
+
+            if (_rgatState.ActiveTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+            {
+                foreach (string f in files)
+                {
+                    _rgatState.ActiveTarget.traceChoices.AddTracedFile(f);
+                }
+            }
+            else
+            {
+                foreach (string f in files)
+                {
+                    _rgatState.ActiveTarget.traceChoices.AddIgnoredFile(f);
+                }
             }
         }
     }

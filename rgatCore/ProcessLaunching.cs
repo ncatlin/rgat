@@ -1,4 +1,5 @@
 ﻿using rgat.Threads;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -59,13 +60,14 @@ namespace rgat
         }
     };
 
+    enum BinaryType { EXE, DLL };
+    enum BitWidth { Arch32, Arch64 };
 
     class ProcessLaunching
     {
-        public static System.Diagnostics.Process StartLocalTrace(string pintool, string targetBinary, long testID = -1)
+
+        public static System.Diagnostics.Process StartLocalTrace(string pintool, string targetBinary, PeNet.PeFile targetPE = null, string loaderName = null, int ordinal = 0, long testID = -1)
         {
-
-
             if (!File.Exists(pintool))
             {
                 if (pintool == null)
@@ -76,19 +78,105 @@ namespace rgat
                 {
                     Logging.RecordError($"Pintool {pintool} path was not found");
                 }
+                return null;
             }
+
+            if (!File.Exists(targetBinary))
+            {
+                if (pintool == null)
+                {
+                    Logging.RecordError($"Target binary not found: {targetBinary}");
+                }
+                return null;
+            }
+
+            try
+            {
+                if (targetPE == null)
+                {
+                    targetPE = new PeNet.PeFile(targetBinary);
+                    if (targetPE == null)
+                    {
+                        Logging.RecordError($"Unable to parse PE file: {targetBinary}");
+                        return null;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Unable to parse PE file: {targetBinary} - {e.Message}");
+                return null;
+            }
+
+
+            if (targetPE.IsDll)
+            {
+                BitWidth width = targetPE.Is32Bit ? BitWidth.Arch32 : BitWidth.Arch64;
+                return StartLocalDLLTrace(pintool, targetBinary, loaderName, width, ordinal, testID);
+            }
+            else if (targetPE.IsExe) //'isexe' is true even for DLLs, so isdll has to be first
+            {
+                return StartLocalEXETrace(pintool, targetBinary, testID);
+            }
+
+            Logging.RecordError("Unable to trace non-EXE/DLL file");
+            return null;
+        }
+
+        static System.Diagnostics.Process StartLocalDLLTrace(string pintool, string targetBinary, string loadername, BitWidth loaderWidth, int ordinal = 0, long testID = -1)
+        {
+
+            System.Diagnostics.Process result = null;
+
+            string runargs = $"-t \"{pintool}\" ";
+            if (testID > -1)
+                runargs += $"-T {testID} ";
+            runargs += $"-P {rgatState.LocalCoordinatorPipeName} ";
+            runargs += "-- ";
+            if (loaderWidth == BitWidth.Arch32)
+                runargs += $"C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\Debug\\DLLLoader32.exe {targetBinary},{ordinal}";
+            else
+                runargs += $"C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\x64\\Debug\\DllLoader64.exe {targetBinary},{ordinal}";
+
+            try
+            {
+                Logging.RecordLogEvent($"Launching DLL trace: {GlobalConfig.PinPath} {runargs}", Logging.LogFilterType.TextDebug);
+                result = System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Failed to start process: {e.Message}");
+            }
+            return result;
+        }
+
+
+        static System.Diagnostics.Process StartLocalEXETrace(string pintool, string targetBinary, long testID = -1)
+        {
+            System.Diagnostics.Process result = null;
 
             string runargs = $"-t \"{pintool}\" ";
             if (testID > -1)
                 runargs += $"-T {testID} ";
             runargs += $"-P {rgatState.LocalCoordinatorPipeName} ";
             runargs += $"-- \"{targetBinary}\" ";
-            return System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
+
+            try
+            {
+                Logging.RecordLogEvent($"Launching EXE trace: {GlobalConfig.PinPath} {runargs}", Logging.LogFilterType.TextDebug);
+                result = System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Failed to start process: {e.Message}");
+            }
+            return result;
+
         }
 
         public static void StartRemoteTrace(BinaryTarget target, long testID = -1)
         {
-            if(!target.RemoteAccessible)
+            if (!target.RemoteAccessible)
             {
                 Logging.RecordLogEvent($"Could not trace {target.FilePath} on non-connected host {target.RemoteHost}", Logging.LogFilterType.TextAlert);
                 return;

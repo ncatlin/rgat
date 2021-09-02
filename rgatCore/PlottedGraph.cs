@@ -1407,6 +1407,11 @@ namespace rgat
                     }
                     if (found) break;
                     Thread.Sleep(200);
+                    if (rgatState.ExitToken.IsCancellationRequested)
+                    {
+                        newnodelist = null;
+                        return false; 
+                    }
                     Console.WriteLine($"[rgat]get_block_nodelist() Fail to find edge for thread {tid} calling extern 0x{blockAddr:x}");
                 }
 

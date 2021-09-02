@@ -87,6 +87,7 @@ namespace ImGuiNET
         public static readonly char FA_ICON_RIGHTCIRCLE = '\uf0a9';
         public static readonly char FA_ICON_TRASHCAN = '\uf2ed';
         public static readonly char FA_ICON_WRENCH = '\uf0ad';
+        public static readonly char FA_ICON_ADDFILE = '\uf477';
 
         public unsafe ImGuiController(GraphicsDevice gd, OutputDescription outputDescription, int width, int height)
         {

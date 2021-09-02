@@ -45,6 +45,8 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 	
 	if (path.find("\\kernel32.dll") != std::string::npos)
 	{
+		writeEventPipe("!wrapping kern32");
+
 		wrapKernel32Funcs(img, (UINT32)threadData_TLSKEY);
 	}
 	else if (path.find("\\advapi32.dll") != std::string::npos)

@@ -147,6 +147,7 @@ VOID wraphead_LoadlibraryW(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT f
 
 VOID wraphead_LoadlibraryA(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, const char* modulestring)
 {
+	writeEventPipe("!in LoadLibraryA: %s\n", modulestring);
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
 	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, modulestring);
@@ -342,6 +343,8 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 	rtn = RTN_FindByName(img, "LoadLibraryA");
 	if (RTN_Valid(rtn))
 	{
+		writeEventPipe("!wrapping LoadLibraryA");
+
 		RTN_Open(rtn);
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_LoadlibraryA,
 			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 

@@ -20,9 +20,9 @@ namespace rgat
 
                 ImGui.BeginGroup();
                 {
-                    DrawTraceTab_InstrumentationSettings(activeTarget, 400);
+                    DrawTraceTab_InstrumentationSettings(activeTarget, 600);
                     ImGui.SameLine();
-                    DrawTraceTab_ExecutionSettings(ImGui.GetContentRegionAvail().X);
+                    DrawTraceTab_ExecutionSettings(activeTarget, ImGui.GetContentRegionAvail().X);
                     ImGui.EndGroup();
                 }
                 ImGui.EndTabItem();
@@ -193,97 +193,260 @@ namespace rgat
             ImGui.EndGroup();
         }
 
+
         private void DrawTraceTab_InstrumentationSettings(BinaryTarget activeTarget, float width)
         {
+            if (ImGui.BeginChild("TraceInstruSettings", new Vector2(width, ImGui.GetContentRegionAvail().Y)))
+            {
+                if (activeTarget.PEFileObj != null && activeTarget.PEFileObj.IsDll)
+                {
+                    DrawDLLTraceSettings(activeTarget);
+                    DrawModuleFilterControls(activeTarget, 200);
+                }
+                else
+                {
+                    DrawModuleFilterControls(activeTarget, 200);
+                }
+                ImGui.EndChild();
+            }
+        }
+
+
+        void DrawDLLTraceSettings(BinaryTarget activeTarget)
+        {
+            ImGui.Indent(8);
+            if (ImGui.BeginTable("#DLLSettingsTable", 2))
+            {
+                ImGui.TableSetupColumn("##DllSettingCaption", ImGuiTableColumnFlags.WidthFixed, 150);
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text("Export");
+                ImGui.TableNextColumn();
+                DrawExportPickerCombo(activeTarget);
+                SmallWidgets.MouseoverText("Choose an export to run from the DLL");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text("Loader Name");
+                ImGui.TableNextColumn();
+                string loaderName = activeTarget.LoaderName;
+                if (ImGui.InputText("##LoaderName", ref loaderName, 255))
+                {
+                    activeTarget.LoaderName = loaderName;
+                }
+                SmallWidgets.MouseoverText("If the DLL checks the name of the binary that launches it, enter a custom name here.\n" +
+                    "The filename should not exist in the DLL directory.");
+                ImGui.EndTable();
+            }
+            ImGui.Indent(-8);
+        }
+
+        void DrawExportPickerCombo(BinaryTarget activeTarget)
+        {
+
+            string preview = "";
+            if (activeTarget.SelectedExportIndex == -1)
+            {
+                preview = "DllMain Only";
+            }
+            else
+            {
+                if (activeTarget.PEFileObj.ExportedFunctions.Length > activeTarget.SelectedExportIndex)
+                {
+                    var previewExport = activeTarget.PEFileObj.ExportedFunctions[activeTarget.SelectedExportIndex];
+                    if (previewExport.HasName)
+                    {
+                        preview = $"{previewExport.Name}";
+                        if (previewExport.HasOrdinal) preview += $" [#{previewExport.Ordinal}]";
+                    }
+                    else
+                    {
+                        if (previewExport.HasOrdinal) preview = $"#{previewExport.Ordinal}";
+                    }
+                }
+            }
+
+            if (ImGui.BeginCombo("##CmbExport", preview))
+            {
+                if (ImGui.Selectable("DllMain only"))
+                {
+                    activeTarget.SelectedExportIndex = -1;
+                }
+                for (int ordI = 0; ordI < activeTarget.PEFileObj.ExportedFunctions.Length; ordI++)
+                {
+                    var export = activeTarget.PEFileObj.ExportedFunctions[ordI];
+                    string comboText = "";
+                    if (export.HasName)
+                    {
+                        comboText = $"{export.Name} [#{export.Ordinal}]";
+                    }
+                    else
+                    {
+                        comboText = $"{export.Ordinal}";
+                    }
+                    if (ImGui.Selectable(comboText))
+                    {
+                        activeTarget.SelectedExportIndex = ordI;
+                    }
+                }
+                ImGui.EndCombo();
+            }
+
+        }
+
+
+        void DrawModuleFilterControls(BinaryTarget activeTarget, float height)
+        {
+            ImGui.Indent(8);
             ImGui.BeginGroup();
             {
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF992200);
 
-                ImGui.BeginChildFrame(18, new Vector2(width, 200));
-                ImGui.AlignTextToFramePadding();
-                ImGui.Text("Module Tracing");
-                ImGui.SameLine();
-                ImguiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
-                ImGui.SameLine();
-                string TraceLabel = $"Tracelist [{activeTarget.traceChoices.traceDirCount + activeTarget.traceChoices.traceFilesCount}]";
-                if (ImGui.RadioButton(TraceLabel, ref activeTarget.traceChoices._tracingModeRef, 0))
+                if (ImGui.BeginChild("ModFilterToggleChild", new Vector2(ImGui.GetContentRegionAvail().X, 40)))
                 {
-                    activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
-                };
-                ImGui.SameLine();
-                ImguiUtils.HelpMarker("Only specified libraries will be traced");
-                ImGui.SameLine();
-                string IgnoreLabel = $"IgnoreList [{activeTarget.traceChoices.ignoreDirsCount + activeTarget.traceChoices.ignoreFilesCount}]";
-                if (ImGui.RadioButton(IgnoreLabel, ref activeTarget.traceChoices._tracingModeRef, 1))
-                {
-                    activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
-                };
-                ImGui.SameLine();
-                ImguiUtils.HelpMarker("All libraries will be traced except for those specified");
-                ImGui.EndChildFrame();
-
-
-                ImGui.BeginChildFrame(18, new Vector2(width, 200));
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFdddddd);
-
-                if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
-                {
-                    ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
-                    if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultTrace)
+                    ImGui.AlignTextToFramePadding();
+                    ImGui.Text("Module Tracing");
+                    ImGui.SameLine();
+                    ImguiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
+                    ImGui.SameLine();
+                    string TraceLabel = $"Trace [{activeTarget.traceChoices.traceDirCount + activeTarget.traceChoices.traceFilesCount}]";
+                    if (ImGui.RadioButton(TraceLabel, ref activeTarget.traceChoices._tracingModeRef, 0))
                     {
-                        if (ImGui.TreeNode($"Ignored Directories ({activeTarget.traceChoices.ignoreDirsCount})"))
-                        {
-                            List<string> names = activeTarget.traceChoices.GetIgnoredDirs();
-                            foreach (string fstr in names) ImGui.Text(fstr);
-                            ImGui.TreePop();
-                        }
-                        if (ImGui.TreeNode($"Ignored Files ({activeTarget.traceChoices.ignoreFilesCount})"))
-                        {
-                            List<string> names = activeTarget.traceChoices.GetIgnoredFiles();
-                            foreach (string fstr in names) ImGui.Text(fstr);
-                            ImGui.TreePop();
-                        }
-                    }
-
-                    else if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+                        activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
+                    };
+                    ImGui.SameLine();
+                    ImguiUtils.HelpMarker("Only specified libraries will be traced");
+                    ImGui.SameLine();
+                    string IgnoreLabel = $"Ignore [{activeTarget.traceChoices.ignoreDirsCount + activeTarget.traceChoices.ignoreFilesCount}]";
+                    if (ImGui.RadioButton(IgnoreLabel, ref activeTarget.traceChoices._tracingModeRef, 1))
                     {
-                        if (ImGui.TreeNode($"Included Directories ({activeTarget.traceChoices.traceDirCount})"))
-                        {
-                            List<string> names = activeTarget.traceChoices.GetTracedDirs();
-                            foreach (string fstr in names) ImGui.Text(fstr);
-                            ImGui.TreePop();
-                        }
-                        if (ImGui.TreeNode($"Included Files ({activeTarget.traceChoices.traceFilesCount})"))
-                        {
-                            List<string> names = activeTarget.traceChoices.GetTracedFiles();
-                            foreach (string fstr in names) ImGui.Text(fstr);
-                            ImGui.TreePop();
-                        }
+                        activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
+                    };
+                    ImGui.SameLine();
+                    ImguiUtils.HelpMarker("All libraries will be traced except for those specified");
+                    ImGui.EndChild();
+                }
+
+                void DrawClickablePaths(List<string> paths, Action<String> clicked)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToUint(160));
+                    foreach (string fstr in paths)
+                    {
+                        ImGui.Selectable(fstr);
+                        if (ImGui.IsItemClicked()) activeTarget.traceChoices.RemoveIgnoredDirectory(fstr);
                     }
                     ImGui.PopStyleColor();
-                    ImGui.EndChildFrame();
                 }
-                ImGui.PopStyleColor();
 
-                if (ImGui.BeginPopupContextItem("exclusionlist_contents", ImGuiPopupFlags.MouseButtonRight))
+                if (ImGui.BeginChild("ModFilterContentChild", new Vector2(ImGui.GetContentRegionAvail().X, 200)))
                 {
-                    ImGui.Selectable("Add files/directories");
-                    ImGui.EndPopup();
+                    ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFdddddd);
+
+                    if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
+                        if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultTrace)
+                        {
+                            int ignoredDirCount = activeTarget.traceChoices.ignoreDirsCount;
+                            ImGui.SetNextItemOpen(true, ImGuiCond.Once);
+                            if (ImGui.TreeNode($"Ignored Directories ({ignoredDirCount})"))
+                            {
+                                DrawClickablePaths(activeTarget.traceChoices.GetIgnoredDirs(), (x) => { activeTarget.traceChoices.RemoveIgnoredDirectory(x); });
+                                ImGui.TreePop();
+                            }
+                            if (ignoredDirCount > 0 && ImGui.BeginPopupContextItem("IgnoreDirsClear", ImGuiPopupFlags.MouseButtonRight))
+                            {
+                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                                if (ImGui.Selectable("Clear all ignored directories")) activeTarget.traceChoices.ClearIgnoredDirs();
+                                ImGui.PopStyleColor();
+                                ImGui.EndPopup();
+                            }
+
+                            int ignoredFileCount = activeTarget.traceChoices.ignoreFilesCount;
+                            ImGui.SetNextItemOpen(true, ImGuiCond.Once);
+                            if (ImGui.TreeNode($"Ignored Files ({ignoredFileCount})"))
+                            {
+                                DrawClickablePaths(activeTarget.traceChoices.GetIgnoredFiles(), (x) => { activeTarget.traceChoices.RemoveIgnoredFile(x); });
+                                ImGui.TreePop();
+                            }
+                            if (ignoredFileCount > 0 && ImGui.BeginPopupContextItem("IgnoreFilesClear", ImGuiPopupFlags.MouseButtonRight))
+                            {
+                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                                if (ImGui.Selectable("Clear all ignored files")) activeTarget.traceChoices.ClearIgnoredFiles();
+                                ImGui.PopStyleColor();
+                                ImGui.EndPopup();
+                            }
+
+                            ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(136, 35));
+                            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 9));
+                            if (ImGui.Button($"{ImGuiController.FA_ICON_ADDFILE} Add Files/Directories"))
+                            {
+                                ToggleTraceListSelectionWindow();
+                            }
+                            ImGui.PopStyleVar();
+                            SmallWidgets.MouseoverText("Add files/directories to this filter");
+                        }
+                        else if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+                        {
+                            ImGui.SetNextItemOpen(true, ImGuiCond.Once);
+                            if (ImGui.TreeNode($"Traced Directories ({activeTarget.traceChoices.traceDirCount})"))
+                            {
+                                DrawClickablePaths(activeTarget.traceChoices.GetTracedDirs(), (x) => { activeTarget.traceChoices.RemoveTracedDirectory(x); });
+                                ImGui.TreePop();
+                            }
+                            if (ImGui.BeginPopupContextItem("TraceDirsClear", ImGuiPopupFlags.MouseButtonRight))
+                            {
+                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                                if (ImGui.Selectable("Clear all traced directories")) activeTarget.traceChoices.ClearTracedDirs();
+                                ImGui.PopStyleColor();
+                                ImGui.EndPopup();
+                            }
+
+                            ImGui.SetNextItemOpen(true, ImGuiCond.Once);
+                            if (ImGui.TreeNode($"Traced Files ({activeTarget.traceChoices.traceFilesCount})"))
+                            {
+                                DrawClickablePaths(activeTarget.traceChoices.GetTracedFiles(), (x) => { activeTarget.traceChoices.RemoveTracedFile(x); });
+                                ImGui.TreePop();
+                            }
+                            if (ImGui.BeginPopupContextItem("TraceDirsClear", ImGuiPopupFlags.MouseButtonRight))
+                            {
+                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                                if (ImGui.Selectable("Clear all traced files")) activeTarget.traceChoices.ClearTracedFiles();
+                                ImGui.PopStyleColor();
+                                ImGui.EndPopup();
+                            }
+
+                            ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(136, 35));
+                            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 9));
+                            if (ImGui.Button($"{ImGuiController.FA_ICON_ADDFILE} Add Files/Directories"))
+                            {
+                                ToggleTraceListSelectionWindow();
+                            }
+                            ImGui.PopStyleVar();
+                            SmallWidgets.MouseoverText("Add files/directories to this filter");
+                        }
+                        ImGui.PopStyleColor();
+                        ImGui.EndChildFrame();
+                    }
+                    ImGui.PopStyleColor();
+
+                    ImGui.EndChild();
                 }
 
-                ImGui.EndChildFrame();
 
                 ImGui.PopStyleColor();
             }
             ImGui.EndGroup();
 
+            ImGui.Indent(-8);
         }
+
 
         bool _checkStartPausedState;
         bool _recordVideoOnStart;
         bool _diagnosticMode;
         bool _activeTargetRunnable;
-        private void DrawTraceTab_ExecutionSettings(float width)
+        private void DrawTraceTab_ExecutionSettings(BinaryTarget activeTarget, float width)
         {
             ImGui.BeginGroup();
             {
@@ -332,24 +495,34 @@ namespace rgat
                 ImGui.InputText("##cmdline", _dataInput, 1024);
                 ImGui.PopStyleColor();
 
-                string pintoolpath = _rgatState.ActiveTarget.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
+                string pintoolpath = activeTarget.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
 
 
                 bool runnable = _activeTargetRunnable;
 
                 ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourImGui(ImGuiCol.Button) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
                 ImGui.AlignTextToFramePadding();
-                if (ImGui.Button("Start Trace "+ ImGuiController.FA_PLAY_CIRCLE) && runnable)
+                if (ImGui.Button("Start Trace " + ImGuiController.FA_PLAY_CIRCLE) && runnable)
                 {
                     _OldTraceCount = rgatState.TotalTraceCount;
-                    if (_rgatState.ActiveTarget.RemoteBinary)
+                    if (activeTarget.RemoteBinary)
                     {
-                        ProcessLaunching.StartRemoteTrace(_rgatState.ActiveTarget);
+                        ProcessLaunching.StartRemoteTrace(activeTarget);
                     }
                     else
                     {
-                        System.Diagnostics.Process p = ProcessLaunching.StartLocalTrace(pintoolpath, _rgatState.ActiveTarget.FilePath);
-                        Console.WriteLine($"Started local process id {p.Id}");
+                        //todo loadername, ordinal
+                        System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
+                        int ordinal = (activeTarget.PEFileObj.IsDll && activeTarget.SelectedExportIndex > -1) ? activeTarget.PEFileObj.ExportedFunctions[activeTarget.SelectedExportIndex].Ordinal : 0;
+                        System.Diagnostics.Process p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath, ordinal: ordinal, targetPE: activeTarget.PEFileObj);
+                        watch.Start();
+                        if (p.WaitForExit(80)) //in testing it takes under 30ms to fail if pin can't load it
+                        {
+                            if (p.ExitCode != 0)
+                            {
+                                Logging.RecordError($"Trace error after {watch.ElapsedMilliseconds} ms: Exit code {p.ExitCode}. Target binary may be invalid or incompatible");
+                            }
+                        }
                     }
                 }
                 if (!runnable)

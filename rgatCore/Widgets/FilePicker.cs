@@ -405,8 +405,11 @@ namespace rgatFilePicker
         FILEPICKER_DATA Data = new FILEPICKER_DATA();
         public DateTime LastDriveListRefresh = DateTime.MinValue;
         public string SelectedFile;
+        public List<string> SelectedFiles;
+        public List<string> SelectedDirectories;
         public List<string> AllowedExtensions = new List<string>();
         public bool OnlyAllowFolders;
+        public bool AllowMultiSelect;
         readonly object _lock = new object();
 
 
@@ -437,7 +440,7 @@ namespace rgatFilePicker
         }
 
 
-        public static FilePicker GetRemoteFilePicker(object o, BridgeConnection remoteMirror, string searchFilter = null, bool onlyAllowFolders = false)
+        public static FilePicker GetRemoteFilePicker(object o, BridgeConnection remoteMirror, string searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
 
             if (!_filePickers.TryGetValue(o, out FilePicker fp) || fp._remoteMirror.LastAddress != remoteMirror.LastAddress)
@@ -445,6 +448,12 @@ namespace rgatFilePicker
                 fp = new FilePicker(remoteMirror: remoteMirror);
                 fp.Data.CurrentDirectory = RemoteDataMirror.RootDirectory;
                 fp.OnlyAllowFolders = onlyAllowFolders;
+                fp.AllowMultiSelect = allowMulti;
+                if (fp.AllowMultiSelect)
+                {
+                    fp.SelectedFiles = new List<string>();
+                    fp.SelectedDirectories = new List<string>();
+                }
 
                 if (searchFilter != null)
                 {
@@ -463,7 +472,7 @@ namespace rgatFilePicker
         }
 
 
-        public static FilePicker GetFilePicker(object o, string startingPath, string searchFilter = null, bool onlyAllowFolders = false)
+        public static FilePicker GetFilePicker(object o, string startingPath, string searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
 
             if (!_filePickers.TryGetValue(o, out FilePicker fp) || fp._remoteMirror != null)
@@ -479,6 +488,12 @@ namespace rgatFilePicker
                         fp.AllowedExtensions = new List<string>();
 
                     fp.AllowedExtensions.AddRange(searchFilter.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries));
+                }
+                fp.AllowMultiSelect = allowMulti;
+                if (fp.AllowMultiSelect)
+                {
+                    fp.SelectedFiles = new List<string>();
+                    fp.SelectedDirectories = new List<string>();
                 }
 
                 fp.SetActiveDirectory(startingPath);
@@ -503,7 +518,7 @@ namespace rgatFilePicker
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
             ImGui.PushStyleColor(ImGuiCol.Text, filemeta.ListingColour());
-            bool isSelected = SelectedFile == path;
+            bool isSelected = SelectedFile == path || (AllowMultiSelect && SelectedFiles.Contains(path));
             string label = filemeta.filename;
             if (filemeta.extension == "exe" || filemeta.extension == "dll")
             {
@@ -514,9 +529,32 @@ namespace rgatFilePicker
                 label = $"{ImGuiController.FA_ICON_FILEPLAIN} {label}";
             }
 
-            if (ImGui.Selectable(label, isSelected, ImGuiSelectableFlags.SpanAllColumns))
+
+            if (ImGui.Selectable(label, isSelected, ImGuiSelectableFlags.SpanAllColumns) 
+                || ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
-                this.SelectedFile = path;
+                if (!isSelected)
+                {
+                    if (this.AllowMultiSelect && !this.SelectedFiles.Contains(path))
+                    {
+                        this.SelectedFiles.Add(path);
+                    }
+                    else
+                    {
+                        this.SelectedFile = path;
+                    }
+                }
+                else
+                {
+                    if (this.AllowMultiSelect)
+                    {
+                        this.SelectedFiles.RemoveAll(x => x == path);
+                    }
+                    else
+                    {
+                        this.SelectedFile = null;
+                    }
+                }
             }
             wasActivated = (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(0));
             wasActivated = wasActivated || (isSelected && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Enter)));
@@ -768,6 +806,47 @@ namespace rgatFilePicker
                     SetActiveDirectory(currentDirString);
                 }
             }
+            
+            if (AllowMultiSelect && (SelectedFiles.Count+SelectedDirectories.Count) > 0)
+            {
+                ImGui.SameLine(ImGui.GetContentRegionMax().X - 85);
+                if (ImGui.Button("Clear Selected"))
+                {
+                    this.SelectedFiles.Clear();
+                    this.SelectedDirectories.Clear();
+                }
+                if (ImGui.IsItemHovered())
+                {
+                    const int maxlen = 65;
+                    const int maxcount = 3;
+                    List<Tuple<string, bool>> allSelected = new List<Tuple<string, bool>>();
+                    allSelected.AddRange(SelectedDirectories.Select(dir => new Tuple<string, bool>(dir, true)));
+                    allSelected.AddRange(SelectedFiles.Select(file => new Tuple<string, bool>(file, false)));
+
+                    ImGui.BeginTooltip();
+                    for (var i = 0; i < allSelected.Count; i++)
+                    {
+                        if (i >= maxcount)
+                        {
+                            ImGui.Text($"...and {allSelected.Count - i} more");
+                            break;
+                        }
+                        Tuple<string, bool> item = allSelected[i];
+                        string path = item.Item1;
+                        int showLen = Math.Min(maxlen, path.Length);
+                        int start = Math.Max(0, path.Length - showLen);
+                        string label = path.Substring(start, showLen);
+                        if (path.Length > showLen)
+                            label = "..." + label;
+                        if (item.Item2)
+                            label = $"{ImGuiController.FA_ICON_DIRECTORY} {label}";
+                        else
+                            label = $"{ImGuiController.FA_ICON_FILEPLAIN} {label}";
+                        ImGui.Text(label);
+                    }
+                    ImGui.EndTooltip();
+                }
+            }
         }
 
         PickerResult DrawFilesContents(object objKey)
@@ -820,7 +899,7 @@ namespace rgatFilePicker
         {
             ImGui.BeginGroup();
             {
-                ImGui.PushStyleColor(ImGuiCol.Button, 0xee555555);
+                ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull2));
                 if (ImGui.Button("Cancel", new Vector2(50, btnHeight)))
                 {
                     ImGui.CloseCurrentPopup();
@@ -828,31 +907,48 @@ namespace rgatFilePicker
                 }
                 ImGui.PopStyleColor();
 
-                if (OnlyAllowFolders)
+                if (AllowMultiSelect)
                 {
-                    ImGui.SameLine();
-                    if (ImGui.Button("Select Folder", new Vector2(80, btnHeight)))
+                    int selectedCount = SelectedDirectories.Count + SelectedFiles.Count;
+                    if (selectedCount > 0)
                     {
-                        SelectedFile = Data.CurrentDirectory;
-                        ImGui.CloseCurrentPopup();
-                        return PickerResult.eTrue;
-                    }
-                    if (ImGui.IsItemHovered())
-                    {
-                        ImGui.SetTooltip("Choose the current folder: " + Data.CurrentDirectory);
+                        ImGui.SameLine();
+                        if (ImGui.Button($"Select {selectedCount}", new Vector2(80, btnHeight)))
+                        {
+                            SelectedFile = Data.CurrentDirectory;
+                            ImGui.CloseCurrentPopup();
+                            return PickerResult.eTrue;
+                        }
                     }
                 }
-                else if (SelectedFile != null)
+                else
                 {
-                    ImGui.SameLine();
-                    if (ImGui.Button("Select File", new Vector2(80, btnHeight)))
+                    if (OnlyAllowFolders)
                     {
-                        ImGui.CloseCurrentPopup();
-                        return PickerResult.eTrue;
+                        ImGui.SameLine();
+                        if (ImGui.Button("Select Folder", new Vector2(80, btnHeight)))
+                        {
+                            SelectedFile = Data.CurrentDirectory;
+                            ImGui.CloseCurrentPopup();
+                            return PickerResult.eTrue;
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Choose the current folder: " + Data.CurrentDirectory);
+                        }
                     }
-                    if (ImGui.IsItemHovered())
+                    else if (SelectedFile != null)
                     {
-                        ImGui.SetTooltip("Choose the selected file: " + SelectedFile);
+                        ImGui.SameLine();
+                        if (ImGui.Button("Select File", new Vector2(80, btnHeight)))
+                        {
+                            ImGui.CloseCurrentPopup();
+                            return PickerResult.eTrue;
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Choose the selected file: " + SelectedFile);
+                        }
                     }
                 }
             }
@@ -935,7 +1031,7 @@ namespace rgatFilePicker
 
                     if (Data.ErrMsg != null && Data.ErrMsg.Length > 0)
                     {
-                        string[] msgs = new string[] { $"{ImGuiController.FA_ICON_WARNING} Error",  Data.ErrMsg};
+                        string[] msgs = new string[] { $"{ImGuiController.FA_ICON_WARNING} Error", Data.ErrMsg };
                         ImguiUtils.DrawRegionCenteredText(msgs);
                     }
                     else
@@ -1063,13 +1159,34 @@ namespace rgatFilePicker
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
 
-                //file
                 FileMetadata md = path_data.Value;
+                string path = path_data.Key;
                 ImGui.PushStyleColor(ImGuiCol.Text, md.ListingColour());
-                if (ImGui.Selectable($"{ImGuiController.FA_ICON_DIRECTORY} {path_data.Value.filename}/", false, ImGuiSelectableFlags.SpanAllColumns))
+                bool selected = AllowMultiSelect && SelectedDirectories.Contains(path);
+                ImGui.Selectable($"{ImGuiController.FA_ICON_DIRECTORY} {path_data.Value.filename}/", selected, ImGuiSelectableFlags.SpanAllColumns);
+
+                if (AllowMultiSelect &&
+                    (ImGui.IsItemClicked(ImGuiMouseButton.Right) ||
+                    (ImGui.IsItemClicked(ImGuiMouseButton.Left) && ImGui.GetIO().KeyCtrl)))
                 {
-                    SetActiveDirectory(path_data.Key);
+                    if (selected)
+                    {
+                        this.SelectedDirectories.RemoveAll(x => x == path);
+                    }
+                    else
+                    {
+                        this.SelectedDirectories.Add(path);
+                    }
                 }
+                else
+                {
+                    if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                    {
+                        SetActiveDirectory(path);
+                    }
+                }
+                SmallWidgets.MouseoverText("Ctrl-left click or right click to select directories.");
+
                 if (path_data.Value.namewidth > longestFilename)
                     longestFilename = path_data.Value.namewidth;
 
