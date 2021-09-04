@@ -867,7 +867,7 @@ namespace rgat.Threads
 
 
 
-                if (msg[0] != 'A') Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                //if (msg[0] != 'A') Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                 //Logging.RecordLogEvent("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length), filter: Logging.LogFilterType.BulkDebugLogFile);
 
                 lock (debug_tag_lock) //todo dont forget to remove this

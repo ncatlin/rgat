@@ -4,61 +4,42 @@
 
         .686p                   ;enable instructions
         .xmm                    ;enable instructions
-        .model flat, stdcall           ;use C naming convention (stdcall is default)
-		        .data                   ;initialized data
-message     db      "delmefff",0dh,0ah,0
-message_end db 0
-        .data?         
+        .model flat, stdcall           ;use C naming convention (stdcall is default)      
         .stack  4096            ;stack (optional, linker will default)
 
         .code                   ;code 
 
-
-        LoadLibraryA   proto, 
-			lpLibFileName: near32  
-
-
-        GetStdHandle PROTO STDCALL :DWORD
-
-        GetProcAddress proto,                  
+        LoadLibraryA   proto, lpLibFileName: near32  
+        GetStdHandle   PROTO STDCALL :DWORD
+        GetProcAddress proto,              
             hModule: dword, 
 			lpLibFileName: near32 
-
         GetCommandLineA proto
-
         ExitProcess PROTO STDCALL :DWORD
-        
-        WriteFile proto,                  
+        WriteFile proto,               
             hFile:dword, lpBuffer:near32,      ;A handle to the device
             nNumberOfCharsToWrite:dword,       ;The maximum number of bytes to be written.
             lpNumberOfbytesWritten:near32,     ;A pointer to the variable that receives the number of bytes written
             lpOverlapped:near32 
 
-
         public  main
-		
         includelib      kernel32
-main:    
-
-
-
-
+main:   
 
     call GetCommandLineA
     mov edi, eax
 
     ; skip past loader module name to first space
-inc edi
+    inc edi
     mov ecx, 0ffffffffh
     mov eax, ' '
-    ;cmp al, byte ptr [edi]
     repne scasb
     push edi  ;dll name for loadlibray
     
     ; replace comma after target library name with a null
     mov ecx, 0ffffffffh
     mov eax, ','
-    repnz scasb ;//todo handle repnz!
+    repnz scasb ; //todo handle repnz!
     mov eax, edi
     sub eax, 1
     mov byte ptr [eax], 0
@@ -79,7 +60,7 @@ inc edi
     dec ecx  ; stringlen
     jz done_success 
 
-    pop esi
+    pop esi 
     mov ebx, ecx
     dec ebx ; index of lowest order character 
     
@@ -131,12 +112,10 @@ convert_char:
 
 done_success:
 	mov eax, 1	
-	ret    ;node 40 - ret to basethreadinitthunk
-	
+	ret  
 done_failure:
     mov eax, 0
     ret
-
 
 end main
 

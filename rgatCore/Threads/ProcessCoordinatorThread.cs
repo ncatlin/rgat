@@ -36,28 +36,31 @@ namespace rgat.Threads
 
                 string csString = System.Text.Encoding.UTF8.GetString(buf[0..bytesRead]);
 
-                //	"PID,%u,%d,%ld,%s,%ld", pid, arch, instanceID, programName, testRunID
+                //	"PID,%u,%d,%ld,%s,%ld", pid, arch, libraryFlag, instanceID, programName, testRunID
                 string[] fields = csString.Split(',');
+                const int expectedFieldCount = 7;
                 Logging.RecordLogEvent($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: {fields}", Logging.LogFilterType.TextDebug);
 
-                if (fields.Length == 6)
+                if (fields.Length == expectedFieldCount)
                 {
                     bool success = true;
                     if (fields[0] != "PID") success = false;
                     if (!uint.TryParse(fields[1], out uint PID)) success = false;
                     if (!int.TryParse(fields[2], out int arch)) success = false;
-                    if (!long.TryParse(fields[3], out long randno)) success = false;
-                    if (!long.TryParse(fields[5], out long testRunID)) success = false;
+                    if (!int.TryParse(fields[3], out int libraryFlag)) success = false;
+                    if (!long.TryParse(fields[4], out long randno)) success = false;
+                    if (!long.TryParse(fields[6], out long testRunID)) success = false;
                     if (success)
                     {
-                        string programName = fields[4];
+                        string programName = fields[5];
                         string cmdPipeName = ModuleHandlerThread.GetCommandPipeName(PID, randno);
                         string eventPipeName = ModuleHandlerThread.GetEventPipeName(PID, randno);
                         string blockPipeName = BlockHandlerThread.GetBlockPipeName(PID, randno);
+
                         string response = $"CM@{cmdPipeName}@CR@{eventPipeName}@BB@{blockPipeName}@\x00";
-                        byte[] outBuffer = System.Text.Encoding.UTF8.GetBytes(response);
-                        coordPipe.Write(outBuffer);
-                        Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, randno, programName, testRunID));
+                        coordPipe.Write(System.Text.Encoding.UTF8.GetBytes(response));
+
+                        Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, libraryFlag == 1, randno, programName, testRunID));
                         Logging.RecordLogEvent($"Coordinator connection initiated", Logging.LogFilterType.TextDebug);
                     }
                     else
@@ -175,7 +178,7 @@ namespace rgat.Threads
 
 
 
-        private void process_new_pin_connection(uint PID, int arch, long ID, string programName, long testID = -1)
+        private void process_new_pin_connection(uint PID, int arch, bool isLibrary, long ID, string programName, long testID = -1)
         {
 
             string binaryName = Path.GetFileName(programName);
@@ -190,9 +193,9 @@ namespace rgat.Threads
             Logging.RecordLogEvent(msg, Logging.LogFilterType.TextDebug);
 
             BinaryTarget target;
-            if (!rgatState.targets.GetTargetByPath(programName, out target))
+            if (!rgatState.targets.GetTargetByPath(path: programName, out target))
             {
-                target = _clientState.AddTargetByPath(programName, arch, true);
+                target = _clientState.AddTargetByPath(path: programName, arch: arch, isLibrary: isLibrary, makeActive: true);
             }
 
             if (target.BitWidth != arch)

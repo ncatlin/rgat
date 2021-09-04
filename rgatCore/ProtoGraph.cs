@@ -620,7 +620,9 @@ namespace rgat
 
                 if (!sequenceProcessed)
                 {
-                    Console.WriteLine($"\tProcessIncomingCallArguments - Failed to find *specific* caller of 0x{arg.calledAddress:X} in current thread. Leaving until it appears.");
+                    NodeData targnode = safe_get_node(threadCalls[0].Item2);
+                    ProcessData.GetSymbol(targnode.GlobalModuleID, arg.calledAddress, out string sym);
+                    Console.WriteLine($"\tProcessIncomingCallArguments - Failed to find *specific* caller of 0x{arg.calledAddress:X} [{sym}] in current thread. Leaving until it appears.");
                     break;
                 }
 

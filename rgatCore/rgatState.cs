@@ -122,9 +122,9 @@ namespace rgat
             }
         }
 
-        public BinaryTarget AddTargetByPath(string path, int arch = 0, bool makeActive = true)
+        public BinaryTarget AddTargetByPath(string path, int arch = 0, bool isLibrary = false, bool makeActive = true)
         {
-            BinaryTarget targ = targets.AddTargetByPath(path, arch);
+            BinaryTarget targ = targets.AddTargetByPath(path, isLibrary: isLibrary, arch: arch);
             DIELib?.StartDetectItEasyScan(targ);
             YARALib?.StartYARATargetScan(targ);
 
@@ -137,9 +137,9 @@ namespace rgat
             return targ;
         }
 
-        public BinaryTarget AddRemoteTargetByPath(string path, string hostAddr, bool makeActive= true)
+        public BinaryTarget AddRemoteTargetByPath(string path, string hostAddr, bool isLibrary = false, bool makeActive = true)
         {
-            BinaryTarget targ = targets.AddTargetByPath(path, remoteAddr: hostAddr);
+            BinaryTarget targ = targets.AddTargetByPath(path, isLibrary: isLibrary, remoteAddr: hostAddr);
 
             if (makeActive)
             {
@@ -250,7 +250,10 @@ namespace rgat
 
             if (!targets.GetTargetByPath(binaryPath, out target))
             {
-                target = targets.AddTargetByPath(binaryPath);
+                bool isLibrary = false;
+                if (saveJSON.TryGetValue("IsLibrary", out JToken isLibTok) && isLibTok.Type == JTokenType.Boolean)
+                    isLibrary = isLibTok.ToObject<bool>();
+                target = targets.AddTargetByPath(binaryPath, isLibrary: isLibrary);
             }
             //myui.targetListCombo.addTargetToInterface(target, newBinary);
 

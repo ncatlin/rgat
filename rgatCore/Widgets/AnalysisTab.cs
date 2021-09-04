@@ -57,6 +57,8 @@ namespace rgat
                     var SelectedEntity = chart.SelectedEntity;
                     var SelectedAPIEvent = chart.SelectedAPIEvent;
 
+                    bool ThreadNodeSelected = selectedNode != null && Equals(selectedNode.reference.GetType(), typeof(ProtoGraph));
+                    bool ProcessNodeSelected = selectedNode != null && Equals(selectedNode.reference.GetType(), typeof(TraceRecord));
 
                     int i = 0;
                     foreach (TIMELINE_EVENT TLevent in events)
@@ -83,7 +85,7 @@ namespace rgat
 
                                 if (selectedNode != null)
                                 {
-                                    selected = (Equals(selectedNode.reference.GetType(), typeof(TraceRecord)) && TLevent.ID == ((TraceRecord)selectedNode.reference).PID);
+                                    selected = (ProcessNodeSelected && TLevent.ID == ((TraceRecord)selectedNode.reference).PID);
                                 }
 
                                 break;
@@ -92,7 +94,9 @@ namespace rgat
                                 eventType = "Thread";
                                 if (selectedNode != null)
                                 {
-                                    selected = (Equals(selectedNode.reference.GetType(), typeof(ProtoGraph)) && TLevent.ID == ((ProtoGraph)selectedNode.reference).ThreadID);
+                                    ProtoGraph currentEntryGraph = (ProtoGraph)TLevent.Item;
+                                    selected = (ThreadNodeSelected && currentEntryGraph.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
+                                    selected = selected || (ProcessNodeSelected && currentEntryGraph.TraceData.PID == ((TraceRecord)(selectedNode.reference)).PID);
                                 }
                                 break;
                             case eTimelineEvent.APICall:
@@ -111,9 +115,9 @@ namespace rgat
                                         if (!selected && selectedNode != null)
                                         {
                                             //select all apis called by selected thread node
-                                            selected = selected || (Equals(selectedNode.reference.GetType(), typeof(ProtoGraph)) && call.graph.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
+                                            selected = selected || (ThreadNodeSelected && call.graph.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
                                             //select all apis called by selected process node
-                                            selected = selected || (Equals(selectedNode.reference.GetType(), typeof(TraceRecord)) && call.graph.TraceData.PID == ((TraceRecord)selectedNode.reference).PID);
+                                            selected = selected || (ProcessNodeSelected && call.graph.TraceData.PID == ((TraceRecord)selectedNode.reference).PID);
                                         }
                                         //WinAPIDetails.API_ENTRY = call.APIEntry;
                                     }
@@ -324,8 +328,10 @@ namespace rgat
                 }
                 else
                 {
-                    call.graph.TraceData.DisassemblyData.GetSymbol(call.node.GlobalModuleID, call.node.address, out string symbol);
-                    ImGui.TextWrapped(symbol);
+                    if (call.graph.TraceData.DisassemblyData.GetSymbol(call.node.GlobalModuleID, call.node.address, out string symbol))
+                        ImGui.TextWrapped(symbol);
+                    else
+                        ImGui.TextWrapped($"{call.node.Label.Split(' ')[^1]}");
                 }
                 ImGui.TableNextColumn();
 

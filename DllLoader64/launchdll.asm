@@ -28,7 +28,7 @@ main proc
     mov rcx, -1
     mov rax, ' '
     repne scasb
-    mov r13, rdi
+    mov r13, rdi ; r13 = target library path
     
     ; null terminate the dll name for loadlibrary
     mov rcx, 0ffffffffh
@@ -37,7 +37,7 @@ main proc
     mov rax, rdi
     sub rax, 1
     mov byte ptr [rax], 0
-    mov r12, rdi
+    mov r12, rdi  ; r12 = start of ordinal 
     
     ; load the library or exit if not found
     mov rdi, r13
@@ -46,8 +46,7 @@ main proc
     cmp rax, 0
     je done_failure
 
-    mov r14, rax
-
+    mov r14, rax ; r14 = target library handle
     mov rdi, r12
     ; find end of supplied ordinal
     mov ecx, 0ffffffffh

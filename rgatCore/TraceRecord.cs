@@ -688,6 +688,7 @@ namespace rgat
             JObject traceSaveObject = new JObject();
             traceSaveObject.Add("PID", PID);
             traceSaveObject.Add("PID_ID", randID);
+            traceSaveObject.Add("IsLibrary", binaryTarg.IsLibrary);
             traceSaveObject.Add("ProcessData", DisassemblyData.Serialise());
             traceSaveObject.Add("BinaryPath", binaryTarg.FilePath);
             traceSaveObject.Add("StartTime", traceStartedTime);

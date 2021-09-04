@@ -132,11 +132,12 @@ namespace rgat
             if (testID > -1)
                 runargs += $"-T {testID} ";
             runargs += $"-P {rgatState.LocalCoordinatorPipeName} ";
+            runargs += $"-L "; // tracing a library
             runargs += "-- ";
             if (loaderWidth == BitWidth.Arch32)
-                runargs += $"C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\Debug\\DLLLoader32.exe {targetBinary},{ordinal}";
+                runargs += $"C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\Debug\\DLLLoader32.exe {targetBinary},{ordinal}$";
             else
-                runargs += $"C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\x64\\Debug\\DllLoader64.exe {targetBinary},{ordinal}";
+                runargs += $"C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\x64\\Debug\\DllLoader64.exe {targetBinary},{ordinal}$";
 
             try
             {

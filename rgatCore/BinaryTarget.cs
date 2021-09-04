@@ -58,10 +58,10 @@ namespace rgat
         public void RemoveTracedFile(string path) { lock (_lock) { traceFiles.Remove(path); } }
 
         public void AddIgnoredDirectory(string path) { lock (_lock) { if (!ignoreDirs.Contains(path)) ignoreDirs.Add(path); } }
-        public void RemoveIgnoredDirectory(string path) { lock (_lock) {ignoreDirs.Remove(path); } }
+        public void RemoveIgnoredDirectory(string path) { lock (_lock) { ignoreDirs.Remove(path); } }
 
         public void AddIgnoredFile(string path) { lock (_lock) { if (!ignoreFiles.Contains(path)) ignoreFiles.Add(path); } }
-        public void RemoveIgnoredFile(string path) { lock (_lock) {  ignoreFiles.Remove(path); } }
+        public void RemoveIgnoredFile(string path) { lock (_lock) { ignoreFiles.Remove(path); } }
 
 
         public void InitDefaultExclusions()
@@ -101,24 +101,32 @@ namespace rgat
         string _hexTooltip;
 
         public bool ProxyTarget = false;
+        public bool IsLibrary = false;
 
         public int SelectedExportIndex = -1;
         public string LoaderName = "rgatLoadDll.exe";
 
-        public BinaryTarget(string filepath, int bitWidth_ = 0, string remoteAddr = null)
+        /// <summary>
+        /// A binary that rgat has traced
+        /// </summary>
+        /// <param name="filepath">The filesystem path of the binary</param>
+        /// <param name="bitWidth_">32 or 64</param>
+        /// <param name="remoteAddr">The address of the remote rgat instance where this target is being traced</param>
+        /// <param name="isLibrary">if the target is a library or not. This value will be used if the binary cannot be found and parsed</param>
+        public BinaryTarget(string filepath, int bitWidth_ = 0, string remoteAddr = null, bool isLibrary = false)
         {
             FilePath = filepath;
             BitWidth = bitWidth_; //overwritten by PE parser if PE
+            IsLibrary = isLibrary;
             FileName = Path.GetFileName(FilePath);
             if (remoteAddr == null && File.Exists(filepath))
             {
                 try
                 {
-
                     ParseFile();
                     if (bitWidth_ != 0 && bitWidth_ != BitWidth)
                     {
-                        Console.WriteLine($"Warning: bitwidth changed from provided value {bitWidth_} to {BitWidth}");
+                        Logging.RecordError($"Warning: bitwidth of {filepath} changed from provided value {bitWidth_} to {BitWidth}");
                     }
                 }
                 catch (Exception e)
@@ -218,6 +226,7 @@ namespace rgat
             return _hexTooltip;
         }
 
+
         List<string> signatureHitsDIE = new List<string>();
         List<dnYara.ScanResult> signatureHitsYARA = new List<dnYara.ScanResult>();
 
@@ -255,31 +264,39 @@ namespace rgat
         private readonly Object signaturesLock = new Object();
         public void ClearSignatureHits(RGAT_CONSTANTS.eSignatureType sigType)
         {
-
-            switch (sigType)
+            lock (signaturesLock)
             {
-                case RGAT_CONSTANTS.eSignatureType.DIE:
-                    lock (signaturesLock) { signatureHitsDIE?.Clear(); }
-                    break;
-                case RGAT_CONSTANTS.eSignatureType.YARA:
-                    lock (signaturesLock) { signatureHitsYARA?.Clear(); }
-                    break;
-                default:
-                    Console.WriteLine("ClearSignatureHits: Bad signature type " + sigType);
-                    break;
+                switch (sigType)
+                {
+                    case RGAT_CONSTANTS.eSignatureType.DIE:
+                        signatureHitsDIE?.Clear();
+                        break;
+                    case RGAT_CONSTANTS.eSignatureType.YARA:
+                        signatureHitsYARA?.Clear();
+                        break;
+                    default:
+                        Logging.RecordError("ClearSignatureHits: Bad signature type " + sigType);
+                        break;
+                }
             }
         }
 
 
         public void AddDiESignatureHit(string hits)
         {
-            signatureHitsDIE.Add(hits);
+            lock (signaturesLock)
+            {
+                signatureHitsDIE.Add(hits);
+            }
         }
 
 
         public void AddYaraSignatureHit(dnYara.ScanResult hit)
         {
-            signatureHitsYARA.Add(hit);
+            lock (signaturesLock)
+            {
+                signatureHitsYARA.Add(hit);
+            }
         }
 
 
@@ -379,6 +396,7 @@ namespace rgat
 
                 if (PeNet.PeFile.TryParse(FilePath, out PEFileObj))
                 {
+                    IsLibrary = PEFileObj.IsDll;
                     this.BitWidth = PEFileObj.Is32Bit ? 32 :
                         (PEFileObj.Is64Bit ? 64 : 0);
                 }

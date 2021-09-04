@@ -41,14 +41,14 @@ namespace rgat
             }
         }
 
-        public BinaryTarget AddTargetByPath(string path, int arch = 0, string remoteAddr = null)
+        public BinaryTarget AddTargetByPath(string path, bool isLibrary = false, int arch = 0, string remoteAddr = null)
         {
             lock (targetslock)
             {
                 BinaryTarget target = null;
                 if (!targets.TryGetValue(path, out target))
                 {
-                    target = new BinaryTarget(path, arch, remoteAddr);
+                    target = new BinaryTarget(path, arch, remoteAddr, isLibrary: isLibrary);
                     targets.Add(path, target);
                 }
                 return target;

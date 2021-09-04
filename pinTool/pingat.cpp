@@ -84,6 +84,8 @@ KNOB<std::string> TestArgValue(KNOB_MODE_WRITEONCE, "pintool", "T", "-1", "Test 
 
 KNOB<std::string> PipeNameValue(KNOB_MODE_WRITEONCE, "pintool", "P", "change_me", "rgat coordinator pipe name");
 
+KNOB<bool> LibraryFlag(KNOB_MODE_WRITEONCE, "pintool", "L", "0", "library tracing flag");
+
 /* ===================================================================== */
 // Utilities
 /* ===================================================================== */
@@ -1298,7 +1300,7 @@ void getSetupString(std::string programName, char* buf, int bufSize)
 		if (testRunID < 0 || testRunID >= LONG_MAX)
 			testRunID = -1;
 	}
-	snprintf_s(buf, bufSize, "PID,%u,%d,%ld,%s,%ld", pid, arch, instanceID, programName.c_str(), testRunID);
+	snprintf_s(buf, bufSize, "PID,%u,%d,%d,%ld,%s,%ld", pid, arch, LibraryFlag.Value(), instanceID, programName.c_str(), testRunID);
 }
 
 
