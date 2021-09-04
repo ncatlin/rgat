@@ -502,7 +502,9 @@ namespace rgat
 
                 ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourImGui(ImGuiCol.Button) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
                 ImGui.AlignTextToFramePadding();
-                if (ImGui.Button("Start Trace " + ImGuiController.FA_PLAY_CIRCLE) && runnable)
+                if (
+                    (activeTarget.RemoteBinary || activeTarget.PEFileObj != null)
+                    && ImGui.Button("Start Trace " + ImGuiController.FA_PLAY_CIRCLE) && runnable)
                 {
                     _OldTraceCount = rgatState.TotalTraceCount;
                     if (activeTarget.RemoteBinary)
@@ -523,6 +525,7 @@ namespace rgat
                                 Logging.RecordError($"Trace error after {watch.ElapsedMilliseconds} ms: Exit code {p.ExitCode}. Target binary may be invalid or incompatible");
                             }
                         }
+
                     }
                 }
                 if (!runnable)

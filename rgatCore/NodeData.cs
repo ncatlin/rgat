@@ -145,6 +145,7 @@ namespace rgat
             return true;
         }
 
+
         static bool ErrorAtIndex(int index)
         {
             Console.WriteLine("Error deserialising node at index " + index);
@@ -195,6 +196,7 @@ namespace rgat
             return false;
 
         }
+
 
         /// <summary>
         /// This creates the label drawn on the graph
@@ -251,6 +253,7 @@ namespace rgat
                 }
             }
         }
+
 
         public string CreateSymbolLabel(ProtoGraph graph, int specificCallIndex = -1)
         {
@@ -370,7 +373,8 @@ namespace rgat
             APICALLDATA lastCall;
 
             Debug.Assert(callRecordsIndexs.Count > specificCallIndex);
-            lastCall = graph.SymbolCallRecords[(int)callRecordsIndexs[specificCallIndex]]; //thread unsafe todo, when sandbox open while being filled
+            int recordIndex = (int)callRecordsIndexs[specificCallIndex];
+            lastCall = graph.SymbolCallRecords[recordIndex]; //thread unsafe todo, when sandbox open while being filled
 
             result.Add(new Tuple<string, WritableRgbaFloat>($"{symbolText}(", colour1));
 

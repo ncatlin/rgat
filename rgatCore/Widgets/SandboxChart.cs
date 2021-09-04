@@ -33,9 +33,11 @@ namespace rgat.Widgets
         double _scaleX = 1;
 
         float nodeSize = 8;
+        ImFontPtr _fontptr;
 
-        public SandboxChart()
+        public SandboxChart(ImFontPtr font)
         {
+            _fontptr = font;
             chartSize = new Vector2(300, 300);
 
             KKLayoutParameters layoutParams = new KKLayoutParameters()
@@ -51,6 +53,7 @@ namespace rgat.Widgets
             layout.Compute();
         }
 
+
         TraceRecord _rootTrace = null;
         int timelineItemsOnChartDraw = 0;
         public void InitChartFromTrace(TraceRecord trace)
@@ -65,14 +68,14 @@ namespace rgat.Widgets
                     addedNodes.Clear();
                 }
 
-                if (trace.TimelineItemsCount != timelineItemsOnChartDraw)
+                if (trace.TimelineItemsCount != timelineItemsOnChartDraw && !_layoutActive)
                 {
 
                     Logging.TIMELINE_EVENT[] entries = trace.GetTimeLineEntries();
                     timelineItemsOnChartDraw = entries.Length;
-                    StopLayout();
+                    //StopLayout();
                     AddThreadItems(null, trace);
-
+                    /*
                     KKLayoutParameters layoutParams = new KKLayoutParameters()
                     {
                         Height = chartSize.Y - (2 * padding),
@@ -81,9 +84,11 @@ namespace rgat.Widgets
                         DisconnectedMultiplier = 2,
                         ExchangeVertices = true
                     };
-                    //layout = new GraphShape.Algorithms.Layout.KKLayoutAlgorithm<itemNode, Edge<itemNode>, BidirectionalGraph<itemNode, Edge<itemNode>>>(sbgraph, parameters: layoutParams);
-
-                    Task.Run(() => { layout.Compute(); }); //todo - still a thread safety issue here if its open
+                    layout = new GraphShape.Algorithms.Layout.KKLayoutAlgorithm<ItemNode, 
+                        Edge<ItemNode>, BidirectionalGraph<ItemNode, Edge<ItemNode>>>(sbgraph, parameters: layoutParams);
+                    */
+                    FitNodesToChart();
+                    _computeRequired = true;
                 }
             }
         }
@@ -119,7 +124,7 @@ namespace rgat.Widgets
         void AddThreadItems(ItemNode parentProcess, TraceRecord trace)
         {
 
-            string nodeName = $"PID_{trace.PID}_PATH...";
+            string nodeName = $"PROCNODE_{trace.randID}";
             ItemNode startProcess = null;
             lock (_lock)
             {
@@ -138,7 +143,7 @@ namespace rgat.Widgets
                 var threads = trace.GetProtoGraphs();
                 foreach (var thread in threads)
                 {
-                    string threadName = $"TID_{thread.ThreadID}_StartModule...";
+                    string threadName = $"THREADNODE_{thread.TraceData.randID}_{thread.ThreadID}";
                     if (!addedNodes.ContainsKey(threadName))
                     {
                         ItemNode threadNode = new ItemNode(threadName, Logging.eTimelineEvent.ThreadStart, thread);
@@ -172,7 +177,7 @@ namespace rgat.Widgets
                                     continue;
                                 }
                                 APICALLDATA APICallRecord = caller.SymbolCallRecords[recordsIndex];
-                                string threadName = $"TID_{caller.ThreadID}_StartModule...";
+                                string threadName = $"THREADNODE_{caller.TraceData.randID}_{caller.ThreadID}";
                                 ItemNode threadNode = addedNodes[threadName];
 
                                 foreach (WinAPIDetails.InteractionEffect effectBase in apiinfo.Effects)
@@ -263,7 +268,8 @@ namespace rgat.Widgets
                                                     if (typeEntityList.TryGetValue(referenceString, out ItemNode entityNode))
                                                     {
                                                         resolvedReference = true;
-                                                        _timelineEventEntities.Add(timelineEvent, entityNode);
+                                                        if (!_timelineEventEntities.ContainsKey(timelineEvent))
+                                                            _timelineEventEntities.Add(timelineEvent, entityNode);
                                                         AddAPIEdge(threadNode, entityNode, apiinfo.Label);
                                                     }
                                                 }
@@ -298,7 +304,8 @@ namespace rgat.Widgets
                                                     if (typeEntityList.TryGetValue(referenceString, out ItemNode entityNode))
                                                     {
                                                         resolvedReference = true;
-                                                        _timelineEventEntities.Add(timelineEvent, entityNode);
+                                                        if(!_timelineEventEntities.ContainsKey(timelineEvent))
+                                                            _timelineEventEntities.Add(timelineEvent, entityNode);
                                                         AddAPIEdge(threadNode, entityNode, apiinfo.Label);
                                                         typeEntityList.Remove(referenceString);
                                                     }
@@ -357,6 +364,9 @@ namespace rgat.Widgets
             }
         }
 
+        bool _layoutActive = false;
+        bool _computeRequired = false;
+
         public void Draw()
         {
             Vector2 availArea = ImGui.GetContentRegionAvail();
@@ -373,8 +383,15 @@ namespace rgat.Widgets
             {
                 DoLayoutFittingCycle();
             }
+            if (_computeRequired && !_layoutActive)
+            {
+                _layoutActive = true;
+                _computeRequired = false;
+                Task.Run(() => { layout.Compute(); _layoutActive = false; }); //todo - still a thread safety issue here if its open
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
+            }
+
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eSandboxChartBG));
 
 
             Vector2 cursorPos = ImGui.GetCursorScreenPos();
@@ -441,27 +458,35 @@ namespace rgat.Widgets
 
             var DrawList = ImGui.GetWindowDrawList();
 
+            bool isSelected = node == _selectedNode;
             switch (node.TLtype)
             {
                 case Logging.eTimelineEvent.ProcessStart:
                 case Logging.eTimelineEvent.ProcessEnd:
                     {
-                        TraceRecord rec = (TraceRecord)node.reference;
-                        if (rec.TraceState == TraceRecord.eTraceState.eTerminated)
+                        TraceRecord trace = (TraceRecord)node.reference;
+                        switch (trace.TraceState)
                         {
-                            DrawList.AddCircleFilled(position, nodeSize, 0xff0000ff);
-                        }
-                        else if (rec.TraceState == TraceRecord.eTraceState.eRunning)
-                        {
-                            DrawList.AddCircleFilled(position, nodeSize, 0xff00ff00);
-                        }
-                        else if (rec.TraceState == TraceRecord.eTraceState.eSuspended)
-                        {
-                            DrawList.AddCircleFilled(position, nodeSize, 0xff00ffff);
-                        }
-                        else
-                        {
-                            Debug.Assert(false, "Bad trace state");
+                            case TraceRecord.eTraceState.eTerminated:
+                                DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
+                                DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff0000ff, $"{ImGuiController.FA_ICON_COGS}");
+                                DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Process {trace.PID} (Exited)");
+                                break;
+
+                            case TraceRecord.eTraceState.eRunning:
+                                DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
+                                DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff00ff00, $"{ImGuiController.FA_ICON_COGS}");
+                                DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Process {trace.PID} (Running)");
+                                break;
+
+                            case TraceRecord.eTraceState.eSuspended:
+                                DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
+                                DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff00ffff, $"{ImGuiController.FA_ICON_COGS}");
+                                DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Process {trace.PID} (Suspended)");
+                                break;
+                            default:
+                                Debug.Assert(false, "Bad trace state");
+                                break;
                         }
                     }
                     break;
@@ -471,17 +496,56 @@ namespace rgat.Widgets
                         ProtoGraph graph = (ProtoGraph)node.reference;
                         if (graph.Terminated)
                         {
-                            DrawList.AddCircleFilled(position, nodeSize, 0xff0000ff);
+                            DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
+                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff0000ff, $"{ImGuiController.FA_ICON_COG}");
+                            DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Thread {graph.ThreadID} (Exited)");
                         }
                         else
                         {
-                            DrawList.AddCircleFilled(position, nodeSize, 0xff00ff00);
+                            DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
+                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff00ff00, $"{ImGuiController.FA_ICON_COG}");
+                            DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Thread {graph.ThreadID} (Active)");
                         }
                     }
                     break;
 
                 case Logging.eTimelineEvent.APICall:
-                    DrawList.AddCircleFilled(position, nodeSize, 0xff905f20);
+                    Logging.TIMELINE_EVENT apiEvent = (Logging.TIMELINE_EVENT)node.reference;
+                    Logging.APICALL apicall = (Logging.APICALL)apiEvent.Item;
+                    if (!apicall.APIDetails.HasValue)
+                    {
+                        return;
+                    }
+                    WinAPIDetails.API_ENTRY details = apicall.APIDetails.Value;
+
+                    DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
+                    switch (details.FilterType)
+                    {
+                        case "File":
+                            DrawList.AddText(_fontptr, 20, position - new Vector2(10f, 10f), 0xff000000, $"{ImGuiController.FA_ICON_FILECODE}");
+                            DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "File Interaction");
+                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, (string)node.label);
+                            break;
+                        case "Registry":
+                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_SQUAREGRID}");
+                            DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "Registry Interaction");
+                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, (string)node.label);
+                            break;
+                        case "Process":
+                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_COGS}");
+                            DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "Process Interaction");
+                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, (string)node.label);
+                            break;
+                        case "Network":
+                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_NETWORK}");
+                            DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "Network Interaction");
+                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, (string)node.label);
+                            break;
+                        default:
+                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_UP}");
+                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, (string)node.label);
+                            break;
+                    }
                     break;
 
 
@@ -494,7 +558,7 @@ namespace rgat.Widgets
 
             if (node == _selectedNode)
             {
-                DrawList.AddCircle(position, 12, 0xff000000);
+                DrawList.AddCircle(position, 18, 0xff222222);
             }
             ImGui.SetCursorScreenPos(position - new Vector2(12, 12));
             ImGui.InvisibleButton($"##{position.X}-{position.Y}", new Vector2(25, 25));
@@ -513,8 +577,8 @@ namespace rgat.Widgets
                 }
             }
 
-            DrawList.AddRectFilled(position, position + new Vector2(20, 8), 0xddffffff);
-            DrawList.AddText(position + new Vector2(2, -2), 0xff000000, (string)node.label);
+            //Vector2 labelSize = ImGui.CalcTextSize(node.label);
+            //DrawList.AddRectFilled(position, position + labelSize, 0xddffffff);
             ImGui.SetCursorScreenPos(cursor);
         }
 
@@ -606,6 +670,7 @@ namespace rgat.Widgets
             {
                 System.Threading.Thread.Sleep(5);
             }
+            _layoutActive = false;
         }
 
         public void ApplyZoom(float delta)
@@ -619,7 +684,7 @@ namespace rgat.Widgets
 
                 StopLayout();
                 layout.Parameters.LengthFactor = _scaleX;
-                Task.Run(() => { layout.Compute(); });
+                _computeRequired = true;
             }
         }
 
@@ -640,6 +705,7 @@ namespace rgat.Widgets
             var positions = layout.VerticesPositions;
             if (positions.Count == 0 || layout.Parameters.Width == 0 || layout.Parameters.Height == 0) return;
 
+            Console.WriteLine("fitting cycle start");
             //find the most extreme node positions, relative to the edges
             Vector2 firstNodePos = Point2Vec(positions[sbgraph.Vertices.First()]) + chartOffset;
             double Xleft = firstNodePos.X, Xright = Xleft, yTop = firstNodePos.Y, yBase = yTop;
@@ -679,7 +745,7 @@ namespace rgat.Widgets
                 //zoom/pan is way off, reset to sensible scale
                 _scaleX = 1;
                 layout.Parameters.LengthFactor = _scaleX;
-                layout.Compute();
+                _computeRequired = true;
             }
             else if (minvalue < 50)
             {
@@ -688,20 +754,21 @@ namespace rgat.Widgets
                 if (_scaleX < 0)
                     _scaleX = 0.01;
                 layout.Parameters.LengthFactor = _scaleX;
-                layout.Compute();
+                _computeRequired = true;
             }
             else if (minvalue > 75)
             {
                 //zoom in by growing edges
                 _scaleX = _scaleX + ((Math.Abs(zoomSizeRatio) > 0.1) ? 0.1 : 0.01);
                 layout.Parameters.LengthFactor = _scaleX;
-                layout.Compute();
+                _computeRequired = true;
             }
             else
             {
                 _fittingActive = false;
             }
 
+            Console.WriteLine("fitting cycle end");
             if (_fittingActive)
             {
                 fittingAttempts += 1;

@@ -23,7 +23,7 @@ namespace rgat
             eTextEmphasis1, eTextEmphasis2, eTextDull1, eTextDull2,
             eHeat0Lowest, eHeat1, eHeat2, eHeat3, eHeat4, eHeat5, eHeat6, eHeat7, eHeat8, eHeat9Highest,
             eVisBarPlotLine, eVisBarBg, eAlertWindowBg, eAlertWindowBorder,
-            eBadStateColour, eWarnStateColour, eGoodStateColour,
+            eBadStateColour, eWarnStateColour, eGoodStateColour, eSandboxChartBG,
             GraphBackground,
             COUNT
         }
@@ -114,6 +114,7 @@ namespace rgat
             DefaultCustomColours[eThemeColour.eWarnStateColour] = new WritableRgbaFloat(Color.Yellow).ToUint();
             DefaultCustomColours[eThemeColour.eGoodStateColour] = new WritableRgbaFloat(Color.Green).ToUint();
             DefaultCustomColours[eThemeColour.GraphBackground] = new WritableRgbaFloat(Color.Black).ToUint();
+            DefaultCustomColours[eThemeColour.eSandboxChartBG] = new WritableRgbaFloat(1,1,1,1).ToUint();
 
             foreach (eThemeColour themeStyle in DefaultCustomColours.Keys)
             {

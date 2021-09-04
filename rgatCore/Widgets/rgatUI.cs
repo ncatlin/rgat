@@ -111,7 +111,7 @@ namespace rgat
             Logging.RecordLogEvent($"Startup: Visualiser tab initialised in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
 
-            chart = new SandboxChart();
+            chart = new SandboxChart(_controller._unicodeFont);
 
             Logging.RecordLogEvent($"Startup: Analysis chart loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Stop();
@@ -344,33 +344,35 @@ namespace rgat
             bool currentTabTimeline = _currentTab == "Timeline";
             lock (_inputLock)
             {
-                bool MouseInMainWidget = currentTabVisualiser && visualiserTab.MouseInMainWidget;
-                if (_mouseWheelDelta != 0)
+                if (_dialogsOpen == 0)
                 {
-                    visualiserTab.NotifyMouseWheel(_mouseWheelDelta);
-
-                    chart?.ApplyZoom(_mouseWheelDelta);
-                    _mouseWheelDelta = 0;
-                }
-
-                if (_mouseDragDelta.X != 0 || _mouseDragDelta.Y != 0)
-                {
-                    if (ImGui.GetIO().KeyAlt)
+                    bool MouseInMainWidget = currentTabVisualiser && visualiserTab.MouseInMainWidget;
+                    if (_mouseWheelDelta != 0)
                     {
-                        visualiserTab.NotifyMouseRotate(_mouseDragDelta);
+                        visualiserTab.NotifyMouseWheel(_mouseWheelDelta);
+
+                        chart?.ApplyZoom(_mouseWheelDelta);
+                        _mouseWheelDelta = 0;
                     }
-                    else
+
+                    if (_mouseDragDelta.X != 0 || _mouseDragDelta.Y != 0)
                     {
-                        visualiserTab.NotifyMouseDrag(_mouseDragDelta);
-                        if (currentTabTimeline)
+                        if (ImGui.GetIO().KeyAlt)
                         {
-                            chart.ApplyMouseDrag(_mouseDragDelta);
+                            visualiserTab.NotifyMouseRotate(_mouseDragDelta);
                         }
+                        else
+                        {
+                            visualiserTab.NotifyMouseDrag(_mouseDragDelta);
+                            if (currentTabTimeline)
+                            {
+                                chart.ApplyMouseDrag(_mouseDragDelta);
+                            }
+                        }
+
+                        _mouseDragDelta = new Vector2(0, 0);
                     }
-
-                    _mouseDragDelta = new Vector2(0, 0);
                 }
-
 
                 foreach (Tuple<Key, ModifierKeys> KeyModifierTuple in _keyPresses)
                 {
@@ -688,7 +690,7 @@ namespace rgat
             }
 
             bool settingsVisible = _show_settings_window;
-            if(ImGui.MenuItem("Settings", null, ref settingsVisible))
+            if (ImGui.MenuItem("Settings", null, ref settingsVisible))
             {
                 ToggleSettingsWindow();
             }
@@ -1195,33 +1197,67 @@ namespace rgat
 
         }
 
+        public bool IsrgatSavedTrace(string filestart)
+        {
+            if (filestart.StartsWith("{\"")) return true;
+            if (filestart.StartsWith("RGZ")) return true;
+            return false;
+        }
+
         public bool LoadSelectedBinary(string path, bool isRemote)
         {
-            if (isRemote)
-                return LoadRemoteBinary(path);
-
-            if (!File.Exists(path))
+            try
             {
-                Logging.RecordLogEvent($"Loading binary {path} failed: File does not exist", filter: LogFilterType.TextAlert);
+                if (isRemote)
+                    return LoadRemoteBinary(path);
+
+                if (!File.Exists(path))
+                {
+                    Logging.RecordLogEvent($"Loading binary {path} failed: File does not exist", filter: LogFilterType.TextAlert);
+                    return false;
+                }
+
+                FileStream fs = File.OpenRead(path);
+                if (fs.Length < 4)
+                {
+                    Logging.RecordLogEvent($"Loading binary {path} failed: File too small ({fs.Length} bytes)", filter: LogFilterType.TextAlert);
+                    return false;
+                }
+
+                byte[] preview = new byte[4];
+                fs.Read(preview, 0, preview.Length);
+                fs.Close();
+                bool isSavedTrace = false;
+                try
+                {
+                    isSavedTrace = IsrgatSavedTrace(ASCIIEncoding.ASCII.GetString(preview));
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordLogEvent($"Unable to check if file {path} is a saved trace [{e.Message}]. Assuming it isn't", LogFilterType.TextDebug);
+                }
+
+
+                if (isSavedTrace)
+                {
+                    if (!LoadTraceByPath(path))
+                    {
+                        Logging.RecordLogEvent($"Failed loading invalid trace: {path}", filter: LogFilterType.TextAlert);
+                        return false;
+                    }
+                }
+                else
+                {
+                    GlobalConfig.RecordRecentPath(path, GlobalConfig.eRecentPathType.Binary);
+                    _rgatState.AddTargetByPath(path);
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Error loading target binary: {e.Message}");
                 return false;
             }
 
-            FileStream fs = File.OpenRead(path);
-            bool isJSON = (fs.ReadByte() == '{' && fs.ReadByte() == '"');
-            fs.Close();
-            if (isJSON)
-            {
-                if (!LoadTraceByPath(path))
-                {
-                    Logging.RecordLogEvent($"Failed loading invalid trace: {path}", filter: LogFilterType.TextAlert);
-                    return false;
-                }
-            }
-            else
-            {
-                GlobalConfig.RecordRecentPath(path, GlobalConfig.eRecentPathType.Binary);
-                _rgatState.AddTargetByPath(path);
-            }
             return true;
         }
 
@@ -1395,7 +1431,7 @@ namespace rgat
             }
         }
 
-        public void AddFilesToTracingList (List<string> files)
+        public void AddFilesToTracingList(List<string> files)
         {
 
             if (_rgatState.ActiveTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)

@@ -67,6 +67,10 @@ namespace ImGuiNET
         public static readonly char FA_ICON_LOCALCODE = '\uf5fc';
         public static readonly char FA_ICON_SAMPLE = '\ue05a';
         public static readonly char FA_ICON_LOADFILE = '\uf56e';
+        public static readonly char FA_ICON_COG = '\uf013';
+        public static readonly char FA_ICON_COGS = '\uf085';
+        public static readonly char FA_ICON_SQUAREGRID = '\uf00a';
+
         public static readonly char FA_PLAY_CIRCLE = '\uf144';
         public static readonly char FA_VIDEO_CAMERA = '\uf03d';
         public static readonly char FA_STILL_CAMERA = '\uf030';

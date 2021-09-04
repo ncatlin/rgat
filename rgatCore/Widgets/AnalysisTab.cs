@@ -43,117 +43,7 @@ namespace rgat
                 //ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff99ff77);
                 ImGui.Text("Event Listing");
 
-
-                TIMELINE_EVENT[] events = activeTrace.GetTimeLineEntries();
-                if (ImGui.BeginTable("#TaTTFullList", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg))
-                {
-                    ImGui.TableSetupScrollFreeze(0, 1);
-                    ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 50);
-                    ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 70);
-                    ImGui.TableSetupColumn("Module", ImGuiTableColumnFlags.WidthFixed, 70);
-                    ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.None);
-                    ImGui.TableHeadersRow();
-
-                    var SelectedEntity = chart.SelectedEntity;
-                    var SelectedAPIEvent = chart.SelectedAPIEvent;
-
-                    bool ThreadNodeSelected = selectedNode != null && Equals(selectedNode.reference.GetType(), typeof(ProtoGraph));
-                    bool ProcessNodeSelected = selectedNode != null && Equals(selectedNode.reference.GetType(), typeof(TraceRecord));
-
-                    int i = 0;
-                    foreach (TIMELINE_EVENT TLevent in events)
-                    {
-                        i += 1;
-
-                        ImGui.TableNextRow();
-                        if (TLevent.MetaError != null)
-                        {
-                            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
-                            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
-                        }
-
-                        ImGui.TableNextColumn();
-
-                        bool selected = false;
-                        string eventType = "";
-                        string module = "";
-                        switch (TLevent.TimelineEventType)
-                        {
-                            case eTimelineEvent.ProcessStart:
-                            case eTimelineEvent.ProcessEnd:
-                                eventType = "Process";
-
-                                if (selectedNode != null)
-                                {
-                                    selected = (ProcessNodeSelected && TLevent.ID == ((TraceRecord)selectedNode.reference).PID);
-                                }
-
-                                break;
-                            case eTimelineEvent.ThreadStart:
-                            case eTimelineEvent.ThreadEnd:
-                                eventType = "Thread";
-                                if (selectedNode != null)
-                                {
-                                    ProtoGraph currentEntryGraph = (ProtoGraph)TLevent.Item;
-                                    selected = (ThreadNodeSelected && currentEntryGraph.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
-                                    selected = selected || (ProcessNodeSelected && currentEntryGraph.TraceData.PID == ((TraceRecord)(selectedNode.reference)).PID);
-                                }
-                                break;
-                            case eTimelineEvent.APICall:
-                                {
-                                    Logging.APICALL call = (Logging.APICALL)(TLevent.Item);
-                                    selected = TLevent == SelectedAPIEvent;
-
-                                    if (call.node.IsExternal)
-                                    {
-                                        eventType = "API - " + call.APIType();
-                                        module = Path.GetFileNameWithoutExtension(activeTrace.DisassemblyData.GetModulePath(call.node.GlobalModuleID));
-
-                                        //api call is selected if it is either directly activated, or interacts with a reference to the active entity
-                                        //eg: if the file.txt node is selected, writefile to the relevant handle will also be selected
-                                        selected = selected || (SelectedEntity != null && SelectedEntity == chart.GetInteractedEntity(TLevent));
-                                        if (!selected && selectedNode != null)
-                                        {
-                                            //select all apis called by selected thread node
-                                            selected = selected || (ThreadNodeSelected && call.graph.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
-                                            //select all apis called by selected process node
-                                            selected = selected || (ProcessNodeSelected && call.graph.TraceData.PID == ((TraceRecord)selectedNode.reference).PID);
-                                        }
-                                        //WinAPIDetails.API_ENTRY = call.APIEntry;
-                                    }
-                                    else
-                                    {
-                                        eventType = "Internal";
-                                    }
-                                }
-                                break;
-                        }
-
-                        if (ImGui.Selectable(i.ToString(), selected, ImGuiSelectableFlags.SpanAllColumns) && !selected)
-                        {
-                            chart.SelectAPIEvent(TLevent);
-                        }
-                        ImGui.TableNextColumn();
-                        ImGui.Text(eventType);
-                        ImGui.TableNextColumn();
-                        ImGui.Text(module);
-                        ImGui.TableNextColumn();
-
-                        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(3, 3));
-
-                        var labelComponents = TLevent.Label();
-                        for (var labeli = 0; labeli < labelComponents.Count; labeli++)
-                        {
-                            var component = labelComponents[labeli];
-                            ImGui.TextColored(component.Item2.ToVec4(), component.Item1);
-                            if (labeli < labelComponents.Count - 1)
-                                ImGui.SameLine();
-                        }
-                        ImGui.PopStyleVar();
-                    }
-                    ImGui.EndTable();
-
-                }
+                DrawEventListTable(activeTrace, selectedNode);
 
 
                 ImGui.TableNextColumn();
@@ -226,6 +116,120 @@ namespace rgat
             }
 
             ImGui.EndTabItem();
+        }
+
+        void DrawEventListTable(TraceRecord trace, SandboxChart.ItemNode selectedNode)
+        {
+            TIMELINE_EVENT[] events = trace.GetTimeLineEntries();
+            if (ImGui.BeginTable("#TaTTFullList", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg))
+            {
+                ImGui.TableSetupScrollFreeze(0, 1);
+                ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 50);
+                ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 70);
+                ImGui.TableSetupColumn("Module", ImGuiTableColumnFlags.WidthFixed, 70);
+                ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.None);
+                ImGui.TableHeadersRow();
+
+                var SelectedEntity = chart.SelectedEntity;
+                var SelectedAPIEvent = chart.SelectedAPIEvent;
+
+                bool ThreadNodeSelected = selectedNode != null && Equals(selectedNode.reference.GetType(), typeof(ProtoGraph));
+                bool ProcessNodeSelected = selectedNode != null && Equals(selectedNode.reference.GetType(), typeof(TraceRecord));
+
+                int i = 0;
+                foreach (TIMELINE_EVENT TLevent in events)
+                {
+                    i += 1;
+
+                    ImGui.TableNextRow();
+                    if (TLevent.MetaError != null)
+                    {
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                    }
+
+                    ImGui.TableNextColumn();
+
+                    bool selected = false;
+                    string eventType = "";
+                    string module = "";
+                    switch (TLevent.TimelineEventType)
+                    {
+                        case eTimelineEvent.ProcessStart:
+                        case eTimelineEvent.ProcessEnd:
+                            eventType = "Process";
+
+                            if (selectedNode != null)
+                            {
+                                selected = (ProcessNodeSelected && TLevent.ID == ((TraceRecord)selectedNode.reference).PID);
+                            }
+
+                            break;
+                        case eTimelineEvent.ThreadStart:
+                        case eTimelineEvent.ThreadEnd:
+                            eventType = "Thread";
+                            if (selectedNode != null)
+                            {
+                                ProtoGraph currentEntryGraph = (ProtoGraph)TLevent.Item;
+                                selected = (ThreadNodeSelected && currentEntryGraph.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
+                                selected = selected || (ProcessNodeSelected && currentEntryGraph.TraceData.PID == ((TraceRecord)(selectedNode.reference)).PID);
+                            }
+                            break;
+                        case eTimelineEvent.APICall:
+                            {
+                                Logging.APICALL call = (Logging.APICALL)(TLevent.Item);
+                                selected = TLevent == SelectedAPIEvent;
+
+                                if (call.node.IsExternal)
+                                {
+                                    eventType = "API - " + call.APIType();
+                                    module = Path.GetFileNameWithoutExtension(trace.DisassemblyData.GetModulePath(call.node.GlobalModuleID));
+
+                                    //api call is selected if it is either directly activated, or interacts with a reference to the active entity
+                                    //eg: if the file.txt node is selected, writefile to the relevant handle will also be selected
+                                    selected = selected || (SelectedEntity != null && SelectedEntity == chart.GetInteractedEntity(TLevent));
+                                    if (!selected && selectedNode != null)
+                                    {
+                                        //select all apis called by selected thread node
+                                        selected = selected || (ThreadNodeSelected && call.graph.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
+                                        //select all apis called by selected process node
+                                        selected = selected || (ProcessNodeSelected && call.graph.TraceData.PID == ((TraceRecord)selectedNode.reference).PID);
+                                    }
+                                    //WinAPIDetails.API_ENTRY = call.APIEntry;
+                                }
+                                else
+                                {
+                                    eventType = "Internal";
+                                }
+                            }
+                            break;
+                    }
+
+                    if (ImGui.Selectable(i.ToString(), selected, ImGuiSelectableFlags.SpanAllColumns) && !selected)
+                    {
+                        chart.SelectAPIEvent(TLevent);
+                    }
+                    ImGui.TableNextColumn();
+                    ImGui.Text(eventType);
+                    ImGui.TableNextColumn();
+                    ImGui.Text(module);
+                    ImGui.TableNextColumn();
+
+                    ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(3, 3));
+
+                    var labelComponents = TLevent.Label();
+                    for (var labeli = 0; labeli < labelComponents.Count; labeli++)
+                    {
+                        var component = labelComponents[labeli];
+                        ImGui.TextColored(component.Item2.ToVec4(), component.Item1);
+                        if (labeli < labelComponents.Count - 1)
+                            ImGui.SameLine();
+                    }
+                    ImGui.PopStyleVar();
+                }
+                ImGui.EndTable();
+
+            }
         }
 
         void DrawProcessNodeTable(TraceRecord trace)
