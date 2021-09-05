@@ -68,6 +68,12 @@ namespace rgat
 
         public static System.Diagnostics.Process StartLocalTrace(string pintool, string targetBinary, PeNet.PeFile targetPE = null, string loaderName = null, int ordinal = 0, long testID = -1)
         {
+            if(!File.Exists(GlobalConfig.PinPath))
+            {
+                Logging.RecordError($"Pin.exe path is not correctly configured (Settings->Files->Pin Executable)");
+                return null;
+            }
+
             if (!File.Exists(pintool))
             {
                 if (pintool == null)

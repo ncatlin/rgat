@@ -1544,9 +1544,6 @@ namespace rgat
 
         }
 
-        public static double LoadProgress { get; private set; } = 0;
-
-
         public static void LoadConfig(IProgress<float> progress)
         {
             System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();

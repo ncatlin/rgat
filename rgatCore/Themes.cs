@@ -185,6 +185,7 @@ namespace rgat
 
                     ThemeColoursStandard[col] = new WritableRgbaFloat(ced4vec).ToUint();
                 }
+                ThemeColoursStandard[ImGuiCol.TableRowBgAlt] = new WritableRgbaFloat(0xff242424).ToUint();
             }
         }
 
@@ -849,6 +850,7 @@ namespace rgat
                 Logging.RecordError($"Default theme {DefaultTheme} is unavailable");
             }
 
+            InitDefaultImGuiColours();
             if (BuiltinThemes.Count > 0)
             {
                 LoadTheme(BuiltinThemes.Keys.First());

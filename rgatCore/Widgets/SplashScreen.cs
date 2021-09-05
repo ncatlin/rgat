@@ -108,15 +108,15 @@ namespace rgat
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTableYSep);
                 Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y - 25);
 
-                if (recentBins?.Length > 0)
+                ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
+                if (ImGui.BeginTable("#RecentBinTableList", 1, ImGuiTableFlags.ScrollY, tableSz))
                 {
-                    ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
-                    if (ImGui.BeginTable("#RecentBinTableList", 1, ImGuiTableFlags.ScrollY, tableSz))
+                    ImGui.Indent(5);
+                    ImGui.TableSetupColumn("Recent Binaries" + $"{(rgatState.ConnectedToRemote ? " (Remote Files)" : "")}");
+                    ImGui.TableSetupScrollFreeze(0, 1);
+                    ImGui.TableHeadersRow();
+                    if (recentBins?.Length > 0)
                     {
-                        ImGui.Indent(5);
-                        ImGui.TableSetupColumn("Recent Binaries" + $"{(rgatState.ConnectedToRemote ? " (Remote Files)" : "")}");
-                        ImGui.TableSetupScrollFreeze(0, 1);
-                        ImGui.TableHeadersRow();
                         int bincount = recentBins.Length;
                         for (var bini = 0; bini < bincount; bini++)
                         {
@@ -139,17 +139,11 @@ namespace rgat
                                 }
                             }
                         }
-                        ImGui.EndTable();
                     }
-                    ImGui.PopStyleVar();
+                    ImGui.EndTable();
                 }
-                else
-                {
-                    if (GlobalConfig.LoadProgress < 1)
-                    {
-                        ImGui.ProgressBar((float)GlobalConfig.LoadProgress, new Vector2(300, 3));
-                    }
-                }
+                ImGui.PopStyleVar();
+
                 ImGui.EndChild();
             }
 
@@ -194,16 +188,16 @@ namespace rgat
 
                 Vector2 tableSz = new Vector2(buttonBlockWidth, ImGui.GetContentRegionAvail().Y - 25);
 
-                if (recentTraces?.Length > 0)
-                {
-                    ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
-                    if (ImGui.BeginTable("#RecentTraceTableList", 1, ImGuiTableFlags.ScrollY, tableSz))
-                    {
-                        ImGui.Indent(5);
-                        ImGui.TableSetupColumn("Recent Traces");
-                        ImGui.TableSetupScrollFreeze(0, 1);
-                        ImGui.TableHeadersRow();
 
+                ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 2));
+                if (ImGui.BeginTable("#RecentTraceTableList", 1, ImGuiTableFlags.ScrollY, tableSz))
+                {
+                    ImGui.Indent(5);
+                    ImGui.TableSetupColumn("Recent Traces");
+                    ImGui.TableSetupScrollFreeze(0, 1);
+                    ImGui.TableHeadersRow();
+                    if (recentTraces?.Length > 0)
+                    {
                         foreach (var entry in recentTraces)
                         {
                             ImGui.TableNextRow();
@@ -224,17 +218,11 @@ namespace rgat
                                 }
                             }
                         }
-                        ImGui.EndTable();
                     }
-                    ImGui.PopStyleVar();
+                    ImGui.EndTable();
                 }
-                else
-                {
-                    if (GlobalConfig.LoadProgress < 1)
-                    {
-                        ImGui.ProgressBar((float)GlobalConfig.LoadProgress, new Vector2(300, 3));
-                    }
-                }
+                ImGui.PopStyleVar();
+
                 ImGui.EndChild();
             }
 
@@ -264,7 +252,7 @@ namespace rgat
 
                 Vector2 textSize = ImGui.CalcTextSize(updateString);
                 ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(textSize.X + 25, 55));
-                
+
                 if (ImGui.Selectable(updateString, false, flags: ImGuiSelectableFlags.None, size: new Vector2(textSize.X, textSize.Y)))
                 {
                     ImGui.OpenPopup("#NewVersionChangesDialog");
@@ -293,13 +281,13 @@ namespace rgat
 
             if (ImGui.IsPopupOpen("#NewVersionChangesDialog"))
             {
-                ImGui.SetNextWindowPos((ImGui.GetWindowSize()/2) - new Vector2(450f / 2f, 350f / 2f), ImGuiCond.Appearing);
+                ImGui.SetNextWindowPos((ImGui.GetWindowSize() / 2) - new Vector2(450f / 2f, 350f / 2f), ImGuiCond.Appearing);
                 bool isopen = true;
                 if (ImGui.BeginPopupModal("#NewVersionChangesDialog", ref isopen, flags: ImGuiWindowFlags.Modal))
                 {
                     Updates.DrawChangesDialog();
                     isopen = isopen && !ImGui.IsKeyDown(ImGui.GetKeyIndex(ImGuiKey.Escape));
-                    if (!isopen) { ImGui.CloseCurrentPopup();  }
+                    if (!isopen) { ImGui.CloseCurrentPopup(); }
                     ImGui.EndPopup();
                 }
             }

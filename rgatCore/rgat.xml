@@ -1,0 +1,879 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>rgat</name>
+    </assembly>
+    <members>
+        <member name="M:rgat.BinaryTarget.#ctor(System.String,System.Int32,System.String,System.Boolean)">
+            <summary>
+            A binary that rgat has traced
+            </summary>
+            <param name="filepath">The filesystem path of the binary</param>
+            <param name="bitWidth_">32 or 64</param>
+            <param name="remoteAddr">The address of the remote rgat instance where this target is being traced</param>
+            <param name="isLibrary">if the target is a library or not. This value will be used if the binary cannot be found and parsed</param>
+        </member>
+        <member name="P:rgat.BridgeConnection.GUIMode">
+            <summary>
+            Whether this instance is the GUI.
+            The GUI sends tracing commands and recieves trace data and associated metadata (available files to execute, signature hits, etc)
+            It does not do the opposite. Ever.
+            </summary>
+        </member>
+        <member name="M:rgat.BridgeConnection.Start(System.Net.IPAddress,System.String,System.Int32,rgat.BridgeConnection.OnGotDataCallback,rgat.BridgeConnection.OnConnectSuccessCallback)">
+            <summary>
+            Initiate a bridge connection in remote mode
+            This will be complete when it connects to another rgat instance with the right network key
+            </summary>
+            <param name="localBindAddress">The local ip address to connect from</param>
+            <param name="remoteConnectAddress">The remote ip address or domain to connect to</param>
+            <param name="remoteConnectPort">The remote TCP port to connect to</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.BridgeConnection.Start(System.Net.IPAddress,System.Int32,rgat.BridgeConnection.OnGotDataCallback,rgat.BridgeConnection.OnConnectSuccessCallback)">
+            <summary>
+            Initiate a bridge connection in listener mode
+            This will be complete when another rgat instance connects to it with the right network key
+            </summary>
+            <param name="localBindAddress">The local ip address to bind to</param>
+            <param name="localBindPort">The local TCP port to listen on</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.BridgeConnection.SendCommand(System.String,System.String,rgat.Config.RemoteDataMirror.ProcessResponseCallback,System.String)">
+            <summary>
+            Send a command to the remote instance of rgat (which is in commandline tracing mode)
+            The handling of the response (a JToken) depends on the arguments
+                If a callback is specified, it will be executed with the response as a parameter
+                Otherwise it will be stored for the requestor to pick up later
+            </summary>
+            <param name="command">The task to perform</param>
+            <param name="recipientID">The intended recipient of the task, eg a certain file picker requested the directory they are in</param>
+            <param name="callback">A callback to be performed with the response</param>
+        </member>
+        <member name="M:rgat.BridgeConnection.SendResponseObject(System.Int32,System.Object)">
+            <summary>
+            Used to send raw .net data types (serialised as JSON) as command responses
+            Useful for when the GUI just wants a copy of some pre-existing data
+            </summary>
+            <param name="command"></param>
+            <param name="response"></param>
+        </member>
+        <member name="M:rgat.BridgeConnection.SendResponseJSON(System.Int32,Newtonsoft.Json.Linq.JObject)">
+            <summary>
+            Send pre-built json objects as a command response
+            This is usually for when the gui needs some API output, rather than neatly packaged data that we already have
+            </summary>
+            <param name="command"></param>
+            <param name="response"></param>
+        </member>
+        <member name="F:rgat.GlobalConfig.Preview_PerProcessLoopSleepMS">
+            <summary>
+             Delay between rendering each preview trace (collection of threads)
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.Preview_PerThreadLoopSleepMS">
+            <summary>
+            Delay between preview rendering each thread in a trace
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.Preview_EdgesPerRender">
+            <summary>
+            Maximum number of edges to plot for each round of preview
+            graph plotting. This is CPU bound so shoudl be limited to ensure each graph gets
+            a turn
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.animationFadeRate">
+            <summary>
+            Amount of alpha to reduce fading item by each frame
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.MainGraphRenderDelay">
+            <summary>
+            Milliseconds to wait between frames of Main (displayed) Graph rendering
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.LiveAnimationUpdatesPerFrame">
+            <summary>
+            How many items of trace data to use to plot the graph per frame
+            Lower for interactivity, increase for throughput
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.LayoutAllComputeEnabled">
+            <summary>
+            Toggle use of the GPU computation engine for main/preview graphs
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.LayoutPositionsActive">
+            <summary>
+            Toggle position computation
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.LayoutAttribsActive">
+            <summary>
+            Toggle attribute (animation brightness+size) computation
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.NodeSoftSpeedLimit">
+            <summary>
+            Maximum speed of force-directed nodes. Fast nodes will layout quickly but wobble
+            in their low energy position
+            </summary>
+        </member>
+        <member name="M:rgat.GlobalConfig.InitResponsiveKeys">
+            <summary>
+            Some keybinds we don't want to wait for the OS repeat detection (S........SSSSSSSSSSS) because it makes
+            things like graph movement and rotation clunky. Instead we read for their keypress every update instead
+            of listening for the key action
+            
+            Alt/Shift/Ctrl modifiers are reserved for these keys, so two different actions can't be bound to a key this way.
+            </summary>
+        </member>
+        <member name="F:rgat.Config.LaunchConfig.eRunMode.GUI">
+            <summary>
+            Full GPU rendered GUI mode
+            </summary>
+        </member>
+        <member name="F:rgat.Config.LaunchConfig.eRunMode.GPURenderCommand">
+            <summary>
+            Performs a full trace + graph rendering, without the UI. 
+            Results drawn to an image and/or video
+            </summary>
+        </member>
+        <member name="F:rgat.Config.LaunchConfig.eRunMode.Bridged">
+            <summary>
+            Lightweight proxy mode which does little more than spawn processes and feed results back to
+            a connected rgat instance
+            </summary>
+        </member>
+        <member name="F:rgat.Config.LaunchConfig.eRunMode.NoGPUTraceCommand">
+            <summary>
+            Generates a trace file that can be read by rgat in GUI mode
+            </summary>
+        </member>
+        <member name="F:rgat.Config.LaunchConfig.eRunMode.Invalid">
+            <summary>
+            The provided command line arguments were not valid for any supported mode of operation
+            </summary>
+        </member>
+        <member name="M:rgat.Config.LaunchConfig.DeNullifyArgumentless(System.String[])">
+            <summary>
+            nothing => null
+            -M => null
+            This makes it so -M => ""
+            Allows us to react to arguments with no value provided (eg: thing with no path -> do the thing but use a default path)
+            </summary>
+            <param name="originalParams"></param>
+        </member>
+        <member name="M:rgat.Config.LaunchConfig.SetRunMode">
+            <summary>
+            Work out what the user wants to do based on the arguments
+            </summary>
+        </member>
+        <member name="F:rgat.RGAT_CONSTANTS.PROGRAMVERSION.PATCHNAME">
+            <summary>
+            Optional, non-unique name for the given version (preview, release, bugfix, etc)
+            Other values must still be unique (eg: '1.1.1 Preview' and '1.1.1 Release' cannot both exist)
+            </summary>
+        </member>
+        <member name="F:rgat.RGAT_CONSTANTS.NETWORK.UpdateCheckMinimumDelayMinutes">
+            <summary>
+            How long to wait between checks for new versions (check only happens on startup)
+            </summary>
+        </member>
+        <member name="M:rgat.GithubSignatureManager.PurgeRepoFiles(rgat.GlobalConfig.SignatureSource)">
+            <summary>
+            Remove the associated signature download directory for this repo
+            Must be called before the removal of the repo metadata via DeleteSignatureSource
+            </summary>
+            <param name="repopath">Repo key</param>
+        </member>
+        <member name="M:rgat.GraphLayoutEngine.ChangePreset(rgat.PlottedGraph)">
+            <summary>
+            Must have writer lock
+            If graph buffers already stored in VRAM, load the reference
+            Otherwise, fill GPU buffers from stored data in the plottedgraph
+            
+            </summary>
+            
+        </member>
+        <member name="M:rgat.GraphLayoutEngine.GetScreenFitOffsets(rgat.PlottedGraph,System.Numerics.Matrix4x4,System.Numerics.Vector2,System.Numerics.Vector2@,System.Numerics.Vector2@,System.Numerics.Vector2@)">
+            <summary>
+            Iterates over the position of every node, translating it to a screen position
+            Returns the offsets of the furthest nodes of the edges of the screen
+            To fit the graph in the screen, each offset needs to be as close to be as small as possible without being smaller than 0
+            
+            Acquires reader lock
+            </summary>
+            <param name="graphWidgetSize">Size of the graph widget</param>
+            <param name="xoffsets">xoffsets.X = distance of furthest left node from left of the widget. Ditto xoffsets.Y for right node/side</param>
+            <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
+            <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
+        </member>
+        <member name="M:rgat.GraphLayoutEngine.FindHighXYZ(Veldrid.DeviceBuffer)">
+            <summary>
+            Must have read lock to call
+            Find fastest node speed
+            </summary>
+            <param name="textureSize"></param>
+            <param name="buf"></param>
+            <param name="maxLimit"></param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.GraphLayoutState.LockedUploadStateToVRAM(rgat.GraphLayoutState.CPUBuffers)">
+            <summary>
+            Must hold writer lock
+            Refreshes VRAM layout buffers from cached RAM data
+            </summary>
+            <param name="_gd"></param>
+        </member>
+        <member name="M:rgat.GraphLayoutState.DownloadStateFromVRAM">
+            <summary>
+            must hold write lock
+            </summary>
+        </member>
+        <member name="M:rgat.GraphLayoutState.RegenerateEdgeDataBuffers(rgat.PlottedGraph)">
+            <summary>
+            Must hold writer lock before calling
+            </summary>
+        </member>
+        <member name="M:rgat.GraphLayoutState.CreateEdgeDataBuffers(rgat.PlottedGraph)">
+            <summary>
+            This buffer list the index of every node each node is connected to
+            </summary>
+            <param name="graph"></param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.GraphLayoutState.CreateBlockMetadataBuffer(rgat.PlottedGraph)">
+            Creates an array of metadata for basic blocks used for basic-block-centric graph layout
+        </member>
+        <member name="M:rgat.GraphLayoutState.AddNewNodesToComputeBuffers(System.Int32,rgat.PlottedGraph)">
+            <summary>
+            Must have upgradable readlock
+            </summary>
+            <param name="finalCount"></param>
+        </member>
+        <member name="M:rgat.GraphLayoutState.ResizeComputeBuffers(rgat.PlottedGraph,System.UInt32,Veldrid.CommandList,System.Collections.Generic.List{Veldrid.DeviceBuffer}@)">
+            <summary>
+            Must hold writer lock before calling
+            </summary>
+            <param name="bufferSize"></param>
+        </member>
+        <member name="M:rgat.Logging.GetTextFilterCounts">
+            <summary>
+            Get the number of log messages recorded for each filter
+            </summary>
+            <returns> A dictionary of filter/count values</returns>
+        </member>
+        <member name="M:rgat.Logging.GetAlerts(System.Int32,rgat.Logging.LOG_EVENT[]@)">
+            <summary>
+            Get the most recent alerts/errors to inform the user about
+            </summary>
+            <param name="max">Maximum number to retrieve</param>
+            <param name="alerts">An output array of alert events</param>
+            <returns>The number of events returned</returns>
+        </member>
+        <member name="M:rgat.Logging.ClearAlertsBox">
+            <summary>
+            Acknowledge the latest alerts, stop displaying them on the UI
+            </summary>
+        </member>
+        <member name="M:rgat.Logging.RecordLogEvent(System.String,rgat.Logging.LogFilterType,rgat.ProtoGraph,rgat.TraceRecord,System.Nullable{rgat.WritableRgbaFloat},rgat.Logging.APICALL)">
+            <summary>      
+            Display a message in the logfile/message window.
+            Will also be shown on the UI alert pane with the Alert/Error options
+            </summary>
+            <param name="message">Message to display</param>
+            <param name="visibility">The LogFilterType category of the log entry
+            </param>
+            <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
+            <param name="colour">Optional colour, otherwise default will be used</param>
+        </member>
+        <member name="M:rgat.Logging.RecordError(System.String,rgat.ProtoGraph,rgat.TraceRecord)">
+            <summary>
+            This is just an alias for  RecordLogEvent( filter: TextError);
+            </summary>
+            <param name="text">Error text</param>
+            <param name="graph">Graph the error applies to (optional)</param>
+            <param name="trace">Trace the error applies to (optional)</param>
+        </member>
+        <member name="M:rgat.NodeData.CreateLabel(rgat.PlottedGraph,System.Int32)">
+            <summary>
+            This creates the label drawn on the graph
+            For symbol labels drawn in logs/analysis tabs see CreateColourisedSymbolCall
+            </summary>
+            <param name="plot"></param>
+            <param name="specificCallIndex"></param>
+        </member>
+        <member name="M:rgat.NodeData.CreateColourisedSymbolCall(rgat.ProtoGraph,System.Int32,rgat.WritableRgbaFloat,rgat.WritableRgbaFloat)">
+            <summary>
+            Produces a list of api string/colour tuples for displaying in trace analysis lists
+            </summary>
+            <param name="graph">The graph of the thread that made the call</param>
+            <param name="specificCallIndex">The index of the call</param>
+            <param name="colour1">The colour of the API text</param>
+            <param name="colour2">The colour of the argument texts</param>
+            <returns></returns>
+        </member>
+        <member name="T:rgat.OperationModes.BridgedRunner">
+            <summary>
+            Runs rgat as a headless proxy which allows an rgat instance on a remote machine to control tracing and receive raw trace data
+            This does not require access to a GPU
+            </summary>
+        </member>
+        <member name="M:rgat.OperationModes.BridgedRunner.RunHeadless(rgat.BridgeConnection)">
+            <summary>
+            Runs in headless mode which either connects to (command line -r) or waits for connections
+            from (command line -p) a controlling UI mode rgat instance
+            This does not use the GPU
+            </summary>
+        </member>
+        <member name="T:rgat.OperationModes.CommandLineRunner">
+            <summary>
+            Runs rgat locally, without a GUI. Can be run without the GPU at all to generate a trace file, 
+            or with the GPU to generate a video or image
+            </summary>
+        </member>
+        <member name="T:rgat.OperationModes.ImGuiRunner">
+            <summary>
+            Creates and manages a Veldrid/ImGui based rgat GUI
+            This requires access to a GPU (with Vulkan drivers)
+            </summary>
+        </member>
+        <member name="M:rgat.OperationModes.ImGuiRunner.Run">
+            <summary>
+            Runs a standard UI window loop using ImGui
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.GetEdgeRenderingData(System.Single[]@,System.Int32[]@,System.Int32[]@)">
+            <summary>
+            Create an array listing the index of every neighbour of every node
+            Also initialises the edge strength array, 
+            </summary>
+            <returns></returns>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:rgat.PlottedGraph.GetNodeNeighbourDataOffsets" -->
+        <member name="M:rgat.PlottedGraph.GetBlockRenderingMetadata">
+            Creates an array of metadata for basic blocks used for basic-block-centric graph layout
+        </member>
+        <member name="M:rgat.PlottedGraph.CreateBlockMetadataBuf(System.Int32)">
+            <summary>
+            Creates an array of metadata for basic blocks used for basic-block-centric graph layout
+            item[0] = blockID
+            item[1] = offsetFromCenter; number of nodes ahead the center node is
+            item[2] = centerPseudoBlockTopID; top of the block this node is in
+            item[3] = centerPseudoBlockBaseID; base of the block this node is in
+            </summary>
+            <param name="nodecount">Number of nodes to add. This isn't just taken from nodelist because
+            it may be intended for a texture of a certain size</param>
+        </member>
+        <member name="M:rgat.PlottedGraph.AddNewEdgesToLayoutBuffers(System.Int32)">
+            <summary>
+            Add new edges to the layout buffer
+            Must have upgradable read lock
+            </summary>
+            <param name="edgesCount"></param>
+        </member>
+        <member name="M:rgat.PlottedGraph.RecordComputeTime(System.Int64)">
+            <summary>
+            Update the graph computation time stats
+            </summary>
+            <param name="ms">Time taken for the latest round of velocity/position computation in Milliseconds</param>
+        </member>
+        <member name="F:rgat.PlottedGraph._graphStructureBalanced">
+            <summary>
+            The list of nodes and edges where each node connects to its partner and that node connects back
+            This is used for the attraction velocity computation
+            </summary>
+                   
+        </member>
+        <member name="F:rgat.PlottedGraph._graphStructureLinear">
+            <summary>
+            The raw list of nodes with a one way edge they connect to
+            This is used for drawing nodes and edges
+            </summary>
+        </member>
+        <member name="M:rgat.ProcessRecord.ResolveSymbolAtAddress(System.UInt64,System.Int32@,System.String@,System.String@)">
+            <summary>
+            Takes an address in target process and looks up the path of the module and symbol at that address
+            </summary>
+            <param name="address">Address of potential symbol in loaded modules of target program</param>
+            <param name="moduleID">rgat ID of module output here, if found.</param>
+            <param name="module">Path of module is output here, if found</param>
+            <param name="symbol">Name of symbol is output here, if found</param>
+            <returns>True if both module and symbol string resolved. False otherwise.</returns>
+        </member>
+        <member name="M:rgat.ProcessRecord.GetModulePath(System.Int32)">
+            <summary>
+            Lookup the path of a module (ie DLL/library/binary) from the module ID
+            </summary>
+            <param name="GlobalModuleID">rgat internal ID for module in target process</param>
+            <returns>string containing the module path</returns>
+        </member>
+        <member name="T:rgat.Properties.Resources">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.BuiltinJSONThemes">
+            <summary>
+              Looks up a localized string similar to [{
+             &quot;CustomColours&quot;: {
+               &quot;ePreviewText&quot;: 4294967295,
+               &quot;ePreviewTextBackground&quot;: 1275068416,
+               &quot;ePreviewPaneBorder&quot;: 4278190335,
+               &quot;ePreviewPaneBackground&quot;: 4278979596,
+               &quot;ePreviewZoomEnvelope&quot;: 2998055602,
+               &quot;eHeat0Lowest&quot;: 2996502528,
+               &quot;eHeat1&quot;: 4288355374,
+               &quot;eHeat2&quot;: 4293027935,
+               &quot;eHeat3&quot;: 4292841333,
+               &quot;eHeat4&quot;: 8703,
+               &quot;eHeat5&quot;: 4290036988,
+               &quot;eHeat6&quot;: 4288190706,
+               &quot;eHeat7&quot;: 4285230073,
+               &quot;eHeat8&quot;: 4282401023,
+               &quot;eHeat9Highest&quot;: 4278190335,
+               &quot;eVisB [rest of string was truncated]&quot;;.
+            </summary>
+        </member>
+        <member name="F:rgat.APICALLDATA.argList">
+            <summary>
+            a list of (index, value) tuples
+            where 
+                index: the position of the argument in the function prototype
+                value: a string representation of the argument value
+            </summary>
+        </member>
+        <member name="M:rgat.ProtoGraph.AddEdge_LastToTargetVert(System.Boolean,System.Int32,System.UInt64)">
+            todo is this needed
+            yes. yes it is.
+        </member>
+        <member name="P:rgat.rgatState.ExitToken">
+            <summary>
+            Get a cancellation token which will be cancelled when rgat is exiting
+            </summary>
+        </member>
+        <member name="M:rgat.rgatState.Shutdown">
+            <summary>
+            Terminate all spawned processes and internal workers, then exit
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestCase._TestRunRequirements">
+            <summary>
+            A list of conditions met by the entire test itself
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestCase._TraceRequirements">
+            <summary>
+            A nested list of requirements for each thread
+            vague pseudo-json example [{C:6, [C:1, C:3]},{C:1, [C:7,C:12]}]
+                This expects two processes, each producing 2 thread graphs
+                One process must meet condtion C6 has threads meeting condition C1, the other meeting condition C3. 
+                Ditto for the other process needing to meet condtion C1 with threads meeting conditions 7, 12
+            </summary>
+        </member>
+        <member name="M:rgat.Testing.TestCase.LoadTestRequirement(System.String,Newtonsoft.Json.Linq.JToken,rgat.Testing.TestRequirement@)">
+            <summary>
+            Load a JObject containing JToken value and string condition
+            </summary>
+            <param name="name">Name of the requirement</param>
+            <param name="tok">JToken containing requirement</param>
+            <param name="testRequirement">Result requirement object</param>
+            <returns>true if it loaded without error</returns>
+        </member>
+        <member name="M:rgat.Widgets.QuickMenu.SetStateChangeCallback(System.Action{System.Boolean})">
+            <summary>
+            Called whenever the menu is opened/closed
+            </summary>
+            <param name="action">Function to call when opened/closed. Param is open/closed state.</param>
+        </member>
+        <member name="M:rgat.Widgets.QuickMenu.ActivateAction(rgat.Widgets.QuickMenu.ActionName,System.Boolean,System.String@)">
+            <summary>
+            Performs whatever action is assigned to a shortcut or button click
+            </summary>
+            <param name="actionName">Action associated with the icon or shortcut</param>
+            <param name="hotKey">true if a keyboard shortcut, false if clicked</param>
+            <param name="resultText">something to describe what happened on the key combo display</param>
+            <returns>Whether the action was a non-menu 'action' which will trigger display of the keyboard combo used</returns>
+        </member>
+        <member name="F:rgat.Widgets.QuickMenu._RecentKeypress">
+            <summary>
+            Take a keypress that might be dealt with by the open quickmenu
+            Return true if the quickmenu swallows is (ie: not to be used for other graph actions)
+            </summary>
+        </member>
+        <member name="M:rgat.Widgets.VisualiserBar.Draw(System.Single,System.Single)">
+            <summary>
+            Draw the latest rendered visualiser bar
+            Specified dimensions will be used in the next render
+            </summary>
+            <param name="width">Bar Width</param>
+            <param name="height">Bar Height</param>
+        </member>
+        <member name="M:rgat.Widgets.VisualiserBar.DrawReplaySlider(System.Single,System.Single,rgat.PlottedGraph)">
+            <summary>
+            Draw a replay graph visualiser bar with animation sliders 
+            </summary>
+            <param name="width"></param>
+            <param name="height"></param>
+            <param name="graph"></param>
+        </member>
+        <member name="M:rgat.Themes.InitUnsetCustomColours">
+            <summary>
+            Set any missing theme settings
+            </summary>
+        </member>
+        <member name="M:rgat.ModuleHandlerThread.RemoteCommandListener">
+            <summary>
+            This runs in headless mode, taking commands from the UI and passing them to the instrumentation tool
+            in the target process
+            </summary>
+        </member>
+        <member name="M:rgat.ModuleHandlerThread.RemoteEventListener(System.Object)">
+            <summary>
+            This is run by the UI in remote mode, passing trace events to the trace processor
+            </summary>
+            <param name="ProcessMessageobj"></param>
+        </member>
+        <member name="M:rgat.TraceRecord.GetTimeLineEntries(System.Int64,System.Int32)">
+            <summary>
+            Fetches an array of the newest timeline events for the trace
+            </summary>
+            <param name="oldest">The oldest event to return</param>
+            <param name="max">The most events to return. Default 5.</param>
+            <returns>And array of TIMELINE_EVENT objects</returns>
+        </member>
+        <member name="M:rgat.TraceRecord.Save(System.DateTime)">
+            <summary>
+            Save all the data needed to reconstruct a process run and all its thread graphs
+            Recursively saves child processes
+            </summary>
+            <param name="traceStartedTime">The time the run was started</param>
+            <returns>The path the trace was saved to</returns>
+        </member>
+        <member name="M:rgat.Updates.ParseChangelogChanges(System.String)">
+            <summary>
+            Teturns a list of changes from the current version to a given changelog
+            </summary>
+            <param name="b64ChangelogMDContent">base64 encoded changelog.md file</param>
+            <returns>plaintext formatted list of change types and changes</returns>
+        </member>
+        <member name="T:rgat.VeldridGraphBuffers.Position2DColour">
+            <summary>
+            This is used for shaders where the coordinate being referenced is contained in a texture. 
+            The Texposition is the location (in the positions texture) to read and then draw geometry at with the specified colour.
+            </summary>
+        </member>
+        <member name="T:rgat.VeldridGraphBuffers.GeomPositionColour">
+            <summary>
+            This just describes raw position and colour of geometry. Used for things unrelated to graph geometry like wireframes
+            If Position.W == 1 then x,y are used as a positions texture reference as in TextureOffsetColour
+            </summary>
+        </member>
+        <member name="P:rgat.VideoEncoder.RecordingStateChangeTimeAgo">
+            <summary>
+            How long ago the recording stopped/started in milliseconds
+            </summary>
+        </member>
+        <member name="M:rgat.VideoEncoder.SaveImage(rgat.PlottedGraph,System.Drawing.Bitmap)">
+            <summary>
+            
+            </summary>
+            <param name="graph"></param>
+            <param name="bmp"></param>
+            <returns></returns>
+        </member>
+        <member name="F:rgat.rgatUI.ExitFlag">
+            <summary>
+            Causes the UI to fall out of the update loop and initiate rgat shutdown
+            </summary>
+        </member>
+        <member name="M:rgat.rgatUI.ActivateNotification">
+            <summary>
+            Tells the UI that something is happening on the menu bar so it should be displayed
+            Currently its always displayed except on the splash screen
+            </summary>
+        </member>
+        <member name="M:rgat.rgatUI.DrawDialogs">
+            <summary>
+            Draws any open dialogs
+            </summary>
+            
+            This isn't great but coming up with something more elegant can wait
+        </member>
+        <member name="M:rgat.rgatUI.DrawInnerRightMenuItems">
+            <summary>
+            Display media actions like recording and screen capture
+            </summary>
+        </member>
+        <member name="M:rgat.rgatUI.DisplayScreenshotNotification">
+            <summary>
+            Displays the still camera icon on the menu bar
+            Displays an animated rectangle drawing the eye to it, from the region captured
+            UI.SCREENSHOT_ICON_LINGER_TIME controls how long the icon is displayed
+            UI.SCREENSHOT_ANIMATION_RECT_SPEED controls how fast the rectangle travels/disappears
+            </summary>
+        </member>
+        <member name="M:rgat.rgatUI.DisplayVideoRecordingNotification">
+            <summary>
+            Displays the video camera icon on the menu bar
+            
+            </summary>
+        </member>
+        <member name="M:rgat.rgatUI.DrawOuterRightMenuItems(System.Single@)">
+            <summary>
+            Displays less-used utilities like logs, tests 
+            </summary>
+            <param name="logMenuX">Set to the center X position of the log menu button, for alert animations</param>
+        </member>
+        <member name="M:rgat.rgatUI.NotifyScreenshotComplete(System.String)">
+            <summary>
+            Call this after a screenshot is complete to begin the screenshot display animation
+            </summary>
+            <param name="savePath">Path of the screenshot, for use in the mouseover text</param>
+        </member>
+        <member name="M:rgat.rgatUI.DrawTargetBar">
+            <summary>
+            Draws a dropdown allowing selection of one of the loaded target binaries
+            </summary>
+            <returns>true if at least one binary is loaded, otherwise false</returns>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.SetStateChangeCallback(System.Action{System.Boolean})">
+            <summary>
+            Called whenever the widget opens/closes an inner dialog
+            </summary>
+            <param name="action">Function to call when dialog is opened/closed. Param is open/closed state.</param>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.RecreateGraphicsBuffers">
+            <summary>
+            Must have write lock to call
+            </summary>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.CenterGraphInFrameStep(System.Numerics.Matrix4x4,System.Single@)">
+            <summary>
+            Adjust the camera offset and zoom so that every node of the graph is in the frame
+            Must have read lock to call
+            </summary>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.UpdateAndGetViewMatrix(System.Numerics.Matrix4x4@,System.Numerics.Matrix4x4@,System.Numerics.Matrix4x4@)">
+            <summary>
+            Must hold read lock
+            </summary>
+            <param name="proj"></param>
+            <param name="view"></param>
+            <param name="world"></param>
+        </member>
+        <member name="F:rgat.GraphPlotWidget._edgesPipelineRelative">
+            <summary>
+            Edges pipeline = line list or line strp
+            Points pipeline = visible nodes where we draw sphere/etc texture
+            Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
+            Font pipeline = triangles
+            </summary>
+        </member>
+        <member name="F:rgat.GraphPlotWidget._edgesPipelineRaw">
+            <summary>
+            Edges pipeline = line list or line strp
+            Points pipeline = visible nodes where we draw sphere/etc texture
+            Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
+            Font pipeline = triangles
+            </summary>
+        </member>
+        <member name="F:rgat.GraphPlotWidget._pointsPipeline">
+            <summary>
+            Edges pipeline = line list or line strp
+            Points pipeline = visible nodes where we draw sphere/etc texture
+            Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
+            Font pipeline = triangles
+            </summary>
+        </member>
+        <member name="F:rgat.GraphPlotWidget._pickingPipeline">
+            <summary>
+            Edges pipeline = line list or line strp
+            Points pipeline = visible nodes where we draw sphere/etc texture
+            Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
+            Font pipeline = triangles
+            </summary>
+        </member>
+        <member name="F:rgat.GraphPlotWidget._fontPipeline">
+            <summary>
+            Edges pipeline = line list or line strp
+            Points pipeline = visible nodes where we draw sphere/etc texture
+            Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
+            Font pipeline = triangles
+            </summary>
+        </member>
+        <member name="F:rgat.GraphPlotWidget.GraphShaderParams.proj">
+            public Matrix4x4 rotatedView;
+        </member>
+        <member name="M:rgat.GraphPlotWidget.GenerateMainGraph(Veldrid.CommandList)">
+            <summary>
+            Converts the node/edge positions computed by the layout engine into a rendered image of points and lines
+            </summary>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.HandleGraphUpdates">
+            <summary>
+            must hold upgradable reader lock
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:rgat.GraphPlotWidget.DoMouseNodePicking(Veldrid.GraphicsDevice)" -->
+        <member name="M:rgat.PreviewGraphsWidget.CenterGraphInFrameStep(System.Single@,rgat.PlottedGraph)">
+            <summary>
+            Adjust the camera offset and zoom so that every node of the graph is in the frame
+            </summary>
+        </member>
+        <member name="M:rgat.VisualiserTab.SetDialogStateChangeCallback(System.Action{System.Boolean})">
+            <summary>
+            Called whenever the widget opens/closes an inner dialog
+            </summary>
+            <param name="action">Function to call when dialog is opened/closed. Param is open/closed state.</param>
+        </member>
+        <member name="T:rgat.WinAPIDetails.API_PARAM_ENTRY">
+            <summary>
+            Describes certain interesting parameters of an API call which we can link together to describe program behaviour
+            </summary>
+        </member>
+        <member name="F:rgat.WinAPIDetails.API_PARAM_ENTRY.IsConditional">
+            <summary>
+            may not receive this parameter (eg: failed registry key open -> no registry key handle)
+            </summary>
+        </member>
+        <member name="F:rgat.WinAPIDetails.API_PARAM_ENTRY.NoCase">
+            <summary>
+            comparisons are case insensitive, particularly numbers such as handles which get represented as hex strings
+            </summary>
+        </member>
+        <member name="T:rgat.WinAPIDetails.API_ENTRY">
+            <summary>
+            Describes the effects of an API call we have recorded
+            </summary>
+        </member>
+        <member name="F:rgat.WinAPIDetails.API_ENTRY.FilterType">
+            <summary>
+            A category this API falls into, for UI filtering. This might become a list of strings/tags later.
+            </summary>
+        </member>
+        <member name="F:rgat.WinAPIDetails.API_ENTRY.LoggedParams">
+            <summary>
+            A list of parameters/return results from the API call. Used to map their interaction with targets for plotting on the analysis chart.
+            </summary>
+        </member>
+        <member name="F:rgat.WinAPIDetails.API_ENTRY.Label">
+            <summary>
+            How the API call interacted with the entity. Used as a label in the analysis chart.
+            </summary>
+        </member>
+        <member name="F:rgat.WinAPIDetails.API_ENTRY.ModuleName">
+            <summary>
+            the filename of the library
+            </summary>
+        </member>
+        <member name="F:rgat.WinAPIDetails.API_ENTRY.Symbol">
+            <summary>
+            the case-sensitive API name
+            </summary>
+        </member>
+        <member name="M:rgat.WinAPIDetails.ResolveModuleEnum(System.String)">
+            <summary>
+            Lookup a system library by path and get a reference that can be used to index internal library metadata (filter types, symbol info)
+            </summary>
+            <param name="path"></param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.WinAPIDetails.GetAPIInfo(System.Int32,System.String)">
+            <summary>
+            Get loaded API info for a symbol
+            </summary>
+            <param name="moduleReference">Internal library reference from ResolveModuleEnum </param>
+            <param name="symbolname">Case sensitive API name (ie: a library export like you would pass to GetProcAddress)</param>
+            <returns>API_ENTRY struct for the symbol if we have metadata for it, otherwise null</returns>
+        </member>
+        <member name="M:rgat.YARAScan.RecompileRules(System.String)">
+            <summary>
+            Compile all yara rules in the directory to memory and disk signature blobs, containing the respective rules enabled in the settings
+            </summary>
+            <param name="rulesDir">Directory containing directories full of yara rules</param>
+            <returns>Paths to the sucessfully created rules files</returns>
+        </member>
+        <member name="T:ImGuiNET.ImGuiController">
+            <summary>
+            A modified version of Veldrid.ImGui's ImGuiRenderer.
+            Manages input for ImGui and handles rendering ImGui's DrawLists with Veldrid.
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.GetOrCreateImGuiBinding(Veldrid.ResourceFactory,Veldrid.TextureView,System.String)">
+            <summary>
+            Gets or creates a handle for a texture to be drawn with ImGui.
+            Pass the returned handle to Image() or ImageButton().
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.GetOrCreateImGuiBinding(Veldrid.ResourceFactory,Veldrid.Texture,System.String)">
+            <summary>
+            Gets or creates a handle for a texture to be drawn with ImGui.
+            Pass the returned handle to Image() or ImageButton().
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.GetImageResourceSet(System.IntPtr)">
+            <summary>
+            Retrieves the shader texture binding for the given helper handle.
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.RecreateFontDeviceTexture(Veldrid.GraphicsDevice)">
+            <summary>
+            Recreates the device texture used to render text.
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.Render(Veldrid.GraphicsDevice,Veldrid.CommandList)">
+            <summary>
+            Renders the ImGui draw list data.
+            This method requires a <see cref="T:Veldrid.GraphicsDevice"/> because it may create new DeviceBuffers if the size of vertex
+            or index data has increased beyond the capacity of the existing buffers.
+            A <see cref="T:Veldrid.CommandList"/> is needed to submit drawing and resource update commands.
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.Update(System.Single,Veldrid.InputSnapshot)">
+            <summary>
+            Updates ImGui input and IO configuration state.
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.SetPerFrameImGuiData(System.Single)">
+            <summary>
+            Sets per-frame data based on the associated window.
+            This is called by Update(float).
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.Dispose">
+            <summary>
+            Frees all graphics resources used by the renderer.
+            </summary>
+        </member>
+        <member name="M:rgatFilePicker.FilePicker.EmitFileSelectableEntry(System.String,rgatFilePicker.FilePicker.FileMetadata)">
+            <summary>
+            Draw a non-directory file in the file list
+            </summary>
+            <param name="path">Full path of the file</param>
+            <param name="filemeta">FileMetadata information for the file</param>
+            <returns>True if the entry was activated (select+enter or double clicked)</returns>
+        </member>
+        <member name="M:rgatFilePicker.FilePicker.InitCurrentDirInfo(Newtonsoft.Json.Linq.JToken)">
+            <summary>
+            Fill out the listing of the remote directory
+            lock must be held
+            </summary>
+            <param name="responseTok">JToken containing information about the current directory</param>
+            <returns>true if the data was valid</returns>
+        </member>
+    </members>
+</doc>
