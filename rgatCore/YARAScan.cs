@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace rgat
@@ -18,15 +19,54 @@ namespace rgat
         public enum eYaraScanProgress { eRunning, eComplete, eNotStarted, eFailed };
         Dictionary<BinaryTarget, eYaraScanProgress> targetScanProgress = new Dictionary<BinaryTarget, eYaraScanProgress>();
 
+        [DllImport("libyara.dll")]
+        private static extern void LibraryExistsTestMethod();
+
+
         public YARAScan(string rulesDir)
         {
+            if (!CheckLibraryExists()) throw new DllNotFoundException("libyara.dll not available");
+
             ctx = new YaraContext();
+
             RefreshRules();
+
+        }
+
+        // have to check libyara exists before attempting to use dnYara
+        // otherwise the destructor will crash us when it fails
+        bool CheckLibraryExists()
+        {
+            try
+            {
+                LibraryExistsTestMethod();
+            }
+            catch (Exception e)
+            {
+                if (e.Message.StartsWith("Unable to find an entry point")) //method not found - so library does exist
+                {
+                    return true;
+                }
+                if (e.Message.StartsWith("Unable to load DLL")) //library does not exist
+                {
+                    return false;
+                }
+                Logging.RecordLogEvent($"Unexpected error {e.Message} when checking for yara");
+            }
+
+            return false;
         }
 
         ~YARAScan()
         {
-            loadedRules?.Release();
+            try
+            {
+                loadedRules?.Release();
+            }
+            catch (Exception e)
+            {
+
+            }
         }
 
         public struct YARAHit
@@ -53,7 +93,7 @@ namespace rgat
             //find precompiled rules files in the current directory of the form "[disk_|mem_][UINT]_.yarac"
             string rulesDir = GlobalConfig.YARARulesDir;
             string[] filesList = Directory.GetFiles(rulesDir, "precompiled_rules*.yarac", SearchOption.TopDirectoryOnly);
-
+            Console.WriteLine("1");
             string compiledFile = null;
 
             //get the most recently modified disk_ and mem_ yarac files
@@ -81,13 +121,15 @@ namespace rgat
             }
 
             //see if any directories/.txt/.yara files were created or modified since the rules were last compiled
-            bool recompile = forceRecompile || HasNewerRuleOrDirectory(rulesDir, thresholdDate);
+            bool recompile = !File.Exists(compiledFile) || forceRecompile || HasNewerRuleOrDirectory(rulesDir, thresholdDate);
 
             if (!recompile)
             {
                 try
                 {
+                    Console.WriteLine($"1312 {compiledFile}");
                     loadedRules = new CompiledRules(compiledFile);
+                    Console.WriteLine("1314");
                 }
                 catch (Exception e)
                 {

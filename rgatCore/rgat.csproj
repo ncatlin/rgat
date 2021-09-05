@@ -4,8 +4,11 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>rgat</AssemblyName>
-    <Version>0.6.0-alpha</Version>
+    <Version>0.6.0-preview</Version>
     <SignAssembly>false</SignAssembly>
+    <ApplicationIcon />
+    <Win32Resource />
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -50,6 +53,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="bin\Debug\netcoreapp3.1\vk.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.0-preview3" />
     <PackageReference Include="FFMpegCore" Version="4.5.0" />
     <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
@@ -78,12 +85,14 @@
     </Reference>
     <Reference Include="dnYara">
       <HintPath>..\..\dnYara2\dnYara\bin\Debug\netstandard2.0\dnYara.dll</HintPath>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
     </Reference>
     <Reference Include="dnYara.Interop">
       <HintPath>..\..\dnYara2\dnYara\bin\Debug\netstandard2.0\dnYara.Interop.dll</HintPath>
     </Reference>
     <Reference Include="ImGui.NET">
       <HintPath>..\..\ImGui.NET-master\bin\Debug\ImGui.NET\netstandard2.0\ImGui.NET.dll</HintPath>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
     </Reference>
   </ItemGroup>
 

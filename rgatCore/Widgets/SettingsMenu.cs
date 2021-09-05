@@ -984,7 +984,9 @@ namespace rgat.Widgets
             }
 
 
+            ImGui.SetNextWindowSize(new Vector2(600, 600), ImGuiCond.FirstUseEver);
             DrawFolderSelectBox();
+            ImGui.SetNextWindowSize(new Vector2(600, 600), ImGuiCond.FirstUseEver);
             DrawFileSelectBox();
         }
 

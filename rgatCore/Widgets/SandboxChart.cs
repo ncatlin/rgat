@@ -543,6 +543,7 @@ namespace rgat.Widgets
                             break;
                         default:
                             DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_UP}");
+                            DrawList.AddText(position + new Vector2(20, -15), 0xff000000, details.FilterType);
                             DrawList.AddText(position + new Vector2(20, 5), 0xff000000, (string)node.label);
                             break;
                     }

@@ -1311,7 +1311,8 @@ namespace rgat
             {
                 if (VerifyCertificate(path, SIGNERS.PIN_SIGNER, out string error, out string warning))
                 {
-                    Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
+                    if (warning != null)
+                        Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
                     validSignature = true;
                 }
                 else
@@ -1325,7 +1326,8 @@ namespace rgat
             {
                 if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error, out string warning))
                 {
-                    Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
+                    if (warning != null)
+                        Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
                     validSignature = true;
                 }
                 else
@@ -1339,7 +1341,8 @@ namespace rgat
             {
                 if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error, out string warning))
                 {
-                    Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
+                    if (warning != null)
+                        Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
                     validSignature = true;
                 }
                 else

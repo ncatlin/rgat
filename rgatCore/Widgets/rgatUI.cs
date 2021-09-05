@@ -1022,17 +1022,12 @@ namespace rgat
             }
 
             float widestAlert = 0;
-            if (alerts.Length <= 2)
+
+            for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
             {
-                for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
-                {
-                    widestAlert = ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[i])._text).X + 50;
-                }
+                widestAlert = Math.Max(widestAlert, ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[i])._text).X + 50);
             }
-            else
-            {
-                widestAlert = ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[^1])._text).X + 50;
-            }
+
             Vector2 windowSize = ImGui.GetWindowSize();
             float width = Math.Min(widestAlert + 10, windowSize.X / 2f);
             Vector2 size = new Vector2(width, 38);
@@ -1281,6 +1276,7 @@ namespace rgat
         {
             string title = "Select Binary";
             if (rgatState.ConnectedToRemote) title += " (Remote Machine)";
+            ImGui.SetNextWindowSize(new Vector2(600, 600), ImGuiCond.FirstUseEver);
             ImGui.OpenPopup(title);
             if (ImGui.BeginPopupModal(title, ref show_select_exe_window, ImGuiWindowFlags.NoScrollbar))
             {
@@ -1358,6 +1354,7 @@ namespace rgat
 
         public void DrawTraceLoadBox(ref bool shown)
         {
+            ImGui.SetNextWindowSize(new Vector2(600, 600), ImGuiCond.FirstUseEver);
             ImGui.OpenPopup("Select Trace File");
 
             if (ImGui.BeginPopupModal("Select Trace File", ref shown, ImGuiWindowFlags.NoScrollbar))
@@ -1394,6 +1391,7 @@ namespace rgat
                 title += $" ({picker.SelectedFiles.Count + picker.SelectedDirectories.Count} selected)";
             }
             title += "###TraceListSelector";
+            ImGui.SetNextWindowSize(new Vector2(600, 600), ImGuiCond.FirstUseEver);
             ImGui.OpenPopup(title);
             if (ImGui.BeginPopupModal(title, ref shown, ImGuiWindowFlags.NoScrollbar))
             {

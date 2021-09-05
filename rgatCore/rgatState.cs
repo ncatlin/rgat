@@ -52,14 +52,32 @@ namespace rgat
         public void LoadSignatures(IProgress<float> progress)
         {
             //todo - inner progress reporting based on signature count
-
             Logging.RecordLogEvent("Loading DiELib", Logging.LogFilterType.TextDebug);
-            DIELib = new DetectItEasy(GlobalConfig.DiESigsPath);
-            Logging.RecordLogEvent("DiELib loaded. loading YARA", Logging.LogFilterType.TextDebug);
-            progress.Report(0.5f);
+            try
+            {
+                DIELib = new DetectItEasy(GlobalConfig.DiESigsPath);
+                Logging.RecordLogEvent("DiELib loaded", Logging.LogFilterType.TextDebug);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Failed to load DiELib.NET: {e.Message}");
+            }
 
-            YARALib = new YARAScan(GlobalConfig.YARARulesDir);
-            Logging.RecordLogEvent("YARA loaded", Logging.LogFilterType.TextDebug);
+            progress.Report(0.5f);
+            Logging.RecordLogEvent("Loading YARA", Logging.LogFilterType.TextDebug);
+
+            try
+            {
+                YARALib = new YARAScan(GlobalConfig.YARARulesDir);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Unable to load YARA: {e.Message}");
+            }
+            if (YARALib != null)
+            {
+                Logging.RecordLogEvent("YARA loaded", Logging.LogFilterType.TextDebug);
+            }
             progress.Report(1f);
 
         }
@@ -86,7 +104,7 @@ namespace rgat
         public static void Shutdown()
         {
             _exitTokenSource.Cancel();
-            
+
             if (rgatState.ConnectedToRemote) rgatState.NetworkBridge.Teardown("Exiting");
 
             DIELib?.CancelAllScans();
@@ -107,7 +125,7 @@ namespace rgat
                     trace.ProcessThreads?.BBthread?.Terminate();
 
                     //wait for all spawned processes to terminate
-                    while (trace.GetProtoGraphs().Exists(p => ((p.TraceProcessor != null) && p.TraceProcessor.Running) || 
+                    while (trace.GetProtoGraphs().Exists(p => ((p.TraceProcessor != null) && p.TraceProcessor.Running) ||
                     ((p.TraceReader != null) && p.TraceReader.Running)))
                     {
                         Thread.Sleep(10);

@@ -517,12 +517,15 @@ namespace rgat
                         System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
                         int ordinal = (activeTarget.PEFileObj.IsDll && activeTarget.SelectedExportIndex > -1) ? activeTarget.PEFileObj.ExportedFunctions[activeTarget.SelectedExportIndex].Ordinal : 0;
                         System.Diagnostics.Process p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath, ordinal: ordinal, targetPE: activeTarget.PEFileObj);
-                        watch.Start();
-                        if (p.WaitForExit(80)) //in testing it takes under 30ms to fail if pin can't load it
+                        if (p != null)
                         {
-                            if (p.ExitCode != 0)
+                            watch.Start();
+                            if (p.WaitForExit(80)) //in testing it takes under 30ms to fail if pin can't load it
                             {
-                                Logging.RecordError($"Trace error after {watch.ElapsedMilliseconds} ms: Exit code {p.ExitCode}. Target binary may be invalid or incompatible");
+                                if (p.ExitCode != 0)
+                                {
+                                    Logging.RecordError($"Trace error after {watch.ElapsedMilliseconds} ms: Exit code {p.ExitCode}. Target binary may be invalid or incompatible");
+                                }
                             }
                         }
 
@@ -583,7 +586,8 @@ namespace rgat
         {
             if (rgatState.DIELib == null)
             {
-                ImGui.Text("Not Loaded");
+                ImGui.Text("DiE Not Loaded");
+                SmallWidgets.MouseoverText("See error in logs");
                 return;
             }
             DiELibDotNet.DieScript.SCANPROGRESS DEProgress = rgatState.DIELib.GetDIEScanProgress(activeTarget);
@@ -689,7 +693,8 @@ namespace rgat
         {
             if (rgatState.YARALib == null)
             {
-                ImGui.Text("Not Loaded");
+                ImGui.Text("YARA Not Loaded");
+                SmallWidgets.MouseoverText("See error in logs");
                 return;
             }
             YARAScan.eYaraScanProgress progress = rgatState.YARALib.Progress(activeTarget);

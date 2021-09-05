@@ -209,10 +209,18 @@ namespace ImGuiNET
         //initialise things that are used in all types of tracing (ui, bridged, commandline)
         static void InitialSetup()
         {
+
+            AppDomain currentDomain = AppDomain.CurrentDomain;
+            currentDomain.UnhandledException += new UnhandledExceptionEventHandler(UnhandledExceptionHandler);
+
             rgat.Threads.TraceProcessorWorker.SetRgatState(_rgatState);
         }
 
-
+        static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs args)
+        {
+            Exception e = (Exception)args.ExceptionObject;
+            Logging.RecordError($"Unhandled Exception: {e.Source}:{e.Message}");
+        }
 
     }
 }
