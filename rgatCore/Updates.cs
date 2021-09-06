@@ -1,4 +1,5 @@
-﻿using ImGuiNET;
+﻿using Humanizer;
+using ImGuiNET;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -14,10 +15,10 @@ namespace rgat
         public static void CheckForUpdates()
         {
             //already checked recently
-            DateTime nextCheckMinimum = GlobalConfig.UpdateLastCheckTime.AddMinutes(RGAT_CONSTANTS.NETWORK.UpdateCheckMinimumDelayMinutes);
+            DateTime nextCheckMinimum = GlobalConfig.Settings.Updates.UpdateLastCheckTime.AddMinutes(RGAT_CONSTANTS.NETWORK.UpdateCheckMinimumDelayMinutes);
             if (nextCheckMinimum > DateTime.Now)
             {
-                Logging.RecordLogEvent($"Not checking for updates, next check will be next time rgat is launched after {nextCheckMinimum}", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Not checking for updates, next check will be next time rgat is launched after {nextCheckMinimum.Humanize()}", Logging.LogFilterType.TextDebug);
                 return;
             }
 
@@ -52,8 +53,7 @@ namespace rgat
                     {
                         if (releaseTok.Type == JTokenType.Object && ((JObject)releaseTok).TryGetValue("name", out JToken releaseNameTok))
                         {
-                            string name = releaseNameTok.ToString();
-                            string[] parts = name.Split(" ");
+                            string[] parts = releaseNameTok.ToString().Split(" ");
                             if (parts.Length >= 1)
                             {
                                 Version releaseVersion = new Version(parts[0]);
@@ -67,7 +67,7 @@ namespace rgat
                         }
                     }
 
-                    if (newVersion && latestVersion > GlobalConfig.UpdateLastCheckVersion)
+                    if (newVersion && latestVersion > GlobalConfig.Settings.Updates.UpdateLastCheckVersion)
                     {
                         client = new System.Net.Http.HttpClient();
                         client.DefaultRequestHeaders.UserAgent.Add(versionHeader);
@@ -94,6 +94,7 @@ namespace rgat
                             }
                         }
                     }
+                    GlobalConfig.Settings.Updates.UpdateLastCheckTime = DateTime.Now;  
                 }
             }
             catch (Exception e)
@@ -178,7 +179,7 @@ namespace rgat
             versions = 0;
             if (TotalChanges == -1)
             {
-                string line = GlobalConfig.UpdateLastChanges;
+                string line = GlobalConfig.Settings.Updates.UpdateLastChanges;
                 if (line != null && line.Contains("####\n"))
                 {
                     line = line.Substring(0, line.IndexOf("####\n"));
@@ -207,10 +208,10 @@ namespace rgat
             ImGui.PushStyleColor(ImGuiCol.Text, 0xffffffff);
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xff000000);
             Version currentVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
-            Version newVersion = GlobalConfig.UpdateLastCheckVersion;
+            Version newVersion = GlobalConfig.Settings.Updates.UpdateLastCheckVersion;
             ImGui.Text($"Current Version: {currentVersion}. New Version: {newVersion}");
 
-            string[] changes = GlobalConfig.UpdateLastChanges.Split('\n');
+            string[] changes = GlobalConfig.Settings.Updates.UpdateLastChanges.Split('\n');
 
             if (ImGui.BeginTabBar("#ChangesTabs"))
             {

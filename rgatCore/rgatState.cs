@@ -53,27 +53,44 @@ namespace rgat
         {
             //todo - inner progress reporting based on signature count
             Logging.RecordLogEvent("Loading DiELib", Logging.LogFilterType.TextDebug);
-            try
+            string DiEscriptsDir = GlobalConfig.GetSettingPath("DiESigsDirectory");
+            if (Directory.Exists(DiEscriptsDir) || File.Exists(DiEscriptsDir))
             {
-                DIELib = new DetectItEasy(GlobalConfig.DiESigsPath);
-                Logging.RecordLogEvent("DiELib loaded", Logging.LogFilterType.TextDebug);
+                try
+                {
+                    DIELib = new DetectItEasy(DiEscriptsDir);
+                    Logging.RecordLogEvent("DiELib loaded", Logging.LogFilterType.TextDebug);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Failed to load DiELib.NET: {e.Message}");
+                }
             }
-            catch (Exception e)
+            else
             {
-                Logging.RecordError($"Failed to load DiELib.NET: {e.Message}");
+                Logging.RecordLogEvent($"Not loading DiE scripts: invalid path configured");
             }
 
             progress.Report(0.5f);
             Logging.RecordLogEvent("Loading YARA", Logging.LogFilterType.TextDebug);
 
-            try
+            string YARAscriptsDir = GlobalConfig.GetSettingPath("YaraRulesDirectory");
+            if (Directory.Exists(YARAscriptsDir))
             {
-                YARALib = new YARAScan(GlobalConfig.YARARulesDir);
+                try
+                {
+                    YARALib = new YARAScan(YARAscriptsDir);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Unable to load YARA: {e.Message}");
+                }
             }
-            catch (Exception e)
+            else
             {
-                Logging.RecordError($"Unable to load YARA: {e.Message}");
+                Logging.RecordLogEvent($"Not loading YARA rules: invalid directory configured");
             }
+
             if (YARALib != null)
             {
                 Logging.RecordLogEvent("YARA loaded", Logging.LogFilterType.TextDebug);

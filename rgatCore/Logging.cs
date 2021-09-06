@@ -219,13 +219,13 @@ namespace rgat
         public enum LogFilterType
         {
             //Uninteresting events which may be useful for debugging
-            TextDebug, 
+            TextDebug,
             //Events a user might want to know about if they check the logs
-            TextInfo, 
+            TextInfo,
             //Something bad happened. Alert the user
-            TextError, 
+            TextError,
             //Something interesting happened. Alert the user
-            TextAlert, 
+            TextAlert,
             //Something very common and routine happened. Log it to a file if bulk debug logging is enabled.
             BulkDebugLogFile, COUNT
         };
@@ -324,7 +324,7 @@ namespace rgat
 
             lock (_messagesLock)
             {
-                if (GlobalConfig.BulkLogging)
+                if (GlobalConfig.Settings.Logs.BulkLogging)
                 {
                     try
                     {
@@ -332,7 +332,7 @@ namespace rgat
                     }
                     catch (Exception e)
                     {
-                        GlobalConfig.BulkLogging = false;
+                        GlobalConfig.Settings.Logs.BulkLogging = false;
                         Logging.RecordLogEvent($"Error: Not able to write to bulk log file {e.Message}. Another rgat may be using it. Disabling bulk logging.");
                     }
                 }
@@ -379,13 +379,23 @@ namespace rgat
 
             if (_logFile == null)
             {
-                _logFile = System.IO.File.CreateText(System.IO.Path.Join(GlobalConfig.TraceSaveDirectory, "DebugLog.txt"));
-                _logFile.WriteLine($"Opened new rgat debug logfile at {DateTime.Now.ToLocalTime().ToLongDateString()}");
-                _logFile.WriteLine($"Uncheck bulk logging in settings->misc to disable this");
+                try
+                {
+                    _logFile = System.IO.File.CreateText(System.IO.Path.Join(GlobalConfig.GetSettingPath("TraceSaveDirectory"), "DebugLog.txt"));
+                    _logFile.WriteLine($"Opened new rgat debug logfile at {DateTime.Now.ToLocalTime().ToLongDateString()}");
+                    _logFile.WriteLine($"Uncheck bulk logging in settings->misc to disable this");
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Bulk log file cannot be created ({e}). Ensure Trace Save Directory is writable.");
+                    GlobalConfig.Settings.Logs.BulkLogging = false;
+                }
             }
-            _logFile.WriteLine($"{System.Threading.Thread.CurrentThread.Name}:{log.Trace?.PID}:{log._graph?.ThreadID}:{log._text}");
-            _logFile.Flush();
-
+            if (_logFile != null)
+            {
+                _logFile.WriteLine($"{System.Threading.Thread.CurrentThread.Name}:{log.Trace?.PID}:{log._graph?.ThreadID}:{log._text}");
+                _logFile.Flush();
+            }
         }
 
         public static LOG_EVENT[] GetErrorMessages()

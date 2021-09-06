@@ -67,7 +67,7 @@ namespace rgat.Widgets
                 _allTests.Clear();
                 _queuedTests.Clear();
 
-                string testspath = GlobalConfig.TestsDirectory;
+                string testspath = GlobalConfig.GetSettingPath("TestsDirectory");
                 if (!Directory.Exists(testspath)) return;
                 string[] dirs = Directory.GetDirectories(testspath)
                     .Select(x => Path.GetFileName(x))

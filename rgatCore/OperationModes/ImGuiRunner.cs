@@ -295,7 +295,7 @@ namespace rgat.OperationModes
             timerTotal.Start();
 
             float configProgress = 0, widgetProgress = 0;
-            void UpdateProgressConfWidgets() { _rgatUI.StartupProgress = currentUIProgress + 0.2 * configProgress + 0.5 * widgetProgress; };
+            void UpdateProgressConfWidgets() { _rgatUI.StartupProgress = Math.Max(_rgatUI.StartupProgress, currentUIProgress + 0.2 * configProgress + 0.5 * widgetProgress); };
             Progress<float> IProgressConfig = new Progress<float>(progress => { configProgress = progress; UpdateProgressConfWidgets(); });
             Progress<float> IProgressWidgets = new Progress<float>(progress => { widgetProgress = progress; UpdateProgressConfWidgets(); });
 
@@ -345,7 +345,7 @@ namespace rgat.OperationModes
                 apiTask = Task.Run(() => Console.WriteLine("TODO: linux API loading"));
             }
 
-            if (GlobalConfig.DoUpdateCheck)
+            if (GlobalConfig.Settings.Updates.DoUpdateCheck)
             {
                 _ = Task.Run(() => Updates.CheckForUpdates()); //functionality does not depend on this so we don't wait for it
             }
@@ -363,7 +363,7 @@ namespace rgat.OperationModes
 
         public void Exit()
         {
-            if (GlobalConfig.BulkLogging)
+            if (GlobalConfig.Settings.Logs.BulkLogging)
                 Logging.RecordLogEvent("rgat Exit() triggered", Logging.LogFilterType.BulkDebugLogFile);
 
             rgatState.Shutdown();

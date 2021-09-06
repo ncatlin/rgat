@@ -29,7 +29,7 @@ namespace rgat
 
             ctx = new YaraContext();
 
-            RefreshRules();
+            RefreshRules(rulesDir);
 
         }
 
@@ -87,13 +87,11 @@ namespace rgat
             YaraThread.Start(args);
         }
 
-        public void RefreshRules(bool forceRecompile = false)
+        public void RefreshRules(string rulesDir, bool forceRecompile = false)
         {
 
             //find precompiled rules files in the current directory of the form "[disk_|mem_][UINT]_.yarac"
-            string rulesDir = GlobalConfig.YARARulesDir;
             string[] filesList = Directory.GetFiles(rulesDir, "precompiled_rules*.yarac", SearchOption.TopDirectoryOnly);
-            Console.WriteLine("1");
             string compiledFile = null;
 
             //get the most recently modified disk_ and mem_ yarac files
@@ -127,9 +125,7 @@ namespace rgat
             {
                 try
                 {
-                    Console.WriteLine($"1312 {compiledFile}");
                     loadedRules = new CompiledRules(compiledFile);
-                    Console.WriteLine("1314");
                 }
                 catch (Exception e)
                 {

@@ -1621,8 +1621,8 @@ namespace rgat
         int _mouseoverNodeID = -1;
         /// <summary>
         /// Must hold read lock
-        //Check if the mouse position corresponds to a node ID in the picking texture
-        //If so - the mouse is over that nod
+        /// Check if the mouse position corresponds to a node ID in the picking texture
+        /// If so - the mouse is over that nod
         /// </summary>
         /// <param name="_gd"></param>
         void DoMouseNodePicking(GraphicsDevice _gd)

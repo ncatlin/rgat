@@ -120,13 +120,29 @@
             in their low energy position
             </summary>
         </member>
-        <member name="M:rgat.GlobalConfig.InitResponsiveKeys">
+        <member name="F:rgat.GlobalConfig.Settings">
             <summary>
-            Some keybinds we don't want to wait for the OS repeat detection (S........SSSSSSSSSSS) because it makes
-            things like graph movement and rotation clunky. Instead we read for their keypress every update instead
-            of listening for the key action
-            
-            Alt/Shift/Ctrl modifiers are reserved for these keys, so two different actions can't be bound to a key this way.
+            The main user-settings storage object which is serialised to settings.json
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig._settingsLock">
+            <summary>
+            UI/App related config
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.ResponsiveKeys">
+            <summary>
+            These keys trigger actions that need to be reacted to repeatedly and immediately (mainly graphical actions like rotation)
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.ResponsiveHeldActions">
+            <summary>
+            Keybinds triggered by responsive keys
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.StatisticsTimeAvgWindow">
+            <summary>
+            how many frame timing values to store for calculating UI performance statistics
             </summary>
         </member>
         <member name="F:rgat.Config.LaunchConfig.eRunMode.GUI">
@@ -168,6 +184,66 @@
         <member name="M:rgat.Config.LaunchConfig.SetRunMode">
             <summary>
             Work out what the user wants to do based on the arguments
+            </summary>
+        </member>
+        <member name="F:rgat.Config.rgatSettings.Inited">
+            <summary>
+            A flag used to prevent saving of the settings during the loading process
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.EnsureValidity">
+            <summary>
+            Perform some checks on the loaded config to try and make sure it won't crash the program
+            Adds any values that might have appeared in a new version
+            </summary>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.NetworkSettings">
+            <summary>
+            Connection settings for remote tracing
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.KeybindSettings.InitDefaultKeybinds">
+            <summary>
+            A set of standard keybinds for new installs
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.KeybindSettings.InitResponsiveKeys">
+            <summary>
+            Some keybinds we don't want to wait for the OS repeat detection (S........SSSSSSSSSSS) because it makes
+            things like graph movement and rotation clunky. Instead we read for their keypress every update instead
+            of listening for the key action
+            
+            Alt/Shift/Ctrl modifiers are reserved for these keys, so two different actions can't be bound to a key this way.
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.PathSettings.Paths">
+            <summary>
+            Filesystem locations containing things rgat needs (instrumentation tools, signatures, etc)
+            </summary>
+        </member>
+        <member name="F:rgat.Config.rgatSettings.PathSettings.BinaryValidationErrors">
+            <summary>
+            Errors such as bad signatures encountered while validating binaries used by rgat (pintools, etc).
+            </summary>
+        </member>
+        <member name="F:rgat.Config.rgatSettings.PathSettings._BinaryValidationErrorCache">
+            <summary>
+            BinaryValidationErrors stored in a faster data structure for access by the UI each frame
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.TracingSettings.ArgStorageMax">
+            <summary>
+            how many bytes back from an instruction to search for a symbol of the function it belongs to
+            </summary>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.MediaCaptureSettings">
+            <summary>
+            Video encoding and screenshot related config
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.CachedRecentPaths.RecentPaths">
+            <summary>
+            Filesystem locations the user has accessed (opened binaries, opened traces, filepicker directories)
             </summary>
         </member>
         <member name="F:rgat.RGAT_CONSTANTS.PROGRAMVERSION.PATCHNAME">
@@ -352,7 +428,17 @@
             </summary>
             <returns></returns>
         </member>
-        <!-- Badly formed XML comment ignored for member "M:rgat.PlottedGraph.GetNodeNeighbourDataOffsets" -->
+        <member name="M:rgat.PlottedGraph.GetNodeNeighbourDataOffsets">
+            <summary>
+            Lists the first and last+1 edge index that this node is connected to
+            usage:
+              selfedgei = edgeindices[index]
+              firstedge, endedge = selfedgei.x, selfedgei.y
+              uint neighbour = edgeData[firstedge to endedge-1];
+               nodePosition = positions[neighbour];
+            </summary>
+            <returns></returns>
+        </member>
         <member name="M:rgat.PlottedGraph.GetBlockRenderingMetadata">
             Creates an array of metadata for basic blocks used for basic-block-centric graph layout
         </member>
@@ -728,7 +814,14 @@
             must hold upgradable reader lock
             </summary>
         </member>
-        <!-- Badly formed XML comment ignored for member "M:rgat.GraphPlotWidget.DoMouseNodePicking(Veldrid.GraphicsDevice)" -->
+        <member name="M:rgat.GraphPlotWidget.DoMouseNodePicking(Veldrid.GraphicsDevice)">
+            <summary>
+            Must hold read lock
+            Check if the mouse position corresponds to a node ID in the picking texture
+            If so - the mouse is over that nod
+            </summary>
+            <param name="_gd"></param>
+        </member>
         <member name="M:rgat.PreviewGraphsWidget.CenterGraphInFrameStep(System.Single@,rgat.PlottedGraph)">
             <summary>
             Adjust the camera offset and zoom so that every node of the graph is in the frame

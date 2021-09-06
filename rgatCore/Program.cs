@@ -27,7 +27,7 @@ namespace ImGuiNET
 
             InitialSetup();
 
-            switch(GlobalConfig.StartOptions.RunMode)
+            switch (GlobalConfig.StartOptions.RunMode)
             {
                 case LaunchConfig.eRunMode.GUI:
                     ImGuiRunner Ui = new ImGuiRunner(_rgatState);
@@ -152,7 +152,7 @@ namespace ImGuiNET
 
                         if (!System.Net.IPAddress.TryParse(GlobalConfig.StartOptions.Interface, out System.Net.IPAddress address) ||
                             int.TryParse(GlobalConfig.StartOptions.Interface, out int ipInt) && ipInt > 0 && ipInt < 128)
-                        {                        
+                        {
                             //see if it matches a property from the interface list
                             GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(interfaceOption);
                             if (GlobalConfig.StartOptions.ActiveNetworkInterface == null)
@@ -172,30 +172,25 @@ namespace ImGuiNET
         {
             if (ffmpegopt == "")
             {
-                if (!GlobalConfig.GetAppSetting("FFmpegPath", out string configuredPath))
+                string fpmpath = GlobalConfig.GetSettingPath("FFmpegPath");
+
+                if (System.IO.File.Exists(fpmpath))
                 {
-                    Console.WriteLine($"The FFmpeg encoder is not configured. Supply a path to FFmpeg.exe with the -M option");
+                    Console.WriteLine($"The FFmpeg encoder is configured: '{fpmpath}'");
                 }
                 else
                 {
-                    if (System.IO.File.Exists(configuredPath))
-                    {
-                        Console.WriteLine($"The FFmpeg encoder is configured: '{configuredPath}'");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"The FFmpeg encoder is configured but does not exist: '{configuredPath}'");
-                    }
+                    Console.WriteLine($"The FFmpeg encoder is not correctly configured. Path: '{fpmpath}'");
                 }
+
                 exit = true;
             }
             else
             {
                 if (System.IO.File.Exists(ffmpegopt))
                 {
-                    GlobalConfig.FFmpegPath = ffmpegopt;
-                    GlobalConfig.AddUpdateAppSettings("FFmpegPath", ffmpegopt);
-                    Console.WriteLine($"The FFmpeg encoder is now set to ('{GlobalConfig.FFmpegPath}')");
+                    GlobalConfig.SetBinaryPath("FFmpegPath", ffmpegopt);
+                    Console.WriteLine($"The FFmpeg encoder is now set to ('{ffmpegopt}')");
                 }
                 else
                 {

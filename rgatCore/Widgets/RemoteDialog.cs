@@ -41,7 +41,7 @@ namespace rgat.Widgets
             if (addr != null) currentAddress = addr;
             else
             {
-                List<string> recentAddrs = GlobalConfig.RecentConnectedAddresses();
+                List<string> recentAddrs = GlobalConfig.Settings.Network.RecentConnectedAddresses();
                 if (recentAddrs.Any())
                     currentAddress = recentAddrs[0];
             }
@@ -52,9 +52,9 @@ namespace rgat.Widgets
         {
             if (GlobalConfig.StartOptions.NetworkKey == null || GlobalConfig.StartOptions.NetworkKey.Length == 0)
             {
-                if (GlobalConfig.DefaultNetworkKey != null && GlobalConfig.DefaultNetworkKey.Length > 0)
+                if (GlobalConfig.Settings.Network.DefaultNetworkKey != null && GlobalConfig.Settings.Network.DefaultNetworkKey.Length > 0)
                 {
-                    GlobalConfig.StartOptions.NetworkKey = GlobalConfig.DefaultNetworkKey;
+                    GlobalConfig.StartOptions.NetworkKey = GlobalConfig.Settings.Network.DefaultNetworkKey;
                 }
                 else
                 {
@@ -64,9 +64,9 @@ namespace rgat.Widgets
 
             if (GlobalConfig.StartOptions.ConnectModeAddress == null || GlobalConfig.StartOptions.ConnectModeAddress.Length == 0)
             {
-                if (GlobalConfig.DefaultHeadlessAddress != null && GlobalConfig.DefaultHeadlessAddress.Length > 0)
+                if (GlobalConfig.Settings.Network.DefaultHeadlessAddress != null && GlobalConfig.Settings.Network.DefaultHeadlessAddress.Length > 0)
                 {
-                    GlobalConfig.StartOptions.ConnectModeAddress = GlobalConfig.DefaultHeadlessAddress;
+                    GlobalConfig.StartOptions.ConnectModeAddress = GlobalConfig.Settings.Network.DefaultHeadlessAddress;
                     ListenMode = false;
                 }
             }
@@ -77,9 +77,9 @@ namespace rgat.Widgets
 
             if (GlobalConfig.StartOptions.ListenPort == null || GlobalConfig.StartOptions.ListenPort == -1)
             {
-                if (GlobalConfig.DefaultListenPort != -1)
+                if (GlobalConfig.Settings.Network.DefaultListenPort != -1)
                 {
-                    GlobalConfig.StartOptions.ListenPort = GlobalConfig.DefaultListenPort;
+                    GlobalConfig.StartOptions.ListenPort = GlobalConfig.Settings.Network.DefaultListenPort;
                     ListenMode = true;
                 }
             }
@@ -90,28 +90,26 @@ namespace rgat.Widgets
 
             if (GlobalConfig.StartOptions.Interface == null || GlobalConfig.StartOptions.Interface.Length == 0)
             {
-                if (GlobalConfig.DefaultListenModeIF != null && GlobalConfig.DefaultListenModeIF.Length > 0)
+                if (GlobalConfig.Settings.Network.DefaultListenModeIF != null && GlobalConfig.Settings.Network.DefaultListenModeIF.Length > 0)
                 {
-                    _listenIFID = GlobalConfig.DefaultListenModeIF;
+                    _listenIFID = GlobalConfig.Settings.Network.DefaultListenModeIF;
                 }
-                if (GlobalConfig.DefaultConnectModeIF != null && GlobalConfig.DefaultConnectModeIF.Length > 0)
+                if (GlobalConfig.Settings.Network.DefaultConnectModeIF != null && GlobalConfig.Settings.Network.DefaultConnectModeIF.Length > 0)
                 {
-                    _connectIFID = GlobalConfig.DefaultConnectModeIF;
+                    _connectIFID = GlobalConfig.Settings.Network.DefaultConnectModeIF;
                 }
             }
             else
             {
-                if (GlobalConfig.DefaultListenModeIF == null || GlobalConfig.DefaultListenModeIF.Length == 0)
+                if (GlobalConfig.Settings.Network.DefaultListenModeIF == null || GlobalConfig.Settings.Network.DefaultListenModeIF.Length == 0)
                 {
-                    GlobalConfig.DefaultListenModeIF = GlobalConfig.StartOptions.Interface;
-                    GlobalConfig.AddUpdateAppSettings("DefaultListenModeIF", GlobalConfig.DefaultListenModeIF);
-                    _listenIFID = GlobalConfig.DefaultListenModeIF;
+                    GlobalConfig.Settings.Network.DefaultListenModeIF = GlobalConfig.StartOptions.Interface;
+                    _listenIFID = GlobalConfig.Settings.Network.DefaultListenModeIF;
                 }
-                if (GlobalConfig.DefaultConnectModeIF == null || GlobalConfig.DefaultConnectModeIF.Length == 0)
+                if (GlobalConfig.Settings.Network.DefaultConnectModeIF == null || GlobalConfig.Settings.Network.DefaultConnectModeIF.Length == 0)
                 {
-                    GlobalConfig.DefaultConnectModeIF = GlobalConfig.StartOptions.Interface;
-                    GlobalConfig.AddUpdateAppSettings("DefaultConnectModeIF", GlobalConfig.DefaultConnectModeIF);
-                    _connectIFID = GlobalConfig.DefaultConnectModeIF;
+                    GlobalConfig.Settings.Network.DefaultConnectModeIF = GlobalConfig.StartOptions.Interface;
+                    _connectIFID = GlobalConfig.Settings.Network.DefaultConnectModeIF;
                 }
             }
 
@@ -149,9 +147,8 @@ namespace rgat.Widgets
                 newkey = newkey.Substring(0, RGAT_CONSTANTS.NETWORK.DefaultKeyLength);
                 break;
             }
-            GlobalConfig.DefaultNetworkKey = newkey;
+            GlobalConfig.Settings.Network.DefaultNetworkKey = newkey;
             GlobalConfig.StartOptions.NetworkKey = newkey;
-            GlobalConfig.AddUpdateAppSettings("DefaultNetworkKey", newkey);
         }
 
         public void Draw(ref bool window_shown_flag)
@@ -264,7 +261,7 @@ namespace rgat.Widgets
                         {
                             GlobalConfig.StartOptions.Interface = _connectIFID;
                             System.Threading.Tasks.Task.Run(() => runner.StartGUIConnect(rgatState.NetworkBridge, () => { runner.CompleteGUIConnection(); }));
-                            GlobalConfig.RecordRecentConnectAddress(GlobalConfig.StartOptions.ConnectModeAddress);
+                            GlobalConfig.Settings.Network.RecordRecentConnectAddress(GlobalConfig.StartOptions.ConnectModeAddress);
                         }
                     }
                 }
@@ -467,8 +464,7 @@ namespace rgat.Widgets
                 if (int.TryParse(portstr, out int outport))
                 {
                     GlobalConfig.StartOptions.ListenPort = outport;
-                    GlobalConfig.DefaultListenPort = outport;
-                    GlobalConfig.AddUpdateAppSettings("DefaultListenPort", portstr);
+                    GlobalConfig.Settings.Network.DefaultListenPort = outport;
                 }
             }
             SmallWidgets.MouseoverText("The TCP port to listen on, or 0 to choose a random port");
@@ -510,13 +506,11 @@ namespace rgat.Widgets
                             if (ListenMode)
                             {
                                 _listenIFID = "";
-                                GlobalConfig.AddUpdateAppSettings("DefaultListenModeIF", _listenIFID);
                                 GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(_listenIFID);
                             }
                             else 
                             { 
                                 _connectIFID = "";
-                                GlobalConfig.AddUpdateAppSettings("DefaultConnectModeIF", _connectIFID);
                                 GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(_connectIFID);
                             }
                         }
@@ -525,13 +519,11 @@ namespace rgat.Widgets
                             if (ListenMode)
                             {
                                 _listenIFID = iface.Id;
-                                GlobalConfig.AddUpdateAppSettings("DefaultListenModeIF", _listenIFID);
                                 GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(_listenIFID);
                             }
                             else
                             {
                                 _connectIFID = iface.Id;
-                                GlobalConfig.AddUpdateAppSettings("DefaultConnectModeIF", _connectIFID);
                                 GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(_connectIFID);
                             }
                         }
@@ -622,7 +614,7 @@ namespace rgat.Widgets
                 ImGui.PushAllowKeyboardFocus(false);
 
                 int numHints = 0;
-                List<string> recentAddrs = GlobalConfig.RecentConnectedAddresses(); //todo cache
+                List<string> recentAddrs = GlobalConfig.Settings.Network.RecentConnectedAddresses(); //todo cache
                 foreach (string address in recentAddrs)
                 {
                     ImGui.Selectable(address + "##" + numHints.ToString());
@@ -656,8 +648,7 @@ namespace rgat.Widgets
         void SelectRemoteAddress(string address)
         {
             GlobalConfig.StartOptions.ConnectModeAddress = currentAddress;
-            GlobalConfig.DefaultHeadlessAddress = currentAddress;
-            GlobalConfig.AddUpdateAppSettings("DefaultHeadlessAddress", currentAddress);
+            GlobalConfig.Settings.Network.DefaultHeadlessAddress = currentAddress;
         }
 
 

@@ -690,7 +690,7 @@ namespace rgat.Threads
             newRepeat.targEdges = new List<Tuple<uint, ulong>>();
             newRepeat.targExternEdges = null;
 
-            if (GlobalConfig.BulkLogging)
+            if (GlobalConfig.Settings.Logs.BulkLogging)
             {
                 Logging.RecordLogEvent($"Processing AddExecCountUpdate block {newRepeat.blockID}",
                     trace: protograph.TraceData,
@@ -722,7 +722,7 @@ namespace rgat.Threads
                 }
                 blockExecs += edgeExecCount;
 
-                if (GlobalConfig.BulkLogging)
+                if (GlobalConfig.Settings.Logs.BulkLogging)
                 {
                     Logging.RecordLogEvent($"\t +targ {targBlock}x{edgeExecCount}",
                         trace: protograph.TraceData,

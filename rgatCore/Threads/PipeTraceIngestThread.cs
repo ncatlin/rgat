@@ -12,7 +12,7 @@ namespace rgat
 {
     public class PipeTraceIngestThread : TraceIngestWorker
     {
-        uint TraceBufSize = GlobalConfig.TraceBufferSize;
+        uint TraceBufSize = GlobalConfig.Settings.Tracing.TraceBufferSize;
         ProtoGraph protograph;
         NamedPipeServerStream threadpipe;
         Thread splittingThread;
@@ -36,7 +36,7 @@ namespace rgat
         {
             Debug.Assert(newProtoGraph == null || newProtoGraph.ThreadID == threadID);
             _threadID = threadID;
-            TraceBufSize = GlobalConfig.TraceBufferSize;
+            TraceBufSize = GlobalConfig.Settings.Tracing.TraceBufferSize;
             protograph = newProtoGraph;
             threadpipe = _threadpipe;
             ReadingQueue = FirstQueue;
@@ -114,7 +114,7 @@ namespace rgat
         {
             lock (QueueSwitchLock)
             {
-                if (WritingQueue.Count < GlobalConfig.TraceBufferSize)
+                if (WritingQueue.Count < GlobalConfig.Settings.Tracing.TraceBufferSize)
                 {
                     WritingQueue.Add(datamsg);
                     QueueSize += 1;
@@ -132,8 +132,8 @@ namespace rgat
             do
             {
                 Thread.Sleep(1000);
-                Console.WriteLine($"Trace queue has {WritingQueue.Count}/{GlobalConfig.TraceBufferSize} items");
-                if (WritingQueue.Count < (GlobalConfig.TraceBufferSize / 2))
+                Console.WriteLine($"Trace queue has {WritingQueue.Count}/{GlobalConfig.Settings.Tracing.TraceBufferSize} items");
+                if (WritingQueue.Count < (GlobalConfig.Settings.Tracing.TraceBufferSize / 2))
                 {
                     Console.WriteLine("Resuming ingest...");
                     break;

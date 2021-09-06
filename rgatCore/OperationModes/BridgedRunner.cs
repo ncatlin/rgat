@@ -60,7 +60,7 @@ namespace rgat.OperationModes
             if (GlobalConfig.NewVersionAvailable)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"A new version of rgat is available! ({RGAT_CONSTANTS.RGAT_VERSION} -> {GlobalConfig.UpdateLastCheckVersion})");
+                Console.WriteLine($"A new version of rgat is available! ({RGAT_CONSTANTS.RGAT_VERSION} -> {GlobalConfig.Settings.Updates.UpdateLastCheckVersion})");
                 Console.ForegroundColor = ConsoleColor.White;
             }
 
@@ -409,7 +409,8 @@ namespace rgat.OperationModes
             switch (actualCmd)
             {
                 case "GetRecentBinaries":
-                    rgatState.NetworkBridge.SendResponseObject(cmdID, GlobalConfig.RecentBinaries);
+                    rgatSettings.PathRecord[] recentPaths = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Binary);
+                    rgatState.NetworkBridge.SendResponseObject(cmdID, recentPaths);
                     break;
                 case "DirectoryInfo":
                     rgatState.NetworkBridge.SendResponseJSON(cmdID, GetDirectoryInfo(paramfield));
@@ -443,7 +444,7 @@ namespace rgat.OperationModes
             string path = paramfield.Substring(0, testIdIdx);
             long testID = long.Parse(paramfield.Substring(testIdIdx + 1));
             BinaryTarget target = rgatState.targets.AddTargetByPath(path);
-            string pintool = target.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
+            string pintool = target.BitWidth == 32 ? GlobalConfig.GetSettingPath("PinToolPath32") : GlobalConfig.GetSettingPath("PinToolPath64");
 
             Process p = ProcessLaunching.StartLocalTrace(pintool, path, target.PEFileObj, testID: testID);
             if (p != null)

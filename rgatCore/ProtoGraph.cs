@@ -378,7 +378,7 @@ namespace rgat
 
         private bool RunExternal(ulong targaddr, ulong repeats, out Tuple<uint, uint>? resultPair)
         {
-            if (GlobalConfig.BulkLogging)
+            if (GlobalConfig.Settings.Logs.BulkLogging)
             {
                 Logging.RecordLogEvent($"RunExternal: targaddr:0x{targaddr:X} repeats:{repeats}, lastvid:{ProtoLastVertID}, lastlast:{ProtoLastLastVertID}", Logging.LogFilterType.BulkDebugLogFile);
             }
@@ -588,10 +588,10 @@ namespace rgat
                     NodeData functionNode = safe_get_node(threadCalls[i].Item2);
 
                     //each node can only have a certain number of arguments to prevent simple denial of service
-                    if (functionNode.callRecordsIndexs.Count >= GlobalConfig.ArgStorageMax)
+                    if (functionNode.callRecordsIndexs.Count >= GlobalConfig.Settings.Tracing.ArgStorageMax)
                     {
                         //todo: blacklist this callee from future processing
-                        Console.WriteLine($"Warning, dropping args to extern 0x{currentTarget:X} because the storage limit is {GlobalConfig.ArgStorageMax}");
+                        Console.WriteLine($"Warning, dropping args to extern 0x{currentTarget:X} because the storage limit is {GlobalConfig.Settings.Tracing.ArgStorageMax}");
                     }
                     else
                     {
@@ -996,7 +996,7 @@ namespace rgat
             List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
             int numInstructions = block.Count;
 
-            if (GlobalConfig.BulkLogging)
+            if (GlobalConfig.Settings.Logs.BulkLogging)
             {
                 Logging.RecordLogEvent(
                     $"Adding block {blockID}:0x{block[0].address:X} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}",

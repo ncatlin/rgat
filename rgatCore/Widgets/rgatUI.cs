@@ -167,11 +167,18 @@ namespace rgat
         // keep checking the files in the loading panes so we can highlight if they are deleted (or appear)
         void CheckMissingPaths()
         {
-            foreach (var path in GlobalConfig.RecentBinaries.Concat(GlobalConfig.RecentTraces))
+
+            rgatSettings.PathRecord[] recentBins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Binary);
+            rgatSettings.PathRecord[] recentTraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Trace);
+            List<rgatSettings.PathRecord[]> allRecent = new List<rgatSettings.PathRecord[]>() { recentBins, recentTraces };
+            foreach (var pathList in allRecent)
             {
-                if (!_missingPaths.Contains(path.path) && !File.Exists(path.path))
+                foreach (var path in pathList)
                 {
-                    _missingPaths.Add(path.path);
+                    if (!_missingPaths.Contains(path.Path) && !File.Exists(path.Path))
+                    {
+                        _missingPaths.Add(path.Path);
+                    }
                 }
             }
         }
@@ -393,13 +400,13 @@ namespace rgat
                                 break;
                             default:
                                 _SettingsMenu.AssignPendingKeybind(KeyModifierTuple);
-                                Logging.RecordError($"Known keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}");
+                                Logging.RecordLogEvent($"Known keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}", LogFilterType.TextDebug);
                                 continue;
                         }
                     }
 
 
-                    bool isKeybind = GlobalConfig.Keybinds.TryGetValue(KeyModifierTuple, out eKeybind boundAction);
+                    bool isKeybind = GlobalConfig.Settings.Keybinds.Active.TryGetValue(KeyModifierTuple, out eKeybind boundAction);
                     if (isKeybind)
                     {
                         //cancel any open dialogs
@@ -556,20 +563,20 @@ namespace rgat
 
 
 
-        bool DrawRecentPathEntry(GlobalConfig.CachedPathData pathdata, bool menu)
+        bool DrawRecentPathEntry(rgatSettings.PathRecord pathdata, bool menu)
         {
 
-            string pathshort = pathdata.path;
-            bool isMissing = _missingPaths.Contains(pathdata.path);
-            bool isBad = _badPaths.Contains(pathdata.path);
+            string pathshort = pathdata.Path;
+            bool isMissing = _missingPaths.Contains(pathdata.Path);
+            bool isBad = _badPaths.Contains(pathdata.Path);
 
-            if (pathdata.path.ToLower().EndsWith(".rgat"))
+            if (pathdata.Path.ToLower().EndsWith(".rgat"))
             {
                 int dateIdx = pathshort.LastIndexOf("__");
                 if (dateIdx > 0)
                     pathshort = pathshort.Substring(0, dateIdx);
             }
-            string agoText = $" ({pathdata.lastSeen.Humanize()})";
+            string agoText = $" ({pathdata.LastOpen.Humanize()})";
             if (ImGui.CalcTextSize(pathshort + agoText).X > ImGui.GetContentRegionAvail().X)
             {
                 if (pathshort.Length > 50)
@@ -605,10 +612,10 @@ namespace rgat
                 }
                 ImGui.BeginTooltip();
                 ImGui.Indent(5);
-                ImGui.Text($"{pathdata.path}");
-                ImGui.Text($"Most recently opened {pathdata.lastSeen.Humanize()}");
-                ImGui.Text($"First opened {pathdata.firstSeen.Humanize()}");
-                ImGui.Text($"Has been loaded {pathdata.count} times.");
+                ImGui.Text($"{pathdata.Path}");
+                ImGui.Text($"Most recently opened {pathdata.LastOpen.Humanize()}");
+                ImGui.Text($"First opened {pathdata.FirstOpen.Humanize()}");
+                ImGui.Text($"Has been loaded {pathdata.OpenCount} times.");
                 if (isMissing)
                 {
                     ImGui.Text($"-------Not Found-------");
@@ -657,24 +664,25 @@ namespace rgat
             if (ImGui.BeginMenu("Target"))
             {
                 if (ImGui.MenuItem("Select Target Executable")) { ToggleLoadExeWindow(); }
-                var recentbins = GlobalConfig.RecentBinaries;
+                var recentbins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Binary);
                 if (ImGui.BeginMenu("Recent Binaries", recentbins.Any()))
                 {
                     foreach (var entry in recentbins.Take(Math.Min(10, recentbins.Length)))
                     {
                         if (DrawRecentPathEntry(entry, true))
                         {
-                            LoadSelectedBinary(entry.path, rgatState.ConnectedToRemote);
+                            LoadSelectedBinary(entry.Path, rgatState.ConnectedToRemote);
                         }
                     }
                     ImGui.EndMenu();
                 }
-                var recenttraces = GlobalConfig.RecentTraces;
+
+                var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Trace);
                 if (ImGui.BeginMenu("Recent Traces", recenttraces.Any()))
                 {
                     foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Length)))
                     {
-                        if (DrawRecentPathEntry(entry, true)) LoadTraceByPath(entry.path);
+                        if (DrawRecentPathEntry(entry, true)) LoadTraceByPath(entry.Path);
                     }
                     ImGui.EndMenu();
                 }
@@ -788,7 +796,7 @@ namespace rgat
             }
 
             double animationProgress = progress * UI.SCREENSHOT_ANIMATION_RECT_SPEED;
-            if (GlobalConfig.ScreencapAnimation && animationProgress < 1)
+            if (GlobalConfig.Settings.UI.ScreencapAnimation && animationProgress < 1)
             {
                 Vector2? rectSize, startCenter;
                 switch (_lastScreenShot)
@@ -1014,7 +1022,7 @@ namespace rgat
             ActivateNotification();
 
             Vector2 originalCursorPos = ImGui.GetCursorScreenPos();
-            if (GlobalConfig.AlertAnimation && timeSinceLast < UI.ALERT_CIRCLE_ANIMATION_TIME)
+            if (GlobalConfig.Settings.UI.AlertAnimation && timeSinceLast < UI.ALERT_CIRCLE_ANIMATION_TIME)
             {
                 uint color = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.Text)).ToUint(150);
                 float radius = (float)(UI.ALERT_CIRCLE_ANIMATION_RADIUS * (1 - (timeSinceLast / UI.ALERT_CIRCLE_ANIMATION_TIME)));
@@ -1243,7 +1251,7 @@ namespace rgat
                 }
                 else
                 {
-                    GlobalConfig.RecordRecentPath(path, GlobalConfig.eRecentPathType.Binary);
+                    GlobalConfig.Settings.RecentPaths.RecordRecentPath(rgatSettings.eRecentPathType.Binary, path);
                     _rgatState.AddTargetByPath(path);
                 }
             }
@@ -1321,7 +1329,7 @@ namespace rgat
                 Logging.RecordError($"Failed to load invalid trace: {filepath}");
                 return false;
             }
-            GlobalConfig.RecordRecentPath(filepath, GlobalConfig.eRecentPathType.Trace);
+            GlobalConfig.Settings.RecentPaths.RecordRecentPath(rgatSettings.eRecentPathType.Trace, filepath);
 
             BinaryTarget target = trace.binaryTarg;
 
@@ -1359,7 +1367,7 @@ namespace rgat
 
             if (ImGui.BeginPopupModal("Select Trace File", ref shown, ImGuiWindowFlags.NoScrollbar))
             {
-                string savedir = GlobalConfig.TraceSaveDirectory;
+                string savedir = GlobalConfig.GetSettingPath("TraceSaveDirectory");
                 if (!Directory.Exists(savedir)) savedir = Environment.CurrentDirectory;
                 var picker = rgatFilePicker.FilePicker.GetFilePicker(this, savedir);
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);

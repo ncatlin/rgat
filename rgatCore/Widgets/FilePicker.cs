@@ -1234,17 +1234,17 @@ namespace rgatFilePicker
                     ImGui.TableHeadersRow();
                     ImGui.PopStyleColor(2);
 
-                    var recentDirs = GlobalConfig.RecentDirectories;
+                    var recentDirs = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Directory);
                     foreach (var dir in recentDirs)
                     {
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        string label = Path.GetFileName(dir.path);
+                        string label = Path.GetFileName(dir.Path);
                         if (ImGui.Selectable(label, false, ImGuiSelectableFlags.SpanAllColumns))
                         {
-                            SetActiveDirectory(dir.path);
+                            SetActiveDirectory(dir.Path);
                         }
-                        SmallWidgets.MouseoverText(dir.path);
+                        SmallWidgets.MouseoverText(dir.Path);
                     }
                     ImGui.EndTable();
                 }

@@ -266,7 +266,7 @@ namespace rgat
             else
             {
                 //search back from the instruction to try and find symbol of a function it may (or may not) be part of
-                ulong searchLimit = Math.Min(GlobalConfig.SymbolSearchDistance, address);
+                ulong searchLimit = Math.Min(GlobalConfig.Settings.Tracing.SymbolSearchDistance, address);
                 for (ulong symOffset = 0; symOffset < searchLimit; symOffset++)
                 {
                     if (graph.ProcessData.GetSymbol(GlobalModuleID, address - symOffset, out symbolText))
@@ -351,7 +351,7 @@ namespace rgat
             if (!graph.ProcessData.GetSymbol(GlobalModuleID, address, out symbolText))
             {                
                 //search back from the instruction to try and find symbol of a function it may (or may not) be part of
-                ulong searchLimit = Math.Min(GlobalConfig.SymbolSearchDistance, address);
+                ulong searchLimit = Math.Min(GlobalConfig.Settings.Tracing.SymbolSearchDistance, address);
                 for (ulong symOffset = 0; symOffset < searchLimit; symOffset++)
                 {
                     if (graph.ProcessData.GetSymbol(GlobalModuleID, address - symOffset, out symbolText))

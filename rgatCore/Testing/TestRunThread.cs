@@ -46,7 +46,7 @@ namespace rgat.Testing
 
             Console.WriteLine($"Starting test process {_testCase.BinaryPath} test id {_thisTest.TestID}");
 
-            string pintool = _testCase.TestBits == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
+            string pintool = _testCase.TestBits == 32 ? GlobalConfig.GetSettingPath("PinToolPath32") : GlobalConfig.GetSettingPath("PinToolPath64");
             System.Diagnostics.Process testProcess = ProcessLaunching.StartLocalTrace(pintool, _testCase.BinaryPath, testID: _thisTest.TestID);
             if (testProcess != null)
             {

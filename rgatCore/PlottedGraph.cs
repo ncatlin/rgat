@@ -844,8 +844,8 @@ namespace rgat
         /// usage:
         ///   selfedgei = edgeindices[index]
         ///   firstedge, endedge = selfedgei.x, selfedgei.y
-        //	  uint neighbour = edgeData[firstedge to endedge-1];
-        //    nodePosition = positions[neighbour];
+        ///	  uint neighbour = edgeData[firstedge to endedge-1];
+        ///    nodePosition = positions[neighbour];
         /// </summary>
         /// <returns></returns>
         public unsafe int[] GetNodeNeighbourDataOffsets()

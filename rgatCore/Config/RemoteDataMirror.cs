@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using static rgat.Config.rgatSettings;
 using static rgat.GlobalConfig;
 
 namespace rgat.Config
@@ -131,8 +132,8 @@ namespace rgat.Config
 
         // file info
 
-        static List<CachedPathData> _cachedRecentBins = new List<CachedPathData>();
-        public static void SetRecentPaths(List<CachedPathData> entries)
+        static List<PathRecord> _cachedRecentBins = new List<PathRecord>();
+        public static void SetRecentPaths(List<PathRecord> entries)
         {
             lock (_lock)
             {
@@ -148,14 +149,14 @@ namespace rgat.Config
                 return false;
             }
 
-            List<GlobalConfig.CachedPathData> recentbins = new List<GlobalConfig.CachedPathData>();
+            List<PathRecord> recentbins = new List<PathRecord>();
 
             JArray bintoks = dataTok.ToObject<JArray>();
             foreach (JToken recentbinTok in bintoks)
             {
                 if (recentbinTok.Type != JTokenType.Object)
                 {
-                    Logging.RecordLogEvent("HandleRecentBinariesList: Bad CachedPathData", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent("HandleRecentBinariesList: Bad PathRecord", Logging.LogFilterType.TextError);
                     return false;
                 }
                 JObject binJsn = recentbinTok.ToObject<JObject>();
@@ -171,11 +172,11 @@ namespace rgat.Config
                     return false;
                 }
 
-                GlobalConfig.CachedPathData newEntry = new GlobalConfig.CachedPathData();
-                newEntry.path = prop1.ToString();
-                newEntry.firstSeen = prop2.ToObject<DateTime>();
-                newEntry.lastSeen = prop3.ToObject<DateTime>();
-                newEntry.count = prop4.ToObject<uint>();
+                PathRecord newEntry = new PathRecord();
+                newEntry.Path = prop1.ToString();
+                newEntry.FirstOpen = prop2.ToObject<DateTime>();
+                newEntry.LastOpen = prop3.ToObject<DateTime>();
+                newEntry.OpenCount = prop4.ToObject<uint>();
                 recentbins.Add(newEntry);
             }
 
@@ -185,7 +186,7 @@ namespace rgat.Config
 
 
 
-        public static CachedPathData[] GetRecentBins()
+        public static PathRecord[] GetRecentBins()
         {
             lock (_lock)
             {

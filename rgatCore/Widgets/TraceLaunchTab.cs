@@ -495,7 +495,7 @@ namespace rgat
                 ImGui.InputText("##cmdline", _dataInput, 1024);
                 ImGui.PopStyleColor();
 
-                string pintoolpath = activeTarget.BitWidth == 32 ? GlobalConfig.PinToolPath32 : GlobalConfig.PinToolPath64;
+                string pintoolpath = activeTarget.BitWidth == 32 ? GlobalConfig.GetSettingPath("PinToolPath32") : GlobalConfig.GetSettingPath("PinToolPath64");
 
 
                 bool runnable = _activeTargetRunnable;
@@ -562,9 +562,10 @@ namespace rgat
                     }
                 }
 
-                if (GlobalConfig.BadSigners(out List<Tuple<string, string>> issues))
+                if (GlobalConfig.Settings.ToolPaths.BadSigners(out List<Tuple<string, string>> issues))
                 {
-                    issues = issues.Where(i => (i.Item1 == pintoolpath || i.Item1 == GlobalConfig.PinPath)).ToList();
+                    string pinpath = GlobalConfig.GetSettingPath("PinPath");
+                    issues = issues.Where(i => (i.Item1 == pintoolpath || i.Item1 == pinpath)).ToList();
                     if (issues.Any())
                     {
                         //todo: be more specific on tooltip, but prevent a potential errordictionary reading race condition
@@ -668,7 +669,7 @@ namespace rgat
                     }
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
-                        rgatState.DIELib.ReloadDIEScripts(GlobalConfig.DiESigsPath);
+                        rgatState.DIELib.ReloadDIEScripts(GlobalConfig.GetSettingPath("DiESigsDirectory"));
                         if (rgatState.DIELib.ScriptsLoaded)
                             rgatState.DIELib.StartDetectItEasyScan(activeTarget);
                     }
@@ -749,7 +750,7 @@ namespace rgat
             }
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
-                rgatState.YARALib.RefreshRules(forceRecompile: true);
+                rgatState.YARALib.RefreshRules(GlobalConfig.GetSettingPath("YaraRulesDirectory"), forceRecompile: true);
                 if (rgatState.YARALib.LoadedRuleCount() > 0)
                     rgatState.YARALib.StartYARATargetScan(activeTarget);
             }

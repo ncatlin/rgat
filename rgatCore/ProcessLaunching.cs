@@ -68,7 +68,7 @@ namespace rgat
 
         public static System.Diagnostics.Process StartLocalTrace(string pintool, string targetBinary, PeNet.PeFile targetPE = null, string loaderName = null, int ordinal = 0, long testID = -1)
         {
-            if(!File.Exists(GlobalConfig.PinPath))
+            if(!File.Exists(GlobalConfig.GetSettingPath("PinPath")))
             {
                 Logging.RecordError($"Pin.exe path is not correctly configured (Settings->Files->Pin Executable)");
                 return null;
@@ -147,8 +147,9 @@ namespace rgat
 
             try
             {
-                Logging.RecordLogEvent($"Launching DLL trace: {GlobalConfig.PinPath} {runargs}", Logging.LogFilterType.TextDebug);
-                result = System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
+                string pinpath = GlobalConfig.GetSettingPath("PinPath");
+                Logging.RecordLogEvent($"Launching DLL trace: {pinpath} {runargs}", Logging.LogFilterType.TextDebug);
+                result = System.Diagnostics.Process.Start(pinpath, runargs);
             }
             catch (Exception e)
             {
@@ -170,8 +171,9 @@ namespace rgat
 
             try
             {
-                Logging.RecordLogEvent($"Launching EXE trace: {GlobalConfig.PinPath} {runargs}", Logging.LogFilterType.TextDebug);
-                result = System.Diagnostics.Process.Start(GlobalConfig.PinPath, runargs);
+                string pinpath = GlobalConfig.GetSettingPath("PinPath");
+                Logging.RecordLogEvent($"Launching EXE trace: {pinpath} {runargs}", Logging.LogFilterType.TextDebug);
+                result = System.Diagnostics.Process.Start(pinpath, runargs);
             }
             catch (Exception e)
             {

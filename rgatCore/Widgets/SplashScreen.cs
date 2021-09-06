@@ -14,17 +14,22 @@ namespace rgat
 
         void DrawStartSplash()
         {
+
+            var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Trace);
+
+
             if (rgatState.NetworkBridge != null && rgatState.ConnectedToRemote)
             {
-                DrawSplash(RemoteDataMirror.GetRecentBins(), GlobalConfig.RecentTraces);
+                DrawSplash(RemoteDataMirror.GetRecentBins(), recenttraces);
             }
             else
             {
-                DrawSplash(GlobalConfig.RecentBinaries, GlobalConfig.RecentTraces);
+                var recentbins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Binary);
+                DrawSplash(recentbins, recenttraces);
             }
         }
 
-        void DrawSplash(GlobalConfig.CachedPathData[] recentBins, GlobalConfig.CachedPathData[] recentTraces)
+        void DrawSplash(rgatSettings.PathRecord[] recentBins, rgatSettings.PathRecord[] recentTraces)
         {
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
@@ -125,17 +130,17 @@ namespace rgat
                             ImGui.TableNextColumn();
                             if (DrawRecentPathEntry(entry, false))
                             {
-                                if (File.Exists(entry.path))
+                                if (File.Exists(entry.Path))
                                 {
-                                    if (!LoadSelectedBinary(entry.path, rgatState.ConnectedToRemote) && !_badPaths.Contains(entry.path))
+                                    if (!LoadSelectedBinary(entry.Path, rgatState.ConnectedToRemote) && !_badPaths.Contains(entry.Path))
                                     {
-                                        _badPaths.Add(entry.path);
+                                        _badPaths.Add(entry.Path);
                                     }
                                 }
-                                else if (!_missingPaths.Contains(entry.path))
+                                else if (!_missingPaths.Contains(entry.Path))
                                 {
                                     _scheduleMissingPathCheck = true;
-                                    _missingPaths.Add(entry.path);
+                                    _missingPaths.Add(entry.Path);
                                 }
                             }
                         }
@@ -204,17 +209,17 @@ namespace rgat
                             ImGui.TableNextColumn();
                             if (DrawRecentPathEntry(entry, false))
                             {
-                                if (File.Exists(entry.path))
+                                if (File.Exists(entry.Path))
                                 {
-                                    if (!LoadTraceByPath(entry.path) && !_badPaths.Contains(entry.path))
+                                    if (!LoadTraceByPath(entry.Path) && !_badPaths.Contains(entry.Path))
                                     {
-                                        _badPaths.Add(entry.path);
+                                        _badPaths.Add(entry.Path);
                                     }
                                 }
-                                else if (!_missingPaths.Contains(entry.path))
+                                else if (!_missingPaths.Contains(entry.Path))
                                 {
                                     _scheduleMissingPathCheck = true;
-                                    _missingPaths.Add(entry.path);
+                                    _missingPaths.Add(entry.Path);
                                 }
                             }
                         }
@@ -235,7 +240,7 @@ namespace rgat
             ImGui.Text(versionString);
 
             Version currentVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
-            Version newVersion = GlobalConfig.UpdateLastCheckVersion;
+            Version newVersion = GlobalConfig.Settings.Updates.UpdateLastCheckVersion;
             if (GlobalConfig.NewVersionAvailable)
             {
                 string updateString;

@@ -34,8 +34,8 @@ namespace rgat.Widgets
 
             settingTips["TraceSaveDirectory"] = "The directory where trace save files (.rgat) are stored";
             settingTips["TestsDirectory"] = "The directory where rgat development tests are stored. These can be downloaded from [todo]";
-            settingTips["DiESigsPath"] = "The directory containing Detect It Easy signature scripts for file and memory scanning";
-            settingTips["YaraRulesPath"] = "The directory containing YARA rules for file and memory scanning";
+            settingTips["DiESigsDirectory"] = "The directory containing Detect It Easy signature scripts for file and memory scanning";
+            settingTips["YaraRulesDirectory"] = "The directory containing YARA rules for file and memory scanning";
             settingTips["MediaCapturePath"] = "The directory where videos recordings and images are saved";
         }
 
@@ -64,7 +64,7 @@ namespace rgat.Widgets
 
         public void AssignPendingKeybind(Tuple<Key, ModifierKeys> keybind)
         {
-            GlobalConfig.SetKeybind(_pendingKeybind.action, _pendingKeybind.bindIndex, keybind.Item1, keybind.Item2, true);
+            GlobalConfig.Settings.Keybinds.SetKeybind(_pendingKeybind.action, _pendingKeybind.bindIndex, keybind.Item1, keybind.Item2, true);
             _pendingKeybind.active = false;
         }
 
@@ -156,8 +156,6 @@ namespace rgat.Widgets
             optionsSelectStates[(int)eSettingsCategory.eUITheme] = true;
             optionsSelectStates[(int)eSettingsCategory.eVideoEncode] = false;
             optionsSelectStates[(int)eSettingsCategory.eMisc] = false;
-
-            GlobalConfig.InitSignatureSources();
         }
 
         void DeclareError(string msg, long MSDuration = 5500)
@@ -307,7 +305,7 @@ namespace rgat.Widgets
 
                                 ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
 
-                                GlobalConfig.SignatureSource[] sources = GlobalConfig.GetSignatureSources();
+                                GlobalConfig.SignatureSource[] sources = GlobalConfig.Settings.Signatures.GetSignatureSources();
                                 bool[] selectedStates = sources.Select(source => _selectedRepos.Contains(source.FetchPath)).ToArray();
                                 bool allSigsSelected = !Array.Exists<bool>(selectedStates, x => x == false);
 
@@ -651,8 +649,8 @@ namespace rgat.Widgets
                                 }
                             }
 
-                            string githubPath = GlobalConfig.RepoComponentsToPath(currentOrg, currentRepo, currentDirectory);
-                            validRepo = validRepo && !GlobalConfig.RepoExists(githubPath);
+                            string githubPath = GlobalConfig.SignatureSource.RepoComponentsToPath(currentOrg, currentRepo, currentDirectory);
+                            validRepo = validRepo && !GlobalConfig.Settings.Signatures.RepoExists(githubPath);
                             if (validRepo)
                             {
                                 GlobalConfig.SignatureSource src = new GlobalConfig.SignatureSource()
@@ -660,7 +658,6 @@ namespace rgat.Widgets
                                     OrgName = currentOrg,
                                     RepoName = currentRepo,
                                     SubDir = currentDirectory,
-                                    FetchPath = githubPath,
                                     LastCheck = DateTime.MinValue,
                                     LastUpdate = DateTime.MinValue,
                                     LastFetch = DateTime.MinValue,
@@ -728,31 +725,28 @@ namespace rgat.Widgets
         {
             foreach (string path in sources)
             {
-                GlobalConfig.SignatureSource? source = GlobalConfig.GetSignatureRepo(path);
-                if (source.HasValue)
+                GlobalConfig.SignatureSource source = GlobalConfig.Settings.Signatures.GetSignatureRepo(path);
+                if (source == null) continue;
+                if (source.SignatureType == eSignatureType.DIE)
                 {
-                    if (source!.Value.SignatureType == eSignatureType.DIE)
-                    {
-                        Logging.RecordError("The DetectItEasy repo cannot be deleted from the UI because there is no way of re-adding it from the UI");
-                    }
-                    else
-                    {
-                        _githubSigDownloader.PurgeRepoFiles(source.Value);
-                        GlobalConfig.DeleteSignatureSource(path);
-                    }
+                    Logging.RecordError("The DetectItEasy repo cannot be deleted from the UI because there is no way of re-adding it from the UI");
+                }
+                else
+                {
+                    _githubSigDownloader.PurgeRepoFiles(source);
+                    GlobalConfig.Settings.Signatures.DeleteSignatureSource(path);
                 }
             }
-            if (sources.Any()) GlobalConfig.SaveSignatureSources();
         }
+
 
         void AddInputSources(List<GlobalConfig.SignatureSource> repoPaths)
         {
             for (var i = 0; i < repoPaths.Count; i++)
             {
                 GlobalConfig.SignatureSource source = repoPaths[i];
-                GlobalConfig.AddSignatureSource(source);
+                GlobalConfig.Settings.Signatures.AddSignatureSource(source);
             }
-            if (repoPaths.Any()) GlobalConfig.SaveSignatureSources();
         }
 
 
@@ -764,7 +758,7 @@ namespace rgat.Widgets
         {
             if (_githubSigDownloader.Running) return;
             _cancelTokens = new CancellationTokenSource();
-            var allSources = GlobalConfig.GetSignatureSources();
+            var allSources = GlobalConfig.Settings.Signatures.GetSignatureSources();
             var repos = allSources.Where(x => _selectedRepos.Contains(x.FetchPath)).ToList();
             _githubSigDownloader.StartRefresh(repos, 3, _cancelTokens.Token);
         }
@@ -773,7 +767,7 @@ namespace rgat.Widgets
         {
             if (_githubSigDownloader.Running) return;
             _cancelTokens = new CancellationTokenSource();
-            var allSources = GlobalConfig.GetSignatureSources();
+            var allSources = GlobalConfig.Settings.Signatures.GetSignatureSources();
             var repos = allSources.Where(x => _selectedRepos.Contains(x.FetchPath)).ToList();
             _githubSigDownloader.StartDownloads(repos, 3, _cancelTokens.Token);
         }
@@ -918,33 +912,33 @@ namespace rgat.Widgets
                 ImGui.TableHeadersRow();
 
 
-                if (DrawPathMenuOption("Pin Executable", GlobalConfig.PinPath, settingTips["PinPath"], out bool clearFlag))
+                if (DrawPathMenuOption("Pin Executable", GlobalConfig.GetSettingPath("PinPath"), settingTips["PinPath"], out bool clearFlag))
                 { choosePath = "PinPath"; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Pintool32 Library", GlobalConfig.PinToolPath32, settingTips["PinToolPath32"], out clearFlag))
+                if (DrawPathMenuOption("Pintool32 Library", GlobalConfig.GetSettingPath("PinToolPath32"), settingTips["PinToolPath32"], out clearFlag))
                 { choosePath = "PinToolPath32"; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Pintool64 Library", GlobalConfig.PinToolPath64, settingTips["PinToolPath64"], out clearFlag))
+                if (DrawPathMenuOption("Pintool64 Library", GlobalConfig.GetSettingPath("PinToolPath64"), settingTips["PinToolPath64"], out clearFlag))
                 { choosePath = "PinToolPath64"; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("FFmpeg Executable", GlobalConfig.FFmpegPath, settingTips["FFmpegPath"], out clearFlag))
+                if (DrawPathMenuOption("FFmpeg Executable", GlobalConfig.GetSettingPath("FFmpegPath"), settingTips["FFmpegPath"], out clearFlag))
                 { choosePath = "FFmpegPath"; doClear |= clearFlag; }
 
                 if (choosePath.Length == 0) isFolder = true;
 
-                if (DrawPathMenuOption("Saved Traces", GlobalConfig.TraceSaveDirectory, settingTips["TraceSaveDirectory"], out clearFlag))
+                if (DrawPathMenuOption("Saved Traces", GlobalConfig.GetSettingPath("TraceSaveDirectory"), settingTips["TraceSaveDirectory"], out clearFlag))
                 { choosePath = "TraceSaveDirectory"; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Tests", GlobalConfig.TestsDirectory, settingTips["TestsDirectory"], out clearFlag))
+                if (DrawPathMenuOption("Tests", GlobalConfig.GetSettingPath("TestsDirectory"), settingTips["TestsDirectory"], out clearFlag))
                 { choosePath = "TestsDirectory"; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("DiE Signatures", GlobalConfig.DiESigsPath, settingTips["DiESigsPath"], out clearFlag))
-                { choosePath = "DiESigsPath"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("DiE Signatures", GlobalConfig.GetSettingPath("DiESigsDirectory"), settingTips["DiESigsDirectory"], out clearFlag))
+                { choosePath = "DiESigsDirectory"; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Yara Rules", GlobalConfig.YARARulesDir, settingTips["YaraRulesPath"], out clearFlag))
-                { choosePath = "YaraRulesPath"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("Yara Rules", GlobalConfig.GetSettingPath("YaraRulesDirectory"), settingTips["YaraRulesDirectory"], out clearFlag))
+                { choosePath = "YaraRulesDirectory"; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Images/Videos", GlobalConfig.MediaCapturePath, settingTips["MediaCapturePath"], out clearFlag))
+                if (DrawPathMenuOption("Images/Videos", GlobalConfig.GetSettingPath("MediaCapturePath"), settingTips["MediaCapturePath"], out clearFlag))
                 { choosePath = "MediaCapturePath"; doClear |= clearFlag; }
 
 
@@ -958,7 +952,11 @@ namespace rgat.Widgets
                 ImGui.AlignTextToFramePadding();
                 ImGui.Text("Max Recent Paths"); ImGui.SameLine();
                 ImGui.SetNextItemWidth(100);
-                ImGui.InputInt("##MaxRecentPaths", ref GlobalConfig.MaxStoredRecentPaths);
+                int pathsLimit = GlobalConfig.Settings.Logs.MaxStoredRecentPaths;
+                if (ImGui.InputInt("##MaxRecentPaths", ref pathsLimit))
+                {
+                    GlobalConfig.Settings.Logs.MaxStoredRecentPaths = pathsLimit;
+                }
                 ImGui.EndGroup();
                 SmallWidgets.MouseoverText("The number of recently opened samples/traces to store");
                 ImGui.EndChildFrame();
@@ -1013,11 +1011,11 @@ namespace rgat.Widgets
                 case "TraceSaveDirectory":
                     GlobalConfig.SetDirectoryPath("TraceSaveDirectory", path);
                     break;
-                case "DiESigsPath":
-                    GlobalConfig.SetDirectoryPath("DiESigsPath", path);
+                case "DiESigsDirectory":
+                    GlobalConfig.SetDirectoryPath("DiESigsDirectory", path);
                     break;
-                case "YaraRulesPath":
-                    GlobalConfig.SetDirectoryPath("YaraRulesPath", path);
+                case "YaraRulesDirectory":
+                    GlobalConfig.SetDirectoryPath("YaraRulesDirectory", path);
                     break;
                 case "MediaCapturePath":
                     GlobalConfig.SetDirectoryPath("MediaCapturePath", path);
@@ -1167,7 +1165,7 @@ namespace rgat.Widgets
             ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2((ImGui.GetContentRegionMax().X / 2) - 70, 17));
             if (ImGui.Button("Restore Defaults", new Vector2(140, 34)))
             {
-                GlobalConfig.ResetKeybinds();
+                GlobalConfig.Settings.Keybinds.ResetKeybinds();
             }
 
 
@@ -1213,7 +1211,8 @@ namespace rgat.Widgets
 
             DrawSavePresetPopUp();
 
-            if (Themes.DefaultTheme == activeThemeName)
+            string defaultTheme = GlobalConfig.Settings.Themes.DefaultTheme;
+            if (defaultTheme == activeThemeName)
                 activeThemeName += " [Default]";
 
             if (ImGui.BeginCombo("Preset Themes", activeThemeName))
@@ -1221,7 +1220,7 @@ namespace rgat.Widgets
                 foreach (string themeName in Themes.ThemesMetadataCatalogue.Keys)
                 {
                     string themeLabel = themeName;
-                    if (Themes.DefaultTheme == themeName)
+                    if (defaultTheme == themeName)
                         themeLabel += "  [Default]";
                     if (ImGui.Selectable(themeName, true))
                         ActivateUIThemePreset(themeName);
@@ -1317,11 +1316,10 @@ namespace rgat.Widgets
 
         void CreateOptionsPane_Miscellaneous()
         {
-            bool debglog = GlobalConfig.BulkLogging;
+            bool debglog = GlobalConfig.Settings.Logs.BulkLogging;
             if (ImGui.Checkbox("Bulk Debug Logging", ref debglog))
             {
-                GlobalConfig.BulkLogging = debglog;
-                GlobalConfig.AddUpdateAppSettings("BulkLogging", debglog ? "True" : "False");
+                GlobalConfig.Settings.Logs.BulkLogging = debglog;
             }
 
             float minGraphAlpha = GlobalConfig.MinimumAlpha;
@@ -1329,30 +1327,26 @@ namespace rgat.Widgets
             if (ImGui.DragFloat("Graph Minimum Animation Alpha", ref minGraphAlpha, 0.01f, 0, 1))
             {
                 GlobalConfig.MinimumAlpha = minGraphAlpha;
-                GlobalConfig.AddUpdateAppSettings("MinimumGraphAlpha", minGraphAlpha.ToString());
             }
 
-            bool screencapAnim = GlobalConfig.ScreencapAnimation;
+            bool screencapAnim = GlobalConfig.Settings.UI.ScreencapAnimation;
             if (ImGui.Checkbox("Enable Screen Capture Animation", ref screencapAnim))
             {
-                GlobalConfig.ScreencapAnimation = screencapAnim;
-                GlobalConfig.AddUpdateAppSettings("ScreencapAnimation", screencapAnim ? "True" : "False");
+                GlobalConfig.Settings.UI.ScreencapAnimation = screencapAnim;
             }
             SmallWidgets.MouseoverText("Display an animated rectangle to give feedback for screen captures");
 
-            bool alertAnim = GlobalConfig.AlertAnimation;
+            bool alertAnim = GlobalConfig.Settings.UI.AlertAnimation;
             if (ImGui.Checkbox("Enable Alert Animation", ref alertAnim))
             {
-                GlobalConfig.AlertAnimation = alertAnim;
-                GlobalConfig.AddUpdateAppSettings("AlertAnimation", alertAnim ? "True" : "False");
+                GlobalConfig.Settings.UI.AlertAnimation = alertAnim;
             }
             SmallWidgets.MouseoverText("Display a shrinking circle to draw the eye to new alert messages");
 
-            bool updateCheckEnable = GlobalConfig.DoUpdateCheck;
+            bool updateCheckEnable = GlobalConfig.Settings.Updates.DoUpdateCheck;
             if (ImGui.Checkbox("Check for new releases", ref updateCheckEnable))
             {
-                GlobalConfig.DoUpdateCheck = alertAnim;
-                GlobalConfig.AddUpdateAppSettings("DoUpdateCheck", updateCheckEnable ? "True" : "False");
+                GlobalConfig.Settings.Updates.DoUpdateCheck = alertAnim;
             }
             SmallWidgets.MouseoverText("Check for new rgat releases");
 
@@ -1415,12 +1409,12 @@ namespace rgat.Widgets
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip(expandBtnTip);
 
                 Themes.GetMetadataValue("Name", out string activeThemeName);
-                if (activeThemeName != Themes.DefaultTheme)
+                if (activeThemeName != GlobalConfig.Settings.Themes.DefaultTheme)
                 {
                     ImGui.SameLine();
                     if (ImGui.Button("Set As Default"))
                     {
-                        Themes.DefaultTheme = activeThemeName;
+                        GlobalConfig.Settings.Themes.DefaultTheme = activeThemeName;
                     }
                     if (ImGui.IsItemHovered()) ImGui.SetTooltip("Cause this theme to be activated when rgat is launched");
                 }
@@ -1620,7 +1614,7 @@ namespace rgat.Widgets
             ImGui.TableNextColumn();
             string kstring = "";
             {
-                if (GlobalConfig.PrimaryKeybinds.TryGetValue(keyAction, out var kmval))
+                if (GlobalConfig.Settings.Keybinds.PrimaryKeybinds.TryGetValue(keyAction, out var kmval))
                 {
                     ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button));
                     ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
@@ -1643,7 +1637,7 @@ namespace rgat.Widgets
 
             {
                 kstring = "";
-                if (GlobalConfig.AlternateKeybinds.TryGetValue(keyAction, out var kmval))
+                if (GlobalConfig.Settings.Keybinds.AlternateKeybinds.TryGetValue(keyAction, out var kmval))
                 {
                     ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button));
                     ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
@@ -1677,7 +1671,7 @@ namespace rgat.Widgets
             _pendingKeybind.IsResponsive = GlobalConfig.ResponsiveHeldActions.Contains(action);
 
             _pendingKeybind.currentKey = "";
-            if (GlobalConfig.PrimaryKeybinds.TryGetValue(action, out var kmval))
+            if (GlobalConfig.Settings.Keybinds.PrimaryKeybinds.TryGetValue(action, out var kmval))
             {
                 if (kmval.Item2 != ModifierKeys.None)
                     _pendingKeybind.currentKey += kmval.Item2.ToString() + "+";

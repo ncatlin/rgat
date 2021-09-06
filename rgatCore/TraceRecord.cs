@@ -708,9 +708,9 @@ namespace rgat
             wr.Close();
 
             Logging.RecordLogEvent("Trace Save Complete");
-            if (GlobalConfig.StoreSavedTracesAsRecent)
+            if (GlobalConfig.Settings.Logs.StoreSavedTracesAsRecent)
             {
-                GlobalConfig.RecordRecentPath(path, GlobalConfig.eRecentPathType.Trace);
+                GlobalConfig.Settings.RecentPaths.RecordRecentPath(Config.rgatSettings.eRecentPathType.Trace, path);
             }
             return wr.Path;
         }
@@ -752,14 +752,15 @@ namespace rgat
         JsonTextWriter CreateSaveFile(DateTime startedTime, out string path)
         {
             string saveFilename = $"{binaryTarg.FileName}-{PID}-{startedTime.ToString("MMM-dd__HH-mm-ss")}.rgat";
-            if (!Directory.Exists(GlobalConfig.TraceSaveDirectory))
+            string saveDir = GlobalConfig.GetSettingPath("TraceSaveDirectory");
+            if (!Directory.Exists(saveDir))
             {
-                Logging.RecordLogEvent("\tWarning: Failed to save - directory " + GlobalConfig.TraceSaveDirectory + " does not exist", Logging.LogFilterType.TextInfo);
+                Logging.RecordLogEvent($"\tWarning: Failed to save - directory {saveDir} does not exist", Logging.LogFilterType.TextInfo);
                 path = null;
                 return null;
             }
 
-            path = Path.Join(GlobalConfig.TraceSaveDirectory, saveFilename);
+            path = Path.Join(saveDir, saveFilename);
             try
             {
                 StreamWriter sw = File.CreateText(path);
@@ -864,8 +865,9 @@ namespace rgat
         public void ExportPajek(uint TID)
         {
             ProtoGraph pgraph = this.ProtoGraphs[TID];
-            if (!Directory.Exists(GlobalConfig.TraceSaveDirectory)) return;
-            FileStream outfile = File.OpenWrite(Path.Combine(GlobalConfig.TraceSaveDirectory, "pajeksave" + TID.ToString() + ".net"));
+            string saveDir = GlobalConfig.GetSettingPath("TraceSaveDirectory");
+            if (!Directory.Exists(saveDir)) return;
+            FileStream outfile = File.OpenWrite(Path.Combine(saveDir, "pajeksave" + TID.ToString() + ".net"));
             outfile.Write(Encoding.ASCII.GetBytes("%*Colnames \"Disassembly\"\n"));
             outfile.Write(Encoding.ASCII.GetBytes("*Vertices " + pgraph.NodeList.Count + "\n"));
 

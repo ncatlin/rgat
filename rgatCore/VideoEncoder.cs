@@ -65,7 +65,7 @@ namespace rgat
         {
             if (_capturedContent == CaptureContent.Invalid)
             {
-                string setting = GlobalConfig.VideoCodec_Content.ToUpper();
+                string setting = GlobalConfig.Settings.Media.VideoCodec_Content.ToUpper();
                 if (setting.Contains("PREVIEW"))
                 {
                     _capturedContent = CaptureContent.GraphAndPreviews;
@@ -85,14 +85,14 @@ namespace rgat
 
         public void Load(string dllpath = "")
         {
-            if (File.Exists(GlobalConfig.FFmpegPath))
+            if (File.Exists(GlobalConfig.GetSettingPath("FFmpegPath")))
             {
                 Loaded = true;
             }
             else if (DetectFFmpeg(out string path))
             {
                 Loaded = true;
-                GlobalConfig.FFmpegPath = path;
+                GlobalConfig.SetBinaryPath("FFmpegPath", path);
             }
         }
 
@@ -144,25 +144,28 @@ namespace rgat
         public static string GetCaptureDirectory()
         {
             string result;
-            if (Directory.Exists(GlobalConfig.MediaCapturePath)) return GlobalConfig.MediaCapturePath;
+            string currentPath = GlobalConfig.GetSettingPath("MediaCapturePath");
+            if (Directory.Exists(currentPath)) return currentPath;
 
 
-            if (GlobalConfig.MediaCapturePath != null && GlobalConfig.MediaCapturePath.Length > 0)
+            if (currentPath != null && currentPath.Length > 0)
             {
                 try
                 {
-                    Directory.CreateDirectory(GlobalConfig.MediaCapturePath);
-                    return GlobalConfig.MediaCapturePath;
+                    Directory.CreateDirectory(currentPath);
+                    return currentPath;
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordLogEvent($"Unable to use configured media path {GlobalConfig.MediaCapturePath}: {e.Message}");
+                    Logging.RecordLogEvent($"Unable to use configured media path {currentPath}: {e.Message}");
                 }
             }
-            result = GlobalConfig.GetStorageDirectoryPath("media");
+
+            string baseDir = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]); //with single executables the AppContext.BaseDirectory value is the temp extract dir
+            result = GlobalConfig.GetStorageDirectoryPath(baseDir, "media");
             if (result != "")
             {
-                GlobalConfig.SetDirectoryPath("MediaCapturePath", result, true);
+                GlobalConfig.SetDirectoryPath("MediaCapturePath", result);
                 return result;
             }
 
@@ -208,17 +211,19 @@ namespace rgat
         /// <returns></returns>
         public string SaveImage(PlottedGraph graph, Bitmap bmp)
         {
-            if (GlobalConfig.ImageCapture_Format == null || GlobalConfig.ImageCapture_Format.Length < 2)
-                GlobalConfig.AddUpdateAppSettings("ImageCapture_Format", "PNG");
+            if (GlobalConfig.Settings.Media.ImageCapture_Format == null || GlobalConfig.Settings.Media.ImageCapture_Format.Length < 2)
+            {
+                GlobalConfig.Settings.Media.ImageCapture_Format = "PNG";
+            }
 
             ImageFormat format = ImageFormat.Bmp;
             string extension = ".bmp";
             foreach (var codec in _imageCodecs)
             {
-                if (codec.FormatDescription == GlobalConfig.ImageCapture_Format)
+                if (codec.FormatDescription == GlobalConfig.Settings.Media.ImageCapture_Format)
                 {
                     extension = codec.FilenameExtension.Split(';')[0].Split('.')[1];
-                    switch (GlobalConfig.ImageCapture_Format)
+                    switch (GlobalConfig.Settings.Media.ImageCapture_Format)
                     {
                         case "BMP":
                             format = ImageFormat.Bmp;
@@ -236,7 +241,7 @@ namespace rgat
                             format = ImageFormat.Gif;
                             break;
                         default:
-                            Logging.RecordError("Unhandled image format: " + GlobalConfig.ImageCapture_Format);
+                            Logging.RecordError("Unhandled image format: " + GlobalConfig.Settings.Media.ImageCapture_Format);
                             return "bad format";
                     }
                 }
@@ -281,14 +286,13 @@ namespace rgat
             Speed result;
             try
             {
-                result = (Speed)Enum.Parse(typeof(Speed), GlobalConfig.VideoCodec_Speed, ignoreCase: true);
+                result = (Speed)Enum.Parse(typeof(Speed), GlobalConfig.Settings.Media.VideoCodec_Speed, ignoreCase: true);
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Unable to parse video speed setting '{GlobalConfig.VideoCodec_Speed}' into a speed preset: {e.Message}");
+                Logging.RecordLogEvent($"Unable to parse video speed setting '{GlobalConfig.Settings.Media.VideoCodec_Speed}' into a speed preset: {e.Message}");
                 result = Speed.Medium;
-                GlobalConfig.VideoCodec_Speed = GlobalConfig.VideoCodec_Speed.ToString();
-                GlobalConfig.AddUpdateAppSettings("VideoCodec_Speed", GlobalConfig.VideoCodec_Speed);
+                GlobalConfig.Settings.Media.VideoCodec_Speed = GlobalConfig.Settings.Media.VideoCodec_Speed.ToString();
             }
             return result;
         }
@@ -296,7 +300,7 @@ namespace rgat
 
         async public void Go(PlottedGraph graph)
         {
-            if (!File.Exists(GlobalConfig.FFmpegPath))
+            if (!File.Exists(GlobalConfig.GetSettingPath("FFmpegPath")))
             {
                 Logging.RecordLogEvent($"Unable to start recording: Path to ffmpeg.exe not configured");
                 StopRecording();
@@ -306,7 +310,7 @@ namespace rgat
 
             try
             {
-                GlobalFFOptions.Configure(new FFOptions { BinaryFolder = Path.GetDirectoryName(GlobalConfig.FFmpegPath) });
+                GlobalFFOptions.Configure(new FFOptions { BinaryFolder = Path.GetDirectoryName(GlobalConfig.GetSettingPath("FFmpegPath")) });
             }
             catch (Exception e)
             {
@@ -327,8 +331,8 @@ namespace rgat
                 await FFMpegArguments
                     .FromPipeInput(videoFramesSource)
                     .OutputToFile(CurrentRecordingFile, false, opt => opt
-                        .WithFramerate(GlobalConfig.VideoCodec_FPS)
-                        .WithConstantRateFactor(28 - GlobalConfig.VideoCodec_Quality)
+                        .WithFramerate(GlobalConfig.Settings.Media.VideoCodec_FPS)
+                        .WithConstantRateFactor(28 - GlobalConfig.Settings.Media.VideoCodec_Quality)
                         .WithSpeedPreset(GetVideoSpeed())
                         .WithVideoCodec(VideoCodec.LibX264)
                         )
@@ -343,7 +347,7 @@ namespace rgat
             }
 
 
-            Initialised = false; 
+            Initialised = false;
             StopRecording();
             CapturePaused = false;
             _bmpQueue.Clear();
@@ -375,7 +379,7 @@ namespace rgat
 
         public void DrawSettingsPane()
         {
-            if (File.Exists(GlobalConfig.FFmpegPath))
+            if (File.Exists(GlobalConfig.GetSettingPath("FFmpegPath")))
             {
                 DrawHaveLibSettingsPane();
             }
@@ -384,7 +388,7 @@ namespace rgat
                 if (DetectFFmpeg(out string path))
                 {
                     Loaded = true;
-                    GlobalConfig.FFmpegPath = path;
+                    GlobalConfig.SetBinaryPath("FFmpegPath", path);
                     DrawHaveLibSettingsPane();
                 }
                 else
@@ -413,11 +417,8 @@ namespace rgat
                 string candidate = match;
                 if (File.Exists(candidate))
                 {
-                    if (GlobalConfig.SetBinaryPath("FFmpegPath", candidate, save: true))
-                    {
-                        path = candidate;
-                        return true;
-                    }
+                    GlobalConfig.SetBinaryPath("FFmpegPath", candidate);
+                    return true;
                 }
             }
             return false;
@@ -459,14 +460,13 @@ namespace rgat
                 ImguiUtils.DrawHorizCenteredText("Video Settings");
 
                 ImGui.SetNextItemWidth(180);
-                if (ImGui.BeginCombo("Quality", GlobalConfig.VideoCodec_Quality.ToString()))
+                if (ImGui.BeginCombo("Quality", GlobalConfig.Settings.Media.VideoCodec_Quality.ToString()))
                 {
                     foreach (int CRF_Modifier in Enumerable.Range(0, 11 + 1))
                     {
                         if (ImGui.Selectable(CRF_Modifier.ToString()))
                         {
-                            GlobalConfig.VideoCodec_Quality = CRF_Modifier;
-                            GlobalConfig.AddUpdateAppSettings("VideoCodec_Quality", CRF_Modifier.ToString());
+                            GlobalConfig.Settings.Media.VideoCodec_Quality = CRF_Modifier;
                         }
                     }
                     ImGui.EndCombo();
@@ -474,14 +474,13 @@ namespace rgat
                 SmallWidgets.MouseoverText("0 is bad quality, 11 is near lossless");
 
                 ImGui.SetNextItemWidth(180);
-                if (ImGui.BeginCombo("Compression Speed", GlobalConfig.VideoCodec_Speed))
+                if (ImGui.BeginCombo("Compression Speed", GlobalConfig.Settings.Media.VideoCodec_Speed))
                 {
                     foreach (var speed in Enum.GetNames(typeof(Speed)).Select(x => x.ToString()))
                     {
                         if (ImGui.Selectable(speed))
                         {
-                            GlobalConfig.VideoCodec_Speed = speed;
-                            GlobalConfig.AddUpdateAppSettings("VideoCodec_Speed", speed);
+                            GlobalConfig.Settings.Media.VideoCodec_Speed = speed;
                         }
                     }
                     ImGui.EndCombo();
@@ -490,22 +489,22 @@ namespace rgat
 
                 ImGui.SetNextItemWidth(180);
                 double min = 0, max = 500;
-                if (ImguiUtils.DragDouble("Framerate", ref GlobalConfig.VideoCodec_FPS, 0.25f, ref min, ref max))
+                double current = GlobalConfig.Settings.Media.VideoCodec_FPS;
+                if (ImguiUtils.DragDouble("Framerate", ref current, 0.25f, ref min, ref max))
                 {
-                    GlobalConfig.AddUpdateAppSettings("VideoCodec_FPS", GlobalConfig.VideoCodec_FPS.ToString());
+                    GlobalConfig.Settings.Media.VideoCodec_FPS = current;
                 }
                 SmallWidgets.MouseoverText("Number of frames to record per second of video. Increase to increase quality and file size");
 
 
                 ImGui.SetNextItemWidth(180);
-                if (ImGui.BeginCombo("Recorded Content", GlobalConfig.VideoCodec_Content))
+                if (ImGui.BeginCombo("Recorded Content", GlobalConfig.Settings.Media.VideoCodec_Content))
                 {
                     foreach (var content in new string[] { "Graph", "Graph and previews", "Whole window" })
                     {
                         if (ImGui.Selectable(content))
                         {
-                            GlobalConfig.VideoCodec_Content = content;
-                            GlobalConfig.AddUpdateAppSettings("VideoCodec_Content", content);
+                            GlobalConfig.Settings.Media.VideoCodec_Content = content;
                         }
                     }
                     ImGui.EndCombo();
@@ -519,14 +518,13 @@ namespace rgat
 
                 ImguiUtils.DrawHorizCenteredText("Image Settings");
 
-                if (ImGui.BeginCombo("Image Format", GlobalConfig.ImageCapture_Format))
+                if (ImGui.BeginCombo("Image Format", GlobalConfig.Settings.Media.ImageCapture_Format))
                 {
                     foreach (var codec in _imageCodecs)
                     {
                         if (ImGui.Selectable(codec.FormatDescription))
                         {
-                            GlobalConfig.ImageCapture_Format = codec.FormatDescription;
-                            GlobalConfig.AddUpdateAppSettings("ImageCapture_Format", codec.FormatDescription);
+                            GlobalConfig.Settings.Media.ImageCapture_Format = codec.FormatDescription;
                         }
                     }
 

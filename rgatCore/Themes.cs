@@ -65,19 +65,6 @@ namespace rgat
         }
 
 
-        public static string DefaultTheme
-        {
-            get => _defaultTheme;
-            set
-            {
-                if (ThemesMetadataCatalogue.ContainsKey(value))
-                {
-                    _defaultTheme = value;
-                    GlobalConfig.AddUpdateAppSettings("DefaultTheme", value);
-                }
-            }
-        }
-
         /// <summary>
         /// Set any missing theme settings
         /// </summary>
@@ -185,7 +172,7 @@ namespace rgat
 
                     ThemeColoursStandard[col] = new WritableRgbaFloat(ced4vec).ToUint();
                 }
-                ThemeColoursStandard[ImGuiCol.TableRowBgAlt] = new WritableRgbaFloat(0xff242424).ToUint();
+                ThemeColoursStandard[ImGuiCol.TableRowBgAlt] = new WritableRgbaFloat(0xff222222).ToUint();
             }
         }
 
@@ -195,8 +182,7 @@ namespace rgat
         {
             lock (_lock)
             {
-                Debug.Assert(ThemeColoursCustom.ContainsKey(item));
-                Debug.Assert((uint)item < ThemeColoursCustom.Count);
+                if(!ThemeColoursCustom.ContainsKey(item) || ((uint)item >= ThemeColoursCustom.Count)) return 0xff000000;
                 return ThemeColoursCustom[item];
             }
         }
@@ -205,8 +191,7 @@ namespace rgat
         {
             lock (_lock)
             {
-                Debug.Assert(ThemeColoursCustom.ContainsKey(item));
-                Debug.Assert((uint)item < ThemeColoursCustom.Count);
+                if (!ThemeColoursCustom.ContainsKey(item) || ((uint)item >= ThemeColoursCustom.Count)) return new WritableRgbaFloat(0xffffffff);
                 return new WritableRgbaFloat(ThemeColoursCustom[item]);
             }
         }
@@ -556,7 +541,7 @@ namespace rgat
             WriteCustomThemesToConfig();
 
             if (setAsDefault)
-                DefaultTheme = ThemeMetadata["Name"];
+                GlobalConfig.Settings.Themes.DefaultTheme = ThemeMetadata["Name"];
 
         }
 
@@ -718,136 +703,51 @@ namespace rgat
         }
 
 
-        public sealed class ThemesSection : ConfigurationSection
-        {
-
-            private static ConfigurationPropertyCollection _Properties;
-            private static readonly ConfigurationProperty _customThemeJSONs2 = new ConfigurationProperty(
-                "CustomThemes",
-                typeof(JObject),
-                new JObject(),
-                new GlobalConfig.JSONBlobConverter(),
-                null,
-                ConfigurationPropertyOptions.IsRequired);
-
-            private static readonly ConfigurationProperty _MaxUsers =
-                new ConfigurationProperty("maxUsers", typeof(long), (long)1000, ConfigurationPropertyOptions.None);
-
-
-            public ThemesSection()
-            {
-                _Properties = new ConfigurationPropertyCollection();
-                _Properties.Add(_MaxUsers);
-                _Properties.Add(_customThemeJSONs2);
-            }
-
-            protected override object GetRuntimeObject() => base.GetRuntimeObject();
-
-            protected override ConfigurationPropertyCollection Properties => _Properties;
-
-            public JObject CustomThemes
-            {
-                get => (JObject)this["CustomThemes"];
-                set
-                {
-                    this["CustomThemes"] = value;
-                }
-            }
-
-            [LongValidator(MinValue = 1, MaxValue = 1000000, ExcludeRange = false)]
-            public long MaxUsers
-            {
-                get => (long)this["maxUsers"];
-
-                set
-                {
-                    this["maxUsers"] = value;
-                }
-            }
-
-        }
-
 
         static void WriteCustomThemesToConfig()
         {
-            var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            ThemesSection sec = (ThemesSection)configFile.GetSection("CustomThemes");
-            if (sec == null)
-            {
-                sec = new ThemesSection();
-                configFile.Sections.Add("CustomThemes", sec);
-            }
+            Dictionary<string, string> savedata = new Dictionary<string, string>();
 
-            JObject themesObj = new JObject();
             foreach (KeyValuePair<string, JObject> theme in CustomThemes)
             {
-                themesObj.Add(theme.Key, theme.Value);
+                savedata.Add(theme.Key, theme.Value.ToString());
             }
+            GlobalConfig.Settings.Themes.SetCustomThemes(savedata);
 
-            sec.CustomThemes = themesObj;
-            sec.SectionInformation.ForceSave = true;
-            configFile.Save();
-        }
-
-
-
-
-        public static void LoadCustomThemes()
-        {
-            var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            ThemesSection sec = (ThemesSection)configFile.GetSection("CustomThemes");
-            if (sec != null)
-            {
-                JObject themes = sec.CustomThemes;
-                foreach (var kvp in themes)
-                {
-                    if (kvp.Value.Type == JTokenType.Object)
-                    {
-                        JObject themeData = kvp.Value.ToObject<JObject>();
-                        if (themeData.ContainsKey("Metadata") && themeData.TryGetValue("Metadata", out JToken mdTok) && mdTok.Type == JTokenType.Object)
-                        {
-                            JObject mdobj = (JObject)mdTok;
-                            Dictionary<string, string> mdDict = new Dictionary<string, string>();
-                            foreach (var mditem in mdobj)
-                            {
-                                if (mditem.Value.Type == JTokenType.String)
-                                {
-                                    mdDict[mditem.Key] = mditem.Value.ToString();
-                                }
-                            }
-                            if (mdDict.TryGetValue("Name", out string themeName) && themeName.Length > 0)
-                            {
-
-                                ThemesMetadataCatalogue[themeName] = mdDict;
-                                CustomThemes[themeName] = themeData;
-                            }
-                        }
-
-                    }
-                }
-            }
-
-            KeyValueConfigurationElement userDefaultTheme = configFile.AppSettings.Settings["DefaultTheme"];
-            if (userDefaultTheme != null)
-                DefaultTheme = userDefaultTheme.Value;
         }
 
 
         public static void ActivateDefaultTheme()
         {
-            if (DefaultTheme.Length > 0)
+            if (CustomThemes.Count != GlobalConfig.Settings.Themes.CustomThemes.Count)
             {
-                if (CustomThemes.TryGetValue(DefaultTheme, out JObject themeObj))
+                Dictionary<string, string> _customThemes = GlobalConfig.Settings.Themes.CustomThemes;
+                foreach (KeyValuePair<string, string> item in _customThemes)
+                {
+                    try
+                    {
+                        CustomThemes[item.Key] = JObject.Parse(item.Value);
+                    }
+                    catch(Exception e)
+                    {
+                        Logging.RecordLogEvent($"Failed to load custom theme {item.Key}: {e.Message}");
+                    }
+                }
+            }
+            string defaultTheme = GlobalConfig.Settings.Themes.DefaultTheme;
+            if (defaultTheme.Length > 0)
+            {
+                if (CustomThemes.TryGetValue(defaultTheme, out JObject themeObj))
                 {
                     ActivateThemeObject(themeObj);
                     return;
                 }
-                else if (BuiltinThemes.TryGetValue(DefaultTheme, out themeObj))
+                else if (BuiltinThemes.TryGetValue(defaultTheme, out themeObj))
                 {
                     ActivateThemeObject(themeObj);
                     return;
                 }
-                Logging.RecordError($"Default theme {DefaultTheme} is unavailable");
+                Logging.RecordError($"Default theme {defaultTheme} is unavailable");
             }
 
             InitDefaultImGuiColours();

@@ -113,13 +113,13 @@ namespace rgat
                             repo.LastUpdate = updateTok.ToObject<DateTime>();
                             repo.LastCheck = DateTime.Now;
                             repo.LastRefreshError = null;
-                            GlobalConfig.UpdateSignatureSource(repo);
+                            GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
                             return;
                         }
                     }
                     Logging.RecordError($"No valid 'updated_at' field in repo response from github while refreshing {repo.FetchPath}");
                     repo.LastRefreshError = "Github Error";
-                    GlobalConfig.UpdateSignatureSource(repo);
+                    GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
                     return;
                 }
                 repo.LastRefreshError = $"{request.Result.StatusCode}";
@@ -137,7 +137,7 @@ namespace rgat
                 {
                     repo.LastRefreshError = "See Logs";
                 }
-                GlobalConfig.UpdateSignatureSource(repo);
+                GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
                 Logging.RecordError($"Exception updating {repo.FetchPath} => {e.Message}");
             }
         }
@@ -164,11 +164,11 @@ namespace rgat
                 string repoSpecific = repo.RepoName + repo.SubDir;
                 string repoDirectory = Path.Combine(sigsdir, repo.OrgName + "_" + MurmurHash.MurmurHash2.Hash(repoSpecific));
 
-                if (!new Uri(GlobalConfig.YARARulesDir).IsBaseOf(new Uri(repoDirectory)))
+                if (!new Uri(GlobalConfig.GetSettingPath("YaraRulesDirectory")).IsBaseOf(new Uri(repoDirectory)))
                 {
                     repo.LastDownloadError = "Bad Repo Name";
                     Logging.RecordError($"Repo download directory {repoDirectory} is not in the signatures directory {sigsdir}");
-                    GlobalConfig.UpdateSignatureSource(repo);
+                    GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
                     return null;
                 }
 
@@ -219,16 +219,16 @@ namespace rgat
 
                 if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.YARA)
                 {
-                    repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.YARARulesDir);
+                    repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath("YaraRulesDirectory"));
                 }
                 else if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.DIE)
                 {
-                    repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.DiESigsPath);
+                    repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath("DiESigsDirectory"));
                 }
                 if (repoDirectory == null)
                 {
                     repo.LastDownloadError = "Can't Get Save Dir";
-                    GlobalConfig.UpdateSignatureSource(repo);
+                    GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
                     return;
                 }
 
@@ -244,7 +244,7 @@ namespace rgat
                 if (!PurgeDirectory(repoDirectory))
                 {
                     repo.LastDownloadError = "Can't Delete Existing";
-                    GlobalConfig.UpdateSignatureSource(repo);
+                    GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
                     return;
                 }
 
@@ -280,7 +280,7 @@ namespace rgat
 
                 repo.LastFetch = DateTime.Now;
                 repo.LastDownloadError = null;
-                GlobalConfig.UpdateSignatureSource(repo);
+                GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
             }
             catch (Exception e)
             {
@@ -293,7 +293,7 @@ namespace rgat
                 {
                     repo.LastDownloadError = "See Logs";
                 }
-                GlobalConfig.UpdateSignatureSource(repo);
+                GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
                 Logging.RecordError($"Exception downloading {repo.FetchPath} => {e.Message}");
             }
         }
@@ -309,11 +309,11 @@ namespace rgat
             string repoDirectory = null;
             if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.YARA)
             {
-                repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.YARARulesDir);
+                repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath("YaraRulesDirectory"));
             }
             else if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.DIE)
             {
-                repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.DiESigsPath);
+                repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath("DiESigsDirectory"));
             }
             else
             {
