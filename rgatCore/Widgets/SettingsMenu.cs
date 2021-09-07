@@ -821,7 +821,7 @@ namespace rgat.Widgets
             string pathTxt = hasPath ? path : "[Not Set]";
             string signerror = "";
 
-            GlobalConfig.CheckSignatureError(path, out signerror, out bool signatureTimeWarning);
+            GlobalConfig.PreviousSignatureCheckPassed(path, out signerror, out bool signatureTimeWarning);
 
             ImGui.TableNextRow();
             ImGui.TableNextColumn();

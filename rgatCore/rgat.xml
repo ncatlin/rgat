@@ -66,6 +66,16 @@
             <param name="command"></param>
             <param name="response"></param>
         </member>
+        <member name="M:rgat.GlobalConfig.VerifyCertificate(System.String,System.String,System.String@,System.String@)">
+            <summary>
+            Checks that a binary has a valid code signing certificate issued to one of the expected subject names
+            </summary>
+            <param name="path">Path of binary to be tested</param>
+            <param name="expectedSigners">Comma seperated list of valid certificate subject names</param>
+            <param name="error">Errors encountered in validating the certificate (no or invalid signer)</param>
+            <param name="warning">Warnings encountered validating the certificate (time issues)</param>
+            <returns>Whether the certificate was valid. Expired/Not yet valid certs will return true with the warning field set</returns>
+        </member>
         <member name="F:rgat.GlobalConfig.Preview_PerProcessLoopSleepMS">
             <summary>
              Delay between rendering each preview trace (collection of threads)

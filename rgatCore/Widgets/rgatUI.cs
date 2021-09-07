@@ -162,6 +162,8 @@ namespace rgat
             }
             _activeTargetRunnable = _rgatState.ActiveTarget != null && _rgatState.ActiveTarget.IsRunnable;
 
+            if (rgatState.ExitRequested) ExitFlag = true;
+
         }
 
         // keep checking the files in the loading panes so we can highlight if they are deleted (or appear)

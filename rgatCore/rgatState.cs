@@ -99,6 +99,9 @@ namespace rgat
 
         }
 
+        public static bool ExitRequested { get; private set; } = false;
+        public static void RequestExit() => ExitRequested = true;
+
 
         static CancellationTokenSource _exitTokenSource = new CancellationTokenSource();
         public static bool rgatIsExiting => _exitTokenSource.IsCancellationRequested;
@@ -114,6 +117,9 @@ namespace rgat
 
         Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
         Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
+
+        public static string PendingInstallPath = null;
+
 
         /// <summary>
         /// Terminate all spawned processes and internal workers, then exit

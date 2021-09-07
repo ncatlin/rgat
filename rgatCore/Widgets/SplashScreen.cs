@@ -239,10 +239,11 @@ namespace rgat
             ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(width + 25, 40));
             ImGui.Text(versionString);
 
-            Version currentVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
-            Version newVersion = GlobalConfig.Settings.Updates.UpdateLastCheckVersion;
+
             if (GlobalConfig.NewVersionAvailable)
             {
+                Version currentVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
+                Version newVersion = GlobalConfig.Settings.Updates.UpdateLastCheckVersion;
                 string updateString;
                 if (newVersion.Major > currentVersion.Major ||
                     (newVersion.Major == currentVersion.Major && newVersion.Minor > currentVersion.Minor))
@@ -260,7 +261,7 @@ namespace rgat
 
                 if (ImGui.Selectable(updateString, false, flags: ImGuiSelectableFlags.None, size: new Vector2(textSize.X, textSize.Y)))
                 {
-                    ImGui.OpenPopup("#NewVersionChangesDialog");
+                    ImGui.OpenPopup("New Version Available");
                 }
                 if (ImGui.IsItemHovered())
                 {
@@ -284,11 +285,12 @@ namespace rgat
                 ImGui.ProgressBar((float)StartupProgress, new Vector2(-1, 4f));
             }
 
-            if (ImGui.IsPopupOpen("#NewVersionChangesDialog"))
+            if (ImGui.IsPopupOpen("New Version Available"))
             {
-                ImGui.SetNextWindowPos((ImGui.GetWindowSize() / 2) - new Vector2(450f / 2f, 350f / 2f), ImGuiCond.Appearing);
+                ImGui.SetNextWindowSize(new Vector2(600, 500), ImGuiCond.FirstUseEver);
+                ImGui.SetNextWindowPos((ImGui.GetWindowSize() / 2) - new Vector2(600f / 2f, 500f / 2f), ImGuiCond.Appearing);
                 bool isopen = true;
-                if (ImGui.BeginPopupModal("#NewVersionChangesDialog", ref isopen, flags: ImGuiWindowFlags.Modal))
+                if (ImGui.BeginPopupModal("New Version Available", ref isopen, flags: ImGuiWindowFlags.Modal))
                 {
                     Updates.DrawChangesDialog();
                     isopen = isopen && !ImGui.IsKeyDown(ImGui.GetKeyIndex(ImGuiKey.Escape));

@@ -3,6 +3,10 @@ using ImGuiNET;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -38,6 +42,7 @@ namespace rgat
 
             try
             {
+                //string releasesPath = $"https://api.github.com/repos/olivierlacan/keep-a-changelog/releases";
                 string releasesPath = $"https://api.github.com/repos/ncatlin/rgat/releases";
                 CancellationToken exitToken = rgatState.ExitToken;
                 Task<HttpResponseMessage> response = client.GetAsync(releasesPath, exitToken);
@@ -48,20 +53,27 @@ namespace rgat
                     content.Wait(exitToken);
                     JArray responseArr = JArray.Parse(content.Result);
                     Version latestVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
+                    string latestZip = "";
                     bool newVersion = false;
                     foreach (JToken releaseTok in responseArr)
                     {
-                        if (releaseTok.Type == JTokenType.Object && ((JObject)releaseTok).TryGetValue("name", out JToken releaseNameTok))
+                        if (releaseTok.Type != JTokenType.Object) continue;
+                        if (((JObject)releaseTok).TryGetValue("tag_name", out JToken releaseTagTok)
+                            &&
+                            ((JObject)releaseTok).TryGetValue("zipball_url", out JToken zipUrlTok)
+                            )
                         {
-                            string[] parts = releaseNameTok.ToString().Split(" ");
-                            if (parts.Length >= 1)
+                            string tagString = releaseTagTok.ToString();
+                            if (tagString.StartsWith('v')) tagString = tagString.Substring(1);
+                            if (tagString.Count(x => x == '.') >= 2)
                             {
-                                Version releaseVersion = new Version(parts[0]);
+                                Version releaseVersion = new Version(tagString);
                                 //todo replace these lines when dev is done
                                 if ((releaseVersion != null) && (releaseVersion > latestVersion))
                                 {
                                     newVersion = true;
                                     latestVersion = releaseVersion;
+                                    latestZip = zipUrlTok.ToString();
                                 }
                             }
                         }
@@ -73,6 +85,7 @@ namespace rgat
                         client.DefaultRequestHeaders.UserAgent.Add(versionHeader);
                         client.DefaultRequestHeaders.Add("accept", "application/vnd.github.v3+json");
 
+                        //string changelogPath = $"https://api.github.com/repos/olivierlacan/keep-a-changelog/contents/CHANGELOG.md";
                         string changelogPath = $"https://api.github.com/repos/ncatlin/rgat/contents/CHANGELOG.md";
 
                         response = client.GetAsync(changelogPath, exitToken);
@@ -86,7 +99,7 @@ namespace rgat
                             if (changelogObj.TryGetValue("content", out JToken b64ChangelogTok) && b64ChangelogTok.Type == JTokenType.String)
                             {
                                 string parsedChangelogChanges = ParseChangelogChanges(b64ChangelogTok.ToString());
-                                GlobalConfig.RecordAvailableUpdateDetails(latestVersion, parsedChangelogChanges);
+                                GlobalConfig.RecordAvailableUpdateDetails(latestVersion, parsedChangelogChanges, latestZip);
                             }
                             else
                             {
@@ -94,7 +107,7 @@ namespace rgat
                             }
                         }
                     }
-                    GlobalConfig.Settings.Updates.UpdateLastCheckTime = DateTime.Now;  
+                    GlobalConfig.Settings.Updates.UpdateLastCheckTime = DateTime.Now;
                 }
             }
             catch (Exception e)
@@ -210,6 +223,7 @@ namespace rgat
             Version currentVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
             Version newVersion = GlobalConfig.Settings.Updates.UpdateLastCheckVersion;
             ImGui.Text($"Current Version: {currentVersion}. New Version: {newVersion}");
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
 
             string[] changes = GlobalConfig.Settings.Updates.UpdateLastChanges.Split('\n');
 
@@ -228,7 +242,8 @@ namespace rgat
                         ImGui.PushStyleColor(ImGuiCol.TabActive, colour.ToUint(customAlpha: 255));
                         if (ImGui.BeginTabItem($"{icon} {category}##{i}"))
                         {
-                            if (ImGui.BeginTable("#ChangesDlgChild", 1, flags: ImGuiTableFlags.ScrollY | ImGuiTableFlags.ScrollX | ImGuiTableFlags.RowBg, ImGui.GetContentRegionAvail()))
+                            ImGuiTableFlags tableFlags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.ScrollX | ImGuiTableFlags.RowBg;
+                            if (ImGui.BeginTable("#ChangesDlgChild", 1, flags: tableFlags, ImGui.GetContentRegionAvail() - new System.Numerics.Vector2(0, 30)))
                             {
                                 i += 1;
                                 while (i < changes.Length)
@@ -258,7 +273,260 @@ namespace rgat
                 ImGui.EndTabBar();
             }
             ImGui.PopStyleColor(2);
+
+            if (_update_in_progress is false)
+            {
+                if (ImGui.Button($"{ImGuiController.FA_ICON_DOWNLOAD} Download and Install now"))
+                {
+                    StartUpdater(delayed_install: false);
+                }
+                ImGui.SameLine();
+                if (ImGui.Button($"{ImGuiController.FA_ICON_CLOCK} Download now, Install on exit"))
+                {
+                    StartUpdater(delayed_install: true);
+                }
+            }
+            else
+            {
+                if (_download_complete)
+                {
+                    if (rgatState.PendingInstallPath != null)
+                    {
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text("Update will be installed on exit");
+                        ImGui.SameLine();
+                        if (ImGui.Button("Cancel"))
+                        {
+                            rgatState.PendingInstallPath = null;
+                            _update_in_progress = false;
+                        }
+                    }
+                    else if (_update_style == "ONDOWNLOAD")
+                    {
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text("Exiting...");
+                    }
+                }
+                else
+                {
+                    if (_download_progress != -1)
+                    {
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text("Download Progress: ");
+                        ImGui.SameLine();
+                        ImGui.ProgressBar(_download_progress, new System.Numerics.Vector2(80, 25));
+                        ImGui.SameLine();
+                        if (ImGui.Button("Cancel", new System.Numerics.Vector2(50, 25)))
+                        {
+                            _download_progress = -1;
+                            _update_in_progress = false;
+                            _download_cancel_tokensrc.Cancel();
+                        }
+                    }
+                }
+            }
         }
+
+        static bool _update_in_progress;
+        static string _update_style = "";
+        static float _download_progress = -1;
+        static bool _download_complete;
+        static bool _update_ready;
+        static CancellationTokenSource _download_cancel_tokensrc = new CancellationTokenSource();
+
+        static void StartUpdater(bool delayed_install = false)
+        {
+            _update_in_progress = true;
+
+            if (delayed_install)
+                _update_style = "ONEXIT";
+            else
+                _update_style = "ONDOWNLOAD";
+
+            try
+            {
+                //first check for a staged download 
+                if (Version.TryParse(GlobalConfig.Settings.Updates.StagedDownloadVersion, out Version stagedVersion))
+                {
+                    if (stagedVersion == GlobalConfig.Settings.Updates.UpdateLastCheckVersion)
+                    {
+                        string stagedrgat = Path.Combine(GlobalConfig.Settings.Updates.StagedDownloadPath, "rgat.exe");
+                        if (File.Exists(stagedrgat) && GlobalConfig.PreviousSignatureCheckPassed(stagedrgat, out string error, out bool timeWarning))
+                        {
+                            if (timeWarning)
+                            {
+                                Logging.RecordError("Refusing to install fetched update: expired signature");
+                                File.Delete(stagedrgat);
+                                Directory.Delete(GlobalConfig.Settings.Updates.StagedDownloadPath);
+                            }
+                            _download_complete = true;
+                            _update_ready = true;
+                            InitiateFileSwap(stagedrgat);
+                            return;
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Update from staged download failed: {e.Message}");
+                GlobalConfig.Settings.Updates.StagedDownloadPath = "";
+                GlobalConfig.Settings.Updates.UpdateLastCheckVersion = null;
+            }
+
+            Task.Run(() => { UpdateDownloader(_download_cancel_tokensrc.Token); });
+        }
+
+        private static void DownloadProgressCallback4(object sender, DownloadProgressChangedEventArgs e)
+        {
+            _download_progress = (float)e.BytesReceived / (float)e.TotalBytesToReceive;
+        }
+
+        async static void UpdateDownloader(CancellationToken cancelToken)
+        {
+            try
+            {
+                WebClient client = new WebClient();
+                client.Headers.Add(HttpRequestHeader.UserAgent, $"rgat {RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC}");
+                client.Headers.Add(HttpRequestHeader.Accept, "application/vnd.github.v3+json");
+
+                Logging.RecordLogEvent($"Starting download: {GlobalConfig.Settings.Updates.UpdateDownloadLink}", filter: Logging.LogFilterType.TextDebug);
+                Uri downloadAddr = new Uri(GlobalConfig.Settings.Updates.UpdateDownloadLink);
+                string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(Path.GetRandomFileName()));
+                Directory.CreateDirectory(tempDirectory);
+                string zipfilepath = Path.Combine(tempDirectory, "newversion.zip");
+                client.DownloadProgressChanged += DownloadProgressCallback4;
+                Task downloadTask = client.DownloadFileTaskAsync(downloadAddr, zipfilepath);
+
+                await downloadTask;
+
+                if (downloadTask.IsCompleted)
+                {
+                    _download_progress = 1;
+                    _download_complete = true;
+                    ZipArchive arch = ZipFile.OpenRead(zipfilepath);
+                    var rgatExes = arch.Entries.Where(x => x.Name == "rgat.exe");
+
+                    if (rgatExes.Count() == 1)
+                    {
+                        var rgatExe = rgatExes.First();
+                        string downloadedExe = Path.Combine(tempDirectory, "rgat.exe");
+                        rgatExe.ExtractToFile(downloadedExe);
+                        InitiateFileSwap(downloadedExe);
+                    }
+                    else
+                    {
+                        Logging.RecordError($"Expected 1 rgat.exe in release but found {rgatExes.Count()}");
+                        _update_in_progress = false;
+                    }
+
+                    arch.Dispose();
+                    File.Delete(zipfilepath);
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Download Failed: {e.Message}");
+                if (e.InnerException != null)
+                {
+                    Logging.RecordError($"Download Failed: {e.InnerException.Message}");
+                }
+                _update_in_progress = false;
+
+            }
+            finally
+            {
+                _download_progress = -1;
+            }
+        }
+
+
+        static void InitiateFileSwap(string new_rgatPath)
+        {
+            Logging.RecordLogEvent($"Initialising update called with new rgat version {new_rgatPath}", filter: Logging.LogFilterType.TextDebug);
+            bool failed = false;
+            if (File.Exists(new_rgatPath))
+            {
+                if (GlobalConfig.VerifyCertificate(new_rgatPath, "Open Source Developer, Nia CATLIN", out string error, out string timeWarning))
+                {
+                    if (timeWarning != null)
+                    {
+                        Logging.RecordError("Refusing to install fetched update: expired signature");
+                        failed = true;
+                    }
+                }
+                else
+                {
+                    Logging.RecordError($"Refusing to install fetched update: Bad Signature ({error})");
+                    failed = true;
+                }
+                if (failed)
+                {
+                    Logging.RecordLogEvent($"Deleting bad update at {new_rgatPath}", filter: Logging.LogFilterType.TextDebug);
+                    try
+                    {
+                        File.Delete(new_rgatPath);
+                        string filedir = Path.GetDirectoryName(new_rgatPath);
+                        if (Directory.GetFiles(filedir).Length == 0)
+                        {
+                            Directory.Delete(filedir);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordLogEvent($"Exception deleting bad update: {e.Message}", filter: Logging.LogFilterType.TextError);
+                    }
+                }
+            }
+            else
+            {
+                Logging.RecordError($"Unable to install {new_rgatPath}: Does not exist");
+                failed = true;
+            }
+
+            if (failed)
+            {
+                Logging.RecordLogEvent($"Abandoning failed update", filter: Logging.LogFilterType.TextDebug);
+                GlobalConfig.Settings.Updates.StagedDownloadPath = "";
+                GlobalConfig.Settings.Updates.UpdateLastCheckVersion = new Version("0.0.0");
+                _update_in_progress = false;
+                _download_complete = false;
+                return;
+            }
+
+            GlobalConfig.Settings.Updates.StagedDownloadPath = new_rgatPath;
+            GlobalConfig.Settings.Updates.StagedDownloadVersion = GlobalConfig.Settings.Updates.UpdateLastCheckVersionString;
+
+            rgatState.PendingInstallPath = new_rgatPath;
+            if (_update_style == "ONDOWNLOAD")
+            {
+                Logging.RecordLogEvent($"Requesting exit to begin update", filter: Logging.LogFilterType.TextDebug);
+                rgatState.RequestExit();
+            }
+            else
+            {
+                Logging.RecordLogEvent($"Update staged for install on exit", filter: Logging.LogFilterType.TextDebug);
+            }
+        }
+
+
+        public static void PerformFileSwap(string new_rgatPath)
+        {
+            Console.WriteLine("Do actual fileswap " + new_rgatPath);
+            string tool = @"C:\Users\nia\Source\Repos\rgatPrivate\UpdateFinaliser\bin\Debug\net5.0\UpdateFinaliser.exe";
+            System.Diagnostics.Process.Start(tool, new List<string>(){
+                System.Diagnostics.Process.GetCurrentProcess().Id.ToString(),
+                Environment.GetCommandLineArgs()[0],
+                new_rgatPath,
+                "true"
+            });
+            rgatState.RequestExit();
+        }
+
+
+
+
+
 
         static void GetChangeIcon(string changeType, out char icon, out WritableRgbaFloat colour)
         {

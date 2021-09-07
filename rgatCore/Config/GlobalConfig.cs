@@ -9,48 +9,82 @@ using System.Linq;
 using Veldrid;
 using static rgat.RGAT_CONSTANTS;
 using rgat.Config;
+using System.Security.Cryptography.X509Certificates;
+using Humanizer;
 
 namespace rgat
 {
     public partial class GlobalConfig
     {
 
-
-        /*
-        public sealed class KeybindSection : ConfigurationSection
+        /// <summary>
+        /// Checks that a binary has a valid code signing certificate issued to one of the expected subject names
+        /// </summary>
+        /// <param name="path">Path of binary to be tested</param>
+        /// <param name="expectedSigners">Comma seperated list of valid certificate subject names</param>
+        /// <param name="error">Errors encountered in validating the certificate (no or invalid signer)</param>
+        /// <param name="warning">Warnings encountered validating the certificate (time issues)</param>
+        /// <returns>Whether the certificate was valid. Expired/Not yet valid certs will return true with the warning field set</returns>
+        public static bool VerifyCertificate(string path, string expectedSigners, out string error, out string warning)
         {
+            error = null;
+            warning = null;
 
-            private static ConfigurationPropertyCollection _Properties;
-            private static readonly ConfigurationProperty _keybindJSON = new ConfigurationProperty(
-                "CustomKeybinds",
-                typeof(JArray),
-                new JArray(),
-                new GlobalConfig.JSONBlobConverter(),
-                null,
-                ConfigurationPropertyOptions.None);
-
-            public KeybindSection()
+            try
             {
-                _Properties = new ConfigurationPropertyCollection();
-                _Properties.Add(_keybindJSON);
-            }
+                X509Certificate signer = X509Certificate.CreateFromSignedFile(path);
 
-            protected override object GetRuntimeObject() => base.GetRuntimeObject();
-            protected override ConfigurationPropertyCollection Properties => _Properties;
-
-            public JArray CustomKeybinds
-            {
-                get => (JArray)this["CustomKeybinds"];
-                set
+                bool hasValidSigner = expectedSigners.Split(',').Any(validSigner => signer.Subject.ToLower().Contains($"O={validSigner},".ToLower()));
+                if (!hasValidSigner)
                 {
-                    this["CustomKeybinds"] = value;
+                    error = "Unexpected signer " + signer.Subject;
+                    return false;
                 }
+
+                X509Certificate2 certificate = new X509Certificate2(signer);
+                if (certificate.NotBefore > DateTime.Now)
+                {
+                    DateTime limit = certificate.NotBefore;
+                    warning = $"Signature Validity Starts {limit.ToLongDateString() + " " + limit.ToLongTimeString()} ({limit.Humanize()})";
+                    return true;
+                }
+                if (certificate.NotAfter < DateTime.Now)
+                {
+                    DateTime limit = certificate.NotAfter;
+                    warning = $"Signature Validity Ended {limit.ToLongDateString() + " " + limit.ToLongTimeString()} ({limit.Humanize()})";
+                    return true;
+                }
+
+                var certificateChain = new X509Chain
+                {
+                    ChainPolicy = {
+                        RevocationFlag = X509RevocationFlag.EntireChain,
+                        RevocationMode = X509RevocationMode.Online,
+                        UrlRetrievalTimeout = new TimeSpan(0, 1, 0),
+                        VerificationFlags = X509VerificationFlags.NoFlag}
+                };
+
+                if (!certificateChain.Build(certificate))
+                {
+                    error = "Unverifiable signature";
+                    return false;
+                }
+                error = "Success";
+                return true;
+            }
+            catch (Exception e)
+            {
+                if (e.Message == "Cannot find the requested object.")
+                {
+                    error = "File is not signed";
+                }
+                else
+                {
+                    error = "Exception verifying certificate: " + e.Message;
+                }
+                return false;
             }
         }
-
-
-
-        */
 
         public struct SYMS_VISIBILITY
         {
@@ -199,12 +233,13 @@ namespace rgat
         public static List<WritableRgbaFloat> defaultGraphColours = new List<WritableRgbaFloat>();
 
         public static bool NewVersionAvailable = false;
-        public static void RecordAvailableUpdateDetails(Version releaseVersion, string releaseCumulativeChanges)
+        public static void RecordAvailableUpdateDetails(Version releaseVersion, string releaseCumulativeChanges, string downloadLink)
         {
             try
             {
                 Settings.Updates.UpdateLastCheckVersion = releaseVersion;
                 Settings.Updates.UpdateLastChanges = releaseCumulativeChanges;
+                Settings.Updates.UpdateDownloadLink = downloadLink;
                 NewVersionAvailable = Settings.Updates.UpdateLastCheckVersion > RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
             }
             catch (Exception e)
@@ -394,7 +429,7 @@ namespace rgat
 
 
 
-        public static bool CheckSignatureError(string path, out string error, out bool timeWarning)
+        public static bool PreviousSignatureCheckPassed(string path, out string error, out bool timeWarning)
         {
             timeWarning = false;
             if (Settings.ToolPaths.BadSigners(out List<Tuple<string, string>> signerErrors))

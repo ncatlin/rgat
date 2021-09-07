@@ -376,7 +376,7 @@ namespace rgat.Config
                 {
                     case "PinPath":
                         {
-                            if (VerifyCertificate(path, SIGNERS.PIN_SIGNER, out string error, out string warning))
+                            if (VerifyCertificate(path, SIGNERS.PIN_SIGNERS, out string error, out string warning))
                             {
                                 if (warning != null)
                                     Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
@@ -393,7 +393,7 @@ namespace rgat.Config
 
                     case "PinToolPath32":
                         {
-                            if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error, out string warning))
+                            if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNERS, out string error, out string warning))
                             {
                                 if (warning != null)
                                     Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
@@ -410,7 +410,7 @@ namespace rgat.Config
 
                     case "PinToolPath64":
                         {
-                            if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNER, out string error, out string warning))
+                            if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNERS, out string error, out string warning))
                             {
                                 if (warning != null)
                                     Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
@@ -509,10 +509,60 @@ namespace rgat.Config
             public DateTime UpdateLastCheckTime { get => _UpdateLastCheckTime; set { lock (_lock) { _UpdateLastCheckTime = value; } MarkDirty(); } }
 
             Version _UpdateLastCheckVersion = RGAT_VERSION_SEMANTIC;
-            public Version UpdateLastCheckVersion { get => _UpdateLastCheckVersion; set { _UpdateLastCheckVersion = value; MarkDirty(); } }
+
+            [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+            public Version UpdateLastCheckVersion { get => _UpdateLastCheckVersion; 
+                set
+                {
+                    try
+                    {
+                        _UpdateLastCheckVersion = value;
+                        _UpdateLastCheckVersionString = value.ToString();
+                        GlobalConfig.NewVersionAvailable = _UpdateLastCheckVersion > RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
+                    }
+                    catch(Exception e)
+                    {
+                        Logging.RecordLogEvent($"Failed to parse update version ({value}) from settings: {e.Message}");
+                    }
+                    
+                    MarkDirty(); 
+                }
+            }
+
+            public string _UpdateLastCheckVersionString;
+            public string UpdateLastCheckVersionString
+            {
+                get => UpdateLastCheckVersion.ToString();
+                set
+                {
+                    try
+                    {
+                        UpdateLastCheckVersion = Version.Parse(value);
+                        _UpdateLastCheckVersionString = value;
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordLogEvent($"Failed to parse update version ({value}) from settings: {e.Message}");
+                    }
+
+                    MarkDirty();
+                }
+            }
+
 
             string _UpdateLastChanges = "";
             public string UpdateLastChanges { get => _UpdateLastChanges; set { _UpdateLastChanges = value; MarkDirty(); } }
+
+
+
+            string _UpdateDownloadLink = "";
+            public string UpdateDownloadLink { get => _UpdateDownloadLink; set { _UpdateDownloadLink = value; MarkDirty(); } }
+
+            string _StagedDownloadPath = "";
+            public string StagedDownloadPath { get => _StagedDownloadPath; set { _StagedDownloadPath = value; MarkDirty(); } }
+
+            string _StagedDownloadVersion = "";
+            public string StagedDownloadVersion { get => _StagedDownloadVersion; set { _StagedDownloadVersion = value; MarkDirty(); } }
         }
 
 
@@ -742,67 +792,6 @@ namespace rgat.Config
                 }
             }
         }
-
-
-        static bool VerifyCertificate(string path, string expectedSigner, out string error, out string warning)
-        {
-            error = null;
-            warning = null;
-
-            try
-            {
-                X509Certificate signer = X509Certificate.CreateFromSignedFile(path);
-                if (!signer.Subject.Contains($"O={expectedSigner},"))
-                {
-                    error = "Unexpected signer " + signer.Issuer;
-                    return false;
-                }
-
-                X509Certificate2 certificate = new X509Certificate2(signer);
-                if (certificate.NotBefore > DateTime.Now)
-                {
-                    DateTime limit = certificate.NotBefore;
-                    warning = $"Signature Validity Starts {limit.ToLongDateString() + " " + limit.ToLongTimeString()} ({limit.Humanize()})";
-                    return true;
-                }
-                if (certificate.NotAfter < DateTime.Now)
-                {
-                    DateTime limit = certificate.NotAfter;
-                    warning = $"Signature Validity Ended {limit.ToLongDateString() + " " + limit.ToLongTimeString()} ({limit.Humanize()})";
-                    return true; //the pin.exe cert has expired at the time of writing, not worth alerting about
-                }
-
-                var certificateChain = new X509Chain
-                {
-                    ChainPolicy = {
-                        RevocationFlag = X509RevocationFlag.EntireChain,
-                        RevocationMode = X509RevocationMode.Online,
-                        UrlRetrievalTimeout = new TimeSpan(0, 1, 0),
-                        VerificationFlags = X509VerificationFlags.NoFlag}
-                };
-
-                if (!certificateChain.Build(certificate))
-                {
-                    error = "Unverifiable signature";
-                    return false;
-                }
-                error = "Success";
-                return true;
-            }
-            catch (Exception e)
-            {
-                if (e.Message == "Cannot find the requested object.")
-                {
-                    error = "File is not signed";
-                }
-                else
-                {
-                    error = "Exception verifying certificate: " + e.Message;
-                }
-                return false;
-            }
-        }
-
 
     }
 

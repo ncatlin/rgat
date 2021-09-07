@@ -61,8 +61,8 @@ namespace rgat.OperationModes
 
         //perform regular events
         System.Timers.Timer _shortTimer;
-        bool _frameTimerFired = false;
-        private void FireShortTimer(object sender, System.Timers.ElapsedEventArgs e) { _frameTimerFired = true; }
+        bool _shortTimerFired = false;
+        private void FireShortTimer(object sender, System.Timers.ElapsedEventArgs e) { _shortTimerFired = true; }
 
         /// <summary>
         /// Runs a standard UI window loop using ImGui
@@ -270,6 +270,12 @@ namespace rgat.OperationModes
 
         private void Cleanup()
         {
+            if (rgatState.PendingInstallPath != null && System.IO.File.Exists(rgatState.PendingInstallPath))
+            {
+                Updates.PerformFileSwap(rgatState.PendingInstallPath);
+            }
+
+
             Exit();
             // Clean up Veldrid resources
             _gd.WaitForIdle();
@@ -462,9 +468,9 @@ namespace rgat.OperationModes
             timer.Stop();
             _rgatUI.UpdateFrameStats(timer.ElapsedMilliseconds);
 
-            if (_frameTimerFired)
+            if (_shortTimerFired)
             {
-                _frameTimerFired = false;
+                _shortTimerFired = false;
                 _rgatUI.ShortTimerFired();
             }
 
