@@ -27,6 +27,7 @@ Changelog
 - A testing framework with a JSON 'expected result' format. Tests can be queued and optionally continuously repeated.
 - Keybind editor
 - Update availability checks with changelog diff display
+- Update download & installation functionality
 - Save format stable enough to avoid obsoleting any more saves (in the near future)) 
 
 ### Changed

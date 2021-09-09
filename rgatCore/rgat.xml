@@ -66,6 +66,29 @@
             <param name="command"></param>
             <param name="response"></param>
         </member>
+        <member name="T:rgat.CircularCodeReader">
+            <summary>
+            A <see cref="!:CodeReader"/> that reads data from a byte array
+            </summary>
+        </member>
+        <member name="M:rgat.CircularCodeReader.#ctor(System.Int32)">
+            <summary>
+            Creates a CodeReader with a circular buffer
+            </summary>
+            <param name="data">Data</param>
+        </member>
+        <member name="M:rgat.CircularCodeReader.ReadByte">
+            <summary>
+            Reads the next byte
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.CircularCodeReader.AddBytes(System.Byte[])">
+            <summary>
+            Adds more bytes
+            </summary>
+            <returns></returns>
+        </member>
         <member name="M:rgat.GlobalConfig.VerifyCertificate(System.String,System.String,System.String@,System.String@)">
             <summary>
             Checks that a binary has a valid code signing certificate issued to one of the expected subject names
