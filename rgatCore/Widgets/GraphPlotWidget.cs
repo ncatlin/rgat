@@ -1194,7 +1194,7 @@ namespace rgat
                 if (_newGraphSize == null || _newGraphSize != currentRegionSize)
                     _newGraphSize = currentRegionSize;
             }
-
+           
             WidgetPos = ImGui.GetCursorScreenPos();
             _MousePos = ImGui.GetMousePos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
@@ -1514,6 +1514,7 @@ namespace rgat
 
             _layoutEngine.Compute(cl, graph, _mouseoverNodeID, graph.IsAnimated);
 
+          
             DoMouseNodePicking(_gd);
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
@@ -1629,7 +1630,7 @@ namespace rgat
         {
 
             PlottedGraph graph = ActiveGraph;
-            if (graph == null || Exiting) return;
+            if (graph == null || Exiting || _controller.DialogOpen) return;
 
             float mouseX = (_MousePos.X - WidgetPos.X);
             float mouseY = (WidgetPos.Y + _pickingStagingTexture.Height) - _MousePos.Y;

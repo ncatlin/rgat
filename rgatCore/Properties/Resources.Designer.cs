@@ -89,6 +89,26 @@ namespace rgat.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] DllLoader32 {
+            get {
+                object obj = ResourceManager.GetObject("DllLoader32", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] DllLoader64 {
+            get {
+                object obj = ResourceManager.GetObject("DllLoader64", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] Font_Awesome_5_Free_Regular_400 {
             get {
                 object obj = ResourceManager.GetObject("Font_Awesome_5_Free_Regular_400", resourceCulture);

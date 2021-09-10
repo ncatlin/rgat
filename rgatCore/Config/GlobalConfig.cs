@@ -254,7 +254,7 @@ namespace rgat
         public static Dictionary<string, string> LoadedStringResources = new Dictionary<string, string>();
 
 
-        public static void LoadResources()
+        public static void LoadThemesFromResource()
         {
             Logging.RecordLogEvent($"Loading Resources", Logging.LogFilterType.TextDebug);
 
@@ -263,7 +263,7 @@ namespace rgat
             System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
 
             r.GetResourceData("BuiltinJSONThemes", out string type, out byte[] themesjsn);
-            if (type == "ResourceTypeCode.String" && themesjsn.Length > 0)
+            if (themesjsn != null && type == "ResourceTypeCode.String" && themesjsn.Length > 0)
             {
                 try
                 {
@@ -652,7 +652,7 @@ namespace rgat
             System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
             timer.Start();
 
-            LoadResources();
+            LoadThemesFromResource();
             progress?.Report(0.3f);
 
             lock (_settingsLock)

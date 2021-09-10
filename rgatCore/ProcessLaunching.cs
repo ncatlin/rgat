@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using ImGuiNET;
+using Newtonsoft.Json.Linq;
 using rgat.Threads;
 using System;
 using System.Collections.Generic;
@@ -67,9 +68,9 @@ namespace rgat
     class ProcessLaunching
     {
 
-        public static System.Diagnostics.Process StartLocalTrace(string pintool, string targetBinary, PeNet.PeFile targetPE = null, string loaderName = null, int ordinal = 0, long testID = -1)
+        public static System.Diagnostics.Process StartLocalTrace(string pintool, string targetBinary, PeNet.PeFile targetPE = null, string loaderName = "LoadDLL", int ordinal = 0, long testID = -1)
         {
-            if(!File.Exists(GlobalConfig.GetSettingPath("PinPath")))
+            if (!File.Exists(GlobalConfig.GetSettingPath("PinPath")))
             {
                 Logging.RecordError($"Pin.exe path is not correctly configured (Settings->Files->Pin Executable)");
                 return null;
@@ -141,28 +142,75 @@ namespace rgat
             runargs += $"-P {rgatState.LocalCoordinatorPipeName} ";
             runargs += $"-L "; // tracing a library
             runargs += "-- ";
-            
-            if (loadername != null)
+
+
+
+            if (InitLoader(Path.GetDirectoryName(targetBinary), loadername, loaderWidth, out string loaderPath))
             {
-                //
+                runargs += $"{loaderPath} {targetBinary},{ordinal}$";
             }
-            
-            if (loaderWidth == BitWidth.Arch32)
-                runargs += $"C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\Debug\\DLLLoader32.exe {targetBinary},{ordinal}$";
-            else
-                runargs += $"C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\x64\\Debug\\DllLoader64.exe {targetBinary},{ordinal}$";
 
             try
             {
                 string pinpath = GlobalConfig.GetSettingPath("PinPath");
                 Logging.RecordLogEvent($"Launching DLL trace: {pinpath} {runargs}", Logging.LogFilterType.TextDebug);
                 result = System.Diagnostics.Process.Start(pinpath, runargs);
+                result.Exited += (sender, args) => DeleteLoader(loaderPath);
             }
             catch (Exception e)
             {
                 Logging.RecordError($"Failed to start process: {e.Message}");
             }
             return result;
+        }
+
+        static void DeleteLoader(string loader)
+        {
+            try
+            {
+                File.Delete(loader);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Unable to delete loader {loader}: {e.Message}");
+            }
+        }
+
+        static bool InitLoader(string directory, string name, BitWidth loaderWidth, out string loaderPath)
+        {
+            loaderPath = Path.Combine(directory, name);
+
+            int attempts = 10;
+            while (File.Exists(loaderPath))
+            {
+                loaderPath = Path.Combine(directory, $"{Path.GetRandomFileName().Substring(0, 4)}_{name}");
+                if (attempts-- < 0)
+                {
+                    Logging.RecordError("Unable to create loader due to prexisting loaders with similar name");
+                    return false;
+                }
+            }
+
+            string loaderName = (loaderWidth == BitWidth.Arch32) ? "DllLoader32" : "DllLoader64";
+            byte[] loaderBytes = ImGuiController.ReadBinaryResource(loaderName);
+            if (loaderBytes == null)
+            {
+                Logging.RecordError($"Unable to retrieve loader {loaderName} from resources");
+                return false;
+            }
+
+            try
+            {
+                File.WriteAllBytes(loaderPath, loaderBytes);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Failed to write loader to DLL directory: {e}");
+                return false;
+            }
+
+
+            return true;
         }
 
 

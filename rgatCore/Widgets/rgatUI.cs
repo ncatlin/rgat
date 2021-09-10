@@ -44,8 +44,8 @@ namespace rgat
         /// </summary>
         public bool ExitFlag = false;
 
-        int _dialogsOpen = 0;
-        public bool DialogOpen => _dialogsOpen > 0;
+
+
         private bool _show_settings_window = false;
         private bool _show_select_exe_window = false;
         private bool _show_load_trace_window = false;
@@ -68,6 +68,7 @@ namespace rgat
         float _mouseWheelDelta = 0;
         Vector2 _mouseDragDelta = new Vector2(0, 0);
 
+        bool DialogOpen => _controller.DialogOpen;
         public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover || _logsWindow.RecentAlert() || DialogOpen || (DateTime.Now - _lastNotification).TotalMilliseconds < 500);
         bool _splashHeaderHover = false;
         DateTime _lastNotification = DateTime.MinValue;
@@ -112,7 +113,7 @@ namespace rgat
             Logging.RecordLogEvent($"Startup: Visualiser tab created in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
             visualiserTab.Init(_gd, _controller, progress);
-            visualiserTab.SetDialogStateChangeCallback((bool state) => { _dialogsOpen += state ? 1 : -1; });
+            visualiserTab.SetDialogStateChangeCallback((bool state) => _controller.DialogChange(opened: state));
 
             Logging.RecordLogEvent($"Startup: Visualiser tab initialised in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
@@ -255,50 +256,43 @@ namespace rgat
         /// This isn't great but coming up with something more elegant can wait
         public void DrawDialogs()
         {
-            Debug.Assert(_dialogsOpen >= 0);
-            if (_dialogsOpen == 0) return;
+            if (!_controller.DialogOpen) return;
             bool shown;
             if (_show_settings_window && _SettingsMenu != null)
             {
                 shown = _show_settings_window;
                 _SettingsMenu.Draw(ref shown);
                 if (!shown) ToggleSettingsWindow();
-                Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_select_exe_window)
             {
                 shown = _show_select_exe_window;
                 DrawFileSelectBox(ref shown);
                 if (!shown) ToggleLoadExeWindow();
-                Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_load_trace_window)
             {
                 shown = _show_load_trace_window;
                 DrawTraceLoadBox(ref shown);
                 if (!shown) ToggleLoadTraceWindow();
-                Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_tracelist_selection_window)
             {
                 shown = _show_tracelist_selection_window;
                 DrawTraceListSelectBox(ref shown);
                 if (!shown) ToggleTraceListSelectionWindow();
-                Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_test_harness)
             {
                 shown = _show_test_harness;
                 _testHarness.Draw(ref shown);
                 if (!shown) ToggleTestHarness();
-                Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_logs_window)
             {
                 shown = _show_logs_window;
                 _logsWindow.Draw(ref shown);
                 if (!shown) ToggleLogsWindow();
-                Debug.Assert(_dialogsOpen >= 0);
             }
             if (_show_remote_dialog)
             {
@@ -306,7 +300,6 @@ namespace rgat
                 shown = _show_remote_dialog;
                 _RemoteDialog.Draw(ref shown);
                 if (!shown) ToggleRemoteDialog();
-                Debug.Assert(_dialogsOpen >= 0);
             }
         }
 
@@ -363,7 +356,7 @@ namespace rgat
             bool currentTabTimeline = _currentTab == "Timeline";
             lock (_inputLock)
             {
-                if (_dialogsOpen == 0)
+                if (!_controller.DialogOpen)
                 {
                     bool MouseInMainWidget = currentTabVisualiser && visualiserTab.MouseInMainWidget;
                     if (_mouseWheelDelta != 0)
@@ -520,8 +513,7 @@ namespace rgat
                 if (_testHarness == null) _testHarness = new TestsWindow(_rgatState, _controller);
             }
             _show_test_harness = !_show_test_harness;
-            _dialogsOpen += _show_test_harness ? 1 : -1;
-            Debug.Assert(_dialogsOpen >= 0);
+            _controller.DialogChange(_show_test_harness);
         }
 
         void ToggleRemoteDialog()
@@ -531,46 +523,40 @@ namespace rgat
                 if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog(_rgatState);// _rgatState, _controller);
             }
             _show_remote_dialog = !_show_remote_dialog;
-            _dialogsOpen += _show_remote_dialog ? 1 : -1;
-            Debug.Assert(_dialogsOpen >= 0);
+            _controller.DialogChange(_show_remote_dialog);
         }
 
 
         void ToggleLoadTraceWindow()
         {
             _show_load_trace_window = !_show_load_trace_window;
-            _dialogsOpen += _show_load_trace_window ? 1 : -1;
-            Debug.Assert(_dialogsOpen >= 0);
+            _controller.DialogChange(_show_load_trace_window);
         }
 
         void ToggleLoadExeWindow()
         {
             _show_select_exe_window = !_show_select_exe_window;
-            _dialogsOpen += _show_select_exe_window ? 1 : -1;
-            Debug.Assert(_dialogsOpen >= 0);
+            _controller.DialogChange(_show_select_exe_window);
         }
 
         void ToggleTraceListSelectionWindow()
         {
             _show_tracelist_selection_window = !_show_tracelist_selection_window;
-            _dialogsOpen += _show_tracelist_selection_window ? 1 : -1;
-            Debug.Assert(_dialogsOpen >= 0);
+            _controller.DialogChange(_show_tracelist_selection_window);
         }
 
 
         void ToggleSettingsWindow()
         {
             _show_settings_window = !_show_settings_window;
-            _dialogsOpen += _show_settings_window ? 1 : -1;
-            Debug.Assert(_dialogsOpen >= 0);
+            _controller.DialogChange(_show_settings_window);
         }
 
         void ToggleLogsWindow()
         {
             Console.WriteLine($"Logwindow toggle {_show_logs_window}");
             _show_logs_window = !_show_logs_window;
-            _dialogsOpen += _show_logs_window ? 1 : -1;
-            Debug.Assert(_dialogsOpen >= 0);
+            _controller.DialogChange(_show_logs_window);
         }
 
 

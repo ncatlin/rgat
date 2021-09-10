@@ -58,7 +58,16 @@ namespace ImGuiNET
         ImFontPtr? _splashButtonFont = null;
         public ImFontPtr _originalFont = null;
         private bool _unicodeFontLoaded = false;
+      
+        int _dialogsOpen = 0;
 
+        public bool DialogOpen => _dialogsOpen > 0;
+        public void DialogChange(bool opened)//todo this is an awful system, maybe make it an event
+        {
+
+            Debug.Assert(_dialogsOpen >= 0);
+            _dialogsOpen += opened ? 1 : -1; 
+        }
 
         public bool ShowDemoWindow = false;
         public GraphicsDevice graphicsDevice => _gd;
@@ -160,8 +169,7 @@ namespace ImGuiNET
             //embed in resource for distribution, once a font is settled on
 
             
-            byte[] notoFontBytes = ReadResourceByteArray("NotoSansSC_Regular");
-
+            byte[] notoFontBytes = ReadBinaryResource("NotoSansSC_Regular");
             if (notoFontBytes == null)
             {
                 Logging.RecordError($"No font resouce: \"NotoSansSC_Regular\"");
@@ -200,10 +208,6 @@ namespace ImGuiNET
             {
                 ImGui.GetIO().NativePtr->FontDefault = _unicodeFont;
             }
-
- 
-
-
             _unicodeFontLoaded = true;
         }
 
@@ -225,8 +229,8 @@ namespace ImGuiNET
             fontConfig.GlyphMaxAdvanceX = float.MaxValue;
             fontConfig.RasterizerMultiply = 1f;
 
-            byte[] regularFontBytes = ReadResourceByteArray("Font_Awesome_5_Free_Regular_400");
-            byte[] solidFontBytes = ReadResourceByteArray("Font_Awesome_5_Free_Solid_900");
+            byte[] regularFontBytes = ReadBinaryResource("Font_Awesome_5_Free_Regular_400");
+            byte[] solidFontBytes = ReadBinaryResource("Font_Awesome_5_Free_Solid_900");
             if (regularFontBytes != null && solidFontBytes != null)
             {
                 Logging.RecordLogEvent($"Loading font resources", Logging.LogFilterType.TextDebug);
@@ -266,7 +270,7 @@ namespace ImGuiNET
         ImFontPtr _fafontRegular;
         ImFontPtr _iconsLargeFont;
 
-        public byte[] ReadResourceByteArray(string name)
+        public static byte[] ReadBinaryResource(string name)
         {
             System.Reflection.Assembly assembly = typeof(ImGuiController).Assembly;
             System.IO.Stream fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);

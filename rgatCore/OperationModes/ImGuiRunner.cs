@@ -86,7 +86,14 @@ namespace rgat.OperationModes
 
             while (_window.Exists && !_rgatUI.ExitFlag)
             {
-                Update();
+                try
+                {
+                    Update();
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Exception in UI Update: {e.Message}");
+                }
             }
 
             Cleanup();
@@ -166,7 +173,7 @@ namespace rgat.OperationModes
 
             _window.KeyDown += (KeyEvent k) =>
             {
-                if (GlobalConfig.ResponsiveKeys.Contains(k.Key) && !_rgatUI.DialogOpen)
+                if (GlobalConfig.ResponsiveKeys.Contains(k.Key) && !_controller.DialogOpen)
                 {
                     if (!HeldResponsiveKeys.Contains(k.Key)) HeldResponsiveKeys.Add(k.Key);
                 }

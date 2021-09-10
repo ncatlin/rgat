@@ -517,7 +517,8 @@ namespace rgat
                     {
                         //todo loadername, ordinal
                         System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
-                        System.Diagnostics.Process p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath, ordinal: ordinal, targetPE: activeTarget.PEFileObj);
+                        System.Diagnostics.Process p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath, 
+                            loaderName: activeTarget.LoaderName, ordinal: ordinal, targetPE: activeTarget.PEFileObj) ;
                         if (p != null)
                         {
                             watch.Start();

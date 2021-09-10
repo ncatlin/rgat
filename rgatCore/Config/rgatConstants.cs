@@ -99,7 +99,7 @@ namespace rgat
         public static class SIGNERS
         {
             public const string PIN_SIGNERS = "Intel Corporation";
-            public const string PINTOOL_SIGNERS = "rgat dev";
+            public const string RGAT_SIGNERS = "rgat dev";
         }
 
 

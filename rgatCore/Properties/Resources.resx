@@ -216,6 +216,12 @@
     <comment>Default immutable preset themes included with rgat</comment>
   </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="DllLoader32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\DllLoader32.exe;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DllLoader64" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\DllLoader64.exe;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="Font_Awesome_5_Free_Regular_400" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Font Awesome 5 Free-Regular-400.otf;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>

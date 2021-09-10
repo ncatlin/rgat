@@ -393,7 +393,7 @@ namespace rgat.Config
 
                     case "PinToolPath32":
                         {
-                            if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNERS, out string error, out string warning))
+                            if (VerifyCertificate(path, SIGNERS.RGAT_SIGNERS, out string error, out string warning))
                             {
                                 if (warning != null)
                                     Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
@@ -410,7 +410,7 @@ namespace rgat.Config
 
                     case "PinToolPath64":
                         {
-                            if (VerifyCertificate(path, SIGNERS.PINTOOL_SIGNERS, out string error, out string warning))
+                            if (VerifyCertificate(path, SIGNERS.RGAT_SIGNERS, out string error, out string warning))
                             {
                                 if (warning != null)
                                     Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
