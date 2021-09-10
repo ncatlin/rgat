@@ -261,23 +261,18 @@ namespace rgat
             System.Reflection.Assembly assembly = typeof(ImGuiController).Assembly;
             System.IO.Stream fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
             System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
-            System.Collections.IDictionaryEnumerator dict = r.GetEnumerator();
 
-            while (dict.MoveNext())
+            r.GetResourceData("BuiltinJSONThemes", out string type, out byte[] themesjsn);
+            if (type == "ResourceTypeCode.String" && themesjsn.Length > 0)
             {
-                Logging.RecordLogEvent($"Loading Resource " + dict.Key.ToString(), Logging.LogFilterType.TextDebug);
-                if (dict.Key.ToString() == "BuiltinJSONThemes")
+                try
                 {
-                    string themesjsn = (string)dict.Value.ToString();
-
-                    try
-                    {
-                        Themes.LoadPresetThemes(Newtonsoft.Json.Linq.JArray.Parse(themesjsn));
-                    }
-                    catch (Exception e)
-                    {
-                        Logging.RecordLogEvent($"Exception loading builtin themes: {e.Message}");
-                    }
+                    string preset = System.Text.Encoding.ASCII.GetString(themesjsn, 0, themesjsn.Length);
+                    Themes.LoadPresetThemes(Newtonsoft.Json.Linq.JArray.Parse(preset));
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordLogEvent($"Exception loading builtin themes: {e.Message}");
                 }
             }
         }

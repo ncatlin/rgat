@@ -31,14 +31,29 @@ namespace ImGuiNET
             {
                 case LaunchConfig.eRunMode.GUI:
                     ImGuiRunner Ui = new ImGuiRunner(_rgatState);
-                    Ui.Run();
+                    try
+                    {
+                        Ui.Run();
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordError($"Exception in outer GUI Runner: {e.Message}");
+                    }
                     break;
 
                 case LaunchConfig.eRunMode.Bridged:
                     BridgeConnection connection = new BridgeConnection(false);
                     rgatState.NetworkBridge = connection;
                     BridgedRunner bridge = new BridgedRunner();
-                    bridge.RunHeadless(connection);
+                    try
+                    {
+                        bridge.RunHeadless(connection);
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordError($"Exception in outer RunHeadless: {e.Message}");
+
+                    }
                     break;
 
                 case LaunchConfig.eRunMode.NoGPUTraceCommand:

@@ -306,7 +306,7 @@ namespace rgat
 
         public bool SendCommand(byte[] cmd)
         {
-            Debug.Assert(commandPipe != null);
+            Debug.Assert(commandPipe != null); //todo - remote commands
             if (commandPipe.IsConnected)
             {
                 try

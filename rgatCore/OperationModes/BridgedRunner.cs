@@ -17,10 +17,11 @@ using static rgat.BridgeConnection;
 
 namespace rgat.OperationModes
 
-{    /// <summary>
-     /// Runs rgat as a headless proxy which allows an rgat instance on a remote machine to control tracing and receive raw trace data
-     /// This does not require access to a GPU
-     /// </summary>
+{
+    /// <summary>
+    /// Runs rgat as a headless proxy which allows an rgat instance on a remote machine to control tracing and receive raw trace data
+    /// This does not require access to a GPU
+    /// </summary>
     class BridgedRunner
     {
         public BridgedRunner()
@@ -38,7 +39,16 @@ namespace rgat.OperationModes
             if (GlobalConfig.StartOptions.ConnectModeAddress != null)
             {
                 Logging.RecordLogEvent("Starting GUI connect mode", Logging.LogFilterType.TextDebug);
-                ConnectToListener(connection, onConnected);
+                try
+                {
+                    ConnectToListener(connection, onConnected);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Exception in ConnectToListener: {e.Message}");
+                    rgatState.NetworkBridge.Teardown("Connection Failure");
+                    return;
+                }
             }
         }
 
@@ -47,12 +57,27 @@ namespace rgat.OperationModes
             if (GlobalConfig.StartOptions.ListenPort != null)
             {
                 Logging.RecordLogEvent("Starting GUI listen mode", Logging.LogFilterType.TextDebug);
-                StartListenerMode(connection, onConnected);
+                try
+                {
+                    StartListenerMode(connection, onConnected);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Exception in StartListenerMode: {e.Message}");
+                    rgatState.NetworkBridge.Teardown("Connection Failure");
+                    return;
+                }
             }
 
         }
 
 
+
+        /// <summary>
+        /// Runs in headless mode which either connects to (command line -r) or waits for connections
+        /// from (command line -p) a controlling UI mode rgat instance
+        /// This does not use the GPU
+        /// </summary>
         public void RunHeadless(BridgeConnection connection)
         {
             GlobalConfig.LoadConfig(null); //todo a lightweight headless config
@@ -64,7 +89,7 @@ namespace rgat.OperationModes
                 Console.ForegroundColor = ConsoleColor.White;
             }
 
-                rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
+            rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
             rgatState.processCoordinatorThreadObj.Begin();
 
             if (GlobalConfig.StartOptions.ListenPort != null)
@@ -141,7 +166,7 @@ namespace rgat.OperationModes
             switch (item.msgType)
             {
                 case emsgType.Meta:
-                    string metaparam = GetString(item.data); 
+                    string metaparam = GetString(item.data);
                     if (metaparam != null && metaparam.StartsWith("Teardown:"))
                     {
                         var split = metaparam.Split(':');
@@ -190,7 +215,7 @@ namespace rgat.OperationModes
                     break;
 
                 case emsgType.TraceMeta:
-                    
+
                     if (!ParseTraceMeta(item.data, out TraceRecord trace, out string[] items))
                     {
                         rgatState.NetworkBridge.Teardown($"Bad Trace Metadata");
@@ -221,7 +246,7 @@ namespace rgat.OperationModes
                         break;
                     }
 
-                case emsgType.TraceCommand: 
+                case emsgType.TraceCommand:
                     {
                         Console.WriteLine("Incoming trace command:" + GetString(item.data));
                         if (rgatState.NetworkBridge.HeadlessMode &&
@@ -440,13 +465,67 @@ namespace rgat.OperationModes
 
         void StartHeadlessTrace(string paramfield)
         {
-            int testIdIdx = paramfield.LastIndexOf(',');
-            string path = paramfield.Substring(0, testIdIdx);
-            long testID = long.Parse(paramfield.Substring(testIdIdx + 1));
+            JObject paramsObj;
+            try
+            {
+                paramsObj = JObject.Parse(paramfield);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"StartHeadlessTrace: Bad Parameters object {paramfield}");
+                rgatState.NetworkBridge.Teardown("Bad Command");
+                return;
+            }
+
+
+            long testID = -1; string path = null;
+            if (paramsObj.TryGetValue("TestID", out JToken testIDTok) && testIDTok.Type == JTokenType.Integer)
+            {
+                testID = testIDTok.ToObject<long>();
+            }
+            if (paramsObj.TryGetValue("TargetPath", out JToken pathTok) && pathTok.Type == JTokenType.String)
+            {
+                path = pathTok.ToString();
+                if (!File.Exists(path))
+                {
+                    Logging.RecordError($"StartHeadlessTrace: Target {path} not found");
+                    rgatState.NetworkBridge.Teardown("Target path not found");
+                    return;
+                }
+            }
+            else
+            {
+                Logging.RecordError($"StartHeadlessTrace: No valid target path in trace start request");
+                rgatState.NetworkBridge.Teardown("No Target Path");
+                return;
+            }
+
             BinaryTarget target = rgatState.targets.AddTargetByPath(path);
+
+
+            if (target.PEFileObj == null)
+            {
+                Logging.RecordError($"StartHeadlessTrace: Target could not be parsed as a Windows PE binary");
+                rgatState.NetworkBridge.Teardown("Bad Target");
+                return;
+            }
             string pintool = target.BitWidth == 32 ? GlobalConfig.GetSettingPath("PinToolPath32") : GlobalConfig.GetSettingPath("PinToolPath64");
 
-            Process p = ProcessLaunching.StartLocalTrace(pintool, path, target.PEFileObj, testID: testID);
+            bool isDLL = target.PEFileObj.IsDll;
+            int ordinal = 0;
+
+            if (isDLL && paramsObj.TryGetValue("Ordinal", out JToken ordTok) && ordTok.Type == JTokenType.Integer)
+            {
+                ordinal = ordTok.ToObject<int>();
+            }
+
+            string loaderName = null;
+            if (isDLL && paramsObj.TryGetValue("LoaderName", out JToken loaderTok) && loaderTok.Type == JTokenType.String)
+            {
+                loaderName = loaderTok.ToObject<string>();
+            }
+
+            Process p = ProcessLaunching.StartLocalTrace(pintool, path, target.PEFileObj, loaderName: loaderName, ordinal: ordinal, testID: testID);
             if (p != null)
             {
                 rgatState.NetworkBridge.SendLog($"Trace of {path} launched as remote process ID {p.Id}", Logging.LogFilterType.TextAlert);
@@ -548,7 +627,7 @@ namespace rgat.OperationModes
             {
                 if (e.GetType() != typeof(System.UnauthorizedAccessException))
                 {
-                    Console.WriteLine(e);
+                    Console.WriteLine($"GetDirectoryListing non-unauth exception: {e.Message}");
                 }
                 error = e.Message;
             }
@@ -769,7 +848,7 @@ namespace rgat.OperationModes
                 {
                     foreach (var item in incoming)
                     {
-                       // try
+                        // try
                         {
                             ProcessData(item);
                         }
@@ -790,7 +869,7 @@ namespace rgat.OperationModes
         {
             try
             {
-               return Encoding.ASCII.GetString(bytes);
+                return Encoding.ASCII.GetString(bytes);
             }
             catch
             {

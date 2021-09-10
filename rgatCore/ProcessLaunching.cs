@@ -1,4 +1,5 @@
-﻿using rgat.Threads;
+﻿using Newtonsoft.Json.Linq;
+using rgat.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -140,6 +141,12 @@ namespace rgat
             runargs += $"-P {rgatState.LocalCoordinatorPipeName} ";
             runargs += $"-L "; // tracing a library
             runargs += "-- ";
+            
+            if (loadername != null)
+            {
+                //
+            }
+            
             if (loaderWidth == BitWidth.Arch32)
                 runargs += $"C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\Debug\\DLLLoader32.exe {targetBinary},{ordinal}$";
             else
@@ -183,15 +190,22 @@ namespace rgat
 
         }
 
-        public static void StartRemoteTrace(BinaryTarget target, long testID = -1)
+        public static void StartRemoteTrace(BinaryTarget target, int ordinal = -1, string loaderName = null, long testID = -1)
         {
             if (!target.RemoteAccessible)
             {
                 Logging.RecordLogEvent($"Could not trace {target.FilePath} on non-connected host {target.RemoteHost}", Logging.LogFilterType.TextAlert);
                 return;
             }
-            string startParams = $"{target.FilePath},{testID}";
-            rgatState.NetworkBridge.SendCommand("StartTrace", null, null, startParams);
+
+            JObject startParamObj = new JObject();
+            startParamObj.Add("TargetPath", target.FilePath);
+            if (testID != -1) startParamObj.Add("TestID", testID);
+            if (ordinal != -1) startParamObj.Add("Ordinal", ordinal);
+            if (loaderName != null) startParamObj.Add("LoaderName", loaderName);
+
+            string paramsjson = Newtonsoft.Json.JsonConvert.SerializeObject(startParamObj, Newtonsoft.Json.Formatting.None);
+            rgatState.NetworkBridge.SendCommand("StartTrace", null, null, paramsjson);
         }
 
 

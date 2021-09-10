@@ -54,7 +54,13 @@ namespace rgat
         private bool _show_logs_window = false;
         private bool _show_remote_dialog = false;
 
-        public double StartupProgress;
+        double _StartupProgress = 0;
+        public double StartupProgress { get => _StartupProgress; set {
+                if (_StartupProgress < 1)
+                    _StartupProgress = value;
+            } 
+        }
+
         List<double> _lastFrameTimeMS = new List<double>();
         private int _selectedInstrumentationLevel = 0;
 
@@ -335,7 +341,11 @@ namespace rgat
 
         public void HandleUserInput()
         {
-            if (StartupProgress < 1) return;
+            if (StartupProgress < 1)
+            {
+                Console.WriteLine($"Startup progress: {StartupProgress}");
+                return; 
+            }
 
             if (_mouseWheelDelta != 0)
             {

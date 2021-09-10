@@ -30,6 +30,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Resources\Font Awesome 5 Free-Regular-400.otf" />
+    <None Remove="Resources\Font Awesome 5 Free-Solid-900.otf" />
     <None Remove="Shaders\GLSL\imgui-frag.glsl" />
     <None Remove="Shaders\GLSL\imgui-vertex.glsl" />
     <None Remove="Shaders\HLSL\imgui-frag.hlsl" />

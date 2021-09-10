@@ -37,7 +37,7 @@ namespace rgat.Threads
                 string csString = System.Text.Encoding.UTF8.GetString(buf[0..bytesRead]);
 
                 //	"PID,%u,%d,%ld,%s,%ld", pid, arch, libraryFlag, instanceID, programName, testRunID
-                string[] fields = csString.Split(',');
+                string[] fields = csString.Split('@');
                 const int expectedFieldCount = 7;
                 Logging.RecordLogEvent($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: {fields}", Logging.LogFilterType.TextDebug);
 
@@ -53,6 +53,8 @@ namespace rgat.Threads
                     if (success)
                     {
                         string programName = fields[5];
+                        if (libraryFlag == 1) programName = programName.Split(',')[0];
+
                         string cmdPipeName = ModuleHandlerThread.GetCommandPipeName(PID, randno);
                         string eventPipeName = ModuleHandlerThread.GetEventPipeName(PID, randno);
                         string blockPipeName = BlockHandlerThread.GetBlockPipeName(PID, randno);

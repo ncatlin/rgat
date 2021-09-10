@@ -228,8 +228,8 @@ namespace rgat
         void StartListenForConnection(TcpListener listener, OnConnectSuccessCallback connectCallback)
         {
             if (BridgeState != eBridgeState.Listening) return;
-
-            AddDisplayLogMessage($"Listening on {(IPEndPoint)listener.Server.LocalEndPoint}", null);
+            IPEndPoint listenerEndpoint = (IPEndPoint)listener.LocalEndpoint;
+            AddDisplayLogMessage($"Listening on {listenerEndpoint.Address}:{listenerEndpoint.Port}", null);
             try
             {
                 _ActiveClient = listener.AcceptTcpClient();

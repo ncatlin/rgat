@@ -4,6 +4,7 @@ using rgat.Threads;
 using rgat.Widgets;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Numerics;
 using System.Text;
@@ -143,14 +144,16 @@ namespace rgat.OperationModes
             _rgatUI = new rgatUI(_rgatState, _controller);
 
             //load in a thread to keep things interactive
-            Task.Run(() => LoadingThread(_controller, _gd));
+            Task loader = Task.Run(() => LoadingThread(_controller, _gd));
 
-            InitEventHandlers();
 
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
             return true;
         }
 
+        /// <summary>
+        /// Should be called after config is loaded to benefit from keybind config
+        /// </summary>
         void InitEventHandlers()
         {
 
@@ -310,6 +313,8 @@ namespace rgat.OperationModes
 
             await Task.WhenAll(widgetLoader, confloader);
 
+            InitEventHandlers();
+
             Logging.RecordLogEvent($"Startup: Widgets+config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
 
@@ -364,6 +369,7 @@ namespace rgat.OperationModes
             Logging.RecordLogEvent($"Startup: Signatures + API info inited in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             Logging.RecordLogEvent($"Startup: Loading thread took {timerTotal.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             _rgatUI.StartupProgress = 1;
+            Console.WriteLine("Starup progress 1");
 
         }
 

@@ -107,6 +107,7 @@ namespace ImGuiNET
             Logging.RecordLogEvent("Loading fonts", Logging.LogFilterType.TextDebug);
             var fonts = ImGui.GetIO().Fonts;
             LoadUnicodeFont();
+            LoadIconFont();
             _originalFont = fonts.AddFontDefault();
 
 
@@ -132,6 +133,7 @@ namespace ImGuiNET
         {
             if (_unicodeFontLoaded) return;
 
+            Logging.RecordLogEvent($"Loading Unicode fonts", Logging.LogFilterType.TextDebug);
             ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
 
             //TODO - make these options
@@ -157,10 +159,12 @@ namespace ImGuiNET
 
             //embed in resource for distribution, once a font is settled on
 
-            string googleNotoFontFile = "C:\\Users\\nia\\Source\\Repos\\rgatCore\\rgatCore\\bin\\Debug\\netcoreapp3.1\\NotoSansSC-Regular.otf";
-            if (!File.Exists(googleNotoFontFile))
+            
+            byte[] notoFontBytes = ReadResourceByteArray("NotoSansSC_Regular");
+
+            if (notoFontBytes == null)
             {
-                Console.WriteLine("Error: Didn't find font file " + googleNotoFontFile);
+                Logging.RecordError($"No font resouce: \"NotoSansSC_Regular\"");
                 return;
             }
 
@@ -174,56 +178,109 @@ namespace ImGuiNET
             fontConfig.GlyphMaxAdvanceX = float.MaxValue;
             fontConfig.RasterizerMultiply = 1f;
 
-            _splashButtonFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 40, null, ranges.Data);
+            //not a good use of memory, think there are other ways to resize?
 
-            _unicodeFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 17, null, ranges.Data);
-            //ImGui.GetIO().Fonts. = _unicodeFont;
+            fixed (byte* notoPtr = notoFontBytes)
+            {
+                _splashButtonFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 40, null, ranges.Data);
+
+                _unicodeFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 17, null, ranges.Data);
+
+                builder.Clear();
+                builder.AddChar('r');
+                builder.AddChar('g');
+                builder.AddChar('a');
+                builder.AddChar('t');
+                ImVector rangesTitle;
+                builder.BuildRanges(out rangesTitle);
+
+                _titleFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 70, null, rangesTitle.Data);
+            }
             unsafe
             {
                 ImGui.GetIO().NativePtr->FontDefault = _unicodeFont;
             }
-            string faFreeSolid = @"C:\Users\nia\Desktop\rgatstuff\fontawesome-free-5.15.4-desktop\otfs\Font Awesome 5 Free-Solid-900.otf";
-            string faFreeLight = @"C:\Users\nia\Desktop\rgatstuff\fontawesome-free-5.15.4-desktop\otfs\Font Awesome 5 Free-Regular-400.otf";
 
-            System.Runtime.InteropServices.GCHandle rangeHandle = System.Runtime.InteropServices.GCHandle.Alloc(new ushort[]
-             { 0xe000,0xffff,0}, System.Runtime.InteropServices.GCHandleType.Pinned);
+ 
 
-
-            try
-            {
-                _fafont = ImGui.GetIO().Fonts.AddFontFromFileTTF(faFreeSolid, 17, fontConfig, rangeHandle.AddrOfPinnedObject());
-                _fafont2 = ImGui.GetIO().Fonts.AddFontFromFileTTF(faFreeLight, 17, fontConfig, rangeHandle.AddrOfPinnedObject());
-                fontConfig.MergeMode = false;
-                _iconsLargeFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(faFreeSolid, LargeIconSize.X, fontConfig, rangeHandle.AddrOfPinnedObject());
-
-            }
-            finally
-            {
-                /*
-                fontConfig.Destroy();
-                if (rangeHandle.IsAllocated)
-                {
-                    rangeHandle.Free();
-                }
-                */
-            }
-
-            builder.Clear();
-            builder.AddChar('r');
-            builder.AddChar('g');
-            builder.AddChar('a');
-            builder.AddChar('t');
-            ImVector rangesTitle;
-            builder.BuildRanges(out rangesTitle);
-            _titleFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(googleNotoFontFile, 70, null, rangesTitle.Data);
 
             _unicodeFontLoaded = true;
         }
 
+
+
+        public unsafe void LoadIconFont()
+        {
+            Logging.RecordLogEvent($"Loading Icon fonts", Logging.LogFilterType.TextDebug);
+            System.Runtime.InteropServices.GCHandle rangeHandle = System.Runtime.InteropServices.GCHandle.Alloc(new ushort[]
+  { 0xe000,0xffff,0}, System.Runtime.InteropServices.GCHandleType.Pinned);
+
+            ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+            fontConfig.MergeMode = true;
+            fontConfig.FontDataOwnedByAtlas = true;
+            fontConfig.OversampleH = 2;
+            fontConfig.PixelSnapH = true;
+            fontConfig.OversampleV = 1;
+            fontConfig.GlyphOffset = new Vector2(0, 2);
+            fontConfig.GlyphMaxAdvanceX = float.MaxValue;
+            fontConfig.RasterizerMultiply = 1f;
+
+            byte[] regularFontBytes = ReadResourceByteArray("Font_Awesome_5_Free_Regular_400");
+            byte[] solidFontBytes = ReadResourceByteArray("Font_Awesome_5_Free_Solid_900");
+            if (regularFontBytes != null && solidFontBytes != null)
+            {
+                Logging.RecordLogEvent($"Loading font resources", Logging.LogFilterType.TextDebug);
+
+                try
+                {
+                    fixed (byte* solidPtr = solidFontBytes, regularPtr = regularFontBytes)
+                    {
+                        fontConfig.FontDataOwnedByAtlas = true;
+                        IntPtr glyphRange = rangeHandle.AddrOfPinnedObject();
+                        _fafontSolid = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, 17, fontConfig, glyphRange);
+                        _fafontRegular = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)regularPtr, regularFontBytes.Length, 17, fontConfig, glyphRange);
+                        fontConfig.MergeMode = false;
+                        _iconsLargeFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, LargeIconSize.X, fontConfig, glyphRange);
+                    }
+                }
+                finally
+                {
+                    /*
+                    fontConfig.Destroy();
+                    if (rangeHandle.IsAllocated)
+                    {
+                        rangeHandle.Free();
+                    }
+                    */
+                }
+            }
+            else
+            {
+                Logging.RecordError("Error loading font resources");
+            }
+        }
+
+
         public readonly Vector2 LargeIconSize = new Vector2(65, 65);
-        ImFontPtr _fafont;
-        ImFontPtr _fafont2;
+        ImFontPtr _fafontSolid;
+        ImFontPtr _fafontRegular;
         ImFontPtr _iconsLargeFont;
+
+        public byte[] ReadResourceByteArray(string name)
+        {
+            System.Reflection.Assembly assembly = typeof(ImGuiController).Assembly;
+            System.IO.Stream fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
+            System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
+            r.GetResourceData(name, out string rtype, out byte[] resBytes);
+            if (resBytes == null || rtype != "ResourceTypeCode.ByteArray") return null;
+
+            //https://stackoverflow.com/questions/32891004/why-resourcereader-getresourcedata-return-data-of-type-resourcetypecode-stream
+            Stream stream = new MemoryStream(resBytes);
+            byte[] result = new byte[stream.Length - 4];
+            stream.Seek(4, SeekOrigin.Begin);
+            stream.Read(result, 0, result.Length - 4);
+            return result;
+        }
 
         public unsafe bool GlyphExists(ushort code)
         {
@@ -231,13 +288,15 @@ namespace ImGuiNET
             return (ulong)result.NativePtr != 0;
         }
 
-        public ImFontPtr SplashLargeFont {
+        public ImFontPtr SplashLargeFont
+        {
             get { return _splashButtonFont.Value; }
             private set { _splashButtonFont = value; }
         }
 
         ImFontPtr? _titleFont;
-        public ImFontPtr rgatLargeFont {
+        public ImFontPtr rgatLargeFont
+        {
             get { return _titleFont.Value; }
             private set { _titleFont = value; }
         }

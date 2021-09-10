@@ -198,7 +198,7 @@ namespace rgat
         {
             if (ImGui.BeginChild("TraceInstruSettings", new Vector2(width, ImGui.GetContentRegionAvail().Y)))
             {
-                if (activeTarget.PEFileObj != null && activeTarget.PEFileObj.IsDll)
+                if (activeTarget.IsLibrary)
                 {
                     DrawDLLTraceSettings(activeTarget);
                     DrawModuleFilterControls(activeTarget, 200);
@@ -251,17 +251,17 @@ namespace rgat
             }
             else
             {
-                if (activeTarget.PEFileObj.ExportedFunctions.Length > activeTarget.SelectedExportIndex)
+                if (activeTarget.Exports.Count > activeTarget.SelectedExportIndex)
                 {
-                    var previewExport = activeTarget.PEFileObj.ExportedFunctions[activeTarget.SelectedExportIndex];
-                    if (previewExport.HasName)
+                    var previewExport = activeTarget.Exports[activeTarget.SelectedExportIndex];
+                    if (previewExport != null)
                     {
-                        preview = $"{previewExport.Name}";
-                        if (previewExport.HasOrdinal) preview += $" [#{previewExport.Ordinal}]";
+                        preview = $"{previewExport}";
+                        preview += $" [#{previewExport.Item2}]";
                     }
                     else
                     {
-                        if (previewExport.HasOrdinal) preview = $"#{previewExport.Ordinal}";
+                        preview = $"#{previewExport.Item2}";
                     }
                 }
             }
@@ -272,17 +272,18 @@ namespace rgat
                 {
                     activeTarget.SelectedExportIndex = -1;
                 }
-                for (int ordI = 0; ordI < activeTarget.PEFileObj.ExportedFunctions.Length; ordI++)
+                for (int ordI = 0; ordI < activeTarget.Exports.Count; ordI++)
                 {
-                    var export = activeTarget.PEFileObj.ExportedFunctions[ordI];
+                    var export = activeTarget.Exports[ordI];
                     string comboText = "";
-                    if (export.HasName)
+                    string? name = export.Item1;
+                    if (name != null)
                     {
-                        comboText = $"{export.Name} [#{export.Ordinal}]";
+                        comboText = $"{name} [#{export.Item2}]";
                     }
                     else
                     {
-                        comboText = $"{export.Ordinal}";
+                        comboText = $"{export.Item2}";
                     }
                     if (ImGui.Selectable(comboText))
                     {
@@ -507,15 +508,15 @@ namespace rgat
                     && ImGui.Button("Start Trace " + ImGuiController.FA_PLAY_CIRCLE) && runnable)
                 {
                     _OldTraceCount = rgatState.TotalTraceCount;
+                    int ordinal = (activeTarget.IsLibrary && activeTarget.SelectedExportIndex > -1) ? activeTarget.Exports[activeTarget.SelectedExportIndex].Item2 : 0;
                     if (activeTarget.RemoteBinary)
                     {
-                        ProcessLaunching.StartRemoteTrace(activeTarget);
+                        ProcessLaunching.StartRemoteTrace(activeTarget, ordinal: ordinal);
                     }
                     else
                     {
                         //todo loadername, ordinal
                         System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
-                        int ordinal = (activeTarget.PEFileObj.IsDll && activeTarget.SelectedExportIndex > -1) ? activeTarget.PEFileObj.ExportedFunctions[activeTarget.SelectedExportIndex].Ordinal : 0;
                         System.Diagnostics.Process p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath, ordinal: ordinal, targetPE: activeTarget.PEFileObj);
                         if (p != null)
                         {

@@ -621,6 +621,9 @@ namespace rgat
         public void SaveTarget(BinaryTarget targ)
         {
             var traceslist = targ.GetTracesUIList();
+
+            //todo save binary data so it can be loaded without the binary present
+            // preview, bitwidth, signature hits, exports, is library
             foreach (Tuple<DateTime, TraceRecord> time_trace in traceslist)
             {
                 TraceRecord trace = time_trace.Item2;

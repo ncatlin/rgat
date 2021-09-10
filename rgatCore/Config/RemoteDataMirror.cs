@@ -161,10 +161,10 @@ namespace rgat.Config
                 }
                 JObject binJsn = recentbinTok.ToObject<JObject>();
                 JToken prop1, prop2 = null, prop3 = null, prop4 = null;
-                bool success = binJsn.TryGetValue("path", out prop1) && prop1.Type == JTokenType.String;
-                success = success && binJsn.TryGetValue("firstSeen", out prop2) && prop2.Type == JTokenType.Date;
-                success = success && binJsn.TryGetValue("lastSeen", out prop3) && prop3.Type == JTokenType.Date;
-                success = success && binJsn.TryGetValue("count", out prop4) && prop4.Type == JTokenType.Integer;
+                bool success = binJsn.TryGetValue("Path", out prop1) && prop1.Type == JTokenType.String;
+                success = success && binJsn.TryGetValue("FirstOpen", out prop2) && prop2.Type == JTokenType.Date;
+                success = success && binJsn.TryGetValue("LastOpen", out prop3) && prop3.Type == JTokenType.Date;
+                success = success && binJsn.TryGetValue("OpenCount", out prop4) && prop4.Type == JTokenType.Integer;
 
                 if (!success)
                 {

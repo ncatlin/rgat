@@ -85,5 +85,35 @@ namespace rgat.Properties {
                 return ResourceManager.GetString("BuiltinJSONThemes", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] Font_Awesome_5_Free_Regular_400 {
+            get {
+                object obj = ResourceManager.GetObject("Font_Awesome_5_Free_Regular_400", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] Font_Awesome_5_Free_Solid_900 {
+            get {
+                object obj = ResourceManager.GetObject("Font_Awesome_5_Free_Solid_900", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] NotoSansSC_Regular {
+            get {
+                object obj = ResourceManager.GetObject("NotoSansSC_Regular", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
     }
 }

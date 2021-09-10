@@ -778,7 +778,7 @@ VOID at_conditional_branch(BLOCKDATA* block_data, bool taken, ADDRINT targetBloc
 VOID at_non_branch(BLOCKDATA* block_data, ADDRINT nextIns, THREADID threadid)
 {
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
-	RecordEdge(thread, block_data, nextIns); 
+	RecordEdge(thread, block_data, nextIns);
 }
 
 
@@ -1267,15 +1267,29 @@ VOID process_exit_event(INT32 code, VOID* v)
 std::string getAppName(int argc, char* argv[])
 {
 	std::string appname;
+
 	for (int i = 0; i < argc; i++)
 	{
 		if (std::string(argv[i]) == "--" && i <= (argc - 1))
 		{
-			appname = std::string(argv[i + 1]);
-			break;
+			//"[path]\pin.exe" -t "[path]\pinTool.dll" -P [pipename] -- "[path]\[target].exe" 
+			if (LibraryFlag == false)
+			{
+				appname = std::string(argv[i + 1]);
+				break;
+			}
+			//"[path]\pin.exe" -t "[path]\pinTool.dll" -P [pipename] -L -- "[path]\DLLLoader[X].exe" "[path]\[target].dll",[optional ordinal]
+			else
+			{
+				if (i <= (argc - 2))
+				{
+					appname = std::string(argv[i + 2]);
+					break;
+				}
+			}
+
 		}
 	}
-
 	return appname;
 }
 
@@ -1300,7 +1314,7 @@ void getSetupString(std::string programName, char* buf, int bufSize)
 		if (testRunID < 0 || testRunID >= LONG_MAX)
 			testRunID = -1;
 	}
-	snprintf_s(buf, bufSize, "PID,%u,%d,%d,%ld,%s,%ld", pid, arch, LibraryFlag.Value(), instanceID, programName.c_str(), testRunID);
+	snprintf_s(buf, bufSize, "PID@%u@%d@%d@%ld@%s@%ld", pid, arch, LibraryFlag.Value(), instanceID, programName.c_str(), testRunID);
 }
 
 
@@ -1336,7 +1350,7 @@ DWORD connect_coordinator_pipe(std::string coordinatorName, NATIVE_FD& coordinat
 DWORD extract_pipes(std::string programname, std::string coordinatorPipeName, std::string& cmdPipe, std::string& cmdResponsePipe, std::string& bbName)
 {
 	NATIVE_FD coordinatorPipe;
-	const std::string coordinatorPath = "\\\\.\\pipe\\"+ coordinatorPipeName;
+	const std::string coordinatorPath = "\\\\.\\pipe\\" + coordinatorPipeName;
 	DWORD lastErr = connect_coordinator_pipe(coordinatorPath, coordinatorPipe);
 	if (lastErr != 0)
 	{
@@ -1808,7 +1822,7 @@ VOID ReadConfiguration()
 	USIZE readsz = 100;
 	readCommandPipe(recvBuf, &readsz);
 	const char startToken[] = "INCLUDELISTS";
-	
+
 	if (strncmp(recvBuf, startToken, sizeof(startToken) - 1) != 0) {
 		std::cout << "Got: '" << recvBuf << "' size " << readsz << ", expected: " << startToken << " size (" << sizeof(startToken) << ")" << std::endl;
 
@@ -1900,8 +1914,8 @@ int main(int argc, char* argv[])
 	{
 		std::cerr << "Error: No app argument [-- app_path]" << std::endl;
 		PIN_ExitProcess(1);
-	}	
-	
+	}
+
 	std::string coordinatorPipeName = PipeNameValue.Value();
 	if (coordinatorPipeName == "change_me")
 	{

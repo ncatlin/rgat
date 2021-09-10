@@ -4,6 +4,11 @@
         <name>rgat</name>
     </assembly>
     <members>
+        <member name="F:rgat.BinaryTarget.Exports">
+            <summary>
+            List of (name,ordinal) tuples of library exports
+            </summary>
+        </member>
         <member name="M:rgat.BinaryTarget.#ctor(System.String,System.Int32,System.String,System.Boolean)">
             <summary>
             A binary that rgat has traced
@@ -65,29 +70,6 @@
             </summary>
             <param name="command"></param>
             <param name="response"></param>
-        </member>
-        <member name="T:rgat.CircularCodeReader">
-            <summary>
-            A <see cref="!:CodeReader"/> that reads data from a byte array
-            </summary>
-        </member>
-        <member name="M:rgat.CircularCodeReader.#ctor(System.Int32)">
-            <summary>
-            Creates a CodeReader with a circular buffer
-            </summary>
-            <param name="data">Data</param>
-        </member>
-        <member name="M:rgat.CircularCodeReader.ReadByte">
-            <summary>
-            Reads the next byte
-            </summary>
-            <returns></returns>
-        </member>
-        <member name="M:rgat.CircularCodeReader.AddBytes(System.Byte[])">
-            <summary>
-            Adds more bytes
-            </summary>
-            <returns></returns>
         </member>
         <member name="M:rgat.GlobalConfig.VerifyCertificate(System.String,System.String,System.String@,System.String@)">
             <summary>
@@ -454,6 +436,11 @@
             Runs a standard UI window loop using ImGui
             </summary>
         </member>
+        <member name="M:rgat.OperationModes.ImGuiRunner.InitEventHandlers">
+            <summary>
+            Should be called after config is loaded to benefit from keybind config
+            </summary>
+        </member>
         <member name="M:rgat.PlottedGraph.GetEdgeRenderingData(System.Single[]@,System.Int32[]@,System.Int32[]@)">
             <summary>
             Create an array listing the index of every neighbour of every node
@@ -565,6 +552,21 @@
                &quot;eHeat8&quot;: 4282401023,
                &quot;eHeat9Highest&quot;: 4278190335,
                &quot;eVisB [rest of string was truncated]&quot;;.
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.Font_Awesome_5_Free_Regular_400">
+            <summary>
+              Looks up a localized resource of type System.Byte[].
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.Font_Awesome_5_Free_Solid_900">
+            <summary>
+              Looks up a localized resource of type System.Byte[].
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.NotoSansSC_Regular">
+            <summary>
+              Looks up a localized resource of type System.Byte[].
             </summary>
         </member>
         <member name="F:rgat.APICALLDATA.argList">

@@ -107,6 +107,11 @@ namespace rgat
         public string LoaderName = "rgatLoadDll.exe";
 
         /// <summary>
+        /// List of (name,ordinal) tuples of library exports
+        /// </summary>
+        public List<Tuple<string, ushort>> Exports = new List<Tuple<string, ushort>>();
+
+        /// <summary>
         /// A binary that rgat has traced
         /// </summary>
         /// <param name="filepath">The filesystem path of the binary</param>
@@ -148,7 +153,26 @@ namespace rgat
             result.Add("StartBytes", StartBytes); //any benefit to obfuscating?
             result.Add("SHA1", GetSHA1Hash());
             result.Add("SHA256", GetSHA256Hash());
-            result.Add("PEBitWidth", PEFileObj != null ? BitWidth : 0);
+            if (PEFileObj != null)
+            {
+                result.Add("PEBitWidth", BitWidth);
+                result.Add("IsDLL", PEFileObj.IsDll);
+
+                JArray exportsArr = new JArray();
+                foreach (var item in Exports)
+                {
+                    JObject exportItem = new JObject();
+                    if (item.Item1 != null)
+                        exportItem.Add("Name", item.Item1);
+                    exportItem.Add("Ordinal", item.Item2);
+                    exportsArr.Add(exportItem);
+                }
+                result.Add("Exports", exportsArr);
+            }
+            else
+            {
+                result.Add("PEBitWidth", 0);
+            }
             return result;
         }
 
@@ -176,6 +200,35 @@ namespace rgat
                 Logging.RecordLogEvent($"InitialiseFromRemoteData bad or missing field", Logging.LogFilterType.TextError);
                 return false;
             }
+
+            if (data.TryGetValue("IsDLL", out JToken dllBoolTok) && dllBoolTok.Type == JTokenType.Boolean)
+            {
+                IsLibrary = dllBoolTok.ToObject<bool>();
+            }
+
+            if (data.TryGetValue("Exports", out JToken exportArrTok) && exportArrTok.Type == JTokenType.Array)
+            {
+                JArray exportsArr = exportArrTok.ToObject<JArray>();
+                foreach (JToken itemTok in exportsArr)
+                {
+                    string name = null;
+                    ushort ordinal;
+                    if (itemTok.Type == JTokenType.Object)
+                    {
+                        JObject exportObj = itemTok.ToObject<JObject>();
+                        if (exportObj.TryGetValue("Name", out JToken nameTok) && nameTok.Type == JTokenType.String)
+                        {
+                            name = nameTok.ToString();
+                        }
+                        if (exportObj.TryGetValue("Ordinal", out JToken ordTok) && ordTok.Type == JTokenType.Integer)
+                        {
+                            ordinal = ordTok.ToObject<ushort>();
+                            Exports.Add(new Tuple<string, ushort>(name, ordinal));
+                        }
+                    }
+                }
+            }
+
 
             fileSize = sizeTok.ToObject<long>();
             StartBytes = Convert.FromBase64String(snipTok.ToObject<string>());
@@ -399,6 +452,14 @@ namespace rgat
                     IsLibrary = PEFileObj.IsDll;
                     this.BitWidth = PEFileObj.Is32Bit ? 32 :
                         (PEFileObj.Is64Bit ? 64 : 0);
+                    if (IsLibrary)
+                    {
+                        for (int ordI = 0; ordI < PEFileObj.ExportedFunctions.Length; ordI++)
+                        {
+                            var export = PEFileObj.ExportedFunctions[ordI];
+                            Exports.Add(new Tuple<string, ushort>(export.Name, export.Ordinal));
+                        }
+                    }
                 }
                 else
                 {
