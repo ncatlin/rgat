@@ -144,7 +144,7 @@ namespace rgat.OperationModes
             if (!loadSuccess) return false;
 
             _cl = _gd.ResourceFactory.CreateCommandList();
-            _rgatState.InitVeldrid(_gd, _cl);
+            _rgatState.InitVeldrid(_gd);
             _controller = new ImGuiController(_gd, _gd.MainSwapchain.Framebuffer.OutputDescription, _window.Width, _window.Height);
             MediaDrawing.SetController(_controller);
 
@@ -280,9 +280,9 @@ namespace rgat.OperationModes
 
         private void Cleanup()
         {
-            if (rgatState.PendingInstallPath != null && System.IO.File.Exists(rgatState.PendingInstallPath))
+            if (Updates.PendingInstallPath != null && System.IO.File.Exists(Updates.PendingInstallPath))
             {
-                Updates.PerformFileSwap(rgatState.PendingInstallPath);
+                Updates.PerformFileSwap(Updates.PendingInstallPath);
             }
 
 

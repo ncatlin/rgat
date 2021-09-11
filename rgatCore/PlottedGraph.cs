@@ -1194,7 +1194,7 @@ namespace rgat
         Tuple<string, Color> CreateNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
         {
             NodeData n = InternalProtoGraph.NodeList[index];
-            if (n.Label == null || n.newArgsRecorded || forceNew)
+            if (n.Label == null || n.Dirty || forceNew)
             {
                 n.CreateLabel(this);
             }

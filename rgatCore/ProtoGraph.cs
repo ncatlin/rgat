@@ -612,7 +612,7 @@ namespace rgat
 
                         // this toggle isn't thread safe so slight chance for renderer to not notice the final arg
                         // not worth faffing around with locks though - maybe just re-read at tracereader thread termination
-                        functionNode.newArgsRecorded = true;
+                        functionNode.Dirty = true;
                     }
                     sequenceProcessed = true;
                     break;

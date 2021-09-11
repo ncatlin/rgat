@@ -863,8 +863,7 @@ namespace rgat
 
 
         /// <summary>
-        /// Export the current trace in the pajek format, a simple graph 
-        /// serialisation format that other graph layout programs accept
+        /// Export the current trace in the pajek format, a simple graph serialisation format that other graph layout programs accept
         /// </summary>
         /// <param name="TID">Thread ID of the graph to serialise</param>
         public void ExportPajek(uint TID)

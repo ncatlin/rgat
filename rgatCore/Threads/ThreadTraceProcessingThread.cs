@@ -200,6 +200,9 @@ namespace rgat.Threads
                             needWait = true;
                             break;
                         }
+
+                        //if (n.OutgoingNeighboursSet.Count == 1)
+                        increaseEdges.Add(new Tuple<EdgeData, ulong>(targEdge, brep.repeatCount));
                         /*
                         Logging.RecordLogEvent($"Blockrepeat increasing internal edge {n.index},{targID} from {targEdge.executionCount} to {targEdge.executionCount + brep.repeatCount} execs",
                             graph: protograph,
@@ -293,47 +296,8 @@ namespace rgat.Threads
         }
 
 
-        /*
-        void SatisfyPendingEdges()
-        {
-            int blockQty = protograph.BlocksFirstLastNodeList.Count;
-            List<NEW_EDGE_BLOCKDATA> doneList = new List<NEW_EDGE_BLOCKDATA>();
-            foreach( NEW_EDGE_BLOCKDATA pnd in PendingEdges )
-            {
-                if (pnd.sourceID > blockQty || pnd.targID > blockQty) continue;
-                Console.WriteLine($"Satisfying an edge request! {pnd.sourceID}:0x{pnd.sourceAddr:X}->{pnd.targID}:0x{pnd.targAddr:X}");
-
-                uint SrcNodeIdx = protograph.BlocksFirstLastNodeList[(int)pnd.sourceID].Item2;
-                uint TargNodeIdx = protograph.BlocksFirstLastNodeList[(int)pnd.targID].Item1;
-                protograph.AddEdge(SrcNodeIdx, TargNodeIdx);
-                doneList.Add(pnd);
-            }
-
-            PendingEdges = PendingEdges.Except(doneList).ToList();
-        }
-        */
-
-        /*
-        void ProcessLoopMarker(byte[] entry)
-        {
-            if (entry[1] == 'S')//LOOP START MARKER
-            {
-                ulong loopIterations = BitConverter.ToUInt32(entry, 2);
-                //Console.WriteLine($"Processing loop started marker {loopIterations} iterations");
-                protograph.SetLoopState(eLoopState.eBuildingLoop, loopIterations);
-            }
-            else if (entry[1] == 'E')//LOOP END MARKER
-            {
-                //Console.WriteLine($"Processing loop ended marker");
-                protograph.DumpLoop();
-            }
-        }*/
-
         bool _ignore_next_tag = false;
         uint _ignored_tag_blockID = 0;
-
-
-
 
         public void ProcessTraceTag(byte[] entry)
         {

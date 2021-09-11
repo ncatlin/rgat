@@ -309,14 +309,13 @@ namespace rgat
         /// Display a message in the logfile/message window.
         /// Will also be shown on the UI alert pane with the Alert/Error options
         /// </summary>
-        /// <param name="message">Message to display</param>
-        /// <param name="visibility">The LogFilterType category of the log entry
+        /// <param name="text">Message to display</param>
+        /// <param name="filter">The LogFilterType category of the log entry
         /// </param>
         /// <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
-        /// <param name="colour">Optional colour, otherwise default will be used</param>
+        /// <param name="trace">Process this applies to</param>     
 
-        public static void RecordLogEvent(string text, LogFilterType filter = LogFilterType.TextInfo,
-            ProtoGraph graph = null, TraceRecord trace = null, WritableRgbaFloat? colour = null, Logging.APICALL? apicall = null)
+        public static void RecordLogEvent(string text, LogFilterType filter = LogFilterType.TextInfo, ProtoGraph graph = null, TraceRecord trace = null)
         {
             TEXT_LOG_EVENT log = new TEXT_LOG_EVENT(filter: filter, text: text);
             if (graph != null) { log.SetAssociatedGraph(graph); }

@@ -129,11 +129,8 @@ namespace rgat
             threadListener.WaitForConnection();
             Console.WriteLine("Trace thread connected");
 
-            if (!_clientState.CreateNewPlottedGraph(graph, out PlottedGraph MainGraph))
-            {
-                Console.WriteLine("ERROR: Failed to create plotted graphs for new thread, abandoning");
-                return;
-            }
+
+            PlottedGraph MainGraph = new PlottedGraph(graph, _clientState._GraphicsDevice, GlobalConfig.defaultGraphColours);
 
             graph.TraceReader = new PipeTraceIngestThread(graph, threadListener, graph.ThreadID);
             graph.TraceProcessor = new ThreadTraceProcessingThread(graph);
@@ -182,11 +179,8 @@ namespace rgat
                     Config.RemoteDataMirror.RegisterRemotePipe(pipeID, reader, reader.QueueData);
 
                     graph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph: graph);
-                    if (!_clientState.CreateNewPlottedGraph(graph, out PlottedGraph MainGraph))
-                    {
-                        Logging.RecordLogEvent("ERROR: Failed to create plotted graph for new thread, abandoning", Logging.LogFilterType.TextError);
-                        return false;
-                    }
+
+                    PlottedGraph MainGraph = new PlottedGraph(graph, _clientState._GraphicsDevice, GlobalConfig.defaultGraphColours);
 
                     if (!trace.InsertNewThread(MainGraph))
                     {

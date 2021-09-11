@@ -1041,7 +1041,8 @@ namespace rgat
             ResourceSet crs_core = _factory.CreateResourceSet(crs_core_rsd); //todo constant crashing here
 
             Position2DColour[] NodeVerts = graph.GetMaingraphNodeVerts(_renderingMode,
-            out List<uint> nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string, Color>> captions);
+            out List<uint> nodeIndices, out Position2DColour[] nodePickingColors, 
+            out List<Tuple<string, Color>> captions);
 
             //_layoutEngine.GetScreenFitOffsets(WidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 

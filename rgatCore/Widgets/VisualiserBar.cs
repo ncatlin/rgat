@@ -504,6 +504,7 @@ namespace rgat.Widgets
                     // colour from heat ranking of final node
                     NodeData node = graph.NodeList[blockTailIdx];
                     Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
+
                     heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.eHeat0Lowest + node.heatRank));
 
                     CreateRect(heatColour, Xoffset, 15, pSep, 10, ref triangles);

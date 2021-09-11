@@ -114,6 +114,11 @@
             Lower for interactivity, increase for throughput
             </summary>
         </member>
+        <member name="F:rgat.GlobalConfig.NewGraphLayout">
+            <summary>
+            The initial graph layout used for new traces
+            </summary>
+        </member>
         <member name="F:rgat.GlobalConfig.LayoutAllComputeEnabled">
             <summary>
             Toggle use of the GPU computation engine for main/preview graphs
@@ -377,16 +382,16 @@
             Acknowledge the latest alerts, stop displaying them on the UI
             </summary>
         </member>
-        <member name="M:rgat.Logging.RecordLogEvent(System.String,rgat.Logging.LogFilterType,rgat.ProtoGraph,rgat.TraceRecord,System.Nullable{rgat.WritableRgbaFloat},rgat.Logging.APICALL)">
+        <member name="M:rgat.Logging.RecordLogEvent(System.String,rgat.Logging.LogFilterType,rgat.ProtoGraph,rgat.TraceRecord)">
             <summary>      
             Display a message in the logfile/message window.
             Will also be shown on the UI alert pane with the Alert/Error options
             </summary>
-            <param name="message">Message to display</param>
-            <param name="visibility">The LogFilterType category of the log entry
+            <param name="text">Message to display</param>
+            <param name="filter">The LogFilterType category of the log entry
             </param>
             <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
-            <param name="colour">Optional colour, otherwise default will be used</param>
+            <param name="trace">Process this applies to</param>     
         </member>
         <member name="M:rgat.Logging.RecordError(System.String,rgat.ProtoGraph,rgat.TraceRecord)">
             <summary>
@@ -403,6 +408,14 @@
             </summary>
             <param name="plot"></param>
             <param name="specificCallIndex"></param>
+        </member>
+        <member name="M:rgat.NodeData.CreateSymbolLabel(rgat.ProtoGraph,System.Int32)">
+            <summary>
+            Create a label for an API call with symbol + arguments
+            </summary>
+            <param name="graph">The graph for the thread the call was made in</param>
+            <param name="specificCallIndex">The index of the API call in the graph</param>
+            <returns>The label</returns>
         </member>
         <member name="M:rgat.NodeData.CreateColourisedSymbolCall(rgat.ProtoGraph,System.Int32,rgat.WritableRgbaFloat,rgat.WritableRgbaFloat)">
             <summary>
@@ -609,9 +622,116 @@
             todo is this needed
             yes. yes it is.
         </member>
+        <member name="T:rgat.rgatState">
+            <summary>
+            Handles Loading/Saving/Storage of traces and binaries. 
+            Dumping ground for various utility objects such as signature scanners and video encoder.
+            
+            This is a holdover from the previous iteration of rgat that needs revamping or removing
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.targets">
+            <summary>
+            Collection of binary targets that are loaded
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.ActiveTarget">
+            <summary>
+            The currently selected binary target in the UI
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.ActiveTrace">
+            <summary>
+            The trace currently active in the UI
+            </summary>
+        </member>
+        <member name="P:rgat.rgatState.ActiveGraph">
+            <summary>
+            The graph currently active in the UI
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState._GraphicsDevice">
+            <summary>
+            A Veldrid GraphicsDevice reference available for general usage
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.DIELib">
+            <summary>
+            The loaded Detect-It-Easy(.Net) engine
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.YARALib">
+            <summary>
+            The loaded dnYara engine
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.VideoRecorder">
+            <summary>
+            A VideoEncoder object which managed FFMpeg capture
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.NetworkBridge">
+            <summary>
+            A BridgeConnection object which manages the remote tracing connection
+            </summary>
+        </member>
+        <member name="P:rgat.rgatState.ConnectedToRemote">
+            <summary>
+            Is a network connection to another rgat instance active?
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.LocalCoordinatorPipeName">
+            <summary>
+            The name of the named pipe for locally running pintools to connect to
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.RecordVideoOnNextTrace">
+            <summary>
+            Set this to cause video recording to start on the next trace connection
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.processCoordinatorThreadObj">
+            <summary>
+            A thread object which manages local trace connections over a named pipe
+            </summary>
+        </member>
+        <member name="M:rgat.rgatState.InitVeldrid(Veldrid.GraphicsDevice)">
+            <summary>
+            Set the graphics devicefor widgets to use once it has been created 
+            </summary>
+            <param name="_gd">A Veldrid GraphicsDevice</param>
+        </member>
+        <member name="M:rgat.rgatState.LoadSignatures(System.IProgress{System.Single})">
+            <summary>
+            A task which loads binary signatures such as YARA and DIE
+            </summary>
+            <param name="progress">An IProgress object for the UI process bar</param>
+        </member>
+        <member name="F:rgat.rgatState._exitTokenSource">
+            <summary>
+            Cancellation tokens to be used by all rgat tasks to signal that rgat is shutting down
+            Nothing should block in a way that will ignore this for more than a few hundred milliseconds
+            </summary>
+        </member>
+        <member name="P:rgat.rgatState.rgatIsExiting">
+            <summary>
+            rgat is shutting down
+            </summary>
+        </member>
         <member name="P:rgat.rgatState.ExitToken">
             <summary>
             Get a cancellation token which will be cancelled when rgat is exiting
+            </summary>
+        </member>
+        <member name="P:rgat.rgatState.TotalTraceCount">
+            <summary>
+            The number of traces which have executed in this rgat session
+            Used by the UI to respond to incoming traces
+            </summary>
+        </member>
+        <member name="M:rgat.rgatState.IncreaseLoadedTraceCount">
+            <summary>
+            Record the connection of a new trace
             </summary>
         </member>
         <member name="M:rgat.rgatState.Shutdown">
@@ -632,6 +752,13 @@
                 One process must meet condtion C6 has threads meeting condition C1, the other meeting condition C3. 
                 Ditto for the other process needing to meet condtion C1 with threads meeting conditions 7, 12
             </summary>
+        </member>
+        <member name="M:rgat.Testing.TestCase.LoadFinalRequirements(Newtonsoft.Json.Linq.JObject)">
+            <summary>
+            Load the test passing conditions
+            </summary>
+            <param name="reqsObj">JObject of the unserialised conditions</param>
+            <returns>Whether loading succeeded</returns>
         </member>
         <member name="M:rgat.Testing.TestCase.LoadTestRequirement(System.String,Newtonsoft.Json.Linq.JToken,rgat.Testing.TestRequirement@)">
             <summary>
@@ -683,6 +810,12 @@
             <summary>
             Set any missing theme settings
             </summary>
+        </member>
+        <member name="M:rgat.Threads.PreviewRendererThread.SetPreviewWidget(rgat.PreviewGraphsWidget)">
+            <summary>
+            Set by the GUI loading thread when the widget has been created
+            </summary>
+            <param name="widget"></param>
         </member>
         <member name="M:rgat.ModuleHandlerThread.RemoteCommandListener">
             <summary>
@@ -760,6 +893,12 @@
             <summary>
             Tells the UI that something is happening on the menu bar so it should be displayed
             Currently its always displayed except on the splash screen
+            </summary>
+        </member>
+        <member name="P:rgat.rgatUI.ExitRequested">
+            <summary>
+            rgat will exit when convenient
+            This is only handled by the UI runner
             </summary>
         </member>
         <member name="M:rgat.rgatUI.DrawDialogs">

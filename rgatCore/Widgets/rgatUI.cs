@@ -61,6 +61,8 @@ namespace rgat
             } 
         }
 
+
+        public static double UIDrawFPS = 0;
         List<double> _lastFrameTimeMS = new List<double>();
         private int _selectedInstrumentationLevel = 0;
 
@@ -87,6 +89,13 @@ namespace rgat
 
 
         private readonly object _inputLock = new object();
+
+        /// <summary>
+        /// rgat will exit when convenient
+        /// This is only handled by the UI runner
+        /// </summary>
+        public static bool ExitRequested { get; private set; } = false;
+        public static void RequestExit() => ExitRequested = true;
 
 
         public rgatUI(rgatState state, ImGuiController controller)
@@ -159,8 +168,7 @@ namespace rgat
 
         public void ShortTimerFired()
         {
-            rgatState.UIDrawFPS = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
-
+            UIDrawFPS = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
 
             if (_scheduleMissingPathCheck)
             {
@@ -169,7 +177,7 @@ namespace rgat
             }
             _activeTargetRunnable = _rgatState.ActiveTarget != null && _rgatState.ActiveTarget.IsRunnable;
 
-            if (rgatState.ExitRequested) ExitFlag = true;
+            if (ExitRequested) ExitFlag = true;
 
         }
 

@@ -180,6 +180,11 @@ namespace rgat
         public static float NodeClumpForce = 880.01f;
 
         /// <summary>
+        /// The initial graph layout used for new traces
+        /// </summary>
+        public static CONSTANTS.LayoutStyles.Style NewGraphLayout = CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes;
+
+        /// <summary>
         /// Toggle use of the GPU computation engine for main/preview graphs
         /// </summary>
         public static bool LayoutAllComputeEnabled = true;
@@ -518,7 +523,7 @@ namespace rgat
             {
                 enabled = true,
                 autoVisibleZoom = INSTEXT_VISIBLE_ZOOMFACTOR,
-                addresses = true,
+                addresses = false,
                 offsets = true,
                 fullPaths = true, //label for targets of calls/jmps
                 extraDetail = true //only show control flow

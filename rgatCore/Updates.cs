@@ -16,6 +16,9 @@ namespace rgat
 {
     class Updates
     {
+
+        public static string PendingInstallPath = null;
+
         public static void CheckForUpdates()
         {
             //already checked recently
@@ -290,14 +293,14 @@ namespace rgat
             {
                 if (_download_complete)
                 {
-                    if (rgatState.PendingInstallPath != null)
+                    if (Updates.PendingInstallPath != null)
                     {
                         ImGui.AlignTextToFramePadding();
                         ImGui.Text("Update will be installed on exit");
                         ImGui.SameLine();
                         if (ImGui.Button("Cancel"))
                         {
-                            rgatState.PendingInstallPath = null;
+                            Updates.PendingInstallPath = null;
                             _update_in_progress = false;
                         }
                     }
@@ -497,11 +500,11 @@ namespace rgat
             GlobalConfig.Settings.Updates.StagedDownloadPath = new_rgatPath;
             GlobalConfig.Settings.Updates.StagedDownloadVersion = GlobalConfig.Settings.Updates.UpdateLastCheckVersionString;
 
-            rgatState.PendingInstallPath = new_rgatPath;
+            Updates.PendingInstallPath = new_rgatPath;
             if (_update_style == "ONDOWNLOAD")
             {
                 Logging.RecordLogEvent($"Requesting exit to begin update", filter: Logging.LogFilterType.TextDebug);
-                rgatState.RequestExit();
+                rgatUI.RequestExit();
             }
             else
             {
@@ -520,7 +523,7 @@ namespace rgat
                 new_rgatPath,
                 "true"
             });
-            rgatState.RequestExit();
+            rgatUI.RequestExit();
         }
 
 

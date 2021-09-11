@@ -6,12 +6,18 @@ namespace rgat.Threads
     public class PreviewRendererThread : TraceProcessorWorker
     {
         TraceRecord RenderedTrace;
-        PreviewGraphsWidget _graphWidget;
+
+        /// <summary>
+        /// Set by the GUI loading thread when the widget has been created
+        /// </summary>
+        /// <param name="widget"></param>
+        public static void SetPreviewWidget(PreviewGraphsWidget widget) => _graphWidget = widget;
+
+        static PreviewGraphsWidget _graphWidget;
 
         public PreviewRendererThread(TraceRecord _renderedTrace)
         {
             RenderedTrace = _renderedTrace;
-            _graphWidget = _clientState.PreviewWidget;
         }
 
         public override void Begin()
@@ -33,7 +39,6 @@ namespace rgat.Threads
 
             while (!rgatState.rgatIsExiting && _graphWidget == null)
             {
-                _graphWidget = _clientState.PreviewWidget;
                 Thread.Sleep(50);
             }
 

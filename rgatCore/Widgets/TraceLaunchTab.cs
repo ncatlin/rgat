@@ -559,7 +559,7 @@ namespace rgat
                         ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF454545);
                         ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0xFF454545);
                         _recordVideoOnStart = false;
-                        ImGui.Checkbox("Capture Video", ref _recordVideoOnStart);
+                        if (ImGui.Checkbox("Capture Video", ref _recordVideoOnStart))  rgatState.RecordVideoOnNextTrace = _recordVideoOnStart;
                         ImGui.PopStyleColor(3);
                         SmallWidgets.MouseoverText("Requires FFmpeg - configure in settings");
                     }

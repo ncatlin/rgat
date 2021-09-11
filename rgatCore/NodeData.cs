@@ -214,6 +214,7 @@ namespace rgat
                 return;
             }
 
+            Dirty = false;
             Label = "";
 
             if (plot.Opt_ShowNodeIndexes) Label += $"{this.index}:";
@@ -231,7 +232,6 @@ namespace rgat
                 else
                     Label += $" <{CreateSymbolLabel(graph, specificCallIndex)}>";
 
-                newArgsRecorded = false;
             }
 
             if (!IsExternal)
@@ -254,7 +254,12 @@ namespace rgat
             }
         }
 
-
+        /// <summary>
+        /// Create a label for an API call with symbol + arguments
+        /// </summary>
+        /// <param name="graph">The graph for the thread the call was made in</param>
+        /// <param name="specificCallIndex">The index of the API call in the graph</param>
+        /// <returns>The label</returns>
         public string CreateSymbolLabel(ProtoGraph graph, int specificCallIndex = -1)
         {
             string symbolText = "";
@@ -313,7 +318,7 @@ namespace rgat
                 bool moreArgs = (i < (lastCall.argList.Count - 1) && (lastCall.argList[i + 1].Item1 != -1));
                 if (moreArgs)
                 {
-                    argstring += ", "; 
+                    argstring += ", ";
                 }
                 else
                     break;
@@ -326,7 +331,7 @@ namespace rgat
             {
                 result += " => " + lastCall.argList[^1].Item2;
             }
-            
+
             if (callRecordsIndexs.Count > 1)
             {
                 result += $" +{callRecordsIndexs.Count - 1} saved";
@@ -349,7 +354,7 @@ namespace rgat
             string symbolText = "";
             bool found = false;
             if (!graph.ProcessData.GetSymbol(GlobalModuleID, address, out symbolText))
-            {                
+            {
                 //search back from the instruction to try and find symbol of a function it may (or may not) be part of
                 ulong searchLimit = Math.Min(GlobalConfig.Settings.Tracing.SymbolSearchDistance, address);
                 for (ulong symOffset = 0; symOffset < searchLimit; symOffset++)
@@ -423,7 +428,7 @@ namespace rgat
         //an index used to lookup the caller/arguments of each instance of this being called
         public List<ulong> callRecordsIndexs = new List<ulong>();
         public int currentCallIndex = 1; //need to review how this works and if it achieves anything
-        public bool newArgsRecorded;
+        public bool Dirty;
 
         //number of external functions called
         public uint childexterns = 0;
@@ -434,10 +439,11 @@ namespace rgat
         public void SetExecutionCount(ulong value)
         {
             executionCount = value;
+            Dirty = true;
         }
         public void IncreaseExecutionCount(ulong value)
         {
-            SetExecutionCount(executionCount + value);
+            SetExecutionCount(executionCount + value); 
         }
 
         public float heatRank = 0; //0-9 least to most busy

@@ -512,10 +512,15 @@ namespace rgat.Testing
         }
 
 
+        /// <summary>
+        /// Load the test passing conditions
+        /// </summary>
+        /// <param name="reqsObj">JObject of the unserialised conditions</param>
+        /// <returns>Whether loading succeeded</returns>
         bool LoadFinalRequirements(JObject reqsObj)
         {
 
-            /// Optional requirements that the entire test must satisfy at completion (eg: time it took to run, total processes spawned)
+            // Optional requirements that the entire test must satisfy at completion (eg: time it took to run, total processes spawned)
             if (reqsObj.TryGetValue("Test", out JToken tok) && tok.Type == JTokenType.Object)
             {
                 JObject items = tok.ToObject<JObject>();

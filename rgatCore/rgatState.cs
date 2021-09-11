@@ -5,36 +5,70 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
-/// <summary>
-/// Handles Loading/Saving/Storage of traces and binaries. 
-/// Holds various utility objects such as signature scanners and video encoder.
-/// 
-/// This is a holdover from the previous iteration of rgat that needs revamping or removing
-/// </summary>
+
 namespace rgat
 {
+    /// <summary>
+    /// Handles Loading/Saving/Storage of traces and binaries. 
+    /// Dumping ground for various utility objects such as signature scanners and video encoder.
+    /// 
+    /// This is a holdover from the previous iteration of rgat that needs revamping or removing
+    /// </summary>
     public class rgatState
     {
+        /// <summary>
+        /// Collection of binary targets that are loaded
+        /// </summary>
         public static BinaryTargets targets = new BinaryTargets();
+        /// <summary>
+        /// The currently selected binary target in the UI
+        /// </summary>
         public BinaryTarget ActiveTarget;
+        /// <summary>
+        /// The trace currently active in the UI
+        /// </summary>
         public TraceRecord ActiveTrace;
+        /// <summary>
+        /// The graph currently active in the UI
+        /// </summary>
         public PlottedGraph ActiveGraph { get; private set; }
+        /// <summary>
+        /// A Veldrid GraphicsDevice reference available for general usage
+        /// </summary>
         public Veldrid.GraphicsDevice _GraphicsDevice;
-        public Veldrid.CommandList _CommandList;
+        /// <summary>
+        /// The loaded Detect-It-Easy(.Net) engine
+        /// </summary>
         public static DetectItEasy DIELib;
+        /// <summary>
+        /// The loaded dnYara engine
+        /// </summary>
         public static YARAScan YARALib;
+        /// <summary>
+        /// A VideoEncoder object which managed FFMpeg capture
+        /// </summary>
         public static VideoEncoder VideoRecorder = new VideoEncoder();
+        /// <summary>
+        /// A BridgeConnection object which manages the remote tracing connection
+        /// </summary>
         public static BridgeConnection NetworkBridge;
+        /// <summary>
+        /// Is a network connection to another rgat instance active?
+        /// </summary>
         public static bool ConnectedToRemote => NetworkBridge != null && NetworkBridge.Connected;
+        /// <summary>
+        /// The name of the named pipe for locally running pintools to connect to
+        /// </summary>
         public static string LocalCoordinatorPipeName;
 
-        public PreviewGraphsWidget PreviewWidget;
-
-
-        public static double UIDrawFPS = 0;
-
+        /// <summary>
+        /// Set this to cause video recording to start on the next trace connection
+        /// </summary>
         public static bool RecordVideoOnNextTrace = false;
 
+        /// <summary>
+        /// A thread object which manages local trace connections over a named pipe
+        /// </summary>
         public static Threads.ProcessCoordinatorThread processCoordinatorThreadObj = null;
 
         public rgatState()
@@ -42,13 +76,20 @@ namespace rgat
             LocalCoordinatorPipeName = Path.GetRandomFileName().Substring(0, 8).ToUpper();
         }
 
-        public void InitVeldrid(Veldrid.GraphicsDevice _gd, Veldrid.CommandList _cl)
+        /// <summary>
+        /// Set the graphics devicefor widgets to use once it has been created 
+        /// </summary>
+        /// <param name="_gd">A Veldrid GraphicsDevice</param>
+        public void InitVeldrid(Veldrid.GraphicsDevice _gd)
         {
             _GraphicsDevice = _gd;
-            _CommandList = _cl;
             PlottedGraph.clientState = this;
         }
 
+        /// <summary>
+        /// A task which loads binary signatures such as YARA and DIE
+        /// </summary>
+        /// <param name="progress">An IProgress object for the UI process bar</param>
         public void LoadSignatures(IProgress<float> progress)
         {
             //todo - inner progress reporting based on signature count
@@ -99,26 +140,34 @@ namespace rgat
 
         }
 
-        public static bool ExitRequested { get; private set; } = false;
-        public static void RequestExit() => ExitRequested = true;
 
-
+        /// <summary>
+        /// Cancellation tokens to be used by all rgat tasks to signal that rgat is shutting down
+        /// Nothing should block in a way that will ignore this for more than a few hundred milliseconds
+        /// </summary>
         static CancellationTokenSource _exitTokenSource = new CancellationTokenSource();
+        /// <summary>
+        /// rgat is shutting down
+        /// </summary>
         public static bool rgatIsExiting => _exitTokenSource.IsCancellationRequested;
+
         /// <summary>
         /// Get a cancellation token which will be cancelled when rgat is exiting
         /// </summary>
         public static CancellationToken ExitToken => _exitTokenSource.Token;
 
+        /// <summary>
+        /// The number of traces which have executed in this rgat session
+        /// Used by the UI to respond to incoming traces
+        /// </summary>
         public static int TotalTraceCount { private set; get; } = 0;
+
+        /// <summary>
+        /// Record the connection of a new trace
+        /// </summary>
         public static void IncreaseLoadedTraceCount() => TotalTraceCount += 1;
 
-        public CONSTANTS.LayoutStyles.Style newGraphLayout = CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes;
 
-        Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
-        Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
-
-        public static string PendingInstallPath = null;
 
 
         /// <summary>
@@ -163,6 +212,14 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Add a new target to the list of loaded target binaries
+        /// </summary>
+        /// <param name="path">Filesystem path of target</param>
+        /// <param name="arch">32 or 64 bits</param>
+        /// <param name="isLibrary">The target is a DLL</param>
+        /// <param name="makeActive">Set this as active in the UI</param>
+        /// <returns>The BinaryTarget object describing the target</returns>
         public BinaryTarget AddTargetByPath(string path, int arch = 0, bool isLibrary = false, bool makeActive = true)
         {
             BinaryTarget targ = targets.AddTargetByPath(path, isLibrary: isLibrary, arch: arch);
@@ -178,6 +235,14 @@ namespace rgat
             return targ;
         }
 
+        /// <summary>
+        /// Add a target binary for tracing by a remote rgat instance
+        /// </summary>
+        /// <param name="path">Filesystem path of target</param>
+        /// <param name="hostAddr">Network address of the remote system</param>
+        /// <param name="isLibrary">The target is a DLL</param>
+        /// <param name="makeActive">Set this as active in the UI</param>
+        /// <returns>The BinaryTarget object describing the target</returns>
         public BinaryTarget AddRemoteTargetByPath(string path, string hostAddr, bool isLibrary = false, bool makeActive = true)
         {
             BinaryTarget targ = targets.AddTargetByPath(path, isLibrary: isLibrary, remoteAddr: hostAddr);
@@ -190,55 +255,10 @@ namespace rgat
             return targ;
         }
 
-
-        /*
-
         /// <summary>
-        /// Display a message in the visualise log panel, useful for helping the user understand the events unfolding 
+        /// Set the binary target active in the UI
         /// </summary>
-        /// <param name="message">Message to display</param>
-        /// <param name="visibility">
-        /// VisThread -  Messages appearing in the graph visualiser if that particular thread is being viewed
-        /// VisProcess - Messages appearing in the graph visualiser if any thread from that process is being viewed
-        /// VisAll    - Messages that will always appear in the graph visualiser
-        /// </param>
-        /// <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
-        /// <param name="colour">Optional colour, otherwise default will be used</param>
-        public void AddVisualiserMessage(string message, eMessageType visibility, ProtoGraph? graph = null, WritableRgbaFloat? colour = null)
-        {
-            Debug.Assert(visibility >= eMessageType.eVisThread && visibility <= eMessageType.eVisAll);
-            long timenow = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-            //Show on visualiser widgets
-            LOG_ENTRY msg = new LOG_ENTRY()
-            {
-                colour = colour?.ToUint(),
-                graph = graph,
-                text = message,
-                visibility = visibility,
-                expiryMS = timenow + GlobalConfig.VisMessageMaxLingerTime
-            };
-            lock (_messagesLock)
-            {
-                DisplayMessages.Add(msg);
-            }
-            AddLogMessage(message, eMessageType.eLog, graph, colour);
-        }
-
-
-        public LOG_ENTRY[] GetVisualiserMessages()
-        {
-            long timenow = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-            lock (_messagesLock)
-            {
-                LOG_ENTRY[] result = DisplayMessages.Where(x => x.expiryMS > timenow).ToArray();
-                if (result.Length < DisplayMessages.Count)
-                    DisplayMessages = result.ToList();
-                return result;
-            }
-        }
-        */
-
-
+        /// <param name="path">Path of the target to activate</param>
         public void SetActiveTarget(string path)
         {
             targets.GetTargetByPath(path, out BinaryTarget newTarget);
@@ -250,6 +270,10 @@ namespace rgat
             };
         }
 
+        /// <summary>
+        /// Set the binary target active in the UI
+        /// </summary>
+        /// <param name="newTarget">BinaryTarget object to activate</param>
         public void SetActiveTarget(BinaryTarget newTarget)
         {
             if (newTarget != null && newTarget != ActiveTarget)
@@ -258,12 +282,20 @@ namespace rgat
             };
         }
 
+        /// <summary>
+        /// Deactivate the currently active graph in the UI
+        /// </summary>
         public void ClearActiveGraph()
         {
             ActiveGraph = null;
         }
 
-
+        /// <summary>
+        /// Set the currently active trace in the UI. If a specific trace is not specified
+        /// the trace chosen depends on the 'newest' parameter
+        /// </summary>
+        /// <param name="trace">An optional TraceRecord to set as active</param>
+        /// <param name="newest">If true, get the most recently spawned trace. If false get the first in the list (not guaranteed to be the oldest)</param>
         public void SelectActiveTrace(TraceRecord trace = null, bool newest = false)
         {
             ActiveGraph = null;
@@ -277,11 +309,17 @@ namespace rgat
             }
 
             ActiveTrace = trace;
-            selectGraphInActiveTrace();
+            SelectGraphInActiveTrace();
         }
 
 
-        static bool initialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTargets targets, out BinaryTarget targetResult)
+        /// <summary>
+        /// Initialise a loaded target binary from a trace save object
+        /// </summary>
+        /// <param name="saveJSON">A Newtonsoft JObject for the saved trace</param>
+        /// <param name="targetResult">The created BinaryTarget object</param>
+        /// <returns></returns>
+        static bool InitialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, out BinaryTarget targetResult)
         {
             BinaryTarget target = null;
             targetResult = null;
@@ -303,6 +341,14 @@ namespace rgat
 
         }
 
+
+        Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
+        Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
+
+        /// <summary>
+        /// Causes the UI to switch to displaying a different thread graph
+        /// </summary>
+        /// <param name="graph">The PlottedGraph object of the graph to switch to. Null to clear the active graph.</param>
         public void SwitchToGraph(PlottedGraph graph)
         {
             //valid target or not, we assume current graph is no longer fashionable
@@ -323,7 +369,10 @@ namespace rgat
             //setGraphUIControls(graph);
         }
 
-
+        /// <summary>
+        /// Cause the UI to choose an active graph to display, used when no graph is active
+        /// </summary>
+        /// <returns>If a graph is now active</returns>
         public bool ChooseActiveGraph()
         {
             if (ActiveGraph != null)
@@ -342,17 +391,17 @@ namespace rgat
                 if (ActiveTrace == null)
                     SelectActiveTrace();
 
-                selectGraphInActiveTrace();
+                SelectGraphInActiveTrace();
             }
 
-
             return (ActiveGraph != null);
-
         }
 
-        //activate a graph in the active trace
-        //selects the last one that was active in this trace, or the first seen
-        void selectGraphInActiveTrace()
+        /// <summary>
+        /// Activate a graph in the active trace
+        /// Selects the last one that was active in this trace, or the first seen
+        /// </summary>
+        void SelectGraphInActiveTrace()
         {
             TraceRecord selectedTrace = ActiveTrace;
             if (selectedTrace == null)
@@ -393,10 +442,13 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Sets a specific thread graph for the UI to display
+        /// </summary>
+        /// <param name="graph">A PlottedGraph object of the thread to display</param>
+        /// <returns></returns>
         public bool SetActiveGraph(PlottedGraph graph)
         {
-
             if (ActiveGraph != null && ActiveGraph.beingDeleted)
                 return false;
             ClearActiveGraph();
@@ -404,80 +456,35 @@ namespace rgat
 
             Debug.Assert(ActiveGraph == null);
 
-            //activeGraphLock.lock () ;
-            //if (((plotted_graph*)graph)->increase_thread_references(50))
-            //{
-
             ActiveGraph = graph;
-            //}
-            //activeGraphLock.unlock();
             return true;
         }
 
-        public PlottedGraph getActiveGraph(bool increaseReferences)
+        /// <summary>
+        /// Get the currently active thread graph being shown by the UI
+        /// </summary>
+        /// <returns>The PlottedGraph object of the active thread graph</returns>
+        public PlottedGraph getActiveGraph()
         {
             if (ActiveGraph != null && ActiveGraph.beingDeleted) return null;
 
-            //activeGraphLock.lock () ;
-
             if (ActiveGraph == null)
             {
-                //activeGraphLock.unlock();
                 return null;
             }
-
-            /*
-             * todooooooooooooo
-             * 
-            if (increaseReferences)
-            {
-                bool success = activeGraph.increase_thread_references(52);
-                if (!success)
-                {
-                    activeGraphLock.unlock();
-                    return NULL;
-                }
-                //cout << "[+1: "<< ((plotted_graph *)activeGraph).threadReferences << "]increased refs to graph " << activeGraph << endl;
-            }
-            */
-            PlottedGraph tmp = ActiveGraph;
-            //activeGraphLock.unlock();
-
-            return tmp;
+            return ActiveGraph;
         }
 
-        public bool CreateNewPlottedGraph(ProtoGraph protoGraph, out PlottedGraph MainGraph)
-        {
-            switch (newGraphLayout)
-            {
-                case CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes:
-                    {
-                        MainGraph = new PlottedGraph(protoGraph, _GraphicsDevice, GlobalConfig.defaultGraphColours);
-                        return true;
-                    }
-                default:
-                    {
-                        MainGraph = null;
-                        Console.WriteLine("Bad graph layout: " + newGraphLayout);
-                        Debug.Assert(false);
-                        return false;
-                    }
-            }
-        }
 
-        public static DateTime UnixTimeStampToDateTime(double unixTimeStamp)
+        /// <summary>
+        /// Load a TraceRecord from a serialised trace JObject
+        /// </summary>
+        /// <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
+        /// <param name="target">The binarytarget associated with the trace</param>
+        /// <param name="traceResult">The output reconstructed TraceRecord</param>
+        /// <returns>true if a new trace was created, false if failed or duplicated</returns>
+        static bool LoadTraceRecord(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTarget target, out TraceRecord traceResult)
         {
-            // Unix timestamp is seconds past epoch
-            System.DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
-            dtDateTime = dtDateTime.AddSeconds(unixTimeStamp).ToLocalTime();
-            return dtDateTime;
-        }
-
-        //return true if a new trace was created, false if failed or duplicate
-        //todo should have 3 returns
-        static bool initialiseTrace(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTarget target, out TraceRecord traceResult)
-        {
-
             bool valid = true;
             valid &= saveJSON.TryGetValue("PID", out JToken jPID);
             valid &= saveJSON.TryGetValue("PID_ID", out JToken jID);
@@ -516,6 +523,12 @@ namespace rgat
             return true;
         }
 
+        /// <summary>
+        /// Load a saved trace
+        /// </summary>
+        /// <param name="path">The fileystem path of the saved trace</param>
+        /// <param name="trace">The loaded TraceRecord object</param>
+        /// <returns></returns>
         public bool LoadTraceByPath(string path, out TraceRecord trace)
         {
             //display_only_status_message("Loading save file...", clientState);
@@ -544,14 +557,14 @@ namespace rgat
             }
 
             BinaryTarget target;
-            if (!initialiseTarget(saveJSON, targets, out target))
+            if (!InitialiseTarget(saveJSON, out target))
             {
                 //updateActivityStatus("Process data load failed - possibly corrupt trace file", 15000);
 
                 return false;
             }
 
-            if (!initialiseTrace(saveJSON, target, out trace))
+            if (!LoadTraceRecord(saveJSON, target, out trace))
             {
                 return false;
             }
@@ -570,6 +583,11 @@ namespace rgat
             return true;
         }
 
+        /// <summary>
+        /// Get a list of child trace processes from a saved trace
+        /// </summary>
+        /// <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
+        /// <param name="childrenFiles">A list of relative filesystem paths of child traces</param>
         void ExtractChildTraceFilenames(JObject saveJSON, out List<string> childrenFiles)
         {
             childrenFiles = new List<string>();
@@ -583,6 +601,11 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Loads child traces into a trace record
+        /// </summary>
+        /// <param name="childrenFiles">A list of relative filesystem paths of traces</param>
+        /// <param name="trace">The parent TraceRecord of the child traces</param>
         void LoadChildTraces(List<string> childrenFiles, TraceRecord trace)
         {
 
@@ -608,6 +631,9 @@ namespace rgat
 
         }
 
+        /// <summary>
+        /// Cause all the traces of all active targets to be serialised to the trace directory
+        /// </summary>
         public void SaveAllTargets()
         {
             List<BinaryTarget> targslist = targets.GetBinaryTargets();
@@ -618,6 +644,10 @@ namespace rgat
             Console.WriteLine($"Finished saving {targslist.Count} targets");
         }
 
+        /// <summary>
+        /// Serialise all the traces of the the specified target to the trace directory
+        /// </summary>
+        /// <param name="targ">A binaryTarget to save traces of</param>
         public void SaveTarget(BinaryTarget targ)
         {
             var traceslist = targ.GetTracesUIList();
@@ -636,6 +666,9 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Export the current trace in the pajek format, a simple graph serialisation format that other graph layout programs accept
+        /// </summary>
         public void ExportTraceAsPajek(TraceRecord trace, uint TID)
         {
             trace.ExportPajek(TID);
@@ -644,6 +677,11 @@ namespace rgat
 
         readonly object _testDictLock = new object();
         Dictionary<long, TraceRecord> _testConnections = new Dictionary<long, TraceRecord>();
+        /// <summary>
+        /// Store a reference to an incoming rgat test trace
+        /// </summary>
+        /// <param name="testID">The ID of the test</param>
+        /// <param name="trace">The TraceRecord associated with the test</param>
         public void RecordTestRunConnection(long testID, TraceRecord trace)
         {
             lock (_testDictLock)
@@ -654,6 +692,12 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Get the TraceRecord for a specific test ID
+        /// </summary>
+        /// <param name="testID">The test ID to retrieve</param>
+        /// <param name="trace">The associated TraceRecord of the test</param>
+        /// <returns>true if found, false otherwise</returns>
         public bool GetTestTrace(long testID, out TraceRecord trace)
         {
 

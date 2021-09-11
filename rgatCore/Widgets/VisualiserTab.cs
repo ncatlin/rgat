@@ -13,9 +13,9 @@ using static rgat.CONSTANTS;
 namespace rgat
 {
     class VisualiserTab
-    { 
+    {
         GraphPlotWidget MainGraphWidget;
-        PreviewGraphsWidget PreviewGraphWidget;
+        public PreviewGraphsWidget PreviewGraphWidget { get; private set; }
         VisualiserBar _visualiserBar;
         rgatState _rgatState;
 
@@ -38,11 +38,11 @@ namespace rgat
 
             progress.Report(0.8f);
             PreviewGraphWidget = new PreviewGraphsWidget(controller, gd, _rgatState); //350~ ms
+            PreviewRendererThread.SetPreviewWidget(PreviewGraphWidget);
 
             progress.Report(0.99f);
             MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
             PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
-            _rgatState.PreviewWidget = PreviewGraphWidget;
 
             mainRenderThreadObj = new MainGraphRenderThread(MainGraphWidget);
             mainRenderThreadObj.Begin();
@@ -150,7 +150,7 @@ namespace rgat
         }
 
         public bool AlertRawKeyPress(Tuple<Key, ModifierKeys> KeyModifierTuple) => MainGraphWidget.AlertRawKeyPress(KeyModifierTuple);
-        
+
         public bool AlertKeybindPressed(eKeybind action, Tuple<Key, ModifierKeys> KeyModifierTuple)
         {
             if (action == eKeybind.Cancel && _show_stats_dialog)
@@ -708,7 +708,7 @@ namespace rgat
                         ImGui.Text($"BRepQu: {BrQlab}");
                     }
 
-                    double fps = rgatState.UIDrawFPS;
+                    double fps = rgatUI.UIDrawFPS;
                     if (fps >= 100)
                     {
                         ImGui.Text($"UI FPS: 100+");
@@ -806,6 +806,7 @@ namespace rgat
             }
 
         }
+
 
 
         void ManageActiveGraph()
@@ -927,7 +928,7 @@ namespace rgat
                     ImGui.Text($"UI FPS");
                     ImGui.TableNextColumn();
 
-                    double fps = rgatState.UIDrawFPS;
+                    double fps = rgatUI.UIDrawFPS;
                     if (fps >= 100)
                     {
                         ImGui.Text("100+");

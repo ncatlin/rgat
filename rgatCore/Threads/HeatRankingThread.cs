@@ -23,14 +23,15 @@ namespace rgat.Threads
 
             var edgeList = graph.GetEdgeObjListCopy();
 
-            var allEdgeExecutions = edgeList.Select(e => e.executionCount).ToList();
+            var allEdgeExecutions = edgeList.Select(e => e.executionCount).Distinct().ToList();
             allEdgeExecutions.Sort();
 
-            int decile = allEdgeExecutions.Count / 10;
-            int current = decile;
+            float decile = (float)allEdgeExecutions.Count / 10f;
+            float current = decile;
+            
             for (var i = 0; i < 9; i++)
             {
-                graph._edgeHeatThresholds[i] = allEdgeExecutions.ElementAt(current);
+                graph._edgeHeatThresholds[i] = allEdgeExecutions.ElementAt((int)current);
                 current += decile;
             }
 
