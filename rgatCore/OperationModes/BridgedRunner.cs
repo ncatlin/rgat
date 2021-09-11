@@ -80,7 +80,7 @@ namespace rgat.OperationModes
         /// </summary>
         public void RunHeadless(BridgeConnection connection)
         {
-            GlobalConfig.LoadConfig(null); //todo a lightweight headless config
+            GlobalConfig.LoadConfig(GUI: false, progress: null); 
 
             if (GlobalConfig.NewVersionAvailable)
             {

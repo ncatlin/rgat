@@ -516,7 +516,7 @@ namespace rgat
             string tool = @"C:\Users\nia\Source\Repos\rgatPrivate\UpdateFinaliser\bin\Debug\net5.0\UpdateFinaliser.exe";
             System.Diagnostics.Process.Start(tool, new List<string>(){
                 System.Diagnostics.Process.GetCurrentProcess().Id.ToString(),
-                Environment.GetCommandLineArgs()[0],
+                GlobalConfig.BaseDirectory,
                 new_rgatPath,
                 "true"
             });

@@ -50,22 +50,15 @@ namespace rgat.Config
 
 
         public CachedRecentPaths RecentPaths { get; set; } = new CachedRecentPaths();
-
         public NetworkSettings Network { get; set; } = new NetworkSettings();
         public PathSettings ToolPaths { get; set; } = new PathSettings();
         public UISettings UI { get; set; } = new UISettings();
         public TracingSettings Tracing { get; set; } = new TracingSettings();
         public MediaCaptureSettings Media { get; set; } = new MediaCaptureSettings();
-
         public KeybindSettings Keybinds { get; set; } = new KeybindSettings();
-
-
         public UpdateSettings Updates { get; set; } = new UpdateSettings();
-
         public LogSettings Logs { get; set; } = new LogSettings();
-
         public SignatureSettings Signatures { get; set; } = new SignatureSettings();
-
         public ThemeSettings Themes { get; set; } = new ThemeSettings();
 
 
@@ -151,6 +144,9 @@ namespace rgat.Config
 
             public bool ScreencapAnimation = true;
             public bool AlertAnimation = true;
+
+            string _InstalledVersion = "None";
+            public string InstalledVersion { get => _InstalledVersion; set { _InstalledVersion = value; MarkDirty(); } }
         }
 
 

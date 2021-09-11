@@ -315,7 +315,7 @@ namespace rgat.OperationModes
             Progress<float> IProgressConfig = new Progress<float>(progress => { configProgress = progress; UpdateProgressConfWidgets(); });
             Progress<float> IProgressWidgets = new Progress<float>(progress => { widgetProgress = progress; UpdateProgressConfWidgets(); });
 
-            Task confloader = Task.Run(() => GlobalConfig.LoadConfig(IProgressConfig)); // 900ms~ depending on themes
+            Task confloader = Task.Run(() => GlobalConfig.LoadConfig(GUI: true, progress: IProgressConfig)); // 900ms~ depending on themes
             Task widgetLoader = Task.Run(() => _rgatUI.InitWidgets(IProgressWidgets)); //2000ms~ fairly flat
 
             await Task.WhenAll(widgetLoader, confloader);

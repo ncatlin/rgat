@@ -161,9 +161,8 @@ namespace rgat
                 }
             }
 
-            string baseDir = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]); //with single executables the AppContext.BaseDirectory value is the temp extract dir
-            result = GlobalConfig.GetStorageDirectoryPath(baseDir, "media");
-            if (result != "")
+            result = GlobalConfig.GetStorageDirectoryPath(GlobalConfig.BaseDirectory, "media");
+            if (result != "" && Directory.Exists(result))
             {
                 GlobalConfig.SetDirectoryPath("MediaCapturePath", result);
                 return result;

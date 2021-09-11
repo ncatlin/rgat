@@ -579,6 +579,16 @@
               Looks up a localized resource of type System.Byte[].
             </summary>
         </member>
+        <member name="P:rgat.Properties.Resources.PinTool32">
+            <summary>
+              Looks up a localized resource of type System.Byte[].
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.PinTool64">
+            <summary>
+              Looks up a localized resource of type System.Byte[].
+            </summary>
+        </member>
         <member name="F:rgat.APICALLDATA.argList">
             <summary>
             a list of (index, value) tuples

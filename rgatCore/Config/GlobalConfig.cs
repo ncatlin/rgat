@@ -397,11 +397,12 @@ namespace rgat
                     string candidate = Path.Combine(dir, "pin.exe");
                     if (File.Exists(candidate))
                     {
-                        if(Settings.ToolPaths.SetBinaryPath("PinPath", candidate))                        
+                        if (Settings.ToolPaths.SetBinaryPath("PinPath", candidate))
                             break;
                     }
                 }
             }
+
 
             if (!File.Exists(Settings.ToolPaths.Get("PinToolPath32")))
             {
@@ -410,8 +411,8 @@ namespace rgat
                 {
                     SetBinaryPath("PinToolPath32", candidate);
                 }
-            }            
-            
+            }
+
             if (!File.Exists(Settings.ToolPaths.Get("PinToolPath64")))
             {
                 string candidate = Path.Combine(AppContext.BaseDirectory, "pingat64.dll");
@@ -611,12 +612,16 @@ namespace rgat
         // -> this idea is shelved for the foreseeable future, see https://trello.com/c/ShIWBywy/141-specify-rule-rule-group-exec-conditions-file-mem
         //public static Dictionary<string, eSigScanLocation> SignatureScanLimits = new Dictionary<string, eSigScanLocation>();
 
+        public static string BaseDirectory { get; private set; }
 
 
-        public static void LoadConfig(IProgress<float> progress)
+        public static void LoadConfig(bool GUI, IProgress<float> progress)
         {
-            string baseDir = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]); //with single executables the AppContext.BaseDirectory value is the temp extract dir
-            string settingsPath = Path.Combine(baseDir, "settings.json");
+            System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
+            timer.Start();
+
+            BaseDirectory = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]); //with single executables the AppContext.BaseDirectory value is the temp extract dir
+            string settingsPath = Path.Combine(BaseDirectory, "settings.json");
             if (!File.Exists(settingsPath))
             {
                 Logging.RecordLogEvent($"{settingsPath} did not exist, creating empty");
@@ -624,7 +629,7 @@ namespace rgat
                 {
                     File.WriteAllText(settingsPath, "{}");
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Logging.RecordError($"{settingsPath} could not be created ({e.Message}), creating in temporary directory");
                     try
@@ -632,7 +637,7 @@ namespace rgat
                         settingsPath = Path.GetTempFileName();
                         File.WriteAllText(settingsPath, "{}");
                     }
-                    catch(Exception e2)
+                    catch (Exception e2)
                     {
                         Logging.RecordError($"Temporary settings {settingsPath} could not be created ({e.Message})");
                         return;
@@ -648,33 +653,73 @@ namespace rgat
             rgatSettings.SetChangeCallback(MarkDirty);
             Settings.EnsureValidity();
 
-
-            System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
-            timer.Start();
-
-            LoadThemesFromResource();
-            progress?.Report(0.3f);
-
-            lock (_settingsLock)
+            Console.WriteLine("initial config load done after" + timer.ElapsedMilliseconds);
+            if (Settings.UI.InstalledVersion != RGAT_CONSTANTS.RGAT_VERSION)
             {
-                Themes.ActivateDefaultTheme();
+                InstallNewTools();
+                Settings.UI.InstalledVersion = RGAT_CONSTANTS.RGAT_VERSION;
             }
 
-            progress?.Report(0.5f);
+            InitPaths(BaseDirectory);
 
-            Settings.Keybinds.ApplyUserKeybinds();
 
-            progress?.Report(0.7f);
+            if (GUI)
+            {
+                LoadThemesFromResource();
+                progress?.Report(0.3f);
 
-            InitPaths(baseDir);
+                lock (_settingsLock)
+                {
+                    Themes.ActivateDefaultTheme();
+                }
+
+                progress?.Report(0.5f);
+
+                Settings.Keybinds.ApplyUserKeybinds();
+
+                LoadTextSettingsColours();
+
+                progress?.Report(0.7f);
+            }
+
 
             progress?.Report(0.9f);
-
-            LoadTextSettingsColours();
 
             Logging.RecordLogEvent($"Startup: Config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Stop();
             progress?.Report(1f);
+        }
+
+        static void InstallNewTools()
+        {
+            string toolsDirectory = GetStorageDirectoryPath(BaseDirectory, "tools");
+            if (!Directory.Exists(toolsDirectory))
+            {
+                try
+                {
+                    Directory.CreateDirectory(toolsDirectory);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Failed to create tools directory: {toolsDirectory}: {e.Message}");
+                    return;
+                }
+            }
+
+            try
+            {
+                string tool32Path = Path.Combine(BaseDirectory, "tools", "pintool32.dll");
+                File.WriteAllBytes(tool32Path, ImGuiController.ReadBinaryResource("PinTool32"));
+                SetBinaryPath("PinToolPath32", tool32Path);
+
+                string tool64Path = Path.Combine(BaseDirectory, "tools", "pintool64.dll");
+                File.WriteAllBytes(tool64Path, ImGuiController.ReadBinaryResource("PinTool64"));
+                SetBinaryPath("PinToolPath64", tool64Path);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Failed to install new pin tools: {e}");
+            }
         }
     }
 }

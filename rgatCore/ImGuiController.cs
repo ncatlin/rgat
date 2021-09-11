@@ -115,8 +115,8 @@ namespace ImGuiNET
 
             Logging.RecordLogEvent("Loading fonts", Logging.LogFilterType.TextDebug);
             var fonts = ImGui.GetIO().Fonts;
-            LoadUnicodeFont();
-            LoadIconFont();
+            
+            BuildFonts();
             _originalFont = fonts.AddFontDefault();
 
 
@@ -138,7 +138,8 @@ namespace ImGuiNET
             _frameBegun = true;
         }
 
-        public unsafe void LoadUnicodeFont()
+
+        public unsafe void BuildFonts()
         {
             if (_unicodeFontLoaded) return;
 
@@ -194,6 +195,42 @@ namespace ImGuiNET
 
                 _unicodeFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 17, null, ranges.Data);
 
+                // These icons get merged into the unicode font so its important they are built here
+                byte[] regularFontBytes = ReadBinaryResource("Font_Awesome_5_Free_Regular_400");
+                byte[] solidFontBytes = ReadBinaryResource("Font_Awesome_5_Free_Solid_900");
+                if (regularFontBytes != null && solidFontBytes != null)
+                {
+                    Logging.RecordLogEvent($"Loading font resources", Logging.LogFilterType.TextDebug);
+                    System.Runtime.InteropServices.GCHandle rangeHandle =
+                        System.Runtime.InteropServices.GCHandle.Alloc(new ushort[]
+                        { 0xe000,0xffff,0}, System.Runtime.InteropServices.GCHandleType.Pinned);
+                    try
+                    {
+                        fixed (byte* solidPtr = solidFontBytes, regularPtr = regularFontBytes)
+                        {
+                            fontConfig.FontDataOwnedByAtlas = true; 
+                            IntPtr glyphRange = rangeHandle.AddrOfPinnedObject();
+                            _fafontSolid = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, 17, fontConfig, glyphRange);
+                            _fafontRegular = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)regularPtr, regularFontBytes.Length, 17, fontConfig, glyphRange);
+                            fontConfig.MergeMode = false;
+                            _iconsLargeFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, LargeIconSize.X, fontConfig, glyphRange);
+                        }
+                    }
+                    finally
+                    {
+                        fontConfig.Destroy();
+                        if (rangeHandle.IsAllocated)
+                        {
+                            rangeHandle.Free();
+                        }
+                    }
+                }
+                else
+                {
+                    Logging.RecordError("Error loading font resources");
+                }
+
+
                 builder.Clear();
                 builder.AddChar('r');
                 builder.AddChar('g');
@@ -204,65 +241,16 @@ namespace ImGuiNET
 
                 _titleFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 70, null, rangesTitle.Data);
             }
+
             unsafe
             {
                 ImGui.GetIO().NativePtr->FontDefault = _unicodeFont;
             }
+
+
             _unicodeFontLoaded = true;
         }
 
-
-
-        public unsafe void LoadIconFont()
-        {
-            Logging.RecordLogEvent($"Loading Icon fonts", Logging.LogFilterType.TextDebug);
-            System.Runtime.InteropServices.GCHandle rangeHandle = System.Runtime.InteropServices.GCHandle.Alloc(new ushort[]
-  { 0xe000,0xffff,0}, System.Runtime.InteropServices.GCHandleType.Pinned);
-
-            ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
-            fontConfig.MergeMode = true;
-            fontConfig.FontDataOwnedByAtlas = true;
-            fontConfig.OversampleH = 2;
-            fontConfig.PixelSnapH = true;
-            fontConfig.OversampleV = 1;
-            fontConfig.GlyphOffset = new Vector2(0, 2);
-            fontConfig.GlyphMaxAdvanceX = float.MaxValue;
-            fontConfig.RasterizerMultiply = 1f;
-
-            byte[] regularFontBytes = ReadBinaryResource("Font_Awesome_5_Free_Regular_400");
-            byte[] solidFontBytes = ReadBinaryResource("Font_Awesome_5_Free_Solid_900");
-            if (regularFontBytes != null && solidFontBytes != null)
-            {
-                Logging.RecordLogEvent($"Loading font resources", Logging.LogFilterType.TextDebug);
-
-                try
-                {
-                    fixed (byte* solidPtr = solidFontBytes, regularPtr = regularFontBytes)
-                    {
-                        fontConfig.FontDataOwnedByAtlas = true;
-                        IntPtr glyphRange = rangeHandle.AddrOfPinnedObject();
-                        _fafontSolid = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, 17, fontConfig, glyphRange);
-                        _fafontRegular = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)regularPtr, regularFontBytes.Length, 17, fontConfig, glyphRange);
-                        fontConfig.MergeMode = false;
-                        _iconsLargeFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, LargeIconSize.X, fontConfig, glyphRange);
-                    }
-                }
-                finally
-                {
-                    /*
-                    fontConfig.Destroy();
-                    if (rangeHandle.IsAllocated)
-                    {
-                        rangeHandle.Free();
-                    }
-                    */
-                }
-            }
-            else
-            {
-                Logging.RecordError("Error loading font resources");
-            }
-        }
 
 
         public readonly Vector2 LargeIconSize = new Vector2(65, 65);
