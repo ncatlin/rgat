@@ -78,10 +78,10 @@ namespace rgat
         /// </summary>
         private void RecreateGraphicsBuffers()
         {
-            VeldridGraphBuffers.DoDispose(_EdgeVertBuffer);
-            VeldridGraphBuffers.DoDispose(_EdgeIndexBuffer);
-            VeldridGraphBuffers.DoDispose(_NodeVertexBuffer);
-            VeldridGraphBuffers.DoDispose(_NodePickingBuffer);
+            VeldridGraphBuffers.VRAMDispose(_EdgeVertBuffer);
+            VeldridGraphBuffers.VRAMDispose(_EdgeIndexBuffer);
+            VeldridGraphBuffers.VRAMDispose(_NodeVertexBuffer);
+            VeldridGraphBuffers.VRAMDispose(_NodePickingBuffer);
 
 
             _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.VertexBuffer, name: _EdgeVertBuffer.Name);
@@ -565,7 +565,7 @@ namespace rgat
         DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer;
         DeviceBuffer _RawEdgeVertBuffer, _RawEdgeIndexBuffer;
         DeviceBuffer _NodeVertexBuffer, _NodePickingBuffer, _NodeIndexBuffer;
-        DeviceBuffer _FontVertBuffer, _FontIndexBuffer;
+        DeviceBuffer _FontVertBuffer, _FontIndexBufferAll, _FontIndexBufferSample;
         DeviceBuffer _paramsBuffer;
 
 
@@ -622,11 +622,11 @@ namespace rgat
             _coreRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Vertex),
                new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment),
-               new ResourceLayoutElementDescription("Positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex)
+               new ResourceLayoutElementDescription("Positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex),
+                new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex)
                ));
 
             _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
-                new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex),
                 new ResourceLayoutElementDescription("NodeTextures", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
 
 
@@ -680,7 +680,7 @@ namespace rgat
             ResourceSetDescription crs_font_rsd = new ResourceSetDescription(_fontRsrcLayout, _controller._fontTextureView);
             _crs_font = _factory.CreateResourceSet(crs_font_rsd);
 
-            ShaderSetDescription fontshader = SPIRVShaders.CreateFontShaders(_gd, out _FontVertBuffer, out _FontIndexBuffer);
+            ShaderSetDescription fontshader = SPIRVShaders.CreateFontShaders(_gd, out _FontVertBuffer, out _FontIndexBufferAll);
 
             GraphicsPipelineDescription fontpd = new GraphicsPipelineDescription(
                 BlendStateDescription.SingleAlphaBlend,
@@ -874,16 +874,16 @@ namespace rgat
 
             if (stringVerts.Count * fontStruc.SizeInBytes > _FontVertBuffer.SizeInBytes)
             {
-                VeldridGraphBuffers.DoDispose(_FontVertBuffer);
+                VeldridGraphBuffers.VRAMDispose(_FontVertBuffer);
                 _FontVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)stringVerts.Count * fontStruc.SizeInBytes, BufferUsage.VertexBuffer, name: _FontVertBuffer.Name);
-                VeldridGraphBuffers.DoDispose(_FontIndexBuffer);
-                _FontIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)charIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: _FontIndexBuffer.Name);
+                VeldridGraphBuffers.VRAMDispose(_FontIndexBufferAll);
+                _FontIndexBufferAll = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)charIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: _FontIndexBufferAll.Name);
             }
 
             CommandList cl = _factory.CreateCommandList();
             cl.Begin();
             cl.UpdateBuffer(_FontVertBuffer, 0, stringVerts.ToArray());
-            cl.UpdateBuffer(_FontIndexBuffer, 0, charIndexes);
+            cl.UpdateBuffer(_FontIndexBufferAll, 0, charIndexes);
             cl.End();
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
@@ -1021,7 +1021,7 @@ namespace rgat
             //todo - thread safe persistent commandlist
             cl.Begin();
 
-            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, graph.LayoutState.AttributesVRAM1, _imageTextureView);
+            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _imageTextureView);
 
             //VeldridGraphBuffers.DoDispose(_crs_nodesEdges);
             ResourceSet crs_nodesEdges = _factory.CreateResourceSet(crs_nodesEdges_rsd);
@@ -1033,7 +1033,9 @@ namespace rgat
             updateShaderParams(graph, textureSize, proj, view, world, cl);
 
 
-            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, graph.LayoutState.PositionsVRAM1);
+            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer,
+                _gd.PointSampler, graph.LayoutState.PositionsVRAM1, graph.LayoutState.AttributesVRAM1);
+
             //VeldridGraphBuffers.DoDispose(_crs_core);
             //_crs_core = _factory.CreateResourceSet(crs_core_rsd); //todo constant crashing here
             ResourceSet crs_core = _factory.CreateResourceSet(crs_core_rsd); //todo constant crashing here
@@ -1046,13 +1048,13 @@ namespace rgat
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
                 (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
             {
-                VeldridGraphBuffers.DoDispose(_NodeVertexBuffer);
-                VeldridGraphBuffers.DoDispose(_NodePickingBuffer);
-                VeldridGraphBuffers.DoDispose(_NodeIndexBuffer);
+                VRAMDispose(_NodeVertexBuffer);
+                VRAMDispose(_NodePickingBuffer);
+                VRAMDispose(_NodeIndexBuffer);
 
-                _NodeVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "NodeVertexBuffer");
-                _NodePickingBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "NodePickingVertexBuffer");
-                _NodeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "NodeIndexBuffer");
+                _NodeVertexBuffer = TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "NodeVertexBuffer");
+                _NodePickingBuffer = TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "NodePickingVertexBuffer");
+                _NodeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "NodeIndexBuffer");
             }
 
 
@@ -1064,10 +1066,10 @@ namespace rgat
 
             if (((edgeVertCount * 4) > _EdgeIndexBuffer.SizeInBytes))
             {
-                VeldridGraphBuffers.DoDispose(_EdgeVertBuffer);
-                _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
-                VeldridGraphBuffers.DoDispose(_EdgeIndexBuffer);
-                _EdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "EdgeIndexBuffer");
+                VRAMDispose(_EdgeVertBuffer);
+                _EdgeVertBuffer = TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
+                VRAMDispose(_EdgeIndexBuffer);
+                _EdgeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "EdgeIndexBuffer");
             }
 
             //todo - only do this on changes
@@ -1123,11 +1125,11 @@ namespace rgat
             if (IllustrationEdges.Length > 0)
             {
 
-                if (_RawEdgeIndexBuffer == null || ((IllustrationEdges.Length * GeomPositionColour.SizeInBytes) > _RawEdgeIndexBuffer.SizeInBytes))
+                if (_RawEdgeIndexBuffer is null || ((IllustrationEdges.Length * GeomPositionColour.SizeInBytes) > _RawEdgeIndexBuffer.SizeInBytes))
                 {
-                    VeldridGraphBuffers.DoDispose(_RawEdgeVertBuffer);
+                    VRAMDispose(_RawEdgeVertBuffer);
                     _RawEdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)IllustrationEdges.Length * GeomPositionColour.SizeInBytes * 4, BufferUsage.VertexBuffer, name: "IllustrateVertexBuffer");
-                    VeldridGraphBuffers.DoDispose(_RawEdgeIndexBuffer);
+                    VRAMDispose(_RawEdgeIndexBuffer);
                     _RawEdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)illusEdgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "IllustrateIndexBuffer");
                 }
 
@@ -1150,7 +1152,7 @@ namespace rgat
 
                 cl.SetPipeline(_fontPipeline);
                 cl.SetVertexBuffer(0, _FontVertBuffer);
-                cl.SetIndexBuffer(_FontIndexBuffer, IndexFormat.UInt32);
+                cl.SetIndexBuffer(_FontIndexBufferAll, IndexFormat.UInt32);
                 cl.SetGraphicsResourceSet(0, crs_core);
                 cl.SetGraphicsResourceSet(1, _crs_font);
 
@@ -1514,12 +1516,14 @@ namespace rgat
 
             _layoutEngine.Compute(cl, graph, _mouseoverNodeID, graph.IsAnimated);
 
-          
-            DoMouseNodePicking(_gd);
+            if (_controller.DialogOpen is false)
+            {
+                DoMouseNodePicking(_gd); 
+            }
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
             Matrix4x4 worldView = world * view;
-            if (_centeringInFrame != 0)
+            if (_centeringInFrame is not 0)
             {
 
                 //todo - increase stopping threshold as step count increases
@@ -1574,8 +1578,6 @@ namespace rgat
         }
 
 
-
-
         /// <summary>
         /// must hold upgradable reader lock
         /// </summary>
@@ -1628,9 +1630,8 @@ namespace rgat
         /// <param name="_gd"></param>
         void DoMouseNodePicking(GraphicsDevice _gd)
         {
-
             PlottedGraph graph = ActiveGraph;
-            if (graph == null || Exiting || _controller.DialogOpen) return;
+            if (graph == null || Exiting) return;
 
             float mouseX = (_MousePos.X - WidgetPos.X);
             float mouseY = (WidgetPos.Y + _pickingStagingTexture.Height) - _MousePos.Y;

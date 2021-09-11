@@ -110,7 +110,8 @@ namespace rgat
             _coreRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Vertex),
                new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment),
-               new ResourceLayoutElementDescription("Positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex)
+               new ResourceLayoutElementDescription("Positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex),
+               new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex)
                ));
 
 
@@ -119,7 +120,6 @@ namespace rgat
 
 
             _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
-               new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex),
                 new ResourceLayoutElementDescription("NodeTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)
                 ));
 
@@ -814,10 +814,10 @@ namespace rgat
 
                 Logging.RecordLogEvent("disposeremake nodeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
 
-                VeldridGraphBuffers.DoDispose(_NodeVertexBuffer);
+                VeldridGraphBuffers.VRAMDispose(_NodeVertexBuffer);
                 _NodeVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewNodeVertexBuffer");
 
-                VeldridGraphBuffers.DoDispose(_NodeIndexBuffer);
+                VeldridGraphBuffers.VRAMDispose(_NodeIndexBuffer);
                 _NodeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewNodeIndexBuffer");
             }
 
@@ -828,10 +828,10 @@ namespace rgat
             {
                 Logging.RecordLogEvent("disposeremake edgeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
 
-                VeldridGraphBuffers.DoDispose(_EdgeVertBuffer);
+                VeldridGraphBuffers.VRAMDispose(_EdgeVertBuffer);
                 _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewEdgeVertexBuffer");
 
-                VeldridGraphBuffers.DoDispose(_EdgeIndexBuffer);
+                VeldridGraphBuffers.VRAMDispose(_EdgeIndexBuffer);
                 _EdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewEdgeIndexBuffer");
             }
 
@@ -839,13 +839,13 @@ namespace rgat
             cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
             cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
 
-            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler, graph.LayoutState.PositionsVRAM1);
+            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler,
+                graph.LayoutState.PositionsVRAM1, graph.LayoutState.AttributesVRAM1);
             ResourceSet crscore = _factory.CreateResourceSet(crs_core_rsd);
 
 
             Logging.RecordLogEvent($"render preview {graph.tid} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
-            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout,
-                graph.LayoutState.AttributesVRAM1, _NodeCircleSpritetview);
+            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _NodeCircleSpritetview);
             ResourceSet crsnodesedge = _factory.CreateResourceSet(crs_nodesEdges_rsd);
 
 

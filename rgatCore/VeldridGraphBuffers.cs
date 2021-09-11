@@ -171,7 +171,7 @@ namespace rgat
         }
 
         static long total_1 = 0;
-        public static void DoDispose(DeviceBuffer db)
+        public static void VRAMDispose(DeviceBuffer db)
         {
             lock (b_lock)
             {

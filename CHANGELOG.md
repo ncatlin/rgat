@@ -23,6 +23,8 @@ Changelog
 - Continuous auto-centering option to keep the graph centered
 - Disassembly preview box to show which instructions have been executed recently
 - Mini thread-activity plots in the preview pane
+- A box shows the approximate camera location in the selected graphs preview
+- The preview graph can be clicked to navigate around the selected graph
 - Preview highlights now show as they are typed in the preview settings
 - A testing framework with a JSON 'expected result' format. Tests can be queued and optionally continuously repeated.
 - Keybind editor

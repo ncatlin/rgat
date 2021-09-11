@@ -319,7 +319,7 @@ namespace rgat
                 if (Math.Abs(destinationReadView[index + 2]) > highest) highest = Math.Abs(destinationReadView[index + 2]);
             }
             _gd.Unmap(destinationReadback);
-            VeldridGraphBuffers.DoDispose(destinationReadback);
+            VeldridGraphBuffers.VRAMDispose(destinationReadback);
             return highest;
         }
 
@@ -737,7 +737,7 @@ namespace rgat
             }
             _gd.Unmap(destinationReadback);
             PrintBufferArray(outputArray, message, printCount);
-            VeldridGraphBuffers.DoDispose(destinationReadback);
+            VeldridGraphBuffers.VRAMDispose(destinationReadback);
         }
 
 

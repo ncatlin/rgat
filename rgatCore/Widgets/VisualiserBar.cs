@@ -125,9 +125,9 @@ namespace rgat.Widgets
             uint requiredSize = (uint)_pointVerts.Length * Position2DColour.SizeInBytes;
             if (_pointsVertexBuffer.SizeInBytes < requiredSize)
             {
-                VeldridGraphBuffers.DoDispose(_pointsVertexBuffer);
+                VeldridGraphBuffers.VRAMDispose(_pointsVertexBuffer);
                 _pointsVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, requiredSize * 2, BufferUsage.VertexBuffer, name: "VisBarPointsVertex");
-                VeldridGraphBuffers.DoDispose(_pointsIndexBuffer);
+                VeldridGraphBuffers.VRAMDispose(_pointsIndexBuffer);
                 _pointsIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)_pointVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer, name: "VisBarPointsIndex");
 
             }
@@ -135,17 +135,17 @@ namespace rgat.Widgets
             requiredSize = (uint)_lineVerts.Length * Position2DColour.SizeInBytes;
             if (_linesVertexBuffer.SizeInBytes < requiredSize)
             {
-                VeldridGraphBuffers.DoDispose(_linesVertexBuffer);
+                VeldridGraphBuffers.VRAMDispose(_linesVertexBuffer);
                 _linesVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, requiredSize * 2, BufferUsage.VertexBuffer, name: "VisBarLinesVertex");
-                VeldridGraphBuffers.DoDispose(_linesIndexBuffer);
+                VeldridGraphBuffers.VRAMDispose(_linesIndexBuffer);
                 _linesIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)_lineVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer, name: "VisBarLinesIndex");
             }
 
             requiredSize = (uint)_triangleVerts.Length * Position2DColour.SizeInBytes;
             if (_trisVertexBuffer.SizeInBytes < requiredSize)
             {
-                VeldridGraphBuffers.DoDispose(_trisVertexBuffer);
-                VeldridGraphBuffers.DoDispose(_trisIndexBuffer);
+                VeldridGraphBuffers.VRAMDispose(_trisVertexBuffer);
+                VeldridGraphBuffers.VRAMDispose(_trisIndexBuffer);
                 _trisVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, requiredSize * 2, BufferUsage.VertexBuffer, name: "VisBarTrisIndex");
                 _trisIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)_triangleVerts.Length * 2 * sizeof(uint), BufferUsage.IndexBuffer, name: "VisBarTrisIndex");
             }
@@ -497,8 +497,6 @@ namespace rgat.Widgets
 
 
                 //Draw Heatmap visualisation
-
-
                 int blockTailIdx = (int)blockFirstLast.Item2;
                 WritableRgbaFloat heatColour;
                 if (graph.NodeList.Count > blockTailIdx)

@@ -59,9 +59,7 @@ layout(set = 0, binding=1) uniform sampler nodeTexView; //point sampler
 layout(set = 0, binding=2) buffer bufpositionTexture{
     vec4 positionTexture[];
 };
-layout(set = 1, binding=0) buffer bufnodeAttribTexture{
-    vec4 nodeAttribTexture[];
-};
+layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
 
 
 void main() {
@@ -90,9 +88,6 @@ void main() {
 
 
 
-
-
-
         public const string fsnodeglsl = @"
 
 #version 450
@@ -114,11 +109,9 @@ layout(set = 0, binding=0) uniform ParamsBuf
     bool isAnimated;
 };
 layout(set = 0, binding=1) uniform sampler nodeTexView; //point sampler
+layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
 
-layout(set = 1, binding=0) buffer bufnodeAttribTexture{
-    vec4 nodeAttribTexture[];
-};
-layout(set = 1, binding=1) uniform texture2D nodeTextures; 
+layout(set = 1, binding=0) uniform texture2D nodeTextures; 
 
 
 void main() 
@@ -175,6 +168,7 @@ layout(location = 0) in vec2 Position;
 layout(location = 1) in vec4 Color;
 layout(location = 0) out vec4 vColor;
 
+//set 0 = core resource layout
 layout(set = 0, binding=0) uniform ParamsBuf
 {
     mat4 Projection;
@@ -188,10 +182,7 @@ layout(set = 0, binding=0) uniform ParamsBuf
 layout(set = 0, binding=2) buffer bufpositionTexture{
     vec4 positionTexture[];
 };
-layout(set = 1, binding=0) buffer bufnodeAttribTexture{
-    vec4 nodeAttribTexture[];
-};
-
+layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
 
 void main() {
     vColor = Color;
@@ -256,6 +247,7 @@ layout(location = 0) in vec2 Position;
 layout(location = 1) in vec4 Color;
 layout(location = 0) out vec4 vColor;
 
+//set 0 = core resource layout
 layout(set = 0, binding=0) uniform ViewBuffer
 {
     mat4 Projection;
@@ -268,9 +260,7 @@ layout(set = 0, binding=0) uniform ViewBuffer
 };
 
 layout(set = 0, binding=2) buffer bufpositionTexture{  vec4 positionTexture[];};
-
-layout(set = 1, binding=0) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
-
+layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
 
 
 void main() {
@@ -321,6 +311,7 @@ layout(location = 0) in vec4 Position;
 layout(location = 1) in vec4 Color;
 layout(location = 0) out vec4 vColor;
 
+//set 0 = core resource layout
 layout(set = 0, binding=0) uniform ViewBuffer
 {
     mat4 Projection;
@@ -332,6 +323,7 @@ layout(set = 0, binding=0) uniform ViewBuffer
     bool isAnimated;
 };
 layout(set = 0, binding=2) buffer bufpositionTexture{  vec4 positionTexture[];};
+layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
 
 void main() {
 
@@ -397,9 +389,6 @@ void main() {
         }
 
 
-
-
-
         public const string vsfontglsl = @"
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
@@ -415,7 +404,7 @@ layout(location = 4) in vec4 fontColour;
 layout(location = 0) out vec2 texCoords;
 layout(location = 1) out vec4 _outColour;
 
-
+//set 0 = core resource layout
 layout(set = 0, binding=0) uniform ParamsBuf
 {
     mat4 Projection;
@@ -427,16 +416,12 @@ layout(set = 0, binding=0) uniform ParamsBuf
     bool isAnimated;
 };
 layout(set = 0, binding=1) uniform sampler nodeTexView; //point sampler
-layout(set = 0, binding=2) buffer bufpositionTexture{
-    vec4 positionTexture[];
-};
+layout(set = 0, binding=2) buffer bufpositionTexture{  vec4 positionTexture[]; };
+layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
 
 void main()
 {
-
         vec3 nodePosition = positionTexture[nodeIdx].xyz;
-
-
         vec4 worldPosition = World *   (vec4(nodePosition.x,nodePosition.y + yOffset,nodePosition.z, 1.0));
         vec4 viewPosition = View * worldPosition;
         vec4 clipPosition = Projection * viewPosition;
@@ -446,26 +431,25 @@ void main()
         gl_Position = clipPosition + pos2;
 
         texCoords = fontCrd;
-        _outColour = fontColour;
-    
-}  
-";
+        _outColour = vec4(fontColour.xyz,  nodeAttribTexture[nodeIdx].y); //caption alpha == node alpha
+}";
 
-        public const string fsfontglsl = @"
-#version 450
-layout(location = 0) in vec2 TexCoords;
-layout(location = 1) in vec4 TexColor;
 
-layout(location = 0) out vec4 color;
+public const string fsfontglsl = @"
+        #version 450
+        layout(location = 0) in vec2 TexCoords;
+        layout(location = 1) in vec4 TexColor;
 
-layout(set = 0, binding=1) uniform sampler pointSampler; //point sampler
-layout(set = 1, binding=0) uniform texture2D fontTexture;   //font graphic
+        layout(location = 0) out vec4 color;
 
-void main()
-{   
-    vec4 sampled =  texture(sampler2D(fontTexture, pointSampler), TexCoords);
-    color = TexColor * sampled;
-}  
+        layout(set = 0, binding=1) uniform sampler pointSampler; //point sampler
+        layout(set = 1, binding=0) uniform texture2D fontTexture;   //font graphic
+
+        void main()
+        {   
+            vec4 sampled =  texture(sampler2D(fontTexture, pointSampler), TexCoords);
+            color = TexColor * sampled;
+        }  
 ";
 
 
@@ -547,7 +531,7 @@ layout(set = 0, binding=0) uniform ParamsBuf
 };
 layout(set = 0, binding=1) uniform sampler pointTextureView; //point sampler
 layout(set = 0, binding=2) uniform texture2D pointTextures; 
-
+layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
 
 void main() 
 {

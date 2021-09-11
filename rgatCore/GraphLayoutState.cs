@@ -174,17 +174,17 @@ namespace rgat
         {
             _VRAMBuffers.Initialised = false;
             _VRAMBuffers.RenderVersion = 0;
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.Positions1);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.Positions2);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.Attributes1);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.Attributes2);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.Velocities1);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.Velocities2);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.EdgeConnectionIndexes);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.EdgeConnections);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.EdgeStrengths);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.PresetPositions);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.BlockMetadata);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions1);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions2);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Attributes1);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Attributes2);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Velocities1);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Velocities2);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnectionIndexes);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnections);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeStrengths);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.PresetPositions);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMetadata);
         }
 
         public float[] DownloadVRAMPositions()
@@ -286,7 +286,7 @@ namespace rgat
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
             UpdateNodePositions(destinationReadView, destbuffers.PositionsArray);
             _gd.Unmap(destinationReadback);
-            VeldridGraphBuffers.DoDispose(destinationReadback);
+            VeldridGraphBuffers.VRAMDispose(destinationReadback);
             Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph finished", Logging.LogFilterType.BulkDebugLogFile);
 
         }
@@ -322,7 +322,7 @@ namespace rgat
             UpdateNodeVelocities(destinationReadView, destbuffers.VelocityArray);
             Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph done updatenode", Logging.LogFilterType.BulkDebugLogFile);
             _gd.Unmap(destinationReadback);
-            VeldridGraphBuffers.DoDispose(destinationReadback);
+            VeldridGraphBuffers.VRAMDispose(destinationReadback);
         }
 
 
@@ -373,7 +373,7 @@ namespace rgat
 
             if (!LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle))
             {
-                VeldridGraphBuffers.DoDispose(_VRAMBuffers.PresetPositions);
+                VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.PresetPositions);
                 _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.GeneratePresetPositions(PresetStyle), _gd, "Preset1");
             }
 
@@ -419,9 +419,9 @@ namespace rgat
         unsafe bool CreateEdgeDataBuffers(PlottedGraph graph)
         {
             Logging.RecordLogEvent($"CreateEdgeDataBuffers  {graph.tid}", Logging.LogFilterType.BulkDebugLogFile);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.EdgeConnections);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.EdgeConnectionIndexes);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.EdgeStrengths);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnections);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnectionIndexes);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeStrengths);
 
             if (!graph.GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargets, out int[] edgeMetaOffsets))
             {
@@ -480,7 +480,7 @@ namespace rgat
 
             Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.tid}", Logging.LogFilterType.BulkDebugLogFile);
 
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.BlockMetadata);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMetadata);
 
             var textureSize = graph.EdgeTextureWidth();
             if (textureSize > 0)
@@ -590,7 +590,7 @@ namespace rgat
             _gd.WaitForIdle();
             cl.Dispose();
 
-            disposals.ForEach(buf => VeldridGraphBuffers.DoDispose(buf));
+            disposals.ForEach(buf => VeldridGraphBuffers.VRAMDispose(buf));
 
             graph.ComputeBufferNodeCount = finalCount;
         }
@@ -658,8 +658,8 @@ namespace rgat
             Logging.RecordLogEvent($"ResetNodeAttributes ", Logging.LogFilterType.BulkDebugLogFile);
             float[] storedAttributes = SavedStates[Style].NodeAttribArray;
 
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.Attributes1);
-            VeldridGraphBuffers.DoDispose(_VRAMBuffers.Attributes2);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Attributes1);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Attributes2);
             _VRAMBuffers.Attributes1 = VeldridGraphBuffers.CreateFloatsDeviceBuffer(storedAttributes, _gd, $"RNA_AattBuf1_{dbgGraphDeleteMe.tid}");
             _VRAMBuffers.Attributes2 = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, _VRAMBuffers.Attributes1.SizeInBytes, _VRAMBuffers.Attributes1.Usage, 4, $"RNA_AattBuf2_{ dbgGraphDeleteMe.tid}");
 
@@ -873,8 +873,8 @@ namespace rgat
                 else
                 {
                     //Debug.Assert(false, "shouldn't be snapping to nonexistent preset");
-                    VeldridGraphBuffers.DoDispose(_VRAMBuffers.Positions1);
-                    VeldridGraphBuffers.DoDispose(_VRAMBuffers.Positions2);
+                    VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions1);
+                    VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions2);
                     VeldridGraphBuffers.CreateBufferCopyPair(_VRAMBuffers.PresetPositions, _gd, out _VRAMBuffers.Positions1, out _VRAMBuffers.Positions2, name: "PresetCopy");
 
                     RegenerateEdgeDataBuffers(dbgGraphDeleteMe);
@@ -882,8 +882,8 @@ namespace rgat
             }
             else
             {
-                VeldridGraphBuffers.DoDispose(_VRAMBuffers.Positions1);
-                VeldridGraphBuffers.DoDispose(_VRAMBuffers.Positions2);
+                VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions1);
+                VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions2);
                 VeldridGraphBuffers.CreateBufferCopyPair(_VRAMBuffers.PresetPositions, _gd, out _VRAMBuffers.Positions1, out _VRAMBuffers.Positions2, name: "PresetCopy");
 
             }

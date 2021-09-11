@@ -25,7 +25,7 @@ namespace rgat
     {
         public enum REPLAY_STATE { eStopped, ePlaying, ePaused, eEnded };
 
-        
+
 
         /*
         static List<List<int>> DoubleEdgeify(List<List<int>> ingraph)
@@ -133,6 +133,7 @@ namespace rgat
             //animInstructionIndex = 0;
             LastAnimatedVert = 0;
             AnimationIndex = 0;
+            _lastReplayedIndex = -1;
 
             unchainedWaitFrames = 0;
             remove_unchained_from_animation();
@@ -1197,10 +1198,10 @@ namespace rgat
             {
                 n.CreateLabel(this);
             }
-            
-            if (n.IsExternal) 
+
+            if (n.IsExternal)
                 return new Tuple<string, Color>(n.Label, Color.SpringGreen);
-            if (n.HasSymbol) 
+            if (n.HasSymbol)
                 return new Tuple<string, Color>(n.Label, Color.White);
             else
                 return new Tuple<string, Color>(n.Label, Color.LightGray);
@@ -1227,7 +1228,7 @@ namespace rgat
             }
 
             uint textureSize = LinearIndexTextureSize();
-            Position2DColour[] NodeVerts = new Position2DColour[textureSize * textureSize];
+            Position2DColour[] nodeVerts = new Position2DColour[textureSize * textureSize];
 
             nodePickingColors = new Position2DColour[textureSize * textureSize];
             captions = new List<Tuple<string, Color>>();
@@ -1235,37 +1236,39 @@ namespace rgat
             nodeIndices = new List<uint>();
             int nodeCount = RenderedNodeCount();
 
-            for (uint y = 0; y < textureSize; y++)
+            for (uint index = 0; index < nodeCount; index++)
             {
-                for (uint x = 0; x < textureSize; x++)
+                float x = index % textureSize;
+                float y = index / textureSize;
+                Vector2 texturePosition = new Vector2(x, y);
+                
+                if (index >= nodeCount || index >= InternalProtoGraph.NodeList.Count) return nodeVerts;
+
+                nodeIndices.Add(index);
+
+                WritableRgbaFloat nodeColour = GetNodeColor((int)index, renderingMode);
+                nodeVerts[index] = new Position2DColour
                 {
-                    var index = y * textureSize + x;
-                    if (index >= nodeCount || index >= InternalProtoGraph.NodeList.Count) return NodeVerts;
+                    Position = texturePosition,
+                    Color = nodeColour
+                };
 
-                    nodeIndices.Add(index);
+                nodePickingColors[index] = new Position2DColour
+                {
+                    Position = texturePosition,
+                    Color = new WritableRgbaFloat(index, 0, 0, 1)
+                };
 
-                    NodeVerts[index] = new Position2DColour
-                    {
-                        Position = new Vector2(x, y),
-                        Color = GetNodeColor((int)index, renderingMode)
-                    };
-
-                    nodePickingColors[index] = new Position2DColour
-                    {
-                        Position = new Vector2(x, y),
-                        Color = new WritableRgbaFloat(index, 0, 0, 1)
-                    };
-
-                    if (Opt_TextEnabled)
+                if (Opt_TextEnabled)
+                {
+                    if (!IsAnimated || nodeColour.A > 0)
                     {
                         var caption = CreateNodeLabel((int)index, renderingMode, createNewLabels);
                         captions.Add(caption);
                     }
-
-
                 }
             }
-            return NodeVerts;
+            return nodeVerts;
         }
 
 
@@ -1410,7 +1413,7 @@ namespace rgat
                     if (rgatState.ExitToken.IsCancellationRequested)
                     {
                         newnodelist = null;
-                        return false; 
+                        return false;
                     }
                     Console.WriteLine($"[rgat]get_block_nodelist() Fail to find edge for thread {tid} calling extern 0x{blockAddr:x}");
                 }
@@ -1508,7 +1511,7 @@ namespace rgat
                 if (brightTime == Anim_Constants.KEEP_BRIGHT)
                 {
 
-                    AddContinuousActiveNode(nodeIdx); 
+                    AddContinuousActiveNode(nodeIdx);
 
                 }
                 else
@@ -1594,7 +1597,7 @@ namespace rgat
                     foreach (int x in nodeIDListFFF) s += $"{x},";
                 }
 
-                Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.blockID}: " + s,  Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.blockID}: " + s, Logging.LogFilterType.BulkDebugLogFile);
                 currentUnchainedBlocks.Add(entry); //todo see if removable
                 brightTime = Anim_Constants.KEEP_BRIGHT;
             }
@@ -1653,7 +1656,7 @@ namespace rgat
 
                 if (actualIndex > _lastReplayedIndex)
                 {
-                    for (var innerReplayIdx = _lastReplayedIndex +1; innerReplayIdx < actualIndex+1; innerReplayIdx += 1)
+                    for (var innerReplayIdx = _lastReplayedIndex + 1; innerReplayIdx < actualIndex + 1; innerReplayIdx += 1)
                     {
                         process_replay_update(innerReplayIdx);
                     }
@@ -1666,6 +1669,7 @@ namespace rgat
                 ReplayState = REPLAY_STATE.eEnded;
             }
         }
+
         int _lastReplayedIndex = -1;
 
 
@@ -2162,8 +2166,8 @@ namespace rgat
                 _showNodeAdresses = value;
                 RegenerateLabels();
             }
-        }        
-        
+        }
+
         bool _showNodeIndexes = true;
         public bool Opt_ShowNodeIndexes
         {
@@ -2174,7 +2178,7 @@ namespace rgat
                 RegenerateLabels();
             }
         }
-                
+
         bool _showSymbolModules = true;
         public bool Opt_ShowSymbolModules
         {
@@ -2185,7 +2189,7 @@ namespace rgat
                 RegenerateLabels();
             }
         }
-                
+
         bool _showSymbolModulePaths = true;
         public bool Opt_ShowSymbolModulePaths
         {

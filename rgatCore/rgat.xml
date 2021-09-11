@@ -712,6 +712,13 @@
             <param name="traceStartedTime">The time the run was started</param>
             <returns>The path the trace was saved to</returns>
         </member>
+        <member name="M:rgat.TraceRecord.ExportPajek(System.UInt32)">
+            <summary>
+            Export the current trace in the pajek format, a simple graph 
+            serialisation format that other graph layout programs accept
+            </summary>
+            <param name="TID">Thread ID of the graph to serialise</param>
+        </member>
         <member name="M:rgat.Updates.ParseChangelogChanges(System.String)">
             <summary>
             Teturns a list of changes from the current version to a given changelog

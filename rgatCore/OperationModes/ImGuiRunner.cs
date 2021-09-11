@@ -334,7 +334,8 @@ namespace rgat.OperationModes
             Logging.RecordLogEvent($"Startup: Settings menu loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
 
-            heatRankThreadObj = null;// new HeatRankingThread(_rgatstate);           
+            heatRankThreadObj = new HeatRankingThread();
+            heatRankThreadObj.Begin();
 
             //todo - conditional thread here instead of new trace
             rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
