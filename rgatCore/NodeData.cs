@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using static rgat.RGAT_CONSTANTS;
+using static rgat.CONSTANTS;
 
 namespace rgat
 {

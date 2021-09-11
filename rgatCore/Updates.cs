@@ -19,7 +19,7 @@ namespace rgat
         public static void CheckForUpdates()
         {
             //already checked recently
-            DateTime nextCheckMinimum = GlobalConfig.Settings.Updates.UpdateLastCheckTime.AddMinutes(RGAT_CONSTANTS.NETWORK.UpdateCheckMinimumDelayMinutes);
+            DateTime nextCheckMinimum = GlobalConfig.Settings.Updates.UpdateLastCheckTime.AddMinutes(CONSTANTS.NETWORK.UpdateCheckMinimumDelayMinutes);
             if (nextCheckMinimum > DateTime.Now)
             {
                 Logging.RecordLogEvent($"Not checking for updates, next check will be next time rgat is launched after {nextCheckMinimum.Humanize()}", Logging.LogFilterType.TextDebug);
@@ -34,7 +34,7 @@ namespace rgat
 
             //https://docs.github.com/en/rest/reference/repos#list-releases
             System.Net.Http.HttpClient client = new System.Net.Http.HttpClient();
-            System.Net.Http.Headers.ProductInfoHeaderValue versionHeader = new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC.ToString());
+            System.Net.Http.Headers.ProductInfoHeaderValue versionHeader = new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", CONSTANTS.RGAT_VERSION_SEMANTIC.ToString());
             client.DefaultRequestHeaders.UserAgent.Add(versionHeader);
             client.DefaultRequestHeaders.Add("accept", "application/vnd.github.v3+json");
             client.DefaultRequestHeaders.Add("per_page", "1");
@@ -52,7 +52,7 @@ namespace rgat
                     Task<string> content = response.Result.Content.ReadAsStringAsync();
                     content.Wait(exitToken);
                     JArray responseArr = JArray.Parse(content.Result);
-                    Version latestVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
+                    Version latestVersion = CONSTANTS.RGAT_VERSION_SEMANTIC;
                     string latestZip = "";
                     bool newVersion = false;
                     foreach (JToken releaseTok in responseArr)
@@ -128,7 +128,7 @@ namespace rgat
         /// <returns>plaintext formatted list of change types and changes</returns>
         static string ParseChangelogChanges(string b64ChangelogMDContent)
         {
-            Version currentVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
+            Version currentVersion = CONSTANTS.RGAT_VERSION_SEMANTIC;
             string raw = ASCIIEncoding.ASCII.GetString(Convert.FromBase64String(b64ChangelogMDContent));
             string[] versionSections = raw.Split("\n## ");
             int totalChangeCount = 0;
@@ -220,7 +220,7 @@ namespace rgat
         {
             ImGui.PushStyleColor(ImGuiCol.Text, 0xffffffff);
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xff000000);
-            Version currentVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
+            Version currentVersion = CONSTANTS.RGAT_VERSION_SEMANTIC;
             Version newVersion = GlobalConfig.Settings.Updates.UpdateLastCheckVersion;
             ImGui.Text($"Current Version: {currentVersion}. New Version: {newVersion}");
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
@@ -387,7 +387,7 @@ namespace rgat
             try
             {
                 WebClient client = new WebClient();
-                client.Headers.Add(HttpRequestHeader.UserAgent, $"rgat {RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC}");
+                client.Headers.Add(HttpRequestHeader.UserAgent, $"rgat {CONSTANTS.RGAT_VERSION_SEMANTIC}");
                 client.Headers.Add(HttpRequestHeader.Accept, "application/vnd.github.v3+json");
 
                 Logging.RecordLogEvent($"Starting download: {GlobalConfig.Settings.Updates.UpdateDownloadLink}", filter: Logging.LogFilterType.TextDebug);

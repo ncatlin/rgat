@@ -381,7 +381,7 @@ namespace rgat
             {
                 try
                 {
-                    _logFile = System.IO.File.CreateText(System.IO.Path.Join(GlobalConfig.GetSettingPath("TraceSaveDirectory"), "DebugLog.txt"));
+                    _logFile = System.IO.File.CreateText(System.IO.Path.Join(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory), "DebugLog.txt"));
                     _logFile.WriteLine($"Opened new rgat debug logfile at {DateTime.Now.ToLocalTime().ToLongDateString()}");
                     _logFile.WriteLine($"Uncheck bulk logging in settings->misc to disable this");
                 }

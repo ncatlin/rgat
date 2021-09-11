@@ -315,16 +315,16 @@ namespace rgat
 
 
         private readonly Object signaturesLock = new Object();
-        public void ClearSignatureHits(RGAT_CONSTANTS.eSignatureType sigType)
+        public void ClearSignatureHits(CONSTANTS.eSignatureType sigType)
         {
             lock (signaturesLock)
             {
                 switch (sigType)
                 {
-                    case RGAT_CONSTANTS.eSignatureType.DIE:
+                    case CONSTANTS.eSignatureType.DIE:
                         signatureHitsDIE?.Clear();
                         break;
-                    case RGAT_CONSTANTS.eSignatureType.YARA:
+                    case CONSTANTS.eSignatureType.YARA:
                         signatureHitsYARA?.Clear();
                         break;
                     default:

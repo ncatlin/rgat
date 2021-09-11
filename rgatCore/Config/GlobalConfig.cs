@@ -7,7 +7,7 @@ using System.IO;
 using System.Text.Json;
 using System.Linq;
 using Veldrid;
-using static rgat.RGAT_CONSTANTS;
+using static rgat.CONSTANTS;
 using rgat.Config;
 using System.Security.Cryptography.X509Certificates;
 using Humanizer;
@@ -240,7 +240,7 @@ namespace rgat
                 Settings.Updates.UpdateLastCheckVersion = releaseVersion;
                 Settings.Updates.UpdateLastChanges = releaseCumulativeChanges;
                 Settings.Updates.UpdateDownloadLink = downloadLink;
-                NewVersionAvailable = Settings.Updates.UpdateLastCheckVersion > RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
+                NewVersionAvailable = Settings.Updates.UpdateLastCheckVersion > CONSTANTS.RGAT_VERSION_SEMANTIC;
             }
             catch (Exception e)
             {
@@ -328,43 +328,43 @@ namespace rgat
 
 
 
-        static void InitPaths(string baseDir)
+        static void InitPaths()
         {
 
             //directories
-            if (!Directory.Exists(Settings.ToolPaths.Get("TraceSaveDirectory")))
+            if (!Directory.Exists(Settings.ToolPaths.Get(CONSTANTS.PathKey.TraceSaveDirectory)))
             {
-                string TraceSaveDirectory = GetStorageDirectoryPath(baseDir, "traces");
+                string TraceSaveDirectory = GetStorageDirectoryPath(BaseDirectory, "traces");
                 if (!Directory.Exists(TraceSaveDirectory))
                 {
                     Logging.RecordError("Warning: Failed to load an existing trace storage path");
                 }
                 else
                 {
-                    Settings.ToolPaths.SetDirectoryPath("TraceSaveDirectory", TraceSaveDirectory);
+                    Settings.ToolPaths.SetDirectoryPath(CONSTANTS.PathKey.TraceSaveDirectory, TraceSaveDirectory);
                 }
             }
 
 
-            if (!Directory.Exists(Settings.ToolPaths.Get("TestsDirectory")))
+            if (!Directory.Exists(Settings.ToolPaths.Get(CONSTANTS.PathKey.TestsDirectory)))
             {
-                string TestsDirectory = GetStorageDirectoryPath(baseDir, "tests");
+                string TestsDirectory = GetStorageDirectoryPath(BaseDirectory, "tests");
                 if (!Directory.Exists(TestsDirectory))
                 {
                     Logging.RecordLogEvent("No tests directory configured, can't enable tests");
                 }
                 else
                 {
-                    Settings.ToolPaths.SetDirectoryPath("TestsDirectory", TestsDirectory);
+                    Settings.ToolPaths.SetDirectoryPath(CONSTANTS.PathKey.TestsDirectory, TestsDirectory);
                 }
             }
 
-            if (!Directory.Exists(Settings.ToolPaths.Get("DiESigsDirectory")))
+            if (!Directory.Exists(Settings.ToolPaths.Get(CONSTANTS.PathKey.DiESigsDirectory)))
             {
-                string DiESigsDirectory = GetStorageDirectoryPath(baseDir, "signatures\\detectiteasy");
+                string DiESigsDirectory = GetStorageDirectoryPath(BaseDirectory, "signatures\\detectiteasy");
                 if (Directory.Exists(DiESigsDirectory))
                 {
-                    Settings.ToolPaths.SetDirectoryPath("DiESigsDirectory", DiESigsDirectory);
+                    Settings.ToolPaths.SetDirectoryPath(CONSTANTS.PathKey.DiESigsDirectory, DiESigsDirectory);
                 }
                 else
                 {
@@ -373,12 +373,12 @@ namespace rgat
 
             }
 
-            if (!Directory.Exists(Settings.ToolPaths.Get("YaraRulesDirectory")))
+            if (!Directory.Exists(Settings.ToolPaths.Get(CONSTANTS.PathKey.YaraRulesDirectory)))
             {
-                string YaraRulesDirectory = GetStorageDirectoryPath(baseDir, "signatures\\yara");
+                string YaraRulesDirectory = GetStorageDirectoryPath(BaseDirectory, "signatures\\yara");
                 if (Directory.Exists(YaraRulesDirectory))
                 {
-                    Settings.ToolPaths.SetDirectoryPath("YaraRulesDirectory", YaraRulesDirectory);
+                    Settings.ToolPaths.SetDirectoryPath(CONSTANTS.PathKey.YaraRulesDirectory, YaraRulesDirectory);
                 }
                 else
                 {
@@ -387,9 +387,9 @@ namespace rgat
             }
 
             //binaries
-            if (!File.Exists(Settings.ToolPaths.Get("PinPath")))
+            if (!File.Exists(Settings.ToolPaths.Get(CONSTANTS.PathKey.PinPath)))
             {
-                List<string> pindirs = Directory.GetDirectories(AppContext.BaseDirectory)
+                List<string> pindirs = Directory.GetDirectories(BaseDirectory)
                     .Where(dir => Path.GetFileName(dir).StartsWith("pin"))
                     .ToList();
                 foreach (string dir in pindirs)
@@ -397,29 +397,41 @@ namespace rgat
                     string candidate = Path.Combine(dir, "pin.exe");
                     if (File.Exists(candidate))
                     {
-                        if (Settings.ToolPaths.SetBinaryPath("PinPath", candidate))
+                        if (Settings.ToolPaths.SetBinaryPath(CONSTANTS.PathKey.PinPath, candidate))
                             break;
                     }
                 }
             }
-
-
-            if (!File.Exists(Settings.ToolPaths.Get("PinToolPath32")))
+            else
             {
-                string candidate = Path.Combine(AppContext.BaseDirectory, "pingat32.dll");
-                if (File.Exists(candidate)) //todo sigcheck. also maybe load from resource first
-                {
-                    SetBinaryPath("PinToolPath32", candidate);
-                }
+                SetBinaryPath(CONSTANTS.PathKey.PinPath, Settings.ToolPaths.Get(CONSTANTS.PathKey.PinPath)); //force signature check
             }
 
-            if (!File.Exists(Settings.ToolPaths.Get("PinToolPath64")))
+
+            if (!File.Exists(Settings.ToolPaths.Get(CONSTANTS.PathKey.PinToolPath32)))
             {
-                string candidate = Path.Combine(AppContext.BaseDirectory, "pingat64.dll");
+                string candidate = Path.Combine(BaseDirectory, "tools", "pintool32.dll");
+                if (File.Exists(candidate)) //todo sigcheck
+                {
+                    SetBinaryPath(CONSTANTS.PathKey.PinToolPath32, candidate);
+                }
+            }
+            else
+            {
+                SetBinaryPath(CONSTANTS.PathKey.PinToolPath32, Settings.ToolPaths.Get(CONSTANTS.PathKey.PinToolPath32)); //force signature check
+            }
+
+            if (!File.Exists(Settings.ToolPaths.Get(CONSTANTS.PathKey.PinToolPath64)))
+            {
+                string candidate = Path.Combine(BaseDirectory, "tools", "pintool64.dll");
                 if (File.Exists(candidate)) //todo sigcheck. also maybe load from resource first
                 {
-                    SetBinaryPath("PinToolPath64", candidate);
+                    SetBinaryPath(CONSTANTS.PathKey.PinToolPath64, candidate);
                 }
+            }
+            else
+            {
+                SetBinaryPath(CONSTANTS.PathKey.PinToolPath64, Settings.ToolPaths.Get(CONSTANTS.PathKey.PinToolPath64)); //force signature check
             }
         }
 
@@ -567,9 +579,9 @@ namespace rgat
 
 
 
-        public static string GetSettingPath(string setting) => Settings.ToolPaths.Get(setting);
-        public static void SetBinaryPath(string setting, string value) => Settings.ToolPaths.SetBinaryPath(setting, value);
-        public static void SetDirectoryPath(string setting, string value) => Settings.ToolPaths.SetDirectoryPath(setting, value);
+        public static string GetSettingPath(CONSTANTS.PathKey setting) => Settings.ToolPaths.Get(setting);
+        public static void SetBinaryPath(CONSTANTS.PathKey setting, string value) => Settings.ToolPaths.SetBinaryPath(setting, value);
+        public static void SetDirectoryPath(PathKey setting, string value) => Settings.ToolPaths.SetDirectoryPath(setting, value);
 
         /// <summary>
         /// The main user-settings storage object which is serialised to settings.json
@@ -654,13 +666,13 @@ namespace rgat
             Settings.EnsureValidity();
 
             Console.WriteLine("initial config load done after" + timer.ElapsedMilliseconds);
-            if (Settings.UI.InstalledVersion != RGAT_CONSTANTS.RGAT_VERSION)
+            if (Settings.UI.InstalledVersion != CONSTANTS.RGAT_VERSION)
             {
                 InstallNewTools();
-                Settings.UI.InstalledVersion = RGAT_CONSTANTS.RGAT_VERSION;
+                Settings.UI.InstalledVersion = CONSTANTS.RGAT_VERSION;
             }
 
-            InitPaths(BaseDirectory);
+            InitPaths();
 
 
             if (GUI)
@@ -710,11 +722,11 @@ namespace rgat
             {
                 string tool32Path = Path.Combine(BaseDirectory, "tools", "pintool32.dll");
                 File.WriteAllBytes(tool32Path, ImGuiController.ReadBinaryResource("PinTool32"));
-                SetBinaryPath("PinToolPath32", tool32Path);
+                SetBinaryPath(CONSTANTS.PathKey.PinToolPath32, tool32Path);
 
                 string tool64Path = Path.Combine(BaseDirectory, "tools", "pintool64.dll");
                 File.WriteAllBytes(tool64Path, ImGuiController.ReadBinaryResource("PinTool64"));
-                SetBinaryPath("PinToolPath64", tool64Path);
+                SetBinaryPath(CONSTANTS.PathKey.PinToolPath64, tool64Path);
             }
             catch (Exception e)
             {

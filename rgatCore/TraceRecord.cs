@@ -29,7 +29,7 @@ namespace rgat
         public List<uint> ContainingBlockIDs;
 
         public string ins_text;
-        public RGAT_CONSTANTS.eNodeType itype;
+        public CONSTANTS.eNodeType itype;
         public bool conditional;
         public bool dataEx;
         public bool hasSymbol;
@@ -752,7 +752,7 @@ namespace rgat
         JsonTextWriter CreateSaveFile(DateTime startedTime, out string path)
         {
             string saveFilename = $"{binaryTarg.FileName}-{PID}-{startedTime.ToString("MMM-dd__HH-mm-ss")}.rgat";
-            string saveDir = GlobalConfig.GetSettingPath("TraceSaveDirectory");
+            string saveDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);
             if (!Directory.Exists(saveDir))
             {
                 Logging.RecordLogEvent($"\tWarning: Failed to save - directory {saveDir} does not exist", Logging.LogFilterType.TextInfo);
@@ -862,10 +862,15 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Export the current trace in the pajek format, a simple graph 
+        /// serialisation format that other graph layout programs accept
+        /// </summary>
+        /// <param name="TID">Thread ID of the graph to serialise</param>
         public void ExportPajek(uint TID)
         {
             ProtoGraph pgraph = this.ProtoGraphs[TID];
-            string saveDir = GlobalConfig.GetSettingPath("TraceSaveDirectory");
+            string saveDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);
             if (!Directory.Exists(saveDir)) return;
             FileStream outfile = File.OpenWrite(Path.Combine(saveDir, "pajeksave" + TID.ToString() + ".net"));
             outfile.Write(Encoding.ASCII.GetBytes("%*Colnames \"Disassembly\"\n"));
@@ -899,7 +904,7 @@ namespace rgat
             if (nodes.Count == 0) return;
 
             NodeData n = graph.safe_get_node(nodes[^1]);
-            if (n.ins.itype != RGAT_CONSTANTS.eNodeType.eInsCall)
+            if (n.ins.itype != CONSTANTS.eNodeType.eInsCall)
             {
                 SendDebugStep(graph.ThreadID);
                 return;

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using static rgat.Logging;
-using static rgat.RGAT_CONSTANTS;
+using static rgat.CONSTANTS;
 
 namespace rgat
 {

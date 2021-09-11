@@ -248,10 +248,10 @@ namespace rgat
 
             while (!StopFlag && !PipeBroke)
             {
-                byte[] TagReadBuffer = new byte[RGAT_CONSTANTS.TRACING.TagCacheSize];
-                int bytesRead = await threadpipe.ReadAsync(TagReadBuffer, 0, RGAT_CONSTANTS.TRACING.TagCacheSize, CancelToken);
+                byte[] TagReadBuffer = new byte[CONSTANTS.TRACING.TagCacheSize];
+                int bytesRead = await threadpipe.ReadAsync(TagReadBuffer, 0, CONSTANTS.TRACING.TagCacheSize, CancelToken);
 
-                if (bytesRead < RGAT_CONSTANTS.TRACING.TagCacheSize)
+                if (bytesRead < CONSTANTS.TRACING.TagCacheSize)
                 {
                     if (pendingBuf != null)
                     {

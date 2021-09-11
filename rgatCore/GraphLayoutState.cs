@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Veldrid;
-using static rgat.RGAT_CONSTANTS;
+using static rgat.CONSTANTS;
 
 namespace rgat
 {

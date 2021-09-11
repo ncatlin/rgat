@@ -85,7 +85,7 @@ namespace rgat.OperationModes
             if (GlobalConfig.NewVersionAvailable)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"A new version of rgat is available! ({RGAT_CONSTANTS.RGAT_VERSION} -> {GlobalConfig.Settings.Updates.UpdateLastCheckVersion})");
+                Console.WriteLine($"A new version of rgat is available! ({CONSTANTS.RGAT_VERSION} -> {GlobalConfig.Settings.Updates.UpdateLastCheckVersion})");
                 Console.ForegroundColor = ConsoleColor.White;
             }
 
@@ -509,7 +509,9 @@ namespace rgat.OperationModes
                 rgatState.NetworkBridge.Teardown("Bad Target");
                 return;
             }
-            string pintool = target.BitWidth == 32 ? GlobalConfig.GetSettingPath("PinToolPath32") : GlobalConfig.GetSettingPath("PinToolPath64");
+            string pintool = target.BitWidth == 32 ? 
+                GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) : 
+                GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
 
             bool isDLL = target.PEFileObj.IsDll;
             int ordinal = 0;

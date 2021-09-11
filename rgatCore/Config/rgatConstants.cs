@@ -2,7 +2,7 @@
 
 namespace rgat
 {
-    public class RGAT_CONSTANTS
+    public class CONSTANTS
     {
         public static class PROGRAMVERSION
         {
@@ -122,6 +122,9 @@ namespace rgat
 
         public enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals, eDegree }
         public enum eHighlightType { eExternals, eAddresses, eExceptions };
+
+        public enum PathKey { PinPath, PinToolPath32, PinToolPath64, FFmpegPath,
+                            TraceSaveDirectory, TestsDirectory, DiESigsDirectory, YaraRulesDirectory, MediaCapturePath}
 
         public enum eConditionalType
         {

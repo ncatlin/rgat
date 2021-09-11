@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Veldrid;
-using static rgat.RGAT_CONSTANTS;
+using static rgat.CONSTANTS;
 using static rgat.Logging;
 using System.Text.Json;
 using System.IO;
@@ -322,7 +322,7 @@ namespace rgat.Config
 
         public class PathSettings
         {
-            public string Get(string setting)
+            public string Get(CONSTANTS.PathKey setting)
             {
                 lock (_lock)
                 {
@@ -331,12 +331,17 @@ namespace rgat.Config
                 return "";
             }
 
-            void SetPath(string setting, string value)
+
+            void SetPath(CONSTANTS.PathKey setting, string value)
             {
                 lock (_lock)
                 {
-                    Paths[setting] = value;
-                    MarkDirty();
+                    //we call this when the values are the same to cause a signature check
+                    if (Paths[setting] != value)
+                    {
+                        Paths[setting] = value;
+                        MarkDirty();
+                    }
                 }
             }
 
@@ -344,7 +349,7 @@ namespace rgat.Config
             {
                 if (Paths == null)
                 {
-                    Paths = new Dictionary<string, string>();
+                    Paths = new Dictionary<CONSTANTS.PathKey, string>();
                     MarkDirty();
                 }
             }
@@ -352,7 +357,7 @@ namespace rgat.Config
             /// <summary>
             /// Filesystem locations containing things rgat needs (instrumentation tools, signatures, etc)
             /// </summary>
-            public Dictionary<string, string> Paths { get; set; }
+            public Dictionary<CONSTANTS.PathKey, string> Paths { get; set; }
 
             /// <summary>
             /// Errors such as bad signatures encountered while validating binaries used by rgat (pintools, etc).
@@ -364,13 +369,20 @@ namespace rgat.Config
             /// </summary>
             public static List<Tuple<string, string>> _BinaryValidationErrorCache = new List<Tuple<string, string>>();
 
-            public bool SetBinaryPath(string setting, string path)
+
+            /// <summary>
+            /// Set the value of a binary path setting (a tool like pin/ffmpeg or a library such as a pintool)
+            /// </summary>
+            /// <param name="setting">A BinaryPathKey value</param>
+            /// <param name="path">A filesystem path for the setting</param>
+            /// <returns></returns>
+            public bool SetBinaryPath(PathKey setting, string path)
             {
 
                 bool validSignature = false;
                 switch (setting)
                 {
-                    case "PinPath":
+                    case PathKey.PinPath:
                         {
                             if (VerifyCertificate(path, SIGNERS.PIN_SIGNERS, out string error, out string warning))
                             {
@@ -387,7 +399,7 @@ namespace rgat.Config
                             break;
                         }
 
-                    case "PinToolPath32":
+                    case PathKey.PinToolPath32:
                         {
                             if (VerifyCertificate(path, SIGNERS.RGAT_SIGNERS, out string error, out string warning))
                             {
@@ -404,7 +416,7 @@ namespace rgat.Config
                             break;
                         }
 
-                    case "PinToolPath64":
+                    case PathKey.PinToolPath64:
                         {
                             if (VerifyCertificate(path, SIGNERS.RGAT_SIGNERS, out string error, out string warning))
                             {
@@ -421,7 +433,7 @@ namespace rgat.Config
                             break;
                         }
 
-                    case "FFmpegPath":
+                    case PathKey.FFmpegPath:
                         {
                             SetPath(setting, path);
                             break;
@@ -447,15 +459,15 @@ namespace rgat.Config
                 return true;
             }
 
-            public void SetDirectoryPath(string setting, string path, bool save = true)
+            public void SetDirectoryPath(CONSTANTS.PathKey setting, string path, bool save = true)
             {
                 switch (setting)
                 {
-                    case "TraceSaveDirectory":
-                    case "TestsDirectory":
-                    case "DiESigsDirectory":
-                    case "YaraRulesDirectory":
-                    case "MediaCapturePath":
+                    case CONSTANTS.PathKey.TraceSaveDirectory:
+                    case CONSTANTS.PathKey.TestsDirectory:
+                    case CONSTANTS.PathKey.DiESigsDirectory:
+                    case CONSTANTS.PathKey.YaraRulesDirectory:
+                    case CONSTANTS.PathKey.MediaCapturePath:
                         SetPath(setting, path);
                         break;
                     default:
@@ -514,7 +526,7 @@ namespace rgat.Config
                     {
                         _UpdateLastCheckVersion = value;
                         _UpdateLastCheckVersionString = value.ToString();
-                        GlobalConfig.NewVersionAvailable = _UpdateLastCheckVersion > RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
+                        GlobalConfig.NewVersionAvailable = _UpdateLastCheckVersion > CONSTANTS.RGAT_VERSION_SEMANTIC;
                     }
                     catch(Exception e)
                     {

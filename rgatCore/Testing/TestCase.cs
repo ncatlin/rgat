@@ -327,7 +327,7 @@ namespace rgat.Testing
     {
         public TestCase(string jsonpath, string category)
         {
-            TestName = Path.GetFileName(jsonpath).Split(RGAT_CONSTANTS.TESTS.testextension)[0];
+            TestName = Path.GetFileName(jsonpath).Split(CONSTANTS.TESTS.testextension)[0];
             try
             {
                 BinaryDirectory = Directory.GetParent(jsonpath).FullName;

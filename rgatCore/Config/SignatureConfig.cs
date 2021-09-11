@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
-using static rgat.RGAT_CONSTANTS;
+using static rgat.CONSTANTS;
 using System.Text.Json.Serialization;
 using System.Diagnostics;
 
@@ -27,7 +27,7 @@ namespace rgat
             public DateTime LastFetch { get; set; }
             public int RuleCount { get; set; }
 
-            public RGAT_CONSTANTS.eSignatureType SignatureType { get; set; }// probably no point, done by extension?
+            public CONSTANTS.eSignatureType SignatureType { get; set; }// probably no point, done by extension?
 
             //ephemeral data
 

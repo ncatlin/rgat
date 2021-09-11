@@ -496,7 +496,8 @@ namespace rgat
                 ImGui.InputText("##cmdline", _dataInput, 1024);
                 ImGui.PopStyleColor();
 
-                string pintoolpath = activeTarget.BitWidth == 32 ? GlobalConfig.GetSettingPath("PinToolPath32") : GlobalConfig.GetSettingPath("PinToolPath64");
+                string pintoolpath = activeTarget.BitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
+                    GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
 
 
                 bool runnable = _activeTargetRunnable;
@@ -566,7 +567,7 @@ namespace rgat
 
                 if (GlobalConfig.Settings.ToolPaths.BadSigners(out List<Tuple<string, string>> issues))
                 {
-                    string pinpath = GlobalConfig.GetSettingPath("PinPath");
+                    string pinpath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath);
                     issues = issues.Where(i => (i.Item1 == pintoolpath || i.Item1 == pinpath)).ToList();
                     if (issues.Any())
                     {
@@ -671,7 +672,7 @@ namespace rgat
                     }
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
-                        rgatState.DIELib.ReloadDIEScripts(GlobalConfig.GetSettingPath("DiESigsDirectory"));
+                        rgatState.DIELib.ReloadDIEScripts(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory));
                         if (rgatState.DIELib.ScriptsLoaded)
                             rgatState.DIELib.StartDetectItEasyScan(activeTarget);
                     }
@@ -752,7 +753,7 @@ namespace rgat
             }
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
-                rgatState.YARALib.RefreshRules(GlobalConfig.GetSettingPath("YaraRulesDirectory"), forceRecompile: true);
+                rgatState.YARALib.RefreshRules(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory), forceRecompile: true);
                 if (rgatState.YARALib.LoadedRuleCount() > 0)
                     rgatState.YARALib.StartYARATargetScan(activeTarget);
             }

@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 using Veldrid;
 using Veldrid.Sdl2;
 using static rgat.Logging;
-using static rgat.RGAT_CONSTANTS;
+using static rgat.CONSTANTS;
 
 namespace rgat
 {
@@ -806,7 +806,7 @@ namespace rgat
                         break;
                     case VideoEncoder.CaptureContent.GraphAndPreviews:
                         Vector2 graphpos2 = visualiserTab.GraphPosition;
-                        rectSize = visualiserTab.GraphSize + new Vector2(RGAT_CONSTANTS.UI.PREVIEW_PANE_WIDTH, 0);
+                        rectSize = visualiserTab.GraphSize + new Vector2(CONSTANTS.UI.PREVIEW_PANE_WIDTH, 0);
                         startCenter = new Vector2(graphpos2.X + rectSize.Value.X / 2, ImGui.GetWindowSize().Y - (graphpos2.Y + rectSize.Value.Y / 2));
                         break;
                     case VideoEncoder.CaptureContent.Window:
@@ -1365,7 +1365,7 @@ namespace rgat
 
             if (ImGui.BeginPopupModal("Select Trace File", ref shown, ImGuiWindowFlags.NoScrollbar))
             {
-                string savedir = GlobalConfig.GetSettingPath("TraceSaveDirectory");
+                string savedir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);
                 if (!Directory.Exists(savedir)) savedir = Environment.CurrentDirectory;
                 var picker = rgatFilePicker.FilePicker.GetFilePicker(this, savedir);
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);

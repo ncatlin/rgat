@@ -8,7 +8,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using Veldrid;
-using static rgat.RGAT_CONSTANTS;
+using static rgat.CONSTANTS;
 
 namespace rgat
 {

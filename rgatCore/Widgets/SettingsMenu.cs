@@ -8,7 +8,7 @@ using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using Veldrid;
-using static rgat.RGAT_CONSTANTS;
+using static rgat.CONSTANTS;
 
 namespace rgat.Widgets
 {
@@ -27,16 +27,16 @@ namespace rgat.Widgets
             _rgatState = rgatstate;
             InitSettings();
 
-            settingTips["PinPath"] = "The path to pin.exe - the Intel Pin Dynamic Instrumentation program.";
-            settingTips["PinToolPath32"] = "The path to the 32-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
-            settingTips["PinToolPath64"] = "The path to the 64-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
-            settingTips["FFmpegPath"] = "The path to the FFmpeg executable for recording video captures";
+            settingTips[CONSTANTS.PathKey.PinPath] = "The path to pin.exe - the Intel Pin Dynamic Instrumentation program.";
+            settingTips[CONSTANTS.PathKey.PinToolPath32] = "The path to the 32-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
+            settingTips[CONSTANTS.PathKey.PinToolPath64] = "The path to the 64-bit pingat.dll rgat pin tool which is used by pin to instrument target programs";
+            settingTips[CONSTANTS.PathKey.FFmpegPath] = "The path to the FFmpeg executable for recording video captures";
 
-            settingTips["TraceSaveDirectory"] = "The directory where trace save files (.rgat) are stored";
-            settingTips["TestsDirectory"] = "The directory where rgat development tests are stored. These can be downloaded from [todo]";
-            settingTips["DiESigsDirectory"] = "The directory containing Detect It Easy signature scripts for file and memory scanning";
-            settingTips["YaraRulesDirectory"] = "The directory containing YARA rules for file and memory scanning";
-            settingTips["MediaCapturePath"] = "The directory where videos recordings and images are saved";
+            settingTips[CONSTANTS.PathKey.TraceSaveDirectory] = "The directory where trace save files (.rgat) are stored";
+            settingTips[CONSTANTS.PathKey.TestsDirectory] = "The directory where rgat development tests are stored. These can be downloaded from [todo]";
+            settingTips[CONSTANTS.PathKey.DiESigsDirectory] = "The directory containing Detect It Easy signature scripts for file and memory scanning";
+            settingTips[CONSTANTS.PathKey.YaraRulesDirectory] = "The directory containing YARA rules for file and memory scanning";
+            settingTips[CONSTANTS.PathKey.MediaCapturePath] = "The directory where videos recordings and images are saved";
         }
 
         ~SettingsMenu()
@@ -811,7 +811,7 @@ namespace rgat.Widgets
 
         string _errorBanner = "";
         DateTime _errorExpiryTime = DateTime.MinValue;
-        string _pendingPathSetting;
+        CONSTANTS.PathKey _pendingPathSetting;
 
         bool DrawPathMenuOption(string caption, string path, string tooltip, out bool clearFlag)
         {
@@ -895,11 +895,11 @@ namespace rgat.Widgets
             return clearFlag || selected;
         }
 
-        Dictionary<string, string> settingTips = new Dictionary<string, string>();
+        Dictionary<CONSTANTS.PathKey, string> settingTips = new Dictionary<CONSTANTS.PathKey, string>();
 
         void CreateOptionsPane_Files()
         {
-            string choosePath = "";
+            CONSTANTS.PathKey? choosePath = null;
             bool isFolder = false;
             bool doClear = false;
 
@@ -912,34 +912,34 @@ namespace rgat.Widgets
                 ImGui.TableHeadersRow();
 
 
-                if (DrawPathMenuOption("Pin Executable", GlobalConfig.GetSettingPath("PinPath"), settingTips["PinPath"], out bool clearFlag))
-                { choosePath = "PinPath"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("Pin Executable", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath), settingTips[CONSTANTS.PathKey.PinPath], out bool clearFlag))
+                { choosePath = CONSTANTS.PathKey.PinPath; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Pintool32 Library", GlobalConfig.GetSettingPath("PinToolPath32"), settingTips["PinToolPath32"], out clearFlag))
-                { choosePath = "PinToolPath32"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("Pintool32 Library", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32), settingTips[CONSTANTS.PathKey.PinToolPath32], out clearFlag))
+                { choosePath = CONSTANTS.PathKey.PinToolPath32; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Pintool64 Library", GlobalConfig.GetSettingPath("PinToolPath64"), settingTips["PinToolPath64"], out clearFlag))
-                { choosePath = "PinToolPath64"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("Pintool64 Library", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64), settingTips[CONSTANTS.PathKey.PinToolPath64], out clearFlag))
+                { choosePath = CONSTANTS.PathKey.PinToolPath64; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("FFmpeg Executable", GlobalConfig.GetSettingPath("FFmpegPath"), settingTips["FFmpegPath"], out clearFlag))
-                { choosePath = "FFmpegPath"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("FFmpeg Executable", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath), settingTips[CONSTANTS.PathKey.FFmpegPath], out clearFlag))
+                { choosePath = CONSTANTS.PathKey.FFmpegPath; doClear |= clearFlag; }
 
-                if (choosePath.Length == 0) isFolder = true;
+                if (choosePath == null) isFolder = true;
 
-                if (DrawPathMenuOption("Saved Traces", GlobalConfig.GetSettingPath("TraceSaveDirectory"), settingTips["TraceSaveDirectory"], out clearFlag))
-                { choosePath = "TraceSaveDirectory"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("Saved Traces", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory), settingTips[CONSTANTS.PathKey.TraceSaveDirectory], out clearFlag))
+                { choosePath = CONSTANTS.PathKey.TraceSaveDirectory; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Tests", GlobalConfig.GetSettingPath("TestsDirectory"), settingTips["TestsDirectory"], out clearFlag))
-                { choosePath = "TestsDirectory"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("Tests", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TestsDirectory), settingTips[CONSTANTS.PathKey.TestsDirectory], out clearFlag))
+                { choosePath = CONSTANTS.PathKey.TestsDirectory; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("DiE Signatures", GlobalConfig.GetSettingPath("DiESigsDirectory"), settingTips["DiESigsDirectory"], out clearFlag))
-                { choosePath = "DiESigsDirectory"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("DiE Signatures", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory), settingTips[CONSTANTS.PathKey.DiESigsDirectory], out clearFlag))
+                { choosePath = CONSTANTS.PathKey.DiESigsDirectory; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Yara Rules", GlobalConfig.GetSettingPath("YaraRulesDirectory"), settingTips["YaraRulesDirectory"], out clearFlag))
-                { choosePath = "YaraRulesDirectory"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("Yara Rules", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory), settingTips[CONSTANTS.PathKey.YaraRulesDirectory], out clearFlag))
+                { choosePath = CONSTANTS.PathKey.YaraRulesDirectory; doClear |= clearFlag; }
 
-                if (DrawPathMenuOption("Images/Videos", GlobalConfig.GetSettingPath("MediaCapturePath"), settingTips["MediaCapturePath"], out clearFlag))
-                { choosePath = "MediaCapturePath"; doClear |= clearFlag; }
+                if (DrawPathMenuOption("Images/Videos", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.MediaCapturePath), settingTips[CONSTANTS.PathKey.MediaCapturePath], out clearFlag))
+                { choosePath = CONSTANTS.PathKey.MediaCapturePath; doClear |= clearFlag; }
 
 
                 ImGui.EndTable();
@@ -963,21 +963,21 @@ namespace rgat.Widgets
             }
             //ImGui.PopStyleColor();
 
-            if (choosePath.Length > 0)
+            if (choosePath.HasValue)
             {
                 if (doClear)
                 {
                     if (isFolder)
-                        GlobalConfig.SetDirectoryPath(choosePath, "");
+                        GlobalConfig.SetDirectoryPath(choosePath.Value, "");
                     else
-                        GlobalConfig.SetBinaryPath(choosePath, "");
+                        GlobalConfig.SetBinaryPath(choosePath.Value, "");
                 }
                 else
                 {
                     if (isFolder)
-                        LaunchFileSelectBox(choosePath, "##FoldersDLG");
+                        LaunchFileSelectBox(choosePath.Value, "##FoldersDLG");
                     else
-                        LaunchFileSelectBox(choosePath, "##FilesDLG");
+                        LaunchFileSelectBox(choosePath.Value, "##FilesDLG");
                 }
             }
 
@@ -989,36 +989,33 @@ namespace rgat.Widgets
         }
 
 
-        void ChoseSettingPath(string setting, string path)
+        void ChoseSettingPath(CONSTANTS.PathKey setting, string path)
         {
             switch (setting)
             {
-                case "PinPath":
-                    GlobalConfig.SetBinaryPath("PinPath", path);
+                case CONSTANTS.PathKey.PinPath:
+                    GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.PinPath, path);
                     break;
-                case "PinToolPath32":
-                    GlobalConfig.SetBinaryPath("PinToolPath32", path);
+                case CONSTANTS.PathKey.PinToolPath32:
+                    GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.PinToolPath32, path);
                     break;
-                case "PinToolPath64":
-                    GlobalConfig.SetBinaryPath("PinToolPath64", path);
+                case CONSTANTS.PathKey.PinToolPath64:
+                    GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.PinToolPath64, path);
                     break;
-                case "VideoCodec":
-                    GlobalConfig.SetBinaryPath("VideoCodec", path);
+                case CONSTANTS.PathKey.TestsDirectory:
+                    GlobalConfig.SetDirectoryPath(CONSTANTS.PathKey.TestsDirectory, path);
                     break;
-                case "TestsDirectory":
-                    GlobalConfig.SetDirectoryPath("TestsDirectory", path);
+                case CONSTANTS.PathKey.TraceSaveDirectory:
+                    GlobalConfig.SetDirectoryPath(CONSTANTS.PathKey.TraceSaveDirectory, path);
                     break;
-                case "TraceSaveDirectory":
-                    GlobalConfig.SetDirectoryPath("TraceSaveDirectory", path);
+                case CONSTANTS.PathKey.DiESigsDirectory:
+                    GlobalConfig.SetDirectoryPath(CONSTANTS.PathKey.DiESigsDirectory, path);
                     break;
-                case "DiESigsDirectory":
-                    GlobalConfig.SetDirectoryPath("DiESigsDirectory", path);
+                case CONSTANTS.PathKey.YaraRulesDirectory:
+                    GlobalConfig.SetDirectoryPath(CONSTANTS.PathKey.YaraRulesDirectory, path);
                     break;
-                case "YaraRulesDirectory":
-                    GlobalConfig.SetDirectoryPath("YaraRulesDirectory", path);
-                    break;
-                case "MediaCapturePath":
-                    GlobalConfig.SetDirectoryPath("MediaCapturePath", path);
+                case CONSTANTS.PathKey.MediaCapturePath:
+                    GlobalConfig.SetDirectoryPath(CONSTANTS.PathKey.MediaCapturePath, path);
                     break;
                 default:
                     Logging.RecordLogEvent("Bad path setting " + setting, Logging.LogFilterType.TextAlert);
@@ -1027,7 +1024,7 @@ namespace rgat.Widgets
         }
 
 
-        void LaunchFileSelectBox(string setting, string popupID)
+        void LaunchFileSelectBox(CONSTANTS.PathKey setting, string popupID)
         {
             ImGui.SetNextWindowSize(new Vector2(800, 820), ImGuiCond.Appearing);
             ImGui.OpenPopup(popupID);

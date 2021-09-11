@@ -981,9 +981,9 @@ namespace rgatFilePicker
                 if (_directoryHistory.Contains(dir))
                     _directoryHistory.Remove(dir);
                 _directoryHistory.Insert(0, dir);
-                if (_directoryHistory.Count > RGAT_CONSTANTS.UI.FILEPICKER_HISTORY_MAX)
+                if (_directoryHistory.Count > CONSTANTS.UI.FILEPICKER_HISTORY_MAX)
                 {
-                    _directoryHistory.RemoveRange(RGAT_CONSTANTS.UI.FILEPICKER_HISTORY_MAX, _directoryHistory.Count - RGAT_CONSTANTS.UI.FILEPICKER_HISTORY_MAX);
+                    _directoryHistory.RemoveRange(CONSTANTS.UI.FILEPICKER_HISTORY_MAX, _directoryHistory.Count - CONSTANTS.UI.FILEPICKER_HISTORY_MAX);
                 }
             }
 

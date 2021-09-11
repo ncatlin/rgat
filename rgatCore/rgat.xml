@@ -246,6 +246,14 @@
             BinaryValidationErrors stored in a faster data structure for access by the UI each frame
             </summary>
         </member>
+        <member name="M:rgat.Config.rgatSettings.PathSettings.SetBinaryPath(rgat.CONSTANTS.PathKey,System.String)">
+            <summary>
+            Set the value of a binary path setting (a tool like pin/ffmpeg or a library such as a pintool)
+            </summary>
+            <param name="setting">A BinaryPathKey value</param>
+            <param name="path">A filesystem path for the setting</param>
+            <returns></returns>
+        </member>
         <member name="P:rgat.Config.rgatSettings.TracingSettings.ArgStorageMax">
             <summary>
             how many bytes back from an instruction to search for a symbol of the function it belongs to
@@ -261,13 +269,13 @@
             Filesystem locations the user has accessed (opened binaries, opened traces, filepicker directories)
             </summary>
         </member>
-        <member name="F:rgat.RGAT_CONSTANTS.PROGRAMVERSION.PATCHNAME">
+        <member name="F:rgat.CONSTANTS.PROGRAMVERSION.PATCHNAME">
             <summary>
             Optional, non-unique name for the given version (preview, release, bugfix, etc)
             Other values must still be unique (eg: '1.1.1 Preview' and '1.1.1 Release' cannot both exist)
             </summary>
         </member>
-        <member name="F:rgat.RGAT_CONSTANTS.NETWORK.UpdateCheckMinimumDelayMinutes">
+        <member name="F:rgat.CONSTANTS.NETWORK.UpdateCheckMinimumDelayMinutes">
             <summary>
             How long to wait between checks for new versions (check only happens on startup)
             </summary>

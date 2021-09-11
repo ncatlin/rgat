@@ -234,7 +234,7 @@ namespace rgat
             ImGui.PopStyleVar(5);
 
             ImGui.BeginGroup();
-            string versionString = $"rgat {RGAT_CONSTANTS.RGAT_VERSION}";
+            string versionString = $"rgat {CONSTANTS.RGAT_VERSION}";
             float width = ImGui.CalcTextSize(versionString).X;
             ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(width + 25, 40));
             ImGui.Text(versionString);
@@ -242,7 +242,7 @@ namespace rgat
 
             if (GlobalConfig.NewVersionAvailable)
             {
-                Version currentVersion = RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC;
+                Version currentVersion = CONSTANTS.RGAT_VERSION_SEMANTIC;
                 Version newVersion = GlobalConfig.Settings.Updates.UpdateLastCheckVersion;
                 string updateString;
                 if (newVersion.Major > currentVersion.Major ||

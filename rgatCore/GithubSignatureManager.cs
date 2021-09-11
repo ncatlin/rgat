@@ -90,7 +90,7 @@ namespace rgat
         void GetRepoLastUpdated(GlobalConfig.SignatureSource repo)
         {
             System.Net.Http.HttpClient client = new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC.ToString()));
+            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", CONSTANTS.RGAT_VERSION_SEMANTIC.ToString()));
             try
             {
                 string commitsPath = $"https://api.github.com/repos/{repo.OrgName}/{repo.RepoName}/commits/master";
@@ -164,7 +164,7 @@ namespace rgat
                 string repoSpecific = repo.RepoName + repo.SubDir;
                 string repoDirectory = Path.Combine(sigsdir, repo.OrgName + "_" + MurmurHash.MurmurHash2.Hash(repoSpecific));
 
-                if (!new Uri(GlobalConfig.GetSettingPath("YaraRulesDirectory")).IsBaseOf(new Uri(repoDirectory)))
+                if (!new Uri(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory)).IsBaseOf(new Uri(repoDirectory)))
                 {
                     repo.LastDownloadError = "Bad Repo Name";
                     Logging.RecordError($"Repo download directory {repoDirectory} is not in the signatures directory {sigsdir}");
@@ -212,18 +212,18 @@ namespace rgat
         void DownloadRepo(GlobalConfig.SignatureSource repo)
         {
             System.Net.Http.HttpClient client = new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", RGAT_CONSTANTS.RGAT_VERSION_SEMANTIC.ToString()));
+            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", CONSTANTS.RGAT_VERSION_SEMANTIC.ToString()));
             try
             {
                 string repoDirectory = null;
 
-                if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.YARA)
+                if (repo.SignatureType == CONSTANTS.eSignatureType.YARA)
                 {
-                    repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath("YaraRulesDirectory"));
+                    repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory));
                 }
-                else if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.DIE)
+                else if (repo.SignatureType == CONSTANTS.eSignatureType.DIE)
                 {
-                    repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath("DiESigsDirectory"));
+                    repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory));
                 }
                 if (repoDirectory == null)
                 {
@@ -307,13 +307,13 @@ namespace rgat
         public void PurgeRepoFiles(GlobalConfig.SignatureSource repo)
         {
             string repoDirectory = null;
-            if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.YARA)
+            if (repo.SignatureType == CONSTANTS.eSignatureType.YARA)
             {
-                repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath("YaraRulesDirectory"));
+                repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory));
             }
-            else if (repo.SignatureType == RGAT_CONSTANTS.eSignatureType.DIE)
+            else if (repo.SignatureType == CONSTANTS.eSignatureType.DIE)
             {
-                repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath("DiESigsDirectory"));
+                repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory));
             }
             else
             {

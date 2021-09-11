@@ -100,7 +100,7 @@ namespace rgat
             List<object> args = (List<object>)argslist;
             DiELibDotNet.DieLib scanner = (DiELibDotNet.DieLib)args[0];
             BinaryTarget targ = (BinaryTarget)args[1];
-            targ.ClearSignatureHits(RGAT_CONSTANTS.eSignatureType.DIE);
+            targ.ClearSignatureHits(CONSTANTS.eSignatureType.DIE);
 
             if (!scanner.DatabaseLoaded)
             {

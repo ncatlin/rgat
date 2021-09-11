@@ -190,12 +190,12 @@ namespace rgat.OperationModes
 
             _lastMousePos = new Vector2(0, 0);
 
-            _shortTimer = new System.Timers.Timer(RGAT_CONSTANTS.UI.UI_SHORT_TIMER_INTERVAL);
+            _shortTimer = new System.Timers.Timer(CONSTANTS.UI.UI_SHORT_TIMER_INTERVAL);
             _shortTimer.Elapsed += FireShortTimer;
             _shortTimer.AutoReset = true;
             _shortTimer.Start();
 
-            _longTimer = new System.Timers.Timer(RGAT_CONSTANTS.UI.UI_LONG_TIMER_INTERVAL);
+            _longTimer = new System.Timers.Timer(CONSTANTS.UI.UI_LONG_TIMER_INTERVAL);
             _longTimer.Elapsed += FireLongTimer;
             _longTimer.AutoReset = false;
             _longTimer.Start();

@@ -187,7 +187,7 @@ namespace ImGuiNET
         {
             if (ffmpegopt == "")
             {
-                string fpmpath = GlobalConfig.GetSettingPath("FFmpegPath");
+                string fpmpath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath);
 
                 if (System.IO.File.Exists(fpmpath))
                 {
@@ -204,7 +204,7 @@ namespace ImGuiNET
             {
                 if (System.IO.File.Exists(ffmpegopt))
                 {
-                    GlobalConfig.SetBinaryPath("FFmpegPath", ffmpegopt);
+                    GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.FFmpegPath, ffmpegopt);
                     Console.WriteLine($"The FFmpeg encoder is now set to ('{ffmpegopt}')");
                 }
                 else

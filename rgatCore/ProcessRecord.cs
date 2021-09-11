@@ -654,17 +654,17 @@ namespace rgat
                 {
                     insdata.branchAddress = 0;
                 }
-                insdata.itype = RGAT_CONSTANTS.eNodeType.eInsCall;
+                insdata.itype = CONSTANTS.eNodeType.eInsCall;
             }
 
             else if (insdata.mnemonic == "ret") //todo: iret
             {
-                insdata.itype = RGAT_CONSTANTS.eNodeType.eInsReturn;
+                insdata.itype = CONSTANTS.eNodeType.eInsReturn;
             }
             else if (insdata.mnemonic == "jmp")
             {
 
-                insdata.itype = RGAT_CONSTANTS.eNodeType.eInsJump;
+                insdata.itype = CONSTANTS.eNodeType.eInsJump;
 
                 if (insn.Operand.Contains("["))
                 {
@@ -688,12 +688,12 @@ namespace rgat
 
                 if (insdata.branchAddress == (address + (ulong)insdata.numbytes))
                 {
-                    insdata.itype = RGAT_CONSTANTS.eNodeType.eInsUndefined; //junp to next address is nop
+                    insdata.itype = CONSTANTS.eNodeType.eInsUndefined; //junp to next address is nop
                 }
             }
             else
             {
-                insdata.itype = RGAT_CONSTANTS.eNodeType.eInsUndefined;
+                insdata.itype = CONSTANTS.eNodeType.eInsUndefined;
                 //assume all j+ instructions aside from jmp are conditional (todo: bother to check)
                 if (insdata.mnemonic[0] == 'j')
                 {
@@ -982,9 +982,9 @@ namespace rgat
                 return;
             }
 
-            saveObject.Add("RGATVersionMaj", RGAT_CONSTANTS.PROGRAMVERSION.MAJOR);
-            saveObject.Add("RGATVersionMin", RGAT_CONSTANTS.PROGRAMVERSION.MINOR);
-            saveObject.Add("RGATVersionPatch", RGAT_CONSTANTS.PROGRAMVERSION.PATCH);
+            saveObject.Add("RGATVersionMaj", CONSTANTS.PROGRAMVERSION.MAJOR);
+            saveObject.Add("RGATVersionMin", CONSTANTS.PROGRAMVERSION.MINOR);
+            saveObject.Add("RGATVersionPatch", CONSTANTS.PROGRAMVERSION.PATCH);
         }
 
         private void SerialiseDisassembly(ref JObject saveObject)

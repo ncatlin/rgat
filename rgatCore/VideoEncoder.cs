@@ -85,14 +85,14 @@ namespace rgat
 
         public void Load(string dllpath = "")
         {
-            if (File.Exists(GlobalConfig.GetSettingPath("FFmpegPath")))
+            if (File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath)))
             {
                 Loaded = true;
             }
             else if (DetectFFmpeg(out string path))
             {
                 Loaded = true;
-                GlobalConfig.SetBinaryPath("FFmpegPath", path);
+                GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.FFmpegPath, path);
             }
         }
 
@@ -144,7 +144,7 @@ namespace rgat
         public static string GetCaptureDirectory()
         {
             string result;
-            string currentPath = GlobalConfig.GetSettingPath("MediaCapturePath");
+            string currentPath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.MediaCapturePath);
             if (Directory.Exists(currentPath)) return currentPath;
 
 
@@ -164,7 +164,7 @@ namespace rgat
             result = GlobalConfig.GetStorageDirectoryPath(GlobalConfig.BaseDirectory, "media");
             if (result != "" && Directory.Exists(result))
             {
-                GlobalConfig.SetDirectoryPath("MediaCapturePath", result);
+                GlobalConfig.SetDirectoryPath(CONSTANTS.PathKey.MediaCapturePath, result);
                 return result;
             }
 
@@ -299,7 +299,7 @@ namespace rgat
 
         async public void Go(PlottedGraph graph)
         {
-            if (!File.Exists(GlobalConfig.GetSettingPath("FFmpegPath")))
+            if (!File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath)))
             {
                 Logging.RecordLogEvent($"Unable to start recording: Path to ffmpeg.exe not configured");
                 StopRecording();
@@ -309,7 +309,7 @@ namespace rgat
 
             try
             {
-                GlobalFFOptions.Configure(new FFOptions { BinaryFolder = Path.GetDirectoryName(GlobalConfig.GetSettingPath("FFmpegPath")) });
+                GlobalFFOptions.Configure(new FFOptions { BinaryFolder = Path.GetDirectoryName(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath)) });
             }
             catch (Exception e)
             {
@@ -378,7 +378,7 @@ namespace rgat
 
         public void DrawSettingsPane()
         {
-            if (File.Exists(GlobalConfig.GetSettingPath("FFmpegPath")))
+            if (File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath)))
             {
                 DrawHaveLibSettingsPane();
             }
@@ -387,7 +387,7 @@ namespace rgat
                 if (DetectFFmpeg(out string path))
                 {
                     Loaded = true;
-                    GlobalConfig.SetBinaryPath("FFmpegPath", path);
+                    GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.FFmpegPath, path);
                     DrawHaveLibSettingsPane();
                 }
                 else
@@ -416,7 +416,7 @@ namespace rgat
                 string candidate = match;
                 if (File.Exists(candidate))
                 {
-                    GlobalConfig.SetBinaryPath("FFmpegPath", candidate);
+                    GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.FFmpegPath, candidate);
                     return true;
                 }
             }

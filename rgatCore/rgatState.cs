@@ -53,7 +53,7 @@ namespace rgat
         {
             //todo - inner progress reporting based on signature count
             Logging.RecordLogEvent("Loading DiELib", Logging.LogFilterType.TextDebug);
-            string DiEscriptsDir = GlobalConfig.GetSettingPath("DiESigsDirectory");
+            string DiEscriptsDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory);
             if (Directory.Exists(DiEscriptsDir) || File.Exists(DiEscriptsDir))
             {
                 try
@@ -74,7 +74,7 @@ namespace rgat
             progress.Report(0.5f);
             Logging.RecordLogEvent("Loading YARA", Logging.LogFilterType.TextDebug);
 
-            string YARAscriptsDir = GlobalConfig.GetSettingPath("YaraRulesDirectory");
+            string YARAscriptsDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory);
             if (Directory.Exists(YARAscriptsDir))
             {
                 try
@@ -113,7 +113,7 @@ namespace rgat
         public static int TotalTraceCount { private set; get; } = 0;
         public static void IncreaseLoadedTraceCount() => TotalTraceCount += 1;
 
-        public RGAT_CONSTANTS.LayoutStyles.Style newGraphLayout = RGAT_CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes;
+        public CONSTANTS.LayoutStyles.Style newGraphLayout = CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes;
 
         Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
         Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
@@ -450,7 +450,7 @@ namespace rgat
         {
             switch (newGraphLayout)
             {
-                case RGAT_CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes:
+                case CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes:
                     {
                         MainGraph = new PlottedGraph(protoGraph, _GraphicsDevice, GlobalConfig.defaultGraphColours);
                         return true;

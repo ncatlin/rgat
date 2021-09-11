@@ -32,8 +32,8 @@ namespace rgat
         public float dbg_camZ = 100f;
         public float dbg_rot = 0;
 
-        public float EachGraphWidth = RGAT_CONSTANTS.UI.PREVIEW_PANE_WIDTH - (2 * RGAT_CONSTANTS.UI.PREVIEW_PANE_X_PADDING + 2); //-2 for border
-        public float EachGraphHeight = RGAT_CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT;
+        public float EachGraphWidth = CONSTANTS.UI.PREVIEW_PANE_WIDTH - (2 * CONSTANTS.UI.PREVIEW_PANE_X_PADDING + 2); //-2 for border
+        public float EachGraphHeight = CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT;
         bool Exiting = false;
         public uint selectedGraphTID;
         public PlottedGraph clickedGraph { get; private set; }
@@ -319,15 +319,15 @@ namespace rgat
             List<int> indexes = GetGraphOrder(trace: ActiveTrace, graphs: DrawnPreviewGraphs);
             uint captionBackgroundcolor = Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewTextBackground);
 
-            ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, RGAT_CONSTANTS.UI.PREVIEW_PANE_Y_SEP));
+            ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, CONSTANTS.UI.PREVIEW_PANE_Y_SEP));
 
             //Graph drawing loop
-            if (ImGui.BeginTable("PrevGraphsTable", 1, ImGuiTableFlags.Borders, new Vector2(RGAT_CONSTANTS.UI.PREVIEW_PANE_WIDTH, ImGui.GetContentRegionAvail().Y)))
+            if (ImGui.BeginTable("PrevGraphsTable", 1, ImGuiTableFlags.Borders, new Vector2(CONSTANTS.UI.PREVIEW_PANE_WIDTH, ImGui.GetContentRegionAvail().Y)))
             {
                 foreach (int graphIdx in indexes)
                 {
                     PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
-                    float xPadding = RGAT_CONSTANTS.UI.PREVIEW_PANE_X_PADDING;
+                    float xPadding = CONSTANTS.UI.PREVIEW_PANE_X_PADDING;
                     if (graph == null || graph.GraphNodeCount() == 0) continue;
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
@@ -648,7 +648,7 @@ namespace rgat
             Vector2 captionBGEnd = new Vector2((captionBGStart.X + EachGraphWidth - borderThickness * 2), captionBGStart.Y + captionHeight);
             imdp.AddRectFilled(p_min: captionBGStart, p_max: captionBGEnd, col: captionBackgroundcolor);
             ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewText));
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + RGAT_CONSTANTS.UI.PREVIEW_PANE_X_PADDING + borderThickness + 1);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + CONSTANTS.UI.PREVIEW_PANE_X_PADDING + borderThickness + 1);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + borderThickness);
             ImGui.Text(Caption);
             ImGui.PopStyleColor();
@@ -771,7 +771,7 @@ namespace rgat
             if (graph == null || Exiting) return;
             if (graph._previewFramebuffer1 == null)
             {
-                graph.InitPreviewTexture(new Vector2(EachGraphWidth, RGAT_CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
+                graph.InitPreviewTexture(new Vector2(EachGraphWidth, CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
             }
 
 
@@ -792,7 +792,7 @@ namespace rgat
                 }
             }
 
-            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(RGAT_CONSTANTS.eRenderingMode.eStandardControlFlow, 
+            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow, 
                 out List<uint> edgeDrawIndexes, 
                 out int edgeVertCount, 
                 out int drawnEdgeCount);
@@ -804,7 +804,7 @@ namespace rgat
             var textureSize = graph.LinearIndexTextureSize();
             updateShaderParams(textureSize, graph, cl);
 
-            Position2DColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(out List<uint> nodeIndices, RGAT_CONSTANTS.eRenderingMode.eStandardControlFlow);
+            Position2DColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(out List<uint> nodeIndices, CONSTANTS.eRenderingMode.eStandardControlFlow);
 
             Debug.Assert(!_NodeVertexBuffer.IsDisposed);
 
