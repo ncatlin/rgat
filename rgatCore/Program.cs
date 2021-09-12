@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading.Tasks;
 using Veldrid;
 using Veldrid.Sdl2;
 using Veldrid.StartupUtilities;
@@ -57,7 +58,7 @@ namespace ImGuiNET
                     break;
 
                 case LaunchConfig.eRunMode.NoGPUTraceCommand:
-                    CommandLineRunner runner = new CommandLineRunner();
+                    CommandLineRunner runner = new CommandLineRunner(); 
                     runner.InitNoGPU();
                     runner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: false);
                     break;

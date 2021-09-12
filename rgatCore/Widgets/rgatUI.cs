@@ -96,10 +96,11 @@ namespace rgat
         /// </summary>
         public static bool ExitRequested { get; private set; } = false;
         public static void RequestExit() => ExitRequested = true;
-
+        public static bool Exists = false;
 
         public rgatUI(rgatState state, ImGuiController controller)
         {
+            Exists = true;
             _rgatState = state;
             _controller = controller;
             _gd = _controller.graphicsDevice;
@@ -696,7 +697,7 @@ namespace rgat
                 ImGui.Separator();
                 if (ImGui.MenuItem("Save Thread Trace")) { } //todo
                 if (ImGui.MenuItem("Save Process Traces")) { } //todo
-                if (ImGui.MenuItem("Save All Traces")) { _rgatState.SaveAllTargets(); }
+                if (ImGui.MenuItem("Save All Traces")) { rgatState.SaveAllTargets(); }
                 if (ImGui.MenuItem("Export Pajek")) { _rgatState.ExportTraceAsPajek(_rgatState.ActiveTrace, _rgatState.ActiveGraph.tid); }
                 ImGui.Separator();
                 ExitFlag = ImGui.MenuItem("Exit");

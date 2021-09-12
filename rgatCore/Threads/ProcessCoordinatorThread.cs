@@ -155,7 +155,7 @@ namespace rgat.Threads
                         Thread.Sleep(5);
                         if (connectionMax > 1000)
                         {
-                            Logging.RecordError("Trace connection took too long to negotiatiate. Terminating it.");
+                            Logging.RecordError("Trace connection took too long to negotiate. Terminating it.");
                             coordPipe.Disconnect();
                         }
                     }
@@ -180,11 +180,7 @@ namespace rgat.Threads
             string binaryName = Path.GetFileName(programName);
             string shortName = binaryName.Substring(0, Math.Min(binaryName.Length, 20));
             bool isTest = testID > -1;
-            string msg;
-            if (!isTest)
-                msg = $"New instrumentation connection with {arch}-bit trace: {shortName} (PID:{PID})";
-            else
-                msg = $"New test case connection with {arch}-bit trace: {shortName} (PID:{PID})";
+            string msg = $"New {(isTest ? "test case" : "instrumentation")} connection with {arch}-bit trace: {shortName} (PID:{PID})";
 
             Logging.RecordLogEvent(msg, Logging.LogFilterType.TextDebug);
 
@@ -258,7 +254,8 @@ namespace rgat.Threads
             trace.ProcessThreads.Register(blockHandler);
             blockHandler.Begin();
 
-            ProcessLaunching.launch_new_visualiser_threads(trace.binaryTarg, trace, _clientState);
+            if (rgatUI.Exists)
+                ProcessLaunching.launch_new_visualiser_threads(trace.binaryTarg, trace, _clientState);
         }
     }
 }

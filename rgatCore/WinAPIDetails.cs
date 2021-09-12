@@ -8,7 +8,7 @@ namespace rgat
     public class WinAPIDetails
     {
         public static bool Loaded { get; private set; }
-        public static void Load(string datapath, IProgress<float> progress)
+        public static void Load(string datapath, IProgress<float> progress = null)
         {
             if (!File.Exists(datapath))
             {
@@ -81,7 +81,7 @@ namespace rgat
             public int referenceIndex;
         }
 
-        static void LoadJSON(Newtonsoft.Json.Linq.JArray JItems, IProgress<float> progress)
+        static void LoadJSON(Newtonsoft.Json.Linq.JArray JItems, IProgress<float> progress = null)
         {
             float moduleCount = JItems.Count;
 
@@ -177,7 +177,7 @@ namespace rgat
                     _configuredSymbols.Add(moduleReference, moduleSyms);
                 }
 
-                progress.Report(moduleCount / (float)moduleI);
+                progress?.Report(moduleCount / (float)moduleI);
             }
         }
 

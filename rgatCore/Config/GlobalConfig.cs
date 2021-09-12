@@ -591,7 +591,7 @@ namespace rgat
         public static string BaseDirectory { get; private set; }
 
 
-        public static void LoadConfig(bool GUI, IProgress<float> progress)
+        public static void LoadConfig(bool GUI, IProgress<float> progress = null)
         {
             System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
             timer.Start();

@@ -634,7 +634,7 @@ namespace rgat
         /// <summary>
         /// Cause all the traces of all active targets to be serialised to the trace directory
         /// </summary>
-        public void SaveAllTargets()
+        public static void SaveAllTargets()
         {
             List<BinaryTarget> targslist = targets.GetBinaryTargets();
             foreach (BinaryTarget targ in targslist)
@@ -648,7 +648,7 @@ namespace rgat
         /// Serialise all the traces of the the specified target to the trace directory
         /// </summary>
         /// <param name="targ">A binaryTarget to save traces of</param>
-        public void SaveTarget(BinaryTarget targ)
+        public static void SaveTarget(BinaryTarget targ)
         {
             var traceslist = targ.GetTracesUIList();
 
