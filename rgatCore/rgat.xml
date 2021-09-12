@@ -739,6 +739,152 @@
             Terminate all spawned processes and internal workers, then exit
             </summary>
         </member>
+        <member name="M:rgat.rgatState.AddTargetByPath(System.String,System.Int32,System.Boolean,System.Boolean)">
+            <summary>
+            Add a new target to the list of loaded target binaries
+            </summary>
+            <param name="path">Filesystem path of target</param>
+            <param name="arch">32 or 64 bits</param>
+            <param name="isLibrary">The target is a DLL</param>
+            <param name="makeActive">Set this as active in the UI</param>
+            <returns>The BinaryTarget object describing the target</returns>
+        </member>
+        <member name="M:rgat.rgatState.AddRemoteTargetByPath(System.String,System.String,System.Boolean,System.Boolean)">
+            <summary>
+            Add a target binary for tracing by a remote rgat instance
+            </summary>
+            <param name="path">Filesystem path of target</param>
+            <param name="hostAddr">Network address of the remote system</param>
+            <param name="isLibrary">The target is a DLL</param>
+            <param name="makeActive">Set this as active in the UI</param>
+            <returns>The BinaryTarget object describing the target</returns>
+        </member>
+        <member name="M:rgat.rgatState.SetActiveTarget(System.String)">
+            <summary>
+            Set the binary target active in the UI
+            </summary>
+            <param name="path">Path of the target to activate</param>
+        </member>
+        <member name="M:rgat.rgatState.SetActiveTarget(rgat.BinaryTarget)">
+            <summary>
+            Set the binary target active in the UI
+            </summary>
+            <param name="newTarget">BinaryTarget object to activate</param>
+        </member>
+        <member name="M:rgat.rgatState.ClearActiveGraph">
+            <summary>
+            Deactivate the currently active graph in the UI
+            </summary>
+        </member>
+        <member name="M:rgat.rgatState.SelectActiveTrace(rgat.TraceRecord,System.Boolean)">
+            <summary>
+            Set the currently active trace in the UI. If a specific trace is not specified
+            the trace chosen depends on the 'newest' parameter
+            </summary>
+            <param name="trace">An optional TraceRecord to set as active</param>
+            <param name="newest">If true, get the most recently spawned trace. If false get the first in the list (not guaranteed to be the oldest)</param>
+        </member>
+        <member name="M:rgat.rgatState.InitialiseTarget(Newtonsoft.Json.Linq.JObject,rgat.BinaryTarget@)">
+            <summary>
+            Initialise a loaded target binary from a trace save object
+            </summary>
+            <param name="saveJSON">A Newtonsoft JObject for the saved trace</param>
+            <param name="targetResult">The created BinaryTarget object</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.rgatState.SwitchToGraph(rgat.PlottedGraph)">
+            <summary>
+            Causes the UI to switch to displaying a different thread graph
+            </summary>
+            <param name="graph">The PlottedGraph object of the graph to switch to. Null to clear the active graph.</param>
+        </member>
+        <member name="M:rgat.rgatState.ChooseActiveGraph">
+            <summary>
+            Cause the UI to choose an active graph to display, used when no graph is active
+            </summary>
+            <returns>If a graph is now active</returns>
+        </member>
+        <member name="M:rgat.rgatState.SelectGraphInActiveTrace">
+            <summary>
+            Activate a graph in the active trace
+            Selects the last one that was active in this trace, or the first seen
+            </summary>
+        </member>
+        <member name="M:rgat.rgatState.SetActiveGraph(rgat.PlottedGraph)">
+            <summary>
+            Sets a specific thread graph for the UI to display
+            </summary>
+            <param name="graph">A PlottedGraph object of the thread to display</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.rgatState.getActiveGraph">
+            <summary>
+            Get the currently active thread graph being shown by the UI
+            </summary>
+            <returns>The PlottedGraph object of the active thread graph</returns>
+        </member>
+        <member name="M:rgat.rgatState.LoadTraceRecord(Newtonsoft.Json.Linq.JObject,rgat.BinaryTarget,rgat.TraceRecord@)">
+            <summary>
+            Load a TraceRecord from a serialised trace JObject
+            </summary>
+            <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
+            <param name="target">The binarytarget associated with the trace</param>
+            <param name="traceResult">The output reconstructed TraceRecord</param>
+            <returns>true if a new trace was created, false if failed or duplicated</returns>
+        </member>
+        <member name="M:rgat.rgatState.LoadTraceByPath(System.String,rgat.TraceRecord@)">
+            <summary>
+            Load a saved trace
+            </summary>
+            <param name="path">The fileystem path of the saved trace</param>
+            <param name="trace">The loaded TraceRecord object</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.rgatState.ExtractChildTraceFilenames(Newtonsoft.Json.Linq.JObject,System.Collections.Generic.List{System.String}@)">
+            <summary>
+            Get a list of child trace processes from a saved trace
+            </summary>
+            <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
+            <param name="childrenFiles">A list of relative filesystem paths of child traces</param>
+        </member>
+        <member name="M:rgat.rgatState.LoadChildTraces(System.Collections.Generic.List{System.String},rgat.TraceRecord)">
+            <summary>
+            Loads child traces into a trace record
+            </summary>
+            <param name="childrenFiles">A list of relative filesystem paths of traces</param>
+            <param name="trace">The parent TraceRecord of the child traces</param>
+        </member>
+        <member name="M:rgat.rgatState.SaveAllTargets">
+            <summary>
+            Cause all the traces of all active targets to be serialised to the trace directory
+            </summary>
+        </member>
+        <member name="M:rgat.rgatState.SaveTarget(rgat.BinaryTarget)">
+            <summary>
+            Serialise all the traces of the the specified target to the trace directory
+            </summary>
+            <param name="targ">A binaryTarget to save traces of</param>
+        </member>
+        <member name="M:rgat.rgatState.ExportTraceAsPajek(rgat.TraceRecord,System.UInt32)">
+            <summary>
+            Export the current trace in the pajek format, a simple graph serialisation format that other graph layout programs accept
+            </summary>
+        </member>
+        <member name="M:rgat.rgatState.RecordTestRunConnection(System.Int64,rgat.TraceRecord)">
+            <summary>
+            Store a reference to an incoming rgat test trace
+            </summary>
+            <param name="testID">The ID of the test</param>
+            <param name="trace">The TraceRecord associated with the test</param>
+        </member>
+        <member name="M:rgat.rgatState.GetTestTrace(System.Int64,rgat.TraceRecord@)">
+            <summary>
+            Get the TraceRecord for a specific test ID
+            </summary>
+            <param name="testID">The test ID to retrieve</param>
+            <param name="trace">The associated TraceRecord of the test</param>
+            <returns>true if found, false otherwise</returns>
+        </member>
         <member name="F:rgat.Testing.TestCase._TestRunRequirements">
             <summary>
             A list of conditions met by the entire test itself
@@ -847,8 +993,7 @@
         </member>
         <member name="M:rgat.TraceRecord.ExportPajek(System.UInt32)">
             <summary>
-            Export the current trace in the pajek format, a simple graph 
-            serialisation format that other graph layout programs accept
+            Export the current trace in the pajek format, a simple graph serialisation format that other graph layout programs accept
             </summary>
             <param name="TID">Thread ID of the graph to serialise</param>
         </member>

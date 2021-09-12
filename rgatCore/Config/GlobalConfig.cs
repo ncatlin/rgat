@@ -204,38 +204,6 @@ namespace rgat
         public static float NodeSoftSpeedLimit = 200f;
         public static readonly float NodeHardSpeedLimit = 1000f; //match with value in velocity shader
 
-        public static class mainColours
-        {
-            public static WritableRgbaFloat background = new WritableRgbaFloat(Color.Black);
-            public static WritableRgbaFloat runningPreview = new WritableRgbaFloat(Color.FromArgb(180, 0, 42, 0));
-            public static WritableRgbaFloat terminatedPreview = new WritableRgbaFloat(Color.FromArgb(180, 42, 0, 0));
-            public static WritableRgbaFloat suspendedPreview = new WritableRgbaFloat(Color.FromArgb(150, 245, 163, 71));
-            public static WritableRgbaFloat highlightLine = new WritableRgbaFloat(Color.Green);
-            public static WritableRgbaFloat wireframe = new WritableRgbaFloat(Color.LightGray);
-            public static WritableRgbaFloat instructionText = new WritableRgbaFloat(Color.White);
-            public static WritableRgbaFloat symbolTextExternal = new WritableRgbaFloat(Color.Green);
-            public static WritableRgbaFloat symbolTextExternalRising = new WritableRgbaFloat(Color.Green);
-            public static WritableRgbaFloat symbolTextInternal = new WritableRgbaFloat(Color.Gray);
-            public static WritableRgbaFloat symbolTextInternalRising = new WritableRgbaFloat(Color.LightGray);
-            public static WritableRgbaFloat symbolTextPlaceholder = new WritableRgbaFloat(Color.LightGray);
-            public static WritableRgbaFloat activityLine = new WritableRgbaFloat(Color.Red);
-
-            public static WritableRgbaFloat edgeCall = new WritableRgbaFloat(Color.Purple);
-            public static WritableRgbaFloat edgeOld = new WritableRgbaFloat(Color.FromArgb(150, 150, 150, 150));
-            public static WritableRgbaFloat edgeRet = new WritableRgbaFloat(Color.Orange);
-            public static WritableRgbaFloat edgeLib = new WritableRgbaFloat(Color.Green);
-            public static WritableRgbaFloat edgeNew = new WritableRgbaFloat(Color.Yellow);
-            public static WritableRgbaFloat edgeExcept = new WritableRgbaFloat(Color.Cyan);
-
-            public static WritableRgbaFloat nodeStd = new WritableRgbaFloat(Color.Yellow);
-            public static WritableRgbaFloat nodeJump = new WritableRgbaFloat(Color.Red);
-            public static WritableRgbaFloat nodeCall = new WritableRgbaFloat(Color.Purple);
-            public static WritableRgbaFloat nodeRet = new WritableRgbaFloat(Color.Orange);
-            public static WritableRgbaFloat nodeExtern = new WritableRgbaFloat(Color.FromArgb(255, 40, 255, 0));
-            public static WritableRgbaFloat nodeExcept = new WritableRgbaFloat(Color.Cyan);
-        }
-
-        public static List<WritableRgbaFloat> defaultGraphColours = new List<WritableRgbaFloat>();
 
         public static bool NewVersionAvailable = false;
         public static void RecordAvailableUpdateDetails(Version releaseVersion, string releaseCumulativeChanges, string downloadLink)
@@ -326,11 +294,6 @@ namespace rgat
             }
             return "";
         }
-
-
-
-
-
 
 
         static void InitPaths()
@@ -473,10 +436,6 @@ namespace rgat
 
         static void LoadTextSettingsColours()
         {
-            defaultGraphColours = new List<WritableRgbaFloat> {
-                mainColours.edgeCall, mainColours.edgeOld, mainColours.edgeRet, mainColours.edgeLib, mainColours.edgeNew, mainColours.edgeExcept,
-                mainColours.nodeStd, mainColours.nodeJump, mainColours.nodeCall, mainColours.nodeRet, mainColours.nodeExtern, mainColours.nodeExcept
-            };
 
             const int EXTERN_VISIBLE_ZOOM_FACTOR = 40;
             const int INSTEXT_VISIBLE_ZOOMFACTOR = 5;

@@ -48,7 +48,7 @@ namespace rgat
         }*/
 
 
-        public PlottedGraph(ProtoGraph protoGraph, GraphicsDevice device, List<WritableRgbaFloat> graphColourslist)
+        public PlottedGraph(ProtoGraph protoGraph, GraphicsDevice device)
         {
             pid = protoGraph.TraceData.PID;
             tid = protoGraph.ThreadID;
@@ -57,7 +57,7 @@ namespace rgat
             InternalProtoGraph = protoGraph;
 
             IsAnimated = !InternalProtoGraph.Terminated;
-            graphColours = graphColourslist;
+            InitGraphColours();
 
             scalefactors.plotSize = 300;
             scalefactors.basePlotSize = 300f;
@@ -66,6 +66,8 @@ namespace rgat
             CameraZoom = -6000f;
             CameraXOffset = -400;
         }
+
+
 
 
         public void render_graph()
@@ -1113,7 +1115,7 @@ namespace rgat
         public uint EdgeVertsTextureWidth() { return dataTextureSize(InternalProtoGraph.EdgeList.Count); }
 
 
-        public WritableRgbaFloat GetNodeColor(int nodeIndex, eRenderingMode renderingMode)
+        public WritableRgbaFloat GetNodeColor(int nodeIndex, eRenderingMode renderingMode, WritableRgbaFloat[] themeGraphColours)
         {
             if (nodeIndex >= InternalProtoGraph.NodeList.Count)
             {
@@ -1129,7 +1131,7 @@ namespace rgat
             switch (renderingMode)
             {
                 case eRenderingMode.eStandardControlFlow:
-                    return graphColours[(int)n.VertType()];
+                    return themeGraphColours[(int)n.VertType()];
                 case eRenderingMode.eHeatmap:
                     return new WritableRgbaFloat(1, 0, 0, 1);
                 case eRenderingMode.eConditionals:
@@ -1145,7 +1147,7 @@ namespace rgat
                         return new WritableRgbaFloat(Color.Yellow);
                     }
                 default:
-                    return graphColours[(int)n.VertType()];
+                    return themeGraphColours[(int)n.VertType()];
             }
         }
 
@@ -1191,7 +1193,7 @@ namespace rgat
         }
 
 
-        Tuple<string, Color> CreateNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
+        Tuple<string, uint> CreateNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
         {
             NodeData n = InternalProtoGraph.NodeList[index];
             if (n.Label == null || n.Dirty || forceNew)
@@ -1200,11 +1202,11 @@ namespace rgat
             }
 
             if (n.IsExternal)
-                return new Tuple<string, Color>(n.Label, Color.SpringGreen);
-            if (n.HasSymbol)
-                return new Tuple<string, Color>(n.Label, Color.White);
+                return new Tuple<string, uint>(n.Label, Themes.GetThemeColourUINT(Themes.eThemeColour.SymbolText));
+            else if (n.HasSymbol)
+                return new Tuple<string, uint>(n.Label, Themes.GetThemeColourUINT(Themes.eThemeColour.InternalSymbol));
             else
-                return new Tuple<string, Color>(n.Label, Color.LightGray);
+                return new Tuple<string, uint>(n.Label, Themes.GetThemeColourUINT(Themes.eThemeColour.InstructionText));
         }
 
         void RegenerateLabels() => _newLabels = true;
@@ -1213,11 +1215,11 @@ namespace rgat
         eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
         public eRenderingMode RenderingMode => lastRenderingMode;
 
+        ulong lastThemeVersion = 0;
+
         //important todo - cacheing!  once the result is good
         public Position2DColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode,
-            out List<uint> nodeIndices,
-            out Position2DColour[] nodePickingColors,
-            out List<Tuple<string, Color>> captions)
+            out List<uint> nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string, uint>> captions)
         {
             bool createNewLabels = false;
             if (renderingMode != lastRenderingMode || _newLabels)
@@ -1227,26 +1229,42 @@ namespace rgat
                 lastRenderingMode = renderingMode;
             }
 
+            //theme changed, read in new colours
+            ulong themeVersion = Themes.ThemeVersion;
+            bool newColours = lastThemeVersion < themeVersion;
+            if (newColours)
+            {
+                InitGraphColours();
+                lastThemeVersion = themeVersion;
+            }
+
             uint textureSize = LinearIndexTextureSize();
             Position2DColour[] nodeVerts = new Position2DColour[textureSize * textureSize];
 
             nodePickingColors = new Position2DColour[textureSize * textureSize];
-            captions = new List<Tuple<string, Color>>();
+            captions = new List<Tuple<string, uint>>();
 
             nodeIndices = new List<uint>();
             int nodeCount = RenderedNodeCount();
+
+
+            WritableRgbaFloat[] graphColoursCopy;
+            lock (textureLock)
+            {
+                graphColoursCopy = graphColours.ToArray();
+            }
 
             for (uint index = 0; index < nodeCount; index++)
             {
                 float x = index % textureSize;
                 float y = index / textureSize;
                 Vector2 texturePosition = new Vector2(x, y);
-                
+
                 if (index >= nodeCount || index >= InternalProtoGraph.NodeList.Count) return nodeVerts;
 
                 nodeIndices.Add(index);
 
-                WritableRgbaFloat nodeColour = GetNodeColor((int)index, renderingMode);
+                WritableRgbaFloat nodeColour = GetNodeColor((int)index, renderingMode, graphColoursCopy);
                 nodeVerts[index] = new Position2DColour
                 {
                     Position = texturePosition,
@@ -1271,6 +1289,29 @@ namespace rgat
             return nodeVerts;
         }
 
+        void InitGraphColours()
+        {
+            lock (textureLock)
+            {
+                graphColours = new List<WritableRgbaFloat>() {
+                Themes.GetThemeColourWRF(Themes.eThemeColour.edgeCall),
+                Themes.GetThemeColourWRF(Themes.eThemeColour.edgeOld),
+                Themes.GetThemeColourWRF(Themes.eThemeColour.edgeRet),
+                Themes.GetThemeColourWRF(Themes.eThemeColour.edgeLib),
+                Themes.GetThemeColourWRF(Themes.eThemeColour.edgeNew),
+                Themes.GetThemeColourWRF(Themes.eThemeColour.edgeExcept),
+                Themes.GetThemeColourWRF(Themes.eThemeColour.nodeStd),
+                Themes.GetThemeColourWRF(Themes.eThemeColour.nodeJump),
+                Themes.GetThemeColourWRF(Themes.eThemeColour.nodeCall),
+                Themes.GetThemeColourWRF(Themes.eThemeColour.nodeRet),
+                Themes.GetThemeColourWRF(Themes.eThemeColour.nodeExtern),
+                Themes.GetThemeColourWRF(Themes.eThemeColour.nodeExcept)
+                };
+            };
+        }
+
+
+
 
         public Position2DColour[] GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode renderingMode)
         {
@@ -1279,6 +1320,13 @@ namespace rgat
 
             nodeIndices = new List<uint>();
             int nodeCount = RenderedNodeCount();
+
+            WritableRgbaFloat[] graphColoursCopy;
+            lock (textureLock)
+            {
+                graphColoursCopy = graphColours.ToArray();
+            }
+
             for (uint y = 0; y < textureSize; y++)
             {
                 for (uint x = 0; x < textureSize; x++)
@@ -1291,7 +1339,7 @@ namespace rgat
                     NodeVerts[index] = new Position2DColour
                     {
                         Position = new Vector2(x, y),
-                        Color = GetNodeColor((int)index, renderingMode)
+                        Color = GetNodeColor((int)index, renderingMode, graphColoursCopy)
                     };
                 }
             }

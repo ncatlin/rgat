@@ -387,7 +387,7 @@ namespace rgat.Widgets
             {
                 _layoutActive = true;
                 _computeRequired = false;
-                Task.Run(() => { layout.Compute(); _layoutActive = false; }); //todo - still a thread safety issue here if its open
+                Task.Run(() => { layout.Compute(); _layoutActive = false; }); 
 
             }
 

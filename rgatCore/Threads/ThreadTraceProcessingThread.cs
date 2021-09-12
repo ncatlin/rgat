@@ -268,7 +268,6 @@ namespace rgat.Threads
                         targNodeID = protograph.BlocksFirstLastNodeList[targetBlockID].Item1;
                     }
 
-                    //issue here with simpleloops being messed up
 
                     if (!n.OutgoingNeighboursSet.Contains(targNodeID))
                     {

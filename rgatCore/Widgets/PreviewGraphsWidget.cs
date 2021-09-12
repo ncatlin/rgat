@@ -732,16 +732,16 @@ namespace rgat
         WritableRgbaFloat GetGraphBackgroundColour(PlottedGraph graph)
         {
             if (graph.InternalProtoGraph.Terminated)
-                return GlobalConfig.mainColours.terminatedPreview;
+                return Themes.GetThemeColourWRF(Themes.eThemeColour.PreviewBGTerminated);
 
             switch (graph.InternalProtoGraph.TraceData.TraceState)
             {
                 case TraceRecord.eTraceState.eTerminated:
-                    return GlobalConfig.mainColours.terminatedPreview;
+                    return Themes.GetThemeColourWRF(Themes.eThemeColour.PreviewBGTerminated);
                 case TraceRecord.eTraceState.eRunning:
-                    return GlobalConfig.mainColours.runningPreview;
+                    return Themes.GetThemeColourWRF(Themes.eThemeColour.PreviewBGRunning);
                 case TraceRecord.eTraceState.eSuspended:
-                    return GlobalConfig.mainColours.suspendedPreview;
+                    return Themes.GetThemeColourWRF(Themes.eThemeColour.PreviewBGSuspended);
                 default:
                     return new WritableRgbaFloat(0, 0, 0, 0);
             }

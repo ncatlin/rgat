@@ -648,7 +648,7 @@ namespace rgat
             }
 
             //CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
-            PlottedGraph standardRenderedGraph = new PlottedGraph(protograph, device, GlobalConfig.defaultGraphColours);
+            PlottedGraph standardRenderedGraph = new PlottedGraph(protograph, device);
             standardRenderedGraph.SetAnimated(false);
 
 

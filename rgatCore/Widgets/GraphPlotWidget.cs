@@ -797,7 +797,7 @@ namespace rgat
         }
 
         static Dictionary<string, List<fontStruc>> _cachedStrings = new Dictionary<string, List<fontStruc>>();
-        static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, ref List<fontStruc> stringVerts, Color colour, float yOff = 0)
+        static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, ref List<fontStruc> stringVerts, uint colour, float yOff = 0)
         {
             if (inputString == null)
                 return;
@@ -890,7 +890,7 @@ namespace rgat
             cl.Dispose();
         }
 
-        List<fontStruc> RenderHighlightedNodeText(List<Tuple<string, Color>> captions, int nodeIdx = -1)
+        List<fontStruc> RenderHighlightedNodeText(List<Tuple<string, uint>> captions, int nodeIdx = -1)
         {
             const float fontScale = 8f;
             List<fontStruc> stringVerts = new List<fontStruc>();
@@ -972,6 +972,7 @@ namespace rgat
 
 
             //maintain each label by counting them down, raising them and rendering them
+            uint risingSymColour = Themes.GetThemeColourUINT(Themes.eThemeColour.SymbolRising);
             for (int idx = 0; idx < _activeRisings.Count; idx++)
             {
                 var ar = _activeRisings[idx];
@@ -981,13 +982,13 @@ namespace rgat
                     ar.remainingFrames -= 1;
                 }
                 //Console.WriteLine($"Drawing '{ar.text}' at y {ar.currentY}");
-                RenderString(ar.text, (uint)ar.nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, Color.SpringGreen, yOff: ar.currentY);
+                RenderString(ar.text, (uint)ar.nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, risingSymColour, yOff: ar.currentY);
             }
         }
 
         float _fontScale = 13.0f;
 
-        List<fontStruc> renderGraphText(List<Tuple<string, Color>> captions)
+        List<fontStruc> renderGraphText(List<Tuple<string, uint>> captions)
         {
             List<fontStruc> stringVerts = new List<fontStruc>();
             PlottedGraph graph = ActiveGraph;
@@ -1010,13 +1011,22 @@ namespace rgat
             uploadFontVerts(stringVerts);
         }
 
-
+        ulong _lastThemeVersion = 0;
         public void renderGraph(CommandList cl, PlottedGraph graph)
         {
             Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
             if (drawnEdgeCount == 0 || Exiting) return;
 
             Logging.RecordLogEvent("rendergraph start", filter: Logging.LogFilterType.BulkDebugLogFile);
+
+            //theme changed, purged cached text in case its colour changed
+            ulong themeVersion = Themes.ThemeVersion;
+            bool newColours = _lastThemeVersion < themeVersion;
+            if (newColours)
+            {
+                _cachedStrings.Clear();
+                _lastThemeVersion = themeVersion;
+            }
 
             //todo - thread safe persistent commandlist
             cl.Begin();
@@ -1032,17 +1042,13 @@ namespace rgat
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
             updateShaderParams(graph, textureSize, proj, view, world, cl);
 
-
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer,
                 _gd.PointSampler, graph.LayoutState.PositionsVRAM1, graph.LayoutState.AttributesVRAM1);
-
-            //VeldridGraphBuffers.DoDispose(_crs_core);
-            //_crs_core = _factory.CreateResourceSet(crs_core_rsd); //todo constant crashing here
-            ResourceSet crs_core = _factory.CreateResourceSet(crs_core_rsd); //todo constant crashing here
+            ResourceSet crs_core = _factory.CreateResourceSet(crs_core_rsd);
 
             Position2DColour[] NodeVerts = graph.GetMaingraphNodeVerts(_renderingMode,
             out List<uint> nodeIndices, out Position2DColour[] nodePickingColors, 
-            out List<Tuple<string, Color>> captions);
+            out List<Tuple<string, uint>> captions);
 
             //_layoutEngine.GetScreenFitOffsets(WidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 
@@ -1058,12 +1064,10 @@ namespace rgat
                 _NodeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "NodeIndexBuffer");
             }
 
-
             //todo - only do this on changes
             cl.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
             cl.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
             cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
-
 
             if (((edgeVertCount * 4) > _EdgeIndexBuffer.SizeInBytes))
             {
