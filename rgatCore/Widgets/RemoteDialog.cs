@@ -160,7 +160,7 @@ namespace rgat.Widgets
                 _refreshTimer.Start();
             }
             float itemsWidth = 350;
-            ImGui.SetNextWindowSize(new Vector2(itemsWidth + 30, 410), ImGuiCond.Appearing);
+            ImGui.SetNextWindowSize(new Vector2(itemsWidth + 30, 435), ImGuiCond.Appearing);
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.NoResize;
 
@@ -171,7 +171,7 @@ namespace rgat.Widgets
             {
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 10);
-                if (ImGui.BeginChild("#RemoteFrameMain", new Vector2(itemsWidth, 375)))
+                if (ImGui.BeginChild("#RemoteFrameMain", new Vector2(itemsWidth, 400)))
                 {
                     DrawStatusBanner();
                     DrawActivationToggle(itemsWidth);
@@ -658,7 +658,7 @@ namespace rgat.Widgets
         void DrawMessagesList(float itemsWidth)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
-            if (ImGui.BeginChild("##MsgsFrame1", new Vector2(itemsWidth, ImGui.GetContentRegionAvail().Y), false, ImGuiWindowFlags.HorizontalScrollbar))
+            if (ImGui.BeginChild("##MsgsFrame1", new Vector2(itemsWidth, ImGui.GetContentRegionAvail().Y - 30), false, ImGuiWindowFlags.HorizontalScrollbar))
             {
                 var messages = rgatState.NetworkBridge.GetRecentConnectEvents().TakeLast(5);
                 if (messages.Any())

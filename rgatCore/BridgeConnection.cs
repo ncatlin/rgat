@@ -293,6 +293,9 @@ namespace rgat
         }
 
 
+        byte[] _readIV = new byte[12];
+        byte[] _readTag = new byte[16];
+
         /// <summary>
         /// Read the next message from the conencted party
         /// </summary>
@@ -302,17 +305,14 @@ namespace rgat
         {
             try
             {
-                byte[] IV = new byte[12];
-                byte[] tag = new byte[16];
-
-                _reader.Read(IV, 0, 12);
-                _reader.Read(tag, 0, 16);
+                _reader.Read(_readIV, 0, 12);
+                _reader.Read(_readTag, 0, 16);
                 ushort ctsize = _reader.ReadUInt16();
                 byte[] buf = _reader.ReadBytes(ctsize);
 
                 try
                 {
-                    _decryptor.Decrypt(IV, buf, tag, buf);
+                    _decryptor.Decrypt(_readIV, buf, _readTag, buf);
                 }
                 catch (CryptographicException e)
                 {
@@ -405,14 +405,12 @@ namespace rgat
                     }
                 }
 
-                byte[] tag = new byte[16];
-
                 _sendIV += 1;
                 Span<byte> IV = _sendIV.ToByteArray();
-                _encryptor.Encrypt(IV, plaintext, plaintext, tag);
+                _encryptor.Encrypt(IV, plaintext, plaintext, _sendTag);
 
                 _writer.Write(IV);
-                _writer.Write(tag);
+                _writer.Write(_sendTag);
                 _writer.Write((ushort)plaintext.Length);
                 _writer.Write(plaintext);
 
@@ -450,6 +448,7 @@ namespace rgat
             return false;
         }
 
+        byte[] _sendTag = new byte[16];
 
         /// <summary>
         /// Add a message to the remote tracing dialog log panel

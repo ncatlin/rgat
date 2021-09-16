@@ -226,7 +226,7 @@ namespace rgat
                         params_.Add("PID", trace.PID);
                         params_.Add("RID", trace.randID);
                         params_.Add("ref", traceRef);
-                        rgatState.NetworkBridge.SendCommand("ThreadIngest", trace.randID.ToString()+ spawnedThreadCount.ToString(), SpawnRemoteTraceProcessorThreads, params_.ToString());
+                        rgatState.NetworkBridge.SendCommand("ThreadIngest", trace.randID.ToString()+ spawnedThreadCount.ToString(), SpawnRemoteTraceProcessorThreads, params_);
                     }
 
                     break;
@@ -300,7 +300,7 @@ namespace rgat
 
         public bool SendCommand(byte[] cmd)
         {
-            Debug.Assert(commandPipe != null); //todo - remote commands
+            Debug.Assert(commandPipe != null, "Error: Remote commands not yet implemented"); //todo - remote commands
             if (commandPipe.IsConnected)
             {
                 try

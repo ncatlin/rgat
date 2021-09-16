@@ -343,6 +343,7 @@ namespace rgat.OperationModes
                 JObject msgObj = JObject.Parse(injson);
 
                 if (!msgObj.TryGetValue("Name", out JToken nameTok) || nameTok.Type != JTokenType.String) return false;
+                name = nameTok.ToString();
                 if (msgObj.TryGetValue("Data", out data)) return true;
 
             }

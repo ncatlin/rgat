@@ -252,8 +252,7 @@ namespace rgat
             if (ordinal != -1) startParamObj.Add("Ordinal", ordinal);
             if (loaderName != null) startParamObj.Add("LoaderName", loaderName);
 
-            string paramsjson = Newtonsoft.Json.JsonConvert.SerializeObject(startParamObj, Newtonsoft.Json.Formatting.None);
-            rgatState.NetworkBridge.SendCommand("StartTrace", null, null, paramsjson);
+            rgatState.NetworkBridge.SendCommand("StartTrace", null, null, startParamObj);
         }
 
 

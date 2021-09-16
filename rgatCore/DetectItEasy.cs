@@ -201,7 +201,7 @@ namespace rgat
                 JObject paramObj = new JObject();
                 paramObj.Add("Type", "DIE");
                 paramObj.Add("Zip", zipfile);
-                rgatState.NetworkBridge.SendCommand("UploadSignatures", null, null, paramObj.ToString());
+                rgatState.NetworkBridge.SendCommand("UploadSignatures", null, null, paramObj);
             }
             catch (Exception e)
             {
