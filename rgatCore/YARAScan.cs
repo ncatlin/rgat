@@ -1,7 +1,9 @@
 ﻿using dnYara;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -30,7 +32,6 @@ namespace rgat
             ctx = new YaraContext();
 
             RefreshRules(rulesDir);
-
         }
 
         // have to check libyara exists before attempting to use dnYara
@@ -119,7 +120,7 @@ namespace rgat
             }
 
             //see if any directories/.txt/.yara files were created or modified since the rules were last compiled
-            bool recompile = !File.Exists(compiledFile) || forceRecompile || HasNewerRuleOrDirectory(rulesDir, thresholdDate);
+            bool recompile = !File.Exists(compiledFile) || forceRecompile || thresholdDate < LatestSignatureChange(rulesDir);
 
             if (!recompile)
             {
@@ -244,26 +245,29 @@ namespace rgat
             return savedrules.ToArray();
         }
 
+        DateTime _lastCheck = DateTime.MinValue;
+        public DateTime NewestSignature { get; private set; } = DateTime.MinValue;
+        public DateTime EndpointNewestSignature = DateTime.MinValue;
+        public bool StaleRemoteSignatures => true;//  (EndpointNewestSignature != DateTime.MinValue && EndpointNewestSignature > NewestSignature);
 
-
-        bool HasNewerRuleOrDirectory(string rulesDir, DateTime thresholdDate)
+        DateTime LatestSignatureChange(string rulesDir)
         {
+            if ((DateTime.Now - _lastCheck).TotalSeconds < 20) return NewestSignature;
 
-            bool newerDir = Directory.GetDirectories(rulesDir, "*", SearchOption.AllDirectories)
-                .Where(x => Directory.GetCreationTime(x) > thresholdDate || Directory.GetLastWriteTime(x) > thresholdDate)
-                .Any();
-            if (newerDir) return true;
+            var sigDirs = Directory.GetDirectories(rulesDir, "*", SearchOption.AllDirectories)
+                .SelectMany(x => new List<DateTime>() { Directory.GetCreationTime(x), Directory.GetLastWriteTime(x) });
 
-            bool newerFile = Directory.GetFiles(rulesDir, "*", SearchOption.AllDirectories)
-                .Where(x => File.GetCreationTime(x) > thresholdDate || File.GetLastWriteTime(x) > thresholdDate)
+            var sigFiles = Directory.GetFiles(rulesDir, "*", SearchOption.AllDirectories)
                 .Where(x => x.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) ||
                             x.EndsWith(".yara", StringComparison.OrdinalIgnoreCase) ||
                             x.EndsWith(".yar", StringComparison.OrdinalIgnoreCase))
-                .Any();
-            if (newerFile) return true;
+                .SelectMany(x => new List<DateTime>() { File.GetCreationTime(x), File.GetLastWriteTime(x) }.ToList()).ToList();
 
-            return false;
+            DateTime newestDir = sigDirs.Max();
+            DateTime newestFile = sigFiles.Max();
 
+            NewestSignature = newestDir > newestFile ? newestDir : newestFile;
+            return NewestSignature;
         }
 
         public uint LoadedRuleCount()
@@ -330,7 +334,50 @@ namespace rgat
 
         }
 
+        public void UploadSignatures()
+        {
+            try
+            {
+                string tempfile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                ZipFile.CreateFromDirectory(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory), tempfile);
+                if (File.Exists(tempfile))
+                {
+                    byte[] zipfile = File.ReadAllBytes(tempfile);
+                    JObject paramObj = new JObject();
+                    paramObj.Add("Type", "YARA");
+                    paramObj.Add("Zip", zipfile);
+                    rgatState.NetworkBridge.SendCommand("UploadSignatures", null, null, paramObj);
+                    File.Delete(tempfile);
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Failed to upload signatures: {e.Message}");
+            }
 
+        }
+
+        public void ReplaceSignatures(byte[] zipfile)
+        {
+            Console.WriteLine($"Replacing yara sigs with zip size {zipfile.Length}");
+            try
+            {
+                string tempfile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                File.WriteAllBytes(tempfile, zipfile);
+                if (File.Exists(tempfile))
+                {
+                    string original = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory);
+                    Directory.Delete(original, true);
+                    ZipFile.ExtractToDirectory(tempfile, original, true);
+                    File.Delete(tempfile);
+                    OperationModes.BridgedRunner.SendSigDates();
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Failed to replace signatures: {e.Message}");
+            }
+        }
 
     }
 }

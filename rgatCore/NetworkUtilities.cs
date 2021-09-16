@@ -11,7 +11,7 @@ using System.Diagnostics;
 
 namespace rgat
 {
-    class RemoteTracing
+    class NetworkUtilities
     {
         public static void PrintInterfaces(bool PrintInvalid = false)
         {
@@ -86,7 +86,7 @@ namespace rgat
             {
                 Console.WriteLine("\t\tInterface has no addresses");
             }
-            string MAC = RemoteTracing.hexMAC(iface.GetPhysicalAddress());
+            string MAC = NetworkUtilities.hexMAC(iface.GetPhysicalAddress());
             if (MAC.Length > 0)
                 Console.WriteLine($"\t\tMAC: {MAC}");
             Console.WriteLine($"\t\tType: {iface.NetworkInterfaceType}");
@@ -147,7 +147,7 @@ namespace rgat
                     break;
                 }
 
-                string hexmac = RemoteTracing.hexMAC(iface.GetPhysicalAddress()).ToLower();
+                string hexmac = NetworkUtilities.hexMAC(iface.GetPhysicalAddress()).ToLower();
                 if (hexmac.Length > 0 && comparer.Contains(hexmac))
                 {
                     matchedInterface = iface;

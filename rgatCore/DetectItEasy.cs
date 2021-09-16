@@ -1,4 +1,5 @@
 ﻿using DiELibDotNet;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -162,6 +163,73 @@ namespace rgat
             if (DIEScanHandles.TryGetValue(targ, out ulong handle))
             {
                 dielib.CancelScan(handle);
+            }
+        }
+
+
+        DateTime _lastCheck = DateTime.MinValue;
+        public DateTime NewestSignature { get; private set; } = DateTime.MinValue;
+        public DateTime EndpointNewestSignature = DateTime.MinValue;
+        public bool StaleRemoteSignatures => (EndpointNewestSignature != DateTime.MinValue && EndpointNewestSignature > NewestSignature);
+
+        DateTime LatestSignatureChange(string rulesDir)
+        {
+            if (NewestSignature != null && (DateTime.Now - _lastCheck).TotalSeconds < 20) return NewestSignature;
+
+            var sigDirs = Directory.GetDirectories(rulesDir, "*", SearchOption.AllDirectories)
+                .SelectMany(x => new List<DateTime>() { Directory.GetCreationTime(x), Directory.GetLastWriteTime(x) });
+
+            var sigFiles = Directory.GetFiles(rulesDir, "*", SearchOption.AllDirectories)
+                .Where(x => x.EndsWith(".sg", StringComparison.OrdinalIgnoreCase) || !x.Contains("."))
+                .SelectMany(x => new List<DateTime>() { File.GetCreationTime(x), File.GetLastWriteTime(x) }.ToList()).ToList();
+
+            DateTime newestDir = sigDirs.Max();
+            DateTime newestFile = sigFiles.Max();
+
+            NewestSignature = newestDir > newestFile ? newestDir : newestFile;
+            return NewestSignature;
+        }
+
+
+        public void UploadSignatures()
+        {
+            try
+            {
+                string tempfile = Path.GetTempFileName();
+                System.IO.Compression.ZipFile.CreateFromDirectory(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory), tempfile);
+                byte[] zipfile = File.ReadAllBytes(tempfile);
+                JObject paramObj = new JObject();
+                paramObj.Add("Type", "DIE");
+                paramObj.Add("Zip", zipfile);
+                rgatState.NetworkBridge.SendCommand("UploadSignatures", null, null, paramObj.ToString());
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Failed to upload signatures: {e.Message}");
+            }
+
+        }
+
+        //todo this is a copy of the routine in yarascan. put a generic version somewhere
+        public void ReplaceSignatures(byte[] zipfile)
+        {
+            Console.WriteLine($"Replacing die sigs with zip size {zipfile.Length}");
+            try
+            {
+                string tempfile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                File.WriteAllBytes(tempfile, zipfile);
+                if (File.Exists(tempfile))
+                {
+                    string original = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory);
+                    Directory.Delete(original, true);
+                    System.IO.Compression.ZipFile.ExtractToDirectory(tempfile, original, true);
+                    File.Delete(tempfile);
+                    OperationModes.BridgedRunner.SendSigDates();
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Failed to replace signatures: {e.Message}");
             }
         }
     }

@@ -71,20 +71,24 @@ namespace rgat.Config
             HelpText = "Optional destination directory for saving the output traces, videos and images when in headless tracing mode")]
         public string TraceSaveDirectory { get; set; }
 
+
+        
         // draw the rendered graph to a png image
-        [Option('d', "draw", Required = false, HelpText = "Draw a png of the final rendering of the trace. Requires GPU access with Vulkan drivers.")]
+        [Option('d', "draw", Hidden = true, Required = false, HelpText = "[Not implemented]Draw a png of the final rendering of the trace. Requires GPU access with Vulkan drivers.")]
         public bool DrawImage { get; set; }
 
         // once tracing and graph layout is complete, record playback to an mp4 video. 
-        [Option('M', "mp4_playback", Required = false,  HelpText = "Record a video of a playback of the final trace. Requires FFMpeg.")]
+        [Option('M', "mp4_playback", Hidden = true, Required = false,  HelpText = "[Not implemented]Record a video of a playback of the final trace. Requires FFMpeg.")]
         public bool RecordVideoReplay { get; set; }
 
         // record a video of tracing and layout. 
-        [Option('m', "mp4_recording", Required = false, HelpText = "Record a video of the trace as it is being generated. Requires FFMpeg.")]
+        [Option('m', "mp4_recording", Hidden = true, Required = false, HelpText = "[Not implemented]Record a video of the trace as it is being generated. Requires FFMpeg.")]
         public bool RecordVideoLive { get; set; }
 
-        [Option("ffmpeg", Required = false, MetaValue = "[\"path_to_ffmpeg.exe\"]", HelpText = "Provide a path to FFMpeg.exe to enable video recording if one is not configured. With no argument, prints status of configured FFMpeg.")]
+        [Option("ffmpeg", Required = false, Hidden = true, MetaValue = "[\"path_to_ffmpeg.exe\"]", HelpText = "[Not implemented]Provide a path to FFMpeg.exe to enable video recording if one is not configured. With no argument, prints status of configured FFMpeg.")]
         public string FFmpegPath { get; set; }
+        
+
 
         [Option("nofollow", Required = false, HelpText = "If specified, rgat will not trace new processes spawned by the initial process")]
         public bool NoFollowDescendants { get; set; }

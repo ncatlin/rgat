@@ -7,6 +7,7 @@ using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace rgat.Widgets
 {
@@ -127,7 +128,7 @@ namespace rgat.Widgets
 
         void RefreshInterfaces()
         {
-            var latestInterfaces = RemoteTracing.GetInterfaces();
+            var latestInterfaces = NetworkUtilities.GetInterfaces();
             //remove interfaces that are no longer around
             _netIFList.RemoveAll(existingIF => !latestInterfaces.Any(latestIF => latestIF.Id == existingIF.Id));
             //add newly usable interfaces
@@ -177,6 +178,7 @@ namespace rgat.Widgets
                     DrawOptionsFrame(itemsWidth);
                     //DrawModeToggle();
                     DrawMessagesList(itemsWidth);
+                    DrawSignatureBox();
 
                     ImGui.EndChild();
                 }
@@ -217,6 +219,7 @@ namespace rgat.Widgets
             }
         }
 
+        static bool KeyIsSet => GlobalConfig.StartOptions.NetworkKey != null && GlobalConfig.StartOptions.NetworkKey.Length > 0;
 
         void DrawActivationToggle(float itemsWidth)
         {
@@ -244,7 +247,7 @@ namespace rgat.Widgets
                     }
                 }
                 ImGui.SameLine();
-                if (SmallWidgets.ToggleButton("NwkListenActive", activeNetworking, null))
+                if (SmallWidgets.ToggleButton("NwkListenActive", activeNetworking, null) && KeyIsSet)
                 {
                     if (activeNetworking)
                     {
@@ -500,18 +503,18 @@ namespace rgat.Widgets
 
                     if (selectionChanged)
                     {
-                        if (previousSelectionState == true) 
+                        if (previousSelectionState == true)
                         {
                             GlobalConfig.StartOptions.Interface = "0.0.0.0";
                             if (ListenMode)
                             {
                                 _listenIFID = "";
-                                GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(_listenIFID);
+                                GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(_listenIFID);
                             }
-                            else 
-                            { 
+                            else
+                            {
                                 _connectIFID = "";
-                                GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(_connectIFID);
+                                GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(_connectIFID);
                             }
                         }
                         else
@@ -519,12 +522,12 @@ namespace rgat.Widgets
                             if (ListenMode)
                             {
                                 _listenIFID = iface.Id;
-                                GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(_listenIFID);
+                                GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(_listenIFID);
                             }
                             else
                             {
                                 _connectIFID = iface.Id;
-                                GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(_connectIFID);
+                                GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(_connectIFID);
                             }
                         }
                     }
@@ -550,7 +553,7 @@ namespace rgat.Widgets
             {
                 ImGui.Text("\t\tInterface has no addresses");
             }
-            string MAC = RemoteTracing.hexMAC(iface.GetPhysicalAddress());
+            string MAC = NetworkUtilities.hexMAC(iface.GetPhysicalAddress());
             if (MAC.Length > 0)
                 ImGui.Text($"\t\tMAC: {MAC}");
             ImGui.Text($"\t\tType: {iface.NetworkInterfaceType}");
@@ -595,7 +598,7 @@ namespace rgat.Widgets
             }
             else
             {
-                if (_remoteDropdownOpen) { closeSuggestor = true;  }
+                if (_remoteDropdownOpen) { closeSuggestor = true; }
             }
 
             //////////
@@ -655,7 +658,7 @@ namespace rgat.Widgets
         void DrawMessagesList(float itemsWidth)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
-            if (ImGui.BeginChild("##MsgsFrame1", new Vector2(itemsWidth, ImGui.GetContentRegionAvail().Y)))
+            if (ImGui.BeginChild("##MsgsFrame1", new Vector2(itemsWidth, ImGui.GetContentRegionAvail().Y), false, ImGuiWindowFlags.HorizontalScrollbar))
             {
                 var messages = rgatState.NetworkBridge.GetRecentConnectEvents().TakeLast(5);
                 if (messages.Any())
@@ -676,10 +679,49 @@ namespace rgat.Widgets
                     ImGui.Indent(0);
                     ImGui.PopStyleVar();
                 }
-                ImGui.EndChildFrame();
+                ImGui.EndChild();
             }
             ImGui.PopStyleColor();
         }
+
+        void DrawSignatureBox()
+        {
+            if (!rgatState.ConnectedToRemote || rgatState.DIELib == null || rgatState.YARALib == null) return;
+
+            if (_syncingSigs)
+            {
+                ImguiUtils.DrawRegionCenteredText("Sync in progress");
+            }
+            else
+            {
+                if (rgatState.DIELib.StaleRemoteSignatures || rgatState.YARALib.StaleRemoteSignatures)
+                {
+                    if (ImGui.BeginChild("##sigUploadFrm"))
+                    {
+                        if (ImGui.Button("Sync Signatures"))
+                        {
+                            SyncSignatures();
+                        }
+                        SmallWidgets.MouseoverText("Your signatures may be newer than on the remote device. Click to upload them.");
+                        ImGui.EndChild();
+                    }
+                }
+            }
+        }
+
+        bool _syncingSigs = false;
+        void SyncSignatures()
+        {
+            if (rgatState.YARALib.StaleRemoteSignatures)
+            {
+                Task.Run(() => rgatState.YARALib.UploadSignatures());
+            }
+            if (rgatState.DIELib.StaleRemoteSignatures)
+            {
+                Task.Run(() => rgatState.DIELib.UploadSignatures());
+            }
+        }
+
     }
 }
 

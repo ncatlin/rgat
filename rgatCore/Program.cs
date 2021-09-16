@@ -64,6 +64,8 @@ namespace ImGuiNET
                     break;
 
                 case LaunchConfig.eRunMode.GPURenderCommand:
+                    Logging.RecordError("Command line media output not yet implemented");
+                    return;
                     runner = new CommandLineRunner();
                     runner.InitGPU();
                     runner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: GlobalConfig.StartOptions.RecordVideoLive);
@@ -140,7 +142,7 @@ namespace ImGuiNET
                 case "list all":
                 case "show all":
                 case "print all":
-                    RemoteTracing.PrintInterfaces(PrintInvalid: true);
+                    NetworkUtilities.PrintInterfaces(PrintInvalid: true);
                     exit = true;
                     break;
 
@@ -150,7 +152,7 @@ namespace ImGuiNET
                 case "show":
                 case "print":
                 case "?":
-                    RemoteTracing.PrintInterfaces();
+                    NetworkUtilities.PrintInterfaces();
                     exit = true;
                     break;
 
@@ -170,11 +172,11 @@ namespace ImGuiNET
                             int.TryParse(GlobalConfig.StartOptions.Interface, out int ipInt) && ipInt > 0 && ipInt < 128)
                         {
                             //see if it matches a property from the interface list
-                            GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(interfaceOption);
+                            GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(interfaceOption);
                             if (GlobalConfig.StartOptions.ActiveNetworkInterface == null)
                             {
                                 Console.WriteLine($"Error: Specified network interface '{interfaceOption}' could not be matched to a valid network interface\n");
-                                RemoteTracing.PrintInterfaces();
+                                NetworkUtilities.PrintInterfaces();
                                 exit = true;
                             }
                         }

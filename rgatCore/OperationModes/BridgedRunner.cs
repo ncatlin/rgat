@@ -71,7 +71,13 @@ namespace rgat.OperationModes
 
         }
 
-
+        public static void SendSigDates()
+        {
+            JObject sigDates = new JObject();
+            sigDates.Add("YARA", rgatState.YARALib.NewestSignature);
+            sigDates.Add("DIE", rgatState.DIELib.NewestSignature);
+            rgatState.NetworkBridge.SendAsyncData("SignatureTimes", sigDates);
+        }
 
         /// <summary>
         /// Runs in headless mode which either connects to (command line -r) or waits for connections
@@ -80,7 +86,10 @@ namespace rgat.OperationModes
         /// </summary>
         public void RunHeadless(BridgeConnection connection)
         {
-            GlobalConfig.LoadConfig(GUI: false, progress: null); 
+            GlobalConfig.LoadConfig(GUI: false, progress: null);
+            InitStartOptions();
+
+            Task sigsTask = Task.Run(() => rgatState.LoadSignatures(completionCallback: SendSigDates));
 
             if (GlobalConfig.NewVersionAvailable)
             {
@@ -91,6 +100,12 @@ namespace rgat.OperationModes
 
             rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
             rgatState.processCoordinatorThreadObj.Begin();
+
+            if (GlobalConfig.StartOptions.NetworkKey == null || GlobalConfig.StartOptions.NetworkKey.Length == 0)
+            {
+                Logging.RecordError("A network key (-k) is required");
+                return;
+            }
 
             if (GlobalConfig.StartOptions.ListenPort != null)
             {
@@ -109,6 +124,17 @@ namespace rgat.OperationModes
             Console.WriteLine("Headless mode complete");
             rgatState.Shutdown();
         }
+
+        void InitStartOptions()
+        {
+            string defaultKey = GlobalConfig.Settings.Network.DefaultNetworkKey;
+            if (defaultKey?.Length > 0)
+            {
+                GlobalConfig.StartOptions.NetworkKey = defaultKey;
+            }
+
+        }
+
 
         void RunConnection(BridgeConnection connection)
         {
@@ -184,12 +210,13 @@ namespace rgat.OperationModes
                 case emsgType.Command:
                     try
                     {
-                        ProcessCommand(GetString(item.data));
+                        JObject cmdObj = JObject.Parse(GetString(item.data));
+                        ProcessCommand(cmdObj);
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine($"Exception processing command  {item.msgType} {GetString(item.data)}: {e}");
-                        rgatState.NetworkBridge.Teardown($"Command Exception ({GetString(item.data)})");
+                        Console.WriteLine($"Exception processing command  {item.msgType}: {e}");
+                        rgatState.NetworkBridge.Teardown($"Command Exception ({item.msgType})");
                     }
 
                     break;
@@ -277,12 +304,88 @@ namespace rgat.OperationModes
                         Logging.RecordLogEvent(GetString(item.data), filter: filter);
                         break;
                     }
+
+                case emsgType.AsyncData:
+                    {
+                        try
+                        {
+                            string asyncStr = GetString(item.data);
+                            if (!ParseAsync(asyncStr, out string name, out JToken data))
+                            {
+                                rgatState.NetworkBridge.Teardown($"Bad async data ({name})");
+                                break;
+                            }
+                            Console.WriteLine($"Delivering async {name}");
+                            ProcessAsync(name, data);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine($"Exception processing command response {item.msgType} {GetString(item.data)}: {e}");
+                            rgatState.NetworkBridge.Teardown($"Command Reponse Exception ({GetString(item.data)})");
+                        }
+                    }
+
+                    break;
+
                 default:
                     rgatState.NetworkBridge.Teardown($"Bad message type ({item.data})");
                     Logging.RecordError($"Unhandled message type {item.msgType} => {GetString(item.data)}");
                     break;
             }
         }
+
+
+        bool ParseAsync(string injson, out string name, out JToken data)
+        {
+            name = null; data = null;
+            try
+            {
+                JObject msgObj = JObject.Parse(injson);
+
+                if (!msgObj.TryGetValue("Name", out JToken nameTok) || nameTok.Type != JTokenType.String) return false;
+                if (msgObj.TryGetValue("Data", out data)) return true;
+
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Error parsing async data: {e.Message}");
+            }
+            return false;
+        }
+
+        public void ProcessAsync(string name, JToken data)
+        {
+            bool success = false;
+            switch (name)
+            {
+                case "SignatureTimes":
+                    success = ProcessSignatureTimes(data);
+                    break;
+
+                default:
+                    Logging.RecordError("Bad async data: " + name);
+                    return;
+            }
+
+            if (!success)
+            {
+                rgatState.NetworkBridge.Teardown($"Bad Async Data ({name})");
+            }
+
+        }
+
+
+        bool ProcessSignatureTimes(JToken data)
+        {
+            if (data.Type is not JTokenType.Object) return false;
+
+            JObject values = data.ToObject<JObject>();
+            if (values.TryGetValue("YARA", out JToken yaraTok) && yaraTok.Type is JTokenType.Date) rgatState.YARALib.EndpointNewestSignature = yaraTok.ToObject<DateTime>();
+            if (values.TryGetValue("DIE", out JToken dieTok) && dieTok.Type is JTokenType.Date) rgatState.DIELib.EndpointNewestSignature = dieTok.ToObject<DateTime>();
+
+            return true;
+        }
+
 
 
         bool ParseTraceMeta(byte[] infoBytes, out TraceRecord trace, out string[] metaparams)
@@ -378,43 +481,32 @@ namespace rgat.OperationModes
 
 
 
-        bool ParseCommandFields(string cmd, out string actualCmd, out int cmdID, out string paramfield)
+        bool ParseCommandFields(JObject cmd, out string actualCmd, out int cmdID, out JToken paramTok)
         {
             actualCmd = "";
-            paramfield = null;
+            paramTok = null;
             cmdID = -1;
 
-            int cmdEndIDx = cmd.IndexOf('&');
-            if (cmdEndIDx == -1)
+            if (!cmd.TryGetValue("Name", out JToken nameTok) || nameTok.Type != JTokenType.String)
             {
-                Logging.RecordError("Error: No command seperator in command.");
+                Logging.RecordError("Error: Invalid command.");
                 return false;
             }
-            int idEndIDx = cmd.IndexOf('&', cmdEndIDx + 1);
-            if (idEndIDx == -1)
+            actualCmd = nameTok.ToString();
+
+            if (!cmd.TryGetValue("CmdID", out JToken idTok) || idTok.Type != JTokenType.Integer)
             {
-                Logging.RecordError("Error: No command ID seperator in command.");
+                Logging.RecordError("Error: Invalid command ID.");
                 return false;
             }
+            cmdID = idTok.ToObject<int>();
 
-            actualCmd = cmd.Substring(0, cmdEndIDx);
-
-            if (cmd.Length > (idEndIDx + 1))
-            {
-                int paramLen = cmd.Length - idEndIDx - 2;
-                paramfield = cmd.Substring(idEndIDx + 1, paramLen);
-            }
-
-            int.TryParse(cmd.Substring(cmdEndIDx + 1, idEndIDx - cmdEndIDx - 1), out cmdID);
-            if (cmdID == -1)
-            {
-                Logging.RecordError("Error: No command ID in command.");
-                return false;
-            }
+            if(!cmd.TryGetValue("Paramfield", out paramTok)) paramTok = null;
             return true;
         }
 
-        void ProcessCommand(string cmd)
+        //todo un-badify this
+        void ProcessCommand(JObject cmd)
         {
             if (rgatState.NetworkBridge.GUIMode)
             {
@@ -423,7 +515,7 @@ namespace rgat.OperationModes
                 return;
             }
 
-            if (!ParseCommandFields(cmd, out string actualCmd, out int cmdID, out string paramfield))
+            if (!ParseCommandFields(cmd, out string actualCmd, out int cmdID, out JToken paramfield))
             {
                 rgatState.NetworkBridge.Teardown("Command parse failure");
                 return;
@@ -443,8 +535,21 @@ namespace rgat.OperationModes
                 case "GetDrives":
                     rgatState.NetworkBridge.SendResponseObject(cmdID, rgatFilePicker.FilePicker.GetLocalDriveStrings());
                     break;
+                case "UploadSignatures":
+                    Console.WriteLine("Uploading Signatures");
+                    HandleSignatureUpload(paramfield);
+                    //rgatState.NetworkBridge.SendResponseObject(cmdID, rgatFilePicker.FilePicker.GetLocalDriveStrings());
+                    break;
                 case "LoadTarget":
-                    rgatState.NetworkBridge.SendResponseObject(cmdID, GatherTargetInitData(paramfield));
+                    JToken response = GatherTargetInitData(paramfield);
+                    if (response is not null)
+                    { 
+                        rgatState.NetworkBridge.SendResponseObject(cmdID, response); 
+                    }
+                    else
+                    {
+                        //todo - not loaded response
+                    }
                     break;
                 case "StartTrace":
                     StartHeadlessTrace(paramfield);
@@ -463,19 +568,53 @@ namespace rgat.OperationModes
 
         }
 
-        void StartHeadlessTrace(string paramfield)
+        void HandleSignatureUpload(JToken paramfield)
         {
-            JObject paramsObj;
-            try
+            if (rgatState.NetworkBridge.GUIMode)
             {
-                paramsObj = JObject.Parse(paramfield);
-            }
-            catch (Exception e)
-            {
-                Logging.RecordError($"StartHeadlessTrace: Bad Parameters object {paramfield}");
-                rgatState.NetworkBridge.Teardown("Bad Command");
+                Logging.RecordError("Signature upload attempted from tracing host to GUI!");
+                rgatState.NetworkBridge.Teardown("Tracing host tried to upload signatures");
                 return;
             }
+
+            if (paramfield == null || paramfield.Type is not JTokenType.Object)
+            {
+                Logging.RecordError("Failed to parse HandleSignatureUpload params");
+                return;
+            }
+
+            JObject paramsObj = paramfield.ToObject<JObject>();
+            if (!paramsObj.TryGetValue("Type", out JToken typeTok) || typeTok.Type is not JTokenType.String  ||
+                !paramsObj.TryGetValue("Zip", out JToken zipTok) || zipTok.Type is not JTokenType.String)
+            {
+                Logging.RecordError("Bad params for HandleSignatureUpload");
+                return;
+            }
+
+            string typeName = typeTok.ToString();
+            switch (typeName)
+            {
+                case "YARA":
+                    rgatState.YARALib.ReplaceSignatures(zipTok.ToObject<byte[]>());
+                    break;
+                case "DIE":
+                    rgatState.DIELib.ReplaceSignatures(zipTok.ToObject<byte[]>());
+                    break;
+                default:
+                    Logging.RecordError($"Invalid signature type: {typeName}");
+                    break;
+            }
+            
+        }
+
+        void StartHeadlessTrace(JToken paramfield)
+        {
+            if (paramfield == null || paramfield.Type is not JTokenType.Object)
+            {
+                Logging.RecordError("Failed to parse StartHeadlessTrace params");
+                return;
+            }
+            JObject paramsObj = paramfield.ToObject<JObject>();
 
 
             long testID = -1; string path = null;
@@ -509,8 +648,8 @@ namespace rgat.OperationModes
                 rgatState.NetworkBridge.Teardown("Bad Target");
                 return;
             }
-            string pintool = target.BitWidth == 32 ? 
-                GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) : 
+            string pintool = target.BitWidth == 32 ?
+                GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
 
             bool isDLL = target.PEFileObj.IsDll;
@@ -540,18 +679,15 @@ namespace rgat.OperationModes
 
 
 
-        bool StartThreadIngestWorker(int cmdID, string paramfield)
+        bool StartThreadIngestWorker(int cmdID, JToken paramfield)
         {
-            JObject paramObj;
-            try
-            {
-                paramObj = JObject.Parse(paramfield);
-            }
-            catch (Exception e)
+            if (paramfield == null || paramfield.Type is not JTokenType.Object)
             {
                 Logging.RecordError("Failed to parse StartThreadIngestWorker params");
                 return false;
             }
+            JObject paramObj = paramfield.ToObject<JObject>();
+
 
             if (paramObj.TryGetValue("TID", out JToken tidTok) && tidTok.Type == JTokenType.Integer &&
                 paramObj.TryGetValue("PID", out JToken pidTok) && tidTok.Type == JTokenType.Integer &&
@@ -590,11 +726,17 @@ namespace rgat.OperationModes
 
 
 
-        JObject GetDirectoryInfo(string dir)
+        JObject GetDirectoryInfo(JToken dirObj)
         {
+
             JObject data = new JObject();
-            if (dir == null || dir.Length == 0)
-                dir = Environment.CurrentDirectory;
+            string dir = Environment.CurrentDirectory;
+            if (dirObj != null && dirObj.Type is JTokenType.String)
+            {
+                string dirString = dirObj.ToString();
+                if (dirString.Length != 0) dir = dirString.ToString();
+            }
+
             DirectoryInfo dirinfo = new DirectoryInfo(dir);
             data.Add("Current", dir);
             data.Add("CurrentExists", Directory.Exists(dir));
@@ -641,11 +783,15 @@ namespace rgat.OperationModes
         }
 
 
-        JToken GatherTargetInitData(string path)
+        JToken GatherTargetInitData(JToken pathTok)
         {
-            BinaryTarget target = rgatState.targets.AddTargetByPath(path);
-
-            return (JToken)target.GetRemoteLoadInitData();
+            if (pathTok != null && pathTok.Type == JTokenType.String)
+            {
+                BinaryTarget target = rgatState.targets.AddTargetByPath(pathTok.ToString());
+                if (target != null)
+                    return (JToken)target.GetRemoteLoadInitData();
+            }
+            return null;
         }
 
 
@@ -700,7 +846,7 @@ namespace rgat.OperationModes
                 return;
             }
 
-            Logging.RecordLogEvent($"Initialising Connection to {GlobalConfig.StartOptions.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Initialising . {GlobalConfig.StartOptions.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
             if (!GetRemoteAddress(GlobalConfig.StartOptions.ConnectModeAddress, out string address, out int port))
             {
                 Logging.RecordError($"Failed to parse address/port from param {GlobalConfig.StartOptions.ConnectModeAddress}");
@@ -744,7 +890,7 @@ namespace rgat.OperationModes
             IPAddress result = null;
             if (GlobalConfig.StartOptions.ActiveNetworkInterface == null && GlobalConfig.StartOptions.Interface != null)
             {
-                GlobalConfig.StartOptions.ActiveNetworkInterface = RemoteTracing.ValidateNetworkInterface(GlobalConfig.StartOptions.Interface);
+                GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(GlobalConfig.StartOptions.Interface);
             }
 
             if (GlobalConfig.StartOptions.ActiveNetworkInterface == null) //user didn't pass a param, or 

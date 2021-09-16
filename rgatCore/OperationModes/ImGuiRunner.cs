@@ -349,7 +349,7 @@ namespace rgat.OperationModes
             Progress<float> IProgressAPI = new Progress<float>(progress => { apiProgress = progress; UpdateProgressAPISig(); });
             Progress<float> IProgressSigs = new Progress<float>(progress => { sigProgress = progress; UpdateProgressAPISig(); });
 
-            Task sigsTask = Task.Run(() => _rgatState.LoadSignatures(IProgressSigs));
+            Task sigsTask = Task.Run(() => rgatState.LoadSignatures(IProgressSigs));
 
             // api data is the startup item that can be loaded latest as it's only needed when looking at traces
             // we could load it in parallel with the widgets/config but if it gets big then it will be the limiting factor in start up speed

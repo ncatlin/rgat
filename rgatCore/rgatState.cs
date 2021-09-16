@@ -71,6 +71,7 @@ namespace rgat
         /// </summary>
         public static Threads.ProcessCoordinatorThread processCoordinatorThreadObj = null;
 
+
         public rgatState()
         {
             LocalCoordinatorPipeName = Path.GetRandomFileName().Substring(0, 8).ToUpper();
@@ -90,7 +91,8 @@ namespace rgat
         /// A task which loads binary signatures such as YARA and DIE
         /// </summary>
         /// <param name="progress">An IProgress object for the UI process bar</param>
-        public void LoadSignatures(IProgress<float> progress)
+        /// <param name="completionCallback">An action to call when the load is complete</param>
+        public static void LoadSignatures(IProgress<float> progress = null, Action completionCallback = null)
         {
             //todo - inner progress reporting based on signature count
             Logging.RecordLogEvent("Loading DiELib", Logging.LogFilterType.TextDebug);
@@ -112,7 +114,7 @@ namespace rgat
                 Logging.RecordLogEvent($"Not loading DiE scripts: invalid path configured");
             }
 
-            progress.Report(0.5f);
+            progress?.Report(0.5f);
             Logging.RecordLogEvent("Loading YARA", Logging.LogFilterType.TextDebug);
 
             string YARAscriptsDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory);
@@ -136,8 +138,8 @@ namespace rgat
             {
                 Logging.RecordLogEvent("YARA loaded", Logging.LogFilterType.TextDebug);
             }
-            progress.Report(1f);
-
+            progress?.Report(1f);
+            if (completionCallback != null) completionCallback();
         }
 
 

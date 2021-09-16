@@ -18,12 +18,28 @@
             <param name="remoteAddr">The address of the remote rgat instance where this target is being traced</param>
             <param name="isLibrary">if the target is a library or not. This value will be used if the binary cannot be found and parsed</param>
         </member>
+        <member name="F:rgat.BridgeConnection.emsgType.AsyncData">
+            <summary>
+            Non-trace related data sent without requiring a command to generate it (eg: result of signature scanning)
+            </summary>
+        </member>
         <member name="P:rgat.BridgeConnection.GUIMode">
             <summary>
             Whether this instance is the GUI.
             The GUI sends tracing commands and recieves trace data and associated metadata (available files to execute, signature hits, etc)
             It does not do the opposite. Ever.
             </summary>
+        </member>
+        <member name="F:rgat.BridgeConnection.RemoteEndPoint">
+            <summary>
+            An IPEndPoint for the host we are connected to
+            </summary>
+        </member>
+        <member name="M:rgat.BridgeConnection.#ctor(System.Boolean)">
+            <summary>
+            An rgat connection object
+            </summary>
+            <param name="isgui">true if this process is running in GUI mode. One (and only one) party must have this flag set</param>
         </member>
         <member name="M:rgat.BridgeConnection.Start(System.Net.IPAddress,System.String,System.Int32,rgat.BridgeConnection.OnGotDataCallback,rgat.BridgeConnection.OnConnectSuccessCallback)">
             <summary>
@@ -35,6 +51,59 @@
             <param name="remoteConnectPort">The remote TCP port to connect to</param>
             <returns></returns>
         </member>
+        <member name="M:rgat.BridgeConnection.StartConnectOut(System.Net.Sockets.TcpClient,System.String,System.Int32,rgat.BridgeConnection.OnConnectSuccessCallback)">
+            <summary>
+            Establish a connection to a listening rgat instance
+            </summary>
+            <param name="client">The TcpClient object for the connection</param>
+            <param name="remoteConnectAddress">Host address of the remote party</param>
+            <param name="remoteConnectPort">Port the remote party is listening on</param>
+            <param name="connectCallback">The main connection handler which will serve the connection</param>
+        </member>
+        <member name="M:rgat.BridgeConnection.AuthenticateConnectionTask(System.Boolean)">
+            <summary>
+            A task that exchanges and verifies the initial handshake messages
+            </summary>
+            <param name="isServer">true if the other party initiated the connection, false if we did</param>
+            <returns>true if the handshake succeeded and both parties have the same key</returns>
+        </member>
+        <member name="M:rgat.BridgeConnection.TryCreateCryptoStream(System.Net.Sockets.TcpClient,System.Boolean)">
+            <summary>
+            Ensure the other end of the connection knows our key
+            </summary>
+            <param name="client">The TcpClient for the connection</param>
+            <param name="isServer">true if the other party initiated the connection, false if we did</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.BridgeConnection.ReadData(System.Nullable{rgat.BridgeConnection.NETWORK_MSG}@)">
+            <summary>
+            Read the next message from the conencted party
+            </summary>
+            <param name="data">A NETWORK_MSG object</param>
+            <returns>If successful</returns>
+        </member>
+        <member name="M:rgat.BridgeConnection.RawSendData(rgat.BridgeConnection.emsgType,System.String)">
+            <summary>
+            Encrypt and send a message to the connected party
+            </summary>
+            <param name="msgtype">Message Type</param>
+            <param name="textdata">Message string</param>
+            <returns>If successful</returns>
+        </member>
+        <member name="M:rgat.BridgeConnection.RawSendData(rgat.BridgeConnection.NETWORK_MSG)">
+            <summary>
+            Encrypt and send a message to the connected party
+            </summary>
+            <param name="msg">A NETWORK_MSG object containing the message</param>
+            <returns>If successful</returns>
+        </member>
+        <member name="M:rgat.BridgeConnection.AddDisplayLogMessage(System.String,System.Nullable{rgat.Themes.eThemeColour})">
+            <summary>
+            Add a message to the remote tracing dialog log panel
+            </summary>
+            <param name="msg">Text of the message to add</param>
+            <param name="colour">Colour of the message, or null for default</param>
+        </member>
         <member name="M:rgat.BridgeConnection.Start(System.Net.IPAddress,System.Int32,rgat.BridgeConnection.OnGotDataCallback,rgat.BridgeConnection.OnConnectSuccessCallback)">
             <summary>
             Initiate a bridge connection in listener mode
@@ -44,7 +113,7 @@
             <param name="localBindPort">The local TCP port to listen on</param>
             <returns></returns>
         </member>
-        <member name="M:rgat.BridgeConnection.SendCommand(System.String,System.String,rgat.Config.RemoteDataMirror.ProcessResponseCallback,System.String)">
+        <member name="M:rgat.BridgeConnection.SendCommand(System.String,System.String,rgat.Config.RemoteDataMirror.ProcessResponseCallback,Newtonsoft.Json.Linq.JToken)">
             <summary>
             Send a command to the remote instance of rgat (which is in commandline tracing mode)
             The handling of the response (a JToken) depends on the arguments
@@ -701,11 +770,12 @@
             </summary>
             <param name="_gd">A Veldrid GraphicsDevice</param>
         </member>
-        <member name="M:rgat.rgatState.LoadSignatures(System.IProgress{System.Single})">
+        <member name="M:rgat.rgatState.LoadSignatures(System.IProgress{System.Single},System.Action)">
             <summary>
             A task which loads binary signatures such as YARA and DIE
             </summary>
             <param name="progress">An IProgress object for the UI process bar</param>
+            <param name="completionCallback">An action to call when the load is complete</param>
         </member>
         <member name="F:rgat.rgatState._exitTokenSource">
             <summary>

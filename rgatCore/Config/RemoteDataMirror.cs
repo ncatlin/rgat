@@ -129,7 +129,6 @@ namespace rgat.Config
 
 
 
-
         // file info
 
         static List<PathRecord> _cachedRecentBins = new List<PathRecord>();

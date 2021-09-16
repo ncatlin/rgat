@@ -637,7 +637,7 @@ namespace rgat
             }
 
             InitPaths();
-
+            
 
             if (GUI)
             {
