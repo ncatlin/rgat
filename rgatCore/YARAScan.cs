@@ -248,7 +248,7 @@ namespace rgat
         DateTime _lastCheck = DateTime.MinValue;
         public DateTime NewestSignature { get; private set; } = DateTime.MinValue;
         public DateTime EndpointNewestSignature = DateTime.MinValue;
-        public bool StaleRemoteSignatures => true;//  (EndpointNewestSignature != DateTime.MinValue && EndpointNewestSignature > NewestSignature);
+        public bool StaleRemoteSignatures => (EndpointNewestSignature != DateTime.MinValue && EndpointNewestSignature > NewestSignature);
 
         DateTime LatestSignatureChange(string rulesDir)
         {
@@ -348,11 +348,13 @@ namespace rgat
                     paramObj.Add("Zip", zipfile);
                     rgatState.NetworkBridge.SendCommand("UploadSignatures", null, null, paramObj);
                     File.Delete(tempfile);
+                    rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Uploaded YARA signatures", Themes.eThemeColour.eGoodStateColour);
                 }
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to upload signatures: {e.Message}");
+                Logging.RecordError($"Failed to upload YARA signatures: {e.Message}");
+                rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Failed to upload YARA signatures", Themes.eThemeColour.eBadStateColour);
             }
 
         }
@@ -362,6 +364,7 @@ namespace rgat
             Console.WriteLine($"Replacing yara sigs with zip size {zipfile.Length}");
             try
             {
+                rgatState.YARALib?.CancelAllScans();
                 string tempfile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
                 File.WriteAllBytes(tempfile, zipfile);
                 if (File.Exists(tempfile))
@@ -371,11 +374,13 @@ namespace rgat
                     ZipFile.ExtractToDirectory(tempfile, original, true);
                     File.Delete(tempfile);
                     OperationModes.BridgedRunner.SendSigDates();
+                    rgatState.NetworkBridge.SendLog("YARA signature replacement completed successfully", Logging.LogFilterType.TextInfo);
                 }
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to replace signatures: {e.Message}");
+                Logging.RecordError($"Failed to replace YARA signatures: {e.Message}");
+                rgatState.NetworkBridge.SendLog($"YARA signature sync failed: {e.Message}", Logging.LogFilterType.TextError);
             }
         }
 

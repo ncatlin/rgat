@@ -510,11 +510,13 @@ namespace rgat.Widgets
                             {
                                 _listenIFID = "";
                                 GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(_listenIFID);
+                                GlobalConfig.Settings.Network.DefaultListenModeIF = _listenIFID;
                             }
                             else
                             {
                                 _connectIFID = "";
                                 GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(_connectIFID);
+                                GlobalConfig.Settings.Network.DefaultConnectModeIF = _connectIFID;
                             }
                         }
                         else
@@ -523,11 +525,13 @@ namespace rgat.Widgets
                             {
                                 _listenIFID = iface.Id;
                                 GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(_listenIFID);
+                                GlobalConfig.Settings.Network.DefaultListenModeIF = _listenIFID;
                             }
                             else
                             {
                                 _connectIFID = iface.Id;
                                 GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(_connectIFID);
+                                GlobalConfig.Settings.Network.DefaultConnectModeIF = _connectIFID;
                             }
                         }
                     }
@@ -694,32 +698,50 @@ namespace rgat.Widgets
             }
             else
             {
-                if (rgatState.DIELib.StaleRemoteSignatures || rgatState.YARALib.StaleRemoteSignatures)
+                if (ImGui.BeginChild("##sigUploadFrm"))
                 {
-                    if (ImGui.BeginChild("##sigUploadFrm"))
+                    if (ImGui.Button("Sync Signatures"))
                     {
-                        if (ImGui.Button("Sync Signatures"))
-                        {
-                            SyncSignatures();
-                        }
-                        SmallWidgets.MouseoverText("Your signatures may be newer than on the remote device. Click to upload them.");
-                        ImGui.EndChild();
+                        Task.Run(() => { SyncSignatures(); });
                     }
+                    if (rgatState.DIELib.StaleRemoteSignatures || rgatState.YARALib.StaleRemoteSignatures)
+                    {
+                        SmallWidgets.MouseoverText("Your signatures may be newer than on the remote device. Click to upload them.");
+                    }
+                    else
+                    {
+                        SmallWidgets.MouseoverText("Replace the signatures on the remote device with our signatures");
+                    }
+                    ImGui.EndChild();
                 }
             }
+        }
+
+        void WaitFinishSync()
+        {
+
         }
 
         bool _syncingSigs = false;
         void SyncSignatures()
         {
-            if (rgatState.YARALib.StaleRemoteSignatures)
+            _syncingSigs = true;
+            try
             {
-                Task.Run(() => rgatState.YARALib.UploadSignatures());
+                rgatState.NetworkBridge.AddNetworkDisplayLogMessage($"Uploading signatures to {rgatState.NetworkBridge.RemoteEndPoint}", null);
+                List<Task> tasks = new List<Task>();
+                tasks.Add(Task.Run(() => rgatState.YARALib.UploadSignatures()));
+                tasks.Add(Task.Run(() => rgatState.DIELib.UploadSignatures()));
+                Task.WaitAll(tasks.ToArray(), rgatState.ExitToken);
             }
-            if (rgatState.DIELib.StaleRemoteSignatures)
+            catch (Exception e)
             {
-                Task.Run(() => rgatState.DIELib.UploadSignatures());
+                if (!rgatState.ExitToken.IsCancellationRequested)
+                {
+                    Logging.RecordError($"Error syncing signatures: {e.Message}");
+                }
             }
+            _syncingSigs = false;
         }
 
     }

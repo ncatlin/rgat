@@ -97,7 +97,7 @@
             <param name="msg">A NETWORK_MSG object containing the message</param>
             <returns>If successful</returns>
         </member>
-        <member name="M:rgat.BridgeConnection.AddDisplayLogMessage(System.String,System.Nullable{rgat.Themes.eThemeColour})">
+        <member name="M:rgat.BridgeConnection.AddNetworkDisplayLogMessage(System.String,System.Nullable{rgat.Themes.eThemeColour})">
             <summary>
             Add a message to the remote tracing dialog log panel
             </summary>

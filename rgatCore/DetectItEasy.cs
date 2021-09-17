@@ -195,18 +195,25 @@ namespace rgat
         {
             try
             {
-                string tempfile = Path.GetTempFileName();
+                string tempfile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
                 System.IO.Compression.ZipFile.CreateFromDirectory(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory), tempfile);
-                byte[] zipfile = File.ReadAllBytes(tempfile);
-                JObject paramObj = new JObject();
-                paramObj.Add("Type", "DIE");
-                paramObj.Add("Zip", zipfile);
-                rgatState.NetworkBridge.SendCommand("UploadSignatures", null, null, paramObj);
+                if (File.Exists(tempfile))
+                {
+                    byte[] zipfile = File.ReadAllBytes(tempfile);
+                    JObject paramObj = new JObject();
+                    paramObj.Add("Type", "DIE");
+                    paramObj.Add("Zip", zipfile);
+                    rgatState.NetworkBridge.SendCommand("UploadSignatures", null, null, paramObj);
+                    File.Delete(tempfile);
+                    rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Uploaded DIE signatures", Themes.eThemeColour.eGoodStateColour);
+                }
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to upload signatures: {e.Message}");
+                Logging.RecordError($"Failed to upload DIE signatures: {e.Message}");
+                rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Failed to upload DIE signatures", Themes.eThemeColour.eBadStateColour);
             }
+
 
         }
 
@@ -220,16 +227,19 @@ namespace rgat
                 File.WriteAllBytes(tempfile, zipfile);
                 if (File.Exists(tempfile))
                 {
+                    rgatState.DIELib?.CancelAllScans();
                     string original = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory);
                     Directory.Delete(original, true);
                     System.IO.Compression.ZipFile.ExtractToDirectory(tempfile, original, true);
                     File.Delete(tempfile);
                     OperationModes.BridgedRunner.SendSigDates();
+                    rgatState.NetworkBridge.SendLog("DIE signature replacement completed successfully", Logging.LogFilterType.TextInfo);
                 }
             }
             catch (Exception e)
             {
                 Logging.RecordError($"Failed to replace signatures: {e.Message}");
+                rgatState.NetworkBridge.SendLog($"DIE signature sync failed: {e.Message}", Logging.LogFilterType.TextError);
             }
         }
     }

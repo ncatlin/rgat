@@ -615,7 +615,7 @@ namespace rgat
                     }
                     catch (Exception e2)
                     {
-                        Logging.RecordError($"Temporary settings {settingsPath} could not be created ({e.Message})");
+                        Logging.RecordError($"Temporary settings {settingsPath} could not be created ({e2.Message})");
                         return;
                     }
                 }

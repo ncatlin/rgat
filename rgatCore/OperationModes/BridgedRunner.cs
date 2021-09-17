@@ -293,15 +293,13 @@ namespace rgat.OperationModes
 
                 case emsgType.Log:
                     {
-                        byte[] data = item.data;
-
                         Logging.LogFilterType filter = (Logging.LogFilterType)item.destinationID;
                         if (!Enum.IsDefined(typeof(Logging.LogFilterType), filter))
                         {
                             Logging.RecordError("Bad log filter for " + GetString(item.data));
                             return;
                         }
-                        Logging.RecordLogEvent(GetString(item.data), filter: filter);
+                        Logging.RecordLogEvent("[Remote Log] "+GetString(item.data), filter: filter);
                         break;
                     }
 

@@ -129,7 +129,7 @@ namespace rgat
             Task connect;
             try
             {
-                AddDisplayLogMessage($"Connecting from {((IPEndPoint)client.Client.LocalEndPoint).Address} to {remoteConnectAddress}:{remoteConnectPort}", null);
+                AddNetworkDisplayLogMessage($"Connecting from {((IPEndPoint)client.Client.LocalEndPoint).Address} to {remoteConnectAddress}:{remoteConnectPort}", null);
                 connect = _ActiveClient.ConnectAsync(remoteConnectAddress, remoteConnectPort);
                 Task.WaitAny(new Task[] { connect }, CancelToken);
             }
@@ -137,11 +137,11 @@ namespace rgat
             {
                 if (e.SocketErrorCode == SocketError.AddressNotAvailable)
                 {
-                    AddDisplayLogMessage($"Remote Address unavailable. Wrong interface?", Themes.eThemeColour.eWarnStateColour);
+                    AddNetworkDisplayLogMessage($"Remote Address unavailable. Wrong interface?", Themes.eThemeColour.eWarnStateColour);
                 }
                 else
                 {
-                    AddDisplayLogMessage($"Connection Failed: {e.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
+                    AddNetworkDisplayLogMessage($"Connection Failed: {e.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
                 }
                 Teardown();
                 return;
@@ -161,7 +161,7 @@ namespace rgat
 
             if (client.Connected)
             {
-                AddDisplayLogMessage($"Connected to {remoteConnectAddress}:{remoteConnectPort}", null);
+                AddNetworkDisplayLogMessage($"Connected to {remoteConnectAddress}:{remoteConnectPort}", null);
 
                 if (!TryCreateCryptoStream(_ActiveClient, isServer: false))
                 {
@@ -171,7 +171,7 @@ namespace rgat
 
                 if (AuthenticateOutgoingConnection())
                 {
-                    AddDisplayLogMessage($"Authenticated to {remoteConnectAddress}:{remoteConnectPort}", Themes.eThemeColour.eGoodStateColour);
+                    AddNetworkDisplayLogMessage($"Authenticated to {remoteConnectAddress}:{remoteConnectPort}", Themes.eThemeColour.eGoodStateColour);
                     ServeAuthenticatedConnection(connectCallback);
                     return;
                 }
@@ -184,17 +184,17 @@ namespace rgat
                     {
                         case SocketException sockExcep:
                             {
-                                AddDisplayLogMessage($"Connection Failed: {sockExcep.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
+                                AddNetworkDisplayLogMessage($"Connection Failed: {sockExcep.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
                                 break;
                             }
                         default:
-                            AddDisplayLogMessage($"Connection Failed (Fault)", Themes.eThemeColour.eWarnStateColour);
+                            AddNetworkDisplayLogMessage($"Connection Failed (Fault)", Themes.eThemeColour.eWarnStateColour);
                             break;
                     }
                 }
                 else
                 {
-                    AddDisplayLogMessage($"Connection Failed (NoFault)", Themes.eThemeColour.eWarnStateColour);
+                    AddNetworkDisplayLogMessage($"Connection Failed (NoFault)", Themes.eThemeColour.eWarnStateColour);
                 }
             }
             Teardown("Connect Mode Finished");
@@ -251,7 +251,7 @@ namespace rgat
                 }
                 catch (CryptographicException e)
                 {
-                    AddDisplayLogMessage("Bad network key", Themes.eThemeColour.eBadStateColour);
+                    AddNetworkDisplayLogMessage("Bad network key", Themes.eThemeColour.eBadStateColour);
                     return false;
                 }
 
@@ -260,7 +260,7 @@ namespace rgat
             catch (Exception e)
             {
                 Logging.RecordError($"Failed to authenticate connection: {e.Message}");
-                AddDisplayLogMessage("Authentication Error", Themes.eThemeColour.eBadStateColour);
+                AddNetworkDisplayLogMessage("Authentication Error", Themes.eThemeColour.eBadStateColour);
                 return false;
             }
         }
@@ -286,7 +286,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                AddDisplayLogMessage($"Failed to authenticate connection: {e}", Themes.eThemeColour.eBadStateColour);
+                AddNetworkDisplayLogMessage($"Failed to authenticate connection: {e}", Themes.eThemeColour.eBadStateColour);
                 Logging.RecordError($"Failed to authenticate connection: {e}");
             }
             return false;
@@ -307,7 +307,7 @@ namespace rgat
             {
                 _reader.Read(_readIV, 0, 12);
                 _reader.Read(_readTag, 0, 16);
-                ushort ctsize = _reader.ReadUInt16();
+                int ctsize = _reader.ReadInt32();
                 byte[] buf = _reader.ReadBytes(ctsize);
 
                 try
@@ -345,17 +345,17 @@ namespace rgat
                     switch (innerE.SocketErrorCode)
                     {
                         case SocketError.ConnectionReset:
-                            AddDisplayLogMessage($"Receive Failed: The connection was reset ({innerE.ErrorCode})", Themes.eThemeColour.eWarnStateColour);
+                            AddNetworkDisplayLogMessage($"Receive Failed: The connection was reset ({innerE.ErrorCode})", Themes.eThemeColour.eWarnStateColour);
                             break;
                         default:
-                            AddDisplayLogMessage($"Receive Failed: {innerE.SocketErrorCode} ({innerE.ErrorCode})", Themes.eThemeColour.eWarnStateColour);
+                            AddNetworkDisplayLogMessage($"Receive Failed: {innerE.SocketErrorCode} ({innerE.ErrorCode})", Themes.eThemeColour.eWarnStateColour);
                             break;
                     }
                 }
                 else
                 {
                     Logging.RecordError($"Receive Failed: {IOExcep.Message}");
-                    AddDisplayLogMessage($"Receive Failed: {IOExcep.Message}", Themes.eThemeColour.eWarnStateColour);
+                    AddNetworkDisplayLogMessage($"Receive Failed: {IOExcep.Message}", Themes.eThemeColour.eWarnStateColour);
                 }
             }
             catch (Exception e)
@@ -411,7 +411,7 @@ namespace rgat
 
                 _writer.Write(IV);
                 _writer.Write(_sendTag);
-                _writer.Write((ushort)plaintext.Length);
+                _writer.Write(plaintext.Length);
                 _writer.Write(plaintext);
 
                 return !cancelTokens.IsCancellationRequested;
@@ -435,7 +435,7 @@ namespace rgat
                         {
                             case SocketException sockExcep:
                                 {
-                                    AddDisplayLogMessage($"Send Failed: {sockExcep.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
+                                    AddNetworkDisplayLogMessage($"Send Failed: {sockExcep.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
                                     break;
                                 }
                             default:
@@ -455,7 +455,7 @@ namespace rgat
         /// </summary>
         /// <param name="msg">Text of the message to add</param>
         /// <param name="colour">Colour of the message, or null for default</param>
-        void AddDisplayLogMessage(string msg, Themes.eThemeColour? colour)
+        public void AddNetworkDisplayLogMessage(string msg, Themes.eThemeColour? colour)
         {
             if (GUIMode)
             {
@@ -503,12 +503,12 @@ namespace rgat
             }
             catch (SocketException e)
             {
-                AddDisplayLogMessage($"Listen Failed: {e.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
+                AddNetworkDisplayLogMessage($"Listen Failed: {e.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
                 Teardown();
             }
             catch (Exception e)
             {
-                AddDisplayLogMessage($"Listen Failed", Themes.eThemeColour.eWarnStateColour);
+                AddNetworkDisplayLogMessage($"Listen Failed", Themes.eThemeColour.eWarnStateColour);
                 Teardown();
             }
 
@@ -520,7 +520,7 @@ namespace rgat
         {
             if (BridgeState != eBridgeState.Listening) return;
             IPEndPoint listenerEndpoint = (IPEndPoint)listener.LocalEndpoint;
-            AddDisplayLogMessage($"Listening on {listenerEndpoint.Address}:{listenerEndpoint.Port}", null);
+            AddNetworkDisplayLogMessage($"Listening on {listenerEndpoint.Address}:{listenerEndpoint.Port}", null);
             try
             {
                 _ActiveClient = listener.AcceptTcpClient();
@@ -529,7 +529,7 @@ namespace rgat
             {
                 if (!cancelTokens.IsCancellationRequested)
                 {
-                    AddDisplayLogMessage($"Failed Accept: {e.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
+                    AddNetworkDisplayLogMessage($"Failed Accept: {e.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
                 }
                 Teardown();
                 return;
@@ -545,7 +545,7 @@ namespace rgat
             {
 
                 IPEndPoint clientEndpoint = (IPEndPoint)_ActiveClient.Client.RemoteEndPoint;
-                AddDisplayLogMessage($"Incoming connection from {clientEndpoint}", null);
+                AddNetworkDisplayLogMessage($"Incoming connection from {clientEndpoint}", null);
 
                 if (!TryCreateCryptoStream(_ActiveClient, isServer: true))
                 {
@@ -555,7 +555,7 @@ namespace rgat
 
                 if (AuthenticateIncomingConnection())
                 {
-                    AddDisplayLogMessage("Connected to rgat", Themes.eThemeColour.eGoodStateColour);
+                    AddNetworkDisplayLogMessage("Connected to rgat", Themes.eThemeColour.eGoodStateColour);
                     Logging.RecordLogEvent($"New connection from {clientEndpoint}", Logging.LogFilterType.TextAlert);
                     ServeAuthenticatedConnection(connectCallback);
                 }
@@ -697,7 +697,6 @@ namespace rgat
             Debug.Assert(rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode);
             lock (_sendQueueLock)
             {
-                Console.WriteLine($"SendTraceMeta message {info}");
                 byte[] Jsnbytes = Encoding.ASCII.GetBytes($"{trace.binaryTarg.GetSHA1Hash()},{trace.PID},{trace.randID},{info}");
                 _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.TraceMeta, destinationID = 0, data = Jsnbytes });
                 NewOutDataEvent.Set();
@@ -783,10 +782,10 @@ namespace rgat
                         if (_ActiveClient != null && _ActiveClient.Connected)
                         {
                             RawSendData(emsgType.Meta, "Teardown:" + reason);
-                            AddDisplayLogMessage($"Disconnected{(reason.Length > 0 ? $": {reason}" : "")}", Themes.eThemeColour.eWarnStateColour);
+                            AddNetworkDisplayLogMessage($"Disconnected{(reason.Length > 0 ? $": {reason}" : "")}", Themes.eThemeColour.eWarnStateColour);
                         }
                         else
-                            AddDisplayLogMessage($"Connection Disabled{(reason.Length > 0 ? $": {reason}" : "")}", null);
+                            AddNetworkDisplayLogMessage($"Connection Disabled{(reason.Length > 0 ? $": {reason}" : "")}", null);
 
                         Thread.Sleep(250); //give the UI a chance to close the connection gracefully so the right error message appears first. 
                         BridgeState = eBridgeState.Teardown;
@@ -795,7 +794,7 @@ namespace rgat
                     }
                     catch(Exception e)
                     {
-                        AddDisplayLogMessage($"Teardown warning: {e.Message}", Themes.eThemeColour.eWarnStateColour);
+                        AddNetworkDisplayLogMessage($"Teardown warning: {e.Message}", Themes.eThemeColour.eWarnStateColour);
                     }
                     cancelTokens.Cancel();
                     if (_ActiveClient != null && _ActiveClient.Connected) _ActiveClient.Close();
@@ -816,7 +815,7 @@ namespace rgat
                 if (!success || newdata == null)
                 {
                     if (!cancelTokens.IsCancellationRequested)
-                        AddDisplayLogMessage("Connection terminated unexpectedly", Themes.eThemeColour.eWarnStateColour);
+                        AddNetworkDisplayLogMessage("Connection terminated unexpectedly", Themes.eThemeColour.eWarnStateColour);
                     break;
                 }
                 _registeredIncomingDataCallback(newdata.Value);
@@ -840,7 +839,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    AddDisplayLogMessage($"Exception {e.Message}-{e.GetType()} in send outgoing", Themes.eThemeColour.eBadStateColour);
+                    AddNetworkDisplayLogMessage($"Exception {e.Message}-{e.GetType()} in send outgoing", Themes.eThemeColour.eBadStateColour);
                     break;
                 }
 
@@ -903,16 +902,16 @@ namespace rgat
                 if (authString == (GUIMode ? connectResponseGUI : connectResponseHeadless) || authString == "Bad Mode")
                 {
                     if (GUIMode)
-                        AddDisplayLogMessage("GUI<->GUI Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
+                        AddNetworkDisplayLogMessage("GUI<->GUI Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
                     else
-                        AddDisplayLogMessage("Cmdline<->Cmdline Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
+                        AddNetworkDisplayLogMessage("Cmdline<->Cmdline Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
                     Logging.RecordLogEvent($"Bad prelude response. Connection can only be made between rgat in GUI and command-line modes", Logging.LogFilterType.TextError);
                 }
                 else
                 {
                     Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(_ActiveClient.Client.RemoteEndPoint)} - response did not decrypt to the expected value", 
                         Logging.LogFilterType.TextError);
-                    AddDisplayLogMessage("Authentication failed - Bad Key", Themes.eThemeColour.eAlertWindowBg);
+                    AddNetworkDisplayLogMessage("Authentication failed - Bad Key", Themes.eThemeColour.eAlertWindowBg);
                 }
                 return false;
             }
@@ -929,7 +928,7 @@ namespace rgat
 
             if (recvd == null || msg.msgType != emsgType.Meta || msg.data.Length == 0)
             {
-                AddDisplayLogMessage("Authentication failed - no vald data", Themes.eThemeColour.eBadStateColour);
+                AddNetworkDisplayLogMessage("Authentication failed - no vald data", Themes.eThemeColour.eBadStateColour);
                 Console.WriteLine($"AuthenticateIncomingConnection No prelude from {_ActiveClient}, ignoring");
                 Logging.RecordLogEvent($"No prelude from {_ActiveClient}, ignoring", Logging.LogFilterType.TextDebug);
                 return false;
@@ -946,15 +945,15 @@ namespace rgat
                 if (authString == (GUIMode ? connectPreludeGUI : connectPreludeHeadless))
                 {
                     if (GUIMode)
-                        AddDisplayLogMessage("GUI<->GUI Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
+                        AddNetworkDisplayLogMessage("GUI<->GUI Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
                     else
-                        AddDisplayLogMessage("Cmdline<->Cmdline Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
+                        AddNetworkDisplayLogMessage("Cmdline<->Cmdline Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
                     Logging.RecordLogEvent($"Connection refused - Connection can only be made between rgat in GUI and command-line modes", Logging.LogFilterType.TextError);
                     RawSendData(emsgType.Meta, "Bad Mode");
                 }
                 else
                 {
-                    AddDisplayLogMessage("Authentication failed - Bad Key", Themes.eThemeColour.eAlertWindowBg);
+                    AddNetworkDisplayLogMessage("Authentication failed - Bad Key", Themes.eThemeColour.eAlertWindowBg);
                     Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(_ActiveClient.Client.RemoteEndPoint)} - prelude did not decrypt to the expected value", Logging.LogFilterType.TextError);
                 }
                 return false;
