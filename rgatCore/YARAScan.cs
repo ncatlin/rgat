@@ -70,22 +70,78 @@ namespace rgat
             }
         }
 
-        public struct YARAHit
+        public class YARAHit
         {
-            public string Identifier;
+            public YARAHit(dnYara.ScanResult marshalledHit)
+            {
+                MatchingRule = marshalledHit.MatchingRule;
+                Matches = new Dictionary<string, List<YaraHitMatch>>();
+                foreach (var kvp in marshalledHit.Matches)
+                {
+                    List<YaraHitMatch> sigHits = new List<YaraHitMatch>();
+                    foreach (var hit in kvp.Value)
+                    {
+                        sigHits.Add(new YaraHitMatch() { Base = hit.Base, Data = hit.Data, Offset = hit.Offset });
+                    }
+                    Matches.Add(kvp.Key, sigHits);
+                }
+            }
+
+            public YARAHit()
+            {
+            }
+
+
+            public Rule MatchingRule;
+            public Dictionary<string, List<YARAHit.YaraHitMatch>> Matches;
+
+            public class YaraHitMatch
+            {
+                public YaraHitMatch()
+                {
+
+                }
+                public long Base { get; set; }
+                public long Offset { get; set; }
+                public byte[] Data { get; set; }
+            }
+
         }
 
 
+
         //scan a target binary file
-        public void StartYARATargetScan(BinaryTarget targ)
+        public void StartYARATargetScan(BinaryTarget targ, bool reload = false)
         {
-            if (!File.Exists(targ.FilePath)) return;
+            targ.ClearSignatureHits(CONSTANTS.eSignatureType.YARA);
+            if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.GUIMode)
+            {
+                JObject cmdparams = new JObject();
+                cmdparams.Add("Type", "YARA");
+                cmdparams.Add("Reload", reload);
+                cmdparams.Add("TargetSHA1", targ.GetSHA1Hash());
+                rgatState.NetworkBridge.SendCommand("StartSigScan", null, null, cmdparams);
+                return;
+            }
+            try
+            {
+                if (reload)
+                {
+                    RefreshRules(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory), forceRecompile: true);
+                }
 
-            List<object> args = new List<object>() { targ };
+                if (!File.Exists(targ.FilePath)) return;
 
-            Thread YaraThread = new Thread(new ParameterizedThreadStart(YARATargetScanThread));
-            YaraThread.Name = "YARA_F_" + targ.FileName;
-            YaraThread.Start(args);
+                List<object> args = new List<object>() { targ };
+
+                Thread YaraThread = new Thread(new ParameterizedThreadStart(YARATargetScanThread));
+                YaraThread.Name = "YARA_F_" + targ.FileName;
+                YaraThread.Start(args);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Error starting YARA scan: {e}");
+            }
         }
 
         public void RefreshRules(string rulesDir, bool forceRecompile = false)
@@ -290,7 +346,6 @@ namespace rgat
         {
             List<object> args = (List<object>)argslist;
             BinaryTarget targ = (BinaryTarget)args[0];
-            targ.ClearSignatureHits(CONSTANTS.eSignatureType.YARA);
 
             try
             {
@@ -309,7 +364,7 @@ namespace rgat
                     ExternalVariables externalVariables = new ExternalVariables();
                     externalVariables.StringVariables.Add("filename", targ.FileName);
                     List<ScanResult> scanResults = scanner.ScanMemory(ref fileContentsBuf, loadedRules);// externalVariables);
-                    //scanner.Release();
+                                                                                                        //scanner.Release();
 
                     foreach (ScanResult sighit in scanResults)
                     {

@@ -248,7 +248,6 @@ namespace rgatFilePicker
 
             private void ExtractMetaData_Files()
             {
-                Debug.Assert(!rgatState.ConnectedToRemote);
                 Dictionary<string, FileMetadata> newFileData = new Dictionary<string, FileMetadata>();
                 foreach (string path in latestFilePaths)
                 {
@@ -443,7 +442,7 @@ namespace rgatFilePicker
         public static FilePicker GetRemoteFilePicker(object o, BridgeConnection remoteMirror, string searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
 
-            if (!_filePickers.TryGetValue(o, out FilePicker fp) || fp._remoteMirror.LastAddress != remoteMirror.LastAddress)
+            if (!_filePickers.TryGetValue(o, out FilePicker fp) || fp._remoteMirror != null && (fp._remoteMirror.LastAddress != remoteMirror.LastAddress))
             {
                 fp = new FilePicker(remoteMirror: remoteMirror);
                 fp.Data.CurrentDirectory = RemoteDataMirror.RootDirectory;

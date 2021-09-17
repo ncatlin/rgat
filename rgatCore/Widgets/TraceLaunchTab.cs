@@ -666,15 +666,13 @@ namespace rgat
                         ImGui.PopStyleColor();
                         ImGui.EndTooltip();
                     }
-                    if (rgatState.DIELib.ScriptsLoaded && ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                    if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
                     {
                         rgatState.DIELib.StartDetectItEasyScan(activeTarget);
                     }
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
-                        rgatState.DIELib.ReloadDIEScripts(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory));
-                        if (rgatState.DIELib.ScriptsLoaded)
-                            rgatState.DIELib.StartDetectItEasyScan(activeTarget);
+                       rgatState.DIELib.StartDetectItEasyScan(activeTarget, reload: true);
                     }
                 }
                 else if (DEProgress.loading)
@@ -747,15 +745,13 @@ namespace rgat
                 ImGui.PopStyleColor();
                 ImGui.EndTooltip();
             }
-            if (rgatState.YARALib.LoadedRuleCount() > 0 && ImGui.IsItemClicked(ImGuiMouseButton.Left))
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
             {
-                rgatState.YARALib.StartYARATargetScan(activeTarget);
+                rgatState.YARALib.StartYARATargetScan(activeTarget, reload: false);
             }
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
-                rgatState.YARALib.RefreshRules(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory), forceRecompile: true);
-                if (rgatState.YARALib.LoadedRuleCount() > 0)
-                    rgatState.YARALib.StartYARATargetScan(activeTarget);
+                rgatState.YARALib.StartYARATargetScan(activeTarget, reload: true);
             }
 
         }
@@ -786,9 +782,9 @@ namespace rgat
                     }
                 }
 
-                if (activeTarget.GetYaraHits(out dnYara.ScanResult[] yarahits))
+                if (activeTarget.GetYaraHits(out YARAScan.YARAHit[] yarahits))
                 {
-                    foreach (dnYara.ScanResult hit in yarahits)
+                    foreach (YARAScan.YARAHit hit in yarahits)
                     {
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
@@ -834,7 +830,7 @@ namespace rgat
             }
         }
 
-        dnYara.ScanResult _yaraPopupHit = null;
+        YARAScan.YARAHit _yaraPopupHit = null;
         DateTime _hitClickTime;
         bool _hitHoverOnly;
         private void DrawYaraPopup(bool tooltip)
@@ -915,7 +911,7 @@ namespace rgat
                 {
                     for (var matchi = 0; matchi < matchList.Value.Count; matchi++)
                     {
-                        dnYara.Match match = matchList.Value[matchi];
+                        YARAScan.YARAHit.YaraHitMatch match = matchList.Value[matchi];
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         ImGui.Text($"{matchList.Key}");

@@ -46,8 +46,19 @@ namespace rgat
         }
 
 
-        public void StartDetectItEasyScan(BinaryTarget targ)
+        public void StartDetectItEasyScan(BinaryTarget targ, bool reload = false)
         {
+            targ.ClearSignatureHits(CONSTANTS.eSignatureType.DIE);
+            if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.GUIMode)
+            {
+                JObject cmdparams = new JObject();
+                cmdparams.Add("Type", "DIE");
+                cmdparams.Add("TargetSHA1", targ.GetSHA1Hash());
+                cmdparams.Add("Reload", reload);
+                rgatState.NetworkBridge.SendCommand("StartSigScan", null, null, cmdparams);
+                return;
+            }
+
             if (!dielib.DatabaseLoaded) return;
             if (!File.Exists(targ.FilePath)) return;
 
@@ -101,7 +112,6 @@ namespace rgat
             List<object> args = (List<object>)argslist;
             DiELibDotNet.DieLib scanner = (DiELibDotNet.DieLib)args[0];
             BinaryTarget targ = (BinaryTarget)args[1];
-            targ.ClearSignatureHits(CONSTANTS.eSignatureType.DIE);
 
             if (!scanner.DatabaseLoaded)
             {

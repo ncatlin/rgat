@@ -666,6 +666,7 @@ namespace rgat
             progress?.Report(1f);
         }
 
+
         static void InstallNewTools()
         {
             string toolsDirectory = GetStorageDirectoryPath(BaseDirectory, "tools");

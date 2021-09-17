@@ -248,6 +248,12 @@ namespace rgat
 
         public bool InitialiseFromRemoteData(Newtonsoft.Json.Linq.JToken dataTok)
         {
+            if (dataTok.Type != JTokenType.Object) return false;
+            if (dataTok.ToObject<JObject>().TryGetValue("Error", out JToken errTok))
+            {
+                Logging.RecordError("Error loading remote binary: " + errTok.ToString());
+                return false;
+            }
             try
             {
                 return InitialiseFromRemoteDataInner(dataTok);
@@ -281,7 +287,7 @@ namespace rgat
 
 
         List<string> signatureHitsDIE = new List<string>();
-        List<dnYara.ScanResult> signatureHitsYARA = new List<dnYara.ScanResult>();
+        List<YARAScan.YARAHit> signatureHitsYARA = new List<YARAScan.YARAHit>();
 
         Dictionary<string, string> _traceConfiguration = new Dictionary<string, string>();
 
@@ -299,7 +305,7 @@ namespace rgat
         }
 
 
-        public bool GetYaraHits(out dnYara.ScanResult[] hits)
+        public bool GetYaraHits(out YARAScan.YARAHit[] hits)
         {
             hits = signatureHitsYARA.ToArray();
             return hits.Length > 0;
@@ -335,11 +341,19 @@ namespace rgat
         }
 
 
-        public void AddDiESignatureHit(string hits)
+        public void AddDiESignatureHit(string hitstring)
         {
             lock (signaturesLock)
             {
-                signatureHitsDIE.Add(hits);
+                signatureHitsDIE.Add(hitstring);
+                if (rgatState.NetworkBridge is not null && rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
+                {
+                    JObject hitObj = new JObject();
+                    hitObj.Add("Type", "DIE");
+                    hitObj.Add("TargetSHA", this._sha1hash);
+                    hitObj.Add("Obj", hitstring);
+                    rgatState.NetworkBridge.SendAsyncData("SigHit", hitObj);
+                }
             }
         }
 
@@ -348,7 +362,32 @@ namespace rgat
         {
             lock (signaturesLock)
             {
+                YARAScan.YARAHit managedHit = new YARAScan.YARAHit(hit);
+                signatureHitsYARA.Add(managedHit);
+                if (rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
+                {
+                    JObject hitObj = new JObject();
+                    hitObj.Add("Type", "YARA");
+                    hitObj.Add("TargetSHA", this._sha1hash);
+                    hitObj.Add("Obj", JObject.FromObject(managedHit));
+                    rgatState.NetworkBridge.SendAsyncData("SigHit", hitObj);
+                }
+            }
+        }        
+        
+        public void AddYaraSignatureHit(YARAScan.YARAHit hit)
+        {
+            lock (signaturesLock)
+            {
                 signatureHitsYARA.Add(hit);
+                if (rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
+                {
+                    JObject hitObj = new JObject();
+                    hitObj.Add("Type", "YARA");
+                    hitObj.Add("TargetSHA", this._sha1hash);
+                    hitObj.Add("Obj", JObject.FromObject(hit));
+                    rgatState.NetworkBridge.SendAsyncData("SigHit", hitObj);
+                }
             }
         }
 

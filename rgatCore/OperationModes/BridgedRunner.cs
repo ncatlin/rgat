@@ -299,7 +299,7 @@ namespace rgat.OperationModes
                             Logging.RecordError("Bad log filter for " + GetString(item.data));
                             return;
                         }
-                        Logging.RecordLogEvent("[Remote Log] "+GetString(item.data), filter: filter);
+                        Logging.RecordLogEvent("[Remote Log] " + GetString(item.data), filter: filter);
                         break;
                     }
 
@@ -361,6 +361,9 @@ namespace rgat.OperationModes
                     success = ProcessSignatureTimes(data);
                     break;
 
+                case "SigHit":
+                    success = ProcessSignatureHit(data);
+                    break;
                 default:
                     Logging.RecordError("Bad async data: " + name);
                     return;
@@ -382,6 +385,37 @@ namespace rgat.OperationModes
             if (values.TryGetValue("YARA", out JToken yaraTok) && yaraTok.Type is JTokenType.Date) rgatState.YARALib.EndpointNewestSignature = yaraTok.ToObject<DateTime>();
             if (values.TryGetValue("DIE", out JToken dieTok) && dieTok.Type is JTokenType.Date) rgatState.DIELib.EndpointNewestSignature = dieTok.ToObject<DateTime>();
 
+            return true;
+        }
+
+        bool ProcessSignatureHit(JToken data)
+        {
+            if (data.Type is not JTokenType.Object) return false;
+
+            JObject values = data.ToObject<JObject>();
+            if (!values.TryGetValue("Obj", out JToken sigObjTok)) return false;
+            if (!values.TryGetValue("TargetSHA", out JToken shaTok)) return false;
+            if (values.TryGetValue("Type", out JToken typeTok) && typeTok.Type is JTokenType.String)
+            {
+                if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget target)) return false;
+                string sigType = typeTok.ToString();
+                switch (sigType)
+                {
+                    case "YARA":
+                        YARAScan.YARAHit yarahit = sigObjTok.ToObject<YARAScan.YARAHit>();
+                        target.AddYaraSignatureHit(yarahit);
+                        break;
+
+                    case "DIE":
+                        string dieHit = sigObjTok.ToString();
+                        target.AddDiESignatureHit(dieHit);
+                        break;
+
+                    default:
+                        return false;
+                        break;
+                }
+            }
             return true;
         }
 
@@ -500,7 +534,7 @@ namespace rgat.OperationModes
             }
             cmdID = idTok.ToObject<int>();
 
-            if(!cmd.TryGetValue("Paramfield", out paramTok)) paramTok = null;
+            if (!cmd.TryGetValue("Paramfield", out paramTok)) paramTok = null;
             return true;
         }
 
@@ -528,31 +562,33 @@ namespace rgat.OperationModes
                     rgatSettings.PathRecord[] recentPaths = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Binary);
                     rgatState.NetworkBridge.SendResponseObject(cmdID, recentPaths);
                     break;
+
                 case "DirectoryInfo":
                     rgatState.NetworkBridge.SendResponseJSON(cmdID, GetDirectoryInfo(paramfield));
                     break;
+
                 case "GetDrives":
                     rgatState.NetworkBridge.SendResponseObject(cmdID, rgatFilePicker.FilePicker.GetLocalDriveStrings());
                     break;
+
                 case "UploadSignatures":
-                    Console.WriteLine("Uploading Signatures");
                     HandleSignatureUpload(paramfield);
                     //rgatState.NetworkBridge.SendResponseObject(cmdID, rgatFilePicker.FilePicker.GetLocalDriveStrings());
                     break;
+
+                case "StartSigScan":
+                    HandleSigScanCommand(paramfield);
+                    break;
+
                 case "LoadTarget":
                     JToken response = GatherTargetInitData(paramfield);
-                    if (response is not null)
-                    { 
-                        rgatState.NetworkBridge.SendResponseObject(cmdID, response); 
-                    }
-                    else
-                    {
-                        //todo - not loaded response
-                    }
+                    rgatState.NetworkBridge.SendResponseObject(cmdID, response);
                     break;
+
                 case "StartTrace":
                     StartHeadlessTrace(paramfield);
                     break;
+
                 case "ThreadIngest":
                     if (!StartThreadIngestWorker(cmdID, paramfield))
                     {
@@ -583,7 +619,7 @@ namespace rgat.OperationModes
             }
 
             JObject paramsObj = paramfield.ToObject<JObject>();
-            if (!paramsObj.TryGetValue("Type", out JToken typeTok) || typeTok.Type is not JTokenType.String  ||
+            if (!paramsObj.TryGetValue("Type", out JToken typeTok) || typeTok.Type is not JTokenType.String ||
                 !paramsObj.TryGetValue("Zip", out JToken zipTok) || zipTok.Type is not JTokenType.String)
             {
                 Logging.RecordError("Bad params for HandleSignatureUpload");
@@ -603,8 +639,49 @@ namespace rgat.OperationModes
                     Logging.RecordError($"Invalid signature type: {typeName}");
                     break;
             }
-            
+
         }
+
+        void HandleSigScanCommand(JToken paramfield)
+        {
+            if (paramfield == null || paramfield.Type is not JTokenType.Object)
+            {
+                Logging.RecordError("Failed to parse HandleSigScanCommand params");
+                return;
+            }
+
+            JObject paramsObj = paramfield.ToObject<JObject>();
+            if (!paramsObj.TryGetValue("Type", out JToken typeTok) || typeTok.Type is not JTokenType.String ||
+                !paramsObj.TryGetValue("TargetSHA1", out JToken shaTok) || shaTok.Type is not JTokenType.String)
+            {
+                Logging.RecordError("Bad params for HandleSigScanCommand");
+                return;
+            }
+
+            if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget target)) {
+                Logging.RecordLogEvent($"Tried to start scan for non-existent target hash {shaTok}");
+                return; 
+            }
+
+            bool reload = false;
+            if (paramsObj.TryGetValue("Reload", out JToken reloadtok) && reloadtok.Type == JTokenType.Boolean )
+                reload = reloadtok.ToObject<bool>();
+
+            string typeName = typeTok.ToString();
+            switch (typeName)
+            {
+                case "YARA":
+                    rgatState.YARALib?.StartYARATargetScan(target, reload: reload);
+                    break;
+                case "DIE":
+                    rgatState.DIELib?.StartDetectItEasyScan(target, reload: reload);
+                    break;
+                default:
+                    Logging.RecordError($"HandleSigScanCommand - Invalid signature type: {typeName}");
+                    break;
+            }
+        }
+
 
         void StartHeadlessTrace(JToken paramfield)
         {
@@ -787,10 +864,15 @@ namespace rgat.OperationModes
             if (pathTok != null && pathTok.Type == JTokenType.String)
             {
                 BinaryTarget target = rgatState.targets.AddTargetByPath(pathTok.ToString());
+                rgatState.YARALib.StartYARATargetScan(target);
+                rgatState.DIELib.StartDetectItEasyScan(target);
                 if (target != null)
                     return (JToken)target.GetRemoteLoadInitData();
             }
-            return null;
+
+            JObject result = new JObject();
+            result.Add("Error", "Not Loaded");
+            return result;
         }
 
 

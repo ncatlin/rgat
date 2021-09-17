@@ -337,7 +337,7 @@ namespace rgat.Config
                 lock (_lock)
                 {
                     //we call this when the values are the same to cause a signature check
-                    if (Paths[setting] != value)
+                    if (!Paths.TryGetValue(setting, out string oldval) || oldval != value)
                     {
                         Paths[setting] = value;
                         MarkDirty();
