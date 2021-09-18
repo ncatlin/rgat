@@ -304,7 +304,8 @@ namespace rgat
             else
             {
                 Debug.Assert(callRecordsIndexs.Count > specificCallIndex);
-                lastCall = graph.SymbolCallRecords[(int)callRecordsIndexs[specificCallIndex]];
+                int lastCallIndex = (int)callRecordsIndexs[specificCallIndex];
+                lastCall = graph.SymbolCallRecords[lastCallIndex];
             }
 
             string argstring = "";

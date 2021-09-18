@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 
 
@@ -712,6 +713,22 @@ namespace rgat
                 }
                 return false;
             }
+        }
+
+        public static byte[] ReadBinaryResource(string name)
+        {
+            System.Reflection.Assembly assembly = Assembly.GetExecutingAssembly();
+            System.IO.Stream fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
+            System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
+            r.GetResourceData(name, out string rtype, out byte[] resBytes);
+            if (resBytes == null || rtype != "ResourceTypeCode.ByteArray") return null;
+
+            //https://stackoverflow.com/questions/32891004/why-resourcereader-getresourcedata-return-data-of-type-resourcetypecode-stream
+            Stream stream = new MemoryStream(resBytes);
+            byte[] result = new byte[stream.Length - 4];
+            stream.Seek(4, SeekOrigin.Begin);
+            stream.Read(result, 0, result.Length);
+            return result;
         }
 
     }

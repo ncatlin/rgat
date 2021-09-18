@@ -61,6 +61,16 @@ namespace rgat.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] APIDataWin {
+            get {
+                object obj = ResourceManager.GetObject("APIDataWin", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to [{
         ///  &quot;CustomColours&quot;: {
         ///    &quot;ePreviewText&quot;: 4294967295,

@@ -686,11 +686,11 @@ namespace rgat
             try
             {
                 string tool32Path = Path.Combine(BaseDirectory, "tools", "pintool32.dll");
-                File.WriteAllBytes(tool32Path, ImGuiController.ReadBinaryResource("PinTool32"));
+                File.WriteAllBytes(tool32Path, rgatState.ReadBinaryResource("PinTool32"));
                 SetBinaryPath(CONSTANTS.PathKey.PinToolPath32, tool32Path);
 
                 string tool64Path = Path.Combine(BaseDirectory, "tools", "pintool64.dll");
-                File.WriteAllBytes(tool64Path, ImGuiController.ReadBinaryResource("PinTool64"));
+                File.WriteAllBytes(tool64Path, rgatState.ReadBinaryResource("PinTool64"));
                 SetBinaryPath(CONSTANTS.PathKey.PinToolPath64, tool64Path);
             }
             catch (Exception e)

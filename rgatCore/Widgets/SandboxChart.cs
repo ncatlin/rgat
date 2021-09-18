@@ -95,8 +95,8 @@ namespace rgat.Widgets
 
         Dictionary<string, ItemNode> addedNodes = new Dictionary<string, ItemNode>();
         readonly object _lock = new object();
-        Dictionary<WinAPIDetails.InteractionEntityType, Dictionary<string, ItemNode>> _interactionEntities = new Dictionary<WinAPIDetails.InteractionEntityType, Dictionary<string, ItemNode>>();
-        Dictionary<WinAPIDetails.InteractionRawType, Dictionary<string, ItemNode>> _interactionEntityReferences = new Dictionary<WinAPIDetails.InteractionRawType, Dictionary<string, ItemNode>>();
+        Dictionary<APIDetailsWin.InteractionEntityType, Dictionary<string, ItemNode>> _interactionEntities = new Dictionary<APIDetailsWin.InteractionEntityType, Dictionary<string, ItemNode>>();
+        Dictionary<APIDetailsWin.InteractionRawType, Dictionary<string, ItemNode>> _interactionEntityReferences = new Dictionary<APIDetailsWin.InteractionRawType, Dictionary<string, ItemNode>>();
         Dictionary<Logging.TIMELINE_EVENT, ItemNode> _timelineEventEntities = new Dictionary<Logging.TIMELINE_EVENT, ItemNode>();
 
         //set of action labels associateed with each edge. todo add as a property to edge/make new edge object?
@@ -161,7 +161,7 @@ namespace rgat.Widgets
                         var call = (Logging.APICALL)(timelineEvent.Item);
                         if (call.APIDetails != null)
                         {
-                            WinAPIDetails.API_ENTRY apiinfo = call.APIDetails.Value;
+                            APIDetailsWin.API_ENTRY apiinfo = call.APIDetails.Value;
                             if (apiinfo.Effects != null)
                             {
                                 ProtoGraph caller = call.graph;
@@ -180,21 +180,21 @@ namespace rgat.Widgets
                                 string threadName = $"THREADNODE_{caller.TraceData.randID}_{caller.ThreadID}";
                                 ItemNode threadNode = addedNodes[threadName];
 
-                                foreach (WinAPIDetails.InteractionEffect effectBase in apiinfo.Effects)
+                                foreach (APIDetailsWin.InteractionEffect effectBase in apiinfo.Effects)
                                 {
                                     switch (effectBase)
                                     {
-                                        case WinAPIDetails.LinkReferenceEffect linkEffect:
+                                        case APIDetailsWin.LinkReferenceEffect linkEffect:
                                             {
-                                                WinAPIDetails.API_PARAM_ENTRY entityParamRecord = apiinfo.LoggedParams[linkEffect.entityIndex];
-                                                WinAPIDetails.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[linkEffect.referenceIndex];
+                                                APIDetailsWin.API_PARAM_ENTRY entityParamRecord = apiinfo.LoggedParams[linkEffect.entityIndex];
+                                                APIDetailsWin.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[linkEffect.referenceIndex];
 
                                                 int entityParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == entityParamRecord.index);
                                                 int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.index);
 
                                                 if (entityParamLoggedIndex == -1 || referenceParamLoggedIndex == -1)
                                                 {
-                                                    string error = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [LinkReference] didn't have correct parameters. The instrumentation library or apidata.json may not match.";
+                                                    string error = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [LinkReference] didn't have correct parameters. The instrumentation library or apidata file may not match.";
                                                     timelineEvent.MetaError = error;
                                                     Logging.RecordLogEvent(error, Logging.LogFilterType.TextDebug);
                                                     break;
@@ -247,9 +247,9 @@ namespace rgat.Widgets
 
                                         // this api performs some action on a refererence to an entity
                                         // record this as a label on the edge and link this event to the entity
-                                        case WinAPIDetails.UseReferenceEffect useEffect:
+                                        case APIDetailsWin.UseReferenceEffect useEffect:
                                             {
-                                                WinAPIDetails.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[useEffect.referenceIndex];
+                                                APIDetailsWin.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[useEffect.referenceIndex];
                                                 int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.index);
                                                 if (referenceParamLoggedIndex == -1)
                                                 {
@@ -283,9 +283,9 @@ namespace rgat.Widgets
 
                                         // this api invalidates a reference
                                         // remove the link between the reference and the entity it references
-                                        case WinAPIDetails.DestroyReferenceEffect destroyEffect:
+                                        case APIDetailsWin.DestroyReferenceEffect destroyEffect:
                                             {
-                                                WinAPIDetails.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[destroyEffect.referenceIndex];
+                                                APIDetailsWin.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[destroyEffect.referenceIndex];
                                                 int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.index);
                                                 if (referenceParamLoggedIndex == -1)
                                                 {
@@ -516,7 +516,7 @@ namespace rgat.Widgets
                     {
                         return;
                     }
-                    WinAPIDetails.API_ENTRY details = apicall.APIDetails.Value;
+                    APIDetailsWin.API_ENTRY details = apicall.APIDetails.Value;
 
                     DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
                     switch (details.FilterType)

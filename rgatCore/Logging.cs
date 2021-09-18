@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -28,18 +29,125 @@ namespace rgat
 
         public class APICALL
         {
-            public APICALL() { APIDetails = null; }
+            public APICALL() { 
+                APIDetails = null;
+            }
             public NodeData node;
             public int index;
             public ulong repeats;
             public ulong uniqID;
             public ProtoGraph graph;
 
-            public WinAPIDetails.API_ENTRY? APIDetails;
+            public APIDetailsWin.API_ENTRY? APIDetails;
             public string APIType()
             {
                 if (APIDetails == null) return "Other";
                 return APIDetails.Value.FilterType;
+            }
+
+            static Newtonsoft.Json.JsonSerializer serializer;
+
+            public static bool TryDeserialise(JToken apiTok, TraceRecord trace, out APICALL apiObj)
+            {
+                apiObj = new APICALL();
+                if (apiTok.Type is not JTokenType.Object) return false;
+                JObject jobj = apiTok.ToObject<JObject>();
+
+
+                if (!jobj.TryGetValue("CallIdx", out JToken cidxTok)) return false;
+                apiObj.index = cidxTok.ToObject<int>();
+                if (!jobj.TryGetValue("Repeats", out JToken repTok)) return false;
+                apiObj.repeats = repTok.ToObject<ulong>();
+                if (!jobj.TryGetValue("uniqID", out JToken idTok)) return false;
+                apiObj.uniqID = idTok.ToObject<ulong>();
+
+                if (!jobj.TryGetValue("Graph", out JToken graphTimeTok)) return false;
+                DateTime graphTime = graphTimeTok.ToObject<DateTime>();
+                apiObj.graph = trace.GetProtoGraphByTime(graphTime);
+                if (apiObj.graph is null) return false;
+
+                if (!jobj.TryGetValue("Node", out JToken nidxTok)) return false;
+                int nodeIdx = nidxTok.ToObject<int>();
+                if (nodeIdx < apiObj.graph.NodeList.Count)
+                    apiObj.node = apiObj.graph.NodeList[nodeIdx];
+
+                if (jobj.TryGetValue("Details", out JToken deTok))
+                {
+                    if (!DeserialiseEffects(deTok, apiObj)) return false;
+                }
+                return true;
+            }
+
+
+            /// <summary>
+            /// Implementing effects as derived classes means safe deserialisation is quite clunky
+            /// </summary>
+            /// <param name="deTok">JToken of the APICALL details</param>
+            /// <param name="apiObj">APICALL being deserialised</param>
+            /// <returns></returns>
+            static bool DeserialiseEffects(JToken deTok, APICALL apiObj)
+            {
+                try
+                {
+                    JObject deJObj = deTok.ToObject<JObject>();
+                    apiObj.APIDetails = deTok.ToObject<APIDetailsWin.API_ENTRY>();
+                    if (apiObj.APIDetails is not null &&
+                        deJObj.TryGetValue("Effects", out JToken effTok) &&
+                        effTok.Type is JTokenType.Array)
+                    {
+                        JArray effArray = effTok.ToObject<JArray>();
+                        for (int effecti = 0; effecti < effArray.Count; effecti++)
+                        {
+                            JToken effItem = effArray[effecti];
+                            JObject effectObj = effItem.ToObject<JObject>();
+                            if (effectObj.TryGetValue("TypeName", out JToken nameTok))
+                            {
+                                switch (nameTok.ToString())
+                                {
+                                    case "Link":
+                                        APIDetailsWin.LinkReferenceEffect linkEff = new APIDetailsWin.LinkReferenceEffect();
+                                        linkEff.entityIndex = effectObj["entityIndex"].ToObject<int>();
+                                        linkEff.referenceIndex = effectObj["referenceIndex"].ToObject<int>();
+                                        apiObj.APIDetails.Value.Effects[effecti] = linkEff;
+                                        break;
+                                    case "Use":
+                                        APIDetailsWin.UseReferenceEffect useEff = new APIDetailsWin.UseReferenceEffect();
+                                        useEff.referenceIndex = effectObj["referenceIndex"].ToObject<int>();
+                                        apiObj.APIDetails.Value.Effects[effecti] = useEff;
+                                        break;
+                                    case "Destroy":
+                                        APIDetailsWin.DestroyReferenceEffect destroyEff = new APIDetailsWin.DestroyReferenceEffect();
+                                        destroyEff.referenceIndex = effectObj["referenceIndex"].ToObject<int>();
+                                        apiObj.APIDetails.Value.Effects[effecti] = destroyEff;
+                                        break;
+                                }
+
+                            }
+                        }
+                    }
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Failed to load API call details: {e.Message}");
+                    return false;
+                }
+            }
+
+            public JObject Serialise()
+            {
+                JObject result = new JObject();
+                result.Add("Node", (int)node.index);
+                result.Add("CallIdx", index);
+                result.Add("Repeats", repeats);
+                result.Add("uniqID", uniqID);
+                result.Add("Graph", graph.ConstructedTime);
+
+                if (APIDetails.HasValue)
+                {
+                    result.Add("Details", JObject.FromObject(APIDetails));
+                }
+                return result;
             }
 
         }
@@ -57,15 +165,24 @@ namespace rgat
                 {
                     case eTimelineEvent.ProcessStart:
                     case eTimelineEvent.ProcessEnd:
-                        SetIDs(ID: ((TraceRecord)item).PID);
-                        break;
+                        {
+                            TraceRecord process = (TraceRecord)item;
+                            SetIDs(ID: process.PID);
+                            break;
+                        }
                     case eTimelineEvent.ThreadStart:
                     case eTimelineEvent.ThreadEnd:
-                        SetIDs(ID: ((ProtoGraph)item).ThreadID);
-                        break;
+                        {
+                            ProtoGraph thread = (ProtoGraph)item;
+                            SetIDs(ID: thread.ThreadID);
+                            break;
+                        }
                     case eTimelineEvent.APICall:
-                        //todo
-                        break;
+                        {
+                            TraceRecord process = ((APICALL)item).graph.TraceData;
+                            SetIDs(process.PID);
+                            break;
+                        }
                     default:
                         Debug.Assert(false, "Bad timeline event");
                         break;
@@ -86,7 +203,7 @@ namespace rgat
 
                 JToken idtok, pidtok;
                 if (!jobj.TryGetValue("ID", out idtok) || idtok.Type != JTokenType.Integer ||
-                    !jobj.TryGetValue("PID", out pidtok) || pidtok.Type != JTokenType.Integer)
+                    !jobj.TryGetValue("PARENT", out pidtok) || pidtok.Type != JTokenType.Integer)
                 {
                     Logging.RecordError("Bad timeline id/parent id in saved timeline");
                     return;
@@ -99,14 +216,34 @@ namespace rgat
                     case eTimelineEvent.ProcessEnd:
                         SetIDs(ID: idtok.ToObject<ulong>(), parentID: pidtok.ToObject<ulong>());
                         _item = trace.GetTraceByID(ID);
+                        Debug.Assert(_item != null);
                         Inited = true;
                         break;
                     case eTimelineEvent.ThreadStart:
                     case eTimelineEvent.ThreadEnd:
+                        Debug.Assert(trace.ParentTrace == null || idtok.ToObject<ulong>() == trace.ParentTrace.PID);
                         SetIDs(ID: idtok.ToObject<ulong>());
                         _item = trace.GetProtoGraphByID(ID);
                         Inited = true;
                         break;
+
+                    case eTimelineEvent.APICall:
+                        if (!jobj.TryGetValue("API", out JToken apiTok))
+                        {
+                            Logging.RecordError("No APICALL data in timeline api event");
+                            return;
+                        }
+                        if (!APICALL.TryDeserialise(apiTok, trace, out APICALL apiObj))
+                        {
+                            Logging.RecordError("Bad APICALL data in timeline api event");
+                            return;
+                        }
+
+                        SetIDs(ID: idtok.ToObject<ulong>(), parentID: pidtok.ToObject<ulong>());
+                        _item = apiObj;
+                        Inited = true;
+                        break;
+
                     default:
                         Debug.Assert(false, "Bad timeline event");
                         break;
@@ -119,21 +256,15 @@ namespace rgat
                 JObject obj = new JObject();
                 obj.Add("EvtType", (int)TimelineEventType);
 
+                obj.Add("ID", ID);
+                obj.Add("PARENT", Parent);
                 if (_eventType == eTimelineEvent.APICall)
                 {
                     APICALL apic = (Logging.APICALL)_item;
-                    obj.Add("Node", apic.node.index);
-                    obj.Add("Idx", apic.index);
-                    obj.Add("Repeats", apic.repeats);
-                    obj.Add("uniqID", apic.uniqID);
-                    obj.Add("Graph", apic.graph.ConstructedTime);
+                    obj.Add("API", apic.Serialise());
                     //obj.Add("Filter", apic.APIType());
                 }
-                else
-                {
-                    obj.Add("ID", ID);
-                    obj.Add("PID", Parent);
-                }
+
                 return obj;
             }
 

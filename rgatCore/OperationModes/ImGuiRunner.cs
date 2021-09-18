@@ -92,7 +92,7 @@ namespace rgat.OperationModes
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Exception in UI Update: {e.Message}");
+                    Logging.RecordError($"Exception in UI Update: {e.Message} - {e.StackTrace}");
                 }
             }
 
@@ -357,7 +357,8 @@ namespace rgat.OperationModes
             Task apiTask = null;
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
             {
-                apiTask = Task.Run(() => WinAPIDetails.Load(System.IO.Path.Combine(AppContext.BaseDirectory, "APIData.json"), IProgressAPI));
+                string datafile = APIDetailsWin.FindAPIDatafile();
+                apiTask = Task.Run(() => APIDetailsWin.Load(datafile, IProgressAPI));
             }
             else
             {

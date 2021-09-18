@@ -5,14 +5,14 @@ using Newtonsoft.Json.Linq;
 
 namespace rgat
 {
-    public class WinAPIDetails
+    public class APIDetailsWin
     {
         public static bool Loaded { get; private set; }
         public static void Load(string datapath, IProgress<float> progress = null)
         {
             if (!File.Exists(datapath))
             {
-                Logging.RecordLogEvent($"Windows API datafile {datapath} did not exist");
+                Logging.RecordError($"Windows API datafile {datapath} did not exist");
                 return;
             }
 
@@ -53,7 +53,29 @@ namespace rgat
             file.Close();
         }
 
+        public static string FindAPIDatafile()
+        {
+            try
+            {
+                string candidate = System.IO.Path.Combine(GlobalConfig.BaseDirectory, "APIDataWin.json");
+                if (File.Exists(candidate)) return candidate;
 
+                candidate = System.IO.Path.Combine(AppContext.BaseDirectory, "APIDataWin.json");
+                if (File.Exists(candidate)) return candidate;
+
+                byte[] apiFileBytes = rgatState.ReadBinaryResource("APIDataWin");
+                if (apiFileBytes != null)
+                {
+                    File.WriteAllBytes(candidate, apiFileBytes);
+                    if (File.Exists(candidate)) return candidate;
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Error loading api data file: {e.Message}");
+            }
+            return null;
+        }
 
 
         static Dictionary<string, int> _configuredModules = new Dictionary<string, int>();
@@ -62,22 +84,28 @@ namespace rgat
 
         public class InteractionEffect
         {
-
+            /// <summary>
+            /// Needed for deserialisation
+            /// </summary>
+            public string TypeName;
         }
 
         public class LinkReferenceEffect : InteractionEffect
         {
+            public LinkReferenceEffect()  {  base.TypeName = "Link"; }
             public int referenceIndex;
             public int entityIndex;
         }
 
         public class UseReferenceEffect : InteractionEffect
         {
+            public UseReferenceEffect() { base.TypeName = "Use"; }
             public int referenceIndex;
         }
 
         public class DestroyReferenceEffect : InteractionEffect
         {
+            public DestroyReferenceEffect() { base.TypeName = "Destroy"; }
             public int referenceIndex;
         }
 

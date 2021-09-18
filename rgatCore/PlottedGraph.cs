@@ -718,12 +718,12 @@ namespace rgat
 
         unsafe void AddNode(uint nodeIdx, EdgeData edge = null)
         {
-            Debug.Assert(nodeIdx == _graphStructureLinear.Count); //todo, asserting here on load. i dont remember if this is important
 
             textureLock.EnterReadLock();
             if (BufferDownloadActive)
                 WaitforBufferDownload();
 
+            Debug.Assert(nodeIdx == _graphStructureLinear.Count); //todo, asserting here on load. i dont remember if this is important
             uint futureCount = (uint)_graphStructureLinear.Count + 1;
             var bufferWidth = indexTextureSize((int)futureCount);
 

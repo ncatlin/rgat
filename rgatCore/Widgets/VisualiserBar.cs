@@ -111,11 +111,14 @@ namespace rgat.Widgets
             Console.WriteLine("VisBarCreateTex Start");
             _width = Math.Max(50, width);
             _height = Math.Max(50, height);
-            VeldridGraphBuffers.DoDispose(_outputTexture);
-            VeldridGraphBuffers.DoDispose(_outputFramebuffer);
-            _outputTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_width, (uint)_height, 1, 1,
-                PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
-            _outputFramebuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
+            lock (_lock)
+            {
+                VeldridGraphBuffers.DoDispose(_outputTexture);
+                VeldridGraphBuffers.DoDispose(_outputFramebuffer);
+                _outputTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)_width, (uint)_height, 1, 1,
+                    PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
+                _outputFramebuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
+            }
             Console.WriteLine("VisBarCreateTex end");
         }
 
@@ -222,16 +225,17 @@ namespace rgat.Widgets
             _newWidth = width;
             _newHeight = height;
 
-
             Vector2 pos = ImGui.GetCursorScreenPos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList();
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, _outputTexture, "VisualiserBar");
-            
-            imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: pos,
-                p_max: new Vector2(pos.X + _outputTexture.Width, pos.Y + _outputTexture.Height),
-                uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
-            
-            
+            lock (_lock)
+            {
+                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, _outputTexture, "VisualiserBar"); //thread unsafe todo, can be disposed here
+
+                imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: pos,
+                    p_max: new Vector2(pos.X + _outputTexture.Width, pos.Y + _outputTexture.Height),
+                    uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
+            }
+
             MODULE_LABEL[] labels = null;
             lock (_lock)
             {
@@ -242,7 +246,7 @@ namespace rgat.Widgets
             {
                 imdp.AddText(pos + new Vector2(mtxt.startX, 30), 0xffffffff, "start");
             }
-            
+
 
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + _height);
         }
@@ -392,7 +396,6 @@ namespace rgat.Widgets
         //todo lots of opportunity for caching here
         public void GenerateLive(ProtoGraph graph)
         {
-
             if (_newWidth != _width || _newHeight != _height)
             {
                 CreateTextures(_newWidth, _newHeight);
@@ -671,12 +674,13 @@ namespace rgat.Widgets
                         }
                         break;
                     case eTraceUpdateType.eAnimUnchainedResults:
+                        if (ae.edgeCounts is null) break;
+
                         foreach (var edge in ae.edgeCounts)
                         {
                             ulong block = edge.Item1;
                             if ((int)block < graph.BlocksFirstLastNodeList.Count)
                             {
-
                                 var nodeRange = graph.BlocksFirstLastNodeList[(int)block];
                                 if (nodeRange != null)
                                 {

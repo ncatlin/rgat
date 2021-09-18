@@ -170,7 +170,7 @@ namespace ImGuiNET
             //embed in resource for distribution, once a font is settled on
 
             
-            byte[] notoFontBytes = ReadBinaryResource("NotoSansSC_Regular");
+            byte[] notoFontBytes = rgatState.ReadBinaryResource("NotoSansSC_Regular");
             if (notoFontBytes == null)
             {
                 Logging.RecordError($"No font resouce: \"NotoSansSC_Regular\"");
@@ -196,8 +196,8 @@ namespace ImGuiNET
                 _unicodeFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 17, null, ranges.Data);
 
                 // These icons get merged into the unicode font so its important they are built here
-                byte[] regularFontBytes = ReadBinaryResource("Font_Awesome_5_Free_Regular_400");
-                byte[] solidFontBytes = ReadBinaryResource("Font_Awesome_5_Free_Solid_900");
+                byte[] regularFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Regular_400");
+                byte[] solidFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Solid_900");
                 if (regularFontBytes != null && solidFontBytes != null)
                 {
                     Logging.RecordLogEvent($"Loading font resources", Logging.LogFilterType.TextDebug);
@@ -258,21 +258,6 @@ namespace ImGuiNET
         ImFontPtr _fafontRegular;
         ImFontPtr _iconsLargeFont;
 
-        public static byte[] ReadBinaryResource(string name)
-        {
-            System.Reflection.Assembly assembly = typeof(ImGuiController).Assembly;
-            System.IO.Stream fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
-            System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
-            r.GetResourceData(name, out string rtype, out byte[] resBytes);
-            if (resBytes == null || rtype != "ResourceTypeCode.ByteArray") return null;
-
-            //https://stackoverflow.com/questions/32891004/why-resourcereader-getresourcedata-return-data-of-type-resourcetypecode-stream
-            Stream stream = new MemoryStream(resBytes);
-            byte[] result = new byte[stream.Length - 4];
-            stream.Seek(4, SeekOrigin.Begin);
-            stream.Read(result, 0, result.Length - 4);
-            return result;
-        }
 
         public unsafe bool GlyphExists(ushort code)
         {

@@ -55,7 +55,8 @@ namespace rgat.OperationModes
             Task apiTask = null;
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
             {
-                apiTask = Task.Run(() => WinAPIDetails.Load(System.IO.Path.Combine(AppContext.BaseDirectory, "APIData.json")));
+                string datafile = APIDetailsWin.FindAPIDatafile();
+                apiTask = Task.Run(() => APIDetailsWin.Load(datafile));
             }
             else
             {

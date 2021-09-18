@@ -58,35 +58,73 @@ namespace rgat
         public uint targetID;
     };
 
-
+    /// <summary>
+    /// The data structure representing a recorded process thread
+    /// </summary>
     public class ProtoGraph
     {
 
-        public ProtoGraph(TraceRecord runrecord, uint threadID, bool terminated = false)
+        /// <summary>
+        /// The data structure representing a recorded process thread
+        /// </summary>
+        /// <param name="runrecord">A TraceRecord for the process containing this thread</param>
+        /// <param name="threadID">A Thread ID for the thread</param>
+        /// <param name="startAddr">The first program counter address of the thread</param>
+        /// <param name="terminated">Set to true if loading a saved trace</param>
+        public ProtoGraph(TraceRecord runrecord, uint threadID, ulong startAddr, bool terminated = false)
         {
             TraceData = runrecord;
             ProcessData = runrecord.DisassemblyData;
             ThreadID = threadID;
             Terminated = terminated;
+            StartAddress = startAddr;
+            AssignModulePath();
         }
 
+        /// <summary>
+        /// The threads operating system assigned thread ID
+        /// </summary>
         public uint ThreadID = 0;
 
+        /// <summary>
+        /// The address of the first instruction executed by the thread
+        /// </summary>
+        public ulong StartAddress = 0;
+
+        /// <summary>
+        /// The worker which is reading trace data from the instrumented thread
+        /// </summary>
         public TraceIngestWorker TraceReader { set; get; } = null;
+        /// <summary>
+        /// The worker which is processing trace data from the instrumented thread
+        /// </summary>
         public ThreadTraceProcessingThread TraceProcessor { set; get; } = null;
+
+        /// <summary>
+        /// Process data shared by all threads (instruction disassembly, API metadata, etc)
+        /// </summary>
         public ProcessRecord ProcessData { private set; get; } = null;
+
+        /// <summary>
+        /// Describes the lifetime of the process, parent storage class for threads
+        /// </summary>
         public TraceRecord TraceData { private set; get; } = null;
+
+        /// <summary>
+        /// When the thread was recorded, used as a unique identifier for threads
+        /// </summary>
         public DateTime ConstructedTime { private set; get; } = DateTime.Now;
+        
+        public bool HeatSolvingComplete = false; //todo set this once processing is done?
 
-        public bool HeatSolvingComplete = false;
-
+        /*
         public List<InteractionTarget> SystemInteractions = new List<InteractionTarget>();
         public Dictionary<ulong, InteractionTarget> Interacted_FileHandles = new Dictionary<ulong, InteractionTarget>();
         public Dictionary<string, InteractionTarget> Interacted_FilePaths = new Dictionary<string, InteractionTarget>();
         public Dictionary<string, InteractionTarget> Interacted_RegistryPaths = new Dictionary<string, InteractionTarget>();
         public Dictionary<string, InteractionTarget> Interacted_NetworkPaths = new Dictionary<string, InteractionTarget>();
         public Dictionary<string, InteractionTarget> Interacted_Mutexes = new Dictionary<string, InteractionTarget>();
- 
+ */
 
 
         public void SetTerminated()
@@ -138,7 +176,8 @@ namespace rgat
             }
             exeModuleID = jModID.ToObject<int>();
 
-            if (exeModuleID >= TraceData.DisassemblyData.LoadedModuleBounds.Count) return false;
+            if (exeModuleID < 0 || exeModuleID >= TraceData.DisassemblyData.LoadedModuleBounds.Count) 
+                return false;
             moduleBase = TraceData.DisassemblyData.LoadedModuleBounds[exeModuleID].Item1;
 
             if (!graphData.TryGetValue("TotalInstructions", out JToken jTotal) || jTotal.Type != JTokenType.Integer)
@@ -1174,10 +1213,10 @@ namespace rgat
 
         List<uint> ExceptionNodeIndexes = new List<uint>();
 
-        public void AssignModulePath()
+        void AssignModulePath()
         {
-            exeModuleID = safe_get_node(0).GlobalModuleID;
-            if (exeModuleID >= ProcessData.LoadedModulePaths.Count) return;
+            exeModuleID = ProcessData.FindContainingModule(StartAddress);
+            if (exeModuleID < 0 || exeModuleID >= ProcessData.LoadedModulePaths.Count) return;
 
             string ModulePath = ProcessData.LoadedModulePaths[exeModuleID];
             moduleBase = TraceData.DisassemblyData.LoadedModuleBounds[exeModuleID].Item1;
@@ -1203,6 +1242,7 @@ namespace rgat
         {
             JObject result = new JObject();
             result.Add("ThreadID", ThreadID);
+            result.Add("StartAddress", StartAddress);
 
             lock (nodeLock)
             {
@@ -1282,7 +1322,7 @@ namespace rgat
                     replayItem.Add(repentry.count);
                     replayItem.Add(repentry.targetAddr);
                     replayItem.Add(repentry.targetID);
-
+                    
                     JArray edgeCounts = new JArray();
                     if (repentry.edgeCounts != null)
                     {

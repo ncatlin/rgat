@@ -214,7 +214,7 @@ namespace rgat
                 int globalModID = LoadedModuleCount; //index into our module lists
 
                 LoadedModulePaths.Add(path);
-                ModuleAPIReferences.Add(WinAPIDetails.ResolveModuleEnum(path));
+                ModuleAPIReferences.Add(APIDetailsWin.ResolveModuleEnum(path));
                 APITypes.Add(globalModID, new Dictionary<ulong, Logging.LogFilterType>());
                 //globalModuleIDs.Add(path, globalModID); //sharing violation here???
 
@@ -430,14 +430,14 @@ namespace rgat
         }
 
         
-        public WinAPIDetails.API_ENTRY? GetAPIEntry(int globalModuleID, int moduleAPIRef, ulong address)
+        public APIDetailsWin.API_ENTRY? GetAPIEntry(int globalModuleID, int moduleAPIRef, ulong address)
         {
             if (moduleAPIRef == -1) return null;
 
             ulong symbolOffset = address - LoadedModuleBounds[globalModuleID].Item1;
             if(modsymsPlain[globalModuleID].TryGetValue(symbolOffset, out string symname))
             {
-                return WinAPIDetails.GetAPIInfo(moduleAPIRef, symname);
+                return APIDetailsWin.GetAPIInfo(moduleAPIRef, symname);
             }
 
             return null;

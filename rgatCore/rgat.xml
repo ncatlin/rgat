@@ -4,6 +4,71 @@
         <name>rgat</name>
     </assembly>
     <members>
+        <member name="F:rgat.APIDetailsWin.InteractionEffect.TypeName">
+            <summary>
+            Needed for deserialisation
+            </summary>
+        </member>
+        <member name="T:rgat.APIDetailsWin.API_PARAM_ENTRY">
+            <summary>
+            Describes certain interesting parameters of an API call which we can link together to describe program behaviour
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_PARAM_ENTRY.IsConditional">
+            <summary>
+            may not receive this parameter (eg: failed registry key open -> no registry key handle)
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_PARAM_ENTRY.NoCase">
+            <summary>
+            comparisons are case insensitive, particularly numbers such as handles which get represented as hex strings
+            </summary>
+        </member>
+        <member name="T:rgat.APIDetailsWin.API_ENTRY">
+            <summary>
+            Describes the effects of an API call we have recorded
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_ENTRY.FilterType">
+            <summary>
+            A category this API falls into, for UI filtering. This might become a list of strings/tags later.
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_ENTRY.LoggedParams">
+            <summary>
+            A list of parameters/return results from the API call. Used to map their interaction with targets for plotting on the analysis chart.
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_ENTRY.Label">
+            <summary>
+            How the API call interacted with the entity. Used as a label in the analysis chart.
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_ENTRY.ModuleName">
+            <summary>
+            the filename of the library
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_ENTRY.Symbol">
+            <summary>
+            the case-sensitive API name
+            </summary>
+        </member>
+        <member name="M:rgat.APIDetailsWin.ResolveModuleEnum(System.String)">
+            <summary>
+            Lookup a system library by path and get a reference that can be used to index internal library metadata (filter types, symbol info)
+            </summary>
+            <param name="path"></param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.APIDetailsWin.GetAPIInfo(System.Int32,System.String)">
+            <summary>
+            Get loaded API info for a symbol
+            </summary>
+            <param name="moduleReference">Internal library reference from ResolveModuleEnum </param>
+            <param name="symbolname">Case sensitive API name (ie: a library export like you would pass to GetProcAddress)</param>
+            <returns>API_ENTRY struct for the symbol if we have metadata for it, otherwise null</returns>
+        </member>
         <member name="F:rgat.BinaryTarget.Exports">
             <summary>
             List of (name,ordinal) tuples of library exports
@@ -622,6 +687,11 @@
               resource lookups using this strongly typed resource class.
             </summary>
         </member>
+        <member name="P:rgat.Properties.Resources.APIDataWin">
+            <summary>
+              Looks up a localized resource of type System.Byte[].
+            </summary>
+        </member>
         <member name="P:rgat.Properties.Resources.BuiltinJSONThemes">
             <summary>
               Looks up a localized string similar to [{
@@ -685,6 +755,55 @@
             where 
                 index: the position of the argument in the function prototype
                 value: a string representation of the argument value
+            </summary>
+        </member>
+        <member name="T:rgat.ProtoGraph">
+            <summary>
+            The data structure representing a recorded process thread
+            </summary>
+        </member>
+        <member name="M:rgat.ProtoGraph.#ctor(rgat.TraceRecord,System.UInt32,System.UInt64,System.Boolean)">
+            <summary>
+            The data structure representing a recorded process thread
+            </summary>
+            <param name="runrecord">A TraceRecord for the process containing this thread</param>
+            <param name="threadID">A Thread ID for the thread</param>
+            <param name="startAddr">The first program counter address of the thread</param>
+            <param name="terminated">Set to true if loading a saved trace</param>
+        </member>
+        <member name="F:rgat.ProtoGraph.ThreadID">
+            <summary>
+            The threads operating system assigned thread ID
+            </summary>
+        </member>
+        <member name="F:rgat.ProtoGraph.StartAddress">
+            <summary>
+            The address of the first instruction executed by the thread
+            </summary>
+        </member>
+        <member name="P:rgat.ProtoGraph.TraceReader">
+            <summary>
+            The worker which is reading trace data from the instrumented thread
+            </summary>
+        </member>
+        <member name="P:rgat.ProtoGraph.TraceProcessor">
+            <summary>
+            The worker which is processing trace data from the instrumented thread
+            </summary>
+        </member>
+        <member name="P:rgat.ProtoGraph.ProcessData">
+            <summary>
+            Process data shared by all threads (instruction disassembly, API metadata, etc)
+            </summary>
+        </member>
+        <member name="P:rgat.ProtoGraph.TraceData">
+            <summary>
+            Describes the lifetime of the process, parent storage class for threads
+            </summary>
+        </member>
+        <member name="P:rgat.ProtoGraph.ConstructedTime">
+            <summary>
+            When the thread was recorded, used as a unique identifier for threads
             </summary>
         </member>
         <member name="M:rgat.ProtoGraph.AddEdge_LastToTargetVert(System.Boolean,System.Int32,System.UInt64)">
@@ -1256,66 +1375,6 @@
             Called whenever the widget opens/closes an inner dialog
             </summary>
             <param name="action">Function to call when dialog is opened/closed. Param is open/closed state.</param>
-        </member>
-        <member name="T:rgat.WinAPIDetails.API_PARAM_ENTRY">
-            <summary>
-            Describes certain interesting parameters of an API call which we can link together to describe program behaviour
-            </summary>
-        </member>
-        <member name="F:rgat.WinAPIDetails.API_PARAM_ENTRY.IsConditional">
-            <summary>
-            may not receive this parameter (eg: failed registry key open -> no registry key handle)
-            </summary>
-        </member>
-        <member name="F:rgat.WinAPIDetails.API_PARAM_ENTRY.NoCase">
-            <summary>
-            comparisons are case insensitive, particularly numbers such as handles which get represented as hex strings
-            </summary>
-        </member>
-        <member name="T:rgat.WinAPIDetails.API_ENTRY">
-            <summary>
-            Describes the effects of an API call we have recorded
-            </summary>
-        </member>
-        <member name="F:rgat.WinAPIDetails.API_ENTRY.FilterType">
-            <summary>
-            A category this API falls into, for UI filtering. This might become a list of strings/tags later.
-            </summary>
-        </member>
-        <member name="F:rgat.WinAPIDetails.API_ENTRY.LoggedParams">
-            <summary>
-            A list of parameters/return results from the API call. Used to map their interaction with targets for plotting on the analysis chart.
-            </summary>
-        </member>
-        <member name="F:rgat.WinAPIDetails.API_ENTRY.Label">
-            <summary>
-            How the API call interacted with the entity. Used as a label in the analysis chart.
-            </summary>
-        </member>
-        <member name="F:rgat.WinAPIDetails.API_ENTRY.ModuleName">
-            <summary>
-            the filename of the library
-            </summary>
-        </member>
-        <member name="F:rgat.WinAPIDetails.API_ENTRY.Symbol">
-            <summary>
-            the case-sensitive API name
-            </summary>
-        </member>
-        <member name="M:rgat.WinAPIDetails.ResolveModuleEnum(System.String)">
-            <summary>
-            Lookup a system library by path and get a reference that can be used to index internal library metadata (filter types, symbol info)
-            </summary>
-            <param name="path"></param>
-            <returns></returns>
-        </member>
-        <member name="M:rgat.WinAPIDetails.GetAPIInfo(System.Int32,System.String)">
-            <summary>
-            Get loaded API info for a symbol
-            </summary>
-            <param name="moduleReference">Internal library reference from ResolveModuleEnum </param>
-            <param name="symbolname">Case sensitive API name (ie: a library export like you would pass to GetProcAddress)</param>
-            <returns>API_ENTRY struct for the symbol if we have metadata for it, otherwise null</returns>
         </member>
         <member name="M:rgat.YARAScan.RecompileRules(System.String)">
             <summary>

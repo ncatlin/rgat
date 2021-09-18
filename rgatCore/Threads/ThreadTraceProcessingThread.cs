@@ -415,12 +415,7 @@ namespace rgat.Threads
             }
 
 
-            if (modType == eCodeInstrumentation.eInstrumentedCode)
-            {
-                if (protograph.exeModuleID == -1 && protograph.NodeList.Count != 0)
-                    protograph.AssignModulePath();
-            }
-            else
+            if (modType is eCodeInstrumentation.eUninstrumentedCode)
             {
                 ProcessExtern(nextBlockAddress, thistag.blockID);
             }

@@ -59,7 +59,7 @@ namespace rgat
                 {
                     ImGui.Text("Filters");
 
-                    if (!WinAPIDetails.Loaded)
+                    if (!APIDetailsWin.Loaded)
                     {
                         ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
                         if (ImGui.BeginChild("#LoadErrFrame", new Vector2(ImGui.GetContentRegionAvail().X - 2, 80)))

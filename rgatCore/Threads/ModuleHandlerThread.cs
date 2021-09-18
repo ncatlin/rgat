@@ -199,18 +199,23 @@ namespace rgat
         void HandleNewThread(byte[] buf)
         {
             Console.WriteLine(System.Text.ASCIIEncoding.ASCII.GetString(buf));
-            string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
-            uint TID = uint.Parse(fields[1], System.Globalization.NumberStyles.Integer);
+            string[] fields = Encoding.ASCII.GetString(buf).Split('@', 4);
+            if (!uint.TryParse(fields[1], System.Globalization.NumberStyles.Integer, null, out uint TID))
+            {
+                Logging.RecordError("Bad threadID in new thread");
+                return;
+            }
+            if(!ulong.TryParse(fields[2], System.Globalization.NumberStyles.HexNumber, null, out ulong startAddr))
+            {
+                Logging.RecordError($"Bad thread start address (ID:{TID})");
+                return;
+            }
             Console.WriteLine($"Thread {TID} started!");
-
-
 
             switch (trace.TraceType)
             {
                 case eTracePurpose.eVisualiser:
-
-
-                    ProtoGraph newProtoGraph = new ProtoGraph(trace, TID);
+                    ProtoGraph newProtoGraph = new ProtoGraph(trace, TID, startAddr);
                     if (!rgatState.ConnectedToRemote)
                         SpawnPipeTraceProcessorThreads(newProtoGraph);
                     else

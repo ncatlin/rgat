@@ -674,7 +674,7 @@ namespace rgat
                 var recentbins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Binary);
                 if (ImGui.BeginMenu("Recent Binaries", recentbins.Any()))
                 {
-                    foreach (var entry in recentbins.Take(Math.Min(10, recentbins.Length)))
+                    foreach (var entry in recentbins.Take(Math.Min(10, recentbins.Length)).Reverse())
                     {
                         if (DrawRecentPathEntry(entry, true))
                         {
@@ -687,7 +687,7 @@ namespace rgat
                 var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Trace);
                 if (ImGui.BeginMenu("Recent Traces", recenttraces.Any()))
                 {
-                    foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Length)))
+                    foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Length)).Reverse())
                     {
                         if (DrawRecentPathEntry(entry, true)) LoadTraceByPath(entry.Path);
                     }

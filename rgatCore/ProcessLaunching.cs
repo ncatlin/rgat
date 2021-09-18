@@ -192,7 +192,7 @@ namespace rgat
             }
 
             string loaderName = (loaderWidth == BitWidth.Arch32) ? "DllLoader32" : "DllLoader64";
-            byte[] loaderBytes = ImGuiController.ReadBinaryResource(loaderName);
+            byte[] loaderBytes = rgatState.ReadBinaryResource(loaderName);
             if (loaderBytes == null)
             {
                 Logging.RecordError($"Unable to retrieve loader {loaderName} from resources");

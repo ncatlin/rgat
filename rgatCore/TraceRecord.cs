@@ -245,32 +245,40 @@ namespace rgat
 		*/
         public bool load(Newtonsoft.Json.Linq.JObject saveJSON, Veldrid.GraphicsDevice device)//, List<QColor> &colours);
         {
-            if (!DisassemblyData.load(saveJSON)) //todo - get the relevant dynamic bit for this trace
+            try
             {
-                Logging.RecordLogEvent("ERROR: Process data load failed", Logging.LogFilterType.TextError);
+                if (!DisassemblyData.load(saveJSON)) //todo - get the relevant dynamic bit for this trace
+                {
+                    Logging.RecordLogEvent("ERROR: Process data load failed", Logging.LogFilterType.TextError);
+                    return false;
+                }
+
+                Logging.RecordLogEvent("Loaded process data. Loading graphs...", Logging.LogFilterType.TextDebug);
+
+
+                if (!LoadProcessGraphs(saveJSON, device))//, colours))//.. &config.graphColours))
+                {
+                    Logging.RecordLogEvent("Process Graph load failed", Logging.LogFilterType.TextError);
+                    return false;
+                }
+
+
+                if (!LoadTimeline(saveJSON))
+
+                {
+                    Console.WriteLine("[rgat]Timeline load failed");
+                    return false;
+                }
+
+                _loadedFromSave = true;
+                TraceState = eTraceState.eTerminated;
+                return true;
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Error loading trace: {e.Message} - {e.StackTrace}");
                 return false;
             }
-
-            Logging.RecordLogEvent("Loaded process data. Loading graphs...", Logging.LogFilterType.TextDebug);
-
-
-            if (!LoadProcessGraphs(saveJSON, device))//, colours))//.. &config.graphColours))
-            {
-                Logging.RecordLogEvent("Process Graph load failed", Logging.LogFilterType.TextError);
-                return false;
-            }
-
-
-            if (!LoadTimeline(saveJSON))
-
-            {
-                Console.WriteLine("[rgat]Timeline load failed");
-                return false;
-            }
-
-            _loadedFromSave = true;
-            TraceState = eTraceState.eTerminated;
-            return true;
         }
 
 
@@ -378,7 +386,7 @@ namespace rgat
         {
             int ModuleReference = DisassemblyData.GetModuleReference(node.GlobalModuleID);
 
-            WinAPIDetails.API_ENTRY? APIDetails = DisassemblyData.GetAPIEntry( node.GlobalModuleID, ModuleReference, node.address);
+            APIDetailsWin.API_ENTRY? APIDetails = DisassemblyData.GetAPIEntry( node.GlobalModuleID, ModuleReference, node.address);
 
             Logging.APICALL call = new Logging.APICALL()
             {
@@ -623,16 +631,19 @@ namespace rgat
                 Logging.RecordLogEvent("Failed to find valid ThreadID in thread", Logging.LogFilterType.TextError);
                 return false;
             }
-
             uint GraphThreadID = tTID.ToObject<uint>();
+
+            if (!jThreadObj.TryGetValue("StartAddress", out JToken tAddr) || tAddr.Type != JTokenType.Integer)
+            {
+                Logging.RecordLogEvent("Failed to find valid StartAddress in thread", Logging.LogFilterType.TextError);
+                return false;
+            }
+            ulong startAddr = tAddr.ToObject<ulong>();
+
             Logging.RecordLogEvent("Loading thread ID " + GraphThreadID.ToString(), Logging.LogFilterType.TextDebug);
             //display_only_status_message("Loading graph for thread ID: " + tidstring, clientState);
 
-            ProtoGraph protograph = new ProtoGraph(this, GraphThreadID, terminated: true);
-            lock (GraphListLock)
-            {
-                ProtoGraphs.Add(GraphThreadID, protograph);
-            }
+            ProtoGraph protograph = new ProtoGraph(this, GraphThreadID, startAddr, terminated: true);
 
             try
             {
@@ -643,8 +654,13 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent("Deserialising trace file failed: " + e.Message, Logging.LogFilterType.TextError);
+                Logging.RecordError($"Deserialising trace file failed: {e.Message} - {e.StackTrace}");
                 return false;
+            }
+
+            lock (GraphListLock)
+            {
+                ProtoGraphs.Add(GraphThreadID, protograph);
             }
 
             //CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
@@ -656,8 +672,6 @@ namespace rgat
             {
                 PlottedGraphs.Add(GraphThreadID, standardRenderedGraph);
             }
-
-            protograph.AssignModulePath();
 
             return true;
         }
@@ -724,8 +738,6 @@ namespace rgat
                 foreach (var tid_graph in PlottedGraphs)
                 {
                     ProtoGraph protograph = tid_graph.Value.InternalProtoGraph;
-                    if (protograph.NodeList.Count == 0) continue;
-
                     graphsList.Add(protograph.Serialise());
                 }
             }
@@ -821,6 +833,10 @@ namespace rgat
                                 _timeline.Add(evt);
                             }
                             break;
+
+                        case Logging.eTimelineEvent.APICall:
+                            _timeline.Add(evt);
+                            break;//not in logs window
                         /*
                         case eTimelineEvent.APICall:
                         APICALL apic = (APICALL)(evt.Item);
