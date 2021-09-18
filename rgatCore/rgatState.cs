@@ -640,10 +640,13 @@ namespace rgat
         public static void SaveAllTargets()
         {
             List<BinaryTarget> targslist = targets.GetBinaryTargets();
+            int savedCount = 0;
             foreach (BinaryTarget targ in targslist)
             {
-                SaveTarget(targ);
+                savedCount += SaveTarget(targ);
             }
+            
+            Logging.RecordLogEvent($"Finished saving {savedCount} trace{((savedCount is not 1) ? 's' : "")}", Logging.LogFilterType.TextAlert);
             Console.WriteLine($"Finished saving {targslist.Count} targets");
         }
 
@@ -651,9 +654,10 @@ namespace rgat
         /// Serialise all the traces of the the specified target to the trace directory
         /// </summary>
         /// <param name="targ">A binaryTarget to save traces of</param>
-        public static void SaveTarget(BinaryTarget targ)
+        public static int SaveTarget(BinaryTarget targ)
         {
             var traceslist = targ.GetTracesUIList();
+            int savedCount = 0;
 
             //todo save binary data so it can be loaded without the binary present
             // preview, bitwidth, signature hits, exports, is library
@@ -664,9 +668,15 @@ namespace rgat
 
                 if (!trace.WasLoadedFromSave)
                 {
-                    trace.Save(creationTime);
+                    if (trace.Save(creationTime, out string path))
+                    { 
+                        savedCount += 1;
+                        Logging.RecordLogEvent($"Saved Process {trace.PID} to {Path.GetDirectoryName(path)}", Logging.LogFilterType.TextAlert);
+                    }
+
                 }
             }
+            return savedCount;
         }
 
         /// <summary>

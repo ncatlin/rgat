@@ -682,21 +682,23 @@ namespace rgat
         /// Recursively saves child processes
         /// </summary>
         /// <param name="traceStartedTime">The time the run was started</param>
+        /// <param name="savePath">The filesystem path the trace was saved to</param>
         /// <returns>The path the trace was saved to</returns>
-        public string Save(DateTime traceStartedTime)
+        public bool Save(DateTime traceStartedTime, out string savePath)
         {
+            savePath = null;
             Logging.RecordLogEvent($"Saving trace {binaryTarg.FilePath} -> PID {PID}");
             if (TraceType != eTracePurpose.eVisualiser)
             {
                 Logging.RecordLogEvent("\tSkipping non visualiser trace");
-                return "";
+                return false;
             }
 
-            JsonTextWriter wr = CreateSaveFile(traceStartedTime, out string path);
+            JsonTextWriter wr = CreateSaveFile(traceStartedTime, out savePath);
             if (wr == null)
             {
                 Logging.RecordLogEvent("\tSaving Failed: Unable to create filestream", Logging.LogFilterType.TextError);
-                return "";
+                return false;
             }
 
             JObject traceSaveObject = new JObject();
@@ -710,23 +712,26 @@ namespace rgat
             traceSaveObject.Add("Timeline", SerialiseTimeline());
 
             JArray childPathsArray = new JArray();
+            int saveCount = 0;
             foreach (TraceRecord trace in children)
             {
-                string childpath = trace.Save(trace.launchedTime);
-                if (childpath.Length > 0)
-                    childPathsArray.Add(childpath);
+                if (trace.Save(trace.launchedTime, out string childpath))
+                {
+                    if (childpath.Length > 0)
+                        childPathsArray.Add(childpath);
+                    saveCount += 1;
+                }
             }
             traceSaveObject.Add("Children", childPathsArray);
 
             traceSaveObject.WriteTo(wr);
             wr.Close();
 
-            Logging.RecordLogEvent("Trace Save Complete");
             if (GlobalConfig.Settings.Logs.StoreSavedTracesAsRecent)
             {
-                GlobalConfig.Settings.RecentPaths.RecordRecentPath(Config.rgatSettings.eRecentPathType.Trace, path);
+                GlobalConfig.Settings.RecentPaths.RecordRecentPath(Config.rgatSettings.eRecentPathType.Trace, savePath);
             }
-            return wr.Path;
+            return true;
         }
 
         JArray SerialiseGraphs()

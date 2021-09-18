@@ -1180,12 +1180,13 @@
             <param name="max">The most events to return. Default 5.</param>
             <returns>And array of TIMELINE_EVENT objects</returns>
         </member>
-        <member name="M:rgat.TraceRecord.Save(System.DateTime)">
+        <member name="M:rgat.TraceRecord.Save(System.DateTime,System.String@)">
             <summary>
             Save all the data needed to reconstruct a process run and all its thread graphs
             Recursively saves child processes
             </summary>
             <param name="traceStartedTime">The time the run was started</param>
+            <param name="savePath">The filesystem path the trace was saved to</param>
             <returns>The path the trace was saved to</returns>
         </member>
         <member name="M:rgat.TraceRecord.ExportPajek(System.UInt32)">
