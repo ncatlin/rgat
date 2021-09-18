@@ -952,10 +952,10 @@ namespace rgat.Widgets
                 ImGui.AlignTextToFramePadding();
                 ImGui.Text("Max Recent Paths"); ImGui.SameLine();
                 ImGui.SetNextItemWidth(100);
-                int pathsLimit = GlobalConfig.Settings.Logs.MaxStoredRecentPaths;
+                int pathsLimit = GlobalConfig.Settings.UI.MaxStoredRecentPaths;
                 if (ImGui.InputInt("##MaxRecentPaths", ref pathsLimit))
                 {
-                    GlobalConfig.Settings.Logs.MaxStoredRecentPaths = pathsLimit;
+                    GlobalConfig.Settings.UI.MaxStoredRecentPaths = pathsLimit;
                 }
                 ImGui.EndGroup();
                 SmallWidgets.MouseoverText("The number of recently opened samples/traces to store");

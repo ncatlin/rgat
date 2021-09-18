@@ -91,8 +91,15 @@ namespace rgat.Config
             public uint OpenCount { get; set; }
             public DateTime FirstOpen { get; set; }
             public DateTime LastOpen { get; set; }
-        }
 
+            public class SortLatestAccess : IComparer<PathRecord>
+            {
+                public int Compare(PathRecord x, PathRecord y)
+                {
+                    return DateTime.Compare(y.LastOpen, x.LastOpen);
+                }
+            }
+        }
 
         /// <summary>
         /// Connection settings for remote tracing
@@ -141,6 +148,8 @@ namespace rgat.Config
 
         public class UISettings
         {
+            int _MaxStoredRecentPaths = 10;
+            public int MaxStoredRecentPaths { get => _MaxStoredRecentPaths; set { _MaxStoredRecentPaths = value; MarkDirty(); } }
 
             public bool ScreencapAnimation = true;
             public bool AlertAnimation = true;
@@ -152,10 +161,6 @@ namespace rgat.Config
 
         public class LogSettings
         {
-
-            int _MaxStoredRecentPaths = 10;
-            public int MaxStoredRecentPaths { get => _MaxStoredRecentPaths; set { _MaxStoredRecentPaths = value; MarkDirty(); } }
-
             bool _BulkLogging = false;
             public bool BulkLogging { get => _BulkLogging; set { _BulkLogging = value; MarkDirty(); } }
 
@@ -519,7 +524,9 @@ namespace rgat.Config
             Version _UpdateLastCheckVersion = RGAT_VERSION_SEMANTIC;
 
             [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-            public Version UpdateLastCheckVersion { get => _UpdateLastCheckVersion; 
+            public Version UpdateLastCheckVersion
+            {
+                get => _UpdateLastCheckVersion;
                 set
                 {
                     try
@@ -528,12 +535,12 @@ namespace rgat.Config
                         _UpdateLastCheckVersionString = value.ToString();
                         GlobalConfig.NewVersionAvailable = _UpdateLastCheckVersion > CONSTANTS.RGAT_VERSION_SEMANTIC;
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         Logging.RecordLogEvent($"Failed to parse update version ({value}) from settings: {e.Message}");
                     }
-                    
-                    MarkDirty(); 
+
+                    MarkDirty();
                 }
             }
 
@@ -642,6 +649,8 @@ namespace rgat.Config
                         found.OpenCount += 1;
                         found.LastOpen = DateTime.Now;
                     }
+
+                    targetList.Sort(new rgatSettings.PathRecord.SortLatestAccess());
 
                     if (pathType != eRecentPathType.Directory)
                     {

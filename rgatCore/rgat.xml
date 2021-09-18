@@ -497,6 +497,14 @@
             </summary>
             <param name="bufferSize"></param>
         </member>
+        <member name="M:rgat.Logging.APICALL.DeserialiseEffects(Newtonsoft.Json.Linq.JToken,rgat.Logging.APICALL)">
+            <summary>
+            Implementing effects as derived classes means safe deserialisation is quite clunky
+            </summary>
+            <param name="deTok">JToken of the APICALL details</param>
+            <param name="apiObj">APICALL being deserialised</param>
+            <returns></returns>
+        </member>
         <member name="M:rgat.Logging.GetTextFilterCounts">
             <summary>
             Get the number of log messages recorded for each filter

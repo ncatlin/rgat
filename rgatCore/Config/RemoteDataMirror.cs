@@ -178,7 +178,8 @@ namespace rgat.Config
                 newEntry.OpenCount = prop4.ToObject<uint>();
                 recentbins.Add(newEntry);
             }
-
+            
+            recentbins.Sort(new rgatSettings.PathRecord.SortLatestAccess());
             RemoteDataMirror.SetRecentPaths(recentbins);
             return true;
         }

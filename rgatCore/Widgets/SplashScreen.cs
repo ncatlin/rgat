@@ -122,7 +122,7 @@ namespace rgat
                     ImGui.TableHeadersRow();
                     if (recentBins?.Length > 0)
                     {
-                        int bincount = recentBins.Length;
+                        int bincount = Math.Min(GlobalConfig.Settings.UI.MaxStoredRecentPaths, recentBins.Length);
                         for (var bini = 0; bini < bincount; bini++)
                         {
                             var entry = recentBins[bini];
@@ -203,8 +203,10 @@ namespace rgat
                     ImGui.TableHeadersRow();
                     if (recentTraces?.Length > 0)
                     {
-                        foreach (var entry in recentTraces)
+                        int traceCount = Math.Min(GlobalConfig.Settings.UI.MaxStoredRecentPaths, recentTraces.Length);
+                        for (var traceI = 0; traceI < traceCount; traceI++) 
                         {
+                            var entry = recentTraces[traceI];
                             ImGui.TableNextRow();
                             ImGui.TableNextColumn();
                             if (DrawRecentPathEntry(entry, false))
