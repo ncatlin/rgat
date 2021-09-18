@@ -542,7 +542,6 @@ namespace rgat
         unsafe void RenderVelocity(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
         {
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-            var textureSize = graph.LinearIndexTextureSize();
             uint fixedNodes = 0;
             if (graph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks) fixedNodes = 1;
 
@@ -600,7 +599,6 @@ namespace rgat
             ResourceSet resources, float delta, int mouseoverNodeID, bool useAnimAttribs)
         {
             Logging.RecordLogEvent($"RenderNodeAttribs  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-            uint textureSize = graph.LinearIndexTextureSize();
             AttribShaderParams parms = new AttribShaderParams
             {
                 delta = delta,

@@ -526,8 +526,12 @@ namespace rgat
             graph.RotationMatrix = world;
         }
 
-
-        public void Draw(Vector2 graphSize, PlottedGraph graph, bool recordingVideo)
+        /// <summary>
+        /// Write the rendered graph/HUD items to the draw list
+        /// </summary>
+        /// <param name="graphSize">Size of the graph area being drawn</param>
+        /// <param name="graph">The graph being drawn</param>
+        public void Draw(Vector2 graphSize, PlottedGraph graph)
         {
             _graphLock.EnterReadLock();
 
@@ -541,7 +545,7 @@ namespace rgat
                DrawGraphImage();
             }
 
-            drawHUD(graphSize, ActiveGraph);
+            DrawHUD(graphSize, ActiveGraph);
 
             _graphLock.ExitReadLock();
         }
@@ -570,7 +574,11 @@ namespace rgat
 
 
         int latestWrittenTexture = 1;
-        //must hold upgradable read lock
+        /// <summary>
+        /// Get a framebuffer we can safely draw to
+        /// Must hold upgradable read lock
+        /// </summary>
+        /// <param name="drawtarget"></param>
         void GetOutputFramebuffer(out Framebuffer drawtarget)
         {
             _graphLock.EnterWriteLock();
@@ -587,6 +595,10 @@ namespace rgat
             _graphLock.ExitWriteLock();
         }
 
+        /// <summary>
+        /// Drawing is complete. Release the write lock so it can be displayed on the screen
+        /// The other framebuffer will become locked for writing
+        /// </summary>
         void ReleaseOutputFramebuffer()
         {
             _graphLock.EnterWriteLock();
@@ -596,8 +608,11 @@ namespace rgat
             _graphLock.ExitWriteLock();
         }
 
-        //todo remove unsafe 
-        unsafe void GetLatestTexture(out Texture graphtexture)
+        /// <summary>
+        /// Get the most recently drawn framebuffer for displaying to the user
+        /// </summary>
+        /// <param name="graphtexture"></param>
+        void GetLatestTexture(out Texture graphtexture)
         {
             if (latestWrittenTexture == 1)
             {
@@ -612,9 +627,10 @@ namespace rgat
         }
 
 
-
-
-        public unsafe void SetupRenderingResources()
+        /// <summary>
+        /// Initialise graphics resources
+        /// </summary>
+        unsafe void SetupRenderingResources()
         {
 
             _paramsBuffer = TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<GraphShaderParams>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "GraphPlotparamsBuffer");
@@ -692,7 +708,9 @@ namespace rgat
             _fontPipeline = _factory.CreateGraphicsPipeline(fontpd);
         }
 
-
+        /// <summary>
+        /// Re-initialise graphics resources, for use when the size of the widget has changed
+        /// </summary>
         void RecreateOutputTextures()
         {
 
@@ -717,8 +735,6 @@ namespace rgat
             _outputTexture2.Name = "OutputTexture2" + DateTime.Now.ToFileTime().ToString();
             _outputFramebuffer2 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture2));
             _outputFramebuffer2.Name = $"OPFB2_" + _outputTexture2.Name;
-
-
 
             _testPickingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
                     Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
@@ -764,8 +780,12 @@ namespace rgat
 
 
         eRenderingMode _renderingMode = eRenderingMode.eStandardControlFlow;
-        //Sets rendering mode to the specified mode
-        //If already using that mode, returns the mode to standard
+
+        /// <summary>
+        ///  Sets rendering mode to the specified mode
+        ///  If already using that mode, returns the mode to standard trace display
+        /// </summary>
+        /// <param name="newMode">Mode to toggle</param>
         public void ToggleRenderingMode(eRenderingMode newMode)
         {
             if (newMode == _renderingMode && _renderingMode != eRenderingMode.eStandardControlFlow)
@@ -778,6 +798,10 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Set the rendering mode to the specified mode
+        /// </summary>
+        /// <param name="newMode">Mode to activate</param>
         void SetRenderingMode(eRenderingMode newMode)
         {
             switch (newMode)
@@ -796,7 +820,20 @@ namespace rgat
             _renderingMode = newMode;
         }
 
+
         static Dictionary<string, List<fontStruc>> _cachedStrings = new Dictionary<string, List<fontStruc>>();
+
+        /// <summary>
+        /// Convert a string to a List of fontStrucs describing the font glyphs to display the string
+        /// The output is cached so this is not performed every frame
+        /// </summary>
+        /// <param name="inputString">Text to display</param>
+        /// <param name="nodeIdx">Node associated with the text - used for positioning</param>
+        /// <param name="fontScale">Text scaling factor</param>
+        /// <param name="font">Font glyphs to use</param>
+        /// <param name="stringVerts">Working list of glyph descriptors to add the generated fontStrucs to</param>
+        /// <param name="colour">Text colour</param>
+        /// <param name="yOff">Vertical offset for the glyphs</param> //todo think caching wrecks this
         static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, ref List<fontStruc> stringVerts, uint colour, float yOff = 0)
         {
             if (inputString == null)
@@ -836,6 +873,16 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Update graph drawing parameters used by the shaders
+        /// </summary>
+        /// <param name="graph">The graph being drawn</param>
+        /// <param name="textureSize"></param>
+        /// <param name="projection"></param>
+        /// <param name="view"></param>
+        /// <param name="world"></param>
+        /// <param name="cl"></param>
+        /// <returns></returns>
         GraphShaderParams updateShaderParams(PlottedGraph graph, uint textureSize, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, CommandList cl)
         {
             GraphShaderParams shaderParams = new GraphShaderParams
@@ -1012,7 +1059,13 @@ namespace rgat
         }
 
         ulong _lastThemeVersion = 0;
-        public void renderGraph(CommandList cl, PlottedGraph graph)
+
+        /// <summary>
+        /// Draws the various nodes, edges, captions and illustrations to the framebuffer for display
+        /// </summary>
+        /// <param name="cl">A veldrid commandlist, for use by this thread only</param>
+        /// <param name="graph">The PlottedGraph to draw</param>
+        public void DrawGraph(CommandList cl, PlottedGraph graph)
         {
             Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
             if (drawnEdgeCount == 0 || Exiting) return;
@@ -1192,7 +1245,10 @@ namespace rgat
         }
 
 
-        //draw the output to the screen
+        /// <summary>
+        /// Add the most recently drawn framebuffer to the drawlist
+        /// </summary>
+        /// <returns>The texture for the drawn framebuffer. Useful for screenshots/videos</returns>
         public Texture DrawGraphImage()
         {
             Vector2 currentRegionSize = ImGui.GetContentRegionAvail();
@@ -1221,9 +1277,18 @@ namespace rgat
             return outputTexture;
         }
 
-
+        /// <summary>
+        /// Get the current text colour as a Vector4
+        /// Wrapper for the memory unsafe ImGui API 
+        /// </summary>
+        /// <returns>A Vector4 describing the current text colour</returns>
         unsafe Vector4 GetTextColour() => *ImGui.GetStyleColorVec4(ImGuiCol.Text);
 
+
+        /// <summary>
+        /// Draw the latest keyboard shortcut activations to the screen
+        /// </summary>
+        /// <param name="topLeft">Location on the screen to draw to</param>
         void DrawKeystrokes(Vector2 topLeft)
         {
             long timeNowMS = DateTimeOffset.Now.ToUnixTimeMilliseconds();
@@ -1274,6 +1339,12 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Display trace events (process/thread stop/start) in the visualiser widget which are
+        /// important but not important enough to be an application alert
+        /// May also want to add certain APIs, especially network related
+        /// </summary>
+        /// <param name="pos">Position to draw to</param>
         public void DisplayEventMessages(Vector2 pos)
         {
             PlottedGraph graph = ActiveGraph;
@@ -1336,7 +1407,12 @@ namespace rgat
         }
 
 
-        void drawHUD(Vector2 widgetSize, PlottedGraph activeGraph)
+        /// <summary>
+        /// Draw in-widget buttons such as the layout selector, keybind activations and the quickmenu
+        /// </summary>
+        /// <param name="widgetSize"></param>
+        /// <param name="activeGraph"></param>
+        void DrawHUD(Vector2 widgetSize, PlottedGraph activeGraph)
         {
             string msg;
             Vector2 topLeft = ImGui.GetCursorScreenPos();
@@ -1561,7 +1637,7 @@ namespace rgat
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, attribBuf));
 
             Logging.RecordLogEvent("GenerateMainGraph Starting rendergraph", filter: Logging.LogFilterType.BulkDebugLogFile);
-            renderGraph(cl, graph);
+            DrawGraph(cl, graph);
 
             Logging.RecordLogEvent("GenerateMainGraph upd then done", filter: Logging.LogFilterType.BulkDebugLogFile);
             graph.UpdatePreviewVisibleRegion(WidgetSize);

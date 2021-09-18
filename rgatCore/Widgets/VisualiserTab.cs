@@ -84,7 +84,7 @@ namespace rgat
             Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI.PREVIEW_PANE_WIDTH, height);
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
-                MainGraphWidget.Draw(graphSize, _rgatState.ActiveGraph, rgatState.VideoRecorder.Recording);
+                MainGraphWidget.Draw(graphSize, _rgatState.ActiveGraph);
 
                 Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1 * graphSize.Y);
                 MainGraphWidget.DisplayEventMessages(msgpos);

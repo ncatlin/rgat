@@ -59,7 +59,7 @@ namespace rgat.Threads
                         ProtoGraph protoGraph = graph.InternalProtoGraph;
 
                         //Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
-                        graph.render_graph();
+                        graph.RenderGraph();
                         if (!graph.RenderingComplete())
                             moreRenderingNeeded = true;
                     }

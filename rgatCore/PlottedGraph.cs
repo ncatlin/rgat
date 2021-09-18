@@ -69,7 +69,11 @@ namespace rgat
 
 
         ReaderWriterLockSlim _renderLock = new ReaderWriterLockSlim();
-        public void render_graph()
+        /// <summary>
+        /// Takes edges that have been through the trace processor worker and
+        /// inserts them into the graphcis buffers for layout/drawing
+        /// </summary>
+        public void RenderGraph()
         {
             if (_renderLock.TryEnterWriteLock(0))
             {
@@ -88,13 +92,6 @@ namespace rgat
             if (Math.Abs(a) > maxA) maxA = Math.Abs(a);
             if (Math.Abs(b) > maxB) maxB = Math.Abs(b);
         }*/
-
-
-        public void UpdateMainRender()
-        {
-            render_graph();
-        }
-
 
         public void SeekToAnimationPosition(float position)
         {
@@ -1114,6 +1111,7 @@ namespace rgat
             }
             return positions;
         }
+
 
         public uint LinearIndexTextureSize() { return indexTextureSize(_graphStructureLinear.Count); }
         public uint NestedIndexTextureSize() { return indexTextureSize(_graphStructureBalanced.Count); }

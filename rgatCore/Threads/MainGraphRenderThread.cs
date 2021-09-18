@@ -58,7 +58,7 @@ namespace rgat.Threads
 
             //update the render if there are more verts/edges or graph is being resized
 
-            graph.UpdateMainRender();
+            graph.RenderGraph();
 
             if (!protoGraph.Terminated)
             {
