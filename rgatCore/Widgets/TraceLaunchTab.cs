@@ -13,24 +13,18 @@ namespace rgat
     {
         private void DrawTraceTab(BinaryTarget activeTarget)
         {
-            if (ImGui.BeginTabItem("Start Trace"))
-            {
-                _currentTab = "Start Trace";
-                DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X);
+            _SwitchToTraceSelectTab = false;
+            _currentTab = "Start Trace";
+            DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X);
 
-                ImGui.BeginGroup();
-                {
-                    DrawTraceTab_InstrumentationSettings(activeTarget, 600);
-                    ImGui.SameLine();
-                    DrawTraceTab_ExecutionSettings(activeTarget, ImGui.GetContentRegionAvail().X);
-                    ImGui.EndGroup();
-                }
-                ImGui.EndTabItem();
-            }
-            else
+            ImGui.BeginGroup();
             {
-                _tooltipScrollingActive = false;
+                DrawTraceTab_InstrumentationSettings(activeTarget, 600);
+                ImGui.SameLine();
+                DrawTraceTab_ExecutionSettings(activeTarget, ImGui.GetContentRegionAvail().X);
+                ImGui.EndGroup();
             }
+            ImGui.EndTabItem();
         }
 
         private void DrawTraceTab_FileInfo(BinaryTarget activeTarget, float width)
@@ -518,8 +512,8 @@ namespace rgat
                     {
                         //todo loadername, ordinal
                         System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
-                        System.Diagnostics.Process p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath, 
-                            loaderName: activeTarget.LoaderName, ordinal: ordinal, targetPE: activeTarget.PEFileObj) ;
+                        System.Diagnostics.Process p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath,
+                            loaderName: activeTarget.LoaderName, ordinal: ordinal, targetPE: activeTarget.PEFileObj);
                         if (p != null)
                         {
                             watch.Start();
@@ -559,7 +553,7 @@ namespace rgat
                         ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF454545);
                         ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0xFF454545);
                         _recordVideoOnStart = false;
-                        if (ImGui.Checkbox("Capture Video", ref _recordVideoOnStart))  rgatState.RecordVideoOnNextTrace = _recordVideoOnStart;
+                        if (ImGui.Checkbox("Capture Video", ref _recordVideoOnStart)) rgatState.RecordVideoOnNextTrace = _recordVideoOnStart;
                         ImGui.PopStyleColor(3);
                         SmallWidgets.MouseoverText("Requires FFmpeg - configure in settings");
                     }
@@ -672,7 +666,7 @@ namespace rgat
                     }
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
-                       rgatState.DIELib.StartDetectItEasyScan(activeTarget, reload: true);
+                        rgatState.DIELib.StartDetectItEasyScan(activeTarget, reload: true);
                     }
                 }
                 else if (DEProgress.loading)

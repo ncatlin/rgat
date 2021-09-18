@@ -324,6 +324,7 @@ namespace rgat.Threads
             ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
             animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
             animUpdate.blockAddr = thistag.blockaddr;
+
             animUpdate.blockID = thistag.blockID;
             protograph.PushAnimUpdate(animUpdate);
 

@@ -262,15 +262,24 @@ namespace rgat
         /// Set the binary target active in the UI
         /// </summary>
         /// <param name="path">Path of the target to activate</param>
-        public void SetActiveTarget(string path)
+        public void SetActiveTarget(string? path)
         {
-            targets.GetTargetByPath(path, out BinaryTarget newTarget);
-            if (newTarget != null && newTarget != ActiveTarget)
+            if (path == null)
             {
-                ActiveTarget = newTarget;
+                ActiveTarget = null;
                 ActiveTrace = null;
                 ClearActiveGraph();
-            };
+            }
+            else
+            {
+                targets.GetTargetByPath(path, out BinaryTarget newTarget);
+                if (newTarget != null && newTarget != ActiveTarget)
+                {
+                    ActiveTarget = newTarget;
+                    ActiveTrace = null;
+                    ClearActiveGraph();
+                };
+            }
         }
 
         /// <summary>

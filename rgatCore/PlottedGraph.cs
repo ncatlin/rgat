@@ -958,10 +958,13 @@ namespace rgat
                     var middleIns = block[midIdx];
                     if (!middleIns.GetThreadVert(tid, out uint centerNodeID))
                     {
-                        centerNodeID = 0; //?
-                        Debug.Assert(false);
+                        blockMiddles[blockIdx] = -1; //instructions sent and not executed? why?
+                        //Debug.Assert(false, $"Instruction 0x{middleIns.address:X} not found in thread {tid}");
                     }
-                    blockMiddles[blockIdx] = (int)centerNodeID;
+                    else
+                    {
+                        blockMiddles[blockIdx] = (int)centerNodeID;
+                    }
                 }
             }
 

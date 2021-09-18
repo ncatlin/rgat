@@ -1016,6 +1016,10 @@ namespace rgat
                             threadsUsingInstruction.Add(threadNodeMappings);
                         }
                     }
+                    else
+                    {
+                        Console.WriteLine($"Null thread verts: 0x{mutation.address:X} => {mutation.ins_text}, {mutation.globalmodnum}[{GetModulePath(mutation.globalmodnum)}]");
+                    }
                     mutationData.Add(threadsUsingInstruction);
                     opcodesMutationsList.Add(mutationData);
                 }

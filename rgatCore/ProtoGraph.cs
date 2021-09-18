@@ -942,7 +942,6 @@ namespace rgat
 
         public void handle_tag(TAG thistag, bool skipFirstEdge = false)
         {
-
             if (thistag.jumpModifier == eCodeInstrumentation.eInstrumentedCode)
             {
                 //Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} [BLOCKID: {thistag.blockID}] inscount {thistag.insCount}");
@@ -1063,6 +1062,7 @@ namespace rgat
                     }
                 }
                 //end possible  #ifdef DEBUG candidate
+
 
                 //target vert already on this threads graph?
                 bool alreadyExecuted = set_target_instruction(instruction);
@@ -1212,18 +1212,19 @@ namespace rgat
         public List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
 
         List<uint> ExceptionNodeIndexes = new List<uint>();
+        public string StartModuleName { get; private set; } = "";
 
         void AssignModulePath()
         {
             exeModuleID = ProcessData.FindContainingModule(StartAddress);
             if (exeModuleID < 0 || exeModuleID >= ProcessData.LoadedModulePaths.Count) return;
 
-            string ModulePath = ProcessData.LoadedModulePaths[exeModuleID];
+            StartModuleName = System.IO.Path.GetFileName(ProcessData.LoadedModulePaths[exeModuleID]);
             moduleBase = TraceData.DisassemblyData.LoadedModuleBounds[exeModuleID].Item1;
 
 
-            if (ModulePath.Length > UI.MAX_DIFF_PATH_LENGTH)
-                ModulePath = ".." + ModulePath.Substring(ModulePath.Length - UI.MAX_DIFF_PATH_LENGTH, UI.MAX_DIFF_PATH_LENGTH);
+            if (StartModuleName.Length > UI.MAX_DIFF_PATH_LENGTH)
+                StartModuleName = ".." + StartModuleName.Substring(StartModuleName.Length - UI.MAX_DIFF_PATH_LENGTH, UI.MAX_DIFF_PATH_LENGTH);
         }
         /*
 		public ulong BacklogOutgoing = 0;
@@ -1382,7 +1383,7 @@ namespace rgat
             {
                 Tuple<uint, uint> blockFirstLast = new Tuple<uint, uint>(blockBoundsArray[i].ToObject<uint>(), blockBoundsArray[i + 1].ToObject<uint>());
                 BlocksFirstLastNodeList.Add(blockFirstLast);
-                Debug.Assert((int)blockFirstLast.Item1 <= (int)blockFirstLast.Item2);
+                //Debug.Assert((int)blockFirstLast.Item1 <= (int)blockFirstLast.Item2); //todo this may be needed still
             }
 
 

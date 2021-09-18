@@ -671,6 +671,7 @@ namespace rgat
             if (ImGui.BeginMenu("Target"))
             {
                 if (ImGui.MenuItem("Select Target Executable")) { ToggleLoadExeWindow(); }
+
                 var recentbins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Binary);
                 if (ImGui.BeginMenu("Recent Binaries", recentbins.Any()))
                 {
@@ -1162,6 +1163,8 @@ namespace rgat
             return true;
         }
 
+        // these are gross
+        bool _SwitchToTraceSelectTab = false;
         bool _SwitchToVisualiserTab = false;
         int _OldTraceCount = -1;
         string _currentTab = "";
@@ -1181,7 +1184,23 @@ namespace rgat
 
             if (ImGui.BeginTabBar("Primary Tab Bar", tab_bar_flags))
             {
-                DrawTraceTab(_rgatState.ActiveTarget);
+                if (_SwitchToTraceSelectTab)
+                {
+                    tabDrawn = ImGui.BeginTabItem("Start Trace", ref tabDrawn, ImGuiTabItemFlags.SetSelected);
+                    _SwitchToTraceSelectTab = false;
+                }
+                else
+                    tabDrawn = ImGui.BeginTabItem("Start Trace");
+                if (tabDrawn)
+                {
+                    _currentTab = "TraceSelect";
+                    DrawTraceTab(_rgatState.ActiveTarget);
+                }
+                else
+                {
+                    _tooltipScrollingActive = false;
+                }
+
 
                 //is there a better way to do this?
                 if (_SwitchToVisualiserTab)
@@ -1255,11 +1274,14 @@ namespace rgat
                         Logging.RecordLogEvent($"Failed loading invalid trace: {path}", filter: LogFilterType.TextAlert);
                         return false;
                     }
+                    _SwitchToTraceSelectTab = true;
                 }
                 else
                 {
+                    _rgatState.SetActiveTarget(path: null);
                     GlobalConfig.Settings.RecentPaths.RecordRecentPath(rgatSettings.eRecentPathType.Binary, path);
                     _rgatState.AddTargetByPath(path);
+                    _SwitchToTraceSelectTab = true;
                 }
             }
             catch (Exception e)
@@ -1280,6 +1302,7 @@ namespace rgat
                 return false;
             }
 
+            _rgatState.SetActiveTarget(path: null);
             BinaryTarget target = _rgatState.AddRemoteTargetByPath(path, rgatState.NetworkBridge.LastAddress);
             rgatState.NetworkBridge.SendCommand("LoadTarget", "GUI", target.InitialiseFromRemoteData, path);
 

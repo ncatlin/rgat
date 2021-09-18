@@ -621,21 +621,34 @@ namespace rgat
                         {
                             foreach (PlottedGraph selectablegraph in graphs)
                             {
-                                string caption = "TID " + selectablegraph.tid;
+                                string caption = $"{selectablegraph.tid}: {selectablegraph.InternalProtoGraph.StartModuleName}";
                                 int nodeCount = selectablegraph.GraphNodeCount();
                                 if (nodeCount == 0)
                                 {
-                                    caption += " [Uninstrumented]";
                                     ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
+                                    caption += " [Uninstrumented]";
                                 }
                                 else
                                 {
+                                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                                     caption += $" [{nodeCount} nodes]";
-                                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
                                 }
-                                if (ImGui.Selectable(caption, graph.ThreadID == selectablegraph.tid))
+                               
+                                if (ImGui.Selectable(caption, graph.ThreadID == selectablegraph.tid) && nodeCount > 0)
                                 {
                                     SetActiveGraph(selectablegraph);
+                                }
+                                if (ImGui.IsItemHovered())
+                                {
+                                    ImGui.BeginTooltip();
+                                    ImGui.Text($"Thread Start: 0x{graph.StartAddress:X} [{graph.StartModuleName}]");
+                                    if (graph.NodeList.Count > 0)
+                                    {
+                                        NodeData n = graph.safe_get_node(0);
+                                        string insBase = System.IO.Path.GetFileName(graph.ProcessData.GetModulePath(n.GlobalModuleID));
+                                        ImGui.Text($"First Instrumented: 0x{n.address:X} [{insBase}]");
+                                    }
+                                    ImGui.EndTooltip();
                                 }
                                 ImGui.PopStyleColor();
                             }

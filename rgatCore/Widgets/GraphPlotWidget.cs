@@ -49,7 +49,7 @@ namespace rgat
             WidgetSize = initialSize ?? new Vector2(400, 400);
 
             _layoutEngine = new GraphLayoutEngine(gdev, controller, "Main");
-            _imageTextureView = controller.IconTexturesView;//todo crash if closed early
+            _imageTextureView = controller.IconTexturesView;  //todo crash if closed early in load
             SetupRenderingResources();
 
         }
