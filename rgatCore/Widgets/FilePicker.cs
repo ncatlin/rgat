@@ -1035,7 +1035,7 @@ namespace rgatFilePicker
                     }
                     else
                     {
-                        if (ImGui.BeginTable("FileTable", 4, ImGuiTableFlags.ScrollY | ImGuiTableFlags.Sortable, sz))
+                        if (ImGui.BeginTable("FileTable", 4, ImGuiTableFlags.ScrollY | ImGuiTableFlags.Sortable | ImGuiTableFlags.Resizable, sz))
                         {
                             ImGui.TableSetupScrollFreeze(0, 2);
                             ImGui.TableSetupColumn("File", ImGuiTableColumnFlags.DefaultSort);

@@ -68,11 +68,14 @@ namespace rgat
         }
 
 
-
-
+        ReaderWriterLockSlim _renderLock = new ReaderWriterLockSlim();
         public void render_graph()
         {
-            render_new_blocks();
+            if (_renderLock.TryEnterWriteLock(0))
+            {
+                render_new_blocks();
+                _renderLock.ExitWriteLock();
+            }
         }
 
 
@@ -218,6 +221,7 @@ namespace rgat
             for (int edgeIdx = DrawnEdgesCount; edgeIdx < endIndex; edgeIdx++)
             {
                 InternalProtoGraph.GetEdgeNodes(edgeIdx, out Tuple<uint, uint> edgeNodes, out EdgeData e);
+
                 Debug.Assert(edgeNodes != null);
                 Debug.Assert(e != null);
                 if (edgeNodes.Item1 >= _graphStructureLinear.Count)
