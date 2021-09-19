@@ -105,7 +105,7 @@ namespace rgat.Widgets
             _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[] attribsArray);
             if (syminfo.selected)
             {
-                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, attribsArray, CONSTANTS.eHighlightType.eExternals);
+                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, CONSTANTS.eHighlightType.eExternals);
                 _activeHighlights.SelectedSymbols.Add(syminfo);
 
             }
@@ -126,7 +126,7 @@ namespace rgat.Widgets
             _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[] attribsArray);
             if (syminfo.hovered)
             {
-                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, attribsArray, CONSTANTS.eHighlightType.eExternals);
+                _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, CONSTANTS.eHighlightType.eExternals);
             }
             else
             {
@@ -343,9 +343,16 @@ namespace rgat.Widgets
         static int selitem = 0;
         public void DrawAddressSelectBox(float height)
         {
-            ImGui.ListBox("##AddrListbox", ref selitem,
+            if (ImGui.ListBox("##AddrListbox", ref selitem,
                 _activeHighlights.SelectedAddresses.Select(ad => $"0x{ad:X}").ToArray(),
-                _activeHighlights.SelectedAddresses.Count);
+                _activeHighlights.SelectedAddresses.Count))
+            {
+                ulong address = _activeHighlights.SelectedAddresses[selitem];
+                _activeHighlights.SelectedAddresses.RemoveAt(selitem);
+
+                List<uint> nodes = _ActiveGraph.InternalProtoGraph.ProcessData.GetNodesAtAddress(address, _ActiveGraph.tid);
+                _ActiveGraph.RemoveHighlightedNodes(nodes, null, CONSTANTS.eHighlightType.eAddresses);
+            }
 
         }
 

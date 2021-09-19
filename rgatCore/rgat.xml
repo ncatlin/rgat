@@ -458,6 +458,24 @@
             <param name="maxLimit"></param>
             <returns></returns>
         </member>
+        <member name="M:rgat.GraphLayoutEngine.RenderNodeAttribs(Veldrid.CommandList,rgat.PlottedGraph,Veldrid.DeviceBuffer,Veldrid.ResourceSet,System.Single,System.Int32,System.Boolean)">
+            <summary>
+            Update the node attributes compute VRAM buffer (alpha, node size, mouseover details)
+            </summary>
+            <param name="cl">Thread-specific CommandList</param>
+            <param name="graph">ProtoGraph being drawn</param>
+            <param name="inputAttributes">Attributes buffer being updated</param>
+            <param name="resources">Shader resources ResourceSet</param>
+            <param name="delta">Time-delta from the last update</param>
+            <param name="mouseoverNodeID">Index of the node the mouse is over</param>
+            <param name="useAnimAttribs">Flag to specify the graph is in animated-alpha mode</param>
+        </member>
+        <member name="P:rgat.GraphLayoutEngine.AverageComputeTime">
+            <summary>
+            Average time in Milliseconds taken by the GPU to perform a round of velocity/position/attribute computation
+            Average computed over GlobalConfig.StatisticsTimeAvgWindow frames
+            </summary>
+        </member>
         <member name="M:rgat.GraphLayoutState.LockedUploadStateToVRAM(rgat.GraphLayoutState.CPUBuffers)">
             <summary>
             Must hold writer lock
@@ -582,6 +600,15 @@
             This does not use the GPU
             </summary>
         </member>
+        <member name="M:rgat.OperationModes.BridgedRunner.ParseTraceMeta(System.Byte[],rgat.TraceRecord@,System.String[]@)">
+            <summary>
+            Parse internal control information used to setup/manage remote tracing
+            </summary>
+            <param name="infoBytes">The raw bytes of the data</param>
+            <param name="trace">The trace the metadata applies to</param>
+            <param name="metaparams">The metadata string items produced</param>
+            <returns></returns>
+        </member>
         <member name="T:rgat.OperationModes.CommandLineRunner">
             <summary>
             Runs rgat locally, without a GUI. Can be run without the GPU at all to generate a trace file, 
@@ -602,6 +629,12 @@
         <member name="M:rgat.OperationModes.ImGuiRunner.InitEventHandlers">
             <summary>
             Should be called after config is loaded to benefit from keybind config
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.RenderGraph">
+            <summary>
+            Takes edges that have been through the trace processor worker and
+            inserts them into the graphcis buffers for layout/drawing
             </summary>
         </member>
         <member name="M:rgat.PlottedGraph.GetEdgeRenderingData(System.Single[]@,System.Int32[]@,System.Int32[]@)">
@@ -642,6 +675,15 @@
             Must have upgradable read lock
             </summary>
             <param name="edgesCount"></param>
+        </member>
+        <member name="M:rgat.PlottedGraph.GetActiveNodeIndexes(System.Collections.Generic.List{System.UInt32}@,System.Collections.Generic.List{System.UInt32}@,System.UInt32[]@)">
+            <summary>
+            Get the indexes of any nodes that have > minimum alpha in animated mode
+            Pulsed and deactivated nodes will only be fetched once by this call, the rest is handled by the attributes shader
+            </summary>
+            <param name="pulseNodes">Nodes which have been temporarily pulsed</param>
+            <param name="lingerNodes">Nodes which remain brightened until cleared</param>
+            <param name="deactivatedNodes">Nodes which are no longer active and faded to the base alpha, ready to be cleared from the active list</param>
         </member>
         <member name="M:rgat.PlottedGraph.RecordComputeTime(System.Int64)">
             <summary>
@@ -1313,6 +1355,13 @@
             <param name="view"></param>
             <param name="world"></param>
         </member>
+        <member name="M:rgat.GraphPlotWidget.Draw(System.Numerics.Vector2,rgat.PlottedGraph)">
+            <summary>
+            Write the rendered graph/HUD items to the draw list
+            </summary>
+            <param name="graphSize">Size of the graph area being drawn</param>
+            <param name="graph">The graph being drawn</param>
+        </member>
         <member name="F:rgat.GraphPlotWidget._edgesPipelineRelative">
             <summary>
             Edges pipeline = line list or line strp
@@ -1353,8 +1402,116 @@
             Font pipeline = triangles
             </summary>
         </member>
+        <member name="M:rgat.GraphPlotWidget.GetOutputFramebuffer(Veldrid.Framebuffer@)">
+            <summary>
+            Get a framebuffer we can safely draw to
+            Must hold upgradable read lock
+            </summary>
+            <param name="drawtarget"></param>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.ReleaseOutputFramebuffer">
+            <summary>
+            Drawing is complete. Release the write lock so it can be displayed on the screen
+            The other framebuffer will become locked for writing
+            </summary>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.GetLatestTexture(Veldrid.Texture@)">
+            <summary>
+            Get the most recently drawn framebuffer for displaying to the user
+            </summary>
+            <param name="graphtexture"></param>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.SetupRenderingResources">
+            <summary>
+            Initialise graphics resources
+            </summary>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.RecreateOutputTextures">
+            <summary>
+            Re-initialise graphics resources, for use when the size of the widget has changed
+            </summary>
+        </member>
         <member name="F:rgat.GraphPlotWidget.GraphShaderParams.proj">
             public Matrix4x4 rotatedView;
+        </member>
+        <member name="M:rgat.GraphPlotWidget.ToggleRenderingMode(rgat.CONSTANTS.eRenderingMode)">
+            <summary>
+             Sets rendering mode to the specified mode
+             If already using that mode, returns the mode to standard trace display
+            </summary>
+            <param name="newMode">Mode to toggle</param>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.SetRenderingMode(rgat.CONSTANTS.eRenderingMode)">
+            <summary>
+            Set the rendering mode to the specified mode
+            </summary>
+            <param name="newMode">Mode to activate</param>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.RenderString(System.String,System.UInt32,System.Single,ImGuiNET.ImFontPtr,System.Collections.Generic.List{rgat.GraphPlotWidget.fontStruc}@,System.UInt32,System.Single)">
+            <summary>
+            Convert a string to a List of fontStrucs describing the font glyphs to display the string
+            The output is cached so this is not performed every frame
+            </summary>
+            <param name="inputString">Text to display</param>
+            <param name="nodeIdx">Node associated with the text - used for positioning</param>
+            <param name="fontScale">Text scaling factor</param>
+            <param name="font">Font glyphs to use</param>
+            <param name="stringVerts">Working list of glyph descriptors to add the generated fontStrucs to</param>
+            <param name="colour">Text colour</param>
+            <param name="yOff">Vertical offset for the glyphs</param> //todo think caching wrecks this
+        </member>
+        <member name="M:rgat.GraphPlotWidget.updateShaderParams(rgat.PlottedGraph,System.UInt32,System.Numerics.Matrix4x4,System.Numerics.Matrix4x4,System.Numerics.Matrix4x4,Veldrid.CommandList)">
+            <summary>
+            Update graph drawing parameters used by the shaders
+            </summary>
+            <param name="graph">The graph being drawn</param>
+            <param name="textureSize"></param>
+            <param name="projection"></param>
+            <param name="view"></param>
+            <param name="world"></param>
+            <param name="cl"></param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.DrawGraph(Veldrid.CommandList,rgat.PlottedGraph)">
+            <summary>
+            Draws the various nodes, edges, captions and illustrations to the framebuffer for display
+            </summary>
+            <param name="cl">A veldrid commandlist, for use by this thread only</param>
+            <param name="graph">The PlottedGraph to draw</param>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.DrawGraphImage">
+            <summary>
+            Add the most recently drawn framebuffer to the drawlist
+            </summary>
+            <returns>The texture for the drawn framebuffer. Useful for screenshots/videos</returns>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.GetTextColour">
+            <summary>
+            Get the current text colour as a Vector4
+            Wrapper for the memory unsafe ImGui API 
+            </summary>
+            <returns>A Vector4 describing the current text colour</returns>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.DrawKeystrokes(System.Numerics.Vector2)">
+            <summary>
+            Draw the latest keyboard shortcut activations to the screen
+            </summary>
+            <param name="topLeft">Location on the screen to draw to</param>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.DisplayEventMessages(System.Numerics.Vector2)">
+            <summary>
+            Display trace events (process/thread stop/start) in the visualiser widget which are
+            important but not important enough to be an application alert
+            May also want to add certain APIs, especially network related
+            </summary>
+            <param name="pos">Position to draw to</param>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.DrawHUD(System.Numerics.Vector2,rgat.PlottedGraph)">
+            <summary>
+            Draw in-widget buttons such as the layout selector, keybind activations and the quickmenu
+            </summary>
+            <param name="widgetSize"></param>
+            <param name="activeGraph"></param>
         </member>
         <member name="M:rgat.GraphPlotWidget.GenerateMainGraph(Veldrid.CommandList)">
             <summary>

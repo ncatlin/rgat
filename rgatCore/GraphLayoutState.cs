@@ -651,16 +651,19 @@ namespace rgat
 
 
 
-        //recreate node attributes with default state
+        //recreate node attributes with zero state
         //useful for ending an animation sequence
         public void ResetNodeAttributes(GraphicsDevice _gd)
         {
             Logging.RecordLogEvent($"ResetNodeAttributes ", Logging.LogFilterType.BulkDebugLogFile);
-            float[] storedAttributes = SavedStates[Style].NodeAttribArray;
+
+            uint bufferSize = _VRAMBuffers.Attributes1.SizeInBytes; //todo attribs1 can be null here
+            BufferDescription bd = new BufferDescription(bufferSize, BufferUsage.StructuredBufferReadWrite, 4);
 
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Attributes1);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Attributes2);
-            _VRAMBuffers.Attributes1 = VeldridGraphBuffers.CreateFloatsDeviceBuffer(storedAttributes, _gd, $"RNA_AattBuf1_{dbgGraphDeleteMe.tid}");
+
+            _VRAMBuffers.Attributes1 = VeldridGraphBuffers.CreateDefaultAttributesBuffer(bd, _gd);
             _VRAMBuffers.Attributes2 = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, _VRAMBuffers.Attributes1.SizeInBytes, _VRAMBuffers.Attributes1.Usage, 4, $"RNA_AattBuf2_{ dbgGraphDeleteMe.tid}");
 
             _VRAMBuffers._flop = true; //process attribs buffer 1 first into buffer 2, saves on an extra copy
@@ -776,7 +779,7 @@ namespace rgat
             bufs.VelocityArray[currentOffset + 2] = 0;
             bufs.VelocityArray[currentOffset + 3] = 1;
 
-            bufs.NodeAttribArray[currentOffset] = 200f;
+            bufs.NodeAttribArray[currentOffset] = CONSTANTS.Anim_Constants.DEFAULT_NODE_DIAMETER;
             bufs.NodeAttribArray[currentOffset + 1] = 1f;// 0.5f;
             bufs.NodeAttribArray[currentOffset + 2] = 0;
             bufs.NodeAttribArray[currentOffset + 3] = 0;
@@ -833,10 +836,10 @@ namespace rgat
             Lock.EnterWriteLock();
             Console.WriteLine("Preset start");
             //save the old layout if it was computed
-            if (LayoutStyles.IsForceDirected(_VRAMBuffers.Style))
-            {
+            //if (LayoutStyles.IsForceDirected(_VRAMBuffers.Style))
+            //{
                 DownloadStateFromVRAM();
-            }
+            //}
 
             //graph.LayoutState.RegeneratePresetBuffer(graph);
             //graph.LayoutState.LoadPreset(graph);

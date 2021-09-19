@@ -355,18 +355,25 @@ namespace rgat.OperationModes
         public void ProcessAsync(string name, JToken data)
         {
             bool success = false;
-            switch (name)
+            try
             {
-                case "SignatureTimes":
-                    success = ProcessSignatureTimes(data);
-                    break;
+                switch (name)
+                {
+                    case "SignatureTimes":
+                        success = ProcessSignatureTimes(data);
+                        break;
 
-                case "SigHit":
-                    success = ProcessSignatureHit(data);
-                    break;
-                default:
-                    Logging.RecordError("Bad async data: " + name);
-                    return;
+                    case "SigHit":
+                        success = ProcessSignatureHit(data);
+                        break;
+                    default:
+                        Logging.RecordError("Bad async data: " + name);
+                        return;
+                }
+            } 
+            catch (Exception e)
+            { 
+                Logging.RecordError("Error processing async data: " + e.Message);
             }
 
             if (!success)
@@ -412,15 +419,21 @@ namespace rgat.OperationModes
                         break;
 
                     default:
+                        Logging.RecordError("ProcessSignatureHit processing bad signature type:"+sigType.Substring(0, Math.Min(50, sigType.Length)));
                         return false;
-                        break;
                 }
             }
             return true;
         }
 
 
-
+        /// <summary>
+        /// Parse internal control information used to setup/manage remote tracing
+        /// </summary>
+        /// <param name="infoBytes">The raw bytes of the data</param>
+        /// <param name="trace">The trace the metadata applies to</param>
+        /// <param name="metaparams">The metadata string items produced</param>
+        /// <returns></returns>
         bool ParseTraceMeta(byte[] infoBytes, out TraceRecord trace, out string[] metaparams)
         {
             trace = null;
@@ -474,7 +487,7 @@ namespace rgat.OperationModes
         {
             Debug.Assert(trace != null);
 
-
+            // Tells rgat how to route incominng remote trace data to local trace worker input pipes 
             if (inparams.Length == 7 && inparams[0] == "InitialPipes")
             {
                 //start block handler

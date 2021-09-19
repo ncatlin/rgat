@@ -436,8 +436,8 @@ namespace rgat
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
 
-            //DebugPrintOutputFloatBuffer(inputAttributes, "AttsIn", 64);
-            //DebugPrintOutputFloatBuffer(outputAttributes, "AttsOut", 256);
+            DebugPrintOutputFloatBuffer(layout.AttributesVRAM1, "Atts1", 32);
+            DebugPrintOutputFloatBuffer(layout.AttributesVRAM2, "Atts2", 32);
 
             if (graph.LayoutState.ActivatingPreset && graph.LayoutState.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
             {
@@ -595,6 +595,16 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Update the node attributes compute VRAM buffer (alpha, node size, mouseover details)
+        /// </summary>
+        /// <param name="cl">Thread-specific CommandList</param>
+        /// <param name="graph">ProtoGraph being drawn</param>
+        /// <param name="inputAttributes">Attributes buffer being updated</param>
+        /// <param name="resources">Shader resources ResourceSet</param>
+        /// <param name="delta">Time-delta from the last update</param>
+        /// <param name="mouseoverNodeID">Index of the node the mouse is over</param>
+        /// <param name="useAnimAttribs">Flag to specify the graph is in animated-alpha mode</param>
         unsafe void RenderNodeAttribs(CommandList cl, PlottedGraph graph, DeviceBuffer inputAttributes,
             ResourceSet resources, float delta, int mouseoverNodeID, bool useAnimAttribs)
         {
@@ -610,13 +620,11 @@ namespace rgat
             };
 
 
-            graph.GetActiveNodeIDs(out List<uint> pulseNodes, out List<uint> lingerNodes, out uint[] deactivatedNodes);
-
+            graph.GetActiveNodeIndexes(out List<uint> pulseNodes, out List<uint> lingerNodes, out uint[] deactivatedNodes);
 
             Logging.RecordLogEvent($"RenderNodeAttribs creaters  {this.EngineID} updating attribsbuf {inputAttributes.Name}", Logging.LogFilterType.BulkDebugLogFile);
 
             cl.UpdateBuffer(_attribsParamsBuffer, 0, parms);
-
 
             float currentPulseAlpha = Math.Max(GlobalConfig.AnimatedFadeMinimumAlpha, GraphicsMaths.getPulseAlpha());
 
@@ -647,15 +655,14 @@ namespace rgat
                     fixed (float* dataPtr = valArray)
                     {
                         uint nodeAlphaOffset = (activeNodeIdx * 4 * sizeof(float)) + (2 * sizeof(float));
-                        if (nodeAlphaOffset+sizeof(float) <= inputAttributes.SizeInBytes)
-                        { 
-                            cl.UpdateBuffer(inputAttributes, nodeAlphaOffset, (IntPtr)dataPtr, sizeof(float)); 
+                        if (nodeAlphaOffset + sizeof(float) <= inputAttributes.SizeInBytes)
+                        {
+                            cl.UpdateBuffer(inputAttributes, nodeAlphaOffset, (IntPtr)dataPtr, sizeof(float));
                         }
                     }
                 }
 
             }
-
 
             foreach (uint idx in lingerNodes)
             {
@@ -682,45 +689,73 @@ namespace rgat
                 }
             }
 
+            if (graph.HighlightsChanged)
+            {
+                ApplyHighlightAttributes(cl, graph, inputAttributes);
+            }
+
             cl.SetPipeline(_nodeAttribComputePipeline);
             cl.SetComputeResourceSet(0, resources);
-            cl.Dispatch((uint)Math.Ceiling(inputAttributes.SizeInBytes / (256.0 * 4.0 * 4.0)), 1, 1);
-
+            cl.Dispatch((uint)Math.Ceiling(inputAttributes.SizeInBytes / (256.0  * 4.0 * 4.0 )), 1, 1);
             //DebugPrintOutputFloatBuffer((int)textureSize, attribBufOut, "attrib Computation Done. Result: ", 32);
-
         }
 
 
 
+        public void ApplyHighlightAttributes(CommandList cl, PlottedGraph graph, DeviceBuffer attribsBuf)
+        {
+            graph.GetHighlightChanges(out List<uint> added, out List<uint> removed);
+
+            if (added.Any() is true)
+            {
+                SetHighlightedNodes(cl, added, attribsBuf, CONSTANTS.eHighlightType.eAddresses);
+            }
+
+            if (removed.Any() is true)
+            {
+                UnsetHighlightedNodes(cl, removed, attribsBuf, CONSTANTS.eHighlightType.eAddresses);
+            }
+        }
 
 
+        public unsafe void SetHighlightedNodes(CommandList cl, List<uint> nodeIdxs, DeviceBuffer attribsBuf, CONSTANTS.eHighlightType highlightType)
+        {
+            float[] val = new float[] { 400f,//bigger
+                1.0f, //full alpha 
+                1.0f,
+                1.0f //target icon
+            };
+            foreach (uint nidx in nodeIdxs)
+            {
+                fixed (float* dataPtr = val)
+                {
+                    cl.UpdateBuffer(attribsBuf, nidx * 4 * sizeof(float) + (0 * sizeof(float)), (IntPtr)dataPtr, (uint)val.Length * sizeof(float));
+                }
+            }
+        }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        public unsafe void UnsetHighlightedNodes(CommandList cl, List<uint> nodeIdxs, DeviceBuffer attribsBuf, CONSTANTS.eHighlightType highlightType)
+        {
+            float[] val = new float[] { 400f,//still big, let the shader shrink it
+                1.0f, //full alpha 
+                0.5f, //below the deflate threshold. this is not clear, needs refactoring
+                0f //no highlight
+            };
+            foreach (uint nidx in nodeIdxs)
+            {
+                fixed (float* dataPtr = val)
+                {
+                    cl.UpdateBuffer(attribsBuf, nidx * 4 * sizeof(float) + (0 * sizeof(float)), (IntPtr)dataPtr, (uint)val.Length * sizeof(float));
+                }
+            }
+        }
 
         List<long> lastComputeMS = new List<long>() { 0 };
+        /// <summary>
+        /// Average time in Milliseconds taken by the GPU to perform a round of velocity/position/attribute computation
+        /// Average computed over GlobalConfig.StatisticsTimeAvgWindow frames
+        /// </summary>
         public double AverageComputeTime { get; private set; } = 0;
-
-
-
 
 
         void DebugPrintOutputFloatBuffer(DeviceBuffer buf, string message, int printCount)

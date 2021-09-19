@@ -425,7 +425,6 @@ namespace rgat
                             error = val.Item2;
                             return false;
                         }
-                        break;
                     }
                 }
             }

@@ -1595,7 +1595,7 @@ namespace rgat
 
             HandleGraphUpdates();
 
-            _layoutEngine.Compute(cl, graph, _mouseoverNodeID, graph.IsAnimated);
+            _layoutEngine.Compute(cl, graph, _mouseoverNodeID, graph.IsAnimated); 
 
             if (_controller.DialogOpen is false)
             {
@@ -1687,13 +1687,13 @@ namespace rgat
             }
             if (graph.HighlightsChanged)
             {
-                newAttribs = true;
+               // newAttribs = true;
             }
 
             if (newAttribs)
             {
                 graph.LayoutState.ResetNodeAttributes(_gd);
-                graph.HighlightsChanged = false;
+                //graph.HighlightsChanged = false;
             }
         }
 
@@ -1766,7 +1766,7 @@ namespace rgat
 
             //highlight new nodes with highlighted address
 
-            graph.DoHighlightAddresses();
+            //graph.DoHighlightAddresses();
             _graphLock.ExitReadLock();
 
             

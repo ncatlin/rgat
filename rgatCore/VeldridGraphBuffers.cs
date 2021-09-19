@@ -338,12 +338,8 @@ namespace rgat
             ResourceFactory rf = gd.ResourceFactory;
 
             float[] zeros = new float[(int)(buffer.SizeInBytes / 4)];
-            //for (var i = 0; i < zeros.Length; i++)
-            //   zeros[i] = 74;
-
             CommandList cl = rf.CreateCommandList();
             cl.Begin();
-            //cl.SetPipeline(ZeroFillPipeline);
             fixed (float* dataPtr = zeros)
             {
                 cl.UpdateBuffer(buffer, zeroStartOffset, (IntPtr)dataPtr, buffer.SizeInBytes - zeroStartOffset);
@@ -351,7 +347,6 @@ namespace rgat
             cl.End();
             gd.SubmitCommands(cl);
             gd.WaitForIdle();
-            //paramsBuffer.Dispose();
             cl.Dispose();
         }
 
@@ -359,6 +354,33 @@ namespace rgat
         {
             DeviceBuffer buf = TrackedVRAMAlloc(gd, bd.SizeInBytes, bd.Usage, bd.StructureByteStride, name);
             ZeroFillBuffer(buf, gd, zeroStartOffset);
+            return buf;
+        }
+
+        public unsafe static DeviceBuffer CreateDefaultAttributesBuffer(BufferDescription bd, GraphicsDevice gd, string name = "")
+        {
+            DeviceBuffer buf = TrackedVRAMAlloc(gd, bd.SizeInBytes, bd.Usage, bd.StructureByteStride, name);
+            ResourceFactory rf = gd.ResourceFactory;
+
+            int floatCount = (int)(buf.SizeInBytes / 4);
+            float[] output = new float[floatCount];
+            float[] item = new float[4] { CONSTANTS.Anim_Constants.DEFAULT_NODE_DIAMETER, 1, 0, 0 };
+            int itemSize = item.Length * sizeof(float);
+            for (var i = 0; i < floatCount; i += 4)
+            {
+                Array.Copy(item, 0, output, i, item.Length);
+            }
+            CommandList cl = rf.CreateCommandList();
+            cl.Begin();
+            fixed (float* dataPtr = output)
+            {
+                cl.UpdateBuffer(buf, 0, (IntPtr)dataPtr, buf.SizeInBytes);
+            }
+            cl.End();
+            gd.SubmitCommands(cl);
+            gd.WaitForIdle();
+            cl.Dispose();
+
             return buf;
         }
 

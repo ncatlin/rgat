@@ -158,6 +158,7 @@ namespace rgat
         public void SetAnimated(bool newState)
         {
             IsAnimated = newState;
+
             _newLabels = true;
             if (!newState)
             {
@@ -1944,7 +1945,7 @@ namespace rgat
 
 
         //must hold read lock
-        public void AddHighlightedNodes(List<uint> newnodeidxs, float[] attribsArray, eHighlightType highlightType)
+        public void AddHighlightedNodes(List<uint> newnodeidxs, eHighlightType highlightType)
         {
             lock (textLock)
             {
@@ -1955,11 +1956,11 @@ namespace rgat
                         AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
                     case eHighlightType.eAddresses:
-                        HighlightedAddressNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                        HighlightedAddressNodes.AddRange(newnodeidxs.Where(n => !HighlightedAddressNodes.Contains(n)));
                         AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
                     case eHighlightType.eExceptions:
-                        HighlightedExceptionNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
+                        HighlightedExceptionNodes.AddRange(newnodeidxs.Where(n => !HighlightedExceptionNodes.Contains(n)));
                         AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
                     default:
@@ -1969,10 +1970,11 @@ namespace rgat
 
                 foreach (uint nidx in newnodeidxs)
                 {
-                    attribsArray[nidx * 4 + 0] = 400f;  // make bigger
-                    attribsArray[nidx * 4 + 3] = 1.0f;  // set target icon
                     InternalProtoGraph.safe_get_node(nidx).SetHighlighted(true);
+                    DeletedHighlights.RemoveAll(x => x == nidx);
                 }
+
+                NewHighlights.AddRange(newnodeidxs);
                 HighlightsChanged = true;
             }
         }
@@ -2013,65 +2015,62 @@ namespace rgat
                 AllHighlightedNodes.AddRange(HighlightedExceptionNodes.Where(n => !AllHighlightedNodes.Contains(n)));
                 foreach (uint nidx in nodeidxs)
                 {
-                    if (!AllHighlightedNodes.Contains(nidx))
-                    {
-                        attribsArray[nidx * 4 + 0] = 200f; //todo comment this
-                        attribsArray[nidx * 4 + 3] = 0.0f;
-                    }
                     InternalProtoGraph.safe_get_node(nidx).SetHighlighted(false);
+                    NewHighlights.RemoveAll(x => x == nidx);
                 }
+                DeletedHighlights.AddRange(nodeidxs);
             }
 
-
-
             HighlightsChanged = true;
-
         }
 
         public void AddHighlightedAddress(ulong address)
         {
             lock (textLock)
             {
-                if (!HighlightedAddresses.Contains(address)) HighlightedAddresses.Add(address);
-            }
-        }
+                if (!HighlightedAddresses.Contains(address))
+                { 
+                    HighlightedAddresses.Add(address);
 
-
-        public void DoHighlightAddresses()
-        {
-            //todo lock?
-            LayoutState.Lock.EnterUpgradeableReadLock();
-
-            LayoutState.GetAttributes(ActiveLayoutStyle, out float[] attribsArray);
-            for (int i = 0; i < HighlightedAddresses.Count; i++)
-            {
-                ulong address = HighlightedAddresses[i];
-                List<uint> nodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(address, this.tid);
-                lock (textLock)
-                {
-                    AddHighlightedNodes(nodes, attribsArray, eHighlightType.eAddresses);
+                    List<uint> nodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(address, tid);
+                    AddHighlightedNodes(nodes, eHighlightType.eAddresses);
                 }
-            }
 
-            LayoutState.Lock.ExitUpgradeableReadLock();
+            }
+        }
+
+        public void GetHighlightChanges(out List<uint> added, out List<uint> removed)
+        {
+            lock (textLock)
+            {
+                added = NewHighlights.ToList();
+                NewHighlights.Clear();
+                removed = DeletedHighlights.ToList();
+                DeletedHighlights.Clear();
+                HighlightsChanged = false;
+            }
         }
 
 
-        public List<uint> GetActiveNodeIDs(out List<uint> pulseNodes, out List<uint> lingerNodes, out uint[] deactivatedNodes)
+        /// <summary>
+        /// Get the indexes of any nodes that have > minimum alpha in animated mode
+        /// Pulsed and deactivated nodes will only be fetched once by this call, the rest is handled by the attributes shader
+        /// </summary>
+        /// <param name="pulseNodes">Nodes which have been temporarily pulsed</param>
+        /// <param name="lingerNodes">Nodes which remain brightened until cleared</param>
+        /// <param name="deactivatedNodes">Nodes which are no longer active and faded to the base alpha, ready to be cleared from the active list</param>
+        public void GetActiveNodeIndexes(out List<uint> pulseNodes, out List<uint> lingerNodes, out uint[] deactivatedNodes)
         {
-            List<uint> res = new List<uint>();
-
             lock (animationLock)
             {
                 pulseNodes = _PulseActiveNodes.ToList();
-
                 _PulseActiveNodes.Clear();
-                lingerNodes = _LingeringActiveNodes.ToList();
-                deactivatedNodes = _DeactivatedNodes.ToArray();
-                _DeactivatedNodes.Clear();// = Array.Empty<uint>();
 
+                lingerNodes = _LingeringActiveNodes.ToList();
+
+                deactivatedNodes = _DeactivatedNodes.ToArray();
+                _DeactivatedNodes.Clear();
             }
-            return res;
         }
 
 
@@ -2170,6 +2169,8 @@ namespace rgat
         public List<ulong> HighlightedAddresses = new List<ulong>();
         public List<uint> HighlightedExceptionNodes = new List<uint>();
         public List<uint> AllHighlightedNodes = new List<uint>();
+        public List<uint> DeletedHighlights = new List<uint>();
+        public List<uint> NewHighlights = new List<uint>();
 
         bool animBuildingLoop = false;
 

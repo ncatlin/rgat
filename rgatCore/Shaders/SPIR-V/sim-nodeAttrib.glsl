@@ -1,32 +1,53 @@
+/*
+The attributes buffer has a 4-float attribute descriptor for each graph node
+These describe the node texture diameter, base alpha, animation counter (for describing how the alpha differs from the base) and highlight state
 
+The attributes buffer is an ephermeral description of the current state of the graph plots graphics. 
+It is updated from the CPU when animation activity happens and the GPU shader gradually returns the updated value back to the default state
+The overall shader params buffer controls overall behavious
+*/
 #version 450
 
-
-struct nodeAttribParams
+// General parameters that control how the shader behaves
+struct attribShaderParams
 {
-     float delta;            // requestAnimationFrame delta
-     int  selectedNode;     // selectedNode
-     float hoverMode;     // selectedNode
+    // Time delta since the last update
+    float delta;           
+    // Index of the selected node
+    int  selectedNode;     
+    // nonzero if a node is hovered by the mouse
+    float hoverMode;    
+    // unused
     int edgeTexCount;     
+    // baseline alpha for a node/edge with no activity. any non-lingering geometry will be brought back to this alpha
     float minAlpha;  
+    // describe if the graph is in animated mode, which cases alpha values to be brought to the baseline
     bool isAnimated;
 };
 
-layout(set = 0, binding=0) buffer bufParams{
-    nodeAttribParams params; // current self attrib values
+// Node-specific attributes
+struct nodeAttribute
+{
+    // the pixel diameter of the node texture. used by the display shaders
+    float nodeDiameter;
+    // the current alpha of the node, used by the display shaders
+    float currentAlpha;
+    // counter which controls how the current alpha is adjusted towards the baseline on each attribute shader pass
+    float animCounter;
+    // 
+    float highlightFlag;
 };
-layout(set = 0, binding=1) buffer bufnodeAttrib{
-    vec4 nodeAttrib[]; // current self attrib values
-};
-layout(set = 0, binding=2) buffer bufedgeIndices{
-    ivec2 edgeIndices[]; // for neighbor highlighting
-};
-layout(set = 0, binding=3) buffer bufedgeData{
-    int edgeData[]; // for neighbor highlighting
-};
-layout(set = 0, binding=4) buffer bufresults{
-    vec4 resultData[];
-};
+
+layout(set = 0, binding=0) buffer bufParams{   attribShaderParams params;};
+
+layout(set = 0, binding=1) buffer bufnodeAttrib{   nodeAttribute nodeAttribs[]; };
+
+//for neighbor highlighting
+layout(set = 0, binding=2) buffer bufedgeIndices{  ivec2 edgeIndices[]; };
+ // for neighbor highlighting
+layout(set = 0, binding=3) buffer bufedgeData{    int edgeData[];};
+
+layout(set = 0, binding=4) buffer bufresults{    nodeAttribute resultData[];};
 
 const float AnimNodeInflateSize = 11.0;
 const float AnimNodeDeflateThreshold = 0.7;
@@ -40,18 +61,14 @@ int NodeIndexIsSelected(int neighbor){
 }
 
 
-
-    //x = diameter
-    //y = default alpha
-    //z = counter since last animation activity
-    //w = highlight info
-
-
 layout (local_size_x = 256) in;
 void main()	{
+    ///uint index = gl_LocalInvocationIndex;// gl_GlobalInvocationID.x;
     uvec3 id = gl_GlobalInvocationID;
     uint index = id.x;
-    vec4 selfAttrib = nodeAttrib[index];  // just using x and y right now
+    nodeAttribute selfAttrib = nodeAttribs[index];  // just using x and y right now
+
+    
 
     // epoch time lookups
 
@@ -77,21 +94,21 @@ void main()	{
     {        
         //alpha is based on how long since last activated
         
-        if (selfAttrib.z > 0) //an 'active' node
+        if (selfAttrib.animCounter > 0) //an 'active' node
         {
-            if (selfAttrib.z >= 2) //2+ are blocked/high cpu usage nodes 
+            if (selfAttrib.animCounter >= 2) //2+ are blocked/high cpu usage nodes 
             {
-                selfAttrib.y = selfAttrib.z - 2.0; //remaining is expected to be pulse alpha
+                selfAttrib.currentAlpha = selfAttrib.animCounter - 2.0; //remaining is expected to be pulse alpha
             }
             else
             {  
-                selfAttrib.y = selfAttrib.z;
-                selfAttrib.z -= params.delta;// * 7.0;
+                selfAttrib.currentAlpha = selfAttrib.animCounter;
+                selfAttrib.animCounter -= params.delta;// * 7.0;
 
-                selfAttrib.x = max(200, selfAttrib.x - (selfAttrib.z * 7.0)); //make animated nodes larger
+                selfAttrib.nodeDiameter = max(200, selfAttrib.nodeDiameter - (selfAttrib.animCounter * 7.0)); //make animated nodes larger
                 
-                if (selfAttrib.z < 0.05) 
-                    selfAttrib.z = 0;
+                if (selfAttrib.animCounter < 0.05) 
+                    selfAttrib.animCounter = 0;
             }
         }
     }
@@ -155,45 +172,46 @@ void main()	{
 
     float alphaTarget = (params.isAnimated) ? params.minAlpha : 1.0;
 
+    //quickly shrink geometry that has been inflated, unless highlighted or very recently animated
+    if ( selfAttrib.nodeDiameter > 200.0 && selfAttrib.highlightFlag == 0 && selfAttrib.animCounter <= AnimNodeDeflateThreshold)
+    {
+        selfAttrib.nodeDiameter -= 500.0 * params.delta;
+        if (selfAttrib.nodeDiameter < 200) 
+        {
+            selfAttrib.nodeDiameter = 200;
+        }
+    }
+
+
     /*
     This section deals with mouseover hover/selection
     */
-    if ( params.hoverMode > 0.0 && selfAttrib.z == 0) {
+    if ( params.hoverMode > 0.0 && selfAttrib.animCounter == 0) {
 
         // we are in hover mode
         //first restore modified values to default
 
-        selfAttrib.w = 10;
-        if (selfAttrib.y != alphaTarget)
+        if (selfAttrib.currentAlpha != alphaTarget)
         {
             //slowly darken bright geometry to default alpha
-            if ( selfAttrib.y > (alphaTarget+0.01)){
-                selfAttrib.y =  max(selfAttrib.y - params.delta * 2.5, alphaTarget);
+            if ( selfAttrib.currentAlpha > (alphaTarget+0.01)){
+                selfAttrib.currentAlpha =  max(selfAttrib.currentAlpha - params.delta * 2.5, alphaTarget);
             }
 
             //slowly brighten dark geometry to default alpha
-            if ( selfAttrib.y < (alphaTarget-0.01)){
-                selfAttrib.y = min(selfAttrib.y + params.delta * 2.5, alphaTarget);
+            if ( selfAttrib.currentAlpha < (alphaTarget-0.01)){
+                selfAttrib.currentAlpha = min(selfAttrib.currentAlpha + params.delta * 2.5, alphaTarget);
             }
         }
 
 
-        //quickly shrink geometry that has been inflated, unless highlighted or very recently animated
-        if ( selfAttrib.x > 200.0 && selfAttrib.w == 0 && selfAttrib.z <= AnimNodeDeflateThreshold)
-        {
-            selfAttrib.x -= 40.0 * params.delta;
-            if (selfAttrib.x < 200) 
-            {
-                 selfAttrib.x = 200;
-            }
-        }
 
         // if you are hovering over a real node
         if ( params.selectedNode >= 0.0 ){
 
             // if you are a node or a neighbor
             if ( neighborPixel > 0.0 || index == params.selectedNode){
-                selfAttrib.y = 0.8; // light up *only* self or neighbors
+                selfAttrib.currentAlpha = 0.8; // light up *only* self or neighbors
             }
 
         } 
@@ -203,8 +221,8 @@ void main()	{
 
         // i have selected a node
         // completely black out the rest of the scene
-        if ( selfAttrib.y > 0.0){
-            selfAttrib.y -= params.delta * 2.5;
+        if ( selfAttrib.currentAlpha > 0.0){
+            selfAttrib.currentAlpha -= params.delta * 2.5;
         }
 
         if ( selfAttrib.x > 200.0){
@@ -216,7 +234,7 @@ void main()	{
 
             // if you are a node or a neighbor
             if ( neighborPixel > 0.0 || index == params.selectedNode){
-                selfAttrib.y = 0.3; // light up *only* self or neighbors
+                selfAttrib.currentAlpha = 0.3; // light up *only* self or neighbors
             }
         }
     }
