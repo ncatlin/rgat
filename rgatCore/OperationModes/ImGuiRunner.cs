@@ -5,6 +5,7 @@ using rgat.Widgets;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net.Http;
 using System.Numerics;
 using System.Text;
@@ -181,9 +182,15 @@ namespace rgat.OperationModes
                 {
                     AlertKeyEvent(new Tuple<Key, ModifierKeys>(k.Key, k.Modifiers));
                 }
+                rgatUI.ResponsiveKeyHeld = HeldResponsiveKeys.Any();
             };
 
-            _window.KeyUp += (KeyEvent k) => HeldResponsiveKeys.RemoveAll(key => key == k.Key);
+            _window.KeyUp += (KeyEvent k) =>
+            {
+                HeldResponsiveKeys.RemoveAll(key => key == k.Key);
+                rgatUI.ResponsiveKeyHeld = HeldResponsiveKeys.Any();
+            };
+
             _window.MouseWheel += (MouseWheelEventArgs mw) => AlertMouseWheel(mw);
             _window.MouseMove += (MouseMoveEventArgs mm) => AlertMouseMove(mm, _lastMousePos - mm.MousePosition);
             _window.DragDrop += (DragDropEvent dd) => AlertDragDrop(dd);

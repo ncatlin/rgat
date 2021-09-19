@@ -28,6 +28,7 @@ namespace rgat
             edgeCall, edgeOld, edgeRet, edgeLib, edgeNew, edgeExcept,
             nodeStd, nodeJump, nodeCall, nodeRet, nodeExtern, nodeExcept,
             SymbolText, SymbolRising, InternalSymbol, InstructionText,
+            WireFrame,
             COUNT
         }
         public enum eThemeSize
@@ -108,6 +109,7 @@ namespace rgat
             DefaultCustomColours[eThemeColour.InternalSymbol] = new WritableRgbaFloat(Color.DarkGray).ToUint();
             DefaultCustomColours[eThemeColour.SymbolRising] = new WritableRgbaFloat(Color.ForestGreen).ToUint();
             DefaultCustomColours[eThemeColour.InstructionText] = new WritableRgbaFloat(Color.White).ToUint();
+            DefaultCustomColours[eThemeColour.WireFrame] = new WritableRgbaFloat(180f / 255f, 180f / 255f, 180f / 255f, 0.3f).ToUint();
 
             DefaultCustomColours[eThemeColour.eHeat0Lowest] = new WritableRgbaFloat(0, 0, 155f / 255f, 0.7f).ToUint();
             DefaultCustomColours[eThemeColour.eHeat1] = new WritableRgbaFloat(46f / 255f, 28f / 255f, 155f / 255f, 1).ToUint();

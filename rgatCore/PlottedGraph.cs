@@ -484,6 +484,7 @@ namespace rgat
             int wireframe_loop_count = (int)Math.Ceiling((_lowestWireframeLoop * CYLINDER_PIXELS_PER_B) / CYLINDER_PIXELS_PER_ROW) + 1;
             float radius = CYLINDER_RADIUS;
 
+            WritableRgbaFloat wireframeColour = Themes.GetThemeColourWRF(Themes.eThemeColour.WireFrame);
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {
                 int rowYcoord = -rowY * CYLINDER_PIXELS_PER_ROW;
@@ -497,7 +498,7 @@ namespace rgat
                     edgeIndices.Add((uint)verts.Count);
                     GeomPositionColour gpc = new GeomPositionColour
                     {
-                        Color = new WritableRgbaFloat(Color.White),
+                        Color = wireframeColour,
                         Position = new Vector4(radius * (float)Math.Cos(angle), (float)rowYcoord, radius * (float)Math.Sin(angle), 0)
                     };
                     verts.Add(gpc);
@@ -508,8 +509,69 @@ namespace rgat
 
 
 
+        void GenerateRotationWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
+        {
+            float WF_POINTSPERLINE = 50f;
+            float radius = Math.Max(Math.Abs(_furthestNodePos.X), Math.Max(Math.Abs(_furthestNodePos.Y), Math.Abs(_furthestNodePos.Z)));
+
+            WritableRgbaFloat YawColour = new WritableRgbaFloat(0xFFE69F00);
+            WritableRgbaFloat RollColour = new WritableRgbaFloat(0xFF56B4E9);
+            WritableRgbaFloat PitchColour = new WritableRgbaFloat(0xFF009E73);
+
+            for (float circlePoint = 0; circlePoint < WF_POINTSPERLINE + 1; ++circlePoint)
+            {
+                float angle = (2f * (float)Math.PI * circlePoint) / WF_POINTSPERLINE;
+
+                if (circlePoint > 1)
+                    edgeIndices.Add((uint)verts.Count - 1);
+
+                edgeIndices.Add((uint)verts.Count);
+                GeomPositionColour gpc = new GeomPositionColour
+                {
+                    Color = YawColour, //new WritableRgbaFloat(Color.Cyan),
+                    Position = new Vector4(radius * (float)Math.Cos(angle), 0, radius * (float)Math.Sin(angle), 0)
+                };
+                verts.Add(gpc);
+            }
+
+            for (float circlePoint = 0; circlePoint < WF_POINTSPERLINE + 1; ++circlePoint)
+            {
+                float angle = (2f * (float)Math.PI * circlePoint) / WF_POINTSPERLINE;
+
+                if (circlePoint > 1)
+                    edgeIndices.Add((uint)verts.Count - 1);
+
+                edgeIndices.Add((uint)verts.Count);
+                GeomPositionColour gpc = new GeomPositionColour
+                {
+                    Color = RollColour,
+                    Position = new Vector4(radius * (float)Math.Cos(angle), radius * (float)Math.Sin(angle),0, 0)
+                };
+                verts.Add(gpc);
+            }
+
+            for (float circlePoint = 0; circlePoint < WF_POINTSPERLINE + 1; ++circlePoint)
+            {
+                float angle = (2f * (float)Math.PI * circlePoint) / WF_POINTSPERLINE;
+
+                if (circlePoint > 1)
+                    edgeIndices.Add((uint)verts.Count - 1);
+
+                edgeIndices.Add((uint)verts.Count);
+                GeomPositionColour gpc = new GeomPositionColour
+                {
+                    Color = PitchColour,
+                    Position = new Vector4(0, radius * (float)Math.Cos(angle),  radius * (float)Math.Sin(angle), 0)
+                };
+                verts.Add(gpc);
+            }
+
+
+        }
+
         float _lowestWireframeLoop;
         //todo cache
+
 
         public GeomPositionColour[] GetIllustrationEdges(out List<uint> edgeIndices)
         {
@@ -521,11 +583,16 @@ namespace rgat
                 case LayoutStyles.Style.CylinderLayout:
                     GenerateCylinderWireframe(ref resultList, ref edgeIndices);
                     break;
+                case LayoutStyles.Style.ForceDirected3DNodes:
+                case LayoutStyles.Style.ForceDirected3DBlocks:
+                    if (rgatUI.ResponsiveKeyHeld)
+                    {
+                        GenerateRotationWireframe(ref resultList, ref edgeIndices);
+                    }
+                    break;
                 default:
                     break;
             }
-
-
 
             if (AllHighlightedNodes.Count > 0)
             {
@@ -2033,7 +2100,7 @@ namespace rgat
             lock (textLock)
             {
                 if (!HighlightedAddresses.Contains(address))
-                { 
+                {
                     HighlightedAddresses.Add(address);
 
                     List<uint> nodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(address, tid);  //todo: external
@@ -2088,6 +2155,19 @@ namespace rgat
             }
         }
 
+        int _furthestNodeIdx = -1;
+        Vector3 _furthestNodePos = Vector3.Zero;
+        /// <summary>
+        /// Sets the coordinate of the furthest node from the origin
+        /// Used for drawing the force directed layout wireframe, where the distance of this node from the origin is used as the radius
+        /// </summary>
+        /// <param name="index">Index of the far node</param>
+        /// <param name="worldPosition">World coordinate of the far node</param>
+        public void SetFurthestNodePosition(int index, Vector3 worldPosition)
+        {
+            _furthestNodeIdx = index;
+            _furthestNodePos = worldPosition;
+        }
 
         public void AddRisingSymbol(uint nodeIdx, int callIndex, int lingerFrames)
         {

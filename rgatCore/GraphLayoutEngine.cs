@@ -76,14 +76,15 @@ namespace rgat
         /// <summary>
         /// Iterates over the position of every node, translating it to a screen position
         /// Returns the offsets of the furthest nodes of the edges of the screen
-        /// To fit the graph in the screen, each offset needs to be as close to be as small as possible without being smaller than 0
+        /// To fit the graph in the screen, each offset needs to be as small as possible above 0
         /// 
         /// Acquires reader lock
         /// </summary>
+        /// <param name="graph">The graph being measured</param>
         /// <param name="graphWidgetSize">Size of the graph widget</param>
         /// <param name="xoffsets">xoffsets.X = distance of furthest left node from left of the widget. Ditto xoffsets.Y for right node/side</param>
         /// <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
-        /// <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
+        /// <param name="zoffsets">zoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
         public void GetScreenFitOffsets(PlottedGraph graph, Matrix4x4 worldView, Vector2 graphWidgetSize,
             out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
         {
@@ -96,6 +97,7 @@ namespace rgat
             Vector2 zlimits = new Vector2(float.MaxValue, float.MinValue);
             Vector2 ev = new Vector2(0, 0);
             Vector2 xmin = ev, xmax = ev, ymin = ev, ymax = ev, zmin = ev, zmax = ev;
+            float maxWorldX = 0, maxWorldY = 0, maxWorldZ = 0;
             int fZ1 = 0;
             int fZ2 = 0;
 
@@ -116,8 +118,11 @@ namespace rgat
                     float x = positions[idx];
                     float y = positions[idx + 1];
                     float z = positions[idx + 2];
-                    Vector3 worldpos = new Vector3(x, y, z);
 
+                    maxWorldX = Math.Max(maxWorldX, Math.Abs(x));
+                    maxWorldY = Math.Max(maxWorldY, Math.Abs(y));
+                    maxWorldZ = Math.Max(maxWorldZ, Math.Abs(z));
+                    Vector3 worldpos = new Vector3(x, y, z);
 
                     Vector2 ndcPos = GraphicsMaths.WorldToNDCPos(worldpos, worldView, projectionMatrix);
 
@@ -137,9 +142,38 @@ namespace rgat
                 yoffsets = new Vector2(minyS.Y, graphWidgetSize.Y - maxyS.Y);
                 zoffsets = new Vector2(zlimits.X - graph.CameraZoom, zlimits.Y - graph.CameraZoom);
             }
-
         }
 
+        public void GetFurthestNode(PlottedGraph graph, out Vector3 position, out int idx)
+        {
+            Logging.RecordLogEvent($"GetFurthestNode ", Logging.LogFilterType.BulkDebugLogFile);
+
+
+            float maxWorldDimension = 0;
+            float[] positions = graph.LayoutState.DownloadVRAMPositions();
+            position = Vector3.Zero;
+            idx = -1;
+
+            if (positions.Length >= 4)
+            {
+                for (int testIdx = 0; testIdx < positions.Length; testIdx += 4)
+                {
+                    if (positions[testIdx + 3] == -1) break;
+                    float x = positions[testIdx];
+                    float y = positions[testIdx + 1];
+                    float z = positions[testIdx + 2];
+
+
+                    float maxCoordimension = Math.Max(Math.Abs(x), Math.Max(Math.Abs(y), Math.Abs(z)));
+                    if (maxCoordimension > maxWorldDimension)
+                    {
+                        maxWorldDimension = maxCoordimension;
+                        idx = testIdx;
+                        position = new Vector3(x, y, z);
+                    }
+                }
+            }
+        }
 
 
 
@@ -361,6 +395,11 @@ namespace rgat
             DeviceBuffer inputAttributes;
             DeviceBuffer outputAttributes;
 
+            //todo set this on layout change
+            bool isForceDirected = CONSTANTS.LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle);
+
+            bool forceComputationActive = GlobalConfig.LayoutPositionsActive && graph.temperature > 0 && (graph.LayoutState.ActivatingPreset || isForceDirected);
+
             if (graph.LayoutState.flip())
             {
                 //todo unified resource layout
@@ -406,11 +445,6 @@ namespace rgat
             cl.Begin();
 
 
-            bool forceComputationActive =
-                GlobalConfig.LayoutPositionsActive &&
-                graph.temperature > 0 && (
-                graph.LayoutState.ActivatingPreset || CONSTANTS.LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle)
-                );
 
             if (forceComputationActive)
             {
@@ -421,8 +455,28 @@ namespace rgat
                 graph.temperature *= CONSTANTS.Layout_Constants.TemperatureStepMultiplier;
                 if (graph.temperature <= CONSTANTS.Layout_Constants.MinimumTemperature)
                     graph.temperature = 0;
+
+
+
             }
 
+            if (rgatUI.ResponsiveKeyHeld)
+            {
+                // todo - don't iterate over every node every frame!
+                // not sure whether to make this timer based or do it in the shader
+                // it looks pretty bad doing it every 10 frames
+                // for now just do it every 5 frames
+
+                if (forceComputationActive && (layout.RenderVersion % 10) == 0)
+                {
+                    GetFurthestNode(graph, out Vector3 futhestPos, out int furthestNodeIdx);
+                    if (furthestNodeIdx != -1)
+                    {
+                        graph.SetFurthestNodePosition(furthestNodeIdx, futhestPos);
+                    }
+
+                }
+            }
 
             if (GlobalConfig.LayoutAttribsActive)
             {
@@ -436,8 +490,8 @@ namespace rgat
             _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
 
-            DebugPrintOutputFloatBuffer(layout.AttributesVRAM1, "Atts1", 32);
-            DebugPrintOutputFloatBuffer(layout.AttributesVRAM2, "Atts2", 32);
+            //DebugPrintOutputFloatBuffer(layout.AttributesVRAM1, "Atts1", 32);
+            //DebugPrintOutputFloatBuffer(layout.AttributesVRAM2, "Atts2", 32);
 
             if (graph.LayoutState.ActivatingPreset && graph.LayoutState.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
             {
@@ -696,7 +750,7 @@ namespace rgat
 
             cl.SetPipeline(_nodeAttribComputePipeline);
             cl.SetComputeResourceSet(0, resources);
-            cl.Dispatch((uint)Math.Ceiling(inputAttributes.SizeInBytes / (256.0  * 4.0 * 4.0 )), 1, 1);
+            cl.Dispatch((uint)Math.Ceiling(inputAttributes.SizeInBytes / (256.0 * 4.0 * 4.0)), 1, 1);
             //DebugPrintOutputFloatBuffer((int)textureSize, attribBufOut, "attrib Computation Done. Result: ", 32);
         }
 

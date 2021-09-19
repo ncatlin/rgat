@@ -79,6 +79,11 @@ namespace rgat.Threads
 
         public void ThreadProc()
         {
+            return; //temporarily disable in lieu of marking ranking complete for a thread
+
+
+
+
             while (!rgatState.rgatIsExiting)
             {
 

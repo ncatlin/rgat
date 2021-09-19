@@ -374,6 +374,7 @@ namespace rgat
                     break;
 
                 case eKeybind.MoveUp:
+
                     float delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
                     graph.CameraYOffset += delta;
@@ -438,7 +439,7 @@ namespace rgat
 
                 case eKeybind.CenterFrame:
                     StartCenterGraphInFrameStepping(false);
-                    resultText = _centeringInFrame  > 0 ? "Activated" : "Deactivated";
+                    resultText = _centeringInFrame > 0 ? "Activated" : "Deactivated";
                     break;
 
                 case eKeybind.LockCenterFrame:
@@ -542,11 +543,11 @@ namespace rgat
 
             if (ActiveGraph != null)
             {
-               DrawGraphImage();
+                DrawGraphImage();
             }
 
             DrawHUD(graphSize, ActiveGraph);
-
+            
             _graphLock.ExitReadLock();
         }
 
@@ -1100,7 +1101,7 @@ namespace rgat
             ResourceSet crs_core = _factory.CreateResourceSet(crs_core_rsd);
 
             Position2DColour[] NodeVerts = graph.GetMaingraphNodeVerts(_renderingMode,
-            out List<uint> nodeIndices, out Position2DColour[] nodePickingColors, 
+            out List<uint> nodeIndices, out Position2DColour[] nodePickingColors,
             out List<Tuple<string, uint>> captions);
 
             //_layoutEngine.GetScreenFitOffsets(WidgetSize, out _furthestX, out _furthestY, out _furthestZ);
@@ -1142,7 +1143,7 @@ namespace rgat
             }
             else
             {
-               stringVerts = RenderHighlightedNodeText(captions, _mouseoverNodeID);
+                stringVerts = RenderHighlightedNodeText(captions, _mouseoverNodeID);
             }
 
             MaintainCaptions(stringVerts);
@@ -1216,7 +1217,7 @@ namespace rgat
 
                 cl.DrawIndexed(indexCount: (uint)stringVerts.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             }
-           
+
 
             //update the picking framebuffer 
             //todo - not every frame?
@@ -1257,7 +1258,7 @@ namespace rgat
                 if (_newGraphSize == null || _newGraphSize != currentRegionSize)
                     _newGraphSize = currentRegionSize;
             }
-           
+
             WidgetPos = ImGui.GetCursorScreenPos();
             _MousePos = ImGui.GetMousePos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
@@ -1595,11 +1596,11 @@ namespace rgat
 
             HandleGraphUpdates();
 
-            _layoutEngine.Compute(cl, graph, _mouseoverNodeID, graph.IsAnimated); 
+            _layoutEngine.Compute(cl, graph, _mouseoverNodeID, graph.IsAnimated);
 
             if (_controller.DialogOpen is false)
             {
-                DoMouseNodePicking(_gd); 
+                DoMouseNodePicking(_gd);
             }
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
@@ -1687,7 +1688,7 @@ namespace rgat
             }
             if (graph.HighlightsChanged)
             {
-               // newAttribs = true;
+                // newAttribs = true;
             }
 
             if (newAttribs)
@@ -1699,7 +1700,7 @@ namespace rgat
 
 
 
-       public Vector2 WidgetPos { get; private set; }
+        public Vector2 WidgetPos { get; private set; }
         Vector2 _MousePos;
 
         int _mouseoverNodeID = -1;
@@ -1769,7 +1770,7 @@ namespace rgat
             //graph.DoHighlightAddresses();
             _graphLock.ExitReadLock();
 
-            
+
         }
 
 

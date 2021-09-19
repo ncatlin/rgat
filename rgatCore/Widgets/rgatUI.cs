@@ -75,6 +75,8 @@ namespace rgat
         bool _splashHeaderHover = false;
         DateTime _lastNotification = DateTime.MinValue;
 
+        public static bool ResponsiveKeyHeld = false;
+
         /// <summary>
         /// Tells the UI that something is happening on the menu bar so it should be displayed
         /// Currently its always displayed except on the splash screen
@@ -1213,6 +1215,7 @@ namespace rgat
                 if (tabDrawn)
                 {
                     _currentTab = "Visualiser";
+                    
                     visualiserTab.Draw();
                 }
 
