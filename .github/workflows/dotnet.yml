@@ -13,11 +13,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Checkout submodules
-      uses: srt32/git-actions@v0.0.3
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v2
       with:
-        args: git submodule update --init --recursive
+        submodules: recursive
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
