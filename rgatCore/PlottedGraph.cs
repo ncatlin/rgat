@@ -578,6 +578,9 @@ namespace rgat
 
             List<GeomPositionColour> resultList = new List<GeomPositionColour>();
             edgeIndices = new List<uint>();
+            
+            //todo: if wireframe enabled
+
             switch (WireframeStyle())
             {
                 case LayoutStyles.Style.CylinderLayout:

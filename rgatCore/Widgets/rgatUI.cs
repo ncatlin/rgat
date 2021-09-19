@@ -55,10 +55,13 @@ namespace rgat
         private bool _show_remote_dialog = false;
 
         double _StartupProgress = 0;
-        public double StartupProgress { get => _StartupProgress; set {
+        public double StartupProgress
+        {
+            get => _StartupProgress; set
+            {
                 if (_StartupProgress < 1)
                     _StartupProgress = value;
-            } 
+            }
         }
 
 
@@ -348,7 +351,7 @@ namespace rgat
             if (StartupProgress < 1)
             {
                 Console.WriteLine($"Startup progress: {StartupProgress}");
-                return; 
+                return;
             }
 
             if (_mouseWheelDelta != 0)
@@ -702,6 +705,11 @@ namespace rgat
                 if (ImGui.MenuItem("Save Process Traces")) { } //todo
                 if (ImGui.MenuItem("Save All Traces")) { rgatState.SaveAllTargets(); }
                 if (ImGui.MenuItem("Export Pajek")) { _rgatState.ExportTraceAsPajek(_rgatState.ActiveTrace, _rgatState.ActiveGraph.tid); }
+                ImGui.Separator();
+                if (ImGui.MenuItem("Open Screenshots/Videos"))
+                {
+                    OpenDirectoryInFileBrowser(GlobalConfig.GetSettingPath(PathKey.MediaCapturePath), "Media");
+                }
                 ImGui.Separator();
                 ExitFlag = ImGui.MenuItem("Exit");
                 ImGui.EndMenu();
@@ -1215,7 +1223,7 @@ namespace rgat
                 if (tabDrawn)
                 {
                     _currentTab = "Visualiser";
-                    
+
                     visualiserTab.Draw();
                 }
 
