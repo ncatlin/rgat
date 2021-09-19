@@ -706,7 +706,7 @@ namespace rgat
                 if (ImGui.MenuItem("Save All Traces")) { rgatState.SaveAllTargets(); }
                 if (ImGui.MenuItem("Export Pajek")) { _rgatState.ExportTraceAsPajek(_rgatState.ActiveTrace, _rgatState.ActiveGraph.tid); }
                 ImGui.Separator();
-                if (ImGui.MenuItem("Open Screenshots/Videos"))
+                if (ImGui.MenuItem("Open Screenshot/Video Folder"))
                 {
                     OpenDirectoryInFileBrowser(GlobalConfig.GetSettingPath(PathKey.MediaCapturePath), "Media");
                 }
