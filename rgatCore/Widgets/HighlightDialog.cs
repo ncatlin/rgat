@@ -367,6 +367,8 @@ namespace rgat.Widgets
                 ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.KeyPadEnter)))
             {
                 string addrstring = _activeHighlights.AddrEntryText;
+                addrstring = new string(addrstring.ToCharArray().Where(c => !System.Char.IsWhiteSpace(c)).ToArray());
+
                 if (addrstring.ToLower().StartsWith("0x")) addrstring = addrstring.Substring(2);
                 bool success = ulong.TryParse(addrstring, NumberStyles.AllowHexSpecifier, CultureInfo.CurrentCulture, out ulong hexAddr);
                 if (!success)
