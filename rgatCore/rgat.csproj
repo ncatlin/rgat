@@ -122,4 +122,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Submodules\" />
+  </ItemGroup>
+
 </Project>
