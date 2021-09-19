@@ -349,7 +349,7 @@ namespace rgat.Widgets
             {
                 ulong address = _activeHighlights.SelectedAddresses[selitem];
                 _activeHighlights.SelectedAddresses.RemoveAt(selitem);
-
+                _ActiveGraph.HighlightedAddresses.Remove(address);
                 List<uint> nodes = _ActiveGraph.InternalProtoGraph.ProcessData.GetNodesAtAddress(address, _ActiveGraph.tid);
                 _ActiveGraph.RemoveHighlightedNodes(nodes, null, CONSTANTS.eHighlightType.eAddresses);
             }

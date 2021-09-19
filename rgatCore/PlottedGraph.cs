@@ -2024,6 +2024,10 @@ namespace rgat
             HighlightsChanged = true;
         }
 
+        /// <summary>
+        /// Set an address as highlighted on the graph plot
+        /// </summary>
+        /// <param name="address">The address to highlight</param>
         public void AddHighlightedAddress(ulong address)
         {
             lock (textLock)
@@ -2032,10 +2036,9 @@ namespace rgat
                 { 
                     HighlightedAddresses.Add(address);
 
-                    List<uint> nodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(address, tid);
+                    List<uint> nodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(address, tid);  //todo: external
                     AddHighlightedNodes(nodes, eHighlightType.eAddresses);
                 }
-
             }
         }
 

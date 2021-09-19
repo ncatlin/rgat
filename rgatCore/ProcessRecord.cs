@@ -105,9 +105,10 @@ namespace rgat
                         return true;
                     }
                 }
-                if (dieFlag) {
+                if (dieFlag)
+                {
                     address = 0;
-                    return false; 
+                    return false;
                 }
                 Thread.Sleep(2);
                 timewaited += 2;
@@ -248,7 +249,7 @@ namespace rgat
                     attempts -= 1;
                     if (attempts == 0)
                     {
-                        Logging.RecordLogEvent($"Failed to translate module ID {localModnum}", filter:  Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Failed to translate module ID {localModnum}", filter: Logging.LogFilterType.TextError);
                         return;
                     }
                 }
@@ -267,8 +268,8 @@ namespace rgat
                 {
                     modsymsPlain[modnum].Add(offset, name);
                     int moduleref = ModuleAPIReferences[modnum];
-                   // APITypes[modnum].Add(offset, WinAPIDetails.ResolveAPIFilterType(moduleref, name));
-                    
+                    // APITypes[modnum].Add(offset, WinAPIDetails.ResolveAPIFilterType(moduleref, name));
+
                 }
 
             }
@@ -426,16 +427,16 @@ namespace rgat
         public int GetModuleReference(int GlobalModuleID)
         {
             if (GlobalModuleID >= modsymsPlain.Count) return -1; //todo race condition here where it could stay as -1 if requested too early?
-            return  ModuleAPIReferences[GlobalModuleID];
+            return ModuleAPIReferences[GlobalModuleID];
         }
 
-        
+
         public APIDetailsWin.API_ENTRY? GetAPIEntry(int globalModuleID, int moduleAPIRef, ulong address)
         {
             if (moduleAPIRef == -1) return null;
 
             ulong symbolOffset = address - LoadedModuleBounds[globalModuleID].Item1;
-            if(modsymsPlain[globalModuleID].TryGetValue(symbolOffset, out string symname))
+            if (modsymsPlain[globalModuleID].TryGetValue(symbolOffset, out string symname))
             {
                 return APIDetailsWin.GetAPIInfo(moduleAPIRef, symname);
             }
@@ -490,7 +491,17 @@ namespace rgat
         {
             lock (InstructionsLock)
             {
-                if (!disassembly.TryGetValue(addr, out List<InstructionData> inslist)) return new List<uint>();
+                if (!disassembly.TryGetValue(addr, out List<InstructionData> inslist))
+                {
+                    if (externdict.TryGetValue(addr, out ROUTINE_STRUCT val))
+                    {
+                        if (val.thread_callers.TryGetValue(TID, out List<Tuple<uint, uint>> callers)) 
+                        {
+                            return callers.Select(x => x.Item2).ToList();
+                        }
+                    }
+                    return new List<uint>();
+                }
                 var result = new List<uint>();
                 foreach (var ins in inslist)
                 {

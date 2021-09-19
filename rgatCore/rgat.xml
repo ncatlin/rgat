@@ -676,6 +676,12 @@
             </summary>
             <param name="edgesCount"></param>
         </member>
+        <member name="M:rgat.PlottedGraph.AddHighlightedAddress(System.UInt64)">
+            <summary>
+            Set an address as highlighted on the graph plot
+            </summary>
+            <param name="address">The address to highlight</param>
+        </member>
         <member name="M:rgat.PlottedGraph.GetActiveNodeIndexes(System.Collections.Generic.List{System.UInt32}@,System.Collections.Generic.List{System.UInt32}@,System.UInt32[]@)">
             <summary>
             Get the indexes of any nodes that have > minimum alpha in animated mode
