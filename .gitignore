@@ -261,7 +261,6 @@ tracelog*
 *.la
 *.lai
 *.so
-*.dll
 *.dylib
 
 # Qt-es
@@ -305,3 +304,4 @@ CMakeLists.txt.user*
 # BeatPulse healthcheck temp database
 healthchecksdb
 /rgatCore/cimgui.dll
+/rgatCore/libyara.dll
