@@ -1,7 +1,7 @@
-[submodule "Modules/DiELibDotNet"]
+[submodule "DiELibDotNet"]
 	path = Modules/DiELibDotNet
 	url = https://github.com/ncatlin/DiELibDotNet
 
-[submodule "Modules/dnYara3"]
+[submodule "dnYara3"]
 	path = Modules/dnYara3
 	url = https://github.com/ncatlin/dnYara
