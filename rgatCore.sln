@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{F921FEC8
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConsolePrint32", "tests\ConsolePrint32\ConsolePrint32.vcxproj", "{51EA169B-2A9B-42EB-A5DB-1C2EE8083E2D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiELibDotNet", "DiELibDotNet\DiELibDotNet.csproj", "{52275908-60E9-4741-BBEA-5C3EBC4522CA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiELibDotNet", "Modules\DiELibDotNet\DiELibDotNet.csproj", "{52275908-60E9-4741-BBEA-5C3EBC4522CA}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimpleLoops32", "tests\SimpleLoops32\SimpleLoops.vcxproj", "{83D10FDA-EA95-437C-A0B7-95B9B3F38041}"
 EndProject
@@ -27,7 +27,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UncommonBranches32", "Uncom
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LargeBlocks32", "LargeBlocks\LargeBlocks.vcxproj", "{DC560B80-18A9-4647-851E-167634D69DCD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dnYara", "..\dnYara3\dnYara\dnYara.csproj", "{4F4335E6-4912-439D-A4DA-43EA20F3A6BF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dnYara", "Modules\dnYara3\dnYara\dnYara.csproj", "{4F4335E6-4912-439D-A4DA-43EA20F3A6BF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FileAPITest", "FileAPITest\FileAPITest.vcxproj", "{F0FAA487-A90E-4AC1-AD06-22C5FF794CC6}"
 EndProject

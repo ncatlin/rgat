@@ -82,9 +82,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="DiELibDotNet">
-      <HintPath>..\DiELibDotNet\bin\Debug\netcoreapp3.1\DiELibDotNet.dll</HintPath>
-    </Reference>
     <Reference Include="dnYara">
       <HintPath>..\..\dnYara2\dnYara\bin\Debug\netstandard2.0\dnYara.dll</HintPath>
       <EmbedInteropTypes>false</EmbedInteropTypes>
@@ -124,6 +121,10 @@
 
   <ItemGroup>
     <Folder Include="Submodules\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\DiELibDotNet\DiELibDotNet.csproj" />
   </ItemGroup>
 
 </Project>
