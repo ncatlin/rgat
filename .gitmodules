@@ -5,3 +5,8 @@
 [submodule "Modules/dnYara3"]
 	path = Modules/dnYara3
 	url = https://github.com/ncatlin/dnYara
+
+
+[submodule "Modules/Veldrid"]
+	path = Modules/Veldrid
+	url = https://github.com/mellinoe/veldrid
