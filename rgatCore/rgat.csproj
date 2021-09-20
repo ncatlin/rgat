@@ -58,6 +58,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.0-preview3" />
+    <PackageReference Include="DiELibDotNet" Version="0.0.1" />
     <PackageReference Include="dnYara" Version="1.0.3.4" />
     <PackageReference Include="FFMpegCore" Version="4.5.0" />
     <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
@@ -110,10 +111,6 @@
 
   <ItemGroup>
     <Folder Include="Submodules\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Modules\DiELibDotNet\DiELibDotNet.csproj" />
   </ItemGroup>
 
 </Project>
