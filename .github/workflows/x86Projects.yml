@@ -26,7 +26,7 @@ jobs:
       uses: carlosperate/download-file-action@v1.0.3
       id: download-pin
       with:
-        file-url: 'https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.20-98437-gf02b61307-msvc-windows.zip
+        file-url: 'https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.20-98437-gf02b61307-msvc-windows.zip'
         file-name: 'pin.zip'
         location: './pindir'
         
