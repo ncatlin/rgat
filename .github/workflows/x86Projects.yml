@@ -34,7 +34,7 @@ jobs:
       run: echo "The file was downloaded to ${{ steps.download-pin.outputs.file-path }}"
         
     - name: Unzip Pin
-      run: 7z x pin.zip -o pinexdir    
+      run: 7z x pin.zip -opinexdir    
       working-directory: pindir  
         
     - name: Print Pindir contents
