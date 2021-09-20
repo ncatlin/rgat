@@ -119,9 +119,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Modules\DiELibDotNet\DiELibDotNet.csproj" />
-    <ProjectReference Include="..\Modules\Veldrid\src\Veldrid.ImageSharp\Veldrid.ImageSharp.csproj" />
-    <ProjectReference Include="..\Modules\Veldrid\src\Veldrid.StartupUtilities\Veldrid.StartupUtilities.csproj" />
-    <ProjectReference Include="..\Modules\Veldrid\src\Veldrid\Veldrid.csproj" />
+    <ProjectReference Include="..\Modules\Veldrid.ImageSharp\Veldrid.ImageSharp.csproj" />
+    <ProjectReference Include="..\Modules\Veldrid.StartupUtilities\Veldrid.StartupUtilities.csproj" />
+    <ProjectReference Include="..\Modules\Veldrid\Veldrid.csproj" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
