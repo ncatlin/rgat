@@ -483,7 +483,7 @@ namespace rgat
             //todo remove after debug done
             if (filter == LogFilterType.TextError)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
+                Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine(text);
                 Console.ForegroundColor = ConsoleColor.White;
             }

@@ -129,17 +129,21 @@ namespace rgat.OperationModes
                 {
                     if (e.InnerException.GetType() == typeof(System.InvalidOperationException))
                     {
-                        Logging.RecordLogEvent($"Error: Unable to initialise the Vulkan graphics driver: {e.InnerException.Message}", Logging.LogFilterType.TextError);
+                        Logging.RecordError($"Error: Unable to initialise the Vulkan graphics driver: {e.InnerException.Message}");
+                    }
+                    else
+                    {
+                        Logging.RecordError($"Window Creation Exception: {e.InnerException.Message}");
                     }
                 }
                 else
                 {
-                    Logging.RecordLogEvent($"Error: Unable to initialise the Vulkan graphics driver. {e.Message}", Logging.LogFilterType.TextError);
+                    Logging.RecordError($"Error: Unable to initialise the Vulkan graphics driver. {e.Message}");
                 }
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Error 2: unable to initialise the Vulkan drivers. {e.Message}", Logging.LogFilterType.TextError);
+                Logging.RecordError($"Error 2: unable to initialise the Vulkan drivers. {e.Message}");
             }
 
             if (!loadSuccess) return false;

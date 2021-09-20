@@ -72,13 +72,7 @@
     <PackageReference Include="QuikGraph" Version="2.3.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.3" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0-preview.7.21377.19" />
-    <PackageReference Include="Veldrid" Version="4.9.0-g831b50551e" />
-    <PackageReference Include="Veldrid.ImageSharp" Version="4.9.0-g7c248955fb" />
-    <PackageReference Include="Veldrid.MetalBindings" Version="4.9.0-g831b50551e" />
-    <PackageReference Include="Veldrid.OpenGLBindings" Version="4.9.0-g831b50551e" />
-    <PackageReference Include="Veldrid.SDL2" Version="4.9.0-g7c248955fb" />
     <PackageReference Include="Veldrid.SPIRV" Version="1.0.14" />
-    <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0-g7c248955fb" />
   </ItemGroup>
 
   <ItemGroup>
@@ -125,6 +119,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Modules\DiELibDotNet\DiELibDotNet.csproj" />
+    <ProjectReference Include="..\Modules\Veldrid\src\Veldrid.ImageSharp\Veldrid.ImageSharp.csproj" />
+    <ProjectReference Include="..\Modules\Veldrid\src\Veldrid.StartupUtilities\Veldrid.StartupUtilities.csproj" />
+    <ProjectReference Include="..\Modules\Veldrid\src\Veldrid\Veldrid.csproj" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy /Y &quot;$(TargetDir)\native\win-x64\SDL2.dll&quot; &quot;$(TargetDir)\SDL2.dll&quot;" />
+  </Target>
 
 </Project>
