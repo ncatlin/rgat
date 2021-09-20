@@ -27,7 +27,7 @@ jobs:
       run: dotnet nuget add source --username ncatlin --password ${{ secrets.ACTIONS_BUILD_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/ncatlin/index.json"
       
     - name: above
-      run: dotnet add package Veldrid -v 4.9.0 -s github
+      run: dotnet nuget add package Veldrid -v 4.9.0 -s github
       
     - name: Restore dependencies
       run: dotnet restore
