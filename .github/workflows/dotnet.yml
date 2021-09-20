@@ -23,11 +23,11 @@ jobs:
       with:
         dotnet-version: 5.0.x
        
-    - name: Add NuGet packages that are not on NuGet yet
+    - name: Add Github package source
       run: dotnet nuget add source --username ncatlin --password ${{ secrets.ACTIONS_BUILD_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/ncatlin/index.json"
       
-    - name: above
-      run: dotnet nuget add package Veldrid -v 4.9.0 -s github
+    - name: Add NuGet packages that are not on NuGet yet
+      run: dotnet add package Veldrid -v 4.9.0
       
     - name: Restore dependencies
       run: dotnet restore
