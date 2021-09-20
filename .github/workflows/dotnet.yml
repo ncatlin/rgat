@@ -24,7 +24,7 @@ jobs:
         dotnet-version: 5.0.x
        
     - name: Add NuGet packages that are not on NuGet yet
-      run: dotnet nuget add source Modules/awaiting_nuget
+      run: dotnet nuget add source /home/runner/work/rgatPrivate/Modules/awaiting_nuget
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
