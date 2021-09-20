@@ -58,10 +58,12 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.0-preview3" />
+    <PackageReference Include="dnYara" Version="1.0.3.4" />
     <PackageReference Include="FFMpegCore" Version="4.5.0" />
     <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
     <PackageReference Include="GraphShape" Version="1.2.0" />
     <PackageReference Include="Humanizer.Core" Version="2.11.10" />
+    <PackageReference Include="ImGui.NET" Version="1.82.0" />
     <PackageReference Include="Jint" Version="3.0.0-beta-2034" />
     <PackageReference Include="KaitaiStruct.Runtime.CSharp" Version="0.9.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0-preview.7.21377.19" />
@@ -80,20 +82,6 @@
     <PackageReference Include="Veldrid.SDL2" Version="4.9.0" />
     <PackageReference Include="Veldrid.SPIRV" Version="1.0.14" />
     <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="dnYara">
-      <HintPath>..\..\dnYara2\dnYara\bin\Debug\netstandard2.0\dnYara.dll</HintPath>
-      <EmbedInteropTypes>false</EmbedInteropTypes>
-    </Reference>
-    <Reference Include="dnYara.Interop">
-      <HintPath>..\..\dnYara2\dnYara\bin\Debug\netstandard2.0\dnYara.Interop.dll</HintPath>
-    </Reference>
-    <Reference Include="ImGui.NET">
-      <HintPath>..\..\ImGui.NET-master\bin\Debug\ImGui.NET\netstandard2.0\ImGui.NET.dll</HintPath>
-      <EmbedInteropTypes>false</EmbedInteropTypes>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
