@@ -67,13 +67,19 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0-preview.7.21377.19" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0-preview.7.21377.19" />
     <PackageReference Include="NaCl.Core" Version="2.0.2" />
+    <PackageReference Include="NativeLibraryLoader" Version="1.0.12" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="PeNet" Version="2.8.1" />
     <PackageReference Include="QuikGraph" Version="2.3.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.3" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0-preview.7.21377.19" />
     <PackageReference Include="Veldrid" Version="4.9.0" />
+    <PackageReference Include="Veldrid.ImageSharp" Version="4.9.0" />
+    <PackageReference Include="Veldrid.MetalBindings" Version="4.9.0" />
+    <PackageReference Include="Veldrid.OpenGLBindings" Version="4.9.0" />
+    <PackageReference Include="Veldrid.SDL2" Version="4.9.0" />
     <PackageReference Include="Veldrid.SPIRV" Version="1.0.14" />
+    <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -120,13 +126,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Modules\DiELibDotNet\DiELibDotNet.csproj" />
-    <ProjectReference Include="..\Modules\Veldrid.ImageSharp\Veldrid.ImageSharp.csproj" />
-    <ProjectReference Include="..\Modules\Veldrid.StartupUtilities\Veldrid.StartupUtilities.csproj" />
-    <ProjectReference Include="..\Modules\Veldrid\Veldrid.csproj" />
   </ItemGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy /Y &quot;$(TargetDir)\native\win-x64\SDL2.dll&quot; &quot;$(TargetDir)\SDL2.dll&quot;" />
-  </Target>
 
 </Project>
