@@ -22,6 +22,9 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
+       
+    - name: Add NuGet packages that are not on NuGet yet
+      run: dotnet nuget add source Modules/awaiting_nuget
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
