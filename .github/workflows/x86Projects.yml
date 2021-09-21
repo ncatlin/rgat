@@ -45,4 +45,4 @@ jobs:
     - name: Build
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="x86" /p:PINDIR="${{env.GITHUB_WORKSPACE}}\pinexdir\${{env.PIN_VERSION}}" rgatCore.sln
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="x86" /p:PINDIR="${{github.workspace}}\pindir\pinexdir\${{env.PIN_VERSION}}" rgatCore.sln
