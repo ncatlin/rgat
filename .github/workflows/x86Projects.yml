@@ -40,7 +40,7 @@ jobs:
         
     - name: Print Pindir contents
       run: dir
-      working-directory: pindir\pinexdir\${{PIN_VERSION}}
+      working-directory: pindir\pinexdir\${{env.PIN_VERSION}}
     
     - name: Build
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
