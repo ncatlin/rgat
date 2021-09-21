@@ -74,8 +74,6 @@ layout(set = 0, binding=8) buffer resultData
 
 
 
-
-
 vec4 getNeighbor(uint bufferIndex){
     //vec2 uv = vec2(((mod(textureIndex, fieldParams.nodesTexWidth)) / fieldParams.nodesTexWidth), (floor(textureIndex / fieldParams.nodesTexWidth) / fieldParams.nodesTexWidth));
     //vec4  r =  texture(sampler2D(positions, positionsView), uv );

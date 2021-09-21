@@ -12,7 +12,12 @@ namespace rgat
 {
     public class GraphLayoutEngine
     {
-
+        /// <summary>
+        /// Runs the computation shaders on graph layout buffers 
+        /// </summary>
+        /// <param name="gdev">GPU GraphicsDevice to perform computation with</param>
+        /// <param name="controller">An ImGuiController to load shader code from [todo: remove it from the controller, will need these in non-imgui runners]</param>
+        /// <param name="name">A name to identify the layout engine in logfiles</param>
         public GraphLayoutEngine(GraphicsDevice gdev, ImGuiController controller, string name)
         {
             _gd = gdev;
@@ -23,6 +28,10 @@ namespace rgat
         GraphicsDevice _gd;
         ResourceFactory _factory;
         ImGuiController _controller;
+
+        /// <summary>
+        /// The unique name of the layout engine
+        /// </summary>
         public string EngineID { get; private set; }
 
         Pipeline _positionComputePipeline, _velocityComputePipeline, _nodeAttribComputePipeline;
@@ -32,45 +41,6 @@ namespace rgat
         ResourceLayout _velocityComputeLayout, _positionComputeLayout, _nodeAttribComputeLayout;
 
         readonly object _lock = new object();
-
-        /*
-         * Having a list of other layout engines (eg previews, main widget) lets us grab the most up 
-         * to date rendering of a graph without replicating the effort for each type of rendering
-         */
-        List<GraphLayoutEngine> _parallelLayoutEngines = new List<GraphLayoutEngine>();
-        public void AddParallelLayoutEngine(GraphLayoutEngine engine)
-        {
-            lock (_lock)
-            {
-                _parallelLayoutEngines.Add(engine);
-            }
-        }
-        List<GraphLayoutEngine> GetParallelLayoutEngines()
-        {
-            lock (_lock)
-            {
-                return _parallelLayoutEngines.ToList();
-            }
-        }
-
-
-
-
-        /// <summary>
-        /// Must have writer lock
-        /// If graph buffers already stored in VRAM, load the reference
-        /// Otherwise, fill GPU buffers from stored data in the plottedgraph
-        /// 
-        /// </summary>
-        /// 
-
-
-        public void ChangePreset(PlottedGraph graph)
-        {
-            Logging.RecordLogEvent($"ChangePreset to style {graph.ActiveLayoutStyle}", Logging.LogFilterType.BulkDebugLogFile);
-            graph.ResetLayoutStats();
-            graph.IncreaseTemperature(100f);
-        }
 
 
         /// <summary>
@@ -145,7 +115,15 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Iterate over all the nodes and figure out how far they are from the edges of the screen in each dimension
+        /// </summary>
+        /// <param name="graphWidgetSize">Size of the rendering widget</param>
+        /// <param name="graph">Graph being displayed in the widget</param>
+        /// <param name="xoffsets">Furthest from the left and right sides of the widget</param>
+        /// <param name="yoffsets">Furthest from the top and bottom of the widget</param>
+        /// <param name="zoffsets">Furthest from in front of/behind the camera lens in the Z direction</param>
+        /// <returns>true if a meaningful result was returned</returns>
         public bool GetPreviewFitOffsets(Vector2 graphWidgetSize, PlottedGraph graph, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
         {
             Logging.RecordLogEvent($"GetPreviewFitOffsets Start {graph.tid} layout {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
@@ -157,8 +135,6 @@ namespace rgat
             zoom = graph.PreviewCameraZoom;
 
             float[] positions = graph.LayoutState.DownloadVRAMPositions();
-
-
             float aspectRatio = graphWidgetSize.X / graphWidgetSize.Y;
 
             //todo: difference is here, merge to make one function?
@@ -301,34 +277,38 @@ namespace rgat
 
         /// <summary>
         /// Must have read lock to call
-        /// Find fastest node speed
+        /// Find the node with the highest x/y/z dimension. Ignores w.
         /// </summary>
-        /// <param name="buf"></param>
+        /// <param name="buf">Device buffer containing values (can be speeds or positions)</param>
+        /// <param name="nodeCount">Number of nodes to iterate over</param>
+        /// <param name="highIndex">set to the index of the highest node</param>
         /// <returns></returns>
-        float FindHighXYZ(DeviceBuffer buf, out int highIndex)
+        float FindHighXYZ(DeviceBuffer buf, int nodeCount, out int highIndex)
         {
             Logging.RecordLogEvent($"FindHighXYZ  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, buf);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
             float highest = 0f;
             highIndex = 0;
-            for (int index = 0; index < destinationReadView.Count; index += 4)
+            for (int testNodeIndex = 0; testNodeIndex < nodeCount; testNodeIndex += 1)
             {
-                if (destinationReadView[index + 3] != 1.0f) break; //past end of nodes
-                if (Math.Abs(destinationReadView[index]) > highest)
+                int bufIndex = testNodeIndex * 4;
+                Debug.Assert(bufIndex + 3 < destinationReadView.Count);
+
+                if (Math.Abs(destinationReadView[bufIndex]) > highest)
                 {
-                    highest = Math.Abs(destinationReadView[index]);
-                    highIndex = index;
+                    highest = Math.Abs(destinationReadView[bufIndex]);
+                    highIndex = bufIndex;
                 }
-                if (Math.Abs(destinationReadView[index + 1]) > highest)
+                if (Math.Abs(destinationReadView[bufIndex + 1]) > highest)
                 {
-                    highest = Math.Abs(destinationReadView[index + 1]);
-                    highIndex = index + 1;
+                    highest = Math.Abs(destinationReadView[bufIndex + 1]);
+                    highIndex = bufIndex + 1;
                 }
-                if (Math.Abs(destinationReadView[index + 2]) > highest)
+                if (Math.Abs(destinationReadView[bufIndex + 2]) > highest)
                 {
-                    highest = Math.Abs(destinationReadView[index + 2]);
-                    highIndex = index + 2;
+                    highest = Math.Abs(destinationReadView[bufIndex + 2]);
+                    highIndex = bufIndex + 2;
                 }
             }
             highIndex = (int)Math.Floor(highIndex / 4f);
@@ -337,7 +317,19 @@ namespace rgat
             return highest;
         }
 
-        public ulong Compute(CommandList cl, PlottedGraph graph, int mouseoverNodeID, bool useAnimAttribs)
+
+        /// <summary>
+        /// Do the actual computation of graph layout and animation
+        /// Uses the velocity shader to adjust the velocity based on relative positions
+        /// Uses the position shader to move the nodes at the calculated velocity
+        /// Adjusts the size/alpha of nodes based on the attribute buffer
+        /// </summary>
+        /// <param name="cl">Thread-specific command list</param>
+        /// <param name="graph">Graph to perform computation on</param>
+        /// <param name="mouseoverNodeID">The index of the node the users mouse is hovering over</param>
+        /// <param name="isAnimated">If the graph should have animation attributes computed (ie: main graph with live/replay active)</param>
+        /// <returns>The version ID associated with the produced graph layout computed</returns>
+        public ulong Compute(CommandList cl, PlottedGraph graph, int mouseoverNodeID, bool isAnimated)
         {
             ulong newversion;
             Stopwatch timer = new Stopwatch();
@@ -450,7 +442,7 @@ namespace rgat
                 if (forceComputationActive && (layout.RenderVersion % 3) == 0)
                 {
 
-                    float highPosition = FindHighXYZ(graph.LayoutState.PositionsVRAM1, out int furthestNodeIdx);
+                    float highPosition = FindHighXYZ(graph.LayoutState.PositionsVRAM1, graph.ComputeBufferNodeCount, out int furthestNodeIdx);
                     if (furthestNodeIdx != -1)
                     {
                         graph.SetFurthestNodeDimension(furthestNodeIdx, highPosition);
@@ -462,7 +454,7 @@ namespace rgat
             if (GlobalConfig.LayoutAttribsActive)
             {
                 attribComputeResourceSet = _factory.CreateResourceSet(attr_rsrc_desc);
-                RenderNodeAttribs(cl, graph, inputAttributes, attribComputeResourceSet, delta, mouseoverNodeID, useAnimAttribs);
+                RenderNodeAttribs(cl, graph, inputAttributes, attribComputeResourceSet, delta, mouseoverNodeID, isAnimated);
             }
 
 
@@ -477,7 +469,7 @@ namespace rgat
             if (graph.LayoutState.ActivatingPreset && graph.LayoutState.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
             {
                 //when the nodes are near their targets, instead of bouncing around while coming to a slow, just snap them into position
-                float highest = FindHighXYZ(layout.VelocitiesVRAM1, out int highIndex);
+                float highest = FindHighXYZ(layout.VelocitiesVRAM1, graph.ComputeBufferNodeCount,  out int highIndex);
                 Console.WriteLine($"Presetspeed: {highest}");
                 if (highest < 1)
                 {
@@ -501,10 +493,10 @@ namespace rgat
             timer.Stop();
             lock (_lock)
             {
-                lastComputeMS.Add(timer.ElapsedMilliseconds);
-                if (lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
-                    lastComputeMS = lastComputeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
-                AverageComputeTime = lastComputeMS.Average();
+                _lastComputeMS.Add(timer.ElapsedMilliseconds);
+                if (_lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
+                    _lastComputeMS = _lastComputeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
+                AverageComputeTime = _lastComputeMS.Average();
             }
             if (GlobalConfig.LayoutPositionsActive)
                 graph.RecordComputeTime(timer.ElapsedMilliseconds);
@@ -537,7 +529,13 @@ namespace rgat
         }
 
 
-        //todo : everything in here should be class variables defined once
+        /// <summary>
+        /// Used the velocity buffer to move the nodes in the positions buffer
+        /// </summary>
+        /// <param name="cl">Thread-specific Veldrid command list to use</param>
+        /// <param name="graph">PlottedGraph to compute</param>
+        /// <param name="resources">Position shader resource set</param>
+        /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         unsafe void RenderPosition(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta)
         {
 
@@ -572,8 +570,14 @@ namespace rgat
 
 
 
-
-        //todo : everything in here should be class variables defined once
+        /// <summary>
+        /// Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
+        /// </summary>
+        /// <param name="cl">Thread-specific Veldrid command list to use</param>
+        /// <param name="graph">PlottedGraph to compute</param>
+        /// <param name="resources">Velocity shader resource set</param>
+        /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
+        /// <param name="temperature">The activity level of the layout state. Higher balues => bigger movements</param>
         unsafe void RenderVelocity(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
         {
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
@@ -601,12 +605,6 @@ namespace rgat
 
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done", Logging.LogFilterType.BulkDebugLogFile);
         }
-
-
-
-
-
-
 
 
         /*
@@ -736,24 +734,36 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Set the highlight state of nodes in the attributes buffer so they can be animated/have their icon set
+        /// </summary>
+        /// <param name="cl">Thread specific Veldrid CommandList</param>
+        /// <param name="graph">Graph with highlights to apply</param>
+        /// <param name="attribsBuf">Attributes buffer to apply highlight data to</param>
         public void ApplyHighlightAttributes(CommandList cl, PlottedGraph graph, DeviceBuffer attribsBuf)
         {
             graph.GetHighlightChanges(out List<uint> added, out List<uint> removed);
 
             if (added.Any() is true)
             {
-                SetHighlightedNodes(cl, added, attribsBuf, CONSTANTS.eHighlightType.eAddresses);
+                SetHighlightedNodes(cl, added, attribsBuf, CONSTANTS.HighlightType.eAddresses);
             }
 
             if (removed.Any() is true)
             {
-                UnsetHighlightedNodes(cl, removed, attribsBuf, CONSTANTS.eHighlightType.eAddresses);
+                UnsetHighlightedNodes(cl, removed, attribsBuf);
             }
         }
 
 
-        public unsafe void SetHighlightedNodes(CommandList cl, List<uint> nodeIdxs, DeviceBuffer attribsBuf, CONSTANTS.eHighlightType highlightType)
+        /// <summary>
+        /// Set a node to highlighted in the attribute buffer
+        /// </summary>
+        /// <param name="cl">Thread specific Veldrid CommandList</param>
+        /// <param name="nodeIdxs">List of node indexes to set as highlighted</param>
+        /// <param name="attribsBuf">Attributes buffer to set highlight state in</param>
+        /// <param name="highlightType">CONSTANTS.HighlightType of highlight [Currently unused, could be used to select the icon]</param>
+        public unsafe void SetHighlightedNodes(CommandList cl, List<uint> nodeIdxs, DeviceBuffer attribsBuf, CONSTANTS.HighlightType highlightType)
         {
             float[] val = new float[] { 400f,//bigger
                 1.0f, //full alpha 
@@ -769,7 +779,13 @@ namespace rgat
             }
         }
 
-        public unsafe void UnsetHighlightedNodes(CommandList cl, List<uint> nodeIdxs, DeviceBuffer attribsBuf, CONSTANTS.eHighlightType highlightType)
+        /// <summary>
+        /// Remove a nodes highlighted state in the attribute buffer
+        /// </summary>
+        /// <param name="cl">Thread specific Veldrid CommandList</param>
+        /// <param name="nodeIdxs">List of node indexes to set as not highlighted</param>
+        /// <param name="attribsBuf">Attributes buffer to set highlight state in</param>
+        public unsafe void UnsetHighlightedNodes(CommandList cl, List<uint> nodeIdxs, DeviceBuffer attribsBuf)
         {
             float[] val = new float[] { 400f,//still big, let the shader shrink it
                 1.0f, //full alpha 
@@ -785,14 +801,21 @@ namespace rgat
             }
         }
 
-        List<long> lastComputeMS = new List<long>() { 0 };
+
+
         /// <summary>
         /// Average time in Milliseconds taken by the GPU to perform a round of velocity/position/attribute computation
         /// Average computed over GlobalConfig.StatisticsTimeAvgWindow frames
         /// </summary>
         public double AverageComputeTime { get; private set; } = 0;
+        List<long> _lastComputeMS = new List<long>() { 0 };
 
-
+        /// <summary>
+        /// Read out some values from a DeviceBuffer and print them to the console. Just for debugging.
+        /// </summary>
+        /// <param name="buf">GPU DeviceBuffer to read</param>
+        /// <param name="message">Caption for the printout</param>
+        /// <param name="printCount">Max values to print</param>
         void DebugPrintOutputFloatBuffer(DeviceBuffer buf, string message, int printCount)
         {
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, buf);

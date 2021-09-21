@@ -122,7 +122,7 @@ namespace rgat
         };
 
         public enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals, eDegree }
-        public enum eHighlightType { eExternals, eAddresses, eExceptions };
+        public enum HighlightType { eExternals, eAddresses, eExceptions };
 
         public enum PathKey { PinPath, PinToolPath32, PinToolPath64, FFmpegPath,
                             TraceSaveDirectory, TestsDirectory, DiESigsDirectory, YaraRulesDirectory, MediaCapturePath}

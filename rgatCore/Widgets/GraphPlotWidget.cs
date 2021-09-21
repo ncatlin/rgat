@@ -1550,25 +1550,25 @@ namespace rgat
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.ForceDirected3DNodes),
                 iconSize, buttonWidth, "Force Directed Nodes", graph.ActiveLayoutStyle == LayoutStyles.Style.ForceDirected3DNodes))
             {
-                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.ForceDirected3DNodes, _gd)) { _layoutEngine.ChangePreset(graph); }
+                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.ForceDirected3DNodes, _gd)) { graph.BeginNewLayout(); }
             }
 
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.ForceDirected3DBlocks),
                 iconSize, buttonWidth, "Force Directed Blocks", graph.ActiveLayoutStyle == LayoutStyles.Style.ForceDirected3DBlocks))
             {
-                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.ForceDirected3DBlocks, _gd)) { _layoutEngine.ChangePreset(graph); }
+                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.ForceDirected3DBlocks, _gd)) { graph.BeginNewLayout(); }
             }
 
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.CylinderLayout),
                 iconSize, buttonWidth, "Cylinder", graph.ActiveLayoutStyle == LayoutStyles.Style.CylinderLayout))
             {
-                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.CylinderLayout, _gd)) { _layoutEngine.ChangePreset(graph); }
+                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.CylinderLayout, _gd)) { graph.BeginNewLayout(); }
             }
 
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.Circle),
                 iconSize, buttonWidth, "Circle", graph.ActiveLayoutStyle == LayoutStyles.Style.Circle))
             {
-                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.Circle, _gd)) { _layoutEngine.ChangePreset(graph); }
+                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.Circle, _gd)) { graph.BeginNewLayout(); }
             }
         }
 

@@ -1187,7 +1187,16 @@ namespace rgat
         public void ResetPlot(GraphLayoutState.PositionResetStyle resetStyle)
         {
             LayoutState.Reset(resetStyle);
-            temperature = 100;
+            BeginNewLayout();
+        }
+
+        /// <summary>
+        /// Reset the layout tracking statistics and reset the temperature to a high value
+        /// </summary>
+        public void BeginNewLayout()
+        {
+            ResetLayoutStats();
+            IncreaseTemperature(100f);
         }
 
 
@@ -2023,21 +2032,21 @@ namespace rgat
 
 
         //must hold read lock
-        public void AddHighlightedNodes(List<uint> newnodeidxs, eHighlightType highlightType)
+        public void AddHighlightedNodes(List<uint> newnodeidxs, HighlightType highlightType)
         {
             lock (textLock)
             {
                 switch (highlightType)
                 {
-                    case eHighlightType.eExternals:
+                    case HighlightType.eExternals:
                         HighlightedSymbolNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
                         AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
-                    case eHighlightType.eAddresses:
+                    case HighlightType.eAddresses:
                         HighlightedAddressNodes.AddRange(newnodeidxs.Where(n => !HighlightedAddressNodes.Contains(n)));
                         AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
-                    case eHighlightType.eExceptions:
+                    case HighlightType.eExceptions:
                         HighlightedExceptionNodes.AddRange(newnodeidxs.Where(n => !HighlightedExceptionNodes.Contains(n)));
                         AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
@@ -2068,7 +2077,7 @@ namespace rgat
         }
 
         //must hold read lock
-        public void RemoveHighlightedNodes(List<uint> nodeidxs, float[] attribsArray, eHighlightType highlightType)
+        public void RemoveHighlightedNodes(List<uint> nodeidxs, float[] attribsArray, HighlightType highlightType)
         {
             List<uint> removedNodes = new List<uint>();
             List<uint> remainingNodes = new List<uint>();
@@ -2076,13 +2085,13 @@ namespace rgat
             {
                 switch (highlightType)
                 {
-                    case eHighlightType.eExternals:
+                    case HighlightType.eExternals:
                         HighlightedSymbolNodes = HighlightedSymbolNodes.Except(nodeidxs).ToList();
                         break;
-                    case eHighlightType.eAddresses:
+                    case HighlightType.eAddresses:
                         HighlightedAddressNodes = HighlightedAddressNodes.Except(nodeidxs).ToList();
                         break;
-                    case eHighlightType.eExceptions:
+                    case HighlightType.eExceptions:
                         HighlightedExceptionNodes = HighlightedExceptionNodes.Except(nodeidxs).ToList();
                         break;
                 }
@@ -2115,7 +2124,7 @@ namespace rgat
                     HighlightedAddresses.Add(address);
 
                     List<uint> nodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(address, tid);  //todo: external
-                    AddHighlightedNodes(nodes, eHighlightType.eAddresses);
+                    AddHighlightedNodes(nodes, HighlightType.eAddresses);
                 }
             }
         }
