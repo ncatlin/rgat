@@ -449,6 +449,15 @@
             <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
             <param name="zoffsets">zoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
         </member>
+        <member name="M:rgat.GraphLayoutEngine.GetFurthestNode(rgat.PlottedGraph,System.Numerics.Vector3@,System.Int32@)">
+            <summary>
+            Scan all the nodes in a graphs active plot and find out which one has the largest X/Y/Z world dimension
+            This actually finds the node with the highest absolute dimension value
+            </summary>
+            <param name="graph">PlottedGraph to scan</param>
+            <param name="position">output position of furthest node</param>
+            <param name="nodeIndex">Index of the furthest node</param>
+        </member>
         <member name="M:rgat.GraphLayoutEngine.FindHighXYZ(Veldrid.DeviceBuffer)">
             <summary>
             Must have read lock to call
@@ -515,6 +524,48 @@
             Must hold writer lock before calling
             </summary>
             <param name="bufferSize"></param>
+        </member>
+        <member name="T:rgat.GraphLayoutState.PositionResetStyle">
+            <summary>
+            Layout randomisation methods
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.PositionResetStyle.Scatter">
+            Scatter in a wide area
+        </member>
+        <member name="F:rgat.GraphLayoutState.PositionResetStyle.Explode">
+            Gather in a tiny mass
+        </member>
+        <member name="F:rgat.GraphLayoutState.PositionResetStyle.Implode">
+            Distribute around the edge
+        </member>
+        <member name="M:rgat.GraphLayoutState.Reset(rgat.GraphLayoutState.PositionResetStyle)">
+            <summary>
+            Cause a force directed plot to be randomly re-distributed in the
+            specified style. Use this to try a different arrangement.
+            </summary>
+            <param name="resetMethod">The initial randomisation method</param>
+        </member>
+        <member name="M:rgat.GraphLayoutState.ExplodePositions(rgat.GraphLayoutState.CPUBuffers)">
+            <summary>
+            Distributes the nodes in a concentrated central mass so they repel each other out
+            and then into arrangement
+            </summary>
+            <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+        </member>
+        <member name="M:rgat.GraphLayoutState.ImplodePositions(rgat.GraphLayoutState.CPUBuffers)">
+            <summary>
+            Distributes the nodes on the edge of a sphere. 
+            Attraction dominates the intial stages of layout
+            </summary>
+            <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+        </member>
+        <member name="M:rgat.GraphLayoutState.ScatterPositions(rgat.GraphLayoutState.CPUBuffers)">
+            <summary>
+            Distributes the nodes randomly in a wide area. 
+            Balance of attraction and repulsion will move them into position
+            </summary>
+            <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
         </member>
         <member name="M:rgat.Logging.APICALL.DeserialiseEffects(Newtonsoft.Json.Linq.JToken,rgat.Logging.APICALL)">
             <summary>

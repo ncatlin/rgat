@@ -665,9 +665,19 @@ private void DrawScalePopup()
             if (_currentGraph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes)
             {
                 ImGui.Text("eForceDirected3DNodes Config Options");
-                if (ImGui.Button("Rerender"))
+                if (ImGui.Button("Rerender: Scatter"))
                 {
-                    InitGraphReplot();
+                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Scatter );
+                }
+                ImGui.SameLine();
+                if (ImGui.Button("Rerender: Explode"))
+                {
+                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Explode );
+                }
+                ImGui.SameLine();
+                if (ImGui.Button("Rerender: Implode"))
+                {
+                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Implode );
                 }
 
                 if (ImGui.BeginTable("ComputationSelectNodes", 2))
@@ -718,9 +728,10 @@ private void DrawScalePopup()
         }
 
 
-        private void InitGraphReplot()
+        private void InitGraphReplot(GraphLayoutState.PositionResetStyle resetStyle )
         {
-            Console.WriteLine("init graph replot called");
+            _currentGraph?.ResetPlot(resetStyle: resetStyle);
+            
         }
 
 

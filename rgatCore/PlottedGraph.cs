@@ -1184,6 +1184,14 @@ namespace rgat
         }
 
 
+        public void ResetPlot(GraphLayoutState.PositionResetStyle resetStyle)
+        {
+            LayoutState.Reset(resetStyle);
+            temperature = 100;
+        }
+
+
+
         public uint LinearIndexTextureSize() { return indexTextureSize(_graphStructureLinear.Count); }
         public uint NestedIndexTextureSize() { return indexTextureSize(_graphStructureBalanced.Count); }
 

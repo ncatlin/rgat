@@ -144,7 +144,15 @@ namespace rgat
             }
         }
 
-        public void GetFurthestNode(PlottedGraph graph, out Vector3 position, out int idx)
+
+        /// <summary>
+        /// Scan all the nodes in a graphs active plot and find out which one has the largest X/Y/Z world dimension
+        /// This actually finds the node with the highest absolute dimension value
+        /// </summary>
+        /// <param name="graph">PlottedGraph to scan</param>
+        /// <param name="position">output position of furthest node</param>
+        /// <param name="nodeIndex">Index of the furthest node</param>
+        public void GetFurthestNode(PlottedGraph graph, out Vector3 position, out int nodeIndex)
         {
             Logging.RecordLogEvent($"GetFurthestNode ", Logging.LogFilterType.BulkDebugLogFile);
 
@@ -152,13 +160,14 @@ namespace rgat
             float maxWorldDimension = 0;
             float[] positions = graph.LayoutState.DownloadVRAMPositions();
             position = Vector3.Zero;
-            idx = -1;
+            nodeIndex = 0;
 
             if (positions.Length >= 4)
             {
                 for (int testIdx = 0; testIdx < positions.Length; testIdx += 4)
                 {
-                    if (positions[testIdx + 3] == -1) break;
+                    if (positions[testIdx + 3] == 0) 
+                        break;
                     float x = positions[testIdx];
                     float y = positions[testIdx + 1];
                     float z = positions[testIdx + 2];
@@ -168,7 +177,7 @@ namespace rgat
                     if (maxCoordimension > maxWorldDimension)
                     {
                         maxWorldDimension = maxCoordimension;
-                        idx = testIdx;
+                        nodeIndex = testIdx/4;
                         position = new Vector3(x, y, z);
                     }
                 }
@@ -465,9 +474,9 @@ namespace rgat
                 // todo - don't iterate over every node every frame!
                 // not sure whether to make this timer based or do it in the shader
                 // it looks pretty bad doing it every 10 frames
-                // for now just do it every 5 frames
+                // for now just do it every 3 frames
 
-                if (forceComputationActive && (layout.RenderVersion % 10) == 0)
+                if (forceComputationActive && (layout.RenderVersion % 3) == 0)
                 {
                     GetFurthestNode(graph, out Vector3 futhestPos, out int furthestNodeIdx);
                     if (furthestNodeIdx != -1)

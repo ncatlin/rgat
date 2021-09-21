@@ -838,7 +838,7 @@ namespace rgat
             //save the old layout if it was computed
             //if (LayoutStyles.IsForceDirected(_VRAMBuffers.Style))
             //{
-                DownloadStateFromVRAM();
+            DownloadStateFromVRAM();
             //}
 
             //graph.LayoutState.RegeneratePresetBuffer(graph);
@@ -860,6 +860,145 @@ namespace rgat
 
             Lock.ExitWriteLock();
         }
+
+        /// <summary>
+        /// Layout randomisation methods
+        /// </summary>
+        public enum PositionResetStyle
+        {
+            ///Scatter in a wide area
+            Scatter,
+            ///Gather in a tiny mass
+            Explode,
+            ///Distribute around the edge
+            Implode
+        }
+
+        /// <summary>
+        /// Cause a force directed plot to be randomly re-distributed in the
+        /// specified style. Use this to try a different arrangement.
+        /// </summary>
+        /// <param name="resetMethod">The initial randomisation method</param>
+        public void Reset(PositionResetStyle resetMethod)
+        {
+
+            if (LayoutStyles.IsForceDirected(this.Style))
+            {
+                _lock.EnterWriteLock();
+
+                DownloadStateFromVRAM();
+
+                CPUBuffers oldData = this.SavedStates[this.Style];
+
+                switch (resetMethod)
+                {
+                    case PositionResetStyle.Scatter:
+                        ScatterPositions(oldData);
+                        break;
+                    case PositionResetStyle.Explode:
+                        ExplodePositions(oldData);
+                        break;
+                    case PositionResetStyle.Implode:
+                        ImplodePositions(oldData);
+                        break;
+
+                }
+
+                this.LockedUploadStateToVRAM(oldData);
+
+                _lock.ExitWriteLock();
+            }
+        }
+
+
+        /// <summary>
+        /// Distributes the nodes in a concentrated central mass so they repel each other out
+        /// and then into arrangement
+        /// </summary>
+        /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+        void ExplodePositions(CPUBuffers layoutRAMBuffers)
+        {
+            Random rnd = new Random();
+
+            int endLength = layoutRAMBuffers.VelocityArray.Length;
+            for (var i = 0; i < endLength; i += 4)
+            {
+                if (layoutRAMBuffers.PositionsArray[i + 3] == 0) break;
+                layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 1] = rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 2] = rnd.Next(100);
+
+                layoutRAMBuffers.PositionsArray[i] = (float)rnd.NextDouble();
+                layoutRAMBuffers.PositionsArray[i + 1] = (float)rnd.NextDouble();
+                layoutRAMBuffers.PositionsArray[i + 2] = (float)rnd.NextDouble();
+            }
+        }
+
+        /// <summary>
+        /// Distributes the nodes on the edge of a sphere. 
+        /// Attraction dominates the intial stages of layout
+        /// </summary>
+        /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+        void ImplodePositions(CPUBuffers layoutRAMBuffers)
+        {
+            Random rnd = new Random();
+
+            int MaxDimension = (layoutRAMBuffers.VelocityArray.Length / 4) * 3;
+            int endLength = layoutRAMBuffers.VelocityArray.Length;
+            for (var i = 0; i < endLength; i += 4)
+            {
+                layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 1] = rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 2] = rnd.Next(100);
+
+                getPoint(rnd, MaxDimension, out float x, out float y, out float z);
+                layoutRAMBuffers.PositionsArray[i] = x;
+                layoutRAMBuffers.PositionsArray[i + 1] = y;
+                layoutRAMBuffers.PositionsArray[i + 2] = z;
+            }
+        }
+
+        //https://karthikkaranth.me/blog/generating-random-points-in-a-sphere/
+        void getPoint(Random rnd, float radius, out float x, out float y, out float z)
+        {
+            var u = rnd.NextDouble();
+            var v = rnd.NextDouble();
+            var theta = u * 2.0 * Math.PI;
+            var phi = Math.Acos(2.0 * v - 1.0);
+            //var r = Math.Cbrt(rnd.NextDouble());
+            var sinTheta = Math.Sin(theta);
+            var cosTheta = Math.Cos(theta);
+            var sinPhi = Math.Sin(phi);
+            var cosPhi = Math.Cos(phi);
+            x = (float)(radius * sinPhi * cosTheta);
+            y = (float)(radius * sinPhi * sinTheta);
+            z = (float)(radius * cosPhi);
+        }
+
+        /// <summary>
+        /// Distributes the nodes randomly in a wide area. 
+        /// Balance of attraction and repulsion will move them into position
+        /// </summary>
+        /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+        void ScatterPositions(CPUBuffers layoutRAMBuffers)
+        {
+            Random rnd = new Random();
+            int MaxDimension = (layoutRAMBuffers.VelocityArray.Length / 4) * 3;
+            int MinDimension = -1 * MaxDimension;
+
+            int endLength = layoutRAMBuffers.VelocityArray.Length;
+            for (var i = 0; i < endLength; i += 4)
+            {
+                layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 1] = rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 2] = rnd.Next(100);
+
+                layoutRAMBuffers.PositionsArray[i] = rnd.Next(MinDimension, MaxDimension);
+                layoutRAMBuffers.PositionsArray[i + 1] = rnd.Next(MinDimension, MaxDimension);
+                layoutRAMBuffers.PositionsArray[i + 2] = rnd.Next(MinDimension, MaxDimension);
+            }
+        }
+
 
         public void CompleteLayoutChange()
         {
