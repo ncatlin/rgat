@@ -31,6 +31,7 @@ Changelog
 - Update availability checks with categorised changelog display
 - Update download & installation functionality
 - Save format stable enough to avoid obsoleting any more saves (in the near future)) 
+- Force-directed wireframe when rotating
 
 ### Changed
 - Previous Saves Obsolete
