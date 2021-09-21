@@ -34,7 +34,7 @@ namespace rgat.Widgets
         static float ImSaturate(float f) { return (f < 0.0f) ? 0.0f : (f > 1.0f) ? 1.0f : f; }
 
         //adapted from code somewhere from imgui internal
-        public static bool ToggleButton(string str_id, bool isToggled, string tooltip)
+        public static bool ToggleButton(string str_id, bool isToggled, string tooltip, bool isEnabled = true)
         {
             const uint TOGGLE_OFF_HOVER_COL = 0xff888888;
             const uint TOGGLE_ON_HOVER_COL = 0xff008800;
@@ -49,7 +49,7 @@ namespace rgat.Widgets
             float radius = height * 0.50f;
 
             ImGui.InvisibleButton(str_id, new Vector2(width, height));
-            bool changed = ImGui.IsItemClicked();
+            bool changed = isEnabled && ImGui.IsItemClicked();
             if (changed)
             {
                 _lastActiveID = ImGui.GetID(str_id);
@@ -72,14 +72,22 @@ namespace rgat.Widgets
                 if (t == 0f || t == 1.0f) { _lastActiveID = 0; }
             }
 
-            uint col_bg;
-            if (ImGui.IsItemHovered())
-                col_bg = isToggled ? TOGGLE_ON_HOVER_COL : TOGGLE_OFF_HOVER_COL;
+            uint col_bg, col_btn;
+            if (isEnabled)
+            {
+                if (ImGui.IsItemHovered())
+                    col_bg = isToggled ? TOGGLE_ON_HOVER_COL : TOGGLE_OFF_HOVER_COL;
+                else
+                    col_bg = isToggled ? TOGGLE_ON_NOHOVER_COL : TOGGLE_OFF_NOHOVER_COL;
+                col_btn = 0xffffffff;
+            }
             else
-                col_bg = isToggled ? TOGGLE_ON_NOHOVER_COL : TOGGLE_OFF_NOHOVER_COL;
-
+            {
+                col_btn = 0xff909090;
+                col_bg = 0xff454545;
+            }
             draw_list.AddRectFilled(p, new Vector2(p.X + width, p.Y + height), col_bg, height * 0.5f);
-            draw_list.AddCircleFilled(new Vector2(p.X + radius + t * (width - radius * 2.0f), p.Y + radius), radius - 1.5f, 0xffffffff);
+            draw_list.AddCircleFilled(new Vector2(p.X + radius + t * (width - radius * 2.0f), p.Y + radius), radius - 1.5f, col_btn);
 
             return changed;
         }

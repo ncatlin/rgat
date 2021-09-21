@@ -1,17 +1,14 @@
-﻿using ImGuiNET;
-using rgat.Shaders.SPIR_V;
-using rgat.Widgets;
-using SixLabors.ImageSharp.PixelFormats;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using ImGuiNET;
+using rgat.Shaders.SPIR_V;
+using rgat.Widgets;
 using Veldrid;
 using static rgat.CONSTANTS;
 using static rgat.VeldridGraphBuffers;
@@ -1375,28 +1372,28 @@ namespace rgat
                     alpha *= 1.0 - (fadetime / (double)GlobalConfig.VisMessageFadeStartTime);
                 }
 
-                Color textCol;
+                System.Drawing.Color textCol;
                 string msg;
                 switch (evt.TimelineEventType)
                 {
                     case Logging.eTimelineEvent.ProcessStart:
-                        textCol = Color.LightGreen;
+                        textCol = System.Drawing.Color.LightGreen;
                         msg = $"Process {evt.ID} started";
                         break;
                     case Logging.eTimelineEvent.ProcessEnd:
-                        textCol = Color.OrangeRed;
+                        textCol = System.Drawing.Color.OrangeRed;
                         msg = $"Process {evt.ID} ended";
                         break;
                     case Logging.eTimelineEvent.ThreadStart:
-                        textCol = Color.LightGreen;
+                        textCol = System.Drawing.Color.LightGreen;
                         msg = $"Thread {evt.ID} started";
                         break;
                     case Logging.eTimelineEvent.ThreadEnd:
-                        textCol = Color.OrangeRed;
+                        textCol = System.Drawing.Color.OrangeRed;
                         msg = $"Thread {evt.ID} ended";
                         break;
                     default:
-                        textCol = Color.Gray;
+                        textCol = System.Drawing.Color.Gray;
                         msg = "Unknown Timeline event" + evt.TimelineEventType.ToString();
                         break;
                 }
@@ -1648,12 +1645,12 @@ namespace rgat
 
 
         readonly object _lock = new object();
-        Queue<Bitmap> frames = new Queue<Bitmap>();
-        public List<Bitmap> GetLatestFrames()
+        Queue<System.Drawing.Bitmap> frames = new Queue<System.Drawing.Bitmap>();
+        public List<System.Drawing.Bitmap> GetLatestFrames()
         {
             lock (_lock)
             {
-                List<Bitmap> result = new List<Bitmap>(frames);
+                List<System.Drawing.Bitmap> result = new List<System.Drawing.Bitmap>(frames);
                 frames.Clear();
                 return result;
             }
@@ -1745,34 +1742,5 @@ namespace rgat
             }
 
         }
-
-
-        public void PerformIrregularActions()
-        {
-            try
-            {
-                if (!_graphLock.TryEnterReadLock(100)) return;
-            }
-            catch (Exception e)
-            {
-                return;
-            }
-
-            PlottedGraph graph = ActiveGraph;
-            if (graph == null || Exiting)
-            {
-                _graphLock.ExitReadLock();
-                return;
-            }
-
-            //highlight new nodes with highlighted address
-
-            //graph.DoHighlightAddresses();
-            _graphLock.ExitReadLock();
-
-
-        }
-
-
     }
 }

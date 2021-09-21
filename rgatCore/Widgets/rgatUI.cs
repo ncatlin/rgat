@@ -45,7 +45,6 @@ namespace rgat
         public bool ExitFlag = false;
 
 
-
         private bool _show_settings_window = false;
         private bool _show_select_exe_window = false;
         private bool _show_load_trace_window = false;

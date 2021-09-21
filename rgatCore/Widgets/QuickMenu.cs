@@ -677,7 +677,7 @@ private void DrawScalePopup()
 
                     ImGui.Text("All Computation:");
                     ImGui.TableNextColumn();
-                    if (SmallWidgets.ToggleButton("#ComputeActive", GlobalConfig.LayoutAllComputeEnabled, "Computation active"))
+                    if (SmallWidgets.ToggleButton("#ComputeActive", GlobalConfig.LayoutAllComputeEnabled, "Toggle GPU-based plot updates"))
                     {
                         GlobalConfig.LayoutAllComputeEnabled = !GlobalConfig.LayoutAllComputeEnabled;
                     }
@@ -685,9 +685,9 @@ private void DrawScalePopup()
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
 
-                    ImGui.Text("Attrib Computation:");
+                    ImGui.Text("Display Computation:");
                     ImGui.TableNextColumn();
-                    if (SmallWidgets.ToggleButton("#ComputeAttrib", GlobalConfig.LayoutAttribsActive, "Attrib Computation active"))
+                    if (SmallWidgets.ToggleButton("#ComputeAttrib", GlobalConfig.LayoutAttribsActive, "Toggle the computation of transparency and animation effects", isEnabled: GlobalConfig.LayoutAllComputeEnabled))
                     {
                         GlobalConfig.LayoutAttribsActive = !GlobalConfig.LayoutAttribsActive;
                     }
@@ -695,9 +695,9 @@ private void DrawScalePopup()
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
 
-                    ImGui.Text("Pos/Vel Computation:");
+                    ImGui.Text("Layout Computation:");
                     ImGui.TableNextColumn();
-                    if (SmallWidgets.ToggleButton("#ComputePosVel", GlobalConfig.LayoutPositionsActive, "PosVel Computation active"))
+                    if (SmallWidgets.ToggleButton("#ComputePosVel", GlobalConfig.LayoutPositionsActive, "Toggle the computation of graph layout", isEnabled: GlobalConfig.LayoutAllComputeEnabled))
                     {
                         GlobalConfig.LayoutPositionsActive = !GlobalConfig.LayoutPositionsActive;
                     }

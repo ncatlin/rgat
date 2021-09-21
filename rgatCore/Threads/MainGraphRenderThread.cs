@@ -9,8 +9,6 @@ namespace rgat.Threads
         {
             _graphWidget = maingraphwidget;
             System.Diagnostics.Debug.Assert(maingraphwidget != null);
-
-
         }
 
         public override void Begin()
@@ -19,29 +17,16 @@ namespace rgat.Threads
             WorkerThread = new Thread(ThreadProc);
             WorkerThread.Name = $"MainGraphRenderer";
             WorkerThread.Start();
-
-            _IrregularActionTimer = new System.Timers.Timer(600);
-            _IrregularActionTimer.Elapsed += FireIrregularTimer;
-            _IrregularActionTimer.AutoReset = true;
-            _IrregularActionTimer.Start();
-
         }
 
         public void Dispose()
         {
-            _IrregularActionTimer?.Stop();
-            _IrregularActionTimer?.Dispose();
-
         }
 
         GraphPlotWidget _graphWidget;
         int _nextReplayStep = 0;
         int _FramesBetweenAnimationUpdates = 2;
 
-        System.Timers.Timer _IrregularActionTimer;
-        bool _IrregularActionTimerFired;
-
-        private void FireIrregularTimer(object sender, ElapsedEventArgs e) { _IrregularActionTimerFired = true; }
 
         void update_rendering(PlottedGraph graph)
         {
@@ -103,9 +88,6 @@ namespace rgat.Threads
                 }
 
                 update_rendering(activeGraph);
-
-                if (_IrregularActionTimerFired)
-                    _graphWidget.PerformIrregularActions();
 
                 _graphWidget.GenerateMainGraph(cl);
 
