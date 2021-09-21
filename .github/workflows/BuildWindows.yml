@@ -22,6 +22,17 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.0.2
 
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+       
+    - name: Add Github package source
+      run: dotnet nuget add source --username ncatlin --password ${{ secrets.ACTIONS_BUILD_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/ncatlin/index.json"
+      
+    - name: Restore dependencies
+      run: dotnet restore
+      
     - name: Download Intel Pin
       uses: carlosperate/download-file-action@v1.0.3
       id: download-pin
@@ -47,20 +58,8 @@ jobs:
     - name: Build 64 bit compiled
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="x64" /p:PINDIR="${{github.workspace}}\pindir\pinexdir\${{env.PIN_VERSION}}" rgatCore.sln
       
-    - name: Build 64 bit DotNet
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="Any CPU" /p:PINDIR="${{github.workspace}}\pindir\pinexdir\${{env.PIN_VERSION}}" rgatCore.sln
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 5.0.x
-       
-    - name: Add Github package source
-      run: dotnet nuget add source --username ncatlin --password ${{ secrets.ACTIONS_BUILD_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/ncatlin/index.json"
-      
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
+    - name: Build DotNet
       run: dotnet build --no-restore
+      
     - name: Test
       run: dotnet test --no-build --verbosity normal
