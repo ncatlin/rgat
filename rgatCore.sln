@@ -24,13 +24,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Functions32", "tests\Functi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BlockingAPI", "tests\BlockingAPI\BlockingAPI.vcxproj", "{BA9A0A88-BC52-4FB0-BAC5-31837FFE5D28}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UncommonBranches32", "UncommonBranches32\UncommonBranches32.vcxproj", "{41915D90-E185-41B9-994B-AA7E64673482}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UncommonBranches32", "tests\UncommonBranches32\UncommonBranches32.vcxproj", "{41915D90-E185-41B9-994B-AA7E64673482}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LargeBlocks32", "LargeBlocks\LargeBlocks.vcxproj", "{DC560B80-18A9-4647-851E-167634D69DCD}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LargeBlocks32", "tests\LargeBlocks\LargeBlocks.vcxproj", "{DC560B80-18A9-4647-851E-167634D69DCD}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FileAPITest", "FileAPITest\FileAPITest.vcxproj", "{F0FAA487-A90E-4AC1-AD06-22C5FF794CC6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FileAPITest", "tests\FileAPITest\FileAPITest.vcxproj", "{F0FAA487-A90E-4AC1-AD06-22C5FF794CC6}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RegistryAPITest", "RegistryAPITest\RegistryAPITest.vcxproj", "{6428EFF6-1A40-4157-A713-F92B7E868241}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RegistryAPITest", "tests\RegistryAPITest\RegistryAPITest.vcxproj", "{6428EFF6-1A40-4157-A713-F92B7E868241}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DllLoader32", "rgatDLLRunner\rgatDLLRunner.vcxproj", "{45163E2D-41AB-40A9-BCAA-9AFCE0ECCB25}"
 EndProject
