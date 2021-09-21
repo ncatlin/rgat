@@ -1,6 +1,4 @@
-
 #include "moduleload_windows.h"
-
 #include "yekneb_string.h"
 
 //pin client lock is held

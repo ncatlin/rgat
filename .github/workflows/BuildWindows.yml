@@ -9,7 +9,7 @@ env:
   # Configuration type to build.
   # You can convert this to a build matrix if you need coverage of multiple configuration types.
   # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-  BUILD_CONFIGURATION: Debug
+  BUILD_CONFIGURATION: Release
   PIN_VERSION: pin-3.20-98437-gf02b61307-msvc-windows
 
 jobs:
@@ -55,6 +55,8 @@ jobs:
       with:
         dotnet-version: 5.0.x
        
+    - name: Add Github package source
+      run: dotnet nuget add source --username ncatlin --password ${{ secrets.ACTIONS_BUILD_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/ncatlin/index.json"
       
     - name: Restore dependencies
       run: dotnet restore

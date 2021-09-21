@@ -99,11 +99,11 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>TARGET_IA32E;HOST_IA32E;TARGET_WINDOWS;WIN32;__PIN__=1;PIN_CRT=1;__LP64__</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>$(PINDIR)\extras\xed-intel64\include\xed;$(PINDIR)\source\include\pin;$(PINDIR)\source\include\pin\gen;$(PINDIR)\source\tools\InstLib;$(PINDIR)\extras\xed-intel64\include;$(PINDIR)\extras\components\include;$(PINDIR)\extras\stlport\include;$(PINDIR)\extras;$(PINDIR)\extras\libstdc++\include;$(PINDIR)\extras\crt\include;$(PINDIR)\extras\crt;$(PINDIR)\extras\crt\include\arch-x86_64;$(PINDIR)\extras\crt\include\kernel\uapi;$(PINDIR)\extras\crt\include\kernel\uapi\asm-x86;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(PINDIR)\extras\stlport\include;$(PINDIR)\extras;$(PINDIR)\extras\libstdc++\include;$(PINDIR)\extras\crt\include;$(PINDIR)\extras\crt;$(PINDIR)\extras\crt\include\arch-x86_64;$(PINDIR)\extras\crt\include\kernel\uapi;$(PINDIR)\extras\crt\include\kernel\uapi\asm-x86;$(PINDIR)\source\include\pin;$(PINDIR)\source\include\pin\gen;$(PINDIR)\extras\components\include;$(PINDIR)\extras\xed-intel64\include\xed;$(PINDIR)\source\tools\InstLib;$(PINDIR)\extras\xed-intel64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ExceptionHandling>false</ExceptionHandling>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <AdditionalOptions>/GR- /GS- /EHs- /EHa- /FP:strict /Oi- /FIinclude/msvc_compat.h /D_WINDOWS_H_PATH_="$(ORIGINAL_WINDOWS_H_PATH)" /Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
       <FloatingPointModel>Strict</FloatingPointModel>
@@ -116,9 +116,11 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(PINDIR)\intel64\lib;$(PINDIR)\intel64\lib-ext;$(PINDIR)\extras\xed-intel64\lib;$(PINDIR)\intel64\runtime\pincrt;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <EntryPointSymbol>Ptrace_DllMainCRTStartup</EntryPointSymbol>
-      <BaseAddress>0xC5000000</BaseAddress>
-      <AdditionalDependencies>crtbeginS.obj;pin.lib;xed.lib;pinvm.lib;kernel32.lib;stlport-static.lib;m-static.lib;c-static.lib;os-apis.lib;ntdll-64.lib</AdditionalDependencies>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
+      <BaseAddress>
+      </BaseAddress>
+      <AdditionalDependencies>kernel32.lib;pincrt.lib;crtbeginS.obj;pin.lib;xed.lib;</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <AdditionalOptions>/export:main /IGNORE:4210 /IGNORE:4049 %(AdditionalOptions)</AdditionalOptions>
       <DataExecutionPrevention>false</DataExecutionPrevention>
@@ -166,7 +168,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>TARGET_WINDOWS;TARGET_IA32E;_DEBUG;HOST_IA32E;__PIN__=1;PIN_CRT=1;_AMD64_;WIN32;_STLP_IMPORT_IOSTREAMS;__LP64__;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>TARGET_WINDOWS;TARGET_IA32E;HOST_IA32E;WIN32;__PIN__=1;PIN_CRT=1;_AMD64_;_STLP_IMPORT_IOSTREAMS;__LP64__;_DEBUG;</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>$(PINDIR)\extras\stlport\include;$(PINDIR)\extras;$(PINDIR)\extras\libstdc++\include;$(PINDIR)\extras\crt\include;$(PINDIR)\extras\crt;$(PINDIR)\extras\crt\include\arch-x86_64;$(PINDIR)\extras\crt\include\kernel\uapi;$(PINDIR)\extras\crt\include\kernel\uapi\asm-x86;$(PINDIR)\source\include\pin;$(PINDIR)\source\include\pin\gen;$(PINDIR)\extras\components\include;$(PINDIR)\extras\xed-intel64\include\xed;$(PINDIR)\source\tools\InstLib;$(PINDIR)\extras\xed-intel64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
@@ -208,7 +210,7 @@
       <PreprocessorDefinitions>TARGET_WINDOWS;TARGET_IA32;WIN32;NDEBUG;_CONSOLE;__PIN__=1;PIN_CRT=1;__i386__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>$(PINDIR)\extras\xed-intel64\include\xed;$(PINDIR)\source\include\pin;$(PINDIR)\source\include\pin\gen;$(PINDIR)\source\tools\InstLib;$(PINDIR)\extras\xed-intel64\include;$(PINDIR)\extras\components\include;$(PINDIR)\extras\stlport\include;$(PINDIR)\extras;$(PINDIR)\extras\libstdc++\include;$(PINDIR)\extras\crt\include;$(PINDIR)\extras\crt;$(PINDIR)\extras\crt\include\arch-x86_64;$(PINDIR)\extras\crt\include\kernel\uapi;$(PINDIR)\extras\crt\include\kernel\uapi\asm-x86;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/GR- /GS- /EHs- /EHa- /FP:strict /Oi- /FIinclude/msvc_compat.h /D_WINDOWS_H_PATH_="$(ORIGINAL_WINDOWS_H_PATH)" /Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
@@ -221,7 +223,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(PINDIR)\ia32\lib;$(PINDIR)\ia32\lib-ext;$(PINDIR)\extras\xed-ia32\lib;$(PINDIR)\ia32\runtime\pincrt;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>crtbeginS.obj;pin.lib;xed.lib;pinvm.lib;kernel32.lib;stlport-static.lib;m-static.lib;c-static.lib;os-apis.lib;ntdll-32.lib;os-apis-kernel32.lib</AdditionalDependencies>
+      <AdditionalDependencies>crtbeginS.obj;pincrt.lib;pin.lib;kernel32.lib;xed.lib;</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>

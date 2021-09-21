@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <Windows.h>
+#include <cstdio>
 
 int main()
 {
