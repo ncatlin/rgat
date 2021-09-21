@@ -145,47 +145,6 @@ namespace rgat
         }
 
 
-        /// <summary>
-        /// Scan all the nodes in a graphs active plot and find out which one has the largest X/Y/Z world dimension
-        /// This actually finds the node with the highest absolute dimension value
-        /// </summary>
-        /// <param name="graph">PlottedGraph to scan</param>
-        /// <param name="position">output position of furthest node</param>
-        /// <param name="nodeIndex">Index of the furthest node</param>
-        public void GetFurthestNode(PlottedGraph graph, out Vector3 position, out int nodeIndex)
-        {
-            Logging.RecordLogEvent($"GetFurthestNode ", Logging.LogFilterType.BulkDebugLogFile);
-
-
-            float maxWorldDimension = 0;
-            float[] positions = graph.LayoutState.DownloadVRAMPositions();
-            position = Vector3.Zero;
-            nodeIndex = 0;
-
-            if (positions.Length >= 4)
-            {
-                for (int testIdx = 0; testIdx < positions.Length; testIdx += 4)
-                {
-                    if (positions[testIdx + 3] == 0) 
-                        break;
-                    float x = positions[testIdx];
-                    float y = positions[testIdx + 1];
-                    float z = positions[testIdx + 2];
-
-
-                    float maxCoordimension = Math.Max(Math.Abs(x), Math.Max(Math.Abs(y), Math.Abs(z)));
-                    if (maxCoordimension > maxWorldDimension)
-                    {
-                        maxWorldDimension = maxCoordimension;
-                        nodeIndex = testIdx/4;
-                        position = new Vector3(x, y, z);
-                    }
-                }
-            }
-        }
-
-
-
 
         public bool GetPreviewFitOffsets(Vector2 graphWidgetSize, PlottedGraph graph, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
         {
@@ -344,23 +303,35 @@ namespace rgat
         /// Must have read lock to call
         /// Find fastest node speed
         /// </summary>
-        /// <param name="textureSize"></param>
         /// <param name="buf"></param>
-        /// <param name="maxLimit"></param>
         /// <returns></returns>
-        float FindHighXYZ(DeviceBuffer buf)
+        float FindHighXYZ(DeviceBuffer buf, out int highIndex)
         {
             Logging.RecordLogEvent($"FindHighXYZ  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, buf);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
             float highest = 0f;
-            for (uint index = 0; index < destinationReadView.Count; index += 4)
+            highIndex = 0;
+            for (int index = 0; index < destinationReadView.Count; index += 4)
             {
                 if (destinationReadView[index + 3] != 1.0f) break; //past end of nodes
-                if (Math.Abs(destinationReadView[index]) > highest) highest = Math.Abs(destinationReadView[index]);
-                if (Math.Abs(destinationReadView[index + 1]) > highest) highest = Math.Abs(destinationReadView[index + 1]);
-                if (Math.Abs(destinationReadView[index + 2]) > highest) highest = Math.Abs(destinationReadView[index + 2]);
+                if (Math.Abs(destinationReadView[index]) > highest)
+                {
+                    highest = Math.Abs(destinationReadView[index]);
+                    highIndex = index;
+                }
+                if (Math.Abs(destinationReadView[index + 1]) > highest)
+                {
+                    highest = Math.Abs(destinationReadView[index + 1]);
+                    highIndex = index + 1;
+                }
+                if (Math.Abs(destinationReadView[index + 2]) > highest)
+                {
+                    highest = Math.Abs(destinationReadView[index + 2]);
+                    highIndex = index + 2;
+                }
             }
+            highIndex = (int)Math.Floor(highIndex / 4f);
             _gd.Unmap(destinationReadback);
             VeldridGraphBuffers.VRAMDispose(destinationReadback);
             return highest;
@@ -478,10 +449,11 @@ namespace rgat
 
                 if (forceComputationActive && (layout.RenderVersion % 3) == 0)
                 {
-                    GetFurthestNode(graph, out Vector3 futhestPos, out int furthestNodeIdx);
+
+                    float highPosition = FindHighXYZ(graph.LayoutState.PositionsVRAM1, out int furthestNodeIdx);
                     if (furthestNodeIdx != -1)
                     {
-                        graph.SetFurthestNodePosition(furthestNodeIdx, futhestPos);
+                        graph.SetFurthestNodeDimension(furthestNodeIdx, highPosition);
                     }
 
                 }
@@ -505,7 +477,7 @@ namespace rgat
             if (graph.LayoutState.ActivatingPreset && graph.LayoutState.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
             {
                 //when the nodes are near their targets, instead of bouncing around while coming to a slow, just snap them into position
-                float highest = FindHighXYZ(layout.VelocitiesVRAM1);
+                float highest = FindHighXYZ(layout.VelocitiesVRAM1, out int highIndex);
                 Console.WriteLine($"Presetspeed: {highest}");
                 if (highest < 1)
                 {

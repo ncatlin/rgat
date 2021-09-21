@@ -449,23 +449,12 @@
             <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
             <param name="zoffsets">zoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
         </member>
-        <member name="M:rgat.GraphLayoutEngine.GetFurthestNode(rgat.PlottedGraph,System.Numerics.Vector3@,System.Int32@)">
-            <summary>
-            Scan all the nodes in a graphs active plot and find out which one has the largest X/Y/Z world dimension
-            This actually finds the node with the highest absolute dimension value
-            </summary>
-            <param name="graph">PlottedGraph to scan</param>
-            <param name="position">output position of furthest node</param>
-            <param name="nodeIndex">Index of the furthest node</param>
-        </member>
-        <member name="M:rgat.GraphLayoutEngine.FindHighXYZ(Veldrid.DeviceBuffer)">
+        <member name="M:rgat.GraphLayoutEngine.FindHighXYZ(Veldrid.DeviceBuffer,System.Int32@)">
             <summary>
             Must have read lock to call
             Find fastest node speed
             </summary>
-            <param name="textureSize"></param>
             <param name="buf"></param>
-            <param name="maxLimit"></param>
             <returns></returns>
         </member>
         <member name="M:rgat.GraphLayoutEngine.RenderNodeAttribs(Veldrid.CommandList,rgat.PlottedGraph,Veldrid.DeviceBuffer,Veldrid.ResourceSet,System.Single,System.Int32,System.Boolean)">
@@ -743,13 +732,13 @@
             <param name="lingerNodes">Nodes which remain brightened until cleared</param>
             <param name="deactivatedNodes">Nodes which are no longer active and faded to the base alpha, ready to be cleared from the active list</param>
         </member>
-        <member name="M:rgat.PlottedGraph.SetFurthestNodePosition(System.Int32,System.Numerics.Vector3)">
+        <member name="M:rgat.PlottedGraph.SetFurthestNodeDimension(System.Int32,System.Single)">
             <summary>
             Sets the coordinate of the furthest node from the origin
             Used for drawing the force directed layout wireframe, where the distance of this node from the origin is used as the radius
             </summary>
             <param name="index">Index of the far node</param>
-            <param name="worldPosition">World coordinate of the far node</param>
+            <param name="farDimension">Greatest (absolute) coordinate of any node</param>
         </member>
         <member name="M:rgat.PlottedGraph.RecordComputeTime(System.Int64)">
             <summary>

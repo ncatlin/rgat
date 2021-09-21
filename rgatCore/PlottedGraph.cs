@@ -512,7 +512,7 @@ namespace rgat
         void GenerateRotationWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
             float WF_POINTSPERLINE = 50f;
-            float radius = Math.Max(Math.Abs(_furthestNodePos.X), Math.Max(Math.Abs(_furthestNodePos.Y), Math.Abs(_furthestNodePos.Z)));
+            float radius = _furthestNodeDimension;
 
             WritableRgbaFloat YawColour = new WritableRgbaFloat(0xFFE69F00);
             WritableRgbaFloat RollColour = new WritableRgbaFloat(0xFF56B4E9);
@@ -2166,19 +2166,21 @@ namespace rgat
             }
         }
 
+
         int _furthestNodeIdx = -1;
-        Vector3 _furthestNodePos = Vector3.Zero;
+        float _furthestNodeDimension = 0;
         /// <summary>
         /// Sets the coordinate of the furthest node from the origin
         /// Used for drawing the force directed layout wireframe, where the distance of this node from the origin is used as the radius
         /// </summary>
         /// <param name="index">Index of the far node</param>
-        /// <param name="worldPosition">World coordinate of the far node</param>
-        public void SetFurthestNodePosition(int index, Vector3 worldPosition)
+        /// <param name="farDimension">Greatest (absolute) coordinate of any node</param>
+        public void SetFurthestNodeDimension(int index, float farDimension)
         {
             _furthestNodeIdx = index;
-            _furthestNodePos = worldPosition;
+            _furthestNodeDimension = farDimension;
         }
+
 
         public void AddRisingSymbol(uint nodeIdx, int callIndex, int lingerFrames)
         {
