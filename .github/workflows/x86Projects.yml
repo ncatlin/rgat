@@ -27,7 +27,7 @@ jobs:
       uses: carlosperate/download-file-action@v1.0.3
       id: download-pin
       with:
-        file-url: 'https://software.intel.com/sites/landingpage/pintool/downloads/${{PIN_VERSION}}.zip'
+        file-url: 'https://software.intel.com/sites/landingpage/pintool/downloads/${{env.PIN_VERSION}}.zip'
         file-name: 'pin.zip'
         location: './pindir'
         
@@ -45,4 +45,4 @@ jobs:
     - name: Build
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="x86" /p:PINDIR="${{env.GITHUB_WORKSPACE}}\pinexdir\${{PIN_VERSION}}" rgatCore.sln
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="x86" /p:PINDIR="${{env.GITHUB_WORKSPACE}}\pinexdir\${{env.PIN_VERSION}}" rgatCore.sln
