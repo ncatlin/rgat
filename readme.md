@@ -1,3 +1,5 @@
+[![MSBuild](https://github.com/ncatlin/rgatPrivate/actions/workflows/BuildWindows.yml/badge.svg)](https://github.com/ncatlin/rgatPrivate/actions/workflows/BuildWindows.yml)
+
 # rgat
 An instruction trace visualisation tool intended to help reverse engineers make the link between target behaviour and code
 
