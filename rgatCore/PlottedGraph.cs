@@ -300,7 +300,7 @@ namespace rgat
 
 
 
-        public float[] GeneratePresetPositions(LayoutStyles.Style style)
+        public float[]? GeneratePresetPositions(LayoutStyles.Style style)
         {
             //_presetEdgeCount = InternalProtoGraph.get_num_edges();
             switch (style)
@@ -315,7 +315,7 @@ namespace rgat
                 default:
                     if (LayoutStyles.IsForceDirected(style))
                     {
-                        if (!LayoutState.GetSavedLayout(style, out float[] layout))
+                        if (!LayoutState.GetSavedLayout(style, out float[]? layout))
                         {
                             Console.WriteLine("Generating forcedir presets");
                             return CreateRandomPresetLayout();
@@ -407,7 +407,7 @@ namespace rgat
                         case eEdgeNodeType.eNodeReturn:
                         case eEdgeNodeType.eNodeExternal: //treat all externs as if they end in a return
 
-                            Tuple<float, float> callerPos = null;
+                            Tuple<float, float>? callerPos = null;
                             for (var stackI = callStack.Count - 1; stackI >= 0; stackI--)
                             {
                                 if (callStack[stackI].Item2 == n.address)
@@ -788,7 +788,7 @@ namespace rgat
             }
         }
 
-        unsafe void AddNode(uint nodeIdx, EdgeData edge = null)
+        unsafe void AddNode(uint nodeIdx, EdgeData? edge = null)
         {
 
             textureLock.EnterReadLock();
@@ -836,7 +836,7 @@ namespace rgat
             edgeTargetIndexes = new int[textureSize];
             edgeStrengths = new float[textureSize];
 
-            List<List<int>> nodeNeighboursArray = null;
+            List<List<int>>? nodeNeighboursArray = null;
             lock (animationLock)
             {
                 nodeNeighboursArray = _graphStructureBalanced.ToList();
@@ -854,7 +854,7 @@ namespace rgat
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
                     edgeTargetIndexes[edgeIndex] = (int)neigbours[nidx];
-                    if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>((uint)currentNodeIndex, neigbours[nidx]), out EdgeData edge))
+                    if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>((uint)currentNodeIndex, neigbours[nidx]), out EdgeData? edge))
                     {
                         edgeStrengths[edgeIndex] = GetAttractionForce(edge);
                     }
@@ -877,7 +877,7 @@ namespace rgat
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
                     edgeTargetIndexes[edgeIndex] = (int)neigbours[nidx];
-                    if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>(neigbours[nidx], (uint)currentNodeIndex), out EdgeData edge))
+                    if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>(neigbours[nidx], (uint)currentNodeIndex), out EdgeData? edge))
                     {
                         edgeStrengths[edgeIndex] = GetAttractionForce(edge);
                     }
@@ -931,7 +931,7 @@ namespace rgat
             //   0     1    2   3
             //[[1,3],[0,2],[1],[0]]
 
-            List<List<int>> nodeNeighboursArray = null;
+            List<List<int>>? nodeNeighboursArray = null;
             lock (animationLock)
             {
                 nodeNeighboursArray = _graphStructureBalanced.ToList();
@@ -988,7 +988,7 @@ namespace rgat
         /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
         public unsafe int[] GetBlockRenderingMetadata()
         {
-            List<List<int>> nodeNeighboursArray = null;
+            List<List<int>>? nodeNeighboursArray = null;
             lock (animationLock)
             {
                 nodeNeighboursArray = _graphStructureBalanced.ToList();
@@ -1248,7 +1248,7 @@ namespace rgat
         public WritableRgbaFloat GetEdgeColor(Tuple<uint, uint> edge, eRenderingMode renderingMode)
         {
 
-            if (!InternalProtoGraph.EdgeExists(edge, out EdgeData? e))
+            if (!InternalProtoGraph.EdgeExists(edge, out EdgeData? e) || e is null)
             {
                 return new WritableRgbaFloat(0f, 0f, 0f, 1);
             }
@@ -1535,7 +1535,7 @@ namespace rgat
             if (externBlock != null)
             {
                 bool found = false;
-                List<Tuple<uint, uint>> calls = null;
+                List<Tuple<uint, uint>>? calls = null;
                 while (!found)
                 {
                     lock (piddata.ExternCallerLock)
@@ -1562,11 +1562,14 @@ namespace rgat
 
 
                 newnodelist = new List<uint>();
-                foreach (Tuple<uint, uint> edge in calls) //record each call by caller
+                if (calls is not null)
                 {
-                    if (edge.Item1 == LastAnimatedVert)
+                    foreach (Tuple<uint, uint> edge in calls) //record each call by caller
                     {
-                        newnodelist.Add(edge.Item2);
+                        if (edge.Item1 == LastAnimatedVert)
+                        {
+                            newnodelist.Add(edge.Item2);
+                        }
                     }
                 }
 
@@ -1575,6 +1578,8 @@ namespace rgat
 
 
             newnodelist = new List<uint>();
+            if (block is null) return false;
+
             lock (InternalProtoGraph.TraceData.DisassemblyData.InstructionsLock)
             {
                 foreach (InstructionData ins in block)
@@ -1592,7 +1597,7 @@ namespace rgat
         {
             ROUTINE_STRUCT? externStr = null;
             var nextBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(blockID, ref externStr, blockAddress);
-            Tuple<uint, uint> LinkingPair = null;
+            Tuple<uint, uint>? LinkingPair = null;
             if (externStr != null)
             {
                 var callers = externStr.Value.thread_callers[InternalProtoGraph.ThreadID];

@@ -196,7 +196,7 @@ namespace rgat.Widgets
         bool ActivateAction(ActionName actionName, bool hotKey, out string? resultText)
         {
             resultText = null;
-            if (!menuActions.TryGetValue(actionName, out MenuEntry action))
+            if (!menuActions.TryGetValue(actionName, out MenuEntry? action))
             {
                 Logging.RecordLogEvent("Bad quickmenu action:" + actionName);
                 return false;
@@ -533,11 +533,12 @@ namespace rgat.Widgets
                                       ImGuiHoveredFlags.AllowWhenBlockedByPopup;
             if (ImGui.IsItemHovered(flags))
             {
-                if (_activeEntry == null || _activeEntry != entry)
+                if (_activeEntry is null || _activeEntry != entry)
                 {
                     if (_activeMenuPopupName != null)
                     {
-                        _activeEntry.active = false;
+                        if (_activeEntry is not null)
+                            _activeEntry.active = false;
                         ImGui.CloseCurrentPopup();
                         _activeMenuPopupName = null;
                     }
@@ -556,7 +557,7 @@ namespace rgat.Widgets
                     ImGui.CloseCurrentPopup();
                 }
             }
-            if (entry.active && entry.Popup != null)
+            if (entry is not null && entry.active && entry.Popup != null)
             {
                 if (_activeMenuPopupName != entry.Popup)
                 {

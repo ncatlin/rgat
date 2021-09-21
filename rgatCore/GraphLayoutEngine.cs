@@ -361,7 +361,7 @@ namespace rgat
 
             graph.lastRenderTime = now;
 
-            ResourceSet attribComputeResourceSet = null;
+            ResourceSet? attribComputeResourceSet = null;
             ResourceSetDescription velocity_rsrc_desc, pos_rsrc_desc, attr_rsrc_desc;
             GraphLayoutState layout = graph.LayoutState;
             DeviceBuffer inputAttributes;

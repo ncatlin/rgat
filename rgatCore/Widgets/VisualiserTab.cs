@@ -41,8 +41,6 @@ namespace rgat
             PreviewRendererThread.SetPreviewWidget(PreviewGraphWidget);
 
             progress.Report(0.99f);
-            MainGraphWidget.LayoutEngine.AddParallelLayoutEngine(PreviewGraphWidget.LayoutEngine);
-            PreviewGraphWidget.LayoutEngine.AddParallelLayoutEngine(MainGraphWidget.LayoutEngine);
 
             mainRenderThreadObj = new MainGraphRenderThread(MainGraphWidget);
             mainRenderThreadObj.Begin();

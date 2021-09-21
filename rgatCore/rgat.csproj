@@ -11,7 +11,11 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <DebugType Condition=" '$(Configuration)' == 'Release' ">None</DebugType>
-    
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+	<WarningsAsErrors>CS8600;CS8602;CS8603;</WarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

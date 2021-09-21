@@ -129,7 +129,7 @@ namespace rgat
         void LockedUploadStateToVRAM(LayoutStyles.Style style)
         {
             Logging.RecordLogEvent($"UploadGraphDataToVRAMA Start {dbgGraphDeleteMe.tid} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
-            if (!SavedStates.TryGetValue(style, out CPUBuffers sourceBuffers))
+            if (!SavedStates.TryGetValue(style, out CPUBuffers? sourceBuffers))
             {
                 sourceBuffers = new CPUBuffers(style);
                 SavedStates[style] = sourceBuffers;
@@ -192,7 +192,7 @@ namespace rgat
             _lock.EnterReadLock();
 
             LayoutStyles.Style layout = _VRAMBuffers.Style;
-            if (SavedStates.TryGetValue(layout, out CPUBuffers saved) && saved.RenderVersion == _VRAMBuffers.RenderVersion)
+            if (SavedStates.TryGetValue(layout, out CPUBuffers? saved) && saved.RenderVersion == _VRAMBuffers.RenderVersion)
             {
                 _lock.ExitReadLock();
                 return saved.PositionsArray.ToArray();
@@ -214,12 +214,16 @@ namespace rgat
         }
 
 
-        public void SyncRAMToVRAM(LayoutStyles.Style layout, GraphicsDevice _gd)
+        /// <summary>
+        /// Upload the CPUBuffers for a specific layout into VRAM
+        /// </summary>
+        /// <param name="layout">The layout state to be uploaded</param>
+        public void SyncRAMToVRAM(LayoutStyles.Style layout)
         {
             _lock.EnterUpgradeableReadLock();
 
             //upload from RAM to VRAM if VRAM bufs not initialised at all or the VRAM has a different layout style or has an older version than in RAM
-            if (SavedStates.TryGetValue(layout, out CPUBuffers savedLayout) &&
+            if (SavedStates.TryGetValue(layout, out CPUBuffers? savedLayout) &&
                 (
                 !_VRAMBuffers.Initialised ||
                 savedLayout.Style != _VRAMBuffers.Style ||
@@ -233,7 +237,7 @@ namespace rgat
                 if (
                     _VRAMBuffers.Initialised &&
                     (
-                    !SavedStates.TryGetValue(_VRAMBuffers.Style, out CPUBuffers existingState) ||
+                    !SavedStates.TryGetValue(_VRAMBuffers.Style, out CPUBuffers? existingState) ||
                     (existingState.RenderVersion < _VRAMBuffers.RenderVersion && LayoutStyles.RequiresCaching(_VRAMBuffers.Style))
                     )
                     )
@@ -256,7 +260,7 @@ namespace rgat
         public void DownloadStateFromVRAM()
         {
 
-            if (!SavedStates.TryGetValue(_VRAMBuffers.Style, out CPUBuffers destbuffers))
+            if (!SavedStates.TryGetValue(_VRAMBuffers.Style, out CPUBuffers? destbuffers))
             {
                 destbuffers = new CPUBuffers(_VRAMBuffers.Style);
 
@@ -374,7 +378,9 @@ namespace rgat
             if (!LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle))
             {
                 VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.PresetPositions);
-                _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.GeneratePresetPositions(PresetStyle), _gd, "Preset1");
+                float[]? presetPositons = graph.GeneratePresetPositions(PresetStyle);
+                Debug.Assert(presetPositons is not null);
+                _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(presetPositons, _gd, "Preset1");
             }
 
             //VeldridGraphBuffers.DoDispose(_VRAMBuffers.PresetPositions);
@@ -670,9 +676,9 @@ namespace rgat
         }
 
 
-        public bool GetSavedLayout(LayoutStyles.Style layoutStyle, out float[] buf)
+        public bool GetSavedLayout(LayoutStyles.Style layoutStyle, out float[]? buf)
         {
-            if (SavedStates.TryGetValue(layoutStyle, out CPUBuffers saved) && saved.PositionsArray.Any())
+            if (SavedStates.TryGetValue(layoutStyle, out CPUBuffers? saved) && saved.PositionsArray.Any())
             {
                 buf = saved.PositionsArray;
                 return true;
@@ -686,10 +692,16 @@ namespace rgat
         }
 
 
-        //Must hold upgradable read lock
-        public bool GetAttributes(LayoutStyles.Style layoutStyle, out float[] buf)
+        /// <summary>
+        /// Get the stored (RAM) attribute buffers 
+        /// Must hold upgradable read lock
+        /// </summary>
+        /// <param name="layoutStyle">The saved plot</param>
+        /// <param name="buf">The outout float buffer containing the retrieved values</param>
+        /// <returns>true if found</returns>
+        public bool GetAttributes(LayoutStyles.Style layoutStyle, out float[]? buf)
         {
-            if (SavedStates.TryGetValue(layoutStyle, out CPUBuffers saved))
+            if (SavedStates.TryGetValue(layoutStyle, out CPUBuffers? saved))
             {
                 buf = saved.NodeAttribArray;
                 return true;
@@ -717,14 +729,14 @@ namespace rgat
         }
 
 
-        public unsafe void AddNode(uint nodeIdx, uint futureCount, uint bufferWidth, EdgeData edge = null)
+        public unsafe void AddNode(uint nodeIdx, uint futureCount, uint bufferWidth, EdgeData? edge = null)
         {
 
             var bounds = Math.Min(1000, (nodeIdx * 2) + 500);
             var bounds_half = bounds / 2;
 
             PlottedGraph graph = dbgGraphDeleteMe;
-            if (!SavedStates.TryGetValue(graph.ActiveLayoutStyle, out CPUBuffers bufs))
+            if (!SavedStates.TryGetValue(graph.ActiveLayoutStyle, out CPUBuffers? bufs))
             {
                 _lock.EnterWriteLock();
                 bufs = new CPUBuffers(graph.ActiveLayoutStyle);
@@ -739,7 +751,7 @@ namespace rgat
             uint currentOffset = (futureCount - 1) * 4;
 
             //Debug.Assert(!BufferDownloadActive);
-            Debug.Assert(bufs.PositionsArray.Length == bufs.VelocityArray.Length);
+            Debug.Assert(bufs.VelocityArray is not null && bufs.PositionsArray.Length == bufs.VelocityArray.Length);
             Debug.Assert(bufs.NodeAttribArray.Length == bufs.PositionsArray.Length);
 
             if (bufferSize > oldVelocityArraySize ||
@@ -855,7 +867,9 @@ namespace rgat
 
             presetSteps = 0;
             PresetStyle = newStyle;
-            _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(dbgGraphDeleteMe.GeneratePresetPositions(PresetStyle), _gd, "Preset1");
+            float[]? positions = dbgGraphDeleteMe.GeneratePresetPositions(PresetStyle);
+            Debug.Assert(positions is not null);
+            _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(positions, _gd, "Preset1");
             ActivatingPreset = true;
 
             Lock.ExitWriteLock();
@@ -1008,7 +1022,7 @@ namespace rgat
 
             if (LayoutStyles.IsForceDirected(PresetStyle))
             {
-                if (SavedStates.TryGetValue(PresetStyle, out CPUBuffers cpubufs))
+                if (SavedStates.TryGetValue(PresetStyle, out CPUBuffers? cpubufs))
                 {
                     this.LockedUploadStateToVRAM(cpubufs);
                 }

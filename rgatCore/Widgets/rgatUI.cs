@@ -389,7 +389,7 @@ namespace rgat
                         else
                         {
                             visualiserTab.NotifyMouseDrag(_mouseDragDelta);
-                            if (currentTabTimeline)
+                            if (currentTabTimeline && chart is not null)
                             {
                                 chart.ApplyMouseDrag(_mouseDragDelta);
                             }
@@ -487,7 +487,7 @@ namespace rgat
                             visualiserTab.AlertKeybindPressed(boundAction, KeyModifierTuple);
                         }
 
-                        else if (currentTabTimeline)
+                        else if (currentTabTimeline && chart is not null)
                         {
                             chart.AlertKeybindPressed(KeyModifierTuple, boundAction);
                         }
@@ -906,7 +906,7 @@ namespace rgat
         }
 
 
-        void OpenDirectoryInFileBrowser(string path, string label)
+        void OpenDirectoryInFileBrowser(string? path, string label)
         {
             try
             {
@@ -1429,8 +1429,8 @@ namespace rgat
         public void DrawTraceListSelectBox(ref bool shown)
         {
 
-            string startdir = Path.GetDirectoryName(_rgatState.ActiveTarget.FilePath);
-            if (!Directory.Exists(startdir)) startdir = Environment.CurrentDirectory;
+            string? startdir = Path.GetDirectoryName(_rgatState.ActiveTarget.FilePath);
+            if (startdir is null || !Directory.Exists(startdir)) startdir = Environment.CurrentDirectory;
             var picker = rgatFilePicker.FilePicker.GetFilePicker(this, startdir, allowMulti: true);
 
             string title = "Select Files to List";
@@ -1441,7 +1441,7 @@ namespace rgat
             title += "###TraceListSelector";
             ImGui.SetNextWindowSize(new Vector2(600, 600), ImGuiCond.FirstUseEver);
             ImGui.OpenPopup(title);
-            if (ImGui.BeginPopupModal(title, ref shown, ImGuiWindowFlags.NoScrollbar))
+            if (picker is not null && ImGui.BeginPopupModal(title, ref shown, ImGuiWindowFlags.NoScrollbar))
             {
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
                 if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)

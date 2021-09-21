@@ -307,7 +307,7 @@ namespace rgat
         {
 
             bool showToolTip = false;
-            PlottedGraph latestHoverGraph = null;
+            PlottedGraph? latestHoverGraph = null;
             TraceRecord activeTrace = ActiveTrace;
             if (activeTrace == null) return;
 
@@ -370,7 +370,7 @@ namespace rgat
         List<int> GetGraphOrder(TraceRecord trace, List<PlottedGraph> graphs)
         {
             int SORT_UPDATE_RATE_MS = 750;
-            List<int> indexes;
+            List<int>? indexes;
 
             if (lastSort.AddMilliseconds(SORT_UPDATE_RATE_MS) < DateTime.Now ||
                 !_cachedSorts.TryGetValue(trace, out indexes) ||
@@ -660,7 +660,7 @@ namespace rgat
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() - captionHeight);
 
                 float maxVal;
-                float[] values = null;
+                float[]? values = null;
                 if (graph.InternalProtoGraph.TraceReader != null)
                 {
                     values = graph.InternalProtoGraph.TraceReader.RecentMessageRates();

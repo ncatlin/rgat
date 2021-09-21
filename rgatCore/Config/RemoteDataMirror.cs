@@ -66,7 +66,7 @@ namespace rgat.Config
             }
         }
 
-        public static void RegisterPendingResponse(int commandID, string cmd, string recipient, ProcessResponseCallback callback = null)
+        public static void RegisterPendingResponse(int commandID, string cmd, string recipient, ProcessResponseCallback? callback = null)
         {
             string addressedCmd = cmd + recipient;
             lock (_lock)
@@ -99,7 +99,7 @@ namespace rgat.Config
             lock (_lock)
             {
  
-                if (_pendingCommandCallbacks.TryGetValue(commandID, out ProcessResponseCallback cb))
+                if (_pendingCommandCallbacks.TryGetValue(commandID, out ProcessResponseCallback? cb) && cb is not null)
                 {
                     string cmdref = _pendingEventsReverse[commandID];
                     bool success = false;
@@ -148,22 +148,28 @@ namespace rgat.Config
                 return false;
             }
 
+            JArray? bintoks = dataTok.ToObject<JArray>();
+            if (bintoks is null)
+            {
+                Logging.RecordLogEvent($"HandleRecentBinariesList: Bad recent binaries list", Logging.LogFilterType.TextError);
+                return false;
+            }
+
             List<PathRecord> recentbins = new List<PathRecord>();
 
-            JArray bintoks = dataTok.ToObject<JArray>();
             foreach (JToken recentbinTok in bintoks)
             {
-                if (recentbinTok.Type != JTokenType.Object)
+                if (recentbinTok is null || recentbinTok.Type != JTokenType.Object)
                 {
                     Logging.RecordLogEvent("HandleRecentBinariesList: Bad PathRecord", Logging.LogFilterType.TextError);
                     return false;
                 }
-                JObject binJsn = recentbinTok.ToObject<JObject>();
-                JToken prop1, prop2 = null, prop3 = null, prop4 = null;
-                bool success = binJsn.TryGetValue("Path", out prop1) && prop1.Type == JTokenType.String;
-                success = success && binJsn.TryGetValue("FirstOpen", out prop2) && prop2.Type == JTokenType.Date;
-                success = success && binJsn.TryGetValue("LastOpen", out prop3) && prop3.Type == JTokenType.Date;
-                success = success && binJsn.TryGetValue("OpenCount", out prop4) && prop4.Type == JTokenType.Integer;
+                JObject? binJsn = recentbinTok.ToObject<JObject>();
+                JToken? prop1 = null, prop2 = null, prop3 = null, prop4 = null;
+                bool success = binJsn is not null && binJsn.TryGetValue("Path", out prop1) && prop1 is not null && prop1.Type == JTokenType.String;
+                success = success && binJsn!.TryGetValue("FirstOpen", out prop2) && prop2 is not null && prop2.Type == JTokenType.Date;
+                success = success && binJsn!.TryGetValue("LastOpen", out prop3) && prop3 is not null && prop3.Type == JTokenType.Date;
+                success = success && binJsn!.TryGetValue("OpenCount", out prop4) && prop4 is not null && prop4.Type == JTokenType.Integer;
 
                 if (!success)
                 {
@@ -172,10 +178,10 @@ namespace rgat.Config
                 }
 
                 PathRecord newEntry = new PathRecord();
-                newEntry.Path = prop1.ToString();
-                newEntry.FirstOpen = prop2.ToObject<DateTime>();
-                newEntry.LastOpen = prop3.ToObject<DateTime>();
-                newEntry.OpenCount = prop4.ToObject<uint>();
+                newEntry.Path = prop1!.ToString();
+                newEntry.FirstOpen = prop2!.ToObject<DateTime>();
+                newEntry.LastOpen = prop3!.ToObject<DateTime>();
+                newEntry.OpenCount = prop4!.ToObject<uint>();
                 recentbins.Add(newEntry);
             }
             

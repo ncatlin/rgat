@@ -356,7 +356,7 @@ namespace rgat
                 return;
             }
 
-            string resultText = null;
+            string? resultText = null;
             float shiftModifier = ImGui.GetIO().KeyShift ? 1 : 0;
             switch (boundAction)
             {
@@ -657,10 +657,13 @@ namespace rgat
             pipelineDescription.ResourceLayouts = new[] { _coreRsrcLayout, _nodesEdgesRsrclayout };
             pipelineDescription.ShaderSet = SPIRVShaders.CreateNodeShaders(_gd, out _NodeVertexBuffer, out _NodeIndexBuffer);
 
-            Debug.Assert(_outputTexture1 == null && _outputFramebuffer1 == null);
-            Debug.Assert(_outputTexture2 == null && _outputFramebuffer2 == null);
+            Debug.Assert(_outputTexture1 is null && _outputFramebuffer1 is null);
+            Debug.Assert(_outputTexture2 is null && _outputFramebuffer2 is null);
 
             RecreateOutputTextures();
+
+            Debug.Assert(_outputTexture1 is not null && _outputFramebuffer1 is not null);
+            Debug.Assert(_outputTexture2 is not null && _outputFramebuffer2 is not null);
 
             pipelineDescription.Outputs = _outputFramebuffer1.OutputDescription;
 
@@ -836,7 +839,7 @@ namespace rgat
         {
             if (inputString == null)
                 return;
-            if (_cachedStrings.TryGetValue(inputString, out List<fontStruc> cached))
+            if (_cachedStrings.TryGetValue(inputString, out List<fontStruc>? cached))
             {
                 stringVerts.AddRange(cached);
                 return;
@@ -1461,7 +1464,7 @@ namespace rgat
         bool _showQuickMenu;
         IntPtr getLayoutIcon(LayoutStyles.Style layout)
         {
-            Texture iconTex = null;
+            Texture? iconTex = null;
             switch (layout)
             {
                 case LayoutStyles.Style.ForceDirected3DBlocks:
