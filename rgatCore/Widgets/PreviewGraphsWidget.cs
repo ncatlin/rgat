@@ -872,7 +872,7 @@ namespace rgat
             cl.End();
             if (!Exiting)
             {
-                Logging.RecordLogEvent($"render preview start commands {graph.TID}. Pos{graph.LayoutState.PositionsVRAM1.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"render preview start commands {graph.TID}. Pos{graph.LayoutState.PositionsVRAM1!.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
                 _gd.SubmitCommands(cl);
                 Logging.RecordLogEvent($"render preview finished commands {graph.TID}", filter: Logging.LogFilterType.BulkDebugLogFile);
                 _gd.WaitForIdle(); //needed?

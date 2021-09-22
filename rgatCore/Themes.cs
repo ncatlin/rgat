@@ -14,25 +14,221 @@ namespace rgat
     public class Themes
     {
 
-        //todo should be lists not dicts
+        /// <summary>
+        /// UI and Graph properties that can have a custom theme colour
+        /// </summary>
         public enum eThemeColour
         {
-            ePreviewText, ePreviewTextBackground, ePreviewPaneBorder, ePreviewPaneBackground,
-            ePreviewZoomEnvelope, PreviewBGRunning, PreviewBGTerminated, PreviewBGSuspended,
-            eTextEmphasis1, eTextEmphasis2, eTextDull1, eTextDull2,
-            eHeat0Lowest, eHeat1, eHeat2, eHeat3, eHeat4, eHeat5, eHeat6, eHeat7, eHeat8, eHeat9Highest,
-            eVisBarPlotLine, eVisBarBg, eAlertWindowBg, eAlertWindowBorder,
-            eBadStateColour, eWarnStateColour, eGoodStateColour, eSandboxChartBG,
+            /// <summary>
+            /// Labels on preview graphs
+            /// </summary>
+            ePreviewText, 
+            /// <summary>
+            /// The background of text on preview graphs to provide contrast
+            /// </summary>
+            ePreviewTextBackground, 
+            /// <summary>
+            /// The border of the preview pane
+            /// </summary>
+            ePreviewPaneBorder,
+            /// <summary>
+            /// The background of the preview pane
+            /// </summary>
+            ePreviewPaneBackground,
+            /// <summary>
+            /// The box used to show the camera location in the preview pane
+            /// </summary>
+            ePreviewZoomEnvelope, 
+            /// <summary>
+            /// The background of running thread preview graphs
+            /// </summary>
+            PreviewBGRunning,
+            /// <summary>
+            /// The background of terminated thread preview graphs
+            /// </summary>
+            PreviewBGTerminated,
+            /// <summary>
+            /// The background of suspended thread preview graphs
+            /// </summary>
+            PreviewBGSuspended,
+            /// <summary>
+            /// Emphasised text style 1
+            /// </summary>
+            eTextEmphasis1, 
+            /// <summary>
+            /// Emphasised text style 2
+            /// </summary>
+            eTextEmphasis2,
+            /// <summary>
+            /// Subtle text style 1
+            /// </summary>
+            eTextDull1, 
+            /// <summary>
+            /// Subtle text style 2
+            /// </summary>
+            eTextDull2,
+            /// <summary>
+            /// The lowest 10% active instructions
+            /// </summary>
+            eHeat0Lowest,
+            /// <summary>
+            /// 10-19% most active instructions
+            /// </summary>
+            eHeat1, 
+            /// <summary>
+            /// 20-29% most active instructions
+            /// </summary>
+            eHeat2,
+            /// <summary>
+            /// 30-39% most active instructions
+            /// </summary>
+            eHeat3,
+            /// <summary>
+            /// 40-49% most active instructions
+            /// </summary>
+            eHeat4,
+            /// <summary>
+            /// 50-59% most active instructions
+            /// </summary>
+            eHeat5,
+            /// <summary>
+            /// 60-69% most active instructions
+            /// </summary>
+            eHeat6,
+            /// <summary>
+            /// 70-79% most active instructions
+            /// </summary>
+            eHeat7,
+            /// <summary>
+            /// 80-89% most active instructions
+            /// </summary>
+            eHeat8,
+            /// <summary>
+            /// The top 10% most active instructions
+            /// </summary>
+            eHeat9Highest,
+            /// <summary>
+            /// The instruction count plot line on the visualisation bar
+            /// </summary>
+            eVisBarPlotLine, 
+            /// <summary>
+            /// The background of the visualiser bar
+            /// </summary>
+            eVisBarBg, 
+            /// <summary>
+            /// The background of the alert box
+            /// </summary>
+            eAlertWindowBg, 
+            /// <summary>
+            /// The border of the alert box
+            /// </summary>
+            eAlertWindowBorder,
+            /// <summary>
+            /// Colour for bad events/errors
+            /// </summary>
+            eBadStateColour,
+            /// <summary>
+            /// Colour for warnings
+            /// </summary>
+            eWarnStateColour, 
+            /// <summary>
+            /// Colour for successful events
+            /// </summary>
+            eGoodStateColour, 
+            /// <summary>
+            /// Background of the analysis chart
+            /// </summary>
+            eSandboxChartBG,
+            /// <summary>
+            /// Background of the main graph visualiser
+            /// </summary>
             GraphBackground,
-            edgeCall, edgeOld, edgeRet, edgeLib, edgeNew, edgeExcept,
-            nodeStd, nodeJump, nodeCall, nodeRet, nodeExtern, nodeExcept,
-            SymbolText, SymbolRising, InternalSymbol, InstructionText,
+            /// <summary>
+            /// Colour of call edges
+            /// </summary>
+            edgeCall, 
+            /// <summary>
+            /// Colour of edges to existing instructions
+            /// </summary>
+            edgeOld,
+            /// <summary>
+            /// Colour of return edges
+            /// </summary>
+            edgeRet,
+            /// <summary>
+            /// Colour of API call edges (to uninstrumented code)
+            /// </summary>
+            edgeLib,
+            /// <summary>
+            /// Colour of edges to new instructions
+            /// </summary>
+            edgeNew,
+            /// <summary>
+            /// Colour of exception edges
+            /// </summary>
+            edgeExcept,
+            /// <summary>
+            /// Colour of non-flow control nodes
+            /// </summary>
+            nodeStd,
+            /// <summary>
+            /// Colour of jump nodes
+            /// </summary>
+            nodeJump,
+            /// <summary>
+            /// Colour of call nodes
+            /// </summary>
+            nodeCall,
+            /// <summary>
+            /// Colour of return nodes
+            /// </summary>
+            nodeRet,
+            /// <summary>
+            /// Colour of API nodes
+            /// </summary>
+            nodeExtern,
+            /// <summary>
+            /// Colour of Exception nodes
+            /// </summary>
+            nodeExcept,
+            /// <summary>
+            /// Colour of API label captions
+            /// </summary>
+            SymbolText,
+            /// <summary>
+            /// Colour of animated rising API captions
+            /// </summary>
+            SymbolRising,
+            /// <summary>
+            /// Colour of internal symbol labels
+            /// </summary>
+            InternalSymbol, 
+            /// <summary>
+            /// Colour of instruction text labels
+            /// </summary>
+            InstructionText,
+            /// <summary>
+            /// Colour of graph wireframes
+            /// </summary>
             WireFrame,
+            /// <summary>
+            /// The number of available colours
+            /// </summary>
             COUNT
         }
+
+        /// <summary>
+        /// Customisable size values
+        /// </summary>
         public enum eThemeSize
         {
+            /// <summary>
+            /// The weight of the border of selected preview graphs
+            /// </summary>
             ePreviewSelectedBorder,
+            /// <summary>
+            /// The number of available sizes
+            /// </summary>
             COUNT
         }
 
@@ -42,12 +238,20 @@ namespace rgat
         static readonly Dictionary<eThemeSize, Vector2> ThemeSizeLimits = new Dictionary<eThemeSize, Vector2>();
         static readonly Dictionary<string, string> ThemeMetadata = new Dictionary<string, string>();
 
+        /// <summary>
+        /// Theme is bundled with rgat
+        /// </summary>
         public static bool IsBuiltinTheme = true;
+        /// <summary>
+        /// Theme has changes which have not been written to the config file
+        /// </summary>
         public static bool UnsavedTheme = false;
-        static readonly string _defaultTheme = "";
         static readonly object _lock = new object();
 
         static int _appliedThemeCount = 0;
+        /// <summary>
+        /// Activate the themes ImGui colours
+        /// </summary>
         public static void ApplyThemeColours()
         {
             lock (_lock)
@@ -63,6 +267,9 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Must be called every time the UI is drawn using ApplyThemeColours
+        /// </summary>
         public static void ResetThemeColours()
         {
             ImGui.PopStyleColor(_appliedThemeCount);

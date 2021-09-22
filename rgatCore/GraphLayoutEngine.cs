@@ -388,8 +388,8 @@ namespace rgat
                 attr_rsrc_desc = new ResourceSetDescription(_nodeAttribComputeLayout,
                     _attribsParamsBuffer, layout.AttributesVRAM1, layout.EdgeConnectionIndexes,
                     layout.EdgeConnections, layout.AttributesVRAM2);
-                inputAttributes = layout.AttributesVRAM1;
-                outputAttributes = layout.AttributesVRAM2;
+                inputAttributes = layout.AttributesVRAM1!;
+                //outputAttributes = layout.AttributesVRAM2;
 
             }
 
@@ -408,8 +408,8 @@ namespace rgat
                 attr_rsrc_desc = new ResourceSetDescription(_nodeAttribComputeLayout,
                     _attribsParamsBuffer, layout.AttributesVRAM2, layout.EdgeConnectionIndexes,
                     layout.EdgeConnections, layout.AttributesVRAM1);
-                inputAttributes = layout.AttributesVRAM2;
-                outputAttributes = layout.AttributesVRAM1;
+                inputAttributes = layout.AttributesVRAM2!;
+                //outputAttributes = layout.AttributesVRAM1;
             }
 
             ResourceSet velocityComputeResourceSet = _factory.CreateResourceSet(velocity_rsrc_desc);
@@ -428,8 +428,6 @@ namespace rgat
                 graph.Temperature *= CONSTANTS.Layout_Constants.TemperatureStepMultiplier;
                 if (graph.Temperature <= CONSTANTS.Layout_Constants.MinimumTemperature)
                     graph.Temperature = 0;
-
-
 
             }
 
@@ -566,7 +564,7 @@ namespace rgat
             cl.UpdateBuffer(_positionParamsBuffer, 0, parms);
             cl.SetPipeline(_positionComputePipeline);
             cl.SetComputeResourceSet(0, resources);
-            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.PositionsVRAM1.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
+            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.PositionsVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
         }
 
 
@@ -590,7 +588,7 @@ namespace rgat
                 delta = delta,
                 k = 100f,
                 temperature = Math.Min(temperature, GlobalConfig.NodeSoftSpeedLimit),
-                NodesTexWidth = (uint)Math.Sqrt(graph.LayoutState.PositionsVRAM1.SizeInBytes) / 4,//no longer used?
+                NodesTexWidth = (uint)Math.Sqrt(graph.LayoutState.PositionsVRAM1!.SizeInBytes) / 4,//no longer used?
                 EdgeCount = (uint)graph.InternalProtoGraph.EdgeList.Count,
                 fixedInternalNodes = fixedNodes,
                 snappingToPreset = (uint)(graph.LayoutState.ActivatingPreset ? 1 : 0),
@@ -647,7 +645,7 @@ namespace rgat
             {
                 delta = delta,
                 selectedNode = mouseoverNodeID,
-                edgesTexCount = (int)graph.LayoutState.EdgeConnections.SizeInBytes / 4,
+                edgesTexCount = (int)graph.LayoutState.EdgeConnections!.SizeInBytes / 4,
                 MinimumAlpha = GlobalConfig.MinimumAlpha,
                 hoverMode = 1,
                 isAnimated = useAnimAttribs
