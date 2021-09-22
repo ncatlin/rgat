@@ -5,22 +5,79 @@ using System.IO;
 
 namespace rgat.Testing
 {
+    /// <summary>
+    /// Comparisons that can be applied to process/thread attributes
+    /// </summary>
     public enum RequirementCondition
     {
-        Equals, LessThan, LessThanOrEqualTo, GreaterThan,
-        GreaterThanOrEqualTo, Exists, Absent, Contains, OneOf, INVALID
+        /// <summary>
+        /// The attribute is equal to a specified value
+        /// </summary>
+        Equals,
+        /// <summary>
+        /// The attribute is less than the specified value
+        /// </summary>
+        LessThan,
+        /// <summary>
+        /// The attribute is less than or equal to the specified value
+        /// </summary>
+        LessThanOrEqualTo,
+        /// <summary>
+        /// The attribute is greater than the specified value
+        /// </summary>
+        GreaterThan,
+        /// <summary>
+        /// The attribute is greater than or equal to the specified value
+        /// </summary>
+        GreaterThanOrEqualTo,
+        /// <summary>
+        /// The attribute exists in a collection
+        /// </summary>
+        Exists,
+        /// <summary>
+        /// The attribute does not exist in a specified list of values 
+        /// /// </summary>
+        Absent,
+        /// <summary>
+        /// The attribute is a collection which contains the value
+        /// </summary>
+        Contains,
+        /// <summary>
+        /// The attribute exists in a specified list of values
+        /// </summary>
+        OneOf,
+        /// <summary>
+        /// The attribute is equal to a specified value
+        /// </summary>
+        INVALID
     };
 
+    /// <summary>
+    /// Results from evaluating a test requirement
+    /// </summary>
     public class REQUIREMENT_TEST_RESULTS
     {
+        /// <summary>
+        /// Results from evaluating a test requirement
+        /// </summary>
         public REQUIREMENT_TEST_RESULTS()
         {
             Passed = new List<TestResultCommentary>();
             Failed = new List<TestResultCommentary>();
             Errors = new List<Tuple<TestRequirement, string>>();
         }
+
+        /// <summary>
+        /// Passed requirements
+        /// </summary>
         public List<TestResultCommentary> Passed;
+        /// <summary>
+        /// Failed requirements
+        /// </summary>
         public List<TestResultCommentary> Failed;
+        /// <summary>
+        /// Errors encountered evaluating each requirement
+        /// </summary>
         public List<Tuple<TestRequirement, string>> Errors;
     }
 
@@ -41,8 +98,39 @@ namespace rgat.Testing
         public List<TestRequirement> value;
     }
 
+    /// <summary>
+    /// A requirement to apply to a process or thread
+    /// </summary>
     public class TestRequirement
     {
+        /// <summary>
+        /// The name of the requirement
+        /// </summary>
+        public string? Name { get; private set; }
+        /// <summary>
+        /// A comment about the requirement
+        /// </summary>
+        public string? Comment { get; private set; }
+        /// <summary>
+        /// The expected value of the requirement to evaluate to
+        /// </summary>
+        public JToken? ExpectedValue { get; private set; }
+        /// <summary>
+        /// A string representation of the expected value
+        /// </summary>
+        public string? ExpectedValueString { get; private set; }
+        /// <summary>
+        /// How to compare the test result to the expected value
+        /// </summary>
+        public RequirementCondition? Condition { get; private set; }
+
+        /// <summary>
+        /// A requirement for the test to pass
+        /// </summary>
+        /// <param name="name">Name of the requirement</param>
+        /// <param name="value">Value being compared</param>
+        /// <param name="condition">The comparison to perform</param>
+
         public TestRequirement(string name, JToken value, string condition)
         {
             Name = name;
@@ -150,6 +238,12 @@ namespace rgat.Testing
         }
 
 
+        /// <summary>
+        /// Compare an integer value
+        /// </summary>
+        /// <param name="value">An integer value</param>
+        /// <param name="error">An error describing why it failed</param>
+        /// <returns>true if pass, false if fail</returns>
         public bool Compare(int value, out string? error)
         {
             error = "";
@@ -166,6 +260,7 @@ namespace rgat.Testing
                     error = $"int 'OneOf' comparison requires array token, but token was of type {ExpectedValue.Type}";
                     return false;
                 }
+
                 JArray? expectedArr = ExpectedValue.ToObject<JArray>();
                 if (expectedArr is not null)
                 {
@@ -174,6 +269,7 @@ namespace rgat.Testing
                         if (arrayItem.Type == JTokenType.Integer && arrayItem.ToObject<int>() == value) return true;
                     }
                 }
+                error = $"No member was equal to {value}";
                 return false;
             }
 
@@ -207,6 +303,12 @@ namespace rgat.Testing
         }
 
 
+        /// <summary>
+        /// Compare a long value
+        /// </summary>
+        /// <param name="value">An long value</param>
+        /// <param name="error">An error describing why it failed</param>
+        /// <returns>true if pass, false if fail</returns>
         public bool Compare(long value, out string? error)
         {
             if (ExpectedValue is null)
@@ -258,6 +360,13 @@ namespace rgat.Testing
         }
 
 
+
+        /// <summary>
+        /// Compare a ulong value
+        /// </summary>
+        /// <param name="value">A ulong value</param>
+        /// <param name="error">An error describing why it failed</param>
+        /// <returns>true if pass, false if fail</returns>
         public bool Compare(ulong value, out string? error)
         {
             if (ExpectedValue is null)
@@ -308,51 +417,66 @@ namespace rgat.Testing
             }
         }
 
+        /// <summary>
+        /// Set the requirement comment
+        /// </summary>
+        /// <param name="value"></param>
         public void SetComment(string value) { Comment = "Comment: " + value; }
 
-        public string? Name { get; private set; }
-        public string? Comment { get; private set; }
-        public JToken? ExpectedValue { get; private set; }
-        public string? ExpectedValueString { get; private set; }
-        public RequirementCondition? Condition { get; private set; }
     }
 
+    /// <summary>
+    /// A set of requirements for a test process, threads and child processes
+    /// </summary>
     public class TraceRequirements
     {
-        public TraceRequirements()
-        {
-
-        }
-        //list of requirements the process (ie: TraceRecord) must meet
+        /// <summary>
+        /// list of requirements the process (ie: TraceRecord) must meet
+        /// </summary>
         public List<TestRequirement> ProcessRequirements = new List<TestRequirement>();
 
-        //list of requirements the process threads (ie: ProtoGraphs) must meet
+        /// <summary>
+        /// list of requirements the process threads (ie: ProtoGraphs) must meet
+        /// </summary>
         public List<REQUIREMENTS_LIST> ThreadRequirements = new List<REQUIREMENTS_LIST>();
 
-        //lsit of requirements for descendant processes
+        /// <summary>
+        /// list of requirements for descendant processes
+        /// </summary>
         public List<TraceRequirements> ChildProcessRequirements = new List<TraceRequirements>();
     }
 
-    public class TraceRequirementsEvalResults
+
+    /// <summary>
+    /// A basic state for a test run
+    /// </summary>
+    public enum eTestState
     {
-        public TraceRequirementsEvalResults()
-        {
+        /// <summary>
+        /// Not executed yet
+        /// </summary>
+        NotRun,
+        /// <summary>
+        /// All requirements passed
+        /// </summary>
+        Passed,
+        /// <summary>
+        /// At least one requirement was not met
+        /// </summary>
+        Failed
+    };
 
-        }
-        //list of requirements the process (ie: TraceRecord) must meet
-        public List<TestRequirement> ProcessRequirements = new List<TestRequirement>();
 
-        //list of requirements the process threads (ie: ProtoGraphs) must meet
-        public List<REQUIREMENTS_LIST> ThreadRequirements = new List<REQUIREMENTS_LIST>();
-
-        //lsit of requirements for descendant processes
-        public List<TraceRequirements> ChildProcessRequirements = new List<TraceRequirements>();
-    }
-
-
-    public enum eTestState { NotRun, Passed, Failed };
+    /// <summary>
+    /// A test consisting of a set of requirements and an associated binary to apply them to
+    /// </summary>
     public class TestCase
     {
+        /// <summary>
+        /// Load a test case from a json file
+        /// </summary>
+        /// <param name="jsonpath">Path of a JSON test description file to load</param>
+        /// <param name="category">The category of the test</param>
         public TestCase(string jsonpath, string category)
         {
             TestName = Path.GetFileName(jsonpath).Split(CONSTANTS.TESTS.testextension)[0];
@@ -370,10 +494,10 @@ namespace rgat.Testing
 
             lock (_lock)
             {
-                JObject jsonObj;
+                JObject? jsonObj;
                 try
                 {
-                    if (!ParseTestSpec(jsonpath, out jsonObj)) return;
+                    if (!ParseTestSpec(jsonpath, out jsonObj) || jsonObj is null) return;
                 }
                 catch (Exception e)
                 {
@@ -395,26 +519,68 @@ namespace rgat.Testing
 
         bool _loadingError = false;
 
+        /// <summary>
+        /// Errors encountered loading the test case from JSON
+        /// </summary>
         public List<string> LoadingErrors = new List<string>();
+        /// <summary>
+        /// If the test was sucessfully loaded
+        /// </summary>
         public bool Loaded { get; private set; }
 
-        //the lastest test result
+
+        /// <summary>
+        /// The lastest result from running this test
+        /// </summary>
         public eTestState LatestResultState = eTestState.NotRun;
+        /// <summary>
+        /// The latest run object for this test
+        /// </summary>
         public TestCaseRun LatestTestRun { get; private set; }
+        /// <summary>
+        /// The latest error from this test
+        /// </summary>
         public string LatestErrorReason { get; private set; }
-
+        /// <summary>
+        /// File path of the test description
+        /// </summary>
         public string JSONPath { get; private set; }
+
+        /// <summary>
+        /// File path of the test binary
+        /// </summary>
         public string BinaryPath { get; private set; }
+        /// <summary>
+        /// Directory of the test binary
+        /// </summary>
         public string BinaryDirectory { get; private set; }
+        /// <summary>
+        /// Category of the test
+        /// </summary>
         public string CategoryName { get; private set; }
+        /// <summary>
+        /// Name of the test
+        /// </summary>
         public string TestName { get; private set; }
+        /// <summary>
+        /// The test is starred on the UI
+        /// </summary>
         public bool Starred;
-        public string Comment { get; private set; }
+        /// <summary>
+        /// The test writers comment for the test
+        /// </summary>
+        public string? Comment { get; private set; }
+        /// <summary>
+        /// Is the test binary 32 or 64 bits
+        /// </summary>
         public int TestBits { get; private set; }
-        public string TestOS { get; private set; }
-
-        public long LastErrorTestID { get; private set; }
-
+        /// <summary>
+        /// What OS the test runs on
+        /// </summary>
+        public string? TestOS { get; private set; }
+        /// <summary>
+        /// Is the test currently running
+        /// </summary>
         public int Running { get; private set; }
 
         readonly Dictionary<int, int> _passed = new Dictionary<int, int>();
@@ -435,7 +601,7 @@ namespace rgat.Testing
         TraceRequirements _TraceRequirements = new TraceRequirements();
 
 
-        bool ParseTestSpec(string jsonpath, out Newtonsoft.Json.Linq.JObject jsnobj)
+        bool ParseTestSpec(string jsonpath, out Newtonsoft.Json.Linq.JObject? jsnobj)
         {
             jsnobj = null;
             string jsnfile;
@@ -484,7 +650,8 @@ namespace rgat.Testing
             //optional: requirements for the trace state when the test execution has finished
             if (testSpec.TryGetValue("FinalRequirements", out JToken? finalReqTok) && finalReqTok.Type == JTokenType.Object)
             {
-                if (!LoadFinalRequirements(finalReqTok.ToObject<JObject>()))
+                JObject? finalReqObj = finalReqTok.ToObject<JObject>();
+                if (finalReqObj is null || !LoadFinalRequirements(finalReqObj))
                 {
                     DeclareLoadingError($"FinalRequirements were present in spec but failed to load");
                     return false;
@@ -504,7 +671,15 @@ namespace rgat.Testing
                 DeclareLoadingError($"No binary name in metadata");
                 return false;
             }
-            string candidatePath = Path.Combine(BinaryDirectory, binNameTok.ToObject<string>());
+
+            string? binname = binNameTok.ToObject<string>();
+            if (binname is null)
+            {
+                DeclareLoadingError($"Failed to load binary name from metadata");
+                return false;
+            }
+
+            string candidatePath = Path.Combine(BinaryDirectory, binname);
             if (File.Exists(candidatePath))
             {
                 BinaryPath = candidatePath;
@@ -529,7 +704,8 @@ namespace rgat.Testing
             {
                 TestOS = bitsTok.ToObject<string>();
             }
-            else
+
+            if (TestOS is null)
             {
                 DeclareLoadingError($"No test OS in metadata");
                 return false;
@@ -563,7 +739,7 @@ namespace rgat.Testing
                 }
                 foreach (var req in items)
                 {
-                    if (req.Key == "Comment") continue;
+                    if (req.Key == "Comment" || req.Value is null) continue;
                     if (LoadTestRequirement(req.Key, req.Value, out TestRequirement? requirement) && requirement is not null)
                     {
                         _TestRunRequirements.Add(requirement);
@@ -618,10 +794,8 @@ namespace rgat.Testing
                 return false;
             }
 
-
-
             string? conditionText = condTok.ToObject<string>();
-            if (conditionText is null)
+            if (conditionText is not null)
                 testRequirement = new TestRequirement(name, resultValue, conditionText);
             if (testRequirement is null || testRequirement.Condition == RequirementCondition.INVALID)
             {
@@ -805,7 +979,10 @@ namespace rgat.Testing
         }
 
 
-
+        /// <summary>
+        /// Fetch test run requirements. Thread safe for GUi rendering
+        /// </summary>
+        /// <returns>Array of test run requirements</returns>
         public TestRequirement[] TestRunRequirements()
         {
             lock (_lock)
@@ -814,6 +991,11 @@ namespace rgat.Testing
             }
         }
 
+
+        /// <summary>
+        /// Fetch trace (whole process) requirements. Thread safe for GUi rendering
+        /// </summary>
+        /// <returns>Array of process requirements</returns>
         public TraceRequirements TraceRequirements()
         {
             lock (_lock)
@@ -824,8 +1006,21 @@ namespace rgat.Testing
 
         readonly object _lock = new object();
 
+        /// <summary>
+        /// Increase the count of running tests
+        /// </summary>
         public void RecordRunning() { lock (_lock) { Running++; } }
+
+        /// <summary>
+        /// Decrease the count of running tests
+        /// </summary>
         public void RecordFinished() { lock (_lock) { Running--; } }
+
+        /// <summary>
+        /// Record a test where all requirements were met
+        /// </summary>
+        /// <param name="sessionID">Session ID of the test</param>
+        /// <param name="testrun">The sucedssful test run</param>
         public void RecordPassed(int sessionID, TestCaseRun testrun)
         {
             lock (_lock)
@@ -838,8 +1033,21 @@ namespace rgat.Testing
                 LatestTestRun = testrun;
             }
         }
+
+        /// <summary>
+        /// Get the number of passed tests in the session
+        /// </summary>
+        /// <param name="sessionID">Session ID to check</param>
+        /// <returns>number of passed tests</returns>
         public int CountPassed(int sessionID) { lock (_lock) { _passed.TryGetValue(sessionID, out int val); return val; } }
 
+
+        /// <summary>
+        /// Record a test where one or more requirements were not met
+        /// </summary>
+        /// <param name="sessionID">Session ID of the test</param>
+        /// <param name="testrun">The sucedssful test run</param>
+        /// <param name="reason">Explaination for why the test failed</param>
         public void RecordFailed(int sessionID, TestCaseRun testrun, string reason)
         {
             lock (_lock)
@@ -852,6 +1060,12 @@ namespace rgat.Testing
                 LatestErrorReason = reason;
             }
         }
+
+        /// <summary>
+        /// Get the number of failed tests in the session
+        /// </summary>
+        /// <param name="sessionID">Session ID to check</param>
+        /// <returns>number of failed tests</returns>
         public int CountFailed(int sessionID) { lock (_lock) { _failed.TryGetValue(sessionID, out int val); return val; } }
 
     }

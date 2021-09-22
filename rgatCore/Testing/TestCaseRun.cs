@@ -112,7 +112,7 @@ namespace rgat.Testing
             }
             else
             {
-                _test.RecordFailed(Session, this, "ff");
+                _test.RecordFailed(Session, this, $"Failed tests. Process:{processThreadResults.ProcessResults.Failed} Thread: ? Children: ?");
             }
         }
 

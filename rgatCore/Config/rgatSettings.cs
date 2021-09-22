@@ -78,14 +78,31 @@ namespace rgat.Config
         }
 
 
-
+        /// <summary>
+        /// A class for recording filesystem paths and when rgat accessed them
+        /// </summary>
         public class PathRecord
         {
+            /// <summary>
+            /// Filesystem path of the file
+            /// </summary>
             public string Path { get; set; }
+            /// <summary>
+            /// How many times rgat has opened the file
+            /// </summary>
             public uint OpenCount { get; set; }
+            /// <summary>
+            /// When the file was first opened by rgat
+            /// </summary>
             public DateTime FirstOpen { get; set; }
+            /// <summary>
+            /// The most recent time the file was opened
+            /// </summary>
             public DateTime LastOpen { get; set; }
 
+            /// <summary>
+            /// Sort by the latest open time
+            /// </summary>
             public class SortLatestAccess : IComparer<PathRecord>
             {
                 public int Compare(PathRecord x, PathRecord y)
