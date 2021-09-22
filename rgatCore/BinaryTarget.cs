@@ -404,7 +404,7 @@ namespace rgat
             {
                 _sha1hash = sha1Tok.ToObject<string>() ?? "";
                 if (_sha1hash != null && _sha1hash.Length > 0)
-                    rgatState.targets.RegisterTargetSHA1(_sha1hash, this);
+                    rgatState.targets.RegisterTarget(this);
             }
 
             if (sha256Tok is not null)
@@ -723,7 +723,7 @@ namespace rgat
                 SHA1 sha1 = new SHA1Managed();
                 _sha1hash = BitConverter.ToString(sha1.ComputeHash(fs)).Replace("-", "");
                 if (_sha1hash != null && _sha1hash.Length > 0)
-                    rgatState.targets.RegisterTargetSHA1(_sha1hash, this);
+                    rgatState.targets.RegisterTarget(this);
 
                 SHA256 sha256 = new SHA256Managed();
                 _sha256hash = BitConverter.ToString(sha256.ComputeHash(fs)).Replace("-", "");

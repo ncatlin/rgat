@@ -24,15 +24,15 @@ namespace rgat
         /// <summary>
         /// The currently selected binary target in the UI
         /// </summary>
-        public BinaryTarget ActiveTarget;
+        public BinaryTarget? ActiveTarget;
         /// <summary>
         /// The trace currently active in the UI
         /// </summary>
-        public TraceRecord ActiveTrace;
+        public TraceRecord? ActiveTrace;
         /// <summary>
         /// The graph currently active in the UI
         /// </summary>
-        public PlottedGraph ActiveGraph { get; private set; }
+        public PlottedGraph? ActiveGraph { get; private set; }
         /// <summary>
         /// A Veldrid GraphicsDevice reference available for general usage
         /// </summary>
@@ -272,7 +272,7 @@ namespace rgat
             }
             else
             {
-                targets.GetTargetByPath(path, out BinaryTarget newTarget);
+                targets.GetTargetByPath(path, out BinaryTarget? newTarget);
                 if (newTarget != null && newTarget != ActiveTarget)
                 {
                     ActiveTarget = newTarget;
@@ -367,7 +367,7 @@ namespace rgat
 
             if (graph == null || graph.beingDeleted) return;
 
-            TraceRecord trace = ActiveTrace;
+            TraceRecord? trace = ActiveTrace;
             if (trace == null) return;
             if (ActiveTrace?.PID != graph.pid) return;
 
@@ -414,7 +414,7 @@ namespace rgat
         /// </summary>
         void SelectGraphInActiveTrace()
         {
-            TraceRecord selectedTrace = ActiveTrace;
+            TraceRecord? selectedTrace = ActiveTrace;
             if (selectedTrace == null)
             {
                 return;
@@ -462,8 +462,11 @@ namespace rgat
         {
             if (ActiveGraph != null && ActiveGraph.beingDeleted)
                 return false;
+
             ClearActiveGraph();
-            if (graph.pid != ActiveTrace.PID) ActiveTrace = null;
+
+            if (ActiveTrace is not null && graph.pid != ActiveTrace.PID) 
+                ActiveTrace = null;
 
             Debug.Assert(ActiveGraph == null);
 
@@ -583,7 +586,7 @@ namespace rgat
 
             if (!trace.load(saveJSON, _GraphicsDevice))
             {
-                target.DeleteTrace(trace.launchedTime);
+                target.DeleteTrace(trace.LaunchedTime);
                 trace = null;
                 return false;
             }

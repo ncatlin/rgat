@@ -11,16 +11,22 @@ using static rgat.TraceRecord;
 
 namespace rgat
 {
+    /// <summary>
+    /// A worker for processing process and thread events for a trace as well as symbol data and trace commands
+    /// </summary>
     public class ModuleHandlerThread : TraceProcessorWorker
     {
         readonly BinaryTarget target;
         readonly TraceRecord trace;
-        NamedPipeServerStream commandPipe = null;
-        NamedPipeServerStream eventPipe = null;
+        NamedPipeServerStream? commandPipe = null;
+        NamedPipeServerStream? eventPipe = null;
         readonly uint? _remoteEventPipeID;
         uint? _remoteCommandPipeID = null;
-        System.Threading.Tasks.Task _headlessCommandListener = null;
+        System.Threading.Tasks.Task _headlessCommandListener;
 
+        /// <summary>
+        /// The pipe ID of the command pipe connected to a remote tracing instance
+        /// </summary>
         public uint? RemoteCommandPipeID
         {
             get => _remoteCommandPipeID;
@@ -337,7 +343,7 @@ namespace rgat
 
 
             byte[] buf = Encoding.UTF8.GetBytes(msg);
-            try { commandPipe.Write(buf, 0, buf.Length); }
+            try { commandPipe!.Write(buf, 0, buf.Length); }
             catch (Exception e)
             {
                 Logging.RecordLogEvent($"MH:CommandWrite Exception '{e.Message}' while writing command: {msg}");
@@ -427,11 +433,11 @@ namespace rgat
             {
                 if (pipeType == "Commands")
                 {
-                    commandPipe.EndWaitForConnection(ar);
+                    commandPipe!.EndWaitForConnection(ar);
                 }
                 if (pipeType == "Events")
                 {
-                    eventPipe.EndWaitForConnection(ar);
+                    eventPipe!.EndWaitForConnection(ar);
                 }
                 Logging.RecordLogEvent($"MH:ConnectCallback {pipeType} pipe connected to process PID " + trace.PID, Logging.LogFilterType.TextDebug);
             }
@@ -444,7 +450,7 @@ namespace rgat
 
         void MirrorMessageToUI(byte[] buf, int bytesRead)
         {
-            rgatState.NetworkBridge.SendRawTraceData(_remoteEventPipeID.Value, buf, bytesRead);
+            rgatState.NetworkBridge.SendRawTraceData(_remoteEventPipeID!.Value, buf, bytesRead);
         }
 
         void ProcessMessageLocal(byte[] buf, int bytesRead)
@@ -528,11 +534,24 @@ namespace rgat
 
         //There is scope to randomise these in case it becomes a detection method, but 
         //there are so many other potential ones I'll wait and see if its needed first
+
+        /// <summary>
+        /// Get the pipe that the instrumentation tool will listen on for commands
+        /// </summary>
+        /// <param name="PID">Traced process ID</param>
+        /// <param name="randID">Traced process unique ID</param>
+        /// <returns>Command pipe name</returns>
         public static string GetCommandPipeName(uint PID, long randID)
         {
             return "CM" + PID.ToString() + randID.ToString();
         }
 
+        /// <summary>
+        /// Get the pipe that the instrumentation tool will send events to
+        /// </summary>
+        /// <param name="PID">Traced process ID</param>
+        /// <param name="randID">Traced process unique ID</param>
+        /// <returns>Event pipe name</returns>
         public static string GetEventPipeName(uint PID, long randID)
         {
             return "CR" + PID.ToString() + randID.ToString();
@@ -540,6 +559,9 @@ namespace rgat
 
         readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
 
+        /// <summary>
+        /// Cause the worker to stop processing and disconnect its pipes
+        /// </summary>
         public void Terminate()
         {
             try
@@ -554,7 +576,11 @@ namespace rgat
 
         }
 
-        public void AddRemoteEventData(byte[] data, int startIndex)
+        /// <summary>
+        /// Add event data recieved from a remotely traced process
+        /// </summary>
+        /// <param name="data">event data bytes</param>
+        public void AddRemoteEventData(byte[] data)
         {
             lock (_lock)
             {
@@ -563,13 +589,17 @@ namespace rgat
             }
         }
 
-        public void ProcessIncomingTraceCommand(byte[] data, int startIndex)
+        /// <summary>
+        /// Process a trace command sent by the remote GUI
+        /// </summary>
+        /// <param name="data">bytes of the command</param>
+        public void ProcessIncomingTraceCommand(byte[] data)
         {
             lock (_lock)
             {
                 if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode)
                 {
-                    _incomingTraceCommands.Enqueue(ASCIIEncoding.ASCII.GetString(data, startIndex, data.Length - startIndex));
+                    _incomingTraceCommands.Enqueue(ASCIIEncoding.ASCII.GetString(data, 0, data.Length));
                     NewDataEvent.Set();
                 }
             }

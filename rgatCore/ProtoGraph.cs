@@ -426,7 +426,7 @@ namespace rgat
             //start by examining our caller
             NodeData? lastNode = safe_get_node(ProtoLastVertID);
             if (lastNode is null || lastNode.IsExternal) { resultPair = null; return false; }
-            Debug.Assert(lastNode.ins.numbytes > 0);
+            Debug.Assert(lastNode.ins.NumBytes > 0);
 
             //if caller is also external then we are not interested in this (does this happen?)
             if (ProcessData.ModuleTraceStates[lastNode.GlobalModuleID] == eCodeInstrumentation.eUninstrumentedCode) { resultPair = null; return false; }
@@ -1015,7 +1015,7 @@ namespace rgat
             thisnode.BlockID = blockID;
             thisnode.parentIdx = ProtoLastVertID;
             thisnode.SetExecutionCount(repeats);
-            thisnode.GlobalModuleID = instruction.globalmodnum;
+            thisnode.GlobalModuleID = instruction.GlobalModNum;
             thisnode.HasSymbol = instruction.hasSymbol;
 
             Debug.Assert(!node_exists(targVertID));

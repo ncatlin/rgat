@@ -461,7 +461,7 @@ namespace rgat
         /// <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
         /// <param name="trace">Process this applies to</param>     
 
-        public static void RecordLogEvent(string text, LogFilterType filter = LogFilterType.TextInfo, ProtoGraph graph = null, TraceRecord trace = null)
+        public static void RecordLogEvent(string text, LogFilterType filter = LogFilterType.TextInfo, ProtoGraph? graph = null, TraceRecord? trace = null)
         {
             TEXT_LOG_EVENT log = new TEXT_LOG_EVENT(filter: filter, text: text);
             if (graph != null) { log.SetAssociatedGraph(graph); }
@@ -511,7 +511,7 @@ namespace rgat
         /// <param name="text">Error text</param>
         /// <param name="graph">Graph the error applies to (optional)</param>
         /// <param name="trace">Trace the error applies to (optional)</param>
-        public static void RecordError(string text, ProtoGraph graph = null, TraceRecord trace = null)
+        public static void RecordError(string text, ProtoGraph? graph = null, TraceRecord? trace = null)
         {
             RecordLogEvent(text: text, graph: graph, trace: trace, filter: LogFilterType.TextError);
         }

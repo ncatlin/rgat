@@ -22,7 +22,7 @@ namespace rgat.Config
         static readonly Dictionary<string, uint> _pipeIDDictionary = new Dictionary<string, uint>();
 
 
-        public delegate void ProcessIncomingWorkerData(byte[] arg, int startIndex);
+        public delegate void ProcessIncomingWorkerData(byte[] arg);
 
         static readonly Dictionary<uint, Threads.TraceProcessorWorker> _remoteDataWorkers = new Dictionary<uint, Threads.TraceProcessorWorker>();
         static readonly Dictionary<uint, ProcessIncomingWorkerData> _pipeInterfaces = new Dictionary<uint, ProcessIncomingWorkerData>();

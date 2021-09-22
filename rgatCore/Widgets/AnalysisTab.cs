@@ -245,7 +245,7 @@ namespace rgat
                 ImGui.TableNextColumn();
                 ImGui.Text($"Path");
                 ImGui.TableNextColumn();
-                ImGui.TextWrapped($"{trace.binaryTarg.FilePath}");
+                ImGui.TextWrapped($"{trace.Target.FilePath}");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -258,7 +258,7 @@ namespace rgat
                 ImGui.TableNextColumn();
                 ImGui.Text($"Started");
                 ImGui.TableNextColumn();
-                ImGui.Text($"{trace.launchedTime.ToLocalTime()}");
+                ImGui.Text($"{trace.LaunchedTime.ToLocalTime()}");
                 ImGui.EndTable();
             }
         }

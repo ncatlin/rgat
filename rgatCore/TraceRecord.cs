@@ -12,28 +12,62 @@ using static rgat.Logging;
 
 namespace rgat
 {
+    /// <summary>
+    /// An object to describe a disasembled instruction
+    /// </summary>
     public class InstructionData
     {
         public int DebugID;
 
-        //void* bb_ptr;
-        public string mnemonic;
-        public string op_str;
-        //store all the basic blocks this instruction is a member of
-        //List<Tuple<ulong, BLOCK_IDENTIFIER>> blockIDs;
-        /* memory/speed tradeoff 
+        /// <summary>
+        /// Text of the instruction mnemonic
+        /// </summary>
+        public string Mnemonic;
+        /// <summary>
+        /// Texe of the instruction operands
+        /// </summary>
+        public string OpStr;
+
+
+
+        /* 
+         * memory/speed tradeoff 
 		1.construct every frame and save memory 
 		2.construct at disassemble time and improve render speed
-		*/
-        //store all the basic blocks this instruction is a member of
-        public List<uint> ContainingBlockIDs;
+		*/ 
+        /// <summary>
+        /// All the basic blocks this instruction is a member of
+        /// </summary>
+        public List<uint>? ContainingBlockIDs;
 
-        public string ins_text;
+        /// <summary>
+        /// Full text of the disassembled instruction
+        /// </summary>
+        public string? InsText;
+
+        /// <summary>
+        /// Flow control type of the instruction
+        /// </summary>
         public CONSTANTS.eNodeType itype;
+        /// <summary>
+        /// Is the instruction a conditional jump
+        /// </summary>
         public bool conditional;
+        /// <summary>
+        /// Is the instruction in a non-text area
+        /// </summary>
         public bool dataEx;
+        /// <summary>
+        /// Does the address have a symbol associated with it
+        /// </summary>
         public bool hasSymbol;
+        /// <summary>
+        /// Could the instruction be an APi thunk
+        /// </summary>
         public bool PossibleidataThunk;
+        /// <summary>
+        /// Is the instruction an MPX instruction
+        /// </summary>
         public bool IsMPX = false; //https://en.wikipedia.org/wiki/Intel_MPX
 
         /// <summary>
@@ -49,14 +83,31 @@ namespace rgat
         /// </summary>
         public ulong condDropAddress;
         readonly List<Tuple<uint, uint>> _threadVertIndexes = new List<Tuple<uint, uint>>(); //was an unordered dictionary in the C++ version
-        public int globalmodnum;
-        public int mutationIndex;
+        /// <summary>
+        /// The module this instruction is located in
+        /// </summary>
+        public int GlobalModNum;
+  
+        /// <summary>
+        /// Which version of the instruction at this address is this disassembly for
+        /// </summary>
+        public int MutationIndex;
 
+        /// <summary>
+        /// Is this instruction at the start or end of a basic block
+        /// </summary>
         public bool BlockBoundary;
 
         //this was added later, might be worth ditching other stuff in exchange
-        public byte[] opcodes;
-        public int numbytes;
+        /// <summary>
+        /// The raw bytes of the instruction
+        /// </summary>
+        public byte[] Opcodes;
+
+        /// <summary>
+        /// How many bytes of opcodes the instruction has
+        /// </summary>
+        public int NumBytes => Opcodes.Length;
 
         /// <summary>
         /// The indexe of the node containing this instruction in each thread <Thread ID, instruction index>
@@ -108,12 +159,12 @@ namespace rgat
         {
             PID = newPID;
             randID = randomNo;
-            launchedTime = timeStarted;
+            LaunchedTime = timeStarted;
             TraceType = purpose;
 
             //modIDTranslationVec.resize(255, -1);
 
-            binaryTarg = binary;
+            Target = binary;
             if (arch != 0 && binary.BitWidth != arch)
             {
                 binary.BitWidth = arch;
@@ -304,7 +355,7 @@ namespace rgat
         int runningProcesses = 0;
         int runningThreads = 0;
 
-        public void RecordTimelineEvent(Logging.eTimelineEvent type, TraceRecord trace = null, ProtoGraph graph = null)
+        public void RecordTimelineEvent(Logging.eTimelineEvent type, TraceRecord? trace = null, ProtoGraph? graph = null)
         {
             int currentCount;
             switch (type)
@@ -696,7 +747,7 @@ namespace rgat
         public bool Save(DateTime traceStartedTime, out string? savePath)
         {
             savePath = null;
-            Logging.RecordLogEvent($"Saving trace {binaryTarg.FilePath} -> PID {PID}");
+            Logging.RecordLogEvent($"Saving trace {Target.FilePath} -> PID {PID}");
             if (TraceType != eTracePurpose.eVisualiser)
             {
                 Logging.RecordLogEvent("\tSkipping non visualiser trace");
@@ -713,9 +764,9 @@ namespace rgat
             JObject traceSaveObject = new JObject();
             traceSaveObject.Add("PID", PID);
             traceSaveObject.Add("PID_ID", randID);
-            traceSaveObject.Add("IsLibrary", binaryTarg.IsLibrary);
+            traceSaveObject.Add("IsLibrary", Target.IsLibrary);
             traceSaveObject.Add("ProcessData", DisassemblyData.Serialise());
-            traceSaveObject.Add("BinaryPath", binaryTarg.FilePath);
+            traceSaveObject.Add("BinaryPath", Target.FilePath);
             traceSaveObject.Add("StartTime", traceStartedTime);
             traceSaveObject.Add("Threads", SerialiseGraphs());
             traceSaveObject.Add("Timeline", SerialiseTimeline());
@@ -724,7 +775,7 @@ namespace rgat
             int saveCount = 0;
             foreach (TraceRecord trace in children)
             {
-                if (trace.Save(trace.launchedTime, out string? childpath) && childpath is not null)
+                if (trace.Save(trace.LaunchedTime, out string? childpath) && childpath is not null)
                 {
                     if (childpath.Length > 0)
                         childPathsArray.Add(childpath);
@@ -777,7 +828,7 @@ namespace rgat
 
         JsonTextWriter? CreateSaveFile(DateTime startedTime, out string? path)
         {
-            string saveFilename = $"{binaryTarg.FileName}-{PID}-{startedTime.ToString("MMM-dd__HH-mm-ss")}.rgat";
+            string saveFilename = $"{Target.FileName}-{PID}-{startedTime.ToString("MMM-dd__HH-mm-ss")}.rgat";
             string saveDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);
             if (!Directory.Exists(saveDir))
             {
@@ -908,7 +959,7 @@ namespace rgat
 
             foreach (NodeData n in pgraph.NodeList)
             {
-                outfile.Write(Encoding.ASCII.GetBytes(n.index + " \"" + n.ins.ins_text + "\"\n"));
+                outfile.Write(Encoding.ASCII.GetBytes(n.index + " \"" + n.ins.InsText + "\"\n"));
             }
 
             outfile.Write(Encoding.ASCII.GetBytes("*edgeslist " + pgraph.NodeList.Count + "\n"));
@@ -924,7 +975,10 @@ namespace rgat
             outfile.Close();
         }
 
-
+        /// <summary>
+        /// Send a step command to execute a single instruction in a paused trace. Will step over function calls
+        /// </summary>
+        /// <param name="graph">The graph of the thread to step over</param>
         public void SendDebugStepOver(ProtoGraph graph)
         {
             if (!graph.HasRecentStep) return;
@@ -937,18 +991,22 @@ namespace rgat
             Debug.Assert(n is not null);
             if (n.ins.itype != CONSTANTS.eNodeType.eInsCall)
             {
-                SendDebugStep(graph.ThreadID);
+                SendDebugStep(graph);
                 return;
             }
-            ulong nextInsAddress = n.ins.Address + (ulong)n.ins.numbytes;
+            ulong nextInsAddress = n.ins.Address + (ulong)n.ins.NumBytes;
 
             string cmd = $"SOV,{nextInsAddress:X}";
             SendDebugCommand(graph.ThreadID, cmd);
         }
 
-        public void SendDebugStep(uint threadID)
+        /// <summary>
+        /// Send a step command to execute a single instruction in a paused trace. Will step into function calls
+        /// </summary>
+        /// <param name="graph">The graph of the thread to step over</param>
+        public void SendDebugStep(ProtoGraph graph)
         {
-            SendDebugCommand(threadID, "SIN");
+            SendDebugCommand(graph.ThreadID, "SIN");
         }
 
         public void SendDebugCommand(uint threadID, string command)
@@ -967,21 +1025,43 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// The disassembly associated with each address
+        /// </summary>
+        public ProcessRecord DisassemblyData { private set; get; }
 
-        public ProcessRecord DisassemblyData { private set; get; } = null; //the first disassembly of each address
+        /// <summary>
+        /// the time the user pressed start, not when the first process was seen
+        /// </summary>
+        public DateTime LaunchedTime { private set; get; } 
 
-        //private timeline runtimeline;
-        public DateTime launchedTime { private set; get; } //the time the user pressed start, not when the first process was seen
+        /// <summary>
+        /// The BinaryTarget associated with this trace object
+        /// </summary>
+        public BinaryTarget Target { private set; get; }
 
-        public BinaryTarget binaryTarg { private set; get; } = null;
+        /// <summary>
+        /// false if the process is no longer being traced
+        /// </summary>
         public bool IsRunning => TraceState != eTraceState.eTerminated;
         private bool killed = false;
 
+        /// <summary>
+        /// The state of the trace process
+        /// </summary>
         public eTraceState TraceState { private set; get; } = eTraceState.eTerminated;
 
-        public bool ProcessingRemaining => ProcessThreads.modThread.Running || this.PlottedGraphs.Values.Any(g => !g.RenderingComplete());
+        /// <summary>
+        /// Are there any edges left to render, or might more trace data arrive?
+        /// </summary>
+        public bool ProcessingRemaining => ProcessThreads.modThread.Running || this.PlottedGraphs.Values.Any(g => !g.RenderingComplete);
 
-
+        /// <summary>
+        /// See if the success requirements of a complete trace run are met 
+        /// </summary>
+        /// <param name="ptreq">Trace requirements object for the test</param>
+        /// <param name="resultsobj">A Test results commentary object which describes how the test executed</param>
+        /// <returns>The results of the test</returns>
         public TRACE_TEST_RESULTS EvaluateProcessTestRequirement(TraceRequirements ptreq, ref TraceTestResultCommentary resultsobj)
         {
             TRACE_TEST_RESULTS results = new TRACE_TEST_RESULTS();

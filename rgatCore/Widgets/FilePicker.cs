@@ -18,9 +18,16 @@ using System.Text;
 
 namespace rgatFilePicker
 {
+    /// <summary>
+    /// A file selection dialog widgget
+    /// </summary>
     public class FilePicker
     {
-        FilePicker(BridgeConnection remoteMirror = null)
+        /// <summary>
+        /// Create a file selection dialog
+        /// </summary>
+        /// <param name="remoteMirror">Optional remote host this dialog is associated with</param>
+        FilePicker(BridgeConnection? remoteMirror = null)
         {
             _remoteMirror = remoteMirror;
             Created = DateTime.Now;
@@ -38,7 +45,7 @@ namespace rgatFilePicker
 
         readonly System.Timers.Timer _refreshTimer;
         bool _refreshTimerFired = false;
-        readonly BridgeConnection _remoteMirror;
+        readonly BridgeConnection? _remoteMirror;
         private const int RefreshThresholdSeconds = 2;
         public DateTime Created { get; private set; }
 

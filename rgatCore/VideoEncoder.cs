@@ -176,7 +176,7 @@ namespace rgat
             string targetname, vidname;
             if (graph != null)
             {
-                targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.binaryTarg.FilePath);
+                targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.Target.FilePath);
                 vidname = $"rgat_{targetname}_{graph.pid}_{DateTime.Now.ToString("MMdd_HHMMss")}";
             }
             else
@@ -253,7 +253,7 @@ namespace rgat
             }
             else
             {
-                string targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.binaryTarg.FilePath);
+                string targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.Target.FilePath);
                 vidname = $"rgat_{targetname}_{graph.pid}_{DateTime.Now.ToString("MMdd_HHMMss")}";
             }
             string targetfile = Path.Combine(storedir, $"{vidname}.{extension}");

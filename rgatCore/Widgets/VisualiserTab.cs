@@ -164,7 +164,7 @@ namespace rgat
 
         private void DrawCameraPopup()
         {
-            PlottedGraph ActiveGraph = _rgatState.ActiveGraph;
+            PlottedGraph? ActiveGraph = _rgatState.ActiveGraph;
             if (ActiveGraph == null) return;
 
             if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(235, 200)))
@@ -184,7 +184,7 @@ namespace rgat
 
         private unsafe void DrawPlaybackControls(float otherControlsHeight, float width)
         {
-            PlottedGraph activeGraph = _rgatState.ActiveGraph;
+            PlottedGraph? activeGraph = _rgatState.ActiveGraph;
             if (activeGraph == null)
             {
                 if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(width, otherControlsHeight)))
@@ -354,7 +354,7 @@ namespace rgat
 
                         if (ImGui.Button("Step In"))
                         {
-                            graph.InternalProtoGraph.TraceData.SendDebugStep(graph.tid);
+                            graph.InternalProtoGraph.TraceData.SendDebugStep(graph.InternalProtoGraph);
                         }
                         SmallWidgets.MouseoverText("Step to next instruction");
 
@@ -466,7 +466,7 @@ namespace rgat
                                     {
                                         for (var i = Math.Max(0, inslist.Count - 5); i < inslist.Count; i++)
                                         {
-                                            ImGui.Text(inslist[i].ins_text);
+                                            ImGui.Text(inslist[i].InsText);
                                         }
                                     }
                                 }
@@ -538,9 +538,9 @@ namespace rgat
 
         private void SetActiveGraph(PlottedGraph graph)
         {
-            if (graph.pid != _rgatState.ActiveGraph.pid)
+            if (_rgatState.ActiveGraph is not null && graph.pid != _rgatState.ActiveGraph.pid)
             {
-                Console.WriteLine("Warning: Graph selected in non-viewed trace");
+                Console.WriteLine("Warning: Graph selected in inactive trace");
                 return;
             }
 
@@ -555,7 +555,7 @@ namespace rgat
             foreach (TraceRecord child in tr.children)
             {
                 string tabs = new String("  ");
-                if (ImGui.Selectable(tabs + "PID " + child.PID, _rgatState.ActiveGraph.pid == child.PID))
+                if (ImGui.Selectable(tabs + "PID " + child.PID, _rgatState.ActiveGraph?.pid == child.PID))
                 {
                     _rgatState.SelectActiveTrace(child);
                 }
@@ -569,7 +569,7 @@ namespace rgat
         private void DrawTraceSelector(float frameHeight, float frameWidth)
         {
 
-            PlottedGraph plot = _rgatState.ActiveGraph;
+            PlottedGraph? plot = _rgatState.ActiveGraph;
             if (plot == null)
             {
                 if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth, frameHeight)))

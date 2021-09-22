@@ -257,7 +257,7 @@ namespace rgat
 
                 if (!modsymsPlain.ContainsKey(modnum))
                 {
-                    modsymsPlain.Add(modnum, new Dictionary<ulong, string>());
+                    modsymsPlain.Add(modnum, new Dictionary<ulong, string?>());
                 }
 
                 if (modsymsPlain[modnum].ContainsKey(offset))
@@ -572,7 +572,7 @@ namespace rgat
                     Logging.RecordLogEvent("ERROR: Symbols load failed: No valid module ID", Logging.LogFilterType.TextError);
                     return false;
                 }
-                modsymsPlain.Add(modID.ToObject<int>(), new Dictionary<ulong, string>());
+                modsymsPlain.Add(modID.ToObject<int>(), new Dictionary<ulong, string?>());
 
                 if (!item.TryGetValue("Symbols", out JToken? syms) || syms.Type != JTokenType.Array)
                 {
@@ -663,25 +663,25 @@ namespace rgat
         //takes a capstone context, opcode string, target instruction data struct and the address of the instruction
         public static int DisassembleIns(CapstoneX86Disassembler disassembler, ulong address, ref InstructionData insdata)
         {
-            X86Instruction[] instructions = disassembler.Disassemble(insdata.opcodes, (long)address);
+            X86Instruction[] instructions = disassembler.Disassemble(insdata.Opcodes, (long)address);
             //todo: catch some kind of exception, since i cant see any way of getting error codes
             if (instructions.Length != 1)
             {
-                Logging.RecordLogEvent("ERROR: Failed disassembly for opcodes: " + insdata.opcodes, Logging.LogFilterType.TextError);// << " error: " << cs_errno(hCapstone) << endl;
+                Logging.RecordLogEvent("ERROR: Failed disassembly for opcodes: " + insdata.Opcodes, Logging.LogFilterType.TextError);// << " error: " << cs_errno(hCapstone) << endl;
                 return 0;
             }
 
             X86Instruction insn = instructions[0];
 
-            insdata.mnemonic = insn.Mnemonic;
-            insdata.op_str = insn.Operand;
-            insdata.ins_text = insdata.mnemonic + " " + insdata.op_str;
-            if (insn.Bytes[0] == 0xf2 && insdata.mnemonic.StartsWith("bnd"))
+            insdata.Mnemonic = insn.Mnemonic;
+            insdata.OpStr = insn.Operand;
+            insdata.InsText = insdata.Mnemonic + " " + insdata.OpStr;
+            if (insn.Bytes[0] == 0xf2 && insdata.Mnemonic.StartsWith("bnd"))
             {
-                insdata.mnemonic = insn.Mnemonic.Substring(4);
+                insdata.Mnemonic = insn.Mnemonic.Substring(4);
                 insdata.IsMPX = true;
             }
-            if (insdata.mnemonic == "call")
+            if (insdata.Mnemonic == "call")
             {
                 try
                 {
@@ -695,11 +695,11 @@ namespace rgat
                 insdata.itype = CONSTANTS.eNodeType.eInsCall;
             }
 
-            else if (insdata.mnemonic == "ret") //todo: iret
+            else if (insdata.Mnemonic == "ret") //todo: iret
             {
                 insdata.itype = CONSTANTS.eNodeType.eInsReturn;
             }
-            else if (insdata.mnemonic == "jmp")
+            else if (insdata.Mnemonic == "jmp")
             {
 
                 insdata.itype = CONSTANTS.eNodeType.eInsJump;
@@ -720,11 +720,11 @@ namespace rgat
                 }
                 else
                 {
-                    try { insdata.branchAddress = Convert.ToUInt64(insdata.op_str, 16); } //todo: not a great idea actually... just point to the outgoing neighbours for labels
+                    try { insdata.branchAddress = Convert.ToUInt64(insdata.OpStr, 16); } //todo: not a great idea actually... just point to the outgoing neighbours for labels
                     catch { insdata.branchAddress = 0; }
                 }
 
-                if (insdata.branchAddress == (address + (ulong)insdata.numbytes))
+                if (insdata.branchAddress == (address + (ulong)insdata.NumBytes))
                 {
                     insdata.itype = CONSTANTS.eNodeType.eInsUndefined; //junp to next address is nop
                 }
@@ -733,15 +733,15 @@ namespace rgat
             {
                 insdata.itype = CONSTANTS.eNodeType.eInsUndefined;
                 //assume all j+ instructions aside from jmp are conditional (todo: bother to check)
-                if (insdata.mnemonic[0] == 'j')
+                if (insdata.Mnemonic[0] == 'j')
                 {
                     insdata.conditional = true;
                     try
                     {
-                        insdata.branchAddress = Convert.ToUInt64(insdata.op_str, 16);
+                        insdata.branchAddress = Convert.ToUInt64(insdata.OpStr, 16);
                     } //todo: not a great idea actually... just point to the outgoing neighbours for labels
                     catch { insdata.branchAddress = 0; }
-                    insdata.condDropAddress = insdata.Address + (ulong)insdata.numbytes;
+                    insdata.condDropAddress = insdata.Address + (ulong)insdata.NumBytes;
                 }
 
             }
@@ -761,14 +761,13 @@ namespace rgat
                 }
 
                 InstructionData ins = new InstructionData();
-                ins.globalmodnum = addressData.moduleID;
+                ins.GlobalModNum = addressData.moduleID;
                 ins.hasSymbol = addressData.hasSym;
-                ins.opcodes = System.Convert.FromBase64String(mutation[0].ToObject<string>());
-                ins.numbytes = ins.opcodes.Length;
+                ins.Opcodes = System.Convert.FromBase64String(mutation[0].ToObject<string>());
                 ins.Address = addressData.address;
                 ins.BlockBoundary = addressData.blockBoundary;
 
-                if (ins.numbytes == 0)
+                if (ins.NumBytes == 0)
                 {
                     Logging.RecordLogEvent("Load Error: Empty opcode string", Logging.LogFilterType.TextError);
                     opcodeVariants = null;
@@ -1037,14 +1036,14 @@ namespace rgat
             {
                 JArray insentry = new JArray();
                 insentry.Add(addr_inslist.Key);
-                insentry.Add(addr_inslist.Value[0].globalmodnum);
+                insentry.Add(addr_inslist.Value[0].GlobalModNum);
                 insentry.Add(addr_inslist.Value[0].BlockBoundary ? 1 : 0);
 
                 JArray opcodesMutationsList = new JArray();
                 foreach (var mutation in addr_inslist.Value)
                 {
                     JArray mutationData = new JArray();
-                    string opcodestring = System.Convert.ToBase64String(mutation.opcodes);
+                    string opcodestring = System.Convert.ToBase64String(mutation.Opcodes);
                     mutationData.Add(opcodestring);
 
                     JArray threadsUsingInstruction = new JArray();
@@ -1061,7 +1060,7 @@ namespace rgat
                     }
                     else
                     {
-                        Console.WriteLine($"Null thread verts: 0x{mutation.Address:X} => {mutation.ins_text}, {mutation.globalmodnum}[{GetModulePath(mutation.globalmodnum)}]");
+                        Console.WriteLine($"Null thread verts: 0x{mutation.Address:X} => {mutation.InsText}, {mutation.GlobalModNum}[{GetModulePath(mutation.GlobalModNum)}]");
                     }
                     mutationData.Add(threadsUsingInstruction);
                     opcodesMutationsList.Add(mutationData);
@@ -1140,7 +1139,7 @@ namespace rgat
                 {
                     JArray insentry = new JArray();
                     insentry.Add(i.Address);
-                    insentry.Add(i.mutationIndex);
+                    insentry.Add(i.MutationIndex);
                     inslist.Add(insentry);
                 }
                 blockArray.Add(inslist);

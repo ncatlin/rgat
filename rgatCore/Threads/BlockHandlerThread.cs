@@ -10,6 +10,9 @@ using System.Threading;
 
 namespace rgat
 {
+    /// <summary>
+    /// A worker for disassembling the instructions sent by an instrumented trace
+    /// </summary>
     public class BlockHandlerThread : TraceProcessorWorker
     {
         enum eBlkInstrumentation { eUninstrumentedCode = 0, eInstrumentedCode = 1, eCodeInDataArea = 2 };
@@ -21,7 +24,15 @@ namespace rgat
         readonly CapstoneX86Disassembler disassembler;
         readonly uint? _remotePipeID;
 
-        public delegate void ProcessPipeMessageAction(byte[] buf, int bytesRead);
+        delegate void ProcessPipeMessageAction(byte[] buf, int bytesRead);
+
+
+        /// <summary>
+        /// Create a basic block processing worker
+        /// </summary>
+        /// <param name="binaryTarg">Binary target associated with the trace</param>
+        /// <param name="runrecord">TraceRecord associated with the trace</param>
+        /// <param name="remotePipeID">ID of the pipe receiving basic block data</param>
         public BlockHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, uint? remotePipeID = null)
         {
             target = binaryTarg;
@@ -34,11 +45,21 @@ namespace rgat
             disassembler = CapstoneDisassembler.CreateX86Disassembler(disasMode);
         }
 
+
+        /// <summary>
+        /// Get the name of the pipe to listen on
+        /// </summary>
+        /// <param name="PID">Process ID of the traced process</param>
+        /// <param name="instanceID">Unique trace ID of the process</param>
+        /// <returns>A named pipe name</returns>
         public static string GetBlockPipeName(uint PID, long instanceID)
         {
             return "BB" + PID.ToString() + instanceID.ToString();
         }
 
+        /// <summary>
+        /// Start the worker
+        /// </summary>
         public override void Begin()
         {
 
@@ -178,11 +199,11 @@ namespace rgat
                         InstructionData possibleInstruction = foundList[^1];
                         //if address has been seen but opcodes are not same as most recent, disassemble again
                         //might be a better to check all mutations instead of most recent
-                        bool mutation = possibleInstruction.numbytes != insByteCount || !possibleInstruction.opcodes.SequenceEqual<byte>(opcodes);
+                        bool mutation = possibleInstruction.NumBytes != insByteCount || !possibleInstruction.Opcodes.SequenceEqual<byte>(opcodes);
                         if (!mutation)
                         {
                             blockInstructions.Add(possibleInstruction);
-                            insaddr += (ulong)possibleInstruction.numbytes;
+                            insaddr += (ulong)possibleInstruction.NumBytes;
                             continue;
                         }
                     }
@@ -190,9 +211,8 @@ namespace rgat
 
                     InstructionData instruction = new InstructionData();
                     instruction.Address = insaddr;
-                    instruction.numbytes = insByteCount;
-                    instruction.opcodes = opcodes;
-                    instruction.globalmodnum = globalModNum;
+                    instruction.Opcodes = opcodes;
+                    instruction.GlobalModNum = globalModNum;
                     instruction.dataEx = dataExecution;
                     instruction.ContainingBlockIDs = new List<uint>();
                     instruction.ContainingBlockIDs.Add(blockID);
@@ -219,7 +239,7 @@ namespace rgat
                     {
                         trace.DisassemblyData.disassembly[insaddr] = new List<InstructionData>();
                     }
-                    instruction.mutationIndex = trace.DisassemblyData.disassembly[insaddr].Count;
+                    instruction.MutationIndex = trace.DisassemblyData.disassembly[insaddr].Count;
 
                     instruction.DebugID = trace.DisassemblyData.disassembly.Count;
 
@@ -228,7 +248,7 @@ namespace rgat
 
                     blockInstructions.Add(instruction);
 
-                    insaddr += (ulong)instruction.numbytes;
+                    insaddr += (ulong)instruction.NumBytes;
                 }
             }
             Debug.Assert(blockInstructions.Count != 0);
@@ -238,6 +258,9 @@ namespace rgat
 
         readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
 
+        /// <summary>
+        /// Cause the worker to stop and disconnect its pipe
+        /// </summary>
         public void Terminate()
         {
             try
@@ -249,7 +272,11 @@ namespace rgat
             catch { return; }
         }
 
-        public void AddRemoteBlockData(byte[] data, int startIndex)
+        /// <summary>
+        /// Add some raw basic block data to the worker queue
+        /// </summary>
+        /// <param name="data">Basic block data from the instrumentation</param>
+        public void AddRemoteBlockData(byte[] data)
         {
             lock (_lock)
             {

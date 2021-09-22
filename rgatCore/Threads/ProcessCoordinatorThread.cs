@@ -184,8 +184,8 @@ namespace rgat.Threads
 
             Logging.RecordLogEvent(msg, Logging.LogFilterType.TextDebug);
 
-            BinaryTarget target;
-            if (!rgatState.targets.GetTargetByPath(path: programName, out target))
+            BinaryTarget? target;
+            if (!rgatState.targets.GetTargetByPath(path: programName, out target) || target is null)
             {
                 target = _clientState.AddTargetByPath(path: programName, arch: arch, isLibrary: isLibrary, makeActive: true);
             }
@@ -239,23 +239,23 @@ namespace rgat.Threads
             if (testID != -1)
             {
                 trace.SetTestRunID(testID);
-                trace.binaryTarg.MarkTestBinary();
+                trace.Target.MarkTestBinary();
                 _clientState.RecordTestRunConnection(testID, trace);
             }
 
-            ModuleHandlerThread moduleHandler = new ModuleHandlerThread(trace.binaryTarg, trace);
+            ModuleHandlerThread moduleHandler = new ModuleHandlerThread(trace.Target, trace);
             trace.ProcessThreads.Register(moduleHandler);
             moduleHandler.Begin();
 
             trace.RecordTimelineEvent(Logging.eTimelineEvent.ProcessStart, trace);
 
 
-            BlockHandlerThread blockHandler = new BlockHandlerThread(trace.binaryTarg, trace);
+            BlockHandlerThread blockHandler = new BlockHandlerThread(trace.Target, trace);
             trace.ProcessThreads.Register(blockHandler);
             blockHandler.Begin();
 
             if (rgatUI.Exists)
-                ProcessLaunching.launch_new_visualiser_threads(trace.binaryTarg, trace, _clientState);
+                ProcessLaunching.launch_new_visualiser_threads(trace.Target, trace, _clientState);
         }
     }
 }

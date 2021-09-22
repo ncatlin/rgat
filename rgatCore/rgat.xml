@@ -660,6 +660,30 @@
             </summary>
             <returns>A TraceRecord, or null if none existed</returns>
         </member>
+        <member name="M:rgat.BinaryTargets.AddTargetByPath(System.String,System.Boolean,System.Int32,System.String)">
+            <summary>
+            Initialise and record a BinaryTarget object from a filesystem path
+            </summary>
+            <param name="path">Filesystem path of the target</param>
+            <param name="isLibrary">true if a DLL</param>
+            <param name="arch">32 or 64 bit, or 0 if unknown (remote)</param>
+            <param name="remoteAddr">Optional remote address of the system this binary is on</param>
+            <returns>Created BinaryTarget object</returns>
+        </member>
+        <member name="M:rgat.BinaryTargets.RegisterTargetSHA1(rgat.BinaryTarget)">
+            <summary>
+            Add a pre-constructed BinaryTarget
+            </summary>
+            <param name="target">BinaryTarget to add</param>
+        </member>
+        <member name="M:rgat.BinaryTargets.GetTargetBySHA1(System.String,rgat.BinaryTarget@)">
+            <summary>
+            Fetch a BinaryTarget by its SHA1 hash
+            </summary>
+            <param name="sha1">SHA1 hash to find</param>
+            <param name="target">BinaryTarget, if found</param>
+            <returns>true if found</returns>
+        </member>
         <member name="F:rgat.BridgeConnection.emsgType.AsyncData">
             <summary>
             Non-trace related data sent without requiring a command to generate it (eg: result of signature scanning)

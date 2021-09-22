@@ -44,9 +44,8 @@ namespace rgat.Threads
             base.Terminate();
         }
 
-        public void QueueData(byte[] data, int startIndex)
+        public void QueueData(byte[] data)
         {
-            Debug.Assert(startIndex == 0);
             lock (_lock)
             {
                 InQueue.Enqueue(data);

@@ -202,8 +202,10 @@ namespace rgat
             ReplayState = REPLAY_STATE.eEnded;
         }
 
-
-        public bool RenderingComplete() => DrawnEdgesCount >= InternalProtoGraph.EdgeList.Count;
+        /// <summary>
+        /// Are all of the edges rendered
+        /// </summary>
+        public bool RenderingComplete => DrawnEdgesCount >= InternalProtoGraph.EdgeList.Count;
 
 
         protected void render_new_blocks()
@@ -440,7 +442,7 @@ namespace rgat
                 //record return address
                 if (n.VertType() == eEdgeNodeType.eNodeCall)
                 {
-                    callStack.Add(new Tuple<Tuple<float, float>, ulong>(new Tuple<float, float>(a, b), n.address + (ulong)n.ins.numbytes));
+                    callStack.Add(new Tuple<Tuple<float, float>, ulong>(new Tuple<float, float>(a, b), n.address + (ulong)n.ins.NumBytes));
                 }
 
                 //if returning from a function, limit drawing any new functions to below this one

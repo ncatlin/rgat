@@ -318,7 +318,7 @@ namespace rgat.Threads
 
             if (!protograph.ProcessData.EnsureBlockExistsGetAddress(thistag.blockID, out thistag.blockaddr))
             {
-                Logging.RecordError($"Error - EnsureBlockExistsGetAddress failed for {protograph.TraceData.binaryTarg.FileName} block {thistag.blockID}. Discarding trace.");
+                Logging.RecordError($"Error - EnsureBlockExistsGetAddress failed for {protograph.TraceData.Target.FileName} block {thistag.blockID}. Discarding trace.");
                 protograph.TraceReader.Terminate();
                 return;
             }
@@ -768,6 +768,7 @@ namespace rgat.Threads
             //problem here: no way of knowing which mutation of the faulting block was executed
             //going to have to assume it's the most recent mutation
             InstructionData exceptingins = faultingBlock![^1];
+            Debug.Assert(exceptingins.ContainingBlockIDs is not null);
             uint faultingBasicBlock_ID = exceptingins.ContainingBlockIDs[^1];
             List<InstructionData>? faultingBB = protograph.ProcessData.getDisassemblyBlock(faultingBasicBlock_ID);
             Debug.Assert(faultingBB is not null);

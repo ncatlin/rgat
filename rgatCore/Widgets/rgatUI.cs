@@ -325,7 +325,7 @@ namespace rgat
             {
                 DrawTargetBar();
 
-                BinaryTarget activeTarget = _rgatState.ActiveTarget;
+                BinaryTarget? activeTarget = _rgatState.ActiveTarget;
                 if (activeTarget == null)
                 {
                     DrawStartSplash();
@@ -697,7 +697,14 @@ namespace rgat
                 if (ImGui.MenuItem("Save Thread Trace")) { } //todo
                 if (ImGui.MenuItem("Save Process Traces")) { } //todo
                 if (ImGui.MenuItem("Save All Traces")) { rgatState.SaveAllTargets(); }
-                if (ImGui.MenuItem("Export Pajek")) { _rgatState.ExportTraceAsPajek(_rgatState.ActiveTrace, _rgatState.ActiveGraph.tid); }
+                if (ImGui.MenuItem("Export Pajek")) {
+                    TraceRecord? record = _rgatState.ActiveTrace;
+                    PlottedGraph? graph = _rgatState.ActiveGraph;
+                    if (record is not null && graph is not null)
+                    {
+                        _rgatState.ExportTraceAsPajek(record, graph.tid);
+                    }
+                }
                 ImGui.Separator();
                 if (ImGui.MenuItem("Open Screenshot/Video Folder"))
                 {
@@ -1132,14 +1139,14 @@ namespace rgat
         private unsafe bool DrawTargetBar()
         {
 
-            if (rgatState.targets.count() == 0)
+            if (rgatState.targets.Count == 0)
             {
                 ImGui.Text("No target selected or trace loaded");
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
                 return false;
             }
 
-            BinaryTarget activeTarget = _rgatState.ActiveTarget;
+            BinaryTarget? activeTarget = _rgatState.ActiveTarget;
             //there shouldn't actually be a way to select a null target once one is loaded
             string activeString = (activeTarget == null) ? "No target selected" : activeTarget.FilePath;
             List<string> paths = rgatState.targets.GetTargetPaths();
@@ -1365,7 +1372,7 @@ namespace rgat
             }
             GlobalConfig.Settings.RecentPaths.RecordRecentPath(rgatSettings.eRecentPathType.Trace, filepath);
 
-            BinaryTarget target = trace.binaryTarg;
+            BinaryTarget target = trace.Target;
 
             //todo only if signatures not stored in trace + file exists on disk
             rgatState.DIELib?.StartDetectItEasyScan(target);
@@ -1423,7 +1430,7 @@ namespace rgat
         public void DrawTraceListSelectBox(ref bool shown)
         {
 
-            string? startdir = Path.GetDirectoryName(_rgatState.ActiveTarget.FilePath);
+            string? startdir = _rgatState.ActiveTarget != null ? Path.GetDirectoryName(_rgatState.ActiveTarget.FilePath) : null;
             if (startdir is null || !Directory.Exists(startdir)) startdir = Environment.CurrentDirectory;
             var picker = rgatFilePicker.FilePicker.GetFilePicker(this, startdir, allowMulti: true);
 
@@ -1455,18 +1462,22 @@ namespace rgat
 
         public void AddDirectoriesToTracingList(List<string> files)
         {
-            if (_rgatState.ActiveTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+            BinaryTarget? activeTarget = _rgatState.ActiveTarget;
+            if (activeTarget is not null)
             {
-                foreach (string f in files)
+                if (activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
                 {
-                    _rgatState.ActiveTarget.TraceChoices.AddTracedDirectory(f);
+                    foreach (string f in files)
+                    {
+                        activeTarget.TraceChoices.AddTracedDirectory(f);
+                    }
                 }
-            }
-            else
-            {
-                foreach (string f in files)
+                else
                 {
-                    _rgatState.ActiveTarget.TraceChoices.AddIgnoredDirectory(f);
+                    foreach (string f in files)
+                    {
+                        activeTarget.TraceChoices.AddIgnoredDirectory(f);
+                    }
                 }
             }
         }
@@ -1474,18 +1485,22 @@ namespace rgat
         public void AddFilesToTracingList(List<string> files)
         {
 
-            if (_rgatState.ActiveTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+            BinaryTarget? activeTarget = _rgatState.ActiveTarget;
+            if (activeTarget is not null)
             {
-                foreach (string f in files)
+                if (activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
                 {
-                    _rgatState.ActiveTarget.TraceChoices.AddTracedFile(f);
+                    foreach (string f in files)
+                    {
+                        activeTarget.TraceChoices.AddTracedFile(f);
+                    }
                 }
-            }
-            else
-            {
-                foreach (string f in files)
+                else
                 {
-                    _rgatState.ActiveTarget.TraceChoices.AddIgnoredFile(f);
+                    foreach (string f in files)
+                    {
+                        activeTarget.TraceChoices.AddIgnoredFile(f);
+                    }
                 }
             }
         }

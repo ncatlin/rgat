@@ -704,7 +704,7 @@ namespace rgat
             Debug.Assert(rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode);
             lock (_sendQueueLock)
             {
-                byte[] Jsnbytes = Encoding.ASCII.GetBytes($"{trace.binaryTarg.GetSHA1Hash()},{trace.PID},{trace.randID},{info}");
+                byte[] Jsnbytes = Encoding.ASCII.GetBytes($"{trace.Target.GetSHA1Hash()},{trace.PID},{trace.randID},{info}");
                 _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.TraceMeta, destinationID = 0, data = Jsnbytes });
                 NewOutDataEvent.Set();
             }

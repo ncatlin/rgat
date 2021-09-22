@@ -85,7 +85,7 @@ namespace rgat.OperationModes
         }
 
 
-        public void TraceBinary(string targetPath, string saveDirectory = null, bool recordVideo = false)
+        public void TraceBinary(string targetPath, string? saveDirectory = null, bool recordVideo = false)
         {
 
             Console.WriteLine($"Command line mode tracing binary {targetPath}");

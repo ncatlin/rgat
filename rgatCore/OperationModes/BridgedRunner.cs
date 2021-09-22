@@ -260,7 +260,7 @@ namespace rgat.OperationModes
                         //Console.WriteLine("handletracedata to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(item.data, 0, item.data.Length));
                         if (RemoteDataMirror.GetPipeInterface(item.destinationID, out RemoteDataMirror.ProcessIncomingWorkerData dataFunc))
                         {
-                            dataFunc(item.data, 0);
+                            dataFunc(item.data);
                         }
                         else
                         {
@@ -278,7 +278,7 @@ namespace rgat.OperationModes
                             RemoteDataMirror.GetPipeWorker(item.destinationID, out TraceProcessorWorker moduleHandler) &&
                             moduleHandler.GetType() == typeof(ModuleHandlerThread))
                         {
-                            ((ModuleHandlerThread)moduleHandler).ProcessIncomingTraceCommand(item.data, 0);
+                            ((ModuleHandlerThread)moduleHandler).ProcessIncomingTraceCommand(item.data);
                         }
                         else
                         {
@@ -405,7 +405,7 @@ namespace rgat.OperationModes
             if (!values.TryGetValue("TargetSHA", out JToken? shaTok)) return false;
             if (values.TryGetValue("Type", out JToken? typeTok) && typeTok.Type is JTokenType.String)
             {
-                if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget target)) return false;
+                if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget? target) || target is null) return false;
                 string sigType = typeTok.ToString();
                 switch (sigType)
                 {
@@ -466,7 +466,7 @@ namespace rgat.OperationModes
 
             if (!uint.TryParse(pidstr, out uint pid) || !long.TryParse(idstr, out long id)) return false;
 
-            if (sha1 != null && sha1.Length > 0 && rgatState.targets.GetTargetBySHA1(sha1, out BinaryTarget target))
+            if (sha1 != null && sha1.Length > 0 && rgatState.targets.GetTargetBySHA1(sha1, out BinaryTarget? target) && target is not null)
             {
                 target.GetTraceByIDs(pid, id, out trace);
                 if (trace == null)
@@ -497,7 +497,7 @@ namespace rgat.OperationModes
                     inparams[5] == "B" && uint.TryParse(inparams[6], out uint blockPipeID))
                 {
 
-                    ModuleHandlerThread moduleHandler = new ModuleHandlerThread(trace.binaryTarg, trace, blockPipeID);
+                    ModuleHandlerThread moduleHandler = new ModuleHandlerThread(trace.Target, trace, blockPipeID);
                     trace.ProcessThreads.Register(moduleHandler);
                     moduleHandler.RemoteCommandPipeID = cmdPipeID;
                     RemoteDataMirror.RegisterRemotePipe(cmdPipeID, moduleHandler, null);
@@ -505,7 +505,7 @@ namespace rgat.OperationModes
                     moduleHandler.Begin();
 
 
-                    BlockHandlerThread blockHandler = new BlockHandlerThread(trace.binaryTarg, trace, eventPipeID);
+                    BlockHandlerThread blockHandler = new BlockHandlerThread(trace.Target, trace, eventPipeID);
                     trace.ProcessThreads.Register(blockHandler);
                     RemoteDataMirror.RegisterRemotePipe(blockPipeID, blockHandler, blockHandler.AddRemoteBlockData);
                     blockHandler.Begin();
@@ -678,7 +678,7 @@ namespace rgat.OperationModes
                 return;
             }
 
-            if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget target))
+            if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget? target) || target is null)
             {
                 Logging.RecordLogEvent($"Tried to start scan for non-existent target hash {shaTok}");
                 return;

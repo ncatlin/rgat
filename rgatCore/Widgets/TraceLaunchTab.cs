@@ -538,7 +538,7 @@ namespace rgat
                 ImGui.PopStyleColor();
                 ImGui.SameLine();
 
-                if (ImGui.Checkbox("Start Paused", ref _checkStartPausedState))
+                if (ImGui.Checkbox("Start Paused", ref _checkStartPausedState) && _rgatState.ActiveTarget is not null)
                 {
                     _rgatState.ActiveTarget.SetTraceConfig("PAUSE_ON_START", _checkStartPausedState ? "TRUE" : "FALSE");
                 }

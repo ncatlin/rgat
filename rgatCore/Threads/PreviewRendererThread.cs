@@ -3,6 +3,9 @@ using System.Threading;
 
 namespace rgat.Threads
 {
+    /// <summary>
+    /// A worker for rendering the preview graphs of all threads in a trace record
+    /// </summary>
     public class PreviewRendererThread : TraceProcessorWorker
     {
         readonly TraceRecord RenderedTrace;
@@ -13,21 +16,31 @@ namespace rgat.Threads
         /// <param name="widget"></param>
         public static void SetPreviewWidget(PreviewGraphsWidget widget) => _graphWidget = widget;
 
-        static PreviewGraphsWidget _graphWidget;
+        static PreviewGraphsWidget? _graphWidget;
 
+        /// <summary>
+        /// Create a preview renderer
+        /// </summary>
+        /// <param name="_renderedTrace">The trace with graphs to be rendered</param>
         public PreviewRendererThread(TraceRecord _renderedTrace)
         {
             RenderedTrace = _renderedTrace;
         }
 
+        /// <summary>
+        /// Start this worker
+        /// </summary>
         public override void Begin()
         {
             base.Begin();
             WorkerThread = new Thread(ThreadProc);
-            WorkerThread.Name = $"PreviewWrk_{RenderedTrace.PID}_{RenderedTrace.binaryTarg.TracesCount}";
+            WorkerThread.Name = $"PreviewWrk_{RenderedTrace.PID}_{RenderedTrace.Target.TracesCount}";
             WorkerThread.Start();
         }
 
+        /// <summary>
+        /// The worker thread entry point
+        /// </summary>
         public void ThreadProc()
         {
             Logging.RecordLogEvent($"PreviewRenderThread ThreadProc START", Logging.LogFilterType.BulkDebugLogFile);
@@ -60,7 +73,7 @@ namespace rgat.Threads
 
                         //Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
                         graph.RenderGraph();
-                        if (!graph.RenderingComplete())
+                        if (!graph.RenderingComplete)
                             moreRenderingNeeded = true;
                     }
 

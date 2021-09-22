@@ -35,7 +35,7 @@ namespace rgat
 
             if (!IsExternal)
             {
-                nodearr.Add(ins.mutationIndex);
+                nodearr.Add(ins.MutationIndex);
             }
             else
             {
@@ -192,7 +192,7 @@ namespace rgat
             if (plot.IsAnimated && plot.InternalProtoGraph.ProtoLastVertID == index) return true;
 
             if (plot.Opt_TextEnabledSym && HasSymbol) return true;
-            if (plot.Opt_TextEnabledIns && ins != null && ins.ins_text.Length > 0) return true;
+            if (plot.Opt_TextEnabledIns && ins != null && ins.InsText?.Length > 0) return true;
             return false;
 
         }
@@ -220,9 +220,9 @@ namespace rgat
             if (plot.Opt_ShowNodeIndexes) Label += $"{this.index}:";
             if (plot.Opt_ShowNodeAddresses) Label += $"0x{this.address:X}:";
 
-            if (!IsExternal && ins.ins_text.Length > 0)
+            if (!IsExternal && ins.InsText?.Length > 0)
             {
-                Label += $" {ins.ins_text}";
+                Label += $" {ins.InsText}";
             }
 
             if (HasSymbol)
