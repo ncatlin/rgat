@@ -15,7 +15,6 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using System.Threading;
 
 namespace rgatFilePicker
 {
@@ -37,13 +36,13 @@ namespace rgatFilePicker
 
         }
 
-        System.Timers.Timer _refreshTimer;
+        readonly System.Timers.Timer _refreshTimer;
         bool _refreshTimerFired = false;
-
-        BridgeConnection _remoteMirror;
+        readonly BridgeConnection _remoteMirror;
         private const int RefreshThresholdSeconds = 2;
         public DateTime Created { get; private set; }
-        string myID;
+
+        readonly string myID;
 
         private class FileMetadata
         {
@@ -126,13 +125,13 @@ namespace rgatFilePicker
         {
 
             private DateTime lastRefreshed;
-            private string basePath;
+            private readonly string basePath;
             private List<string> latestDirPaths = null;
             private List<string> latestFilePaths = null;
-            private List<string> addedDirPaths = new List<string>();
-            private List<string> addedFilePaths = new List<string>();
-            private List<FileMetadata> lostDirs = new List<FileMetadata>();
-            private List<FileMetadata> lostFiles = new List<FileMetadata>();
+            private readonly List<string> addedDirPaths = new List<string>();
+            private readonly List<string> addedFilePaths = new List<string>();
+            private readonly List<FileMetadata> lostDirs = new List<FileMetadata>();
+            private readonly List<FileMetadata> lostFiles = new List<FileMetadata>();
             public string ErrMsg = "";
             public Dictionary<string, FileMetadata> fileData { get; private set; } = null;
             public Dictionary<string, FileMetadata> dirData { get; private set; } = null;
@@ -401,7 +400,7 @@ namespace rgatFilePicker
         public enum PickerResult { eNoAction, eTrue, eFalse };
         static readonly Dictionary<object, FilePicker> _filePickers = new Dictionary<object, FilePicker>();
         static readonly Dictionary<object, FILEPICKER_DATA> _filePickerData = new Dictionary<object, FILEPICKER_DATA>();
-        FILEPICKER_DATA Data = new FILEPICKER_DATA();
+        readonly FILEPICKER_DATA Data = new FILEPICKER_DATA();
         public DateTime LastDriveListRefresh = DateTime.MinValue;
         public string SelectedFile;
         public List<string> SelectedFiles;
@@ -423,7 +422,7 @@ namespace rgatFilePicker
             public bool CurrentDirectoryParentExists;
             public string ErrMsg;
         }
-        private bool _badDir = false;
+        private readonly bool _badDir = false;
 
         public static FilePicker GetDirectoryPicker(object o, string startingPath)
             => GetFilePicker(o, startingPath, null, true);
@@ -529,7 +528,7 @@ namespace rgatFilePicker
             }
 
 
-            if (ImGui.Selectable(label, isSelected, ImGuiSelectableFlags.SpanAllColumns) 
+            if (ImGui.Selectable(label, isSelected, ImGuiSelectableFlags.SpanAllColumns)
                 || ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
                 if (!isSelected)
@@ -808,8 +807,8 @@ namespace rgatFilePicker
                     SetActiveDirectory(currentDirString);
                 }
             }
-            
-            if (AllowMultiSelect && (SelectedFiles.Count+SelectedDirectories.Count) > 0)
+
+            if (AllowMultiSelect && (SelectedFiles.Count + SelectedDirectories.Count) > 0)
             {
                 ImGui.SameLine(ImGui.GetContentRegionMax().X - 85);
                 if (ImGui.Button("Clear Selected"))
@@ -958,7 +957,7 @@ namespace rgatFilePicker
             return PickerResult.eNoAction;
         }
 
-        List<string> _directoryHistory = new List<string>();
+        readonly List<string> _directoryHistory = new List<string>();
         int _directoryHistoryPosition = 0;
 
         void SetActiveDirectory(string dir, bool modifyHistory = true)

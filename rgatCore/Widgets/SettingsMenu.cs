@@ -3,10 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Numerics;
 using System.Threading;
-using System.Threading.Tasks;
 using Veldrid;
 using static rgat.CONSTANTS;
 
@@ -55,7 +53,8 @@ namespace rgat.Widgets
             public string currentKey = "";
             public bool IsResponsive;
         }
-        PendingKeybind _pendingKeybind = new PendingKeybind();
+
+        readonly PendingKeybind _pendingKeybind = new PendingKeybind();
         public bool HasPendingKeybind
         {
             get => _pendingKeybind.active;
@@ -720,7 +719,7 @@ namespace rgat.Widgets
 
         bool alsoEraseFiles = false;
         string currentRepoTextEntry = "";
-        List<GlobalConfig.SignatureSource> _validInputRepos = new List<GlobalConfig.SignatureSource>();
+        readonly List<GlobalConfig.SignatureSource> _validInputRepos = new List<GlobalConfig.SignatureSource>();
         enum eRepoChangeState { Inactive, Delete, Add };
         eRepoChangeState _repoChangeState = eRepoChangeState.Inactive;
 
@@ -755,7 +754,7 @@ namespace rgat.Widgets
 
 
         CancellationTokenSource _cancelTokens = null;
-        GithubSignatureManager _githubSigDownloader = new GithubSignatureManager();
+        readonly GithubSignatureManager _githubSigDownloader = new GithubSignatureManager();
 
         void RefreshSelectedSignatureSources()
         {
@@ -898,7 +897,7 @@ namespace rgat.Widgets
             return clearFlag || selected;
         }
 
-        Dictionary<CONSTANTS.PathKey, string> settingTips = new Dictionary<CONSTANTS.PathKey, string>();
+        readonly Dictionary<CONSTANTS.PathKey, string> settingTips = new Dictionary<CONSTANTS.PathKey, string>();
 
         void CreateOptionsPane_Files()
         {
@@ -1063,8 +1062,8 @@ namespace rgat.Widgets
 
         }
 
-        object _filePickHandle = new object();
-        object _dirPickHandle = new object();
+        readonly object _filePickHandle = new object();
+        readonly object _dirPickHandle = new object();
         private void DrawFolderSelectBox()
         {
             if (ImGui.BeginPopupModal("##FoldersDLG", ref _popupActive))
@@ -1409,7 +1408,8 @@ namespace rgat.Widgets
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip(expandBtnTip);
 
                 Themes.GetMetadataValue("Name", out string? activeThemeName);
-                if (activeThemeName != GlobalConfig.Settings.Themes.DefaultTheme)
+                if (activeThemeName is not null &&
+                    activeThemeName != GlobalConfig.Settings.Themes.DefaultTheme)
                 {
                     ImGui.SameLine();
                     if (ImGui.Button("Set As Default"))

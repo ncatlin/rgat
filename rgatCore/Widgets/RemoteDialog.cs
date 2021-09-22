@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Numerics;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -14,15 +13,15 @@ namespace rgat.Widgets
     class RemoteDialog
     {
         public bool ListenMode = false;
-        List<NetworkInterface> _netIFList = new List<NetworkInterface>();
+        readonly List<NetworkInterface> _netIFList = new List<NetworkInterface>();
         string _listenIFID = "";
         string _connectIFID = "";
-        string activeInterfaceID;
-        System.Timers.Timer _refreshTimer = new System.Timers.Timer(CONSTANTS.NETWORK.InterfaceRefreshIntervalMS);
+        readonly string activeInterfaceID;
+        readonly System.Timers.Timer _refreshTimer = new System.Timers.Timer(CONSTANTS.NETWORK.InterfaceRefreshIntervalMS);
         bool _refreshTimerFired = false;
-        int listenPort = -1;
-        OperationModes.BridgedRunner runner;
-        rgatState _rgatState;
+        readonly int listenPort = -1;
+        readonly OperationModes.BridgedRunner runner;
+        readonly rgatState _rgatState;
 
         public RemoteDialog(rgatState state)
         {

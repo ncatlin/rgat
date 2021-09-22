@@ -30,23 +30,22 @@ namespace rgat.Widgets
 
         }
 
-        TestHarnessThread _testingThread;
-        ImGuiController _controller;
-        Dictionary<string, TestCategory> _testDirectories = new Dictionary<string, TestCategory>();
-        Dictionary<string, TestCategory> _testCategories = new Dictionary<string, TestCategory>();
+        readonly TestHarnessThread _testingThread;
+        readonly ImGuiController _controller;
+        readonly Dictionary<string, TestCategory> _testDirectories = new Dictionary<string, TestCategory>();
+        readonly Dictionary<string, TestCategory> _testCategories = new Dictionary<string, TestCategory>();
         List<string> _orderedTestDirs = new List<string>();
         bool _testsRunning = false;
         enum eCatFilter { All = 0, Remaining = 1, Complete = 2, Passing = 3, Failed = 4, StarredTest = 5, StarredCat = 6 }
         int _selectedFilter = (int)eCatFilter.All;
-        string[] filters = new string[] { "Show All Tests", "Show Remaining Tests","Show Complete Tests",
+        readonly string[] filters = new string[] { "Show All Tests", "Show Remaining Tests","Show Complete Tests",
             "Show Passing Tests","Show Failed Tests",
             "Show Starred Tests", "Show Starred Categories"};
         readonly int treeWidth = 400;
-        List<TestCase> _queuedTests = new List<TestCase>();
-        List<TestCase> _allTests = new List<TestCase>();
+        readonly List<TestCase> _queuedTests = new List<TestCase>();
+        readonly List<TestCase> _allTests = new List<TestCase>();
         Dictionary<string, float> _sessionStats = new Dictionary<string, float>();
-
-        List<Testing.TestOutput> _outputText = new List<Testing.TestOutput>();
+        readonly List<Testing.TestOutput> _outputText = new List<Testing.TestOutput>();
 
         readonly object _TestsLock = new object();
 

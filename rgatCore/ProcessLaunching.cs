@@ -1,5 +1,4 @@
-﻿using ImGuiNET;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using rgat.Threads;
 using System;
 using System.Collections.Generic;
@@ -13,7 +12,7 @@ namespace rgat
     public class TraceProcessorWorkers
     {
         //could probably just put them in a map instead
-        List<TraceProcessorWorker> workers = new List<TraceProcessorWorker>();
+        readonly List<TraceProcessorWorker> workers = new List<TraceProcessorWorker>();
         public ModuleHandlerThread modThread;
         public BlockHandlerThread BBthread;
         public PreviewRendererThread previewThread;

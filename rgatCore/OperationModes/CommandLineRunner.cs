@@ -1,16 +1,14 @@
 ﻿using rgat.Threads;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace rgat.OperationModes
-{    
-     /// <summary>
-     /// Runs rgat locally, without a GUI. Can be run without the GPU at all to generate a trace file, 
-     /// or with the GPU to generate a video or image
-     /// </summary>
+{
+    /// <summary>
+    /// Runs rgat locally, without a GUI. Can be run without the GPU at all to generate a trace file, 
+    /// or with the GPU to generate a video or image
+    /// </summary>
     public class CommandLineRunner
     {
         public CommandLineRunner()
@@ -18,7 +16,7 @@ namespace rgat.OperationModes
 
         }
 
-        
+
         public void InitNoGPU()
         {
             LoadingThreadCommandLine();
@@ -29,7 +27,7 @@ namespace rgat.OperationModes
         {
 
             Logging.RecordLogEvent("Initing/Loading Config", Logging.LogFilterType.TextDebug);
-            
+
             System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
             timer.Start();
             float configProgress = 0, widgetProgress = 0;
@@ -96,24 +94,24 @@ namespace rgat.OperationModes
             string pintoolpath = target.BitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
 
-            
+
             ProcessLaunching.StartLocalTrace(pintoolpath, targetPath, target.PEFileObj);
 
-            while(true)
+            while (true)
             {
                 Thread.Sleep(1000);
                 var targets = rgatState.targets.GetBinaryTargets();
-                int traces= 0, running = 0;
-                foreach(var previousTarget in targets)
+                int traces = 0, running = 0;
+                foreach (var previousTarget in targets)
                 {
-                    foreach (var previousTrace in previousTarget.GetTracesList( ))
+                    foreach (var previousTrace in previousTarget.GetTracesList())
                     {
                         traces += 1;
                         if (previousTrace.IsRunning) running += 1;
                     }
                 }
                 Console.WriteLine($"{running}/{traces} traces running accross {targets.Count} targets");
-                if ( traces > 0 && running == 0) //also wait for keypress
+                if (traces > 0 && running == 0) //also wait for keypress
                 {
                     Console.WriteLine("All traces done. Saving and exiting.");
                     rgatState.SaveAllTargets();

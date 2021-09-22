@@ -6,8 +6,8 @@ namespace rgat
 {
     public class BinaryTargets
     {
-        private Dictionary<string, BinaryTarget> targets = new Dictionary<string, BinaryTarget>();
-        private Dictionary<string, BinaryTarget> sha1s = new Dictionary<string, BinaryTarget>();
+        private readonly Dictionary<string, BinaryTarget> targets = new Dictionary<string, BinaryTarget>();
+        private readonly Dictionary<string, BinaryTarget> sha1s = new Dictionary<string, BinaryTarget>();
         public BinaryTargets() { }
         public int count() => targets.Count;
 
@@ -54,10 +54,10 @@ namespace rgat
                 return target;
             }
         }
-                
+
         public void RegisterTargetSHA1(string sha1, BinaryTarget target)
         {
-            lock(targetslock)
+            lock (targetslock)
             {
                 if (!this.sha1s.TryGetValue(sha1, out BinaryTarget? existingTarget))
                 {

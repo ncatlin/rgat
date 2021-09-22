@@ -148,7 +148,7 @@ namespace rgat
         /// Cancellation tokens to be used by all rgat tasks to signal that rgat is shutting down
         /// Nothing should block in a way that will ignore this for more than a few hundred milliseconds
         /// </summary>
-        static CancellationTokenSource _exitTokenSource = new CancellationTokenSource();
+        static readonly CancellationTokenSource _exitTokenSource = new CancellationTokenSource();
         /// <summary>
         /// rgat is shutting down
         /// </summary>
@@ -353,9 +353,8 @@ namespace rgat
 
         }
 
-
-        Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
-        Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
+        readonly Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
+        readonly Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
 
         /// <summary>
         /// Causes the UI to switch to displaying a different thread graph
@@ -502,7 +501,7 @@ namespace rgat
             valid &= saveJSON.TryGetValue("PID_ID", out JToken? jID) && jID is not null;
             valid &= saveJSON.TryGetValue("StartTime", out JToken? jTime) && jTime is not null;
 
-            if (valid is false || 
+            if (valid is false ||
                 jPID!.Type != JTokenType.Integer ||
                 jID!.Type != JTokenType.Integer)
             {
@@ -655,7 +654,7 @@ namespace rgat
             {
                 savedCount += SaveTarget(targ);
             }
-            
+
             Logging.RecordLogEvent($"Finished saving {savedCount} trace{((savedCount is not 1) ? 's' : "")}", Logging.LogFilterType.TextAlert);
             Console.WriteLine($"Finished saving {targslist.Count} targets");
         }
@@ -679,7 +678,7 @@ namespace rgat
                 if (!trace.WasLoadedFromSave)
                 {
                     if (trace.Save(creationTime, out string? path))
-                    { 
+                    {
                         savedCount += 1;
                         Logging.RecordLogEvent($"Saved Process {trace.PID} to {Path.GetDirectoryName(path)}", Logging.LogFilterType.TextAlert);
                     }
@@ -699,7 +698,7 @@ namespace rgat
 
 
         readonly object _testDictLock = new object();
-        Dictionary<long, TraceRecord> _testConnections = new Dictionary<long, TraceRecord>();
+        readonly Dictionary<long, TraceRecord> _testConnections = new Dictionary<long, TraceRecord>();
         /// <summary>
         /// Store a reference to an incoming rgat test trace
         /// </summary>

@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Text;
 using Veldrid;
 
 namespace rgat
@@ -30,7 +28,7 @@ namespace rgat
         static ImGuiNET.ImGuiController _controller;
         static CommandList _commandList;
 
-        public static unsafe Bitmap CreateRecordingFrame(Framebuffer fbuf,  float startX, float startY, float drawWidth, float drawHeight)
+        public static unsafe Bitmap CreateRecordingFrame(Framebuffer fbuf, float startX, float startY, float drawWidth, float drawHeight)
         {
             GraphicsDevice gd = _controller.graphicsDevice;
             Texture ftex = fbuf.ColorTargets[0].Target;

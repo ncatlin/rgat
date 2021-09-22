@@ -62,7 +62,7 @@ namespace rgat
             jsnArrIdx++;
 
             if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
-            conditional = (eConditionalType)nodeData[jsnArrIdx].ToObject<int>();
+            conditional = (ConditionalType)nodeData[jsnArrIdx].ToObject<int>();
             jsnArrIdx++;
 
             if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
@@ -415,8 +415,8 @@ namespace rgat
         public bool SetHighlighted(bool state) => Highlighted = state;
         public uint index = 0;
 
-        public bool IsConditional() => conditional != eConditionalType.NOTCONDITIONAL;
-        public eConditionalType conditional = eConditionalType.NOTCONDITIONAL;
+        public bool IsConditional() => conditional != ConditionalType.NOTCONDITIONAL;
+        public ConditionalType conditional = ConditionalType.NOTCONDITIONAL;
         public InstructionData ins;
         public bool IsExternal { get; set; } = false;
         public bool ThunkCaller = false;
@@ -444,7 +444,7 @@ namespace rgat
         }
         public void IncreaseExecutionCount(ulong value)
         {
-            SetExecutionCount(executionCount + value); 
+            SetExecutionCount(executionCount + value);
         }
 
         public float heatRank = 0; //0-9 least to most busy

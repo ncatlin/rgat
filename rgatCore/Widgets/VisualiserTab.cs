@@ -4,9 +4,7 @@ using rgat.Widgets;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Numerics;
-using System.Text;
 using Veldrid;
 using static rgat.CONSTANTS;
 
@@ -17,7 +15,7 @@ namespace rgat
         GraphPlotWidget MainGraphWidget;
         public PreviewGraphsWidget PreviewGraphWidget { get; private set; }
         VisualiserBar _visualiserBar;
-        rgatState _rgatState;
+        readonly rgatState _rgatState;
 
         //threads
         Threads.VisualiserBarRendererThread visbarRenderThreadObj = null;
@@ -633,7 +631,7 @@ namespace rgat
                                     ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                                     caption += $" [{nodeCount} nodes]";
                                 }
-                               
+
                                 if (ImGui.Selectable(caption, graph.ThreadID == selectablegraph.tid) && nodeCount > 0)
                                 {
                                     SetActiveGraph(selectablegraph);

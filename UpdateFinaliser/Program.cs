@@ -78,7 +78,7 @@ namespace UpdateFinaliser
                     try
                     {
                         Process.Start(updated_rgat);
-                    } 
+                    }
                     catch (Exception e)
                     {
                         log.Write(Encoding.ASCII.GetBytes($"Exception launching rgat - {e.Message}\n"));

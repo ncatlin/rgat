@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using rgat.Config;
 using rgat.Threads;
 using System;
@@ -28,10 +27,9 @@ namespace rgat.OperationModes
         {
         }
 
-        Queue<NETWORK_MSG> _incomingData = new Queue<NETWORK_MSG>();
+        readonly Queue<NETWORK_MSG> _incomingData = new Queue<NETWORK_MSG>();
         readonly object _lock = new object();
-
-        ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
+        readonly ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
 
 
         public void StartGUIConnect(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback onConnected)
@@ -370,9 +368,9 @@ namespace rgat.OperationModes
                         Logging.RecordError("Bad async data: " + name);
                         return;
                 }
-            } 
+            }
             catch (Exception e)
-            { 
+            {
                 Logging.RecordError("Error processing async data: " + e.Message);
             }
 
@@ -390,9 +388,9 @@ namespace rgat.OperationModes
 
             JObject? values = data.ToObject<JObject>();
             if (values is null) return false;
-            if (values.TryGetValue("YARA", out JToken? yaraTok) && yaraTok.Type is JTokenType.Date) 
+            if (values.TryGetValue("YARA", out JToken? yaraTok) && yaraTok.Type is JTokenType.Date)
                 rgatState.YARALib.EndpointNewestSignature = yaraTok.ToObject<DateTime>();
-            if (values.TryGetValue("DIE", out JToken? dieTok) && dieTok.Type is JTokenType.Date) 
+            if (values.TryGetValue("DIE", out JToken? dieTok) && dieTok.Type is JTokenType.Date)
                 rgatState.DIELib.EndpointNewestSignature = dieTok.ToObject<DateTime>();
 
             return true;
@@ -422,7 +420,7 @@ namespace rgat.OperationModes
                         break;
 
                     default:
-                        Logging.RecordError("ProcessSignatureHit processing bad signature type:"+sigType.Substring(0, Math.Min(50, sigType.Length)));
+                        Logging.RecordError("ProcessSignatureHit processing bad signature type:" + sigType.Substring(0, Math.Min(50, sigType.Length)));
                         return false;
                 }
             }
@@ -680,13 +678,14 @@ namespace rgat.OperationModes
                 return;
             }
 
-            if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget target)) {
+            if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget target))
+            {
                 Logging.RecordLogEvent($"Tried to start scan for non-existent target hash {shaTok}");
-                return; 
+                return;
             }
 
             bool reload = false;
-            if (paramsObj.TryGetValue("Reload", out JToken? reloadtok) && reloadtok.Type == JTokenType.Boolean )
+            if (paramsObj.TryGetValue("Reload", out JToken? reloadtok) && reloadtok.Type == JTokenType.Boolean)
                 reload = reloadtok.ToObject<bool>();
 
             string typeName = typeTok.ToString();
@@ -822,10 +821,7 @@ namespace rgat.OperationModes
             return false;
         }
 
-
-
-
-        JsonLoadSettings _JSONLoadSettings = new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error };
+        readonly JsonLoadSettings _JSONLoadSettings = new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error };
 
 
 

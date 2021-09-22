@@ -6,31 +6,29 @@ using System.Diagnostics;
 using System.IO.Pipes;
 using System.Linq;
 using System.Threading;
-using System.Timers;
 
 namespace rgat
 {
     public class PipeTraceIngestThread : TraceIngestWorker
     {
-        uint TraceBufSize = GlobalConfig.Settings.Tracing.TraceBufferSize;
-        ProtoGraph protograph;
-        NamedPipeServerStream threadpipe;
+        readonly uint TraceBufSize = GlobalConfig.Settings.Tracing.TraceBufferSize;
+        readonly ProtoGraph protograph;
+        readonly NamedPipeServerStream threadpipe;
         Thread splittingThread;
-        bool PipeBroke = false;
+        readonly bool PipeBroke = false;
 
         public ManualResetEventSlim RawIngestCompleteEvent = new ManualResetEventSlim(false);
         delegate void QueueIngestedData(byte[] data);
 
         private readonly object QueueSwitchLock = new object();
         int readIndex = 0;
-        List<byte[]> FirstQueue = new List<byte[]>();
-        List<byte[]> SecondQueue = new List<byte[]>();
+        readonly List<byte[]> FirstQueue = new List<byte[]>();
+        readonly List<byte[]> SecondQueue = new List<byte[]>();
         List<byte[]> ReadingQueue = null;
         List<byte[]> WritingQueue = null;
-        ConcurrentQueue<Tuple<byte[], int>> RawQueue = new ConcurrentQueue<Tuple<byte[], int>>();
-
-        uint _threadID;
-        uint? _remotePipe;
+        readonly ConcurrentQueue<Tuple<byte[], int>> RawQueue = new ConcurrentQueue<Tuple<byte[], int>>();
+        readonly uint _threadID;
+        readonly uint? _remotePipe;
 
         public PipeTraceIngestThread(ProtoGraph newProtoGraph, NamedPipeServerStream _threadpipe, uint threadID, uint? remotePipe = null)
         {
@@ -59,7 +57,7 @@ namespace rgat
 
             if (_remotePipe.HasValue)
                 queueFunction = MirrorMessageToUI;
-            else 
+            else
                 queueFunction = EnqueueData;
 
             splittingThread.Start(queueFunction);

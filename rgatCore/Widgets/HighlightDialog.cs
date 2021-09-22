@@ -49,7 +49,7 @@ namespace rgat.Widgets
             public List<uint> SelectedExceptionNodes = new List<uint>();
         }
 
-        Dictionary<PlottedGraph, ThreadHighlightSettings> graphSettings = new Dictionary<PlottedGraph, ThreadHighlightSettings>();
+        readonly Dictionary<PlottedGraph, ThreadHighlightSettings> graphSettings = new Dictionary<PlottedGraph, ThreadHighlightSettings>();
         PlottedGraph _ActiveGraph = null;
         ThreadHighlightSettings _activeHighlights = null;
         Vector2 _initialSize = new Vector2(600, 300);

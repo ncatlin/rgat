@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,7 +21,7 @@ namespace rgat
         public int CompletedTaskCount { get; private set; }
         int _activeWorkers = 0;
         readonly object _lock = new object();
-        List<string> _currentRepos = new List<string>();
+        readonly List<string> _currentRepos = new List<string>();
         Action<GlobalConfig.SignatureSource> activeTaskAction;
 
         public List<string> GetActive()
@@ -94,7 +93,7 @@ namespace rgat
             try
             {
                 string commitsPath = $"https://api.github.com/repos/{repo.OrgName}/{repo.RepoName}/commits/master";
-                
+
                 Task<HttpResponseMessage> request = client.GetAsync(commitsPath, _token);
                 request.Wait(_token);
                 if (request.Result.StatusCode == System.Net.HttpStatusCode.OK)
@@ -102,11 +101,11 @@ namespace rgat
                     Task<string> content = request.Result.Content.ReadAsStringAsync();
                     content.Wait(_token);
 
-                    if (JObject.Parse(content.Result).TryGetValue("commit", out JToken? tok1) && 
+                    if (JObject.Parse(content.Result).TryGetValue("commit", out JToken? tok1) &&
                         tok1.Type == JTokenType.Object &&
-                        ((JObject)tok1).TryGetValue("committer", out JToken? tok2) && 
+                        ((JObject)tok1).TryGetValue("committer", out JToken? tok2) &&
                         tok2.Type == JTokenType.Object &&
-                        ((JObject)tok2).TryGetValue("date", out JToken? updateTok))         
+                        ((JObject)tok2).TryGetValue("date", out JToken? updateTok))
                     {
                         if (updateTok.Type == Newtonsoft.Json.Linq.JTokenType.Date)
                         {

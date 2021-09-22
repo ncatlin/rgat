@@ -1,16 +1,15 @@
-﻿using ImGuiNET;
+﻿using Humanizer;
+using ImGuiNET;
+using rgat.Config;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Drawing;
 using System.IO;
-using System.Text.Json;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using Veldrid;
 using static rgat.CONSTANTS;
-using rgat.Config;
-using System.Security.Cryptography.X509Certificates;
-using Humanizer;
 
 namespace rgat
 {
@@ -491,7 +490,7 @@ namespace rgat
 
 
         static bool _dirtyConfig = false;
-        static System.Timers.Timer _saveTimer = new System.Timers.Timer(800);
+        static readonly System.Timers.Timer _saveTimer = new System.Timers.Timer(800);
         static void SaveConfigTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             lock (_settingsLock)
@@ -647,7 +646,7 @@ namespace rgat
             }
 
             InitPaths();
-            
+
 
             if (GUI)
             {

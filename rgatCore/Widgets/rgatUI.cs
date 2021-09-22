@@ -1,43 +1,37 @@
 ﻿using Humanizer;
 using ImGuiNET;
 using rgat.Config;
-using rgat.Threads;
 using rgat.Widgets;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Veldrid;
-using Veldrid.Sdl2;
-using static rgat.Logging;
 using static rgat.CONSTANTS;
+using static rgat.Logging;
 
 namespace rgat
 {
     partial class rgatUI
     {
         //all-modes state
-        rgatState _rgatState;
+        readonly rgatState _rgatState;
 
         //hardware resources
-        ImGuiController _controller;
-        GraphicsDevice _gd;
+        readonly ImGuiController _controller;
+        readonly GraphicsDevice _gd;
 
         //widgets
-        SandboxChart chart;
-        VisualiserTab visualiserTab;
+        SandboxChart? chart;
+        VisualiserTab? visualiserTab;
 
         //dialogs
-        RemoteDialog _RemoteDialog;
-        TestsWindow _testHarness;
-        SettingsMenu _SettingsMenu;
-        LogsWindow _logsWindow;
+        RemoteDialog? _RemoteDialog;
+        TestsWindow? _testHarness;
+        SettingsMenu? _SettingsMenu;
+        readonly LogsWindow? _logsWindow;
 
         /// <summary>
         /// Causes the UI to fall out of the update loop and initiate rgat shutdown
@@ -67,13 +61,13 @@ namespace rgat
         public static double UIDrawFPS = 0;
         List<double> _lastFrameTimeMS = new List<double>();
         private int _selectedInstrumentationLevel = 0;
-
-        List<Tuple<Key, ModifierKeys>> _keyPresses = new List<Tuple<Key, ModifierKeys>>();
+        readonly List<Tuple<Key, ModifierKeys>> _keyPresses = new List<Tuple<Key, ModifierKeys>>();
         float _mouseWheelDelta = 0;
         Vector2 _mouseDragDelta = new Vector2(0, 0);
 
         bool DialogOpen => _controller.DialogOpen;
-        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover || _logsWindow.RecentAlert() || DialogOpen || (DateTime.Now - _lastNotification).TotalMilliseconds < 500);
+        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover ||
+            _logsWindow!.RecentAlert() || DialogOpen || (DateTime.Now - _lastNotification).TotalMilliseconds < 500);
         bool _splashHeaderHover = false;
         DateTime _lastNotification = DateTime.MinValue;
 
@@ -180,7 +174,7 @@ namespace rgat
                 CheckMissingPaths();
                 _scheduleMissingPathCheck = false;
             }
-            _activeTargetRunnable = _rgatState.ActiveTarget != null && _rgatState.ActiveTarget.IsRunnable;
+            _activeTargetRunnable = _rgatState.ActiveTarget != null && _rgatState.ActiveTarget.IsAccessible;
 
             if (ExitRequested) ExitFlag = true;
 
@@ -222,13 +216,13 @@ namespace rgat
             switch (frameType)
             {
                 case VideoEncoder.CaptureContent.Graph:
-                    height = (int)visualiserTab.GraphSize.Y;
+                    height = (int)visualiserTab!.GraphSize.Y;
                     width = (int)visualiserTab.GraphSize.X;
                     startX = (int)visualiserTab.GraphPosition.X;
                     startY = (int)visualiserTab.GraphPosition.Y;
                     break;
                 case VideoEncoder.CaptureContent.GraphAndPreviews:
-                    height = (int)visualiserTab.GraphSize.Y;
+                    height = (int)visualiserTab!.GraphSize.Y;
                     width = (int)visualiserTab.GraphSize.X + UI.PREVIEW_PANE_WIDTH;
                     startX = (int)visualiserTab.GraphPosition.X;
                     startY = (int)visualiserTab.GraphPosition.Y;
@@ -298,13 +292,13 @@ namespace rgat
             if (_show_test_harness)
             {
                 shown = _show_test_harness;
-                _testHarness.Draw(ref shown);
+                _testHarness!.Draw(ref shown);
                 if (!shown) ToggleTestHarness();
             }
             if (_show_logs_window)
             {
                 shown = _show_logs_window;
-                _logsWindow.Draw(ref shown);
+                _logsWindow!.Draw(ref shown);
                 if (!shown) ToggleLogsWindow();
             }
             if (_show_remote_dialog)
@@ -371,10 +365,10 @@ namespace rgat
             {
                 if (!_controller.DialogOpen)
                 {
-                    bool MouseInMainWidget = currentTabVisualiser && visualiserTab.MouseInMainWidget;
+                    bool MouseInMainWidget = currentTabVisualiser && visualiserTab!.MouseInMainWidget;
                     if (_mouseWheelDelta != 0)
                     {
-                        visualiserTab.NotifyMouseWheel(_mouseWheelDelta);
+                        visualiserTab!.NotifyMouseWheel(_mouseWheelDelta);
 
                         chart?.ApplyZoom(_mouseWheelDelta);
                         _mouseWheelDelta = 0;
@@ -384,11 +378,11 @@ namespace rgat
                     {
                         if (ImGui.GetIO().KeyAlt)
                         {
-                            visualiserTab.NotifyMouseRotate(_mouseDragDelta);
+                            visualiserTab!.NotifyMouseRotate(_mouseDragDelta);
                         }
                         else
                         {
-                            visualiserTab.NotifyMouseDrag(_mouseDragDelta);
+                            visualiserTab!.NotifyMouseDrag(_mouseDragDelta);
                             if (currentTabTimeline && chart is not null)
                             {
                                 chart.ApplyMouseDrag(_mouseDragDelta);
@@ -401,7 +395,7 @@ namespace rgat
 
                 foreach (Tuple<Key, ModifierKeys> KeyModifierTuple in _keyPresses)
                 {
-                    if (_SettingsMenu.HasPendingKeybind)
+                    if (_SettingsMenu!.HasPendingKeybind)
                     {
                         Key k = KeyModifierTuple.Item1;
                         switch (k)
@@ -434,7 +428,7 @@ namespace rgat
 
 
                     //could be a quickmenu shortcut
-                    if (visualiserTab.AlertRawKeyPress(KeyModifierTuple)) continue;
+                    if (visualiserTab!.AlertRawKeyPress(KeyModifierTuple)) continue;
 
                     if (isKeybind && !_show_settings_window)
                     {
@@ -502,7 +496,7 @@ namespace rgat
 
         private void CloseDialogs()
         {
-            if (_SettingsMenu.HasPendingKeybind)
+            if (_SettingsMenu!.HasPendingKeybind)
             {
                 _SettingsMenu.HasPendingKeybind = false;
                 return;
@@ -819,12 +813,12 @@ namespace rgat
                 switch (_lastScreenShot)
                 {
                     case VideoEncoder.CaptureContent.Graph:
-                        Vector2 graphpos = visualiserTab.GraphPosition;
+                        Vector2 graphpos = visualiserTab!.GraphPosition;
                         rectSize = visualiserTab.GraphSize;
                         startCenter = new Vector2(graphpos.X + rectSize.Value.X / 2, ImGui.GetWindowSize().Y - (graphpos.Y + rectSize.Value.Y / 2));
                         break;
                     case VideoEncoder.CaptureContent.GraphAndPreviews:
-                        Vector2 graphpos2 = visualiserTab.GraphPosition;
+                        Vector2 graphpos2 = visualiserTab!.GraphPosition;
                         rectSize = visualiserTab.GraphSize + new Vector2(CONSTANTS.UI.PREVIEW_PANE_WIDTH, 0);
                         startCenter = new Vector2(graphpos2.X + rectSize.Value.X / 2, ImGui.GetWindowSize().Y - (graphpos2.Y + rectSize.Value.Y / 2));
                         break;
@@ -974,7 +968,7 @@ namespace rgat
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
             {
                 ToggleLogsWindow();
-                _logsWindow.ShowAlerts();
+                _logsWindow!.ShowAlerts();
                 Logging.ClearAlertsBox();
             }
 
@@ -1187,7 +1181,7 @@ namespace rgat
             {
                 _OldTraceCount = -1;
                 _SwitchToVisualiserTab = true;
-                visualiserTab.ClearPreviewTrace();
+                visualiserTab!.ClearPreviewTrace();
                 _rgatState.SelectActiveTrace(newest: true);
             }
 
@@ -1223,7 +1217,7 @@ namespace rgat
                 {
                     _currentTab = "Visualiser";
 
-                    visualiserTab.Draw();
+                    visualiserTab!.Draw();
                 }
 
 
@@ -1461,18 +1455,18 @@ namespace rgat
 
         public void AddDirectoriesToTracingList(List<string> files)
         {
-            if (_rgatState.ActiveTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+            if (_rgatState.ActiveTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
             {
                 foreach (string f in files)
                 {
-                    _rgatState.ActiveTarget.traceChoices.AddTracedDirectory(f);
+                    _rgatState.ActiveTarget.TraceChoices.AddTracedDirectory(f);
                 }
             }
             else
             {
                 foreach (string f in files)
                 {
-                    _rgatState.ActiveTarget.traceChoices.AddIgnoredDirectory(f);
+                    _rgatState.ActiveTarget.TraceChoices.AddIgnoredDirectory(f);
                 }
             }
         }
@@ -1480,18 +1474,18 @@ namespace rgat
         public void AddFilesToTracingList(List<string> files)
         {
 
-            if (_rgatState.ActiveTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+            if (_rgatState.ActiveTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
             {
                 foreach (string f in files)
                 {
-                    _rgatState.ActiveTarget.traceChoices.AddTracedFile(f);
+                    _rgatState.ActiveTarget.TraceChoices.AddTracedFile(f);
                 }
             }
             else
             {
                 foreach (string f in files)
                 {
-                    _rgatState.ActiveTarget.traceChoices.AddIgnoredFile(f);
+                    _rgatState.ActiveTarget.TraceChoices.AddIgnoredFile(f);
                 }
             }
         }

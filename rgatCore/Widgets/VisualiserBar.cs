@@ -23,9 +23,9 @@ namespace rgat.Widgets
             InitGraphics();
         }
 
-        ImGuiController _controller;
-        GraphicsDevice _gd;
-        ResourceFactory _factory;
+        readonly ImGuiController _controller;
+        readonly GraphicsDevice _gd;
+        readonly ResourceFactory _factory;
         Pipeline _lineListPipeline, _pointPipeline, _triPipeline;
         ResourceLayout _rsrcLayout;
         DeviceBuffer _pointsVertexBuffer, _pointsIndexBuffer;
@@ -388,8 +388,7 @@ namespace rgat.Widgets
 
         int lastDrawnTagIdx = 0;
         float barScrollingPos = 0;
-
-        List<MODULE_LABEL> _moduleTexts = new List<MODULE_LABEL>();
+        readonly List<MODULE_LABEL> _moduleTexts = new List<MODULE_LABEL>();
         readonly object _lock = new object();
 
 
@@ -610,10 +609,9 @@ namespace rgat.Widgets
             _triangleVerts = triangles.ToArray();
         }
 
-
-        Dictionary<ProtoGraph, Dictionary<int, double>> _cumuls = new Dictionary<ProtoGraph, Dictionary<int, double>>();
-        Dictionary<ProtoGraph, Dictionary<int, double>> _avgs = new Dictionary<ProtoGraph, Dictionary<int, double>>();
-        Dictionary<ProtoGraph, List<MODULE_SEGMENT>> _modSegs = new Dictionary<ProtoGraph, List<MODULE_SEGMENT>>();
+        readonly Dictionary<ProtoGraph, Dictionary<int, double>> _cumuls = new Dictionary<ProtoGraph, Dictionary<int, double>>();
+        readonly Dictionary<ProtoGraph, Dictionary<int, double>> _avgs = new Dictionary<ProtoGraph, Dictionary<int, double>>();
+        readonly Dictionary<ProtoGraph, List<MODULE_SEGMENT>> _modSegs = new Dictionary<ProtoGraph, List<MODULE_SEGMENT>>();
 
         void MaxBlockWorkCount(ProtoGraph graph, float barWidth,
             out Dictionary<int, double> pixCumul,

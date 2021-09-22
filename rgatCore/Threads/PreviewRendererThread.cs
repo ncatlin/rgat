@@ -5,7 +5,7 @@ namespace rgat.Threads
 {
     public class PreviewRendererThread : TraceProcessorWorker
     {
-        TraceRecord RenderedTrace;
+        readonly TraceRecord RenderedTrace;
 
         /// <summary>
         /// Set by the GUI loading thread when the widget has been created

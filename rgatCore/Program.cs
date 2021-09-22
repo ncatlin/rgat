@@ -3,20 +3,13 @@ using rgat;
 using rgat.Config;
 using rgat.OperationModes;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Threading.Tasks;
-using Veldrid;
-using Veldrid.Sdl2;
-using Veldrid.StartupUtilities;
 
 namespace ImGuiNET
 {
     class Program
     {
 
-        static rgatState _rgatState = new rgatState();
+        static readonly rgatState _rgatState = new rgatState();
 
         static void Main(string[] args)
         {
@@ -58,7 +51,7 @@ namespace ImGuiNET
                     break;
 
                 case LaunchConfig.eRunMode.NoGPUTraceCommand:
-                    CommandLineRunner runner = new CommandLineRunner(); 
+                    CommandLineRunner runner = new CommandLineRunner();
                     runner.InitNoGPU();
                     runner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: false);
                     break;

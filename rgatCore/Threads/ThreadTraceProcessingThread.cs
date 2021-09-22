@@ -10,7 +10,7 @@ namespace rgat.Threads
 {
     public class ThreadTraceProcessingThread : TraceProcessorWorker
     {
-        ProtoGraph protograph;
+        readonly ProtoGraph protograph;
         bool IrregularTimerFired = false;
         System.Timers.Timer IrregularActionTimer = null;
 
@@ -356,8 +356,8 @@ namespace rgat.Threads
             if (modType == eCodeInstrumentation.eUninstrumentedCode)
             {
                 List<InstructionData>? preExternBlock = protograph.TraceData.DisassemblyData.getDisassemblyBlock(thistag.blockID);
-                if (preExternBlock is not null && 
-                    preExternBlock.Count == 1 && 
+                if (preExternBlock is not null &&
+                    preExternBlock.Count == 1 &&
                     preExternBlock[0].PossibleidataThunk)
                 {
                     InstructionData thunkInstruction = preExternBlock[0];
@@ -515,7 +515,7 @@ namespace rgat.Threads
 
         void HandleRetVal(byte[] entry)
         {
-            
+
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 4);
 
@@ -574,7 +574,7 @@ namespace rgat.Threads
             currentUnchainedBlocks.Clear(); //todo dont need this
         }
 
-        List<uint> currentUnchainedBlocks = new List<uint>();
+        readonly List<uint> currentUnchainedBlocks = new List<uint>();
 
         void AddUnchainedUpdate(byte[] entry)
         {

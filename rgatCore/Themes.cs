@@ -2,7 +2,6 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
@@ -37,15 +36,15 @@ namespace rgat
             COUNT
         }
 
-        static Dictionary<ImGuiCol, uint> ThemeColoursStandard = new Dictionary<ImGuiCol, uint>();
-        static Dictionary<eThemeColour, uint> ThemeColoursCustom = new Dictionary<eThemeColour, uint>();
-        static Dictionary<eThemeSize, float> ThemeSizesCustom = new Dictionary<eThemeSize, float>();
-        static Dictionary<eThemeSize, Vector2> ThemeSizeLimits = new Dictionary<eThemeSize, Vector2>();
-        static Dictionary<string, string> ThemeMetadata = new Dictionary<string, string>();
+        static readonly Dictionary<ImGuiCol, uint> ThemeColoursStandard = new Dictionary<ImGuiCol, uint>();
+        static readonly Dictionary<eThemeColour, uint> ThemeColoursCustom = new Dictionary<eThemeColour, uint>();
+        static readonly Dictionary<eThemeSize, float> ThemeSizesCustom = new Dictionary<eThemeSize, float>();
+        static readonly Dictionary<eThemeSize, Vector2> ThemeSizeLimits = new Dictionary<eThemeSize, Vector2>();
+        static readonly Dictionary<string, string> ThemeMetadata = new Dictionary<string, string>();
 
         public static bool IsBuiltinTheme = true;
         public static bool UnsavedTheme = false;
-        static string _defaultTheme = "";
+        static readonly string _defaultTheme = "";
         static readonly object _lock = new object();
 
         static int _appliedThemeCount = 0;
@@ -365,7 +364,7 @@ namespace rgat
         }
 
 
-        static List<string> badFields = new List<string>();
+        static readonly List<string> badFields = new List<string>();
 
         //this is terrible
         static unsafe int TextCheckValid(ImGuiInputTextCallbackData* p)
@@ -426,7 +425,7 @@ namespace rgat
                 if (theme.TryGetValue("CustomColours", out JToken? customColTok) && customColTok.Type == JTokenType.Object)
                 {
                     JObject? custColsObj = customColTok.ToObject<JObject>();
-                    if (custColsObj is null) 
+                    if (custColsObj is null)
                     {
                         Logging.RecordError($"Theme has invalid CustomColours"); return false;
                     }

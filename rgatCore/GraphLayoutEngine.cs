@@ -25,9 +25,10 @@ namespace rgat
             _controller = controller;
             EngineID = name;
         }
-        GraphicsDevice _gd;
-        ResourceFactory _factory;
-        ImGuiController _controller;
+
+        readonly GraphicsDevice _gd;
+        readonly ResourceFactory _factory;
+        readonly ImGuiController _controller;
 
         /// <summary>
         /// The unique name of the layout engine
@@ -469,7 +470,7 @@ namespace rgat
             if (graph.LayoutState.ActivatingPreset && graph.LayoutState.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
             {
                 //when the nodes are near their targets, instead of bouncing around while coming to a slow, just snap them into position
-                float highest = FindHighXYZ(layout.VelocitiesVRAM1, graph.ComputeBufferNodeCount,  out int highIndex);
+                float highest = FindHighXYZ(layout.VelocitiesVRAM1, graph.ComputeBufferNodeCount, out int highIndex);
                 Console.WriteLine($"Presetspeed: {highest}");
                 if (highest < 1)
                 {

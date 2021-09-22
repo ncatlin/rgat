@@ -335,7 +335,7 @@ namespace rgat
         static float _download_progress = -1;
         static bool _download_complete;
         static bool _update_ready;
-        static CancellationTokenSource _download_cancel_tokensrc = new CancellationTokenSource();
+        static readonly CancellationTokenSource _download_cancel_tokensrc = new CancellationTokenSource();
 
         static void StartUpdater(bool delayed_install = false)
         {

@@ -1,15 +1,15 @@
 ﻿using ImGuiNET;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Veldrid;
-using System.Linq;
 
 namespace rgat.Widgets
 {
     class QuickMenu
     {
-        ImGuiController _controller;
+        readonly ImGuiController _controller;
         //true if menu is expanded or in the process of expanding.
 
         bool _expanded
@@ -37,10 +37,9 @@ namespace rgat.Widgets
         Vector2 _popupPos = Vector2.Zero;
         Vector2 _menuBase = Vector2.Zero;
         Vector2 _iconSize = Vector2.Zero;
-
-        GraphicsDevice _gd;
-        HighlightDialog HighlightDialogWidget = new HighlightDialog();
-        MenuEntry _baseMenuEntry;
+        readonly GraphicsDevice _gd;
+        readonly HighlightDialog HighlightDialogWidget = new HighlightDialog();
+        readonly MenuEntry _baseMenuEntry;
 
         class MenuEntry
         {
@@ -78,7 +77,7 @@ namespace rgat.Widgets
             }
         }
 
-        Dictionary<ActionName, MenuEntry> menuActions = new Dictionary<ActionName, MenuEntry>();
+        readonly Dictionary<ActionName, MenuEntry> menuActions = new Dictionary<ActionName, MenuEntry>();
 
         enum ActionName
         {
@@ -373,7 +372,7 @@ namespace rgat.Widgets
             else Expand(persistent: true);
         }
 
-        List<Key> keyCombo = new List<Key>();
+        readonly List<Key> keyCombo = new List<Key>();
 
         public void Expand(bool persistent = false)
         {
@@ -668,17 +667,17 @@ private void DrawScalePopup()
                 ImGui.Text("eForceDirected3DNodes Config Options");
                 if (ImGui.Button("Rerender: Scatter"))
                 {
-                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Scatter );
+                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Scatter);
                 }
                 ImGui.SameLine();
                 if (ImGui.Button("Rerender: Explode"))
                 {
-                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Explode );
+                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Explode);
                 }
                 ImGui.SameLine();
                 if (ImGui.Button("Rerender: Implode"))
                 {
-                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Implode );
+                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Implode);
                 }
 
                 if (ImGui.BeginTable("ComputationSelectNodes", 2))
@@ -729,10 +728,10 @@ private void DrawScalePopup()
         }
 
 
-        private void InitGraphReplot(GraphLayoutState.PositionResetStyle resetStyle )
+        private void InitGraphReplot(GraphLayoutState.PositionResetStyle resetStyle)
         {
             _currentGraph?.ResetPlot(resetStyle: resetStyle);
-            
+
         }
 
 

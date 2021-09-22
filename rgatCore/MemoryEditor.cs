@@ -19,12 +19,12 @@ namespace ImGuiNET
 
     public class MemoryEditor
     {
-        bool AllowEdits;
+        readonly bool AllowEdits;
         int Rows;
         int DataEditingAddr;
         bool DataEditingTakeFocus;
-        byte[] DataInput = new byte[32];
-        byte[] AddrInput = new byte[32];
+        readonly byte[] DataInput = new byte[32];
+        readonly byte[] AddrInput = new byte[32];
 
         public MemoryEditor()
         {

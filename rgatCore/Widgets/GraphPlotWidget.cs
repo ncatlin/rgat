@@ -1,4 +1,7 @@
-﻿using System;
+﻿using ImGuiNET;
+using rgat.Shaders.SPIR_V;
+using rgat.Widgets;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -6,9 +9,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using ImGuiNET;
-using rgat.Shaders.SPIR_V;
-using rgat.Widgets;
 using Veldrid;
 using static rgat.CONSTANTS;
 using static rgat.VeldridGraphBuffers;
@@ -19,21 +19,19 @@ namespace rgat
     {
         public PlottedGraph ActiveGraph { get; private set; }
 
-        QuickMenu _QuickMenu;
-        ImGuiController _controller;
-
-        GraphLayoutEngine _layoutEngine;
-        rgatState _clientState;
+        readonly QuickMenu _QuickMenu;
+        readonly ImGuiController _controller;
+        readonly GraphLayoutEngine _layoutEngine;
+        readonly rgatState _clientState;
 
         public GraphLayoutEngine LayoutEngine => _layoutEngine;
         public bool Exiting = false;
-
-        GraphicsDevice _gd;
-        ResourceFactory _factory;
+        readonly GraphicsDevice _gd;
+        readonly ResourceFactory _factory;
         public Vector2 WidgetSize { get; private set; }
 
-        TextureView _imageTextureView;
-        ReaderWriterLockSlim _graphLock = new ReaderWriterLockSlim();
+        readonly TextureView _imageTextureView;
+        readonly ReaderWriterLockSlim _graphLock = new ReaderWriterLockSlim();
 
         public GraphPlotWidget(ImGuiController controller, GraphicsDevice gdev, rgatState clientState, Vector2? initialSize = null)
         {
@@ -544,7 +542,7 @@ namespace rgat
             }
 
             DrawHUD(graphSize, ActiveGraph);
-            
+
             _graphLock.ExitReadLock();
         }
 
@@ -567,7 +565,9 @@ namespace rgat
         DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer;
         DeviceBuffer _RawEdgeVertBuffer, _RawEdgeIndexBuffer;
         DeviceBuffer _NodeVertexBuffer, _NodePickingBuffer, _NodeIndexBuffer;
-        DeviceBuffer _FontVertBuffer, _FontIndexBufferAll, _FontIndexBufferSample;
+        private DeviceBuffer _FontVertBuffer;
+        private DeviceBuffer _FontIndexBufferAll;
+        private readonly DeviceBuffer _FontIndexBufferSample;
         DeviceBuffer _paramsBuffer;
 
 
@@ -822,7 +822,7 @@ namespace rgat
         }
 
 
-        static Dictionary<string, List<fontStruc>> _cachedStrings = new Dictionary<string, List<fontStruc>>();
+        static readonly Dictionary<string, List<fontStruc>> _cachedStrings = new Dictionary<string, List<fontStruc>>();
 
         /// <summary>
         /// Convert a string to a List of fontStrucs describing the font glyphs to display the string
@@ -914,7 +914,7 @@ namespace rgat
             public int remainingFrames;
         }
 
-        List<RISINGEXTTXT> _activeRisings = new List<RISINGEXTTXT>();
+        readonly List<RISINGEXTTXT> _activeRisings = new List<RISINGEXTTXT>();
 
         void uploadFontVerts(List<fontStruc> stringVerts)
         {
@@ -1034,7 +1034,7 @@ namespace rgat
             }
         }
 
-        float _fontScale = 13.0f;
+        readonly float _fontScale = 13.0f;
 
         List<fontStruc> renderGraphText(List<Tuple<string, uint>> captions)
         {
@@ -1461,7 +1461,7 @@ namespace rgat
 
 
         bool _showLayoutSelectorPopup;
-        bool _showQuickMenu;
+        readonly bool _showQuickMenu;
         IntPtr getLayoutIcon(LayoutStyles.Style layout)
         {
             Texture? iconTex = null;
@@ -1648,7 +1648,7 @@ namespace rgat
 
 
         readonly object _lock = new object();
-        Queue<System.Drawing.Bitmap> frames = new Queue<System.Drawing.Bitmap>();
+        readonly Queue<System.Drawing.Bitmap> frames = new Queue<System.Drawing.Bitmap>();
         public List<System.Drawing.Bitmap> GetLatestFrames()
         {
             lock (_lock)

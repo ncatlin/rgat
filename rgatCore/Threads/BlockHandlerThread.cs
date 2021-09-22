@@ -14,12 +14,12 @@ namespace rgat
     {
         enum eBlkInstrumentation { eUninstrumentedCode = 0, eInstrumentedCode = 1, eCodeInDataArea = 2 };
 
-        BinaryTarget target;
-        TraceRecord trace;
+        readonly BinaryTarget target;
+        readonly TraceRecord trace;
         NamedPipeServerStream blockPipe = null;
-        int bitWidth;
-        CapstoneX86Disassembler disassembler;
-        uint? _remotePipeID;
+        readonly int bitWidth;
+        readonly CapstoneX86Disassembler disassembler;
+        readonly uint? _remotePipeID;
 
         public delegate void ProcessPipeMessageAction(byte[] buf, int bytesRead);
         public BlockHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, uint? remotePipeID = null)
@@ -29,7 +29,7 @@ namespace rgat
             bitWidth = target.BitWidth;
             _remotePipeID = remotePipeID;
 
-                //todo don't create in headless mode
+            //todo don't create in headless mode
             X86DisassembleMode disasMode = (bitWidth == 32) ? X86DisassembleMode.Bit32 : X86DisassembleMode.Bit64;
             disassembler = CapstoneDisassembler.CreateX86Disassembler(disasMode);
         }
@@ -213,7 +213,7 @@ namespace rgat
                         return;
                     }
 
-                   // Console.WriteLine($"[rgatBlkHandler]\t Block {blockID} new      ins {dbginscount}-0x{insaddr:X}: {instruction.ins_text}");
+                    // Console.WriteLine($"[rgatBlkHandler]\t Block {blockID} new      ins {dbginscount}-0x{insaddr:X}: {instruction.ins_text}");
 
                     if (foundList == null)
                     {
@@ -236,7 +236,7 @@ namespace rgat
             trace.DisassemblyData.AddDisassembledBlock(blockID, BlockAddress, blockInstructions);
         }
 
-        CancellationTokenSource cancelTokens = new CancellationTokenSource();
+        readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
 
         public void Terminate()
         {
@@ -258,8 +258,8 @@ namespace rgat
             }
         }
 
-        Queue<byte[]> _incomingRemoteBlockData = new Queue<byte[]>();
-        ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
+        readonly Queue<byte[]> _incomingRemoteBlockData = new Queue<byte[]>();
+        readonly ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
         readonly object _lock = new object();
 
 
@@ -283,7 +283,7 @@ namespace rgat
                     _incomingRemoteBlockData.Clear();
                     NewDataEvent.Reset();
                 }
-                foreach(byte[] item in newItems)
+                foreach (byte[] item in newItems)
                 {
                     //try
                     {

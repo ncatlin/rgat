@@ -304,18 +304,20 @@ namespace rgat
                     ImGui.SameLine();
                     ImguiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
                     ImGui.SameLine();
-                    string TraceLabel = $"Trace [{activeTarget.traceChoices.traceDirCount + activeTarget.traceChoices.traceFilesCount}]";
-                    if (ImGui.RadioButton(TraceLabel, ref activeTarget.traceChoices._tracingModeRef, 0))
+                    string TraceLabel = $"Trace [{activeTarget.TraceChoices.TraceDirCount + activeTarget.TraceChoices.TraceFilesCount}]";
+
+                    int traceModeRef = activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore ? 0 : 1;
+                    if (ImGui.RadioButton(TraceLabel, ref traceModeRef, 0))
                     {
-                        activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
+                        activeTarget.TraceChoices.TracingMode = (eModuleTracingMode)traceModeRef;
                     };
                     ImGui.SameLine();
                     ImguiUtils.HelpMarker("Only specified libraries will be traced");
                     ImGui.SameLine();
-                    string IgnoreLabel = $"Ignore [{activeTarget.traceChoices.ignoreDirsCount + activeTarget.traceChoices.ignoreFilesCount}]";
-                    if (ImGui.RadioButton(IgnoreLabel, ref activeTarget.traceChoices._tracingModeRef, 1))
+                    string IgnoreLabel = $"Ignore [{activeTarget.TraceChoices.IgnoreDirsCount + activeTarget.TraceChoices.ignoreFilesCount}]";
+                    if (ImGui.RadioButton(IgnoreLabel, ref traceModeRef, 1))
                     {
-                        activeTarget.traceChoices.TracingMode = (eModuleTracingMode)activeTarget.traceChoices._tracingModeRef;
+                        activeTarget.TraceChoices.TracingMode = (eModuleTracingMode)traceModeRef;
                     };
                     ImGui.SameLine();
                     ImguiUtils.HelpMarker("All libraries will be traced except for those specified");
@@ -328,7 +330,7 @@ namespace rgat
                     foreach (string fstr in paths)
                     {
                         ImGui.Selectable(fstr);
-                        if (ImGui.IsItemClicked()) activeTarget.traceChoices.RemoveIgnoredDirectory(fstr);
+                        if (ImGui.IsItemClicked()) activeTarget.TraceChoices.RemoveIgnoredDirectory(fstr);
                     }
                     ImGui.PopStyleColor();
                 }
@@ -340,34 +342,34 @@ namespace rgat
                     if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
                     {
                         ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
-                        if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultTrace)
+                        if ((eModuleTracingMode)activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultTrace)
                         {
-                            int ignoredDirCount = activeTarget.traceChoices.ignoreDirsCount;
+                            int ignoredDirCount = activeTarget.TraceChoices.IgnoreDirsCount;
                             ImGui.SetNextItemOpen(true, ImGuiCond.Once);
                             if (ImGui.TreeNode($"Ignored Directories ({ignoredDirCount})"))
                             {
-                                DrawClickablePaths(activeTarget.traceChoices.GetIgnoredDirs(), (x) => { activeTarget.traceChoices.RemoveIgnoredDirectory(x); });
+                                DrawClickablePaths(activeTarget.TraceChoices.GetIgnoredDirs(), (x) => { activeTarget.TraceChoices.RemoveIgnoredDirectory(x); });
                                 ImGui.TreePop();
                             }
                             if (ignoredDirCount > 0 && ImGui.BeginPopupContextItem("IgnoreDirsClear", ImGuiPopupFlags.MouseButtonRight))
                             {
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                                if (ImGui.Selectable("Clear all ignored directories")) activeTarget.traceChoices.ClearIgnoredDirs();
+                                if (ImGui.Selectable("Clear all ignored directories")) activeTarget.TraceChoices.ClearIgnoredDirs();
                                 ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
 
-                            int ignoredFileCount = activeTarget.traceChoices.ignoreFilesCount;
+                            int ignoredFileCount = activeTarget.TraceChoices.ignoreFilesCount;
                             ImGui.SetNextItemOpen(true, ImGuiCond.Once);
                             if (ImGui.TreeNode($"Ignored Files ({ignoredFileCount})"))
                             {
-                                DrawClickablePaths(activeTarget.traceChoices.GetIgnoredFiles(), (x) => { activeTarget.traceChoices.RemoveIgnoredFile(x); });
+                                DrawClickablePaths(activeTarget.TraceChoices.GetIgnoredFiles(), (x) => { activeTarget.TraceChoices.RemoveIgnoredFile(x); });
                                 ImGui.TreePop();
                             }
                             if (ignoredFileCount > 0 && ImGui.BeginPopupContextItem("IgnoreFilesClear", ImGuiPopupFlags.MouseButtonRight))
                             {
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                                if (ImGui.Selectable("Clear all ignored files")) activeTarget.traceChoices.ClearIgnoredFiles();
+                                if (ImGui.Selectable("Clear all ignored files")) activeTarget.TraceChoices.ClearIgnoredFiles();
                                 ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
@@ -381,32 +383,32 @@ namespace rgat
                             ImGui.PopStyleVar();
                             SmallWidgets.MouseoverText("Add files/directories to this filter");
                         }
-                        else if ((eModuleTracingMode)activeTarget.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+                        else if ((eModuleTracingMode)activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
                         {
                             ImGui.SetNextItemOpen(true, ImGuiCond.Once);
-                            if (ImGui.TreeNode($"Traced Directories ({activeTarget.traceChoices.traceDirCount})"))
+                            if (ImGui.TreeNode($"Traced Directories ({activeTarget.TraceChoices.TraceDirCount})"))
                             {
-                                DrawClickablePaths(activeTarget.traceChoices.GetTracedDirs(), (x) => { activeTarget.traceChoices.RemoveTracedDirectory(x); });
+                                DrawClickablePaths(activeTarget.TraceChoices.GetTracedDirs(), (x) => { activeTarget.TraceChoices.RemoveTracedDirectory(x); });
                                 ImGui.TreePop();
                             }
                             if (ImGui.BeginPopupContextItem("TraceDirsClear", ImGuiPopupFlags.MouseButtonRight))
                             {
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                                if (ImGui.Selectable("Clear all traced directories")) activeTarget.traceChoices.ClearTracedDirs();
+                                if (ImGui.Selectable("Clear all traced directories")) activeTarget.TraceChoices.ClearTracedDirs();
                                 ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
 
                             ImGui.SetNextItemOpen(true, ImGuiCond.Once);
-                            if (ImGui.TreeNode($"Traced Files ({activeTarget.traceChoices.traceFilesCount})"))
+                            if (ImGui.TreeNode($"Traced Files ({activeTarget.TraceChoices.TraceFilesCount})"))
                             {
-                                DrawClickablePaths(activeTarget.traceChoices.GetTracedFiles(), (x) => { activeTarget.traceChoices.RemoveTracedFile(x); });
+                                DrawClickablePaths(activeTarget.TraceChoices.GetTracedFiles(), (x) => { activeTarget.TraceChoices.RemoveTracedFile(x); });
                                 ImGui.TreePop();
                             }
                             if (ImGui.BeginPopupContextItem("TraceDirsClear", ImGuiPopupFlags.MouseButtonRight))
                             {
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                                if (ImGui.Selectable("Clear all traced files")) activeTarget.traceChoices.ClearTracedFiles();
+                                if (ImGui.Selectable("Clear all traced files")) activeTarget.TraceChoices.ClearTracedFiles();
                                 ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
@@ -595,14 +597,14 @@ namespace rgat
                 if (DEProgress is null)
                 {
                     ImGui.Text("Not Inited");
-                } 
+                }
                 else if (DEProgress.errored)
                 {
                     float dieProgress = DEProgress.scriptCount == 0 ? 0f : (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     string caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
                     uint errorColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, errorColour, 0xff111111, textColour);
-                } 
+                }
                 else if (DEProgress.loading)
                 {
                     SmallWidgets.ProgressBar("DieProgBar", $"Loading Scripts", 0, barSize, 0xff117711, 0xff111111);

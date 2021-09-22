@@ -11,7 +11,6 @@ using System.Net.Sockets;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -70,8 +69,9 @@ namespace rgat
             public uint destinationID;
             public byte[] data;
         }
-        Queue<NETWORK_MSG> _OutDataQueue = new Queue<NETWORK_MSG>();
-        ManualResetEventSlim NewOutDataEvent = new ManualResetEventSlim(false);
+
+        readonly Queue<NETWORK_MSG> _OutDataQueue = new Queue<NETWORK_MSG>();
+        readonly ManualResetEventSlim NewOutDataEvent = new ManualResetEventSlim(false);
 
         CancellationTokenSource cancelTokens;
 
@@ -294,9 +294,8 @@ namespace rgat
             return false;
         }
 
-
-        byte[] _readIV = new byte[12];
-        byte[] _readTag = new byte[16];
+        readonly byte[] _readIV = new byte[12];
+        readonly byte[] _readTag = new byte[16];
 
         /// <summary>
         /// Read the next message from the conencted party
@@ -450,7 +449,7 @@ namespace rgat
             return false;
         }
 
-        byte[] _sendTag = new byte[16];
+        readonly byte[] _sendTag = new byte[16];
 
         /// <summary>
         /// Add a message to the remote tracing dialog log panel

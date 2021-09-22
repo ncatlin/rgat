@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 
 namespace rgat.Threads
@@ -19,7 +18,7 @@ namespace rgat.Threads
 
         protected bool WakeupRequested { get; private set; } = false;
 
-        CancellationTokenSource cancelTokens = new CancellationTokenSource();
+        readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
         public CancellationToken CancelToken => cancelTokens.Token;
         public ManualResetEventSlim TagDataReadyEvent = new ManualResetEventSlim(false);
         public void RequestWakeupOnData() { if (!StopFlag) { WakeupRequested = true; TagDataReadyEvent.Reset(); } }
@@ -34,7 +33,7 @@ namespace rgat.Threads
             StatsTimer.Start();
         }
 
-        protected void IncreaseMessageCount() =>  _recentMsgCount += 1;
+        protected void IncreaseMessageCount() => _recentMsgCount += 1;
 
         public virtual void Terminate()
         {
@@ -50,10 +49,10 @@ namespace rgat.Threads
         public virtual bool HasPendingData() { return PendingDataSize != 0; }
 
         private readonly Object _statsLock = new Object();
-        System.Timers.Timer StatsTimer;
+        readonly System.Timers.Timer StatsTimer;
         DateTime _lastStatsUpdate = DateTime.Now;
-        private List<float> _updateRates = new List<float>();
-        int _StatCacheSize = (int)Math.Floor(GlobalConfig.IngestStatWindow * GlobalConfig.IngestStatsPerSecond);
+        private readonly List<float> _updateRates = new List<float>();
+        readonly int _StatCacheSize = (int)Math.Floor(GlobalConfig.IngestStatWindow * GlobalConfig.IngestStatsPerSecond);
         public float[] RecentMessageRates()
         {
             lock (_statsLock)

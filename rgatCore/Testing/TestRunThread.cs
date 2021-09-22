@@ -7,13 +7,14 @@ namespace rgat.Testing
 {
     class TestRunThread
     {
-        TestCase _testCase = null;
-        TestCaseRun _thisTest;
+        readonly TestCase _testCase = null;
+        readonly TestCaseRun _thisTest;
         Thread thisThread;
-        rgatState _rgatState;
+        readonly rgatState _rgatState;
         public bool Running { get; private set; } = false;
         public bool Finished { get; private set; } = false;
-        TestHarnessThread _harness;
+
+        readonly TestHarnessThread _harness;
 
         public TestRunThread(TestCaseRun testrun, rgatState rgatState, TestHarnessThread harness)
         {
@@ -46,7 +47,7 @@ namespace rgat.Testing
 
             Console.WriteLine($"Starting test process {_testCase.BinaryPath} test id {_thisTest.TestID}");
 
-            string pintool = _testCase.TestBits == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) : 
+            string pintool = _testCase.TestBits == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
             System.Diagnostics.Process? testProcess = ProcessLaunching.StartLocalTrace(pintool, _testCase.BinaryPath, testID: _thisTest.TestID);
             if (testProcess != null)

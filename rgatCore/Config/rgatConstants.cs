@@ -88,7 +88,7 @@ namespace rgat
             /// <summary>
             /// How long to wait between checks for new versions (check only happens on startup)
             /// </summary>
-            public const int UpdateCheckMinimumDelayMinutes = 6*60;
+            public const int UpdateCheckMinimumDelayMinutes = 6 * 60;
         }
 
         public static class TRACING
@@ -124,22 +124,79 @@ namespace rgat
         public enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals, eDegree }
         public enum HighlightType { eExternals, eAddresses, eExceptions };
 
-        public enum PathKey { PinPath, PinToolPath32, PinToolPath64, FFmpegPath,
-                            TraceSaveDirectory, TestsDirectory, DiESigsDirectory, YaraRulesDirectory, MediaCapturePath}
-
-        public enum eConditionalType
+        public enum PathKey
         {
-            NOTCONDITIONAL = 0, ISCONDITIONAL = 1,
-            CONDFELLTHROUGH = 2, CONDTAKEN = 4,
+            PinPath, PinToolPath32, PinToolPath64, FFmpegPath,
+            TraceSaveDirectory, TestsDirectory, DiESigsDirectory, YaraRulesDirectory, MediaCapturePath
+        }
+
+
+        /// <summary>
+        /// Describes the state of a conditional jump
+        /// </summary>
+        public enum ConditionalType
+        {
+            /// <summary>
+            /// The instruction always falls through
+            /// </summary>
+            NOTCONDITIONAL = 0,
+            /// <summary>
+            /// The instruction is a conditional jump
+            /// </summary>
+            ISCONDITIONAL = 1,
+            /// <summary>
+            /// The conditional jump was not taken
+            /// </summary>
+            CONDFELLTHROUGH = 2,
+            /// <summary>
+            /// The conditional jump was taken
+            /// </summary>
+            CONDTAKEN = 4,
+            /// <summary>
+            /// The conditional jump was taken and fell though in the same trace
+            /// </summary>
             CONDCOMPLETE = (ISCONDITIONAL | CONDFELLTHROUGH | CONDTAKEN)
         }
 
 
         public enum eKeybind
         {
-            MoveLeft, MoveRight, MoveUp, MoveDown,
-            ZoomIn, ZoomOut, PitchXFwd, PitchXBack, YawYLeft, YawYRight, RollGraphZAnti, RollGraphZClock,
-            CenterFrame, LockCenterFrame, Cancel, ToggleHeatmap, ToggleConditionals, RaiseForceTemperature,
+            /// <summary>
+            /// Shift the graph left (actually moves the camera right)
+            /// </summary>
+            MoveLeft,
+            /// <summary>
+            /// Shift the graph right (actually moves the camera left)
+            /// </summary>
+            MoveRight,
+            /// <summary>
+            /// Shift the graph up (actually moves the camera down)
+            /// </summary>
+            MoveUp,
+            /// <summary>
+            /// Shift the graph down (actually moves the camera up)
+            /// </summary>
+            MoveDown,
+            /// <summary>
+            /// Move the camera forward towards the graph
+            /// </summary>
+            ZoomIn,
+            /// <summary>
+            /// Move the camera back away from the graph
+            /// </summary>
+            ZoomOut,
+            PitchXFwd,
+            PitchXBack,
+            YawYLeft,
+            YawYRight,
+            RollGraphZAnti,
+            RollGraphZClock,
+            CenterFrame,
+            LockCenterFrame,
+            /// <summary>
+            /// Close the open dialog/menu
+            /// </summary>
+            Cancel, ToggleHeatmap, ToggleConditionals, RaiseForceTemperature,
             ToggleAllText, ToggleInsText, ToggleLiveText, QuickMenu,
             CaptureGraphImage, CaptureGraphPreviewImage, CaptureWindowImage, ToggleVideo, PauseVideo
         }
@@ -163,7 +220,13 @@ namespace rgat
          * Helper functions
          * 
          */
+        /// <summary>
+        /// The simple major.minorpath version of this rgat build. should probably reference the assembly instead. todo
+        /// </summary>
         public static string RGAT_VERSION => $"{PROGRAMVERSION.MAJOR}.{PROGRAMVERSION.MINOR}.{PROGRAMVERSION.PATCH}";
+        /// <summary>
+        /// The SemVer version of rgat
+        /// </summary>
         public static System.Version RGAT_VERSION_SEMANTIC => new System.Version(RGAT_VERSION);
 
     }

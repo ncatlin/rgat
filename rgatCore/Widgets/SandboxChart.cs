@@ -24,16 +24,16 @@ namespace rgat.Widgets
             public Logging.eTimelineEvent TLtype;
             public object reference;
         }
+
         //todo lock access to this
-        QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>> sbgraph = new BidirectionalGraph<ItemNode, Edge<ItemNode>>();
-        GraphShape.Algorithms.Layout.KKLayoutAlgorithm<ItemNode, Edge<ItemNode>, QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>>> layout;
+        readonly QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>> sbgraph = new BidirectionalGraph<ItemNode, Edge<ItemNode>>();
+        readonly GraphShape.Algorithms.Layout.KKLayoutAlgorithm<ItemNode, Edge<ItemNode>, QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>>> layout;
 
         Vector2 chartSize;
-        float padding = 15;
+        readonly float padding = 15;
         double _scaleX = 1;
-
-        float nodeSize = 8;
-        ImFontPtr _fontptr;
+        readonly float nodeSize = 8;
+        readonly ImFontPtr _fontptr;
 
         public SandboxChart(ImFontPtr font)
         {
@@ -93,15 +93,15 @@ namespace rgat.Widgets
             }
         }
 
-        Dictionary<string, ItemNode> addedNodes = new Dictionary<string, ItemNode>();
+        readonly Dictionary<string, ItemNode> addedNodes = new Dictionary<string, ItemNode>();
         readonly object _lock = new object();
-        Dictionary<APIDetailsWin.InteractionEntityType, Dictionary<string, ItemNode>> _interactionEntities = new Dictionary<APIDetailsWin.InteractionEntityType, Dictionary<string, ItemNode>>();
-        Dictionary<APIDetailsWin.InteractionRawType, Dictionary<string, ItemNode>> _interactionEntityReferences = new Dictionary<APIDetailsWin.InteractionRawType, Dictionary<string, ItemNode>>();
-        Dictionary<Logging.TIMELINE_EVENT, ItemNode> _timelineEventEntities = new Dictionary<Logging.TIMELINE_EVENT, ItemNode>();
+        readonly Dictionary<APIDetailsWin.InteractionEntityType, Dictionary<string, ItemNode>> _interactionEntities = new Dictionary<APIDetailsWin.InteractionEntityType, Dictionary<string, ItemNode>>();
+        readonly Dictionary<APIDetailsWin.InteractionRawType, Dictionary<string, ItemNode>> _interactionEntityReferences = new Dictionary<APIDetailsWin.InteractionRawType, Dictionary<string, ItemNode>>();
+        readonly Dictionary<Logging.TIMELINE_EVENT, ItemNode> _timelineEventEntities = new Dictionary<Logging.TIMELINE_EVENT, ItemNode>();
 
         //set of action labels associateed with each edge. todo add as a property to edge/make new edge object?
-        Dictionary<Tuple<ItemNode, ItemNode>, List<string>> _edgeLabels = new Dictionary<Tuple<ItemNode, ItemNode>, List<string>>();
-        List<Tuple<ItemNode, ItemNode>> _addedEdges = new List<Tuple<ItemNode, ItemNode>>();
+        readonly Dictionary<Tuple<ItemNode, ItemNode>, List<string>> _edgeLabels = new Dictionary<Tuple<ItemNode, ItemNode>, List<string>>();
+        readonly List<Tuple<ItemNode, ItemNode>> _addedEdges = new List<Tuple<ItemNode, ItemNode>>();
 
         ItemNode _selectedNode = null;
         public ItemNode GetSelectedNode => _selectedNode;
@@ -185,11 +185,11 @@ namespace rgat.Widgets
                                     {
                                         case APIDetailsWin.LinkReferenceEffect linkEffect:
                                             {
-                                                APIDetailsWin.API_PARAM_ENTRY entityParamRecord = apiinfo.LoggedParams[linkEffect.entityIndex];
-                                                APIDetailsWin.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[linkEffect.referenceIndex];
+                                                APIDetailsWin.API_PARAM_ENTRY entityParamRecord = apiinfo.LoggedParams[linkEffect.EntityIndex];
+                                                APIDetailsWin.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[linkEffect.ReferenceIndex];
 
-                                                int entityParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == entityParamRecord.index);
-                                                int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.index);
+                                                int entityParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == entityParamRecord.Index);
+                                                int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.Index);
 
                                                 if (entityParamLoggedIndex == -1 || referenceParamLoggedIndex == -1)
                                                 {
@@ -248,8 +248,8 @@ namespace rgat.Widgets
                                         // record this as a label on the edge and link this event to the entity
                                         case APIDetailsWin.UseReferenceEffect useEffect:
                                             {
-                                                APIDetailsWin.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[useEffect.referenceIndex];
-                                                int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.index);
+                                                APIDetailsWin.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[useEffect.ReferenceIndex];
+                                                int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.Index);
                                                 if (referenceParamLoggedIndex == -1)
                                                 {
                                                     timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [UseReference] didn't have correct parameters";
@@ -284,8 +284,8 @@ namespace rgat.Widgets
                                         // remove the link between the reference and the entity it references
                                         case APIDetailsWin.DestroyReferenceEffect destroyEffect:
                                             {
-                                                APIDetailsWin.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[destroyEffect.referenceIndex];
-                                                int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.index);
+                                                APIDetailsWin.API_PARAM_ENTRY referenceParamRecord = apiinfo.LoggedParams[destroyEffect.ReferenceIndex];
+                                                int referenceParamLoggedIndex = APICallRecord.argList.FindIndex(x => x.Item1 == referenceParamRecord.Index);
                                                 if (referenceParamLoggedIndex == -1)
                                                 {
                                                     timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [DestroyReference] didn't have correct parameters";
@@ -303,7 +303,7 @@ namespace rgat.Widgets
                                                     if (typeEntityList.TryGetValue(referenceString, out ItemNode? entityNode))
                                                     {
                                                         resolvedReference = true;
-                                                        if(!_timelineEventEntities.ContainsKey(timelineEvent))
+                                                        if (!_timelineEventEntities.ContainsKey(timelineEvent))
                                                             _timelineEventEntities.Add(timelineEvent, entityNode);
                                                         AddAPIEdge(threadNode, entityNode, apiinfo.Label);
                                                         typeEntityList.Remove(referenceString);
@@ -386,7 +386,7 @@ namespace rgat.Widgets
             {
                 _layoutActive = true;
                 _computeRequired = false;
-                Task.Run(() => { layout.Compute(); _layoutActive = false; }); 
+                Task.Run(() => { layout.Compute(); _layoutActive = false; });
 
             }
 

@@ -465,6 +465,56 @@
             How long to wait between checks for new versions (check only happens on startup)
             </summary>
         </member>
+        <member name="T:rgat.CONSTANTS.ConditionalType">
+            <summary>
+            Describes the state of a conditional jump
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.ConditionalType.NOTCONDITIONAL">
+            <summary>
+            The instruction always falls through
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.ConditionalType.ISCONDITIONAL">
+            <summary>
+            The instruction is a conditional jump
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.ConditionalType.CONDFELLTHROUGH">
+            <summary>
+            The conditional jump was not taken
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.ConditionalType.CONDTAKEN">
+            <summary>
+            The conditional jump was taken
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.ConditionalType.CONDCOMPLETE">
+            <summary>
+            The conditional jump was taken and fell though in the same trace
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eKeybind.MoveLeft">
+            <summary>
+            Shift the graph left (actually moves the camera right)
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eKeybind.MoveRight">
+            <summary>
+            Shift the graph right (actually moves the camera left)
+            </summary>
+        </member>
+        <member name="P:rgat.CONSTANTS.RGAT_VERSION">
+            <summary>
+            The simple major.minorpath version of this rgat build. should probably reference the assembly instead. todo
+            </summary>
+        </member>
+        <member name="P:rgat.CONSTANTS.RGAT_VERSION_SEMANTIC">
+            <summary>
+            The SemVer version of rgat
+            </summary>
+        </member>
         <member name="M:rgat.GithubSignatureManager.PurgeRepoFiles(rgat.GlobalConfig.SignatureSource)">
             <summary>
             Remove the associated signature download directory for this repo

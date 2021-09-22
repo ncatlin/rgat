@@ -1,7 +1,4 @@
 ﻿using rgat.Widgets;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 using System.Threading;
 using System.Timers;
@@ -36,9 +33,8 @@ namespace rgat.Threads
 
         }
 
-        VisualiserBar _visualiserBarWidget;
-
-        System.Timers.Timer _IrregularActionTimer;
+        readonly VisualiserBar _visualiserBarWidget;
+        readonly System.Timers.Timer _IrregularActionTimer;
         bool _IrregularActionTimerFired;
 
         private void FireIrregularTimer(object sender, ElapsedEventArgs e) { _IrregularActionTimerFired = true; }

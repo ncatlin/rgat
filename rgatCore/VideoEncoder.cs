@@ -1,10 +1,8 @@
 ﻿using FFMpegCore;
-using FFMpegCore.Arguments;
 using FFMpegCore.Enums;
 using FFMpegCore.Extend;
 using FFMpegCore.Pipes;
 using ImGuiNET;
-using rgat.Properties;
 using rgat.Widgets;
 using System;
 using System.Collections.Concurrent;
@@ -14,7 +12,6 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,10 +23,9 @@ namespace rgat
         public bool Initialised { get; private set; }
         public string Error { get; private set; } = "";
 
-        bool _ignoreSignatureError = false;
-        bool _signatureError = false;
-
-        System.Drawing.Imaging.ImageCodecInfo[] _imageCodecs;
+        readonly bool _ignoreSignatureError = false;
+        readonly bool _signatureError = false;
+        readonly System.Drawing.Imaging.ImageCodecInfo[] _imageCodecs;
 
         public VideoEncoder()
         {
@@ -44,7 +40,7 @@ namespace rgat
         }
 
 
-        static BinaryWriter stream = null;
+        static readonly BinaryWriter stream = null;
 
         public int CurrentVideoWidth { get; private set; }
         public int CurrentVideoHeight { get; private set; }
@@ -55,7 +51,7 @@ namespace rgat
         public bool Recording => _recording;
         public bool CapturePaused = false;
         bool _recording = false;
-        ConcurrentQueue<Bitmap> _bmpQueue = new ConcurrentQueue<Bitmap>();
+        readonly ConcurrentQueue<Bitmap> _bmpQueue = new ConcurrentQueue<Bitmap>();
         public int FrameQueueSize => _bmpQueue.Count;
 
         CaptureContent _capturedContent = CaptureContent.Invalid;
@@ -220,7 +216,7 @@ namespace rgat
             string extension = ".bmp";
             foreach (var codec in _imageCodecs)
             {
-                if (codec is not null && 
+                if (codec is not null &&
                     codec.FilenameExtension is not null &&
                     codec.FormatDescription == GlobalConfig.Settings.Media.ImageCapture_Format)
                 {

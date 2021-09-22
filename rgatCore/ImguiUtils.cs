@@ -109,9 +109,9 @@ namespace rgat
         {
             fixed (double* valPtr = &value, minPtr = &min, maxPtr = &max)
             {
-                
-                    return ImGui.DragScalar(label, ImGuiDataType.Double, (IntPtr)valPtr, speed, (IntPtr)minPtr, (IntPtr)maxPtr, format: "%.2f");
-                
+
+                return ImGui.DragScalar(label, ImGuiDataType.Double, (IntPtr)valPtr, speed, (IntPtr)minPtr, (IntPtr)maxPtr, format: "%.2f");
+
             }
         }
     }

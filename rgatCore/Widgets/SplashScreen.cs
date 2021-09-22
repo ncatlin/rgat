@@ -4,8 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-using System.Text;
-using Veldrid;
 
 namespace rgat
 {
@@ -204,7 +202,7 @@ namespace rgat
                     if (recentTraces?.Length > 0)
                     {
                         int traceCount = Math.Min(GlobalConfig.Settings.UI.MaxStoredRecentPaths, recentTraces.Length);
-                        for (var traceI = 0; traceI < traceCount; traceI++) 
+                        for (var traceI = 0; traceI < traceCount; traceI++)
                         {
                             var entry = recentTraces[traceI];
                             ImGui.TableNextRow();
@@ -302,8 +300,7 @@ namespace rgat
             }
         }
 
-
-        List<string> _missingPaths = new List<string>();
-        List<string> _badPaths = new List<string>();
+        readonly List<string> _missingPaths = new List<string>();
+        readonly List<string> _badPaths = new List<string>();
     }
 }

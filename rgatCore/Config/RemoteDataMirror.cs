@@ -2,9 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using static rgat.Config.rgatSettings;
-using static rgat.GlobalConfig;
 
 namespace rgat.Config
 {
@@ -15,19 +13,19 @@ namespace rgat.Config
         public enum ResponseStatus { eNoRecord, eWaiting, eDelivered, eError };
         public delegate bool ProcessResponseCallback(JToken response);
 
-        static Dictionary<int, ProcessResponseCallback> _pendingCommandCallbacks = new Dictionary<int, ProcessResponseCallback>();
+        static readonly Dictionary<int, ProcessResponseCallback> _pendingCommandCallbacks = new Dictionary<int, ProcessResponseCallback>();
 
 
-        static Dictionary<string, int> _pendingEvents = new Dictionary<string, int>();
-        static Dictionary<int, string> _pendingEventsReverse = new Dictionary<int, string>();
+        static readonly Dictionary<string, int> _pendingEvents = new Dictionary<string, int>();
+        static readonly Dictionary<int, string> _pendingEventsReverse = new Dictionary<int, string>();
 
-        static Dictionary<string, uint> _pipeIDDictionary = new Dictionary<string, uint>();
+        static readonly Dictionary<string, uint> _pipeIDDictionary = new Dictionary<string, uint>();
 
 
         public delegate void ProcessIncomingWorkerData(byte[] arg, int startIndex);
 
-        static Dictionary<uint, Threads.TraceProcessorWorker> _remoteDataWorkers = new Dictionary<uint, Threads.TraceProcessorWorker>();
-        static Dictionary<uint, ProcessIncomingWorkerData> _pipeInterfaces = new Dictionary<uint, ProcessIncomingWorkerData>();
+        static readonly Dictionary<uint, Threads.TraceProcessorWorker> _remoteDataWorkers = new Dictionary<uint, Threads.TraceProcessorWorker>();
+        static readonly Dictionary<uint, ProcessIncomingWorkerData> _pipeInterfaces = new Dictionary<uint, ProcessIncomingWorkerData>();
 
         public static void RegisterRemotePipe(uint pipeID, Threads.TraceProcessorWorker worker, ProcessIncomingWorkerData func)
         {
@@ -45,7 +43,7 @@ namespace rgat.Config
                 return _remoteDataWorkers.TryGetValue(pipeID, out worker);
             }
         }
-        
+
         public static bool GetPipeInterface(uint pipeID, out ProcessIncomingWorkerData func)
         {
             lock (_lock)
@@ -76,9 +74,9 @@ namespace rgat.Config
                 _pendingEvents.Add(addressedCmd, commandID);
                 _pendingEventsReverse.Add(commandID, addressedCmd);
 
-                    Debug.Assert(!_pendingCommandCallbacks.ContainsKey(commandID));
-                    _pendingCommandCallbacks.Add(commandID, callback);
-                
+                Debug.Assert(!_pendingCommandCallbacks.ContainsKey(commandID));
+                _pendingCommandCallbacks.Add(commandID, callback);
+
             }
         }
 
@@ -98,7 +96,7 @@ namespace rgat.Config
         {
             lock (_lock)
             {
- 
+
                 if (_pendingCommandCallbacks.TryGetValue(commandID, out ProcessResponseCallback? cb) && cb is not null)
                 {
                     string cmdref = _pendingEventsReverse[commandID];
@@ -184,7 +182,7 @@ namespace rgat.Config
                 newEntry.OpenCount = prop4!.ToObject<uint>();
                 recentbins.Add(newEntry);
             }
-            
+
             recentbins.Sort(new rgatSettings.PathRecord.SortLatestAccess());
             RemoteDataMirror.SetRecentPaths(recentbins);
             return true;

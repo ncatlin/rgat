@@ -67,8 +67,7 @@ namespace rgat
             CameraXOffset = -400;
         }
 
-
-        ReaderWriterLockSlim _renderLock = new ReaderWriterLockSlim();
+        readonly ReaderWriterLockSlim _renderLock = new ReaderWriterLockSlim();
         /// <summary>
         /// Takes edges that have been through the trace processor worker and
         /// inserts them into the graphcis buffers for layout/drawing
@@ -385,7 +384,7 @@ namespace rgat
 
                         case eEdgeNodeType.eNodeJump:
 
-                            if (firstParent.conditional != eConditionalType.NOTCONDITIONAL && n.address == firstParent.ins.condDropAddress)
+                            if (firstParent.conditional != ConditionalType.NOTCONDITIONAL && n.address == firstParent.ins.condDropAddress)
                             {
                                 b += B_BETWEEN_BLOCKNODES;
                                 break;
@@ -475,10 +474,9 @@ namespace rgat
             return textureArray;
         }
 
-
-        float CYLINDER_RADIUS = 5000f;
-        float CYLINDER_PIXELS_PER_B = 30f;
-        float CYLINDER_PIXELS_PER_A = 60f;
+        readonly float CYLINDER_RADIUS = 5000f;
+        readonly float CYLINDER_PIXELS_PER_B = 30f;
+        readonly float CYLINDER_PIXELS_PER_A = 60f;
         void GenerateCylinderWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
             int CYLINDER_PIXELS_PER_ROW = 500;
@@ -547,7 +545,7 @@ namespace rgat
                 GeomPositionColour gpc = new GeomPositionColour
                 {
                     Color = RollColour,
-                    Position = new Vector4(radius * (float)Math.Cos(angle), radius * (float)Math.Sin(angle),0, 0)
+                    Position = new Vector4(radius * (float)Math.Cos(angle), radius * (float)Math.Sin(angle), 0, 0)
                 };
                 verts.Add(gpc);
             }
@@ -563,7 +561,7 @@ namespace rgat
                 GeomPositionColour gpc = new GeomPositionColour
                 {
                     Color = PitchColour,
-                    Position = new Vector4(0, radius * (float)Math.Cos(angle),  radius * (float)Math.Sin(angle), 0)
+                    Position = new Vector4(0, radius * (float)Math.Cos(angle), radius * (float)Math.Sin(angle), 0)
                 };
                 verts.Add(gpc);
             }
@@ -580,7 +578,7 @@ namespace rgat
 
             List<GeomPositionColour> resultList = new List<GeomPositionColour>();
             edgeIndices = new List<uint>();
-            
+
             //todo: if wireframe enabled
 
             switch (WireframeStyle())
@@ -1232,13 +1230,13 @@ namespace rgat
                     return new WritableRgbaFloat(1, 0, 0, 1);
                 case eRenderingMode.eConditionals:
                     {
-                        if (n.conditional == eConditionalType.NOTCONDITIONAL)
+                        if (n.conditional == ConditionalType.NOTCONDITIONAL)
                             return new WritableRgbaFloat(0, 0, 0, 0.7f);
-                        if (n.conditional == eConditionalType.CONDCOMPLETE)
+                        if (n.conditional == ConditionalType.CONDCOMPLETE)
                             return new WritableRgbaFloat(1, 1, 1, .7f);
-                        if (((int)n.conditional & (int)eConditionalType.CONDTAKEN) != 0)
+                        if (((int)n.conditional & (int)ConditionalType.CONDTAKEN) != 0)
                             return new WritableRgbaFloat(0, 1, 0, 0.7f);
-                        if (((int)n.conditional & (int)eConditionalType.CONDFELLTHROUGH) != 0)
+                        if (((int)n.conditional & (int)ConditionalType.CONDFELLTHROUGH) != 0)
                             return new WritableRgbaFloat(1, 0, 0, 0.7f);
                         return new WritableRgbaFloat(Color.Yellow);
                     }
@@ -2021,8 +2019,7 @@ namespace rgat
 
 
         public bool HighlightsChanged;
-
-        Dictionary<int, Vector4> _customHighlightColours = new Dictionary<int, Vector4>();
+        readonly Dictionary<int, Vector4> _customHighlightColours = new Dictionary<int, Vector4>();
         public Vector4? GetCustomHighlightColour(int nodeIdx)
         {
             lock (textLock)
@@ -2448,9 +2445,7 @@ namespace rgat
 
         public LayoutStyles.Style ActiveLayoutStyle => LayoutState.Style;
         public GraphLayoutState LayoutState;
-
-
-        ReaderWriterLockSlim textureLock = new ReaderWriterLockSlim();
+        readonly ReaderWriterLockSlim textureLock = new ReaderWriterLockSlim();
         Veldrid.Texture _previewTexture1, _previewTexture2;
         public Veldrid.Framebuffer _previewFramebuffer1, _previewFramebuffer2;
 
@@ -2532,17 +2527,16 @@ namespace rgat
         public float AnimationRate { get; set; } = 1;
 
         ulong unchainedWaitFrames = 0;
-        uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays
+        readonly uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays
 
         //which BB we are pointing to in the sequence list
         public double AnimationIndex { get; private set; }
 
-        List<uint> _PulseActiveNodes = new List<uint>();
-        List<uint> _LingeringActiveNodes = new List<uint>();
-        List<Tuple<uint, string>> _RisingSymbols = new List<Tuple<uint, string>>();
-        List<Tuple<uint, string>> _RisingSymbolsLingering = new List<Tuple<uint, string>>();
-
-        List<uint> _DeactivatedNodes = new List<uint>();// Array.Empty<uint>();
+        readonly List<uint> _PulseActiveNodes = new List<uint>();
+        readonly List<uint> _LingeringActiveNodes = new List<uint>();
+        readonly List<Tuple<uint, string>> _RisingSymbols = new List<Tuple<uint, string>>();
+        readonly List<Tuple<uint, string>> _RisingSymbolsLingering = new List<Tuple<uint, string>>();
+        readonly List<uint> _DeactivatedNodes = new List<uint>();// Array.Empty<uint>();
         private readonly object animationLock = new object();
 
 
@@ -2576,13 +2570,13 @@ namespace rgat
         /// This is used for the attraction velocity computation
         /// </summary>
         ///        
-        List<List<int>> _graphStructureBalanced = new List<List<int>>();
+        readonly List<List<int>> _graphStructureBalanced = new List<List<int>>();
 
         /// <summary>
         /// The raw list of nodes with a one way edge they connect to
         /// This is used for drawing nodes and edges
         /// </summary>
-        List<List<int>> _graphStructureLinear = new List<List<int>>();
+        readonly List<List<int>> _graphStructureLinear = new List<List<int>>();
 
         public float temperature = 100f;
 

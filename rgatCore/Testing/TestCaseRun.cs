@@ -74,9 +74,10 @@ namespace rgat.Testing
         public TraceRecord FirstTrace { get; private set; }
         public void SetFirstTrace(TraceRecord trace) => FirstTrace = trace;
 
-        TestCase _test = null;
+        readonly TestCase _test = null;
         public TestCase GetTestCase => _test;
-        List<TestResult> results = new List<TestResult>();
+
+        readonly List<TestResult> results = new List<TestResult>();
 
         readonly object _lock = new object();
 
@@ -86,7 +87,7 @@ namespace rgat.Testing
             Complete = true;
         }
 
-        Dictionary<TestRequirement, string> FailedTestRequirements = new Dictionary<TestRequirement, string>();
+        readonly Dictionary<TestRequirement, string> FailedTestRequirements = new Dictionary<TestRequirement, string>();
 
         void EvaluateResults()
         {

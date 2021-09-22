@@ -8,7 +8,7 @@ namespace rgat.Threads
 {
     public class ProcessCoordinatorThread : TraceProcessorWorker
     {
-        byte[] buf = new byte[1024];
+        readonly byte[] buf = new byte[1024];
         NamedPipeServerStream coordPipe = null;
 
 

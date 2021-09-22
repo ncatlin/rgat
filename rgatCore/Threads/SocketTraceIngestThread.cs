@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading;
 
 namespace rgat.Threads
 {
     class SocketTraceIngestThread : TraceIngestWorker
     {
-        ProtoGraph protograph = null;
-        Queue<byte[]> InQueue = new Queue<byte[]>();
+        readonly ProtoGraph protograph = null;
+        readonly Queue<byte[]> InQueue = new Queue<byte[]>();
 
         readonly object _lock = new object(); //functionality first, performance later
 
@@ -76,7 +75,7 @@ namespace rgat.Threads
             }
         }
 
-        
+
         void Reader()
         {
             while (!StopFlag && !rgatState.NetworkBridge.CancelToken.IsCancellationRequested)
@@ -92,7 +91,7 @@ namespace rgat.Threads
                 protograph.SetTerminated();
             Finished();
         }
-        
+
     }
 
 

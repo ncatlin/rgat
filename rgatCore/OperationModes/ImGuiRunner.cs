@@ -1,14 +1,9 @@
 ﻿using ImGuiNET;
-using Newtonsoft.Json.Linq;
 using rgat.Threads;
-using rgat.Widgets;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Net.Http;
 using System.Numerics;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Veldrid;
@@ -28,7 +23,7 @@ namespace rgat.OperationModes
         private ImGuiController _controller = null;
 
         //rgat program state
-        private rgatState _rgatState;
+        private readonly rgatState _rgatState;
 
         Threads.HeatRankingThread heatRankThreadObj = null;
 
@@ -53,7 +48,7 @@ namespace rgat.OperationModes
         private static bool _showDemoWindow = true;
         static Vector2 _lastMousePos;
 
-        static List<Key> HeldResponsiveKeys = new List<Key>();
+        static readonly List<Key> HeldResponsiveKeys = new List<Key>();
 
 
         //perform rare events like freeing resources which havent been used in a while
@@ -377,7 +372,7 @@ namespace rgat.OperationModes
                 {
                     apiTask = Task.Delay(0);
                     Logging.RecordError("Failed to find API data file");
-                } 
+                }
             }
             else
             {

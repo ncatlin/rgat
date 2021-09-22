@@ -436,9 +436,9 @@ namespace rgat
         public readonly object ExternCallerLock = new object(); //todo stop this being public
 
         private readonly object SymbolsLock = new object();
-        private Dictionary<int, Dictionary<ulong, string?>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string?>>();
+        private readonly Dictionary<int, Dictionary<ulong, string?>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string?>>();
 
-        private Dictionary<int, Dictionary<ulong, Logging.LogFilterType>> APITypes = new Dictionary<int, Dictionary<ulong, Logging.LogFilterType>>();
+        private readonly Dictionary<int, Dictionary<ulong, Logging.LogFilterType>> APITypes = new Dictionary<int, Dictionary<ulong, Logging.LogFilterType>>();
 
         /// <summary>
         /// Get the unique API reference value for the specified module
@@ -546,7 +546,7 @@ namespace rgat
         //list of basic blocks - guarded by instructionslock
         //              address
         public List<Tuple<ulong, List<InstructionData>>> BasicBlocksList = new List<Tuple<ulong, List<InstructionData>>>();
-        private Dictionary<ulong, List<ulong>> blockIDDict = new Dictionary<ulong, List<ulong>>();
+        private readonly Dictionary<ulong, List<ulong>> blockIDDict = new Dictionary<ulong, List<ulong>>();
 
         public Dictionary<ulong, ROUTINE_STRUCT> externdict = new Dictionary<ulong, ROUTINE_STRUCT>();
         public int BitWidth;

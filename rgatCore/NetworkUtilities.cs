@@ -1,13 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Net.NetworkInformation;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Diagnostics;
+using System.Net.NetworkInformation;
 
 namespace rgat
 {

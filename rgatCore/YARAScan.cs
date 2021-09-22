@@ -14,12 +14,13 @@ namespace rgat
     public class YARAScan
     {
         readonly object _scanLock = new object();
-        YaraContext ctx;
+        readonly YaraContext ctx;
 
         CompiledRules loadedRules = null;
 
         public enum eYaraScanProgress { eRunning, eComplete, eNotStarted, eFailed };
-        Dictionary<BinaryTarget, eYaraScanProgress> targetScanProgress = new Dictionary<BinaryTarget, eYaraScanProgress>();
+
+        readonly Dictionary<BinaryTarget, eYaraScanProgress> targetScanProgress = new Dictionary<BinaryTarget, eYaraScanProgress>();
 
         [DllImport("libyara.dll")]
         private static extern void LibraryExistsTestMethod();
@@ -301,7 +302,7 @@ namespace rgat
             return savedrules.ToArray();
         }
 
-        DateTime _lastCheck = DateTime.MinValue;
+        readonly DateTime _lastCheck = DateTime.MinValue;
         public DateTime NewestSignature { get; private set; } = DateTime.MinValue;
         public DateTime EndpointNewestSignature = DateTime.MinValue;
         public bool StaleRemoteSignatures => (EndpointNewestSignature != DateTime.MinValue && EndpointNewestSignature > NewestSignature);

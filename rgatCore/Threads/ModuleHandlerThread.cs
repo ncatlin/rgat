@@ -13,12 +13,11 @@ namespace rgat
 {
     public class ModuleHandlerThread : TraceProcessorWorker
     {
-
-        BinaryTarget target;
-        TraceRecord trace;
+        readonly BinaryTarget target;
+        readonly TraceRecord trace;
         NamedPipeServerStream commandPipe = null;
         NamedPipeServerStream eventPipe = null;
-        uint? _remoteEventPipeID;
+        readonly uint? _remoteEventPipeID;
         uint? _remoteCommandPipeID = null;
         System.Threading.Tasks.Task _headlessCommandListener = null;
 
@@ -83,7 +82,7 @@ namespace rgat
 
         private string GetTracePipeName(ulong TID)
         {
-          return GetTracePipeName(trace.PID, trace.randID, TID);
+            return GetTracePipeName(trace.PID, trace.randID, TID);
         }
 
         public static string GetTracePipeName(uint PID, long randID, ulong TID)
@@ -194,7 +193,7 @@ namespace rgat
         }
 
         ulong spawnedThreadCount = 0;
-        Dictionary<ulong, ProtoGraph> _pendingPipeThreads = new Dictionary<ulong, ProtoGraph>();
+        readonly Dictionary<ulong, ProtoGraph> _pendingPipeThreads = new Dictionary<ulong, ProtoGraph>();
 
         void HandleNewThread(byte[] buf)
         {
@@ -205,7 +204,7 @@ namespace rgat
                 Logging.RecordError("Bad threadID in new thread");
                 return;
             }
-            if(!ulong.TryParse(fields[2], System.Globalization.NumberStyles.HexNumber, null, out ulong startAddr))
+            if (!ulong.TryParse(fields[2], System.Globalization.NumberStyles.HexNumber, null, out ulong startAddr))
             {
                 Logging.RecordError($"Bad thread start address (ID:{TID})");
                 return;
@@ -231,7 +230,7 @@ namespace rgat
                         params_.Add("PID", trace.PID);
                         params_.Add("RID", trace.randID);
                         params_.Add("ref", traceRef);
-                        rgatState.NetworkBridge.SendCommand("ThreadIngest", trace.randID.ToString()+ spawnedThreadCount.ToString(), SpawnRemoteTraceProcessorThreads, params_);
+                        rgatState.NetworkBridge.SendCommand("ThreadIngest", trace.randID.ToString() + spawnedThreadCount.ToString(), SpawnRemoteTraceProcessorThreads, params_);
                     }
 
                     break;
@@ -354,10 +353,10 @@ namespace rgat
             if (!CommandWrite($"INCLUDELISTS\n\x00\x00\x00")) return;
 
             byte[] buf;
-            if (target.traceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+            if (target.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
             {
-                List<string> tracedDirs = target.traceChoices.GetTracedDirs();
-                List<string> tracedFiles = target.traceChoices.GetTracedFiles();
+                List<string> tracedDirs = target.TraceChoices.GetTracedDirs();
+                List<string> tracedFiles = target.TraceChoices.GetTracedFiles();
 
                 if (tracedDirs.Count == 0 && tracedFiles.Count == 0)
                 {
@@ -379,8 +378,8 @@ namespace rgat
             }
             else
             {
-                List<string> ignoredDirs = target.traceChoices.GetIgnoredDirs();
-                List<string> ignoredFiles = target.traceChoices.GetIgnoredFiles();
+                List<string> ignoredDirs = target.TraceChoices.GetIgnoredDirs();
+                List<string> ignoredFiles = target.TraceChoices.GetIgnoredFiles();
 
                 foreach (string name in ignoredDirs)
                 {
@@ -539,7 +538,7 @@ namespace rgat
             return "CR" + PID.ToString() + randID.ToString();
         }
 
-        CancellationTokenSource cancelTokens = new CancellationTokenSource();
+        readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
 
         public void Terminate()
         {
@@ -576,10 +575,9 @@ namespace rgat
             }
         }
 
-
-        Queue<byte[]> _incomingRemoteEvents = new Queue<byte[]>();
-        Queue<string> _incomingTraceCommands = new Queue<string>();
-        ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
+        readonly Queue<byte[]> _incomingRemoteEvents = new Queue<byte[]>();
+        readonly Queue<string> _incomingTraceCommands = new Queue<string>();
+        readonly ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
         readonly object _lock = new object();
 
         /// <summary>

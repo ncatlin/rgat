@@ -1,13 +1,27 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using Newtonsoft.Json.Linq;
 
 namespace rgat
 {
+    /// <summary>
+    /// Handles loading and interaction with an API data file, for use 
+    /// in the analysis tab to so how the trace interacted with the system
+    /// </summary>
     public class APIDetailsWin
     {
+        /// <summary>
+        /// True if the API data file was loaded
+        /// </summary>
         public static bool Loaded { get; private set; }
+
+
+        /// <summary>
+        /// Load an API data file
+        /// </summary>
+        /// <param name="datapath">Fileystem path of the file</param>
+        /// <param name="progress">Optional IProgress for file loading</param>
         public static void Load(string datapath, IProgress<float>? progress = null)
         {
             if (!File.Exists(datapath))
@@ -53,6 +67,10 @@ namespace rgat
             file.Close();
         }
 
+        /// <summary>
+        /// Search for the API Data file
+        /// </summary>
+        /// <returns>Path of the file if found, otherwise null</returns>
         public static string? FindAPIDatafile()
         {
             try
@@ -78,45 +96,87 @@ namespace rgat
         }
 
 
-        static Dictionary<string, int> _configuredModules = new Dictionary<string, int>();
-        static Dictionary<int, string> _defaultFilters = new Dictionary<int, string>();
-        static Dictionary<int, Dictionary<string, API_ENTRY>> _configuredSymbols = new Dictionary<int, Dictionary<string, API_ENTRY>>();
+        static readonly Dictionary<string, int> _configuredModules = new Dictionary<string, int>();
+        static readonly Dictionary<int, string> _defaultFilters = new Dictionary<int, string>();
+        static readonly Dictionary<int, Dictionary<string, API_ENTRY>> _configuredSymbols = new Dictionary<int, Dictionary<string, API_ENTRY>>();
 
+        /// <summary>
+        /// A base class for API interaction effects
+        /// </summary>
         public class InteractionEffect
         {
             /// <summary>
             /// Needed for deserialisation
             /// </summary>
-            public string TypeName;
+            public string? TypeName;
         }
 
+        /// <summary>
+        /// The effect of this API is to create a reference to an entity
+        /// Eg: Opening a file creates a handle which refers to a filepath
+        /// </summary>
         public class LinkReferenceEffect : InteractionEffect
         {
-            public LinkReferenceEffect()  {  base.TypeName = "Link"; }
-            public int referenceIndex;
-            public int entityIndex;
+            /// <summary>
+            /// Create a link reference effect for an API call
+            /// </summary>
+            /// <param name="entityIdx">Position of the entity parameter (-1 = return val, 0 = first param)</param>
+            /// <param name="refIdx">Position of the reference parameter  (-1 = return val, 0 = first param)</param>
+            public LinkReferenceEffect(int entityIdx, int refIdx) { base.TypeName = "Link"; ReferenceIndex = refIdx; EntityIndex = entityIdx; }
+            /// <summary>
+            /// The position of the parameter which is a reference to an entity
+            /// </summary>
+            public int ReferenceIndex { get; private set; }
+            /// <summary>
+            /// The position of the parameter which is the entity that the reference will linked to
+            /// </summary>
+            public int EntityIndex { get; private set; }
         }
 
+
+        /// <summary>
+        /// The effect of this API is to actually interact with an entity
+        /// Eg: Writing to a file, sending network data to an IP address
+        /// </summary>
         public class UseReferenceEffect : InteractionEffect
         {
-            public UseReferenceEffect() { base.TypeName = "Use"; }
-            public int referenceIndex;
+            /// <summary>
+            /// Create a reference usage effect
+            /// </summary>
+            /// <param name="refIdx">Position of the reference parameter  (-1 = return val, 0 = first param)</param>
+            public UseReferenceEffect(int refIdx) { base.TypeName = "Use"; ReferenceIndex = refIdx; }
+            /// <summary>
+            /// The parameter index of the entity reference that is interacted with (-1 = return val, 0 = first param)
+            /// </summary>
+            public int ReferenceIndex { get; private set; } 
         }
 
+
+        /// <summary>
+        /// The effect of this API is to destroy a reference to an entity (eg: CloseHandle destroys a HANDLE)
+        /// </summary>
         public class DestroyReferenceEffect : InteractionEffect
         {
-            public DestroyReferenceEffect() { base.TypeName = "Destroy"; }
-            public int referenceIndex;
+            /// <summary>
+            /// Create a reference destruction effect
+            /// </summary>
+            /// <param name="refIdx">Position of the reference parameter  (-1 = return val, 0 = first param)</param>
+            public DestroyReferenceEffect(int refIdx) { base.TypeName = "Destroy"; ReferenceIndex = refIdx; }
+            /// <summary>
+            /// The parameter index of the entity reference that is destroyed (-1 = return val, 0 = first param)
+            /// </summary>
+            public int ReferenceIndex { get; private set; }
         }
 
-        static void LoadJSON(Newtonsoft.Json.Linq.JArray JItems, IProgress<float> progress = null)
+
+        static void LoadJSON(Newtonsoft.Json.Linq.JArray JItems, IProgress<float>? progress = null)
         {
             float moduleCount = JItems.Count;
 
             for (var moduleI = 0; moduleI < moduleCount; moduleI++)
             {
                 JToken moduleEntryTok = JItems[moduleI];
-            
+
                 if (moduleEntryTok.Type != JTokenType.Object)
                 {
                     Logging.RecordLogEvent("API Data JSON has a library entry which is not an object. Abandoning Load.", Logging.LogFilterType.TextError);
@@ -124,8 +184,8 @@ namespace rgat
                 }
 
                 JObject? moduleEntry = moduleEntryTok.ToObject<JObject>();
-                if (moduleEntry is null || 
-                    !moduleEntry.TryGetValue("Library", out JToken? libnameTok) || 
+                if (moduleEntry is null ||
+                    !moduleEntry.TryGetValue("Library", out JToken? libnameTok) ||
                     libnameTok.Type != JTokenType.String)
                 {
                     Logging.RecordLogEvent("API Data library entry has no 'Library' name string. Abandoning Load.", Logging.LogFilterType.TextError);
@@ -187,14 +247,21 @@ namespace rgat
                         if (APIJsn.TryGetValue("Parameters", out JToken? paramsTok) && paramsTok is not null && paramsTok.Type == JTokenType.Array)
                         {
                             JArray? callParams = paramsTok.ToObject<JArray>();
-                            APIItem.LoggedParams = ExtractParameters(callParams, libname, apiname);
-
-                            if (APIItem.LoggedParams != null && APIItem.LoggedParams.Count > 0)
+                            if (callParams is not null)
                             {
-                                if (APIJsn.TryGetValue("Effects", out JToken? effectsTok) && effectsTok.Type == JTokenType.Array)
+                                List<API_PARAM_ENTRY>? loggedParams = ExtractParameters(callParams, libname, apiname);
+                                if (loggedParams != null && loggedParams.Count > 0)
                                 {
-                                    APIItem.Effects = ExtractEffects(effectsTok.ToObject<JArray>(), libname, apiname, APIItem.LoggedParams);
-                                } 
+                                    APIItem.LoggedParams = loggedParams;
+                                    if (APIJsn.TryGetValue("Effects", out JToken? effectsTok) && effectsTok.Type == JTokenType.Array)
+                                    {
+                                        JArray? effectsArr = effectsTok.ToObject<JArray>();
+                                        if (effectsArr is not null)
+                                        {
+                                            APIItem.Effects = ExtractEffects(effectsArr, libname, apiname, APIItem.LoggedParams);
+                                        }
+                                    }
+                                }
                             }
 
                         }
@@ -213,10 +280,9 @@ namespace rgat
             }
         }
 
+
         static List<API_PARAM_ENTRY>? ExtractParameters(JArray callParams, string libname, string apiname)
         {
-            if (callParams is null) return null;
-
             List<API_PARAM_ENTRY> result = new List<API_PARAM_ENTRY>();
             int paramsOffset = -1;
             foreach (JToken callParamTok in callParams)
@@ -231,7 +297,7 @@ namespace rgat
 
                 JObject? callParam = callParamTok.ToObject<JObject>();
                 if (callParam is null ||
-                    !callParam.TryGetValue("Index", out JToken? paramIndexTok) || 
+                    !callParam.TryGetValue("Index", out JToken? paramIndexTok) ||
                     paramIndexTok.Type != JTokenType.Integer)
                 {
                     Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter with no valid index", Logging.LogFilterType.TextError);
@@ -244,12 +310,12 @@ namespace rgat
                 }
 
                 API_PARAM_ENTRY param = new API_PARAM_ENTRY();
-                param.index = paramIndexTok.ToObject<int>();
-                param.name = paramNameTok.ToObject<string>();
+                param.Index = paramIndexTok.ToObject<int>();
+                param.name = paramNameTok.ToObject<string>() ?? "null";
 
                 if (callParam.TryGetValue("Type", out JToken? paramTypeTok) && paramTypeTok.Type == JTokenType.String)
                 {
-                    if (Enum.TryParse(typeof(APIParamType), paramTypeTok.ToObject<string>(), ignoreCase: true, out object? paramtype))
+                    if (Enum.TryParse(typeof(APIParamType), paramTypeTok.ToObject<string>(), ignoreCase: true, out object? paramtype) && paramtype is not null)
                     {
                         param.paramType = (APIParamType)paramtype;
 
@@ -257,7 +323,8 @@ namespace rgat
                         {
                             if (!callParam.TryGetValue("EntityType", out JToken? catTok) ||
                                 catTok.Type != JTokenType.String ||
-                                !Enum.TryParse(typeof(InteractionEntityType), catTok.ToString(), out object? categoryEnum))
+                                !Enum.TryParse(typeof(InteractionEntityType), catTok.ToString(), out object? categoryEnum) ||
+                                categoryEnum is null)
                             {
                                 Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter ({param.name}) with no valid Category", Logging.LogFilterType.TextError);
                                 return null;
@@ -268,7 +335,8 @@ namespace rgat
 
                             if (!callParam.TryGetValue("RawType", out JToken? rawTypeTok) ||
                                 rawTypeTok.Type != JTokenType.String ||
-                                !Enum.TryParse(typeof(InteractionRawType), rawTypeTok.ToString(), out object? rawtypeEnum))
+                                !Enum.TryParse(typeof(InteractionRawType), rawTypeTok.ToString(), out object? rawtypeEnum) ||
+                                rawtypeEnum is null)
                             {
                                 Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter ({param.name}) with no valid RawType", Logging.LogFilterType.TextError);
                                 return null;
@@ -310,8 +378,8 @@ namespace rgat
                     break;
                 }
                 JObject? effectJsn = effectTok.ToObject<JObject>();
-                if (effectJsn is null || 
-                    !effectJsn.TryGetValue("Type", out JToken? typetok) || 
+                if (effectJsn is null ||
+                    !effectJsn.TryGetValue("Type", out JToken? typetok) ||
                     typetok.Type != JTokenType.String)
                 {
                     Logging.RecordLogEvent($"API data entry {libname}:{apiname} has an untyped interaction effect", Logging.LogFilterType.TextError);
@@ -327,31 +395,29 @@ namespace rgat
                             refidx.Type == JTokenType.Integer)
                         {
                             int entityParamCallIndex = entidx.ToObject<int>();
-                            int entityParamListIndex = callparams.FindIndex(x => x.index == entityParamCallIndex);
+                            int entityParamListIndex = callparams.FindIndex(x => x.Index == entityParamCallIndex);
 
                             int refParamCallIndex = refidx.ToObject<int>();
-                            int refParamListIndex = callparams.FindIndex(x => x.index == refParamCallIndex);
-
+                            int refParamListIndex = callparams.FindIndex(x => x.Index == refParamCallIndex);
 
                             if (refParamListIndex != -1 && entityParamListIndex != -1)
                             {
-                                LinkReferenceEffect effect = new LinkReferenceEffect() { entityIndex = entityParamListIndex, referenceIndex = refParamListIndex };
+                                LinkReferenceEffect effect = new LinkReferenceEffect(entityIdx: entityParamListIndex, refIdx: refParamListIndex);
                                 result.Add(effect);
                                 valid = true;
                             }
                         }
-                        break;                    
-                    
+                        break;
+
                     case "UseReference":
                         if (effectJsn.TryGetValue("ReferenceIndex", out refidx) && refidx.Type == JTokenType.Integer)
                         {
                             int refParamCallIndex = refidx.ToObject<int>();
-                            int refParamListIndex = callparams.FindIndex(x => x.index == refParamCallIndex);
-
+                            int refParamListIndex = callparams.FindIndex(x => x.Index == refParamCallIndex);
 
                             if (refParamListIndex != -1)
                             {
-                                UseReferenceEffect effect = new UseReferenceEffect() { referenceIndex = refParamListIndex };
+                                UseReferenceEffect effect = new UseReferenceEffect(refIdx: refParamListIndex);
                                 result.Add(effect);
                                 valid = true;
                             }
@@ -362,12 +428,10 @@ namespace rgat
                         if (effectJsn.TryGetValue("ReferenceIndex", out refidx) && refidx.Type == JTokenType.Integer)
                         {
                             int refParamCallIndex = refidx.ToObject<int>();
-                            int refParamListIndex = callparams.FindIndex(x => x.index == refParamCallIndex);
-
-
+                            int refParamListIndex = callparams.FindIndex(x => x.Index == refParamCallIndex);
                             if (refParamListIndex != -1)
                             {
-                                DestroyReferenceEffect effect = new DestroyReferenceEffect() { referenceIndex = refParamListIndex };
+                                DestroyReferenceEffect effect = new DestroyReferenceEffect(refIdx: refParamListIndex);
                                 result.Add(effect);
                                 valid = true;
                             }
@@ -387,12 +451,70 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// How we deal with API call parameters
+        /// </summary>
+        public enum APIParamType
+        {
+            /// <summary>
+            /// The parameter is informational only
+            /// </summary>
+            Info,
+            /// <summary>
+            /// The parameter describes an interesting system object (file path, network address, etc)
+            /// </summary>
+            Entity,
+            /// <summary>
+            /// The parameter is a reference to an entity (HANDLE to a file, socket to a network address, etc)
+            /// </summary>
+            Reference
+        }
 
-        public enum APIParamType { Info, Entity, Reference }
-        //the type of entity being interacted with
-        public enum InteractionEntityType { File, Host, Registry }
-        //the type of parameter
-        public enum InteractionRawType { Handle, Path, Domain, HKEY }
+
+        /// <summary>
+        /// The category of the entity
+        /// </summary>
+        public enum InteractionEntityType
+        {
+            /// <summary>
+            /// Filesystem path
+            /// </summary>
+            File,
+            /// <summary>
+            /// Network address
+            /// </summary>
+            Host,
+            /// <summary>
+            /// Windows registry path
+            /// </summary>
+            Registry
+        }
+
+
+        /// <summary>
+        /// A specific type for a parameter
+        /// </summary>
+        public enum InteractionRawType
+        {
+            /// <summary>
+            /// HANDLE reference
+            /// </summary>
+            Handle,
+            /// <summary>
+            /// Filesystem path
+            /// </summary>
+            Path,
+            /// <summary>
+            /// DNS domain
+            /// </summary>
+            Domain,
+            /// <summary>
+            /// Registry HKEY
+            /// </summary>
+            HKEY
+        }
+
+
         //enum APIInteractionType { None, Open, Close, Read, Write, Delete, Query, Lock, Unlock }
 
         /// <summary>
@@ -400,17 +522,32 @@ namespace rgat
         /// </summary>
         public struct API_PARAM_ENTRY
         {
-            public int index;
+            /// <summary>
+            /// The position of the parameter in the function call. 0 => first param. -1 => return value
+            /// </summary>
+            public int Index;
+            /// <summary>
+            /// The name of the parameter
+            /// </summary>
             public string name;
+            /// <summary>
+            /// How we use the parameter
+            /// </summary>
             public APIParamType paramType;
+            /// <summary>
+            /// The category of activity the parameter belongs to
+            /// </summary>
             public InteractionEntityType EntityType;
+            /// <summary>
+            /// The actual raw type of parameter (HANDLE, domain, etc)
+            /// </summary>
             public InteractionRawType RawType;
             /// <summary>
-            /// may not receive this parameter (eg: failed registry key open -> no registry key handle)
+            /// May not receive this parameter (eg: failed registry key open -> no registry key handle)
             /// </summary>
             public bool IsConditional;
             /// <summary>
-            /// comparisons are case insensitive, particularly numbers such as handles which get represented as hex strings
+            /// Comparisons are case insensitive, particularly numbers such as handles which get represented as hex strings
             /// </summary>
             public bool NoCase;
         }
@@ -431,10 +568,12 @@ namespace rgat
             /// <summary>
             /// How the API call interacted with the entity. Used as a label in the analysis chart.
             /// </summary>
-            public string Label;
+            public string? Label;
 
-            //how this api call affects our tracking of interaction targets
-            public List<InteractionEffect> Effects;
+            /// <summary>
+            /// How this api call affects our tracking of interaction targets
+            /// </summary>
+            public List<InteractionEffect>? Effects;
 
             /// <summary>
             /// the filename of the library
@@ -446,10 +585,6 @@ namespace rgat
             public string Symbol;
         }
 
-        public struct API_INTERACTION_ENTITY
-        {
-            public string name;
-        }
 
         /// <summary>
         /// Lookup a system library by path and get a reference that can be used to index internal library metadata (filter types, symbol info)

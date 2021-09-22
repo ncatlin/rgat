@@ -17,9 +17,7 @@ namespace rgat
     public class PreviewGraphsWidget : IDisposable
     {
         List<PlottedGraph> DrawnPreviewGraphs = new List<PlottedGraph>();
-
-
-        System.Timers.Timer IrregularTimer;
+        readonly System.Timers.Timer IrregularTimer;
         bool IrregularTimerFired = false;
 
         TraceRecord ActiveTrace = null;
@@ -38,14 +36,14 @@ namespace rgat
         public uint selectedGraphTID;
         public PlottedGraph clickedGraph { get; private set; }
 
-        ImGuiController _ImGuiController;
-        GraphicsDevice _gd;
-        ResourceFactory _factory;
-        rgatState _rgatState;
+        readonly ImGuiController _ImGuiController;
+        readonly GraphicsDevice _gd;
+        readonly ResourceFactory _factory;
+        readonly rgatState _rgatState;
 
 
         ResourceLayout _coreRsrcLayout, _nodesEdgesRsrclayout;
-        ResourceSet _crs_core, _crs_nodesEdges;
+        readonly ResourceSet _crs_core, _crs_nodesEdges;
         DeviceBuffer _paramsBuffer;
         DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer;
         DeviceBuffer _NodeVertexBuffer, _NodeIndexBuffer;
@@ -53,8 +51,7 @@ namespace rgat
         Texture _NodeCircleSprite;
         TextureView _NodeCircleSpritetview;
         Pipeline _edgesPipeline, _pointsPipeline;
-
-        GraphLayoutEngine _layoutEngine;
+        readonly GraphLayoutEngine _layoutEngine;
         public GraphLayoutEngine LayoutEngine => _layoutEngine;
 
         public PreviewGraphsWidget(ImGuiController controller, GraphicsDevice gdev, rgatState clientState)
@@ -300,8 +297,8 @@ namespace rgat
 
         enum PreviewSortMethod { StartOrder, InstructionCount, ThreadID, LastUpdated }
         PreviewSortMethod _activeSortMethod = PreviewSortMethod.StartOrder;
-        Dictionary<TraceRecord, List<int>> _cachedSorts = new Dictionary<TraceRecord, List<int>>();
-        DateTime lastSort = DateTime.MinValue;
+        readonly Dictionary<TraceRecord, List<int>> _cachedSorts = new Dictionary<TraceRecord, List<int>>();
+        readonly DateTime lastSort = DateTime.MinValue;
 
         public void DrawWidget()
         {
@@ -469,7 +466,7 @@ namespace rgat
 
         }
 
-        Dictionary<PlottedGraph, string> _threadStartCache = new Dictionary<PlottedGraph, string>();
+        readonly Dictionary<PlottedGraph, string> _threadStartCache = new Dictionary<PlottedGraph, string>();
 
 
 
@@ -727,7 +724,7 @@ namespace rgat
             return shaderParams;
         }
 
-        Dictionary<PlottedGraph, bool> _centeringRequired = new Dictionary<PlottedGraph, bool>();
+        readonly Dictionary<PlottedGraph, bool> _centeringRequired = new Dictionary<PlottedGraph, bool>();
 
         WritableRgbaFloat GetGraphBackgroundColour(PlottedGraph graph)
         {
@@ -792,9 +789,9 @@ namespace rgat
                 }
             }
 
-            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow, 
-                out List<uint> edgeDrawIndexes, 
-                out int edgeVertCount, 
+            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow,
+                out List<uint> edgeDrawIndexes,
+                out int edgeVertCount,
                 out int drawnEdgeCount);
             if (drawnEdgeCount == 0 || !graph.LayoutState.Initialised) return;
 

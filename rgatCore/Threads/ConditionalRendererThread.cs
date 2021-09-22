@@ -2,7 +2,7 @@
 {
     public class ConditionalRendererThread : TraceProcessorWorker
     {
-        TraceRecord RenderedTrace = null;
+        readonly TraceRecord RenderedTrace = null;
 
         public ConditionalRendererThread(TraceRecord _renderedTrace)
         {

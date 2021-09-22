@@ -1,15 +1,13 @@
 ﻿using CommandLine;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
-using System.Text;
 
 namespace rgat.Config
 {
-   public class LaunchConfig
+    public class LaunchConfig
     {
 
         // usage modes
@@ -17,7 +15,7 @@ namespace rgat.Config
 
         // if present - trace target file and exit
         // this mode does not require a GPU, unless paired with the draw or mp4 options
-        [Option('t', "target", SetName = "HeadlessMode", MetaValue = "\"path_to_binary\"", Required = false, 
+        [Option('t', "target", SetName = "HeadlessMode", MetaValue = "\"path_to_binary\"", Required = false,
             HelpText = "Run rgat in Headless tracing mode. Requires the file path of the target binary to generate a trace for.\n" +
             "Traces are saved to the standard save directory, unless accompanied by the -o option.\n" +
             "This mode does not require a GPU, unless accompanied by the 'draw' and/or 'mp4' options"
@@ -26,9 +24,9 @@ namespace rgat.Config
 
 
         //if present - go into headless bridge mode and act as a proxy for the specified rgat instance on a remote machine
-        [Option('r', "remote", SetName = "ConnectMode", Required = false, MetaValue = "address:port", 
-            HelpText = "Run rgat in headless network mode (connecting out) which allows the rgat to control tracing from another computer.\n" + 
-            "Requires the address:port of an rgat instance in GUI mode with listening activated.\n"+
+        [Option('r', "remote", SetName = "ConnectMode", Required = false, MetaValue = "address:port",
+            HelpText = "Run rgat in headless network mode (connecting out) which allows the rgat to control tracing from another computer.\n" +
+            "Requires the address:port of an rgat instance in GUI mode with listening activated.\n" +
             "Not compatible with the listening mode optins. --key parameter is mandatory if no preconfigured key is set.\n" +
             "This mode does not require a GPU.")]
         public string ConnectModeAddress { get; set; }
@@ -36,7 +34,7 @@ namespace rgat.Config
 
         // if present - go into headless bridge mode and act as a proxy for the next rgat instance to connect to this port
         // this mode does not require a GPU
-        [Option('p', "port", SetName = "ListenMode", Required = false, MetaValue = "[port number]", 
+        [Option('p', "port", SetName = "ListenMode", Required = false, MetaValue = "[port number]",
             HelpText = "Run rgat in headless network bridge mode (listening) which allows an rgat client to connect and control tracing on this computer.\n" +
             "Takes an  optional TCP port to listen on, or chooses a random available port.\n" +
             "Not compatible with the 'remote' option. See notes for the --key parameter, which is optional for this mode.\n" +
@@ -47,15 +45,15 @@ namespace rgat.Config
         //network bridge mode modifiers
 
         // the interface to use for network connections
-        [Option('i', "interface", Required = false, MetaValue ="IP/ID/MAC/name",
-            HelpText = "A network interface to use for remote control options (r or p).\n"+
+        [Option('i', "interface", Required = false, MetaValue = "IP/ID/MAC/name",
+            HelpText = "A network interface to use for remote control options (r or p).\n" +
             "By default all available interfaces will be used, so it's a good idea to pick the one you will be using.\n" +
             "The argument can be an interface name, ID, MAC or IP address.\n" +
             "Use without an argument to list valid interfaces.")]
         public string Interface { get; set; }
 
         // the encryption key to use for network connections
-        [Option('k', "key", Required = false, 
+        [Option('k', "key", Required = false,
             HelpText = "Pre-shared key for remote control tracing. This key is stored so it is not required in future invocations.\n" +
             "------Security note------\n" +
             "\tNetwork tracing is intended to facilitate tracing between VM Host/Guest or between machines on a private analysis network.\n" +
@@ -72,13 +70,13 @@ namespace rgat.Config
         public string TraceSaveDirectory { get; set; }
 
 
-        
+
         // draw the rendered graph to a png image
         [Option('d', "draw", Hidden = true, Required = false, HelpText = "[Not implemented]Draw a png of the final rendering of the trace. Requires GPU access with Vulkan drivers.")]
         public bool DrawImage { get; set; }
 
         // once tracing and graph layout is complete, record playback to an mp4 video. 
-        [Option('M', "mp4_playback", Hidden = true, Required = false,  HelpText = "[Not implemented]Record a video of a playback of the final trace. Requires FFMpeg.")]
+        [Option('M', "mp4_playback", Hidden = true, Required = false, HelpText = "[Not implemented]Record a video of a playback of the final trace. Requires FFMpeg.")]
         public bool RecordVideoReplay { get; set; }
 
         // record a video of tracing and layout. 
@@ -87,7 +85,7 @@ namespace rgat.Config
 
         [Option("ffmpeg", Required = false, Hidden = true, MetaValue = "[\"path_to_ffmpeg.exe\"]", HelpText = "[Not implemented]Provide a path to FFMpeg.exe to enable video recording if one is not configured. With no argument, prints status of configured FFMpeg.")]
         public string FFmpegPath { get; set; }
-        
+
 
 
         [Option("nofollow", Required = false, HelpText = "If specified, rgat will not trace new processes spawned by the initial process")]
@@ -105,7 +103,8 @@ namespace rgat.Config
         public NetworkInterface ActiveNetworkInterface;
 
 
-        public enum eRunMode {
+        public enum eRunMode
+        {
             /// <summary>
             /// Full GPU rendered GUI mode
             /// </summary>
@@ -119,15 +118,16 @@ namespace rgat.Config
             /// Lightweight proxy mode which does little more than spawn processes and feed results back to
             /// a connected rgat instance
             /// </summary>
-            Bridged, 
+            Bridged,
             /// <summary>
             /// Generates a trace file that can be read by rgat in GUI mode
             /// </summary>
-            NoGPUTraceCommand, 
+            NoGPUTraceCommand,
             /// <summary>
             /// The provided command line arguments were not valid for any supported mode of operation
             /// </summary>
-            Invalid };
+            Invalid
+        };
         public eRunMode RunMode;
 
         public void Init(string[] originalParams)
@@ -145,7 +145,7 @@ namespace rgat.Config
         /// </summary>
         /// <param name="originalParams"></param>
         void DeNullifyArgumentless(string[] originalParams)
-        {                        
+        {
             if (Interface == null && (originalParams.Contains("-i") || originalParams.Contains("-interface") || originalParams.Contains("--interface")))
             {
                 Interface = "";
@@ -171,7 +171,7 @@ namespace rgat.Config
 
             if (TargetPath != null)
             {
-                if (RecordVideoLive || RecordVideoReplay || DrawImage )
+                if (RecordVideoLive || RecordVideoReplay || DrawImage)
                 {
                     RunMode = eRunMode.GPURenderCommand;
                 }
@@ -187,7 +187,7 @@ namespace rgat.Config
 
         bool ParseConfigJSON(JObject jsn, out string? error)
         {
-            
+
             foreach (var kvp in jsn)
             {
                 if (kvp.Value is null) continue;

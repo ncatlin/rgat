@@ -1,10 +1,7 @@
 ﻿using ImGuiNET;
 using rgat.Widgets;
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-using System.Text;
 using static rgat.Logging;
 
 namespace rgat
@@ -28,7 +25,7 @@ namespace rgat
                 return;
             }
 
-            chart.InitChartFromTrace(activeTrace);
+            chart!.InitChartFromTrace(activeTrace);
 
             SandboxChart.ItemNode selectedNode = chart.GetSelectedNode;
             if (ImGui.BeginTable("#TaTTable", 3, ImGuiTableFlags.Resizable))
@@ -130,7 +127,7 @@ namespace rgat
                 ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.None);
                 ImGui.TableHeadersRow();
 
-                var SelectedEntity = chart.SelectedEntity;
+                var SelectedEntity = chart!.SelectedEntity;
                 var SelectedAPIEvent = chart.SelectedAPIEvent;
 
                 bool ThreadNodeSelected = selectedNode != null && Equals(selectedNode.reference.GetType(), typeof(ProtoGraph));

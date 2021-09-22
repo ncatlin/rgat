@@ -35,7 +35,7 @@ namespace ImGuiNET
         private ResourceSet _mainResourceSet;
         private ResourceSet _fontTextureResourceSet;
 
-        private IntPtr _fontAtlasID = (IntPtr)1;
+        private readonly IntPtr _fontAtlasID = (IntPtr)1;
         private bool _controlDown;
         private bool _shiftDown;
         private bool _altDown;
@@ -58,7 +58,7 @@ namespace ImGuiNET
         ImFontPtr? _splashButtonFont = null;
         public ImFontPtr _originalFont = null;
         private bool _unicodeFontLoaded = false;
-      
+
         int _dialogsOpen = 0;
 
         public bool DialogOpen => _dialogsOpen > 0;
@@ -66,7 +66,7 @@ namespace ImGuiNET
         {
 
             Debug.Assert(_dialogsOpen >= 0);
-            _dialogsOpen += opened ? 1 : -1; 
+            _dialogsOpen += opened ? 1 : -1;
         }
 
         public bool ShowDemoWindow = false;
@@ -115,7 +115,7 @@ namespace ImGuiNET
 
             Logging.RecordLogEvent("Loading fonts", Logging.LogFilterType.TextDebug);
             var fonts = ImGui.GetIO().Fonts;
-            
+
             BuildFonts();
             _originalFont = fonts.AddFontDefault();
 
@@ -169,7 +169,7 @@ namespace ImGuiNET
 
             //embed in resource for distribution, once a font is settled on
 
-            
+
             byte[]? notoFontBytes = rgatState.ReadBinaryResource("NotoSansSC_Regular");
             if (notoFontBytes == null)
             {
@@ -208,7 +208,7 @@ namespace ImGuiNET
                     {
                         fixed (byte* solidPtr = solidFontBytes, regularPtr = regularFontBytes)
                         {
-                            fontConfig.FontDataOwnedByAtlas = true; 
+                            fontConfig.FontDataOwnedByAtlas = true;
                             IntPtr glyphRange = rangeHandle.AddrOfPinnedObject();
                             _fafontSolid = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, 17, fontConfig, glyphRange);
                             _fafontRegular = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)regularPtr, regularFontBytes.Length, 17, fontConfig, glyphRange);
@@ -278,8 +278,8 @@ namespace ImGuiNET
             private set { _titleFont = value; }
         }
 
-        Dictionary<string, Texture> _imageTextures = new Dictionary<string, Texture>();
-        Dictionary<string, TextureView> _textureViews = new Dictionary<string, TextureView>();
+        readonly Dictionary<string, Texture> _imageTextures = new Dictionary<string, Texture>();
+        readonly Dictionary<string, TextureView> _textureViews = new Dictionary<string, TextureView>();
 
         Texture _imagesTextureArray;
         void LoadImages()
@@ -489,7 +489,7 @@ namespace ImGuiNET
             return tvi.ResourceSet;
         }
 
-        List<Tuple<IDisposable, DateTime>> expiredResources = new List<Tuple<IDisposable, DateTime>>();
+        readonly List<Tuple<IDisposable, DateTime>> expiredResources = new List<Tuple<IDisposable, DateTime>>();
 
         // my attempts to stem this minor potential memory leak have failed in crashes so far
         // try to avoid calling GetOrCreateImGuiBinding with too many different things (ie: reuse texture rather than recreate each frame)

@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -20,8 +19,9 @@ namespace rgat
             }
             public long EventTimeMS => _eventTimeMS;
             public eLogFilterBaseType LogType => _type;
-            long _eventTimeMS;
-            eLogFilterBaseType _type;
+
+            readonly long _eventTimeMS;
+            readonly eLogFilterBaseType _type;
             public LogFilterType Filter;
             public ProtoGraph _graph;
             public TraceRecord Trace;
@@ -29,7 +29,8 @@ namespace rgat
 
         public class APICALL
         {
-            public APICALL() { 
+            public APICALL()
+            {
                 APIDetails = null;
             }
             public NodeData node;
@@ -45,7 +46,7 @@ namespace rgat
                 return APIDetails.Value.FilterType;
             }
 
-            static Newtonsoft.Json.JsonSerializer serializer;
+            static readonly Newtonsoft.Json.JsonSerializer serializer;
 
             public static bool TryDeserialise(JToken apiTok, TraceRecord trace, out APICALL apiObj)
             {
@@ -95,6 +96,7 @@ namespace rgat
                     apiObj.APIDetails = deTok.ToObject<APIDetailsWin.API_ENTRY>();
                     if (apiObj.APIDetails is not null &&
                         deJObj.TryGetValue("Effects", out JToken? effTok) &&
+                        apiObj.APIDetails.Value.Effects is not null &&
                         effTok.Type is JTokenType.Array)
                     {
                         JArray? effArray = effTok.ToObject<JArray>();
@@ -109,31 +111,28 @@ namespace rgat
                                 {
                                     case "Link":
                                         {
-                                            APIDetailsWin.LinkReferenceEffect linkEff = new APIDetailsWin.LinkReferenceEffect();
                                             JToken? entityIdx = effectObj["entityIndex"];
                                             JToken? refIdx = effectObj["referenceIndex"];
                                             if (entityIdx is null || refIdx is null) return false;
-                                            linkEff.entityIndex = entityIdx.ToObject<int>();
-                                            linkEff.referenceIndex = refIdx.ToObject<int>();
+                                            int entityIndex = entityIdx.ToObject<int>();
+                                            int referenceIndex = refIdx.ToObject<int>();
+                                            APIDetailsWin.LinkReferenceEffect linkEff = new APIDetailsWin.LinkReferenceEffect(entityIndex, referenceIndex);
+
                                             apiObj.APIDetails.Value.Effects[effecti] = linkEff;
                                             break;
                                         }
                                     case "Use":
                                         {
-                                            APIDetailsWin.UseReferenceEffect useEff = new APIDetailsWin.UseReferenceEffect();
                                             JToken? refIdx = effectObj["referenceIndex"];
                                             if (refIdx is null) return false;
-                                            useEff.referenceIndex = refIdx.ToObject<int>();
-                                            apiObj.APIDetails.Value.Effects[effecti] = useEff;
+                                            apiObj.APIDetails.Value.Effects[effecti] = new APIDetailsWin.UseReferenceEffect(refIdx.ToObject<int>());
                                             break;
                                         }
                                     case "Destroy":
                                         {
-                                            APIDetailsWin.DestroyReferenceEffect destroyEff = new APIDetailsWin.DestroyReferenceEffect();
                                             JToken? refIdx = effectObj["referenceIndex"];
                                             if (refIdx is null) return false;
-                                            destroyEff.referenceIndex = refIdx.ToObject<int>();
-                                            apiObj.APIDetails.Value.Effects[effecti] = destroyEff;
+                                            apiObj.APIDetails.Value.Effects[effecti] = new APIDetailsWin.DestroyReferenceEffect(refIdx.ToObject<int>());
                                             break;
                                         }
                                 }
@@ -355,11 +354,11 @@ namespace rgat
             public string MetaError = null;
             public bool Inited { get; private set; }
 
-            eTimelineEvent _eventType;
+            readonly eTimelineEvent _eventType;
             ulong _ID;
             ulong _parentID;
             object _item;
-            bool _inited;
+            readonly bool _inited;
         }
 
 
@@ -376,10 +375,10 @@ namespace rgat
             //Something very common and routine happened. Log it to a file if bulk debug logging is enabled.
             BulkDebugLogFile, COUNT
         };
-        static int[] MessageCounts = new int[(int)LogFilterType.COUNT];
+        static readonly int[] MessageCounts = new int[(int)LogFilterType.COUNT];
 
-        static List<LOG_EVENT> _logMessages = new List<LOG_EVENT>();
-        static List<LOG_EVENT> _alertNotifications = new List<LOG_EVENT>();
+        static readonly List<LOG_EVENT> _logMessages = new List<LOG_EVENT>();
+        static readonly List<LOG_EVENT> _alertNotifications = new List<LOG_EVENT>();
         readonly static object _messagesLock = new object();
 
 

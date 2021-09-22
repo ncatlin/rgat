@@ -29,14 +29,15 @@ namespace rgat.Testing
 
         Thread thisThread = null;
         readonly object _lock = new object();
-        rgatState _rgatState;
-        Dictionary<int, TestSession> _testSessions = new Dictionary<int, TestSession>();
-        Dictionary<long, TestCaseRun> _testRuns = new Dictionary<long, TestCaseRun>();
+        readonly rgatState _rgatState;
+        readonly Dictionary<int, TestSession> _testSessions = new Dictionary<int, TestSession>();
+        readonly Dictionary<long, TestCaseRun> _testRuns = new Dictionary<long, TestCaseRun>();
         long _currentTestID = -1;
-        Dictionary<long, TestRunThread> _runningTests = new Dictionary<long, TestRunThread>();
-        int _maxRunningTests = 5;
+        readonly Dictionary<long, TestRunThread> _runningTests = new Dictionary<long, TestRunThread>();
+        readonly int _maxRunningTests = 5;
         public int FreeTestSlots => _maxRunningTests - _runningTests.Count;
-        Queue<long> _testsQueue = new Queue<long>();
+
+        readonly Queue<long> _testsQueue = new Queue<long>();
 
         public TestHarnessThread(rgatState clientState)
         {

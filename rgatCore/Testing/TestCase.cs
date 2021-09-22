@@ -416,13 +416,14 @@ namespace rgat.Testing
         public long LastErrorTestID { get; private set; }
 
         public int Running { get; private set; }
-        Dictionary<int, int> _passed = new Dictionary<int, int>();
-        Dictionary<int, int> _failed = new Dictionary<int, int>();
+
+        readonly Dictionary<int, int> _passed = new Dictionary<int, int>();
+        readonly Dictionary<int, int> _failed = new Dictionary<int, int>();
 
         /// <summary>
         /// A list of conditions met by the entire test itself
         /// </summary>
-        List<TestRequirement> _TestRunRequirements = new List<TestRequirement>();
+        readonly List<TestRequirement> _TestRunRequirements = new List<TestRequirement>();
 
         /// <summary>
         /// A nested list of requirements for each thread

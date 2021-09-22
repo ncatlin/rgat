@@ -48,7 +48,7 @@ namespace rgat
         /// Address of the instruction after this if there is no flow control
         /// </summary>
         public ulong condDropAddress;
-        List<Tuple<uint, uint>> _threadVertIndexes = new List<Tuple<uint, uint>>(); //was an unordered dictionary in the C++ version
+        readonly List<Tuple<uint, uint>> _threadVertIndexes = new List<Tuple<uint, uint>>(); //was an unordered dictionary in the C++ version
         public int globalmodnum;
         public int mutationIndex;
 
@@ -317,8 +317,8 @@ namespace rgat
                         {
                             _timeline.Add(new Logging.TIMELINE_EVENT(type, trace));
                             runningProcesses += 1;
-                          //  _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
-                         //   _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                            //  _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
+                            //   _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
                         }
                     }
                     break;
@@ -351,7 +351,7 @@ namespace rgat
                             {
                                 _timeline.Add(new Logging.TIMELINE_EVENT(type, trace));
                                 //_tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineProcess, out currentCount);
-                               // _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
+                                // _tlFilterCounts[Logging.LogFilterType.TimelineProcess] = currentCount + 1;
                             }
                         }
                     }
@@ -363,8 +363,8 @@ namespace rgat
                         {
                             _timeline.Add(new Logging.TIMELINE_EVENT(type, graph));
                             runningThreads += 1;
-                           // _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
-                           // _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
+                            // _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
+                            // _tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
                         }
                     }
                     break;
@@ -377,7 +377,7 @@ namespace rgat
                             _timeline.Add(new Logging.TIMELINE_EVENT(type, graph));
                             runningThreads -= 1;
                             if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
-                          //  _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
+                            //  _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
                             //_tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
                         }
                     }
@@ -395,7 +395,7 @@ namespace rgat
         {
             int ModuleReference = DisassemblyData.GetModuleReference(node.GlobalModuleID);
 
-            APIDetailsWin.API_ENTRY? APIDetails = DisassemblyData.GetAPIEntry( node.GlobalModuleID, ModuleReference, node.address);
+            APIDetailsWin.API_ENTRY? APIDetails = DisassemblyData.GetAPIEntry(node.GlobalModuleID, ModuleReference, node.address);
 
             Logging.APICALL call = new Logging.APICALL()
             {
@@ -409,7 +409,7 @@ namespace rgat
             lock (_logLock)
             {
                 _timeline.Add(new Logging.TIMELINE_EVENT(Logging.eTimelineEvent.APICall, call));
-         
+
             }
             //Logging.RecordLogEvent("Api call: "+node.Label, trace:this, graph: graph, apicall: call, filter: call.ApiType);
 
@@ -490,7 +490,7 @@ namespace rgat
         }
 
         private readonly object GraphListLock = new object();
-        Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
+        readonly Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
 
         //get a copy of the protographs list
         public List<ProtoGraph> GetProtoGraphs()
@@ -835,8 +835,8 @@ namespace rgat
                         case Logging.eTimelineEvent.ProcessStart:
                         case Logging.eTimelineEvent.ProcessEnd:
                             {
-                               // _tlFilterCounts.TryGetValue(LogFilterType.TimelineProcess , out int currentCountp);
-                               // _tlFilterCounts[LogFilterType.TimelineProcess] = currentCountp + 1;
+                                // _tlFilterCounts.TryGetValue(LogFilterType.TimelineProcess , out int currentCountp);
+                                // _tlFilterCounts[LogFilterType.TimelineProcess] = currentCountp + 1;
                                 _timeline.Add(evt);
                             }
                             break;

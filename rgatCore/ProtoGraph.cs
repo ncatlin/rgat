@@ -114,7 +114,7 @@ namespace rgat
         /// When the thread was recorded, used as a unique identifier for threads
         /// </summary>
         public DateTime ConstructedTime { private set; get; } = DateTime.Now;
-        
+
         public bool HeatSolvingComplete = false; //todo set this once processing is done?
 
         /*
@@ -176,7 +176,7 @@ namespace rgat
             }
             exeModuleID = jModID.ToObject<int>();
 
-            if (exeModuleID < 0 || exeModuleID >= TraceData.DisassemblyData.LoadedModuleBounds.Count) 
+            if (exeModuleID < 0 || exeModuleID >= TraceData.DisassemblyData.LoadedModuleBounds.Count)
                 return false;
             moduleBase = TraceData.DisassemblyData.LoadedModuleBounds[exeModuleID].Item1;
 
@@ -546,7 +546,7 @@ namespace rgat
         public readonly object argsLock = new object();
 
         //call arguments are recieved out-of-order from trace tags due to tag caching. they are stored here until they can be associated with the correct node
-        private List<INCOMING_CALL_ARGUMENT> _unprocessedCallArguments = new List<INCOMING_CALL_ARGUMENT>();
+        private readonly List<INCOMING_CALL_ARGUMENT> _unprocessedCallArguments = new List<INCOMING_CALL_ARGUMENT>();
         struct INCOMING_CALL_ARGUMENT
         {
             public ulong sourceBlock;
@@ -577,7 +577,7 @@ namespace rgat
             if (_unprocessedCallArguments.Count == 0) return;
 
             ulong currentSourceBlock = _unprocessedCallArguments[0].sourceBlock;
-            if ((int)currentSourceBlock == -1) 
+            if ((int)currentSourceBlock == -1)
                 return; //API called before instrumented code was reached
             ulong currentTarget = _unprocessedCallArguments[0].calledAddress;
 
@@ -590,8 +590,8 @@ namespace rgat
                 INCOMING_CALL_ARGUMENT arg = _unprocessedCallArguments[cacheI];
                 if (arg.calledAddress != currentTarget)
                 {
-                    Logging.RecordLogEvent($"Breakdown of API argument processing between {_unprocessedCallArguments[cacheI-1].argstring} and {_unprocessedCallArguments[cacheI].argstring}Check the 'M' and 'E' fields of any recently added API wrapper in the instrumentation tool", Logging.LogFilterType.TextError);
-                    
+                    Logging.RecordLogEvent($"Breakdown of API argument processing between {_unprocessedCallArguments[cacheI - 1].argstring} and {_unprocessedCallArguments[cacheI].argstring}Check the 'M' and 'E' fields of any recently added API wrapper in the instrumentation tool", Logging.LogFilterType.TextError);
+
                     _unprocessedCallArguments.RemoveRange(0, cacheI);
                     return;
                 }
@@ -689,7 +689,7 @@ namespace rgat
 
             ProcessData.GetSymbol(node.GlobalModuleID, node.address, out string? symbol);
             Console.WriteLine($"Node {node.index} is system interaction {node.IsExternal}");
-        
+
         }
 
         /*
@@ -880,23 +880,23 @@ namespace rgat
             }
 
 
-            if (source.conditional != eConditionalType.NOTCONDITIONAL &&
-                source.conditional != eConditionalType.CONDCOMPLETE)
+            if (source.conditional != ConditionalType.NOTCONDITIONAL &&
+                source.conditional != ConditionalType.CONDCOMPLETE)
             {
                 if (source.ins.condDropAddress == target.address)
                 {
                     if (source.ins.branchAddress == target.address)
                     {
-                        source.conditional = eConditionalType.CONDCOMPLETE; //opaque predicate
+                        source.conditional = ConditionalType.CONDCOMPLETE; //opaque predicate
                     }
                     else
                     {
-                        source.conditional |= eConditionalType.CONDFELLTHROUGH;
+                        source.conditional |= ConditionalType.CONDFELLTHROUGH;
                     }
                 }
                 else if (source.ins.branchAddress == target.address)
                 {
-                    source.conditional |= eConditionalType.CONDTAKEN;
+                    source.conditional |= ConditionalType.CONDTAKEN;
                 }
             }
 
@@ -978,8 +978,9 @@ namespace rgat
         public bool hasPendingArguments() { return _unprocessedCallArguments.Count != 0; }
 
         private readonly object edgeLock = new object();
+
         //node id pairs to edge data
-        Dictionary<Tuple<uint, uint>, EdgeData> _edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
+        readonly Dictionary<Tuple<uint, uint>, EdgeData> _edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
         //order of edge execution
         //todo - make this private, hide from view for thread safety
         public List<Tuple<uint, uint>> EdgeList = new List<Tuple<uint, uint>>();
@@ -1009,7 +1010,7 @@ namespace rgat
             uint targVertID = get_num_nodes();
             thisnode.index = targVertID;
             thisnode.ins = instruction;
-            thisnode.conditional = thisnode.ins.conditional ? eConditionalType.ISCONDITIONAL : eConditionalType.NOTCONDITIONAL;
+            thisnode.conditional = thisnode.ins.conditional ? ConditionalType.ISCONDITIONAL : ConditionalType.NOTCONDITIONAL;
             thisnode.address = instruction.Address;
             thisnode.BlockID = blockID;
             thisnode.parentIdx = ProtoLastVertID;
@@ -1146,7 +1147,7 @@ namespace rgat
 		*/
 
         //list of all external nodes
-        List<uint> externalNodeList = new List<uint>();
+        readonly List<uint> externalNodeList = new List<uint>();
         public int ExternalNodesCount => externalNodeList.Count;
         public uint[] copyExternalNodeList()
         {
@@ -1154,7 +1155,7 @@ namespace rgat
         }
 
         //list of all internal nodes with symbols
-        List<uint> internalNodeList = new List<uint>();
+        readonly List<uint> internalNodeList = new List<uint>();
         //List<uint> copyInternalNodeList();
         /*
 		//these are called a lot. make sure as efficient as possible
@@ -1229,8 +1230,7 @@ namespace rgat
         private readonly object AnimDataLock = new object();
         //animation data received from target
         public List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
-
-        List<uint> ExceptionNodeIndexes = new List<uint>();
+        readonly List<uint> ExceptionNodeIndexes = new List<uint>();
         public string StartModuleName { get; private set; } = "";
 
         void AssignModulePath()
@@ -1342,7 +1342,7 @@ namespace rgat
                     replayItem.Add(repentry.count);
                     replayItem.Add(repentry.targetAddr);
                     replayItem.Add(repentry.targetID);
-                    
+
                     JArray edgeCounts = new JArray();
                     if (repentry.edgeCounts != null)
                     {
@@ -1479,7 +1479,7 @@ namespace rgat
 
         //public uint lastNode = 0;
         //used by heatDictionary solver
-        uint finalNodeID = 0;
+        readonly uint finalNodeID = 0;
 
         //important state variables!
         public uint targVertID = 0; //new vert we are creating
@@ -1517,13 +1517,11 @@ namespace rgat
 
         public ulong BusiestBlockExecCount = 0;
         public eLoopState loopState = eLoopState.eNoLoop;
-
-        List<string> loggedCalls = new List<string>();
+        readonly List<string> loggedCalls = new List<string>();
 
         //number of times an external function has been called. used to Dictionary arguments to calls
         public Dictionary<uint, ulong> externFuncCallCounter = new Dictionary<uint, ulong>();
-
-        List<uint> exceptionSet = new List<uint>();
+        readonly List<uint> exceptionSet = new List<uint>();
 
         public uint[] GetExceptionNodes()
         {
@@ -1617,9 +1615,10 @@ namespace rgat
                 }
                 JObject? edgeTestObj = testedge.ToObject<JObject>();
 
-                if (edgeTestObj is null) {
+                if (edgeTestObj is null)
+                {
                     failedComparison = "Bad edge test object";
-                    return false; 
+                    return false;
                 }
 
                 if (!edgeTestObj.TryGetValue("Source", out JToken? srcTok) || srcTok.Type != JTokenType.Integer ||

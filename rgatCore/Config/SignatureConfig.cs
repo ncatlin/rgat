@@ -1,12 +1,6 @@
-﻿using System.Text.Json;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
+﻿using System;
 using System.Linq;
-using System.Text;
-using static rgat.CONSTANTS;
 using System.Text.Json.Serialization;
-using System.Diagnostics;
 
 namespace rgat
 {
@@ -15,7 +9,7 @@ namespace rgat
         /************* Signature sources ***************/
         public class SignatureSource
         {
-            
+
             public string RepoName { get; set; }
             public string OrgName { get; set; }
             public string SubDir { get; set; }

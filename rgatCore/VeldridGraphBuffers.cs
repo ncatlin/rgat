@@ -186,7 +186,7 @@ namespace rgat
         }
 
         readonly static object b_lock = new object();
-        static List<string> _allocatedBufs = new List<string>();
+        static readonly List<string> _allocatedBufs = new List<string>();
 
         public static DeviceBuffer TrackedVRAMAlloc(GraphicsDevice gd, uint size, BufferUsage usage = BufferUsage.StructuredBufferReadWrite, uint stride = 0, string name = "?")
         {

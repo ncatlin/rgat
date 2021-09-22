@@ -37,7 +37,7 @@ namespace rgat
 
 
         //data for the most recent layout retrieved from VRAM, for serialisation and caching to disk to free up VRAM
-        Dictionary<LayoutStyles.Style, CPUBuffers> SavedStates = new Dictionary<LayoutStyles.Style, CPUBuffers>();
+        readonly Dictionary<LayoutStyles.Style, CPUBuffers> SavedStates = new Dictionary<LayoutStyles.Style, CPUBuffers>();
 
 
         public class GPUBuffers
@@ -83,7 +83,7 @@ namespace rgat
         public int IncrementPresetSteps() => presetSteps++;
         public void IncrementVersion() => _VRAMBuffers.RenderVersion++;
 
-        ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+        readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
         public ReaderWriterLockSlim Lock => _lock;
 
         public bool flip()

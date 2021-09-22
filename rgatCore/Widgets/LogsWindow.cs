@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using static rgat.Logging;
 using static rgat.CONSTANTS;
+using static rgat.Logging;
 
 namespace rgat
 {
@@ -25,12 +25,12 @@ namespace rgat
             _refreshTimer.Start();
         }
 
-        rgatState _rgatState;
+        readonly rgatState _rgatState;
         static bool[] _LogFilters = new bool[(int)LogFilterType.COUNT];
-        static bool[] rowLastSelected = new bool[3];
+        static readonly bool[] rowLastSelected = new bool[3];
         static byte[] textFilterValue = new byte[500];
-        static string _logSort = "Time<";
-        System.Timers.Timer _refreshTimer;
+        static readonly string _logSort = "Time<";
+        readonly System.Timers.Timer _refreshTimer;
 
         bool _refreshTimerFired = false;
         private void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _refreshTimerFired = true; }
@@ -124,10 +124,10 @@ namespace rgat
 
             ImGuiTableFlags tableFlags =
                 ImGuiTableFlags.SizingFixedFit |
-                ImGuiTableFlags.RowBg | 
+                ImGuiTableFlags.RowBg |
                 ImGuiTableFlags.Borders |
-                ImGuiTableFlags.Resizable | 
-                ImGuiTableFlags.Reorderable | 
+                ImGuiTableFlags.Resizable |
+                ImGuiTableFlags.Reorderable |
                 ImGuiTableFlags.ScrollY |
                 ImGuiTableFlags.ScrollX;
             //this is causing issues with the last column. using 4 columns makes it a bit better
@@ -138,7 +138,7 @@ namespace rgat
             {
                 var ss = ImGui.TableGetSortSpecs();
                 //if (ss.SpecsDirty || _refreshTimerFired)
-                if ( _refreshTimerFired)
+                if (_refreshTimerFired)
                 {
                     RegenerateRows(new List<LOG_EVENT>(msgs));
                     _refreshTimerFired = false;

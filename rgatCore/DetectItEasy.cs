@@ -10,8 +10,7 @@ namespace rgat
 {
     public class DetectItEasy
     {
-
-        DiELibDotNet.DieLib dielib;
+        readonly DiELibDotNet.DieLib dielib;
 
         public DetectItEasy(string DBPath)
         {
@@ -27,7 +26,7 @@ namespace rgat
             if (Path.GetDirectoryName(sigsDiEPath) == "db")
             {
                 string? parent = Directory.GetParent(sigsDiEPath)?.FullName;
-                if (parent is not null && Directory.Exists(parent)) 
+                if (parent is not null && Directory.Exists(parent))
                     sigsDiEPath = parent;
             }
 
@@ -82,7 +81,7 @@ namespace rgat
         }
 
         readonly object scansLock = new object();
-        Dictionary<BinaryTarget, ulong> DIEScanHandles = new Dictionary<BinaryTarget, ulong>();
+        readonly Dictionary<BinaryTarget, ulong> DIEScanHandles = new Dictionary<BinaryTarget, ulong>();
 
 
         public void CancelAllScans()
@@ -177,8 +176,7 @@ namespace rgat
             }
         }
 
-
-        DateTime _lastCheck = DateTime.MinValue;
+        readonly DateTime _lastCheck = DateTime.MinValue;
         public DateTime NewestSignature { get; private set; } = DateTime.MinValue;
         public DateTime EndpointNewestSignature = DateTime.MinValue;
         public bool StaleRemoteSignatures => (EndpointNewestSignature != DateTime.MinValue && EndpointNewestSignature > NewestSignature);

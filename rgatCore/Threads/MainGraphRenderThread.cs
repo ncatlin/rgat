@@ -1,5 +1,4 @@
 ﻿using System.Threading;
-using System.Timers;
 
 namespace rgat.Threads
 {
@@ -23,9 +22,9 @@ namespace rgat.Threads
         {
         }
 
-        GraphPlotWidget _graphWidget;
+        readonly GraphPlotWidget _graphWidget;
         int _nextReplayStep = 0;
-        int _FramesBetweenAnimationUpdates = 2;
+        readonly int _FramesBetweenAnimationUpdates = 2;
 
 
         void update_rendering(PlottedGraph graph)

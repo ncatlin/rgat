@@ -8,103 +8,247 @@ using System.Security.Cryptography;
 
 namespace rgat
 {
-    public enum eModuleTracingMode { eDefaultIgnore = 0, eDefaultTrace = 1 };
+    /// <summary>
+    /// How the instrumentation handles code in different modules
+    /// </summary>
+    public enum eModuleTracingMode
+    {
+        /// <summary>
+        /// Code will not be traced unless explicitly requested
+        /// </summary>
+        eDefaultIgnore = 0,
+
+        /// <summary>
+        /// Code will be traced unless explicitly ignored
+        /// </summary>
+        eDefaultTrace = 1
+    };
+
+    /// <summary>
+    /// Settings for how rgat chooses which code to trace or ignore
+    /// </summary>
     public class TraceChoiceSettings
     {
-        public eModuleTracingMode TracingMode
-        {
-            get { return _tracingMode; }
-            set
-            {
-                _tracingMode = value;
-                if (_tracingModeRef != (int)value) _tracingModeRef = (int)value;
-            }
-        }
+        /// <summary>
+        /// Whether rgat traces or ignores modules which are not in the ignore/trace lists
+        /// </summary>
+        public eModuleTracingMode TracingMode = eModuleTracingMode.eDefaultTrace;
 
-        private eModuleTracingMode _tracingMode = eModuleTracingMode.eDefaultTrace;
-        public int _tracingModeRef = 1;
+        /// <summary>
+        /// Binaries in these directories will be traced in default ignore mode
+        /// </summary>
+        readonly HashSet<string> traceDirs = new HashSet<string>();
 
-        //Binaries in these directories will be traced in default ignore mode
-        HashSet<string> traceDirs = new HashSet<string>();
-        public int traceDirCount => traceDirs.Count;
+        /// <summary>
+        /// The number of directories listed for instrumentation
+        /// </summary>
+        public int TraceDirCount => traceDirs.Count;
 
-        //These binaries will be traced in default ignore mode
-        HashSet<string> traceFiles = new HashSet<string>();
-        public int traceFilesCount => traceFiles.Count;
+        /// <summary>
+        /// These binaries will be instrumentated in default ignore mode
+        /// </summary>
+        readonly HashSet<string> traceFiles = new HashSet<string>();
+
+        /// <summary>
+        /// The number of modules that are listed for tracing
+        /// </summary>
+        public int TraceFilesCount => traceFiles.Count;
 
         //Binaries in these directories will be ignored in default trace mode
-        HashSet<string> ignoreDirs = new HashSet<string>();
-        public int ignoreDirsCount => ignoreDirs.Count;
+        readonly HashSet<string> ignoreDirs = new HashSet<string>();
+
+        /// <summary>
+        /// The number of directories which are explicitly ignored in default trace mode
+        /// </summary>
+        public int IgnoreDirsCount => ignoreDirs.Count;
 
         //These binaries will be ignored in default trace mode
-        HashSet<string> ignoreFiles = new HashSet<string>();
+        readonly HashSet<string> ignoreFiles = new HashSet<string>();
+
+        /// <summary>
+        /// The number of files which are explicitly ignored in default trace mode
+        /// </summary>
         public int ignoreFilesCount => ignoreFiles.Count;
 
-        readonly object _lock = new object();
+        readonly object _lock = new();
 
+        /// <summary>
+        /// Get the list of directories which contain modules which should not be instrumented
+        /// </summary>
+        /// <returns>A list of directory paths</returns>
         public List<string> GetIgnoredDirs() { lock (_lock) { return ignoreDirs.ToList<string>(); } }
+        /// <summary>
+        /// Clear the list of ignored directories
+        /// </summary>
         public void ClearIgnoredDirs() { lock (_lock) { ignoreDirs.Clear(); } }
+        /// <summary>
+        /// Get the list of modules which should not be instrumented
+        /// </summary>
+        /// <returns>A list of file paths</returns>
         public List<string> GetIgnoredFiles() { lock (_lock) { return ignoreFiles.ToList<string>(); } }
+        /// <summary>
+        /// Clear the list of ignored files
+        /// </summary>
         public void ClearIgnoredFiles() { lock (_lock) { ignoreFiles.Clear(); } }
+        /// <summary>
+        /// Get the list of directories which contain modules which should be instrumented even in ignore mode
+        /// </summary>
+        /// <returns>A list of directory paths</returns>
         public List<string> GetTracedDirs() { lock (_lock) { return traceDirs.ToList<string>(); } }
+        /// <summary>
+        /// Clear the list of explicitly instrumented directories
+        /// </summary>
         public void ClearTracedDirs() { lock (_lock) { traceDirs.Clear(); } }
+        /// <summary>
+        /// Get the list of modules which should be instrumented even in ignore mode
+        /// </summary>
+        /// <returns>A list of file paths</returns>
         public List<string> GetTracedFiles() { lock (_lock) { return traceFiles.ToList<string>(); } }
+        /// <summary>
+        /// Clear the list of explicitly instrumented modules
+        /// </summary>
         public void ClearTracedFiles() { lock (_lock) { traceFiles.Clear(); } }
-
+        /// <summary>
+        /// Add a directory whose contents should be instrumented in default-ignore mode
+        /// </summary>
+        /// <param name="path">A directory path</param>
         public void AddTracedDirectory(string path) { lock (_lock) { if (!traceDirs.Contains(path)) traceDirs.Add(path); } }
+        /// <summary>
+        /// Remove a directory from the list of directories to trace in ignore mode
+        /// </summary>
+        /// <param name="path">A directory path</param>
         public void RemoveTracedDirectory(string path) { lock (_lock) { traceDirs.Remove(path); } }
-
+        /// <summary>
+        /// Add a module which should be instrumented in default-ignore mode
+        /// </summary>
+        /// <param name="path">A file path</param>
         public void AddTracedFile(string path) { lock (_lock) { if (!traceFiles.Contains(path)) traceFiles.Add(path); } }
+        /// <summary>
+        /// Remove a file from the list of files to trace in ignore mode
+        /// </summary>
+        /// <param name="path">A file path</param>
         public void RemoveTracedFile(string path) { lock (_lock) { traceFiles.Remove(path); } }
-
+        /// <summary>
+        /// Add a directory whose contents should be ignored in default-trace mode
+        /// </summary>
+        /// <param name="path">A directory path</param>
         public void AddIgnoredDirectory(string path) { lock (_lock) { if (!ignoreDirs.Contains(path)) ignoreDirs.Add(path); } }
+        /// <summary>
+        /// Remove a directory from the list of directories to ignore in default-trace mode
+        /// </summary>
+        /// <param name="path">A directory path</param>
         public void RemoveIgnoredDirectory(string path) { lock (_lock) { ignoreDirs.Remove(path); } }
-
+        /// <summary>
+        /// Add a file which should not be instrumented in default-instrument mode
+        /// </summary>
+        /// <param name="path">A file path</param>
         public void AddIgnoredFile(string path) { lock (_lock) { if (!ignoreFiles.Contains(path)) ignoreFiles.Add(path); } }
+        /// <summary>
+        /// Remove a file from the list of files to ignore in default-trace mode
+        /// </summary>
+        /// <param name="path">A file path</param>
         public void RemoveIgnoredFile(string path) { lock (_lock) { ignoreFiles.Remove(path); } }
 
-
+        /// <summary>
+        /// Add some standard default paths to always ignore
+        /// At the moment this is just the windows directory as tracing the workings of kernel32/ntdll/etc is generally not useful
+        /// </summary>
         public void InitDefaultExclusions()
         {
             if (OSHelpers.OperatingSystem.IsWindows())
             {
                 string? windowsDir = Environment.GetEnvironmentVariable("windir", EnvironmentVariableTarget.Machine);
-                ignoreDirs.Add(windowsDir);
+                if (windowsDir is not null)
+                    ignoreDirs.Add(windowsDir);
                 ignoreFiles.Add("shf篸籊籔籲.txtui@siojf췳츲췥췂췂siojfios.dll"); //TODO: make+trace a test program loading this, fix whatever breaks
             }
         }
     }
 
+    /// <summary>
+    /// A binary file (.exe/.dll) that rgat can trace
+    /// </summary>
     public class BinaryTarget
     {
         private string _sha1hash = "";
         private string _sha256hash = "";
         private long fileSize = 0;
-        public string RemoteHost { get; private set; } = null;
+
+        /// <summary>
+        /// The network address this target resides on
+        /// </summary>
+        public string? RemoteHost { get; private set; } = null;
+        /// <summary>
+        /// True if this target was loaded on a remote host in remote tracing mode
+        /// </summary>
         public bool RemoteBinary => RemoteHost != null;
+        /// <summary>
+        /// Do we have an active connection to the host this file resides on?
+        /// </summary>
         public bool RemoteAccessible => rgatState.ConnectedToRemote && RemoteHost == rgatState.NetworkBridge.LastAddress;
+        /// <summary>
+        /// Have we been sent the initialisation data for this file from the remote host?
+        /// </summary>
         public bool RemoteInitialised { get; private set; } = false;
-        public bool IsRunnable => RemoteBinary ? RemoteAccessible : File.Exists(FilePath);
-
-        public TraceChoiceSettings traceChoices = new TraceChoiceSettings();
-        public Byte[] StartBytes = null;
-
+        /// <summary>
+        /// Is this file accessible at the moment?
+        /// </summary>
+        public bool IsAccessible => RemoteBinary ? RemoteAccessible : File.Exists(FilePath);
+        /// <summary>
+        /// Settings for which modules are instrumented/ignored
+        /// </summary>
+        public TraceChoiceSettings TraceChoices = new TraceChoiceSettings();
+        /// <summary>
+        /// A snippet of the first bytes of the file
+        /// </summary>
+        public Byte[]? StartBytes = null;
+        /// <summary>
+        /// An object representing the parsed PE File header/structure
+        /// </summary>
         public PeNet.PeFile? PEFileObj = null;
+        /// <summary>
+        /// Is this target an rgat test binary
+        /// </summary>
         public bool IsTestBinary { get; private set; }
+        /// <summary>
+        /// Mark this file as an rgat test binary
+        /// </summary>
         public void MarkTestBinary() => IsTestBinary = true;
-
+        /// <summary>
+        /// 32 or 64 bit
+        /// </summary>
         public int BitWidth = 0;
+        /// <summary>
+        /// Local path to the file
+        /// </summary>
         public string FilePath { get; private set; } = "";
+        /// <summary>
+        /// Name of the file
+        /// </summary>
         public string FileName { get; private set; } = "";
+        /// <summary>
+        /// Formatted hex preview of the file start bytes
+        /// </summary>
         public string HexPreview { get; private set; } = "";
+        /// <summary>
+        /// Formatted ASCII preview of the start bytes
+        /// </summary>
         public string ASCIIPreview { get; private set; } = "";
 
-        string _hexTooltip;
+        string _hexTooltip = "";
 
-        public bool ProxyTarget = false;
+        /// <summary>
+        /// This file is a DLL
+        /// </summary>
         public bool IsLibrary = false;
 
+        /// <summary>
+        /// Which library export to run
+        /// </summary>
         public int SelectedExportIndex = -1;
+        /// <summary>
+        /// The filename rgat will give the library loader
+        /// </summary>
         public string LoaderName = "rgatLoadDll.exe";
 
         /// <summary>
@@ -113,7 +257,7 @@ namespace rgat
         public List<Tuple<string?, ushort>> Exports = new List<Tuple<string?, ushort>>();
 
         /// <summary>
-        /// A binary that rgat has traced
+        /// Create a BinaryTarget object for a binary that rgat can trace
         /// </summary>
         /// <param name="filepath">The filesystem path of the binary</param>
         /// <param name="bitWidth_">32 or 64</param>
@@ -143,15 +287,21 @@ namespace rgat
 
             RemoteHost = remoteAddr;
 
-            traceChoices.InitDefaultExclusions();
+            TraceChoices.InitDefaultExclusions();
         }
 
 
+        /// <summary>
+        /// This file is on a headless remote tracing host. 
+        /// Fetch some JSON serialised intialisation data to send to the GUI host.
+        /// </summary>
+        /// <returns>JSON serialised initialisation data</returns>
         public JToken GetRemoteLoadInitData()
         {
             JObject result = new JObject();
             result.Add("Size", fileSize);
-            result.Add("StartBytes", StartBytes); //any benefit to obfuscating?
+            if (StartBytes is not null)
+                result.Add("StartBytes", StartBytes); //any benefit to obfuscating?
             result.Add("SHA1", GetSHA1Hash());
             result.Add("SHA256", GetSHA256Hash());
             if (PEFileObj != null)
@@ -194,11 +344,10 @@ namespace rgat
                 Logging.RecordLogEvent($"InitialiseFromRemoteData missing or bad data", Logging.LogFilterType.TextError);
                 return false;
             }
-            
+
             bool success = true;
             JToken? sizeTok = null, snipTok = null, sha1Tok = null, sha256Tok = null, bitTok = null;
             success = success && data.TryGetValue("Size", out sizeTok) && sizeTok is not null && sizeTok.Type == JTokenType.Integer;
-            success = success && data.TryGetValue("StartBytes", out snipTok) && snipTok is not null && snipTok.Type == JTokenType.String;
             success = success && data.TryGetValue("SHA1", out sha1Tok) && (sha1Tok.Type == JTokenType.String || sha1Tok == null);
             success = success && data.TryGetValue("SHA256", out sha256Tok) && (sha256Tok.Type == JTokenType.String || sha256Tok == null);
             success = success && data.TryGetValue("PEBitWidth", out bitTok) && bitTok is not null && bitTok.Type == JTokenType.Integer;
@@ -207,6 +356,7 @@ namespace rgat
                 Logging.RecordLogEvent($"InitialiseFromRemoteData bad or missing field", Logging.LogFilterType.TextError);
                 return false;
             }
+
 
             if (data.TryGetValue("IsDLL", out JToken? dllBoolTok) && dllBoolTok.Type == JTokenType.Boolean)
             {
@@ -242,9 +392,13 @@ namespace rgat
 
 
             fileSize = sizeTok!.ToObject<long>();
-            string? b64snippet = snipTok!.ToObject<string>();
-            StartBytes = b64snippet is not null ? Convert.FromBase64String(b64snippet) : new byte[0];
-            InitPreviews();
+
+            if (data.TryGetValue("StartBytes", out snipTok) && snipTok is not null && snipTok.Type == JTokenType.String)
+            {
+                string? b64snippet = snipTok!.ToObject<string>();
+                StartBytes = b64snippet is not null ? Convert.FromBase64String(b64snippet) : new byte[0];
+                InitPreviews();
+            }
 
             if (sha1Tok is not null)
             {
@@ -297,7 +451,9 @@ namespace rgat
         /// <returns>The snippet as a string</returns>
         public string HexTooltip()
         {
+            if (StartBytes is null) return "";
             if (_hexTooltip?.Length > 0) return _hexTooltip;
+
             _hexTooltip = "";
             byte[] fragment;
             for (var i = 0; i < 64; i++)
@@ -315,11 +471,9 @@ namespace rgat
             return _hexTooltip;
         }
 
-
-        List<string> signatureHitsDIE = new List<string>();
-        List<YARAScan.YARAHit> signatureHitsYARA = new List<YARAScan.YARAHit>();
-
-        Dictionary<string, string> _traceConfiguration = new Dictionary<string, string>();
+        readonly List<string> signatureHitsDIE = new List<string>();
+        readonly List<YARAScan.YARAHit> signatureHitsYARA = new List<YARAScan.YARAHit>();
+        readonly Dictionary<string, string> _traceConfiguration = new Dictionary<string, string>();
 
         /// <summary>
         /// Get the tracing configuration settings as a dictrionary of keyvaluepair strings
@@ -395,6 +549,10 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Record a Detect It Easy (dotnet) signature hit for this target binary
+        /// </summary>
+        /// <param name="hitstring">The signature hit data</param>
         public void AddDiESignatureHit(string hitstring)
         {
             lock (signaturesLock)
@@ -411,7 +569,11 @@ namespace rgat
             }
         }
 
-
+        /// <summary>
+        /// Record a local Yara signature hit for this target binary
+        /// It will also be sent to any connected remote sessions
+        /// </summary>
+        /// <param name="hit">The ScanResult hit data generated by dnYara</param>
         public void AddYaraSignatureHit(dnYara.ScanResult hit)
         {
             lock (signaturesLock)
@@ -427,32 +589,35 @@ namespace rgat
                     rgatState.NetworkBridge.SendAsyncData("SigHit", hitObj);
                 }
             }
-        }        
-        
+        }
+
+        /// <summary>
+        /// Record a remote Yara signature hit for this target binary recieved from a remote session
+        /// </summary>
+        /// <param name="hit">The YARAHit hit data</param>
         public void AddYaraSignatureHit(YARAScan.YARAHit hit)
         {
             lock (signaturesLock)
             {
                 signatureHitsYARA.Add(hit);
-                if (rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
-                {
-                    JObject hitObj = new JObject();
-                    hitObj.Add("Type", "YARA");
-                    hitObj.Add("TargetSHA", this._sha1hash);
-                    hitObj.Add("Obj", JObject.FromObject(hit));
-                    rgatState.NetworkBridge.SendAsyncData("SigHit", hitObj);
-                }
             }
         }
 
 
         private readonly Object tracesLock = new Object();
-        private Dictionary<DateTime, TraceRecord> RecordedTraces = new Dictionary<DateTime, TraceRecord>();
-        private Dictionary<string, TraceRecord> RecordedTraceIDs = new Dictionary<string, TraceRecord>();
-        private List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
+        private readonly Dictionary<DateTime, TraceRecord> RecordedTraces = new Dictionary<DateTime, TraceRecord>();
+        private readonly Dictionary<string, TraceRecord> RecordedTraceIDs = new Dictionary<string, TraceRecord>();
+        private readonly List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
 
+        /// <summary>
+        /// The number of traces that have been generated for this target
+        /// </summary>
         public int TracesCount => TraceRecordsList.Count;
 
+       /// <summary>
+       /// Delete a trace record
+       /// </summary>
+       /// <param name="timestarted"></param>
         public void DeleteTrace(DateTime timestarted)
         {
             lock (tracesLock)
@@ -464,7 +629,14 @@ namespace rgat
             }
         }
 
-        public bool GetTraceByIDs(uint pid, long ID, out TraceRecord result)
+        /// <summary>
+        /// Retrieve the data for a trace record
+        /// </summary>
+        /// <param name="pid">Process ID of the trace</param>
+        /// <param name="ID">Unique ID of the trace</param>
+        /// <param name="result">TraceRecord of the associated trace</param>
+        /// <returns>true if a trace was found</returns>
+        public bool GetTraceByIDs(uint pid, long ID, out TraceRecord? result)
         {
             result = null;
             lock (tracesLock)
@@ -474,6 +646,11 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// Get a list of start time/tracerecord pairs for thread-safe iteration
+        /// </summary>
+        /// <returns>A list of times and trace records</returns>
         public List<Tuple<DateTime, TraceRecord>> GetTracesUIList()
         {
             List<Tuple<DateTime, TraceRecord>> uilist = new List<Tuple<DateTime, TraceRecord>>();
@@ -487,6 +664,10 @@ namespace rgat
             return uilist;
         }
 
+        /// <summary>
+        /// Get a thread safe list of all recorded traces for this binary
+        /// </summary>
+        /// <returns>A list of tracerecords</returns>
         public List<TraceRecord> GetTracesList()
         {
             lock (tracesLock)
@@ -495,10 +676,10 @@ namespace rgat
             }
         }
 
-
-
-
-
+        /// <summary>
+        /// Get the SHA1 hash of this binary
+        /// </summary>
+        /// <returns>A SHA1 string</returns>
         public string GetSHA1Hash()
         {
             if (_sha1hash.Length > 0) return _sha1hash;
@@ -506,6 +687,10 @@ namespace rgat
             return _sha1hash;
         }
 
+        /// <summary>
+        /// Get the SHA256 hash of this binary
+        /// </summary>
+        /// <returns>A SHA256 string</returns>
         public string GetSHA256Hash()
         {
             if (_sha256hash.Length > 0) return _sha256hash;
@@ -513,6 +698,9 @@ namespace rgat
             return _sha1hash;
         }
 
+        /// <summary>
+        /// Load the file from disk to fill the data of this object
+        /// </summary>
         private void ParseFile()
         {
             if (RemoteHost != null && RemoteInitialised == false) return;
@@ -550,7 +738,7 @@ namespace rgat
                         for (int ordI = 0; ordI < PEFileObj.ExportedFunctions.Length; ordI++)
                         {
                             var export = PEFileObj.ExportedFunctions[ordI];
-                            Exports.Add(new Tuple<string, ushort>(export.Name, export.Ordinal));
+                            Exports.Add(new Tuple<string?, ushort>(export.Name, export.Ordinal));
                         }
                     }
                 }
@@ -572,34 +760,45 @@ namespace rgat
 
         void InitPreviews()
         {
-            int previewSize = Math.Min(16, StartBytes.Length);
-            if (fileSize == 0)
+            if (fileSize == 0 || StartBytes is null)
             {
                 HexPreview = "[Empty File] ";
                 ASCIIPreview = "[Empty File] ";
             }
             else
             {
+                int previewSize = Math.Min(16, StartBytes.Length);
                 HexPreview = BitConverter.ToString(StartBytes, 0, previewSize).Replace("-", " ");
                 ASCIIPreview = TextUtils.IllustrateASCIIBytes(StartBytes, previewSize);
             }
         }
 
+        /// <summary>
+        /// Get a formatted file size string for display in the UI
+        /// </summary>
+        /// <returns></returns>
         public string GetFileSizeString()
         {
             return String.Format(new FileSizeFormatProvider(), "{0:fs}", fileSize);
         }
 
 
-
-
-
+        /// <summary>
+        /// Create and record a new TraceRecord for an instrumentation run of this binary
+        /// </summary>
+        /// <param name="timeStarted">The time the trace was started</param>
+        /// <param name="PID">The OS process ID of the first process</param>
+        /// <param name="ID">The unique ID of the process recorded by the instrumentation tool</param>
+        /// <param name="newRecord">The created TraceRecord</param>
+        /// <returns>true is a new trace was created, false if an existing one was fetched</returns>
         public bool CreateNewTrace(DateTime timeStarted, uint PID, long ID, out TraceRecord newRecord)
         {
             lock (tracesLock)
             {
-                if (RecordedTraces.TryGetValue(timeStarted, out newRecord))
+                TraceRecord? found;
+                if (RecordedTraces.TryGetValue(key: timeStarted, value: out found))
                 {
+                    newRecord = found;
                     return false;
                 }
                 newRecord = new TraceRecord(PID, ID, this, timeStarted);
@@ -610,6 +809,10 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Get the first trace in the trace list. Use to just get any trace for display
+        /// </summary>
+        /// <returns>A TraceRecord, or null if none existed</returns>
         public TraceRecord? GetFirstTrace()
         {
             lock (tracesLock)
@@ -619,6 +822,10 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Get the most recently recorded trace
+        /// </summary>
+        /// <returns>A TraceRecord, or null if none existed</returns>
         public TraceRecord? GetNewestTrace()
         {
             lock (tracesLock)

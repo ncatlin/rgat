@@ -1,18 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using Veldrid;
 using static rgat.CONSTANTS;
-using static rgat.Logging;
-using System.Text.Json;
-using System.IO;
-using System.Diagnostics;
 using static rgat.GlobalConfig;
-using Humanizer;
 
 namespace rgat.Config
 {
@@ -603,7 +597,7 @@ namespace rgat.Config
             public string VideoCodec_Content { get => _VideoCodec_Content; set { _VideoCodec_Content = value; MarkDirty(); } }
 
             string _ImageCapture_Format = "PNG";
-            public string ImageCapture_Format { get => _VideoCodec_Speed; set { _VideoCodec_Speed = value; MarkDirty(); } }
+            public string ImageCapture_Format { get => _ImageCapture_Format; set { _ImageCapture_Format = value; MarkDirty(); } }
         }
 
         public class CachedRecentPaths

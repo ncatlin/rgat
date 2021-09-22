@@ -28,7 +28,7 @@ namespace rgat.Threads
 
             float decile = (float)allEdgeExecutions.Count / 10f;
             float current = decile;
-            
+
             for (var i = 0; i < 9; i++)
             {
                 graph._edgeHeatThresholds[i] = allEdgeExecutions.ElementAt((int)current);
