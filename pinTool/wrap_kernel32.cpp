@@ -58,7 +58,7 @@ WINDOWS::HANDLE replacement_CreateFileW(
 		char argbuf[PATH_MAX];
 		wcstombs(argbuf, lpFileName, PATH_MAX);
 		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, argbuf);
-		fprintf(threaddata->threadpipeFILE, RETVAL_MARKER"," PTR_prefix ",%lx,%lx\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, retval);
+		fprintf(threaddata->threadpipeFILE, RETVAL_MARKER"," PTR_prefix ",%lx,0x%lx\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, retval);
 		fflush(threaddata->threadpipeFILE);
 	}
 	return retval;
@@ -91,20 +91,23 @@ WINDOWS::HANDLE replacement_CreateFileA(
 	if (threaddata->lastBlock->blockID != -1)
 	{
 		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpFileName);
-		fprintf(threaddata->threadpipeFILE, RETVAL_MARKER"," PTR_prefix ",%lx,%lx\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, retval);
+		fprintf(threaddata->threadpipeFILE, RETVAL_MARKER"," PTR_prefix ",%lx,0x%lx\x01", (void*)funcaddr, (void*)threaddata->lastBlock->blockID, retval);
 		fflush(threaddata->threadpipeFILE);
 	}
 	return retval;
 }
 
-VOID wraptail_dword_return(LEVEL_VM::THREADID threadid, UINT32 tlskey, DWORD return_value)//, ADDRINT funcaddr, DWORD return_value)
+/// <summary>
+/// Send the return value of the wrapped function
+/// </summary>
+/// <param name="threadid">PIN THREADID reference</param>
+/// <param name="tlskey">tls key of the thread data</param>
+/// <param name="return_value">Return value to send, with 0x hex prefix</param>
+VOID wraptail_dword_return(LEVEL_VM::THREADID threadid, UINT32 tlskey, DWORD return_value)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
-	//if (threaddata->lastBlock->blockID == -1) return;
-
-	fprintf(threaddata->threadpipeFILE, RETVAL_MARKER"," PTR_prefix ",%lx,%ld\x01", (void*)0, (void*)threaddata->lastBlock->blockID, return_value);
+	fprintf(threaddata->threadpipeFILE, RETVAL_MARKER"," PTR_prefix ",%lx,0x%lx\x01", (void*)0, (void*)threaddata->lastBlock->blockID, return_value);
 	fflush(threaddata->threadpipeFILE);
-
 }
 
 
@@ -246,7 +249,7 @@ VOID wraphead_VirtualProtect(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
-	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,%x:%s\x01", 2, (void*)funcaddr, (void*)threaddata->lastBlock->blockID,
+	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,0x%x:%s\x01", 2, (void*)funcaddr, (void*)threaddata->lastBlock->blockID,
 		newprotectArg, protectionToString(newprotectArg));
 	fflush(threaddata->threadpipeFILE);
 }
@@ -255,7 +258,7 @@ VOID wraphead_VirtualProtectEx(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRI
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
-	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,%x:%s\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID,
+	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,0x%x:%s\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID,
 		newprotectArg, protectionToString(newprotectArg));
 	fflush(threaddata->threadpipeFILE);
 }
@@ -265,7 +268,7 @@ VOID wraphead_VirtualAlloc(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT f
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
 	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%d bytes\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, sizearg);
-	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,%x:%s\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID,
+	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,0x%x:%s\x01", 3, (void*)funcaddr, (void*)threaddata->lastBlock->blockID,
 		newprotectArg, protectionToString(newprotectArg));
 	fflush(threaddata->threadpipeFILE);
 }
@@ -275,7 +278,7 @@ VOID wraphead_VirtualAllocEx(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
 	if (threaddata->lastBlock->blockID == -1) return;
 	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%d bytes\x01", 2, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, sizearg);
-	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,%x:%s\x01", 4, (void*)funcaddr, (void*)threaddata->lastBlock->blockID,
+	fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,0x%x:%s\x01", 4, (void*)funcaddr, (void*)threaddata->lastBlock->blockID,
 		newprotectArg, protectionToString(newprotectArg));
 	fflush(threaddata->threadpipeFILE);
 }

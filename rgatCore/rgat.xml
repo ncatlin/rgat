@@ -4,9 +4,159 @@
         <name>rgat</name>
     </assembly>
     <members>
+        <member name="T:rgat.APIDetailsWin">
+            <summary>
+            Handles loading and interaction with an API data file, for use 
+            in the analysis tab to so how the trace interacted with the system
+            </summary>
+        </member>
+        <member name="P:rgat.APIDetailsWin.Loaded">
+            <summary>
+            True if the API data file was loaded
+            </summary>
+        </member>
+        <member name="M:rgat.APIDetailsWin.Load(System.String,System.IProgress{System.Single})">
+            <summary>
+            Load an API data file
+            </summary>
+            <param name="datapath">Fileystem path of the file</param>
+            <param name="progress">Optional IProgress for file loading</param>
+        </member>
+        <member name="M:rgat.APIDetailsWin.FindAPIDatafile">
+            <summary>
+            Search for the API Data file
+            </summary>
+            <returns>Path of the file if found, otherwise null</returns>
+        </member>
+        <member name="T:rgat.APIDetailsWin.InteractionEffect">
+            <summary>
+            A base class for API interaction effects
+            </summary>
+        </member>
         <member name="F:rgat.APIDetailsWin.InteractionEffect.TypeName">
             <summary>
             Needed for deserialisation
+            </summary>
+        </member>
+        <member name="T:rgat.APIDetailsWin.LinkReferenceEffect">
+            <summary>
+            The effect of this API is to create a reference to an entity
+            Eg: Opening a file creates a handle which refers to a filepath
+            </summary>
+        </member>
+        <member name="M:rgat.APIDetailsWin.LinkReferenceEffect.#ctor(System.Int32,System.Int32)">
+            <summary>
+            Create a link reference effect for an API call
+            </summary>
+            <param name="entityIdx">Position of the entity parameter (-1 = return val, 0 = first param)</param>
+            <param name="refIdx">Position of the reference parameter  (-1 = return val, 0 = first param)</param>
+        </member>
+        <member name="P:rgat.APIDetailsWin.LinkReferenceEffect.ReferenceIndex">
+            <summary>
+            The position of the parameter which is a reference to an entity
+            </summary>
+        </member>
+        <member name="P:rgat.APIDetailsWin.LinkReferenceEffect.EntityIndex">
+            <summary>
+            The position of the parameter which is the entity that the reference will linked to
+            </summary>
+        </member>
+        <member name="T:rgat.APIDetailsWin.UseReferenceEffect">
+            <summary>
+            The effect of this API is to actually interact with an entity
+            Eg: Writing to a file, sending network data to an IP address
+            </summary>
+        </member>
+        <member name="M:rgat.APIDetailsWin.UseReferenceEffect.#ctor(System.Int32)">
+            <summary>
+            Create a reference usage effect
+            </summary>
+            <param name="refIdx">Position of the reference parameter  (-1 = return val, 0 = first param)</param>
+        </member>
+        <member name="P:rgat.APIDetailsWin.UseReferenceEffect.ReferenceIndex">
+            <summary>
+            The parameter index of the entity reference that is interacted with (-1 = return val, 0 = first param)
+            </summary>
+        </member>
+        <member name="T:rgat.APIDetailsWin.DestroyReferenceEffect">
+            <summary>
+            The effect of this API is to destroy a reference to an entity (eg: CloseHandle destroys a HANDLE)
+            </summary>
+        </member>
+        <member name="M:rgat.APIDetailsWin.DestroyReferenceEffect.#ctor(System.Int32)">
+            <summary>
+            Create a reference destruction effect
+            </summary>
+            <param name="refIdx">Position of the reference parameter  (-1 = return val, 0 = first param)</param>
+        </member>
+        <member name="P:rgat.APIDetailsWin.DestroyReferenceEffect.ReferenceIndex">
+            <summary>
+            The parameter index of the entity reference that is destroyed (-1 = return val, 0 = first param)
+            </summary>
+        </member>
+        <member name="T:rgat.APIDetailsWin.APIParamType">
+            <summary>
+            How we deal with API call parameters
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.APIParamType.Info">
+            <summary>
+            The parameter is informational only
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.APIParamType.Entity">
+            <summary>
+            The parameter describes an interesting system object (file path, network address, etc)
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.APIParamType.Reference">
+            <summary>
+            The parameter is a reference to an entity (HANDLE to a file, socket to a network address, etc)
+            </summary>
+        </member>
+        <member name="T:rgat.APIDetailsWin.InteractionEntityType">
+            <summary>
+            The category of the entity
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.InteractionEntityType.File">
+            <summary>
+            Filesystem path
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.InteractionEntityType.Host">
+            <summary>
+            Network address
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.InteractionEntityType.Registry">
+            <summary>
+            Windows registry path
+            </summary>
+        </member>
+        <member name="T:rgat.APIDetailsWin.InteractionRawType">
+            <summary>
+            A specific type for a parameter
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.InteractionRawType.Handle">
+            <summary>
+            HANDLE reference
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.InteractionRawType.Path">
+            <summary>
+            Filesystem path
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.InteractionRawType.Domain">
+            <summary>
+            DNS domain
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.InteractionRawType.HKEY">
+            <summary>
+            Registry HKEY
             </summary>
         </member>
         <member name="T:rgat.APIDetailsWin.API_PARAM_ENTRY">
@@ -14,14 +164,39 @@
             Describes certain interesting parameters of an API call which we can link together to describe program behaviour
             </summary>
         </member>
+        <member name="F:rgat.APIDetailsWin.API_PARAM_ENTRY.Index">
+            <summary>
+            The position of the parameter in the function call. 0 => first param. -1 => return value
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_PARAM_ENTRY.name">
+            <summary>
+            The name of the parameter
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_PARAM_ENTRY.paramType">
+            <summary>
+            How we use the parameter
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_PARAM_ENTRY.EntityType">
+            <summary>
+            The category of activity the parameter belongs to
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_PARAM_ENTRY.RawType">
+            <summary>
+            The actual raw type of parameter (HANDLE, domain, etc)
+            </summary>
+        </member>
         <member name="F:rgat.APIDetailsWin.API_PARAM_ENTRY.IsConditional">
             <summary>
-            may not receive this parameter (eg: failed registry key open -> no registry key handle)
+            May not receive this parameter (eg: failed registry key open -> no registry key handle)
             </summary>
         </member>
         <member name="F:rgat.APIDetailsWin.API_PARAM_ENTRY.NoCase">
             <summary>
-            comparisons are case insensitive, particularly numbers such as handles which get represented as hex strings
+            Comparisons are case insensitive, particularly numbers such as handles which get represented as hex strings
             </summary>
         </member>
         <member name="T:rgat.APIDetailsWin.API_ENTRY">
@@ -42,6 +217,11 @@
         <member name="F:rgat.APIDetailsWin.API_ENTRY.Label">
             <summary>
             How the API call interacted with the entity. Used as a label in the analysis chart.
+            </summary>
+        </member>
+        <member name="F:rgat.APIDetailsWin.API_ENTRY.Effects">
+            <summary>
+            How this api call affects our tracking of interaction targets
             </summary>
         </member>
         <member name="F:rgat.APIDetailsWin.API_ENTRY.ModuleName">
@@ -69,6 +249,254 @@
             <param name="symbolname">Case sensitive API name (ie: a library export like you would pass to GetProcAddress)</param>
             <returns>API_ENTRY struct for the symbol if we have metadata for it, otherwise null</returns>
         </member>
+        <member name="T:rgat.eModuleTracingMode">
+            <summary>
+            How the instrumentation handles code in different modules
+            </summary>
+        </member>
+        <member name="F:rgat.eModuleTracingMode.eDefaultIgnore">
+            <summary>
+            Code will not be traced unless explicitly requested
+            </summary>
+        </member>
+        <member name="F:rgat.eModuleTracingMode.eDefaultTrace">
+            <summary>
+            Code will be traced unless explicitly ignored
+            </summary>
+        </member>
+        <member name="T:rgat.TraceChoiceSettings">
+            <summary>
+            Settings for how rgat chooses which code to trace or ignore
+            </summary>
+        </member>
+        <member name="F:rgat.TraceChoiceSettings.TracingMode">
+            <summary>
+            Whether rgat traces or ignores modules which are not in the ignore/trace lists
+            </summary>
+        </member>
+        <member name="F:rgat.TraceChoiceSettings.traceDirs">
+            <summary>
+            Binaries in these directories will be traced in default ignore mode
+            </summary>
+        </member>
+        <member name="P:rgat.TraceChoiceSettings.TraceDirCount">
+            <summary>
+            The number of directories listed for instrumentation
+            </summary>
+        </member>
+        <member name="F:rgat.TraceChoiceSettings.traceFiles">
+            <summary>
+            These binaries will be instrumentated in default ignore mode
+            </summary>
+        </member>
+        <member name="P:rgat.TraceChoiceSettings.TraceFilesCount">
+            <summary>
+            The number of modules that are listed for tracing
+            </summary>
+        </member>
+        <member name="P:rgat.TraceChoiceSettings.IgnoreDirsCount">
+            <summary>
+            The number of directories which are explicitly ignored in default trace mode
+            </summary>
+        </member>
+        <member name="P:rgat.TraceChoiceSettings.ignoreFilesCount">
+            <summary>
+            The number of files which are explicitly ignored in default trace mode
+            </summary>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.GetIgnoredDirs">
+            <summary>
+            Get the list of directories which contain modules which should not be instrumented
+            </summary>
+            <returns>A list of directory paths</returns>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.ClearIgnoredDirs">
+            <summary>
+            Clear the list of ignored directories
+            </summary>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.GetIgnoredFiles">
+            <summary>
+            Get the list of modules which should not be instrumented
+            </summary>
+            <returns>A list of file paths</returns>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.ClearIgnoredFiles">
+            <summary>
+            Clear the list of ignored files
+            </summary>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.GetTracedDirs">
+            <summary>
+            Get the list of directories which contain modules which should be instrumented even in ignore mode
+            </summary>
+            <returns>A list of directory paths</returns>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.ClearTracedDirs">
+            <summary>
+            Clear the list of explicitly instrumented directories
+            </summary>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.GetTracedFiles">
+            <summary>
+            Get the list of modules which should be instrumented even in ignore mode
+            </summary>
+            <returns>A list of file paths</returns>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.ClearTracedFiles">
+            <summary>
+            Clear the list of explicitly instrumented modules
+            </summary>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.AddTracedDirectory(System.String)">
+            <summary>
+            Add a directory whose contents should be instrumented in default-ignore mode
+            </summary>
+            <param name="path">A directory path</param>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.RemoveTracedDirectory(System.String)">
+            <summary>
+            Remove a directory from the list of directories to trace in ignore mode
+            </summary>
+            <param name="path">A directory path</param>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.AddTracedFile(System.String)">
+            <summary>
+            Add a module which should be instrumented in default-ignore mode
+            </summary>
+            <param name="path">A file path</param>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.RemoveTracedFile(System.String)">
+            <summary>
+            Remove a file from the list of files to trace in ignore mode
+            </summary>
+            <param name="path">A file path</param>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.AddIgnoredDirectory(System.String)">
+            <summary>
+            Add a directory whose contents should be ignored in default-trace mode
+            </summary>
+            <param name="path">A directory path</param>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.RemoveIgnoredDirectory(System.String)">
+            <summary>
+            Remove a directory from the list of directories to ignore in default-trace mode
+            </summary>
+            <param name="path">A directory path</param>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.AddIgnoredFile(System.String)">
+            <summary>
+            Add a file which should not be instrumented in default-instrument mode
+            </summary>
+            <param name="path">A file path</param>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.RemoveIgnoredFile(System.String)">
+            <summary>
+            Remove a file from the list of files to ignore in default-trace mode
+            </summary>
+            <param name="path">A file path</param>
+        </member>
+        <member name="M:rgat.TraceChoiceSettings.InitDefaultExclusions">
+            <summary>
+            Add some standard default paths to always ignore
+            At the moment this is just the windows directory as tracing the workings of kernel32/ntdll/etc is generally not useful
+            </summary>
+        </member>
+        <member name="T:rgat.BinaryTarget">
+            <summary>
+            A binary file (.exe/.dll) that rgat can trace
+            </summary>
+        </member>
+        <member name="P:rgat.BinaryTarget.RemoteHost">
+            <summary>
+            The network address this target resides on
+            </summary>
+        </member>
+        <member name="P:rgat.BinaryTarget.RemoteBinary">
+            <summary>
+            True if this target was loaded on a remote host in remote tracing mode
+            </summary>
+        </member>
+        <member name="P:rgat.BinaryTarget.RemoteAccessible">
+            <summary>
+            Do we have an active connection to the host this file resides on?
+            </summary>
+        </member>
+        <member name="P:rgat.BinaryTarget.RemoteInitialised">
+            <summary>
+            Have we been sent the initialisation data for this file from the remote host?
+            </summary>
+        </member>
+        <member name="P:rgat.BinaryTarget.IsAccessible">
+            <summary>
+            Is this file accessible at the moment?
+            </summary>
+        </member>
+        <member name="F:rgat.BinaryTarget.TraceChoices">
+            <summary>
+            Settings for which modules are instrumented/ignored
+            </summary>
+        </member>
+        <member name="F:rgat.BinaryTarget.StartBytes">
+            <summary>
+            A snippet of the first bytes of the file
+            </summary>
+        </member>
+        <member name="F:rgat.BinaryTarget.PEFileObj">
+            <summary>
+            An object representing the parsed PE File header/structure
+            </summary>
+        </member>
+        <member name="P:rgat.BinaryTarget.IsTestBinary">
+            <summary>
+            Is this target an rgat test binary
+            </summary>
+        </member>
+        <member name="M:rgat.BinaryTarget.MarkTestBinary">
+            <summary>
+            Mark this file as an rgat test binary
+            </summary>
+        </member>
+        <member name="F:rgat.BinaryTarget.BitWidth">
+            <summary>
+            32 or 64 bit
+            </summary>
+        </member>
+        <member name="P:rgat.BinaryTarget.FilePath">
+            <summary>
+            Local path to the file
+            </summary>
+        </member>
+        <member name="P:rgat.BinaryTarget.FileName">
+            <summary>
+            Name of the file
+            </summary>
+        </member>
+        <member name="P:rgat.BinaryTarget.HexPreview">
+            <summary>
+            Formatted hex preview of the file start bytes
+            </summary>
+        </member>
+        <member name="P:rgat.BinaryTarget.ASCIIPreview">
+            <summary>
+            Formatted ASCII preview of the start bytes
+            </summary>
+        </member>
+        <member name="F:rgat.BinaryTarget.IsLibrary">
+            <summary>
+            This file is a DLL
+            </summary>
+        </member>
+        <member name="F:rgat.BinaryTarget.SelectedExportIndex">
+            <summary>
+            Which library export to run
+            </summary>
+        </member>
+        <member name="F:rgat.BinaryTarget.LoaderName">
+            <summary>
+            The filename rgat will give the library loader
+            </summary>
+        </member>
         <member name="F:rgat.BinaryTarget.Exports">
             <summary>
             List of (name,ordinal) tuples of library exports
@@ -76,12 +504,19 @@
         </member>
         <member name="M:rgat.BinaryTarget.#ctor(System.String,System.Int32,System.String,System.Boolean)">
             <summary>
-            A binary that rgat has traced
+            Create a BinaryTarget object for a binary that rgat can trace
             </summary>
             <param name="filepath">The filesystem path of the binary</param>
             <param name="bitWidth_">32 or 64</param>
             <param name="remoteAddr">The address of the remote rgat instance where this target is being traced</param>
             <param name="isLibrary">if the target is a library or not. This value will be used if the binary cannot be found and parsed</param>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetRemoteLoadInitData">
+            <summary>
+            This file is on a headless remote tracing host. 
+            Fetch some JSON serialised intialisation data to send to the GUI host.
+            </summary>
+            <returns>JSON serialised initialisation data</returns>
         </member>
         <member name="M:rgat.BinaryTarget.InitialiseFromRemoteData(Newtonsoft.Json.Linq.JToken)">
             <summary>
@@ -128,6 +563,102 @@
             Purge the signature hits recorded by the last scan
             </summary>
             <param name="sigType">Type of signature hits to remove</param>
+        </member>
+        <member name="M:rgat.BinaryTarget.AddDiESignatureHit(System.String)">
+            <summary>
+            Record a Detect It Easy (dotnet) signature hit for this target binary
+            </summary>
+            <param name="hitstring">The signature hit data</param>
+        </member>
+        <member name="M:rgat.BinaryTarget.AddYaraSignatureHit(dnYara.ScanResult)">
+            <summary>
+            Record a local Yara signature hit for this target binary
+            It will also be sent to any connected remote sessions
+            </summary>
+            <param name="hit">The ScanResult hit data generated by dnYara</param>
+        </member>
+        <member name="M:rgat.BinaryTarget.AddYaraSignatureHit(rgat.YARAScan.YARAHit)">
+            <summary>
+            Record a remote Yara signature hit for this target binary recieved from a remote session
+            </summary>
+            <param name="hit">The YARAHit hit data</param>
+        </member>
+        <member name="P:rgat.BinaryTarget.TracesCount">
+            <summary>
+            The number of traces that have been generated for this target
+            </summary>
+        </member>
+        <member name="M:rgat.BinaryTarget.DeleteTrace(System.DateTime)">
+            <summary>
+            Delete a trace record
+            </summary>
+            <param name="timestarted"></param>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetTraceByIDs(System.UInt32,System.Int64,rgat.TraceRecord@)">
+            <summary>
+            Retrieve the data for a trace record
+            </summary>
+            <param name="pid">Process ID of the trace</param>
+            <param name="ID">Unique ID of the trace</param>
+            <param name="result">TraceRecord of the associated trace</param>
+            <returns>true if a trace was found</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetTracesUIList">
+            <summary>
+            Get a list of start time/tracerecord pairs for thread-safe iteration
+            </summary>
+            <returns>A list of times and trace records</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetTracesList">
+            <summary>
+            Get a thread safe list of all recorded traces for this binary
+            </summary>
+            <returns>A list of tracerecords</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetSHA1Hash">
+            <summary>
+            Get the SHA1 hash of this binary
+            </summary>
+            <returns>A SHA1 string</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetSHA256Hash">
+            <summary>
+            Get the SHA256 hash of this binary
+            </summary>
+            <returns>A SHA256 string</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.ParseFile">
+            <summary>
+            Load the file from disk to fill the data of this object
+            </summary>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetFileSizeString">
+            <summary>
+            Get a formatted file size string for display in the UI
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.CreateNewTrace(System.DateTime,System.UInt32,System.Int64,rgat.TraceRecord@)">
+            <summary>
+            Create and record a new TraceRecord for an instrumentation run of this binary
+            </summary>
+            <param name="timeStarted">The time the trace was started</param>
+            <param name="PID">The OS process ID of the first process</param>
+            <param name="ID">The unique ID of the process recorded by the instrumentation tool</param>
+            <param name="newRecord">The created TraceRecord</param>
+            <returns>true is a new trace was created, false if an existing one was fetched</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetFirstTrace">
+            <summary>
+            Get the first trace in the trace list. Use to just get any trace for display
+            </summary>
+            <returns>A TraceRecord, or null if none existed</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetNewestTrace">
+            <summary>
+            Get the most recently recorded trace
+            </summary>
+            <returns>A TraceRecord, or null if none existed</returns>
         </member>
         <member name="F:rgat.BridgeConnection.emsgType.AsyncData">
             <summary>
@@ -503,6 +1034,31 @@
         <member name="F:rgat.CONSTANTS.eKeybind.MoveRight">
             <summary>
             Shift the graph right (actually moves the camera left)
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eKeybind.MoveUp">
+            <summary>
+            Shift the graph up (actually moves the camera down)
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eKeybind.MoveDown">
+            <summary>
+            Shift the graph down (actually moves the camera up)
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eKeybind.ZoomIn">
+            <summary>
+            Move the camera forward towards the graph
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eKeybind.ZoomOut">
+            <summary>
+            Move the camera back away from the graph
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eKeybind.Cancel">
+            <summary>
+            Close the open dialog/menu
             </summary>
         </member>
         <member name="P:rgat.CONSTANTS.RGAT_VERSION">

@@ -68,7 +68,8 @@ namespace rgat.Widgets
                     addedNodes.Clear();
                 }
 
-                if (trace.TimelineItemsCount != timelineItemsOnChartDraw && !_layoutActive)
+                bool needLayout = trace.TimelineItemsCount != timelineItemsOnChartDraw || trace.TimelineItemsCount < this.layout.VerticesPositions.Count;
+                if (needLayout && !_layoutActive)
                 {
 
                     Logging.TIMELINE_EVENT[] entries = trace.GetTimeLineEntries();
