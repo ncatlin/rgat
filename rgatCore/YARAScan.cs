@@ -65,7 +65,7 @@ namespace rgat
             {
                 loadedRules?.Release();
             }
-            catch (Exception e)
+            catch (Exception)
             {
 
             }

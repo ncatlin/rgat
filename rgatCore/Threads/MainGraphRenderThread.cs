@@ -35,7 +35,7 @@ namespace rgat.Threads
             //if (graph.NodesDisplayData == null)// || !graph.setGraphBusy(true, 2))
             //	return;
 
-            if (graph.ReplayState == PlottedGraph.REPLAY_STATE.eEnded && protoGraph.Terminated)
+            if (graph.ReplayState == PlottedGraph.REPLAY_STATE.Ended && protoGraph.Terminated)
             {
                 graph.ResetAnimation();
             }
@@ -51,7 +51,7 @@ namespace rgat.Threads
             }
             else
             {
-                if (graph.ReplayState == PlottedGraph.REPLAY_STATE.ePlaying || graph._userSelectedAnimPosition != -1)
+                if (graph.ReplayState == PlottedGraph.REPLAY_STATE.Playing || graph._userSelectedAnimPosition != -1)
                 {
                     if (--_nextReplayStep <= 0)
                     {

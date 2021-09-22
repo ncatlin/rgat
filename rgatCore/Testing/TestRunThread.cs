@@ -43,8 +43,6 @@ namespace rgat.Testing
             Running = true;
             _testCase.RecordRunning();
             Console.WriteLine($"Started test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
-            int countDown = 2;
-
             Console.WriteLine($"Starting test process {_testCase.BinaryPath} test id {_thisTest.TestID}");
 
             string pintool = _testCase.TestBits == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :

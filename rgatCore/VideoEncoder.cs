@@ -19,12 +19,19 @@ namespace rgat
 {
     public class VideoEncoder
     {
+        /// <summary>
+        /// Is FFMpeg configured
+        /// </summary>
         public bool Loaded { get; private set; }
+        /// <summary>
+        /// Are the video capture settings configured
+        /// </summary>
         public bool Initialised { get; private set; }
-        public string Error { get; private set; } = "";
+        /// <summary>
+        /// The last error, if one was recorded
+        /// </summary>
+        public string? Error { get; private set; }
 
-        readonly bool _ignoreSignatureError = false;
-        readonly bool _signatureError = false;
         readonly System.Drawing.Imaging.ImageCodecInfo[] _imageCodecs;
 
         public VideoEncoder()
@@ -34,29 +41,66 @@ namespace rgat
 
         }
 
-
-        ~VideoEncoder()
-        {
-        }
-
-
-        static readonly BinaryWriter stream = null;
-
+        /// <summary>
+        /// Width of the frames of the recorded video
+        /// </summary>
         public int CurrentVideoWidth { get; private set; }
+        /// <summary>
+        /// Height of the frames of the recorded video
+        /// </summary>
         public int CurrentVideoHeight { get; private set; }
 
-
+        /// <summary>
+        /// Filepath of the video being recorded
+        /// </summary>
         public string CurrentRecordingFile = "";
         ulong _recordedFrameCount = 0;
+
+        /// <summary>
+        /// Video recording is active, though it may still be paused
+        /// </summary>
         public bool Recording => _recording;
+
+        /// <summary>
+        /// Recording new frames to video is suspended
+        /// </summary>
         public bool CapturePaused = false;
+
         bool _recording = false;
         readonly ConcurrentQueue<Bitmap> _bmpQueue = new ConcurrentQueue<Bitmap>();
+        /// <summary>
+        /// Number of frames awaiting recording
+        /// </summary>
         public int FrameQueueSize => _bmpQueue.Count;
 
         CaptureContent _capturedContent = CaptureContent.Invalid;
-        public enum CaptureContent { Graph, GraphAndPreviews, Window, Invalid };
 
+        /// <summary>
+        /// Types of content that can be recorded
+        /// </summary>
+        public enum CaptureContent { 
+            /// <summary>
+            /// The graph in the main graph widget
+            /// </summary>
+            Graph, 
+            /// <summary>
+            /// The graph and previews in the visualiser tab
+            /// </summary>
+            GraphAndPreviews,
+            /// <summary>
+            /// The entire UI
+            /// </summary>
+            Window, 
+            /// <summary>
+            /// Invalid
+            /// </summary>
+            Invalid };
+
+
+        /// <summary>
+        /// What is being recorded
+        /// </summary>
+        /// <returns>CaptureContent of the area being recorded</returns>
         public CaptureContent GetCapturedContent()
         {
             if (_capturedContent == CaptureContent.Invalid)
@@ -79,28 +123,37 @@ namespace rgat
 
         }
 
-        public void Load(string dllpath = "")
+        /// <summary>
+        /// Setup the path to the FFMpeg tool
+        /// </summary>
+        public void Load()
         {
             if (File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath)))
             {
                 Loaded = true;
             }
-            else if (DetectFFmpeg(out string? path))
+            else if (DetectFFmpeg(out string? path) && path is not null)
             {
                 Loaded = true;
                 GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.FFmpegPath, path);
             }
         }
 
+
         DateTime _recordingStateChanged = DateTime.MinValue;
-        public bool StartRecording()
+        /// <summary>
+        /// Begin capture of the selected content to the video file
+        /// </summary>
+        public void StartRecording()
         {
             System.Diagnostics.Debug.Assert(!_recording);
             _recording = true;
             _recordingStateChanged = DateTime.Now;
-            return true;
         }
 
+        /// <summary>
+        /// Stop recording video to the file
+        /// </summary>
         public void StopRecording()
         {
             _recordingStateChanged = DateTime.Now;
@@ -137,6 +190,10 @@ namespace rgat
             yield break;
         }
 
+        /// <summary>
+        /// Get the path of the directory videos will be stored to
+        /// </summary>
+        /// <returns>The filepath</returns>
         public static string GetCaptureDirectory()
         {
             string result;
@@ -169,8 +226,12 @@ namespace rgat
         }
 
 
-
-        public string GenerateVideoFilepath(PlottedGraph graph)
+        /// <summary>
+        /// Generate the filepath for a new video
+        /// </summary>
+        /// <param name="graph">The graph to generate a video for, or null for generic content</param>
+        /// <returns></returns>
+        public string GenerateVideoFilepath(PlottedGraph? graph)
         {
             string storedir = GetCaptureDirectory();
             string targetname, vidname;
@@ -198,13 +259,14 @@ namespace rgat
             return targetfile;
         }
 
+
         /// <summary>
-        /// 
+        /// Write an image to disk
         /// </summary>
-        /// <param name="graph"></param>
-        /// <param name="bmp"></param>
-        /// <returns></returns>
-        public string SaveImage(PlottedGraph graph, Bitmap bmp)
+        /// <param name="graph">Optional graph being captured, for filename generation</param>
+        /// <param name="bmp">The bitmap of the image</param>
+        /// <returns>The path of the saved image</returns>
+        public string SaveImage(PlottedGraph? graph, Bitmap bmp)
         {
             if (GlobalConfig.Settings.Media.ImageCapture_Format == null || GlobalConfig.Settings.Media.ImageCapture_Format.Length < 2)
             {
@@ -295,8 +357,11 @@ namespace rgat
             return result;
         }
 
-
-        async public void Go(PlottedGraph graph)
+        /// <summary>
+        /// A task for recording a video
+        /// </summary>
+        /// <param name="graph">Optional graph to record</param>
+        async public void Go(PlottedGraph? graph)
         {
             if (!File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath)))
             {
@@ -355,8 +420,12 @@ namespace rgat
             _capturedContent = CaptureContent.Invalid;
         }
 
-
-        public void QueueFrame(Bitmap frame, PlottedGraph graph)
+        /// <summary>
+        /// Add a bitmap to record to video
+        /// </summary>
+        /// <param name="frame">The bitmap to store</param>
+        /// <param name="graph">The optional graph being recorded</param>
+        public void QueueFrame(Bitmap frame, PlottedGraph? graph)
         {
             if (frame != null && _recording)
             {
@@ -374,7 +443,9 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Draw the video options pane
+        /// </summary>
         public void DrawSettingsPane()
         {
             if (File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath)))
@@ -443,7 +514,7 @@ namespace rgat
         void DrawHaveLibSettingsPane()
         {
 
-            if (Error.Length > 0)
+            if (Error is not null && Error.Length > 0)
             {
                 ImGui.Text(Error);
                 return;

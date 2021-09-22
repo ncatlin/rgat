@@ -241,7 +241,7 @@ namespace rgat.OperationModes
             _gd.SwapBuffers(_gd.MainSwapchain);
             _gd.WaitForIdle();
 
-            RecordFramebuffer(_gd.MainSwapchain.Framebuffer, _cl);
+            RecordFramebuffer(_gd.MainSwapchain.Framebuffer);
 
             if (_housekeepingTimerFired)
             {
@@ -252,7 +252,7 @@ namespace rgat.OperationModes
 
         }
 
-        unsafe public void RecordFramebuffer(Framebuffer fbuf, CommandList cl)
+        unsafe public void RecordFramebuffer(Framebuffer fbuf)
         {
             //exit if no video capture or screenshot pending
             VideoEncoder recorder = rgatState.VideoRecorder;

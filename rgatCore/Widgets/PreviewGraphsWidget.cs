@@ -43,7 +43,6 @@ namespace rgat
 
 
         ResourceLayout _coreRsrcLayout, _nodesEdgesRsrclayout;
-        readonly ResourceSet _crs_core, _crs_nodesEdges;
         DeviceBuffer _paramsBuffer;
         DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer;
         DeviceBuffer _NodeVertexBuffer, _NodeIndexBuffer;

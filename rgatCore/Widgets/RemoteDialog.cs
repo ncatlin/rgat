@@ -9,23 +9,25 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace rgat.Widgets
-{
+{        
+    /// <summary>
+    /// A dialog for configuring remote tracing
+    /// </summary>
     class RemoteDialog
     {
         public bool ListenMode = false;
-        readonly List<NetworkInterface> _netIFList = new List<NetworkInterface>();
+        readonly List<NetworkInterface> _netIFList = new();
         string _listenIFID = "";
         string _connectIFID = "";
-        readonly string activeInterfaceID;
         readonly System.Timers.Timer _refreshTimer = new System.Timers.Timer(CONSTANTS.NETWORK.InterfaceRefreshIntervalMS);
         bool _refreshTimerFired = false;
-        readonly int listenPort = -1;
         readonly OperationModes.BridgedRunner runner;
-        readonly rgatState _rgatState;
 
-        public RemoteDialog(rgatState state)
+        /// <summary>
+        /// Create a dialog for configuring remote tracing
+        /// </summary>
+        public RemoteDialog()
         {
-            _rgatState = state;
             InitSettings();
             if (rgatState.NetworkBridge == null)
             {
@@ -38,7 +40,10 @@ namespace rgat.Widgets
             _refreshTimerFired = true;
 
             string addr = GlobalConfig.StartOptions.ConnectModeAddress;
-            if (addr != null) currentAddress = addr;
+            if (addr != null)
+            { 
+                currentAddress = addr; 
+            }
             else
             {
                 List<string> recentAddrs = GlobalConfig.Settings.Network.RecentConnectedAddresses();
@@ -432,7 +437,7 @@ namespace rgat.Widgets
             ImGui.TableNextColumn();
             ImGui.Text("Network Key");
             ImGui.TableNextColumn();
-            string keystring = GlobalConfig.StartOptions.NetworkKey;
+            string? keystring = GlobalConfig.StartOptions.NetworkKey;
             if (ImGui.InputText("##nwkKeytxt", ref keystring, 64))
             {
                 GlobalConfig.StartOptions.NetworkKey = keystring;
@@ -566,7 +571,7 @@ namespace rgat.Widgets
         }
 
 
-        string currentAddress;
+        string currentAddress = "";
         bool _remoteDropdownOpen = false;
         void DrawConnectOptsFrame()
         {
@@ -575,7 +580,6 @@ namespace rgat.Widgets
             ImGui.TableNextColumn();
             ImGui.Text("Remote Address");
             ImGui.TableNextColumn();
-            if (currentAddress == null) currentAddress = "";
             if (ImGui.InputText("##nwkConAddr", ref currentAddress, 512))
             {
                 SelectRemoteAddress(currentAddress);
@@ -627,7 +631,7 @@ namespace rgat.Widgets
                     if (ImGui.IsItemActivated()) //selectable() doesn't return true for some reason
                     {
                         currentAddress = address;
-                        SelectRemoteAddress(currentAddress);
+                        SelectRemoteAddress(address);
                         ImGui.CloseCurrentPopup();
                     }
                     ++numHints;
@@ -653,8 +657,8 @@ namespace rgat.Widgets
 
         void SelectRemoteAddress(string address)
         {
-            GlobalConfig.StartOptions.ConnectModeAddress = currentAddress;
-            GlobalConfig.Settings.Network.DefaultHeadlessAddress = currentAddress;
+            GlobalConfig.StartOptions.ConnectModeAddress = address;
+            GlobalConfig.Settings.Network.DefaultHeadlessAddress = address;
         }
 
 

@@ -580,7 +580,6 @@ namespace rgat.Widgets
 
             if (HighlightDialogWidget.PopoutHighlight)
             {
-                bool ff = true;
                 ImGui.SetNextWindowSize(new Vector2(500, 300), ImGuiCond.Appearing);
                 ImGui.SetNextWindowSizeConstraints(new Vector2(500, 300), new Vector2(800, 700));
                 if (ImGui.Begin("Search/Highlighting", ref HighlightDialogWidget.PopoutHighlight))

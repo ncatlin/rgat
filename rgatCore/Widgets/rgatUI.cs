@@ -1075,27 +1075,27 @@ namespace rgat
                     TEXT_LOG_EVENT item = (TEXT_LOG_EVENT)alerts[i];
                     long alertAge = nowTime - item.EventTimeMS;
                     long timeRemaining = (long)lingerTime - alertAge;
-                    uint alpha = 255;
+                    int alpha = 255;
                     if (timeRemaining < 1000) //fade out over a second
                     {
-                        float fade = (timeRemaining / 1000);
-                        alpha = (uint)(Math.Min(255f, 255f * fade));
+                        float fade = ((float)timeRemaining / 1000f);
+                        alpha = (int)(Math.Min(255f, 255f * fade));
+                        alpha = (int)(Math.Max(alpha, 0));
                     }
-
                     if (item.Filter == LogFilterType.TextAlert)
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, alertColour.ToUint(alpha));
+                        ImGui.PushStyleColor(ImGuiCol.Text, alertColour.ToUint((uint?)alpha));
                         ImGui.Text($"{ImGuiController.FA_ICON_WARNING} ");
                         ImGui.PopStyleColor();
                     }
                     else
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, errColour.ToUint(alpha));
+                        ImGui.PushStyleColor(ImGuiCol.Text, errColour.ToUint((uint?)alpha));
                         ImGui.Text($"{ImGuiController.FA_ICON_EXCLAIM} ");
                         ImGui.PopStyleColor();
                     }
                     ImGui.SameLine();
-                    textColour = new WritableRgbaFloat(textColour).ToUint(alpha);
+                    textColour = new WritableRgbaFloat(textColour).ToUint((uint?)alpha);
                     ImGui.PushStyleColor(ImGuiCol.Text, textColour);
                     ImGui.Text(item._text);
                     ImGui.PopStyleColor();

@@ -357,7 +357,6 @@ namespace rgat
 
         public void RecordTimelineEvent(Logging.eTimelineEvent type, TraceRecord? trace = null, ProtoGraph? graph = null)
         {
-            int currentCount;
             switch (type)
             {
                 case Logging.eTimelineEvent.ProcessStart:
@@ -844,7 +843,7 @@ namespace rgat
 
                 return (new JsonTextWriter(sw));
             }
-            catch (UnauthorizedAccessException e)
+            catch (UnauthorizedAccessException)
             {
                 Logging.RecordLogEvent($"\tWarning: Unauthorized to open {path} for writing", Logging.LogFilterType.TextInfo);
             }

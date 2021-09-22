@@ -515,7 +515,7 @@ namespace rgat.Config
             DateTime _UpdateLastCheckTime = DateTime.MinValue;
             public DateTime UpdateLastCheckTime { get => _UpdateLastCheckTime; set { lock (_lock) { _UpdateLastCheckTime = value; } MarkDirty(); } }
 
-            Version _UpdateLastCheckVersion = RGAT_VERSION_SEMANTIC;
+            Version _UpdateLastCheckVersion = PROGRAMVERSION.RGAT_VERSION_SEMANTIC;
 
             [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
             public Version UpdateLastCheckVersion
@@ -527,7 +527,7 @@ namespace rgat.Config
                     {
                         _UpdateLastCheckVersion = value;
                         _UpdateLastCheckVersionString = value.ToString();
-                        GlobalConfig.NewVersionAvailable = _UpdateLastCheckVersion > CONSTANTS.RGAT_VERSION_SEMANTIC;
+                        GlobalConfig.NewVersionAvailable = _UpdateLastCheckVersion > CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC;
                     }
                     catch (Exception e)
                     {

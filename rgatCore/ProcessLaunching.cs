@@ -274,7 +274,7 @@ namespace rgat
         }
 
 
-        public static void launch_new_visualiser_threads(BinaryTarget target, TraceRecord runRecord, rgatState clientState)
+        public static void launch_new_visualiser_threads(TraceRecord runRecord, rgatState clientState)
         {
             Logging.RecordLogEvent($"launch_new_visualiser_threads START", Logging.LogFilterType.BulkDebugLogFile);
             //non-graphical

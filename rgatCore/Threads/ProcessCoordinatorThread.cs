@@ -255,7 +255,7 @@ namespace rgat.Threads
             blockHandler.Begin();
 
             if (rgatUI.Exists)
-                ProcessLaunching.launch_new_visualiser_threads(trace.Target, trace, _clientState);
+                ProcessLaunching.launch_new_visualiser_threads(trace, _clientState);
         }
     }
 }

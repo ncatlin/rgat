@@ -11,43 +11,38 @@ using static rgat.VeldridGraphBuffers;
 
 namespace rgat
 {
-    public class GRAPH_SCALE
-    {
-        public float plotSize = 1000;
-        public float basePlotSize = 1000;
-        public float userSizeModifier = 1;
-        public float pix_per_A, pix_per_B, original_pix_per_A, original_pix_per_B;
-        public float stretchA = 1, stretchB = 1;
-    };
-
-
+    /// <summary>
+    /// Represents the graphical rendering of a thread (ProtoGraph)
+    /// </summary>
     public class PlottedGraph
     {
-        public enum REPLAY_STATE { eStopped, ePlaying, ePaused, eEnded };
+        /// <summary>
+        /// The animation replay state of this graph
+        /// </summary>
+        public enum REPLAY_STATE { 
+            /// <summary>
+            /// Not being replayed
+            /// </summary>
+            Stopped,
+            /// <summary>
+            /// Currently being played
+            /// </summary>
+            Playing, 
+            /// <summary>
+            /// Paused in an animated state
+            /// </summary>
+            Paused, 
+            /// <summary>
+            /// Awaiting reset to a stopped state
+            /// </summary>
+            Ended 
+        };
 
-
-
-        /*
-        static List<List<int>> DoubleEdgeify(List<List<int>> ingraph)
-        {
-            List<List<int>> outgraph = new List<List<int>>(ingraph);
-            for (var srcNodeIdx = 0; srcNodeIdx < ingraph.Count; srcNodeIdx++)
-            {
-                List<int> outEdges = ingraph[srcNodeIdx];
-                for (var outEdgeIdx = 0; outEdgeIdx < outEdges.Count; outEdgeIdx++)
-                {
-                    int outNodeIdx = outEdges[outEdgeIdx];
-                    if (!outgraph[outNodeIdx].Contains(srcNodeIdx))
-                    {
-                        outgraph[outNodeIdx].Add(srcNodeIdx);
-                    }
-                }
-
-            }
-            return outgraph;
-        }*/
-
-
+        /// <summary>
+        /// Create a plotted graph
+        /// </summary>
+        /// <param name="protoGraph">ProtoGraph of the thread</param>
+        /// <param name="device">GraphicsDevice of the GPU this thread is being rendered on</param>
         public PlottedGraph(ProtoGraph protoGraph, GraphicsDevice device)
         {
             pid = protoGraph.TraceData.PID;
@@ -59,9 +54,6 @@ namespace rgat
             IsAnimated = !InternalProtoGraph.Terminated;
             InitGraphColours();
 
-            scalefactors.plotSize = 300;
-            scalefactors.basePlotSize = 300f;
-            scalefactors.userSizeModifier = 1;
             CameraClippingFar = 60000f;
             CameraZoom = -6000f;
             CameraXOffset = -400;
@@ -82,21 +74,15 @@ namespace rgat
         }
 
 
-        //for tracking how big the graph gets
-        /*
-        protected void updateStats(float a, float b, float c)
-        {
-            //the extra work of 2xabs() happens so rarely that its worth avoiding
-            //the stack allocations of a variable every call
-            if (Math.Abs(a) > maxA) maxA = Math.Abs(a);
-            if (Math.Abs(b) > maxB) maxB = Math.Abs(b);
-        }*/
-
+        /// <summary>
+        /// Seek to a user specified position in the replay
+        /// </summary>
+        /// <param name="position">A position in the replay from 0-1</param>
         public void SeekToAnimationPosition(float position)
         {
-            if (ReplayState == REPLAY_STATE.eStopped)
+            if (ReplayState == REPLAY_STATE.Stopped)
             {
-                ReplayState = REPLAY_STATE.ePaused;
+                ReplayState = REPLAY_STATE.Paused;
                 SetAnimated(true);
             }
 
@@ -106,7 +92,9 @@ namespace rgat
 
         }
 
-
+        /// <summary>
+        /// Process more animation replay updates
+        /// </summary>
         public void ProcessReplayUpdates()
         {
             if (_userSelectedAnimPosition != -1)
@@ -122,11 +110,17 @@ namespace rgat
                 _userSelectedAnimPosition = -1;
         }
 
-        //public void schedule_animation_reset() { animation_needs_reset = true; }
+
+        /// <summary>
+        /// Last instruction that was replayed
+        /// </summary>
         public uint LastAnimatedVert { get; private set; }
 
 
-        //This should only ever be called from the rendering thread
+        /// <summary>
+        /// Reset the replay animation state
+        /// This should only ever be called from the maingraph rendering thread
+        /// </summary>
         public void ResetAnimation()
         {
             ResetAllActiveAnimatedAlphas();
@@ -142,18 +136,32 @@ namespace rgat
             animBuildingLoop = false;
             SetAnimated(false);
 
-            ReplayState = REPLAY_STATE.eStopped;
+            ReplayState = REPLAY_STATE.Stopped;
             Logging.RecordLogEvent("Animation reset to stopped state");
         }
 
-        public float GetAnimationPercent()
+
+        /// <summary>
+        /// How far the animation as progressed through the recorded animation entries
+        /// </summary>
+        /// <returns>Progress as a float from 0-1</returns>
+        public float GetAnimationProgress()
         {
             if (InternalProtoGraph.SavedAnimationData.Count == 0) return 0;
             return (float)((float)AnimationIndex / (float)InternalProtoGraph.SavedAnimationData.Count);
         }
 
-        public bool beingDeleted { private set; get; } = false;
 
+        /// <summary>
+        /// probably defunct. todo for when trace deletion is implemented
+        /// </summary>
+        public bool BeingDeleted { private set; get; } = false;
+
+
+        /// <summary>
+        /// Set the graph animation state
+        /// </summary>
+        /// <param name="newState">animated or not</param>
         public void SetAnimated(bool newState)
         {
             IsAnimated = newState;
@@ -165,7 +173,10 @@ namespace rgat
             }
         }
 
-
+        /// <summary>
+        /// Move forward in the animation
+        /// </summary>
+        /// <param name="steps">The number of animation entries to process</param>
         public void StepPausedAnimation(int steps)
         {
             process_replay_animation_updates(steps);
@@ -173,23 +184,26 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Toggle replay paused state
+        /// </summary>
         public void PlayPauseClicked()
         {
             switch (ReplayState)
             {
-                case REPLAY_STATE.eStopped: //start it from beginning
-                    ReplayState = REPLAY_STATE.ePlaying;
+                case REPLAY_STATE.Stopped: //start it from beginning
+                    ReplayState = REPLAY_STATE.Playing;
                     SetAnimated(true);
                     Console.WriteLine("Animation state Stopped -> Playing");
                     break;
 
-                case REPLAY_STATE.ePlaying: //pause it
-                    ReplayState = REPLAY_STATE.ePaused;
+                case REPLAY_STATE.Playing: //pause it
+                    ReplayState = REPLAY_STATE.Paused;
                     Console.WriteLine("Animation state Playing -> Paused");
                     break;
 
-                case REPLAY_STATE.ePaused: //unpause it
-                    ReplayState = REPLAY_STATE.ePlaying;
+                case REPLAY_STATE.Paused: //unpause it
+                    ReplayState = REPLAY_STATE.Playing;
                     SetAnimated(true);
                     Console.WriteLine("Animation state Paused -> Playing");
                     break;
@@ -197,10 +211,15 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// Schedule the animation to be reset
+        /// </summary>
         public void ResetClicked()
         {
-            ReplayState = REPLAY_STATE.eEnded;
+            ReplayState = REPLAY_STATE.Ended;
         }
+
 
         /// <summary>
         /// Are all of the edges rendered
@@ -208,6 +227,9 @@ namespace rgat
         public bool RenderingComplete => DrawnEdgesCount >= InternalProtoGraph.EdgeList.Count;
 
 
+        /// <summary>
+        /// Construct more graph geometry from un-rendered edges in the ProtoGraph
+        /// </summary>
         protected void render_new_blocks()
         {
             int endIndex = InternalProtoGraph.EdgeList.Count;
@@ -244,7 +266,6 @@ namespace rgat
                 if (DrawnEdgesCount > dbglimit) return;
             }
         }
-
 
 
         float GetAttractionForce(EdgeData edge)
@@ -300,7 +321,12 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Create a preset graph layout for the specified style
+        /// If force directed it will retrieve a saved layout if available, or randomise if not
+        /// </summary>
+        /// <param name="style">The layout style</param>
+        /// <returns>Positions for each node</returns>
         public float[]? GeneratePresetPositions(LayoutStyles.Style style)
         {
             //_presetEdgeCount = InternalProtoGraph.get_num_edges();
@@ -575,6 +601,11 @@ namespace rgat
         //todo cache
 
 
+        /// <summary>
+        /// Get geometry and colour of various non-instruction edges like highlights and wireframes
+        /// </summary>
+        /// <param name="edgeIndices">Output list of illustration edge indexes</param>
+        /// <returns>Output edge geometry</returns>
         public GeomPositionColour[] GetIllustrationEdges(out List<uint> edgeIndices)
         {
 
@@ -704,6 +735,10 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// The style of wireframe to draw for this graph
+        /// </summary>
+        /// <returns>Layout style</returns>
         public LayoutStyles.Style WireframeStyle()
         {
             if (LayoutState.ActivatingPreset)
@@ -769,11 +804,18 @@ namespace rgat
             return textureArray;
         }
 
-
+        /// <summary>
+        /// Increase the activity level of a force directed plot
+        /// </summary>
         public void IncreaseTemperature()
         {
             temperature += _graphStructureLinear.Count / 2;
         }
+
+        /// <summary>
+        /// Set the temperature of a force directed plot
+        /// </summary>
+        /// <param name="temp">Activity level</param>
         public void IncreaseTemperature(float temp)
         {
             temperature = temp;
@@ -818,7 +860,7 @@ namespace rgat
         /// Create an array listing the index of every neighbour of every node
         /// Also initialises the edge strength array, 
         /// </summary>
-        /// <returns></returns>
+        /// <returns>If there was data</returns>
         public bool GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargetIndexes, out int[] edgeIndexLookups)
         {
             //var textureSize = indexTextureSize(_graphStructureLinear.Count);
@@ -856,7 +898,7 @@ namespace rgat
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
                     edgeTargetIndexes[edgeIndex] = (int)neigbours[nidx];
-                    if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>((uint)currentNodeIndex, neigbours[nidx]), out EdgeData? edge))
+                    if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>((uint)currentNodeIndex, neigbours[nidx]), out EdgeData? edge) && edge is not null)
                     {
                         edgeStrengths[edgeIndex] = GetAttractionForce(edge);
                     }
@@ -879,7 +921,7 @@ namespace rgat
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
                 {
                     edgeTargetIndexes[edgeIndex] = (int)neigbours[nidx];
-                    if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>(neigbours[nidx], (uint)currentNodeIndex), out EdgeData? edge))
+                    if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>(neigbours[nidx], (uint)currentNodeIndex), out EdgeData? edge) && edge is not null)
                     {
                         edgeStrengths[edgeIndex] = GetAttractionForce(edge);
                     }
@@ -1104,8 +1146,11 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Number of node->node edges that have been rendered
+        /// </summary>
         public int DrawnEdgesCount = 0;
+
         void UpdateNodeLinks(int srcNodeIdx, int destNodeIdx)
         {
             Debug.Assert(srcNodeIdx >= 0 && destNodeIdx >= 0);
@@ -1119,12 +1164,12 @@ namespace rgat
             {
                 _graphStructureBalanced[srcNodeIdx].Add(destNodeIdx);
             }
-
-
-
         }
 
-
+        /// <summary>
+        /// Create a new blank preset layout for this graph
+        /// </summary>
+        /// <returns>Positions of the preset nodes</returns>
         public float[] CreateBlankPresetLayout()
         {
             var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
@@ -1781,7 +1826,7 @@ namespace rgat
             if (InternalProtoGraph.SavedAnimationData.Count == 0)
             {
                 Console.WriteLine("Ending animation immediately - no animation data");
-                ReplayState = REPLAY_STATE.eEnded;
+                ReplayState = REPLAY_STATE.Ended;
                 return;
             }
 
@@ -1792,7 +1837,7 @@ namespace rgat
             }
             else
             {
-                stepSize = (ReplayState != REPLAY_STATE.ePaused) ? AnimationRate : 0;
+                stepSize = (ReplayState != REPLAY_STATE.Paused) ? AnimationRate : 0;
             }
 
             double targetAnimIndex = AnimationIndex + stepSize;
@@ -1817,7 +1862,7 @@ namespace rgat
 
             if (AnimationIndex >= InternalProtoGraph.SavedAnimationData.Count - 1)
             {
-                ReplayState = REPLAY_STATE.eEnded;
+                ReplayState = REPLAY_STATE.Ended;
             }
         }
 
@@ -1932,17 +1977,41 @@ namespace rgat
             return waitFrames;
         }
 
+        /// <summary>
+        /// Action the movement of the mousewheel to zoom the graph in or out
+        /// </summary>
+        /// <param name="delta">How far the mousewheel moved</param>
         public void ApplyMouseWheelDelta(float delta)
         {
             CameraZoom += delta * 120;
         }
 
 
+        /// <summary>
+        /// Move the camera in response to user mouse dragging
+        /// </summary>
+        /// <param name="delta">How far the mouse was dragged</param>
+        public void ApplyMouseDragDelta(Vector2 delta)
+        {
+            CameraXOffset -= delta.X;
+            CameraYOffset += delta.Y;
+        }
+
+
+        /// <summary>
+        /// Get the projection matrix of the current camera
+        /// </summary>
+        /// <param name="aspectRatio">Aspect Ratio</param>
+        /// <returns></returns>
         public Matrix4x4 GetProjectionMatrix(float aspectRatio)
         {
             return Matrix4x4.CreatePerspectiveFieldOfView(CameraFieldOfView, aspectRatio, CameraClippingNear, CameraClippingFar);
         }
 
+        /// <summary>
+        /// Get the view matrix of the current camera position
+        /// </summary>
+        /// <returns>View Matrix</returns>
         public Matrix4x4 GetViewMatrix()
         {
             Vector3 translation = new Vector3(CameraXOffset, CameraYOffset, CameraZoom);
@@ -1951,6 +2020,10 @@ namespace rgat
             return viewMatrix;
         }
 
+        /// <summary>
+        /// Get the view matrix of the preview camera
+        /// </summary>
+        /// <returns>View Matrix</returns>
         public Matrix4x4 GetPreviewViewMatrix()
         {
             Vector3 translation = new Vector3(PreviewCameraXOffset, PreviewCameraYOffset, PreviewCameraZoom);
@@ -1960,14 +2033,12 @@ namespace rgat
         }
 
 
-        public void ApplyMouseDragDelta(Vector2 delta)
-        {
-            CameraXOffset -= delta.X;
-            CameraYOffset += delta.Y;
-        }
-
-
-        public void InitPreviewTexture(Vector2 size, GraphicsDevice _gd)
+        /// <summary>
+        /// Create a new preview texture for the graph
+        /// </summary>
+        /// <param name="size">Size of the texture</param>
+        /// <param name="gd">GraphicsDevice for to create the texture on</param>
+        public void InitPreviewTexture(Vector2 size, GraphicsDevice gd)
         {
             if (_previewTexture1 != null)
             {
@@ -1981,15 +2052,16 @@ namespace rgat
                 _previewTexture2.Dispose();
             }
 
-            _previewTexture1 = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
+            _previewTexture1 = gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
                                 width: (uint)size.X, height: (uint)size.Y, mipLevels: 1, arrayLayers: 1,
                                 format: PixelFormat.R32_G32_B32_A32_Float, usage: TextureUsage.RenderTarget | TextureUsage.Sampled));
-            _previewFramebuffer1 = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture1));
-            _previewTexture2 = _gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
+            _previewFramebuffer1 = gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture1));
+            _previewTexture2 = gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
                                 width: (uint)size.X, height: (uint)size.Y, mipLevels: 1, arrayLayers: 1,
                                 format: PixelFormat.R32_G32_B32_A32_Float, usage: TextureUsage.RenderTarget | TextureUsage.Sampled));
-            _previewFramebuffer2 = _gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture2));
+            _previewFramebuffer2 = gd.ResourceFactory.CreateFramebuffer(new FramebufferDescription(null, _previewTexture2));
         }
+
 
         /// <summary>
         /// Add new edges to the layout buffer
@@ -2019,9 +2091,17 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Signals that the user has changed the highlighted nodes
+        /// </summary>
         public bool HighlightsChanged;
+
         readonly Dictionary<int, Vector4> _customHighlightColours = new Dictionary<int, Vector4>();
+        /// <summary>
+        /// Get the highlight colour of the node
+        /// </summary>
+        /// <param name="nodeIdx">Index of the node</param>
+        /// <returns>Colour of the node, if a custom colour was found, otherwise null</returns>
         public Vector4? GetCustomHighlightColour(int nodeIdx)
         {
             lock (textLock)
@@ -2032,6 +2112,11 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Set a custom colour for the specified node
+        /// </summary>
+        /// <param name="nodeIdx">Index of the node</param>
+        /// <param name="colour">Custom colour</param>
         public void SetCustomHighlightColour(int nodeIdx, Vector4 colour)
         {
             lock (textLock)
@@ -2041,22 +2126,27 @@ namespace rgat
         }
 
 
-        //must hold read lock
+        /// <summary>
+        /// Set the list of nodes as highlighted
+        /// must hold read lock
+        /// </summary>
+        /// <param name="newnodeidxs">Nodes to highlight</param>
+        /// <param name="highlightType">Type of highlight</param>
         public void AddHighlightedNodes(List<uint> newnodeidxs, HighlightType highlightType)
         {
             lock (textLock)
             {
                 switch (highlightType)
                 {
-                    case HighlightType.eExternals:
+                    case HighlightType.Externals:
                         HighlightedSymbolNodes.AddRange(newnodeidxs.Where(n => !HighlightedSymbolNodes.Contains(n)));
                         AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
-                    case HighlightType.eAddresses:
+                    case HighlightType.Addresses:
                         HighlightedAddressNodes.AddRange(newnodeidxs.Where(n => !HighlightedAddressNodes.Contains(n)));
                         AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
-                    case HighlightType.eExceptions:
+                    case HighlightType.Exceptions:
                         HighlightedExceptionNodes.AddRange(newnodeidxs.Where(n => !HighlightedExceptionNodes.Contains(n)));
                         AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
@@ -2097,13 +2187,13 @@ namespace rgat
             {
                 switch (highlightType)
                 {
-                    case HighlightType.eExternals:
+                    case HighlightType.Externals:
                         HighlightedSymbolNodes = HighlightedSymbolNodes.Except(nodeidxs).ToList();
                         break;
-                    case HighlightType.eAddresses:
+                    case HighlightType.Addresses:
                         HighlightedAddressNodes = HighlightedAddressNodes.Except(nodeidxs).ToList();
                         break;
-                    case HighlightType.eExceptions:
+                    case HighlightType.Exceptions:
                         HighlightedExceptionNodes = HighlightedExceptionNodes.Except(nodeidxs).ToList();
                         break;
                 }
@@ -2136,7 +2226,7 @@ namespace rgat
                     HighlightedAddresses.Add(address);
 
                     List<uint> nodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(address, tid);  //todo: external
-                    AddHighlightedNodes(nodes, HighlightType.eAddresses);
+                    AddHighlightedNodes(nodes, HighlightType.Addresses);
                 }
             }
         }
@@ -2341,6 +2431,9 @@ namespace rgat
         }
 
         bool _showNodeIndexes = true;
+        /// <summary>
+        /// Whether node labels will include the internal index of the node
+        /// </summary>
         public bool Opt_ShowNodeIndexes
         {
             get => _showNodeIndexes;
@@ -2352,6 +2445,9 @@ namespace rgat
         }
 
         bool _showSymbolModules = true;
+        /// <summary>
+        /// Whether symbols will show the modules they reside in
+        /// </summary>
         public bool Opt_ShowSymbolModules
         {
             get => _showSymbolModules;
@@ -2363,6 +2459,9 @@ namespace rgat
         }
 
         bool _showSymbolModulePaths = true;
+        /// <summary>
+        /// Whether symbol labels include the full path of the module
+        /// </summary>
         public bool Opt_ShowSymbolModulePaths
         {
             get => _showSymbolModulePaths;
@@ -2373,10 +2472,19 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Enable animated live instruction text
+        /// </summary>
         public bool Opt_TextEnabledLive { get; set; } = true;
+        /// <summary>
+        /// Enable an illustration edge that points to the most recently animated instruction
+        /// </summary>
         public bool Opt_LiveNodeEdgeEnabled { get; set; } = true;
 
-        public Vector3 _unprojWorldCoordTL, _unprojWorldCoordBR;
+        /// <summary>
+        /// Estimated world space coordinates for the top left and right of the screen
+        /// </summary>
+        Vector3 _unprojWorldCoordTL, _unprojWorldCoordBR;
 
 
         public void UpdatePreviewVisibleRegion(Vector2 graphWidgetSize)
@@ -2541,19 +2649,13 @@ namespace rgat
         readonly List<uint> _DeactivatedNodes = new List<uint>();// Array.Empty<uint>();
         private readonly object animationLock = new object();
 
-
         public bool BufferDownloadActive { get; private set; } = false;
 
-        //public float zoomMultiplier() { return GraphicsMaths.zoomFactor(cameraZoomlevel, scalefactors.plotSize); }
-
-
         public static rgatState clientState;
-        public GRAPH_SCALE scalefactors = new GRAPH_SCALE();
-
         public ulong vertResizeIndex = 0;
         public int _userSelectedAnimPosition = -1;
 
-        public REPLAY_STATE ReplayState = REPLAY_STATE.eEnded;
+        public REPLAY_STATE ReplayState = REPLAY_STATE.Ended;
         int updateProcessingIndex = 0;
         protected float maxA = 0, maxB = 0, maxC = 0;
 

@@ -29,7 +29,6 @@ namespace rgat
         static bool[] _LogFilters = new bool[(int)LogFilterType.COUNT];
         static readonly bool[] rowLastSelected = new bool[3];
         static byte[] textFilterValue = new byte[500];
-        static readonly string _logSort = "Time<";
         readonly System.Timers.Timer _refreshTimer;
 
         bool _refreshTimerFired = false;

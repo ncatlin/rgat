@@ -6,29 +6,79 @@ namespace rgat
     {
         public static class PROGRAMVERSION
         {
+            /// <summary>
+            /// Major version
+            /// </summary>
             public const int MAJOR = 0;
+            /// <summary>
+            /// Minor Version
+            /// </summary>
             public const int MINOR = 6;
+            /// <summary>
+            /// Patch version
+            /// </summary>
             public const int PATCH = 0;
             /// <summary>
             /// Optional, non-unique name for the given version (preview, release, bugfix, etc)
             /// Other values must still be unique (eg: '1.1.1 Preview' and '1.1.1 Release' cannot both exist)
             /// </summary>
             public const string PATCHNAME = null;
+
+            /// <summary>
+            /// The simple major.minorpath version of this rgat build. should probably reference the assembly instead. todo
+            /// </summary>
+            public static string RGAT_VERSION => $"{PROGRAMVERSION.MAJOR}.{PROGRAMVERSION.MINOR}.{PROGRAMVERSION.PATCH}";
+            /// <summary>
+            /// The SemVer version of rgat
+            /// </summary>
+            public static System.Version RGAT_VERSION_SEMANTIC => new System.Version(RGAT_VERSION);
         }
+
+
 
 
         public static class UI
         {
-            public const int MAX_DIFF_PATH_LENGTH = 50;
+            /// <summary>
+            /// Limit length of displayed module paths
+            /// </summary>
+            public const int MAX_MODULE_PATH_LENGTH = 50;
+            /// <summary>
+            /// Width of the preview pane
+            /// </summary>
             public const int PREVIEW_PANE_WIDTH = 300;
+            /// <summary>
+            /// Height of each preview graph
+            /// </summary>
             public const int PREVIEW_PANE_GRAPH_HEIGHT = 150;
+            /// <summary>
+            /// Horizontal preview graph padding
+            /// </summary>
             public const float PREVIEW_PANE_X_PADDING = 3;
+            /// <summary>
+            /// Vertical preview graph padding
+            /// </summary>
             public const float PREVIEW_PANE_Y_SEP = 6;
-
+            /// <summary>
+            /// Timer for tasks that need doing regularly but not every frame
+            /// </summary>
             public const uint UI_SHORT_TIMER_INTERVAL = 500;
+            /// <summary>
+            /// Timer for occasional housekeeping tasks
+            /// </summary>
             public const uint UI_LONG_TIMER_INTERVAL = 60000;
+            /// <summary>
+            /// How long the screenshot icon will stay on the status bar
+            /// </summary>
             public const double SCREENSHOT_ICON_LINGER_TIME = 3;
-            public const double SCREENSHOT_ANIMATION_RECT_SPEED = 10; //this will be 1/10th of the linger time
+            /// <summary>
+            /// How fast the screenshot feedback rectangle will collapse
+            /// 10 = it will linger for 1/10th of a second
+            /// </summary>
+            public const double SCREENSHOT_ANIMATION_RECT_SPEED = 10;
+            /// <summary>
+            /// How long alerts will stay in the alert pane
+            /// </summary>
             public const double ALERT_TEXT_LINGER_TIME = 9000;
             public const double ALERT_CIRCLE_ANIMATION_TIME = 600;
             public const double ALERT_CIRCLE_ANIMATION_RADIUS = 100;
@@ -36,29 +86,6 @@ namespace rgat
             public const int FILEPICKER_HISTORY_MAX = 10;
         }
 
-        public static class GL_Constants
-        {
-            public const int XOFF = 0;
-            public const int YOFF = 1;
-            public const int ZOFF = 2;
-            public const int ROFF = 0;
-            public const int GOFF = 1;
-            public const int BOFF = 2;
-            public const int AOFF = 3;
-            public const int LONGCURVEPTS = 32;
-            public const int COLELEMS = 4;
-            public const int POSELEMS = 3;
-
-            public const int VBO_CYLINDER_POS = 0;
-            public const int VBO_CYLINDER_COL = 1;
-
-            public const int VBO_NODE_POS = 0;
-            public const int VBO_NODE_COL = 1;
-            public const int VBO_LINE_POS = 2;
-            public const int VBO_LINE_COL = 3;
-            public const int VBO_BLOCKLINE_POS = 4;
-            public const int VBO_BLOCKLINE_COL = 5;
-        }
 
         public static class Anim_Constants
         {
@@ -97,15 +124,27 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Expected code certificate subjects for binaries rgat will load or execute
+        /// </summary>
         public static class SIGNERS
         {
+            /// <summary>
+            /// Expected code certificate subject for pin.exe binaries
+            /// </summary>
             public const string PIN_SIGNERS = "Intel Corporation";
+            /// <summary>
+            /// Expected code certificate subject for rgat binaries
+            /// </summary>
             public const string RGAT_SIGNERS = "rgat dev";
         }
 
 
         public static class TESTS
         {
+            /// <summary>
+            /// The file extension for test description data files
+            /// </summary>
             public const string testextension = ".test.json";
         }
 
@@ -115,19 +154,131 @@ namespace rgat
          * 
          */
         public enum eNodeType { eInsUndefined, eInsJump, eInsReturn, eInsCall };
+
+        /// <summary>
+        /// Types for nodes edges which control how they are laid out or rendered
+        /// </summary>
         public enum eEdgeNodeType
         {
-            eEdgeCall = 0, eEdgeOld, eEdgeReturn, eEdgeLib, eEdgeNew,
-            eEdgeException, eNodeNonFlow, eNodeJump, eNodeCall, eNodeReturn, eNodeExternal, eNodeException, eENLAST, eFIRST_IN_THREAD = 99
+            /// <summary>
+            /// Edge to a call instruction
+            /// </summary>
+            eEdgeCall = 0, 
+            /// <summary>
+            /// Edge to an instruction that has already been visited from another instruction
+            /// </summary>
+            eEdgeOld, 
+            /// <summary>
+            /// Edge from a return instruction
+            /// </summary>
+            eEdgeReturn, 
+            /// <summary>
+            /// Edge of an API call
+            /// </summary>
+            eEdgeLib, 
+            /// <summary>
+            /// Edge to an instruction that has not been executed before
+            /// </summary>
+            eEdgeNew,
+            /// <summary>
+            /// Edge to an exception node
+            /// </summary>
+            eEdgeException, 
+            /// <summary>
+            /// Edge to another instruction in the same basic block
+            /// </summary>
+            eNodeNonFlow,
+            /// <summary>
+            /// An unconditional jump instruction
+            /// </summary>
+            eNodeJump,
+            /// <summary>
+            /// A call instruction
+            /// </summary>
+            eNodeCall, 
+            /// <summary>
+            /// A return instruction
+            /// </summary>
+            eNodeReturn, 
+            /// <summary>
+            /// An API call
+            /// </summary>
+            eNodeExternal, 
+            /// <summary>
+            /// An exception source
+            /// </summary>
+            eNodeException, 
+            /// <summary>
+            /// Invalid
+            /// </summary>
+            eENLAST, 
+            /// <summary>
+            /// The first instruction in a thread
+            /// </summary>
+            eFIRST_IN_THREAD = 99
         };
 
         public enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals, eDegree }
-        public enum HighlightType { eExternals, eAddresses, eExceptions };
 
+        /// <summary>
+        /// Category of filter used to highlight nodes
+        /// </summary>
+        public enum HighlightType { 
+            /// <summary>
+            /// An external API call
+            /// </summary>
+            Externals, 
+            /// <summary>
+            /// A memory address
+            /// </summary>
+            Addresses, 
+            /// <summary>
+            /// An exception
+            /// </summary>
+            Exceptions };
+
+
+        /// <summary>
+        /// A filesystem path setting
+        /// </summary>
         public enum PathKey
         {
-            PinPath, PinToolPath32, PinToolPath64, FFmpegPath,
-            TraceSaveDirectory, TestsDirectory, DiESigsDirectory, YaraRulesDirectory, MediaCapturePath
+            /// <summary>
+            /// Path of Intel pin.exe
+            /// </summary>
+            PinPath, 
+            /// <summary>
+            /// Path of the 32 bit rgat pintool
+            /// </summary>
+            PinToolPath32, 
+            /// <summary>
+            /// Path of the 64 bit rgat pintool
+            /// </summary>
+            PinToolPath64, 
+            /// <summary>
+            /// Path of ffmpeg.exe for video recording
+            /// </summary>
+            FFmpegPath,
+            /// <summary>
+            /// Directory to save traces to
+            /// </summary>
+            TraceSaveDirectory, 
+            /// <summary>
+            /// Directory where rgat tests are stored
+            /// </summary>
+            TestsDirectory, 
+            /// <summary>
+            /// Directory where Detect It easy signatures are stored
+            /// </summary>
+            DiESigsDirectory, 
+            /// <summary>
+            /// Directory where Yara rules are stored
+            /// </summary>
+            YaraRulesDirectory, 
+            /// <summary>
+            /// Directory to save screenshots/videos to
+            /// </summary>
+            MediaCapturePath
         }
 
 
@@ -215,19 +366,6 @@ namespace rgat
         }
 
 
-        /*
-         * 
-         * Helper functions
-         * 
-         */
-        /// <summary>
-        /// The simple major.minorpath version of this rgat build. should probably reference the assembly instead. todo
-        /// </summary>
-        public static string RGAT_VERSION => $"{PROGRAMVERSION.MAJOR}.{PROGRAMVERSION.MINOR}.{PROGRAMVERSION.PATCH}";
-        /// <summary>
-        /// The SemVer version of rgat
-        /// </summary>
-        public static System.Version RGAT_VERSION_SEMANTIC => new System.Version(RGAT_VERSION);
 
     }
 }

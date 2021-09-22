@@ -283,7 +283,7 @@ namespace rgat.Widgets
 
                 if (graph != null)
                 {
-                    float animPercentage = graph.GetAnimationPercent();
+                    float animPercentage = graph.GetAnimationProgress();
                     _sliderPosX = animPercentage * (SliderRectEnd.X - SliderRectStart.X);
                 }
             }
@@ -634,7 +634,6 @@ namespace rgat.Widgets
             pixAvg = new Dictionary<int, double>();
             modSegs = new List<MODULE_SEGMENT>();
             double highestSegmentAvg = 0;
-            int currentModule = -1;
             int lastPlotXPixel = -1;
             ulong cumulativeInsCount = 0;
             for (var i = 0; i < animationData.Count; i++)

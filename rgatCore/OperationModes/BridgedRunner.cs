@@ -92,7 +92,7 @@ namespace rgat.OperationModes
             if (GlobalConfig.NewVersionAvailable)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"A new version of rgat is available! ({CONSTANTS.RGAT_VERSION} -> {GlobalConfig.Settings.Updates.UpdateLastCheckVersion})");
+                Console.WriteLine($"A new version of rgat is available! ({CONSTANTS.PROGRAMVERSION.RGAT_VERSION} -> {GlobalConfig.Settings.Updates.UpdateLastCheckVersion})");
                 Console.ForegroundColor = ConsoleColor.White;
             }
 
@@ -1085,7 +1085,7 @@ namespace rgat.OperationModes
                 {
                     NewDataEvent.Wait((CancellationToken)cancelToken);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     if (((CancellationToken)cancelToken).IsCancellationRequested) return;
                 }

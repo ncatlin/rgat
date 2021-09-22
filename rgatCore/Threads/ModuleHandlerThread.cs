@@ -274,7 +274,7 @@ namespace rgat
             //shouldn't be needed - plotter should get this from the graph
             if (trace.PlottedGraphs.TryGetValue(TID, out PlottedGraph? graph))
             {
-                graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
+                graph.ReplayState = PlottedGraph.REPLAY_STATE.Ended;
                 return;
             }
 

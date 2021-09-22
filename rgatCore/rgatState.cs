@@ -365,7 +365,7 @@ namespace rgat
             //valid target or not, we assume current graph is no longer fashionable
             ClearActiveGraph();
 
-            if (graph == null || graph.beingDeleted) return;
+            if (graph == null || graph.BeingDeleted) return;
 
             TraceRecord? trace = ActiveTrace;
             if (trace == null) return;
@@ -388,7 +388,7 @@ namespace rgat
         {
             if (ActiveGraph != null)
             {
-                if (ActiveGraph.beingDeleted)
+                if (ActiveGraph.BeingDeleted)
                 {
                     ActiveGraph = null;
                     return false;
@@ -460,7 +460,7 @@ namespace rgat
         /// <returns></returns>
         public bool SetActiveGraph(PlottedGraph graph)
         {
-            if (ActiveGraph != null && ActiveGraph.beingDeleted)
+            if (ActiveGraph != null && ActiveGraph.BeingDeleted)
                 return false;
 
             ClearActiveGraph();
@@ -480,7 +480,7 @@ namespace rgat
         /// <returns>The PlottedGraph object of the active thread graph</returns>
         public PlottedGraph? getActiveGraph()
         {
-            if (ActiveGraph != null && ActiveGraph.beingDeleted) return null;
+            if (ActiveGraph != null && ActiveGraph.BeingDeleted) return null;
 
             if (ActiveGraph == null)
             {

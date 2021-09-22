@@ -238,16 +238,16 @@ namespace rgat
                 indexPos = $" ({graph.AnimationIndex:F2}/{graph.InternalProtoGraph.SavedAnimationData.Count})";
             switch (graph.ReplayState)
             {
-                case PlottedGraph.REPLAY_STATE.ePaused:
+                case PlottedGraph.REPLAY_STATE.Paused:
                     ImGui.Text("Trace Replay: Paused" + indexPos);
                     break;
-                case PlottedGraph.REPLAY_STATE.eEnded:
+                case PlottedGraph.REPLAY_STATE.Ended:
                     ImGui.Text("Trace Replay: Resetting" + indexPos);
                     break;
-                case PlottedGraph.REPLAY_STATE.ePlaying:
+                case PlottedGraph.REPLAY_STATE.Playing:
                     ImGui.Text("Trace Replay: Replaying" + indexPos);
                     break;
-                case PlottedGraph.REPLAY_STATE.eStopped:
+                case PlottedGraph.REPLAY_STATE.Stopped:
                     ImGui.Text("Trace Replay: Stopped" + indexPos);
                     break;
             }
@@ -259,7 +259,7 @@ namespace rgat
                 ImGui.BeginGroup();
                 {
                     PlottedGraph.REPLAY_STATE replaystate = graph.ReplayState;
-                    string BtnText = replaystate == PlottedGraph.REPLAY_STATE.ePlaying ? "Pause" : "Play";
+                    string BtnText = replaystate == PlottedGraph.REPLAY_STATE.Playing ? "Pause" : "Play";
 
                     if (ImGui.Button(BtnText, new Vector2(38, 26)))
                     {
@@ -271,7 +271,7 @@ namespace rgat
                         graph.ResetClicked();
                     }
                     ImGui.SameLine();
-                    if (replaystate == PlottedGraph.REPLAY_STATE.ePaused && ImGui.Button("Step", new Vector2(38, 26)))
+                    if (replaystate == PlottedGraph.REPLAY_STATE.Paused && ImGui.Button("Step", new Vector2(38, 26)))
                     {
                         ImGui.SameLine();
                         graph.StepPausedAnimation(1);

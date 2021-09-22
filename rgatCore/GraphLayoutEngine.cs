@@ -747,7 +747,7 @@ namespace rgat
 
             if (added.Any() is true)
             {
-                SetHighlightedNodes(cl, added, attribsBuf, CONSTANTS.HighlightType.eAddresses);
+                SetHighlightedNodes(cl, added, attribsBuf, CONSTANTS.HighlightType.Addresses);
             }
 
             if (removed.Any() is true)

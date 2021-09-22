@@ -15,6 +15,9 @@ using static rgat.VeldridGraphBuffers;
 
 namespace rgat
 {
+    /// <summary>
+    /// A widget for displaying a rendered graph plot
+    /// </summary>
     class GraphPlotWidget : IDisposable
     {
         public PlottedGraph ActiveGraph { get; private set; }
@@ -33,6 +36,13 @@ namespace rgat
         readonly TextureView _imageTextureView;
         readonly ReaderWriterLockSlim _graphLock = new ReaderWriterLockSlim();
 
+        /// <summary>
+        /// A widget for displaying a rendered graph plot
+        /// </summary>
+        /// <param name="controller">The ImGui controller</param>
+        /// <param name="gdev">A Veldrid GraphicsDevice</param>
+        /// <param name="clientState">The rgat clientstate</param>
+        /// <param name="initialSize">The initial size of the widget</param>
         public GraphPlotWidget(ImGuiController controller, GraphicsDevice gdev, rgatState clientState, Vector2? initialSize = null)
         {
             _controller = controller;
@@ -46,9 +56,7 @@ namespace rgat
             _layoutEngine = new GraphLayoutEngine(gdev, controller, "Main");
             _imageTextureView = controller.IconTexturesView;  //todo crash if closed early in load
             SetupRenderingResources();
-
         }
-
 
 
         /// <summary>
@@ -60,7 +68,7 @@ namespace rgat
             _dialogStateChangeCallback = action;
             _QuickMenu.SetStateChangeCallback(action);
         }
-        Action<bool> _dialogStateChangeCallback = null;
+        Action<bool>? _dialogStateChangeCallback = null;
 
         public void Dispose()
         {
@@ -567,7 +575,6 @@ namespace rgat
         DeviceBuffer _NodeVertexBuffer, _NodePickingBuffer, _NodeIndexBuffer;
         private DeviceBuffer _FontVertBuffer;
         private DeviceBuffer _FontIndexBufferAll;
-        private readonly DeviceBuffer _FontIndexBufferSample;
         DeviceBuffer _paramsBuffer;
 
 
@@ -1445,23 +1452,7 @@ namespace rgat
         }
 
 
-        /*
-        //drawing on graph, doesn't fit great
-        void DrawDisasmPreview(PlottedGraph activeGraph, Vector2 midPosition)
-        {
-            Vector2 startPos = ImGui.GetCursorScreenPos();
-            for (var i = 0; i < 5; i++)
-            {
-                ImGui.SetCursorScreenPos(midPosition - new Vector2(100, i * 15));
-                ImGui.Text($"Ins {i}");
-            }
-            ImGui.SetCursorScreenPos(startPos);
-        }
-        */
-
-
         bool _showLayoutSelectorPopup;
-        readonly bool _showQuickMenu;
         IntPtr getLayoutIcon(LayoutStyles.Style layout)
         {
             Texture? iconTex = null;
@@ -1486,8 +1477,6 @@ namespace rgat
             IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, iconTex, "LayoutIcon");
             return CPUframeBufferTextureId;
         }
-
-
 
 
         void DrawLayoutSelector(Vector2 position, float scale, LayoutStyles.Style layout)

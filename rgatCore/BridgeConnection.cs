@@ -251,7 +251,7 @@ namespace rgat
                 {
                     _decryptor.Decrypt(IV, buf, tag, buf);
                 }
-                catch (CryptographicException e)
+                catch (CryptographicException)
                 {
                     AddNetworkDisplayLogMessage("Bad network key", Themes.eThemeColour.eBadStateColour);
                     return false;
@@ -509,7 +509,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                AddNetworkDisplayLogMessage($"Listen Failed", Themes.eThemeColour.eWarnStateColour);
+                AddNetworkDisplayLogMessage($"Listen Failed: {e.Message}", Themes.eThemeColour.eWarnStateColour);
                 Teardown();
             }
 
@@ -840,7 +840,7 @@ namespace rgat
                 {
                     bool waitResult = NewOutDataEvent.Wait(-1, cancellationToken: CancelToken);
                 }
-                catch (System.OperationCanceledException e)
+                catch (System.OperationCanceledException)
                 {
                     break;
                 }

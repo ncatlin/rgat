@@ -46,8 +46,6 @@ namespace rgat
                 return APIDetails.Value.FilterType;
             }
 
-            static readonly Newtonsoft.Json.JsonSerializer serializer;
-
             public static bool TryDeserialise(JToken apiTok, TraceRecord trace, out APICALL apiObj)
             {
                 apiObj = new APICALL();

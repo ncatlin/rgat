@@ -466,9 +466,9 @@ namespace rgat
                         {
                             stdcolType = (ImGuiCol)Enum.Parse(typeof(ImGuiCol), item.Key, true);
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
-                            Logging.RecordError($"Theme has invalid standard colour type {item.Key.ToString()}"); return false;
+                            Logging.RecordError($"Theme has invalid standard colour type {item.Key}"); return false;
                         }
                         if (stdcolType >= ImGuiCol.COUNT)
                         {
@@ -496,7 +496,7 @@ namespace rgat
                         {
                             sizeType = (eThemeSize)Enum.Parse(typeof(eThemeSize), item.Key, true);
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             Logging.RecordError($"Theme has invalid size type {item.Key}"); return false;
                         }
@@ -527,7 +527,7 @@ namespace rgat
                         {
                             sizeType = (eThemeSize)Enum.Parse(typeof(eThemeSize), item.Key, true);
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             Logging.RecordError($"Theme has invalid sizelimit type {item.Key}"); return false;
                         }
@@ -658,6 +658,7 @@ namespace rgat
             }
             catch (Exception e)
             {
+                Logging.RecordError($"Error restoring theme from JSON: {e.Message}");
                 error = "Error parsing JSON";
                 return false;
             }

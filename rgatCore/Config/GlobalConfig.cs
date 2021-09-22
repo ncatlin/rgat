@@ -212,7 +212,7 @@ namespace rgat
                 Settings.Updates.UpdateLastCheckVersion = releaseVersion;
                 Settings.Updates.UpdateLastChanges = releaseCumulativeChanges;
                 Settings.Updates.UpdateDownloadLink = downloadLink;
-                NewVersionAvailable = Settings.Updates.UpdateLastCheckVersion > CONSTANTS.RGAT_VERSION_SEMANTIC;
+                NewVersionAvailable = Settings.Updates.UpdateLastCheckVersion > CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC;
             }
             catch (Exception e)
             {
@@ -639,10 +639,10 @@ namespace rgat
             Settings.EnsureValidity();
 
             Console.WriteLine("initial config load done after" + timer.ElapsedMilliseconds);
-            if (Settings.UI.InstalledVersion != CONSTANTS.RGAT_VERSION)
+            if (Settings.UI.InstalledVersion != CONSTANTS.PROGRAMVERSION.RGAT_VERSION)
             {
                 InstallNewTools();
-                Settings.UI.InstalledVersion = CONSTANTS.RGAT_VERSION;
+                Settings.UI.InstalledVersion = CONSTANTS.PROGRAMVERSION.RGAT_VERSION;
             }
 
             InitPaths();

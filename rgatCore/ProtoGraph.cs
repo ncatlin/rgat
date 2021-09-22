@@ -1242,8 +1242,8 @@ namespace rgat
             moduleBase = TraceData.DisassemblyData.LoadedModuleBounds[exeModuleID].Item1;
 
 
-            if (StartModuleName.Length > UI.MAX_DIFF_PATH_LENGTH)
-                StartModuleName = ".." + StartModuleName.Substring(StartModuleName.Length - UI.MAX_DIFF_PATH_LENGTH, UI.MAX_DIFF_PATH_LENGTH);
+            if (StartModuleName.Length > UI.MAX_MODULE_PATH_LENGTH)
+                StartModuleName = ".." + StartModuleName.Substring(StartModuleName.Length - UI.MAX_MODULE_PATH_LENGTH, UI.MAX_MODULE_PATH_LENGTH);
         }
         /*
 		public ulong BacklogOutgoing = 0;
@@ -1476,10 +1476,6 @@ namespace rgat
         public ulong moduleBase = 0;
         public string modulePath;
         public Dictionary<ulong, uint> InternalPlaceholderFuncNames = new Dictionary<ulong, uint>();
-
-        //public uint lastNode = 0;
-        //used by heatDictionary solver
-        readonly uint finalNodeID = 0;
 
         //important state variables!
         public uint targVertID = 0; //new vert we are creating
