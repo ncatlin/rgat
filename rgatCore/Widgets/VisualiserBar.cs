@@ -236,7 +236,7 @@ namespace rgat.Widgets
                     uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
             }
 
-            MODULE_LABEL[] labels = null;
+            MODULE_LABEL[]? labels;
             lock (_lock)
             {
                 labels = _moduleTexts.ToArray();
@@ -540,7 +540,7 @@ namespace rgat.Widgets
                 //Draw API icon - todo above i guess as it wont get here?
                 if (blkID == -1)
                 {
-                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.blockAddr, out int moduleID, out string module, out string symbol);
+                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.blockAddr, out int moduleID, out string? module, out string? symbol);
                     if (found)
                     {
                         DrawAPIEntry(Xoffset + 2, 33, pSep, moduleID, module, symbol, ref lines);
@@ -888,7 +888,7 @@ namespace rgat.Widgets
                 //Draw API icon
                 if ((int)ae.blockID == -1)
                 {
-                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.blockAddr, out int moduleID, out string module, out string symbol);
+                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.blockAddr, out int moduleID, out string? module, out string? symbol);
                     if (found)
                     {
                         DrawAPIEntry(Xoffset + 2, 33, pSep, moduleID, module, symbol, ref lines);

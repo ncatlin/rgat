@@ -52,7 +52,7 @@ namespace rgat
         public eTraceUpdateType entryType;
         public ulong blockAddr;
         public uint blockID;
-        public List<Tuple<uint, ulong>> edgeCounts;
+        public List<Tuple<uint, ulong>>? edgeCounts;
         public ulong count;
         public ulong targetAddr;
         public uint targetID;
@@ -170,7 +170,7 @@ namespace rgat
 
         private bool LoadStats(JObject graphData)
         {
-            if (!graphData.TryGetValue("Module", out JToken jModID) || jModID.Type != JTokenType.Integer)
+            if (!graphData.TryGetValue("Module", out JToken? jModID) || jModID.Type != JTokenType.Integer)
             {
                 return false;
             }
@@ -180,13 +180,13 @@ namespace rgat
                 return false;
             moduleBase = TraceData.DisassemblyData.LoadedModuleBounds[exeModuleID].Item1;
 
-            if (!graphData.TryGetValue("TotalInstructions", out JToken jTotal) || jTotal.Type != JTokenType.Integer)
+            if (!graphData.TryGetValue("TotalInstructions", out JToken? jTotal) || jTotal.Type != JTokenType.Integer)
             {
                 return false;
             }
             TotalInstructions = jTotal.ToObject<ulong>();
 
-            if (!graphData.TryGetValue("ConstructedTime", out JToken timeTok) || timeTok.Type != JTokenType.Date)
+            if (!graphData.TryGetValue("ConstructedTime", out JToken? timeTok) || timeTok.Type != JTokenType.Date)
             {
                 return false;
             }
@@ -283,9 +283,9 @@ namespace rgat
 
             //Console.WriteLine($"\tAddEdge_LastToTargetVert {ProtoLastVertID} -> {targVertID} repeats {repeats}");
 
-            if (EdgeExists(edgeIDPair, out EdgeData edgeObj))
+            if (EdgeExists(edgeIDPair, out EdgeData? edgeObj))
             {
-                edgeObj.IncreaseExecutionCount(repeats);
+                edgeObj!.IncreaseExecutionCount(repeats);
                 //cout << "repeated internal edge from " << lastVertID << "->" << targVertID << endl;
                 return;
             }
@@ -294,7 +294,8 @@ namespace rgat
 
 
 
-            NodeData sourcenode = safe_get_node(ProtoLastVertID);
+            NodeData? sourcenode = safe_get_node(ProtoLastVertID);
+            Debug.Assert(sourcenode is not null);
             if (sourcenode.ThunkCaller) return;
 
             //make API calls leaf nodes, rather than part of the chain
@@ -363,7 +364,7 @@ namespace rgat
 
 
             ROUTINE_STRUCT? foundExtern = null;
-            List<InstructionData> block = ProcessData.getDisassemblyBlock(tag.blockID, ref foundExtern, tag.blockaddr);
+            List<InstructionData>? block = ProcessData.getDisassemblyBlock(tag.blockID, ref foundExtern, tag.blockaddr);
             if (block == null)
             {
                 Logging.RecordLogEvent($"Faulting Block {tag.blockID} 0x{tag.blockaddr:X} not recorded in disassembly");
@@ -391,7 +392,7 @@ namespace rgat
                 if (!alreadyExecuted)
                     targVertID = handle_new_instruction(instruction, tag.blockID, 1);
                 else
-                    safe_get_node(targVertID).IncreaseExecutionCount(1);
+                    safe_get_node(targVertID)?.IncreaseExecutionCount(1);
                 AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, 1);
 
                 //BB_addExceptionEdge(alreadyExecuted, instructionIndex, 1);
@@ -423,8 +424,8 @@ namespace rgat
             }
 
             //start by examining our caller
-            NodeData lastNode = safe_get_node(ProtoLastVertID);
-            if (lastNode.IsExternal) { resultPair = null; return false; }
+            NodeData? lastNode = safe_get_node(ProtoLastVertID);
+            if (lastNode is null || lastNode.IsExternal) { resultPair = null; return false; }
             Debug.Assert(lastNode.ins.numbytes > 0);
 
             //if caller is also external then we are not interested in this (does this happen?)
@@ -445,7 +446,7 @@ namespace rgat
 
             //see if caller already called this
             //if so, get the destination node so we can just increase edge weight
-            if (thisbb.thread_callers.TryGetValue(ThreadID, out List<Tuple<uint, uint>> callers))
+            if (thisbb.thread_callers.TryGetValue(ThreadID, out List<Tuple<uint, uint>>? callers))
             {
                 //piddata->getExternCallerReadLock();
                 foreach (var caller in callers)
@@ -459,8 +460,8 @@ namespace rgat
 
                     targVertID = caller.Item2;
 
-                    EdgeData e = GetEdge(caller.Item1, caller.Item2);
-                    if (e != null)
+                    EdgeData? e = GetEdge(caller.Item1, caller.Item2);
+                    if (e is not null)
                     {
                         e.IncreaseExecutionCount(repeats);
                     }
@@ -469,7 +470,8 @@ namespace rgat
                         Logging.RecordLogEvent($"Bad edge in RunExternal: {caller.Item1},{caller.Item2} in thread {this.ThreadID}, module {this.ProcessData.GetModulePath(modnum)}");
                     }
 
-                    NodeData targNode = safe_get_node(targVertID);
+                    NodeData? targNode = safe_get_node(targVertID);
+                    Debug.Assert(targNode is not null);
                     targNode.IncreaseExecutionCount(repeats);
 
                     TraceData.RecordAPICall(targNode, this, targNode.currentCallIndex, repeats); //todo this should be done in a BG thread
@@ -525,7 +527,8 @@ namespace rgat
             TraceData.RecordAPICall(newTargNode, this, 0, repeats);
 
 
-            NodeData sourceNode = safe_get_node(ProtoLastVertID);
+            NodeData? sourceNode = safe_get_node(ProtoLastVertID);
+            Debug.Assert(sourceNode is not null);
             EdgeData newEdge = new EdgeData(index: EdgeList.Count, sourceType: sourceNode.VertType(), execCount: repeats);
             newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
             AddEdge(newEdge, sourceNode, safe_get_node(targVertID));
@@ -609,7 +612,7 @@ namespace rgat
 
                 //each API call target can have multiple nodes in a thread, so we have to get the list of 
                 //every edge that has this extern as a target
-                if (!lookup_extern_func_calls(arg.calledAddress, out List<Tuple<uint, uint>> threadCalls))
+                if (!lookup_extern_func_calls(arg.calledAddress, out List<Tuple<uint, uint>>? threadCalls) || threadCalls is null)
                 {
                     Console.WriteLine($"\tProcessIncomingCallArguments - Failed to find *any* callers of 0x{arg.calledAddress:X} in current thread. Leaving until it appears.");
                     RemoveProcessedArgsFromCache(completecount);
@@ -624,7 +627,8 @@ namespace rgat
                     //ulong callerAddress = callerNode.ins.address;
 
                     if (threadCalls[i].Item1 != callerNodeIdx) continue;
-                    NodeData functionNode = safe_get_node(threadCalls[i].Item2);
+                    NodeData? functionNode = safe_get_node(threadCalls[i].Item2);
+                    Debug.Assert(functionNode is not null);
 
                     //each node can only have a certain number of arguments to prevent simple denial of service
                     if (functionNode.callRecordsIndexs.Count >= GlobalConfig.Settings.Tracing.ArgStorageMax)
@@ -659,8 +663,9 @@ namespace rgat
 
                 if (!sequenceProcessed)
                 {
-                    NodeData targnode = safe_get_node(threadCalls[0].Item2);
-                    ProcessData.GetSymbol(targnode.GlobalModuleID, arg.calledAddress, out string sym);
+                    NodeData? targnode = safe_get_node(threadCalls[0].Item2);
+                    Debug.Assert(targnode is not null);
+                    ProcessData.GetSymbol(targnode.GlobalModuleID, arg.calledAddress, out string? sym);
                     Console.WriteLine($"\tProcessIncomingCallArguments - Failed to find *specific* caller of 0x{arg.calledAddress:X} [{sym}] in current thread. Leaving until it appears.");
                     break;
                 }
@@ -682,7 +687,7 @@ namespace rgat
             Debug.Assert(node.IsExternal && node.HasSymbol);
             //int  moduleEnum = ProcessData.ModuleAPIReferences[node.GlobalModuleID];
 
-            ProcessData.GetSymbol(node.GlobalModuleID, node.address, out string symbol);
+            ProcessData.GetSymbol(node.GlobalModuleID, node.address, out string? symbol);
             Console.WriteLine($"Node {node.index} is system interaction {node.IsExternal}");
         
         }
@@ -771,7 +776,7 @@ namespace rgat
         {
             lock (edgeLock)
             {
-                return _edgeDict.TryGetValue(edge, out edged);
+                return _edgeDict.TryGetValue(edge, out edged) && edged is not null;
             }
         }
 
@@ -800,11 +805,11 @@ namespace rgat
             }
         }
 
-        public EdgeData GetEdge(uint src, uint targ)
+        public EdgeData? GetEdge(uint src, uint targ)
         {
             lock (edgeLock)
             {
-                if (_edgeDict.TryGetValue(new Tuple<uint, uint>(src, targ), out EdgeData result))
+                if (_edgeDict.TryGetValue(new Tuple<uint, uint>(src, targ), out EdgeData? result))
                 {
                     return result;
                 }
@@ -840,8 +845,10 @@ namespace rgat
 
         public void AddEdge(uint SrcNodeIdx, uint TargNodeIdx, ulong execCount)
         {
-            NodeData sourceNode = safe_get_node(SrcNodeIdx);
-            NodeData targNode = safe_get_node(TargNodeIdx);
+            NodeData? sourceNode = safe_get_node(SrcNodeIdx);
+            NodeData? targNode = safe_get_node(TargNodeIdx);
+
+            Debug.Assert(sourceNode is not null && targNode is not null);
 
             EdgeData newEdge = new EdgeData(index: EdgeList.Count, sourceType: sourceNode.VertType(), execCount: execCount);
 
@@ -927,7 +934,7 @@ namespace rgat
                 //find caller,external vertids if old + add node to graph if new
                 Console.WriteLine("[rgat]WARNING: Exception handler in uninstrumented module reached\n." +
                     "I have no idea if this code will handle it; Let me know when you reach the other side...");
-                if (!RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint> resultPair))
+                if (!RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint>? resultPair))
                 {
                     Console.WriteLine($"\tSecondary error - couldn't deal with extern address 0x{thistag.blockaddr:X}");
                 }
@@ -954,7 +961,7 @@ namespace rgat
                 //if (ProtoLastVertID == 0) return;
 
                 //find caller,external vertids if old + add node to graph if new
-                if (RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint> resultPair)) //todo skipfirstedge
+                if (RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint>? resultPair)) //todo skipfirstedge
                 {
                     ProcessIncomingCallArguments(); //todo - does this ever achieve anything here?
                 }
@@ -1003,7 +1010,7 @@ namespace rgat
             thisnode.index = targVertID;
             thisnode.ins = instruction;
             thisnode.conditional = thisnode.ins.conditional ? eConditionalType.ISCONDITIONAL : eConditionalType.NOTCONDITIONAL;
-            thisnode.address = instruction.address;
+            thisnode.address = instruction.Address;
             thisnode.BlockID = blockID;
             thisnode.parentIdx = ProtoLastVertID;
             thisnode.SetExecutionCount(repeats);
@@ -1025,19 +1032,23 @@ namespace rgat
 
         public void handle_previous_instruction(uint targVertID, ulong repeats)
         {
-            safe_get_node(targVertID).IncreaseExecutionCount(repeats);
+            NodeData? prevInstruction = safe_get_node(targVertID);
+
+            Debug.Assert(prevInstruction is not null);
+            prevInstruction.IncreaseExecutionCount(repeats);
         }
 
 
         public void addBlockToGraph(uint blockID, ulong repeats, bool recordEdge = true, bool setLastID = true, uint? customPreviousVert = null)
         {
-            List<InstructionData> block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
+            List<InstructionData>? block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
+            Debug.Assert(block is not null);
             int numInstructions = block.Count;
 
             if (GlobalConfig.Settings.Logs.BulkLogging)
             {
                 Logging.RecordLogEvent(
-                    $"Adding block {blockID}:0x{block[0].address:X} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}",
+                    $"Adding block {blockID}:0x{block[0].Address:X} to graph with {numInstructions} ins. LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}",
                     trace: this.TraceData,
                     graph: this,
                     filter: Logging.LogFilterType.BulkDebugLogFile);
@@ -1169,7 +1180,7 @@ namespace rgat
 		node_data* unsafe_get_node(uint index);
 		*/
 
-        public NodeData safe_get_node(uint index)
+        public NodeData? safe_get_node(uint index)
         {
             if (index >= NodeList.Count)
                 return null;
@@ -1187,15 +1198,22 @@ namespace rgat
             {
                 uint source = entry[0].ToObject<uint>();
                 uint target = entry[1].ToObject<uint>();
-                EdgeData edge = new EdgeData(serialised: entry, index: EdgeList.Count, sourceType: safe_get_node(source).VertType());
+                NodeData? srcNode = safe_get_node(source);
+                NodeData? targNode = safe_get_node(target);
+
+                if (srcNode is null || targNode is null) return false;
+                EdgeData edge = new EdgeData(serialised: entry, index: EdgeList.Count, sourceType: srcNode.VertType());
                 //todo: edge count?
-                AddEdge(edge, safe_get_node(source), safe_get_node(target));
+                AddEdge(edge, srcNode, targNode);
             }
             return true;
         }
 
 
-
+        /// <summary>
+        /// Store a processed trace data entry from instrumentation for replay
+        /// </summary>
+        /// <param name="entry">The ANIMATIONENTRY value</param>
         public void PushAnimUpdate(ANIMATIONENTRY entry)
         {
             //Console.WriteLine($"Pushed anim update with block addr {entry.blockAddr} id {entry.blockID}");
@@ -1205,6 +1223,7 @@ namespace rgat
             }
             LastUpdated = DateTime.Now;
         }
+
 
         public DateTime LastUpdated { get; private set; } = DateTime.Now;
         private readonly object AnimDataLock = new object();
@@ -1346,7 +1365,7 @@ namespace rgat
 
         public bool Deserialise(JObject graphData, ProcessRecord processinfo)
         {
-            if (!graphData.TryGetValue("Nodes", out JToken jNodes) || jNodes.Type != JTokenType.Array)
+            if (!graphData.TryGetValue("Nodes", out JToken? jNodes) || jNodes.Type != JTokenType.Array)
             {
                 Console.WriteLine("[rgat] Failed to find valid Nodes in trace");
                 return false;
@@ -1358,7 +1377,7 @@ namespace rgat
                 return false;
             }
 
-            if (!graphData.TryGetValue("Edges", out JToken jEdges) || jEdges.Type != JTokenType.Array)
+            if (!graphData.TryGetValue("Edges", out JToken? jEdges) || jEdges.Type != JTokenType.Array)
             {
                 Console.WriteLine("[rgat] Failed to find valid Edges in trace");
                 return false;
@@ -1371,7 +1390,7 @@ namespace rgat
                 return false;
             }
 
-            if (!graphData.TryGetValue("BlockBounds", out JToken blockbounds) || blockbounds.Type != JTokenType.Array)
+            if (!graphData.TryGetValue("BlockBounds", out JToken? blockbounds) || blockbounds.Type != JTokenType.Array)
             {
                 Console.WriteLine("[rgat] Failed to find valid BlockBounds array in trace");
                 return false;
@@ -1387,7 +1406,7 @@ namespace rgat
             }
 
 
-            if (!graphData.TryGetValue("Exceptions", out JToken jExcepts) || jEdges.Type != JTokenType.Array)
+            if (!graphData.TryGetValue("Exceptions", out JToken? jExcepts) || jEdges.Type != JTokenType.Array)
             {
                 Console.WriteLine("[rgat] Failed to find valid Exceptions in trace");
                 return false;
@@ -1399,7 +1418,7 @@ namespace rgat
                 return false;
             }
 
-            if (!graphData.TryGetValue("ExternCalls", out JToken jExternCalls) || jExternCalls.Type != JTokenType.Array)
+            if (!graphData.TryGetValue("ExternCalls", out JToken? jExternCalls) || jExternCalls.Type != JTokenType.Array)
             {
                 Console.WriteLine("[rgat] Failed to find valid ExternCalls in trace");
                 return false;
@@ -1411,7 +1430,7 @@ namespace rgat
                 return false;
             }
 
-            if (!graphData.TryGetValue("ReplayData", out JToken jReplayData) || jExternCalls.Type != JTokenType.Array)
+            if (!graphData.TryGetValue("ReplayData", out JToken? jReplayData) || jExternCalls.Type != JTokenType.Array)
             {
                 Console.WriteLine("[rgat] Failed to find valid ReplayData in trace");
                 return false;
@@ -1527,9 +1546,9 @@ namespace rgat
 
             foreach (Testing.TestRequirement req in requirements.value)
             {
-                string error = null;
+                string? error = null;
                 bool passed = false;
-                string compareValueString = "";
+                string? compareValueString = "";
                 switch (req.Name)
                 {
                     case "EdgeCount":
@@ -1553,7 +1572,8 @@ namespace rgat
                         compareValueString = $"{TotalInstructions}";
                         break;
                     case "Edges":
-                        passed = ValidateEdgeTestList(req.ExpectedValue.ToObject<JArray>(), out compareValueString);
+                        JArray? expectedEdgeArr = req.ExpectedValue?.ToObject<JArray>();
+                        passed = expectedEdgeArr != null && ValidateEdgeTestList(expectedEdgeArr, out compareValueString);
                         break;
                     default:
                         compareValueString = "[?]";
@@ -1585,19 +1605,25 @@ namespace rgat
             return results;
         }
 
-        bool ValidateEdgeTestList(JArray testedges, out string failedComparison)
+        bool ValidateEdgeTestList(JArray testedges, out string? failedComparison)
         {
             foreach (JToken testedge in testedges)
             {
                 if (testedge.Type != JTokenType.Object)
                 {
                     Logging.RecordLogEvent($"Bad object in 'Edges' list of test case: {testedge}", Logging.LogFilterType.TextError);
-                    failedComparison = "Bad Test";
+                    failedComparison = "Bad edge test object";
                     return false;
                 }
-                JObject edgeTestObj = testedge.ToObject<JObject>();
-                if (!edgeTestObj.TryGetValue("Source", out JToken srcTok) || srcTok.Type != JTokenType.Integer ||
-                    !edgeTestObj.TryGetValue("Target", out JToken targTok) || targTok.Type != JTokenType.Integer)
+                JObject? edgeTestObj = testedge.ToObject<JObject>();
+
+                if (edgeTestObj is null) {
+                    failedComparison = "Bad edge test object";
+                    return false; 
+                }
+
+                if (!edgeTestObj.TryGetValue("Source", out JToken? srcTok) || srcTok.Type != JTokenType.Integer ||
+                    !edgeTestObj.TryGetValue("Target", out JToken? targTok) || targTok.Type != JTokenType.Integer)
                 {
                     Logging.RecordLogEvent($"'Edges' test values require int Source and Target values: {testedge}", Logging.LogFilterType.TextError);
                     failedComparison = "Bad Test";
@@ -1637,7 +1663,7 @@ namespace rgat
 
         bool GetTestEdgeCount(JObject edgeObj, out ulong count)
         {
-            if (edgeObj.TryGetValue("Count", out JToken countTok))
+            if (edgeObj.TryGetValue("Count", out JToken? countTok))
             {
                 if (countTok.Type != JTokenType.Integer)
                 {

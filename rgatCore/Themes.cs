@@ -356,7 +356,7 @@ namespace rgat
             return changed;
         }
 
-        public static bool GetMetadataValue(string name, out string value)
+        public static bool GetMetadataValue(string name, out string? value)
         {
             lock (_lock)
             {
@@ -418,14 +418,19 @@ namespace rgat
                 Dictionary<eThemeSize, float> pendingSizes = new Dictionary<eThemeSize, float>();
                 Dictionary<eThemeSize, Vector2> pendingLimits = new Dictionary<eThemeSize, Vector2>();
 
-                if (!LoadMetadataStrings(theme, out pendingMetadata, out string errorMsg))
+                if (!LoadMetadataStrings(theme, out pendingMetadata, out string? errorMsg))
                 {
                     Logging.RecordError(errorMsg); return false;
                 }
 
-                if (theme.TryGetValue("CustomColours", out JToken customColTok) && customColTok.Type == JTokenType.Object)
+                if (theme.TryGetValue("CustomColours", out JToken? customColTok) && customColTok.Type == JTokenType.Object)
                 {
-                    foreach (var item in customColTok.ToObject<JObject>())
+                    JObject? custColsObj = customColTok.ToObject<JObject>();
+                    if (custColsObj is null) 
+                    {
+                        Logging.RecordError($"Theme has invalid CustomColours"); return false;
+                    }
+                    foreach (var item in custColsObj)
                     {
                         eThemeColour customcolType;
                         try
@@ -440,7 +445,7 @@ namespace rgat
                         {
                             Logging.RecordError($"Theme has invalid custom colour type {item.Key}"); return false;
                         }
-                        if (item.Value.Type != JTokenType.Integer)
+                        if (item.Value is null || item.Value.Type != JTokenType.Integer)
                         {
                             Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
                         }
@@ -448,9 +453,14 @@ namespace rgat
                     }
                 }
 
-                if (theme.TryGetValue("StandardColours", out JToken stdColTok) && stdColTok.Type == JTokenType.Object)
+                if (theme.TryGetValue("StandardColours", out JToken? stdColTok) && stdColTok.Type == JTokenType.Object)
                 {
-                    foreach (var item in stdColTok.ToObject<JObject>())
+                    JObject? stdColObj = stdColTok.ToObject<JObject>();
+                    if (stdColObj is null)
+                    {
+                        Logging.RecordError($"Theme has invalid StandardColours"); return false;
+                    }
+                    foreach (var item in stdColObj)
                     {
                         ImGuiCol stdcolType;
                         try
@@ -465,7 +475,7 @@ namespace rgat
                         {
                             Logging.RecordError($"Theme has invalid standard colour type {item.Key}"); return false;
                         }
-                        if (item.Value.Type != JTokenType.Integer)
+                        if (item.Value is null || item.Value.Type != JTokenType.Integer)
                         {
                             Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
                         }
@@ -473,9 +483,14 @@ namespace rgat
                     }
                 }
 
-                if (theme.TryGetValue("Sizes", out JToken sizesTok) && sizesTok.Type == JTokenType.Object)
+                if (theme.TryGetValue("Sizes", out JToken? sizesTok) && sizesTok.Type == JTokenType.Object)
                 {
-                    foreach (var item in sizesTok.ToObject<JObject>())
+                    JObject? sizesObj = sizesTok.ToObject<JObject>();
+                    if (sizesObj is null)
+                    {
+                        Logging.RecordError($"Theme has invalid Sizes"); return false;
+                    }
+                    foreach (var item in sizesObj)
                     {
                         eThemeSize sizeType;
                         try
@@ -490,7 +505,7 @@ namespace rgat
                         {
                             Logging.RecordError($"Theme has invalid size type {item.Key}"); return false;
                         }
-                        if (item.Value.Type != JTokenType.Float)
+                        if (item.Value is null || item.Value.Type != JTokenType.Float)
                         {
                             Logging.RecordError($"Theme has size with non-float size entry {item.Key}"); return false;
                         }
@@ -499,9 +514,14 @@ namespace rgat
                 }
 
 
-                if (theme.TryGetValue("SizeLimits", out JToken sizelimTok) && sizesTok.Type == JTokenType.Object)
+                if (theme.TryGetValue("SizeLimits", out JToken? sizelimTok) && sizelimTok.Type == JTokenType.Object)
                 {
-                    foreach (var item in sizelimTok.ToObject<JObject>())
+                    JObject? sizeLimObj = sizelimTok.ToObject<JObject>();
+                    if (sizeLimObj is null)
+                    {
+                        Logging.RecordError($"Theme has invalid SizeLimits"); return false;
+                    }
+                    foreach (var item in sizeLimObj)
                     {
                         eThemeSize sizeType;
                         try
@@ -516,12 +536,12 @@ namespace rgat
                         {
                             Logging.RecordLogEvent($"Theme has invalid sizelimit type {item.Key}"); return false;
                         }
-                        if (item.Value.Type != JTokenType.Array)
+                        if (item.Value is null || item.Value.Type != JTokenType.Array)
                         {
                             Logging.RecordError($"Theme has sizelimit with non-array entry {item.Key}"); return false;
                         }
-                        JArray limits = item.Value.ToObject<JArray>();
-                        if (limits.Count != 2 || limits[0].Type != JTokenType.Float || limits[1].Type != JTokenType.Float)
+                        JArray? limits = item.Value.ToObject<JArray>();
+                        if (limits is null || limits.Count != 2 || limits[0].Type != JTokenType.Float || limits[1].Type != JTokenType.Float)
                         {
                             Logging.RecordError($"Theme has sizelimit with invalid array size or item types (should be 2 floats) {item.Key}"); return false;
                         }
@@ -547,9 +567,12 @@ namespace rgat
         public static void SaveMetadataChange(string key, string value)
         {
             ThemeMetadata[key] = value;
-            currentThemeJSON["Metadata"][key] = value;
-            UnsavedTheme = true;
-            IsBuiltinTheme = BuiltinThemes.ContainsKey(ThemeMetadata["Name"]);
+            if (currentThemeJSON.TryGetValue("MetaData", out JToken? mdTok) && mdTok.Type is JTokenType.Object)
+            {
+                mdTok.ToObject<JObject>()![key] = value;
+                UnsavedTheme = true;
+                IsBuiltinTheme = BuiltinThemes.ContainsKey(ThemeMetadata["Name"]);
+            }
         }
 
 
@@ -627,9 +650,9 @@ namespace rgat
         }
 
 
-        public static bool ActivateThemeObject(string themeJSON, out string error)
+        public static bool ActivateThemeObject(string themeJSON, out string? error)
         {
-            JObject themeJson = null;
+            JObject? themeJson = null;
             try
             {
                 themeJson = Newtonsoft.Json.Linq.JObject.Parse(themeJSON);
@@ -652,16 +675,17 @@ namespace rgat
         }
 
 
-        static bool LoadMetadataStrings(JObject themeObj, out Dictionary<string, string> result, out string error)
+        static bool LoadMetadataStrings(JObject themeObj, out Dictionary<string, string> result, out string? error)
         {
             result = new Dictionary<string, string>();
 
-            JObject metadataObj;
-            if (themeObj.TryGetValue("Metadata", out JToken mdTok) && mdTok.Type == JTokenType.Object)
+            JObject? metadataObj = null;
+            if (themeObj.TryGetValue("Metadata", out JToken? mdTok) && mdTok.Type == JTokenType.Object)
             {
                 metadataObj = mdTok.ToObject<JObject>();
             }
-            else
+
+            if (metadataObj is null)
             {
                 error = "Unable to find \"Metadata\" object in theme";
                 return false;
@@ -669,6 +693,7 @@ namespace rgat
 
             foreach (var item in metadataObj)
             {
+                if (item.Value is null) continue;
                 if (item.Key.Length > 255)
                 {
                     error = $"Theme has metadata key with excessive length {item.Key.Length}"; return false;
@@ -677,10 +702,10 @@ namespace rgat
                 {
                     error = $"Theme has non-string metadata item {item.Key}"; return false;
                 }
-                string mdvalue = item.Value.ToObject<string>();
-                if (mdvalue.Length > 4096)
+                string? mdvalue = item.Value.ToObject<string>();
+                if (mdvalue is null || mdvalue.Length > 4096)
                 {
-                    error = $"Skipping Theme metadata value with excessive length {mdvalue.Length}"; return false;
+                    error = $"Skipping Theme metadata value with bad length {mdvalue?.Length}"; return false;
                 }
                 result[item.Key] = mdvalue;
             }
@@ -691,7 +716,7 @@ namespace rgat
 
         public static void LoadTheme(string themename)
         {
-            if (ThemeMetadata.TryGetValue("Name", out string currentTheme) && currentTheme == themename)
+            if (ThemeMetadata.TryGetValue("Name", out string? currentTheme) && currentTheme == themename)
             {
                 return;
             }
@@ -722,14 +747,14 @@ namespace rgat
             Logging.RecordLogEvent($"Loading {themesArray.Count} builtin themes", Logging.LogFilterType.TextDebug);
             for (var i = 0; i < themesArray.Count; i++)
             {
-                JObject theme = themesArray[i].Value<JObject>();
-                if (!LoadMetadataStrings(theme, out Dictionary<string, string> metadata, out string error))
+                JObject? theme = themesArray[i].Value<JObject>();
+                if (!LoadMetadataStrings(theme, out Dictionary<string, string> metadata, out string? error))
                 {
                     Logging.RecordLogEvent($"Error loading metadata for preloaded theme {i}: {error}");
                     continue;
                 }
 
-                if (!metadata.TryGetValue("Name", out string themeName))
+                if (!metadata.TryGetValue("Name", out string? themeName))
                 {
                     Logging.RecordLogEvent($"Skipping load for preloaded theme {i} (no 'Name' in metadata)");
                     continue;
@@ -776,7 +801,7 @@ namespace rgat
             string defaultTheme = GlobalConfig.Settings.Themes.DefaultTheme;
             if (defaultTheme.Length > 0)
             {
-                if (CustomThemes.TryGetValue(defaultTheme, out JObject themeObj))
+                if (CustomThemes.TryGetValue(defaultTheme, out JObject? themeObj))
                 {
                     ActivateThemeObject(themeObj);
                     return;

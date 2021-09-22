@@ -255,7 +255,7 @@ namespace rgat
                     }
                     else
                     {
-                        preview = $"#{previewExport.Item2}";
+                        preview = $"#{previewExport?.Item2}";
                     }
                 }
             }
@@ -512,7 +512,7 @@ namespace rgat
                     {
                         //todo loadername, ordinal
                         System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
-                        System.Diagnostics.Process p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath,
+                        System.Diagnostics.Process? p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath,
                             loaderName: activeTarget.LoaderName, ordinal: ordinal, targetPE: activeTarget.PEFileObj);
                         if (p != null)
                         {
@@ -588,11 +588,22 @@ namespace rgat
                 SmallWidgets.MouseoverText("See error in logs");
                 return;
             }
-            DiELibDotNet.DieScript.SCANPROGRESS DEProgress = rgatState.DIELib.GetDIEScanProgress(activeTarget);
+            DiELibDotNet.DieScript.SCANPROGRESS? DEProgress = rgatState.DIELib.GetDIEScanProgress(activeTarget);
             ImGui.BeginGroup();
             {
                 uint textColour = Themes.GetThemeColourImGui(ImGuiCol.Text);
-                if (DEProgress.loading)
+                if (DEProgress is null)
+                {
+                    ImGui.Text("Not Inited");
+                } 
+                else if (DEProgress.errored)
+                {
+                    float dieProgress = DEProgress.scriptCount == 0 ? 0f : (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    string caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
+                    uint errorColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, errorColour, 0xff111111, textColour);
+                } 
+                else if (DEProgress.loading)
                 {
                     SmallWidgets.ProgressBar("DieProgBar", $"Loading Scripts", 0, barSize, 0xff117711, 0xff111111);
                 }
@@ -601,13 +612,6 @@ namespace rgat
                     float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     string caption = $"DiE:{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
-                }
-                else if (DEProgress.errored)
-                {
-                    float dieProgress = DEProgress.scriptCount == 0 ? 0f : (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    string caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                    uint errorColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
-                    SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, errorColour, 0xff111111, textColour);
                 }
                 else if (DEProgress.StopRequestFlag)
                 {
@@ -623,59 +627,62 @@ namespace rgat
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111, textColour);
                 }
 
-                if (DEProgress.running)
+                if (DEProgress is not null)
                 {
-                    if (ImGui.IsItemHovered())
+                    if (DEProgress.running)
                     {
-                        ImGui.BeginTooltip();
-                        ImGui.Text($"{DEProgress.scriptsFinished}/{DEProgress.scriptCount} DetectItEasy scripts have been run so far");
-                        ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
-                        ImGui.Separator();
-                        ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
-                        ImGui.Text("Click To Cancel");
-                        ImGui.PopStyleColor();
-                        ImGui.EndTooltip();
-                    }
-                    if (ImGui.IsItemClicked())
-                    {
-                        rgatState.DIELib.CancelDIEScan(activeTarget);
-                    }
-                }
-                else if (!DEProgress.running && !DEProgress.loading)
-                {
-                    if (ImGui.IsItemHovered())
-                    {
-                        ImGui.BeginTooltip();
-                        ImGui.Text($"{DEProgress.scriptsFinished} Detect-It-Easy scripts were executed out of {DEProgress.scriptCount} loaded for this file format");
-                        ImGui.Text($"Note that rgat does not use the original DIE codebase - the original may provide better results.");
-                        ImGui.Separator();
-                        if (DEProgress.errored && DEProgress.error.Length > 0)
+                        if (ImGui.IsItemHovered())
                         {
-                            ImGui.Text(DEProgress.error);
+                            ImGui.BeginTooltip();
+                            ImGui.Text($"{DEProgress.scriptsFinished}/{DEProgress.scriptCount} DetectItEasy scripts have been run so far");
+                            ImGui.Text($"Note that rgat does not use the original DiE codebase - the original may provide better results.");
                             ImGui.Separator();
+                            ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                            ImGui.Text("Click To Cancel");
+                            ImGui.PopStyleColor();
+                            ImGui.EndTooltip();
                         }
-                        ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
-                        ImGui.Text("Left Click  - Rescan");
-                        ImGui.Text("Right Click - Reload & Rescan");
-                        ImGui.PopStyleColor();
-                        ImGui.EndTooltip();
+                        if (ImGui.IsItemClicked())
+                        {
+                            rgatState.DIELib.CancelDIEScan(activeTarget);
+                        }
                     }
-                    if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                    else if (!DEProgress.running && !DEProgress.loading)
                     {
-                        rgatState.DIELib.StartDetectItEasyScan(activeTarget);
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.BeginTooltip();
+                            ImGui.Text($"{DEProgress.scriptsFinished} Detect-It-Easy scripts were executed out of {DEProgress.scriptCount} loaded for this file format");
+                            ImGui.Text($"Note that rgat does not use the original DIE codebase - the original may provide better results.");
+                            ImGui.Separator();
+                            if (DEProgress.errored && DEProgress.error.Length > 0)
+                            {
+                                ImGui.Text(DEProgress.error);
+                                ImGui.Separator();
+                            }
+                            ImGui.PushStyleColor(ImGuiCol.Text, 0xffeeeeff);
+                            ImGui.Text("Left Click  - Rescan");
+                            ImGui.Text("Right Click - Reload & Rescan");
+                            ImGui.PopStyleColor();
+                            ImGui.EndTooltip();
+                        }
+                        if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                        {
+                            rgatState.DIELib.StartDetectItEasyScan(activeTarget);
+                        }
+                        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                        {
+                            rgatState.DIELib.StartDetectItEasyScan(activeTarget, reload: true);
+                        }
                     }
-                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                    else if (DEProgress.loading)
                     {
-                        rgatState.DIELib.StartDetectItEasyScan(activeTarget, reload: true);
-                    }
-                }
-                else if (DEProgress.loading)
-                {
-                    if (ImGui.IsItemHovered())
-                    {
-                        ImGui.BeginTooltip();
-                        ImGui.Text($"Detect It Easy scripts are being loaded. This should not take long.");
-                        ImGui.EndTooltip();
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.BeginTooltip();
+                            ImGui.Text($"Detect It Easy scripts are being loaded. This should not take long.");
+                            ImGui.EndTooltip();
+                        }
                     }
                 }
             }

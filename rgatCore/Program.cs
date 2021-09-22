@@ -93,7 +93,7 @@ namespace ImGuiNET
             Parser.Default.ParseArguments<LaunchConfig>(cmdlineParams)
                .WithParsed(cmdlineOpts =>
                {
-                   if (!cmdlineOpts.ExtractJSONOptions(out string error))
+                   if (!cmdlineOpts.ExtractJSONOptions(out string? error))
                    {
                        Console.WriteLine($"Error: Bad JSON configuration blob - {error}");
                    }
@@ -168,7 +168,7 @@ namespace ImGuiNET
                     {
                         if (GlobalConfig.StartOptions.RunMode != LaunchConfig.eRunMode.Bridged) return;
 
-                        if (!System.Net.IPAddress.TryParse(GlobalConfig.StartOptions.Interface, out System.Net.IPAddress address) ||
+                        if (!System.Net.IPAddress.TryParse(GlobalConfig.StartOptions.Interface, out System.Net.IPAddress? address) ||
                             int.TryParse(GlobalConfig.StartOptions.Interface, out int ipInt) && ipInt > 0 && ipInt < 128)
                         {
                             //see if it matches a property from the interface list

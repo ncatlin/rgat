@@ -68,7 +68,7 @@ namespace rgat
     class ProcessLaunching
     {
 
-        public static System.Diagnostics.Process StartLocalTrace(string pintool, string targetBinary, PeNet.PeFile targetPE = null, string loaderName = "LoadDLL", int ordinal = 0, long testID = -1)
+        public static System.Diagnostics.Process? StartLocalTrace(string pintool, string targetBinary, PeNet.PeFile targetPE = null, string loaderName = "LoadDLL", int ordinal = 0, long testID = -1)
         {
             if (!File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath)))
             {
@@ -131,10 +131,10 @@ namespace rgat
             return null;
         }
 
-        static System.Diagnostics.Process StartLocalDLLTrace(string pintool, string targetBinary, string loadername, BitWidth loaderWidth, int ordinal = 0, long testID = -1)
+        static System.Diagnostics.Process? StartLocalDLLTrace(string pintool, string targetBinary, string loadername, BitWidth loaderWidth, int ordinal = 0, long testID = -1)
         {
 
-            System.Diagnostics.Process result = null;
+            System.Diagnostics.Process? result = null;
 
             string runargs = $"-t \"{pintool}\" ";
             if (testID > -1)
@@ -145,7 +145,7 @@ namespace rgat
 
 
 
-            if (InitLoader(Path.GetDirectoryName(targetBinary), loadername, loaderWidth, out string loaderPath))
+            if (InitLoader(Path.GetDirectoryName(targetBinary), loadername, loaderWidth, out string? loaderPath))
             {
                 runargs += $"{loaderPath} {targetBinary},{ordinal}$";
             }
@@ -176,7 +176,7 @@ namespace rgat
             }
         }
 
-        static bool InitLoader(string directory, string name, BitWidth loaderWidth, out string loaderPath)
+        static bool InitLoader(string directory, string name, BitWidth loaderWidth, out string? loaderPath)
         {
             loaderPath = Path.Combine(directory, name);
 
@@ -192,7 +192,7 @@ namespace rgat
             }
 
             string loaderName = (loaderWidth == BitWidth.Arch32) ? "DllLoader32" : "DllLoader64";
-            byte[] loaderBytes = rgatState.ReadBinaryResource(loaderName);
+            byte[]? loaderBytes = rgatState.ReadBinaryResource(loaderName);
             if (loaderBytes == null)
             {
                 Logging.RecordError($"Unable to retrieve loader {loaderName} from resources");
@@ -214,9 +214,9 @@ namespace rgat
         }
 
 
-        static System.Diagnostics.Process StartLocalEXETrace(string pintool, string targetBinary, long testID = -1)
+        static System.Diagnostics.Process? StartLocalEXETrace(string pintool, string targetBinary, long testID = -1)
         {
-            System.Diagnostics.Process result = null;
+            System.Diagnostics.Process? result = null;
 
             string runargs = $"-t \"{pintool}\" ";
             if (testID > -1)

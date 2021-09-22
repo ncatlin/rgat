@@ -88,7 +88,7 @@ namespace rgat.Threads
                 BLOCKREPEAT brep = blockRepeatQueue[i];
                 //first find the blocks instruction list
                 //if (brep.blockID >= RecordedBlocksQty) { remainingRepeats.Add(brep); continue; }
-                NodeData n = null;
+                NodeData? n = null;
 
                 if (brep.blockInslist == null)
                 {
@@ -139,7 +139,8 @@ namespace rgat.Threads
                     if (!lastIns.PossibleidataThunk || brep.blockInslist.Count != 1)
                     {
                         lastIns.GetThreadVert(protograph.ThreadID, out uint lastNodeIdx);
-                        NodeData lastNode = protograph.safe_get_node(lastNodeIdx);
+                        NodeData? lastNode = protograph.safe_get_node(lastNodeIdx);
+                        if (lastNode is null) continue;
 
                         foreach (var addr_Count in brep.targExternEdges)
                         {
@@ -149,11 +150,11 @@ namespace rgat.Threads
                             bool found = false;
                             foreach (var x in lastNode.OutgoingNeighboursSet)
                             {
-                                NodeData outn = protograph.safe_get_node(x);
+                                NodeData? outn = protograph.safe_get_node(x);
                                 if (outn == null) continue;
                                 if (outn.IsExternal && outn.address == targetAddr)
                                 {
-                                    EdgeData e = protograph.GetEdge(lastNodeIdx, outn.index);
+                                    EdgeData? e = protograph.GetEdge(lastNodeIdx, outn.index);
                                     if (e == null) continue;
                                     //outn.IncreaseExecutionCount(execCount);
                                     //e.IncreaseExecutionCount(execCount);
@@ -191,10 +192,10 @@ namespace rgat.Threads
                     }
                     increaseNodes.Add(new Tuple<NodeData, ulong>(n, brep.repeatCount));
 
-                    if (ins.address != lastIns.address)
+                    if (ins.Address != lastIns.Address)
                     {
                         uint targID = n.OutgoingNeighboursSet[0];
-                        EdgeData targEdge = protograph.GetEdge(n.index, targID);
+                        EdgeData? targEdge = protograph.GetEdge(n.index, targID);
                         if (targEdge == null)
                         {
                             needWait = true;
@@ -234,9 +235,9 @@ namespace rgat.Threads
                     uint targNodeID = 0;
                     if (targetBlockID >= protograph.BlocksFirstLastNodeList.Count || protograph.BlocksFirstLastNodeList[targetBlockID] == null)
                     {
-                        if (protograph.ApiThunks.TryGetValue(targetBlockID, out ProtoGraph.APITHUNK thunkData))
+                        if (protograph.ApiThunks.TryGetValue(targetBlockID, out ProtoGraph.APITHUNK? thunkData))
                         {
-                            if (thunkData.callerNodes.TryGetValue((int)n.index, out int targNd))
+                            if (thunkData.callerNodes.TryGetValue((int)n!.index, out int targNd))
                             {
                                 targNodeID = (uint)targNd;
                                 //protograph.NodeList[targNd].IncreaseExecutionCount(brep.repeatCount);
@@ -269,7 +270,7 @@ namespace rgat.Threads
                     }
 
 
-                    if (!n.OutgoingNeighboursSet.Contains(targNodeID))
+                    if (n!.OutgoingNeighboursSet.Contains(targNodeID) is false)
                     {
                         //again let new tag execution handle it
                         protograph.AddEdge(n.index, targNodeID, execCount);
@@ -279,7 +280,8 @@ namespace rgat.Threads
                     }
                     else
                     {
-                        EdgeData edge = protograph.GetEdge(n.index, targNodeID);
+                        EdgeData? edge = protograph.GetEdge(n.index, targNodeID);
+                        Debug.Assert(edge is not null);
                         Logging.RecordLogEvent($"Blockrepeat increasing execs of edge {n.index},{targNodeID} from {edge.executionCount} to {edge.executionCount + execCount}",
                            Logging.LogFilterType.BulkDebugLogFile);
                         edge.IncreaseExecutionCount(execCount);
@@ -353,14 +355,16 @@ namespace rgat.Threads
             eCodeInstrumentation modType = protograph.TraceData.FindContainingModule(nextBlockAddress, out int modnum);
             if (modType == eCodeInstrumentation.eUninstrumentedCode)
             {
-                List<InstructionData> preExternBlock = protograph.TraceData.DisassemblyData.getDisassemblyBlock(thistag.blockID);
-                if (preExternBlock.Count == 1 && preExternBlock[0].PossibleidataThunk)
+                List<InstructionData>? preExternBlock = protograph.TraceData.DisassemblyData.getDisassemblyBlock(thistag.blockID);
+                if (preExternBlock is not null && 
+                    preExternBlock.Count == 1 && 
+                    preExternBlock[0].PossibleidataThunk)
                 {
                     InstructionData thunkInstruction = preExternBlock[0];
                     ProcessExtern(nextBlockAddress, thistag.blockID);
 
                     bool firstCallByThisNode = false;
-                    if (protograph.ApiThunks.TryGetValue((int)thistag.blockID, out ProtoGraph.APITHUNK thunkinfo))
+                    if (protograph.ApiThunks.TryGetValue((int)thistag.blockID, out ProtoGraph.APITHUNK? thunkinfo))
                     {
                         if (!thunkinfo.callerNodes.ContainsKey((int)protograph.ProtoLastLastVertID))
                         {
@@ -597,13 +601,13 @@ namespace rgat.Threads
 
             if (blockNodes == null)
             {
-                if (protograph.ApiThunks.TryGetValue((int)animUpdate.blockID, out ProtoGraph.APITHUNK thunkInfo))
+                if (protograph.ApiThunks.TryGetValue((int)animUpdate.blockID, out ProtoGraph.APITHUNK? thunkInfo))
                 {
                     if (thunkInfo.callerNodes.TryGetValue((int)protograph.ProtoLastVertID, out int thunkTargetAPINodeIdx))
                     {
                         if (protograph.PerformingUnchainedExecution == false)
                         {
-                            protograph.GetEdge(protograph.ProtoLastVertID, (uint)thunkTargetAPINodeIdx).IncreaseExecutionCount(1);
+                            protograph.GetEdge(protograph.ProtoLastVertID, (uint)thunkTargetAPINodeIdx)?.IncreaseExecutionCount(1);
                             protograph.PerformingUnchainedExecution = true;
                         }
                         return;
@@ -617,7 +621,7 @@ namespace rgat.Threads
             {
                 if (protograph.PerformingUnchainedExecution == false)
                 {
-                    EdgeData e = protograph.GetEdge(protograph.ProtoLastLastVertID, blockNodes.Item1);
+                    EdgeData? e = protograph.GetEdge(protograph.ProtoLastLastVertID, blockNodes.Item1);
                     if (e != null)
                     {
                         e.IncreaseExecutionCount(1);
@@ -738,7 +742,7 @@ namespace rgat.Threads
 
 
             Console.WriteLine($"[rgat]Exception detected in PID{protograph.TraceData.PID} TID: {protograph.ThreadID} [code 0x{code:X} flags: 0x{flags:X}] at address 0x{address:X}");
-            List<InstructionData> faultingBlock;
+            List<InstructionData>? faultingBlock;
             bool gotDisas = false;
             lock (protograph.ProcessData.InstructionsLock) //read lock
             {
@@ -763,20 +767,21 @@ namespace rgat.Threads
 
             //problem here: no way of knowing which mutation of the faulting block was executed
             //going to have to assume it's the most recent mutation
-            InstructionData exceptingins = faultingBlock[^1];
+            InstructionData exceptingins = faultingBlock![^1];
             uint faultingBasicBlock_ID = exceptingins.ContainingBlockIDs[^1];
-            List<InstructionData> faultingBB = protograph.ProcessData.getDisassemblyBlock(faultingBasicBlock_ID);
+            List<InstructionData>? faultingBB = protograph.ProcessData.getDisassemblyBlock(faultingBasicBlock_ID);
+            Debug.Assert(faultingBB is not null);
 
             //todo: Lock, linq
             int instructionsUntilFault = 0;
             for (; instructionsUntilFault < faultingBB.Count; ++instructionsUntilFault)
             {
-                if (faultingBB[instructionsUntilFault].address == address) break;
+                if (faultingBB[instructionsUntilFault].Address == address) break;
 
             }
 
             TAG interruptedBlockTag;
-            interruptedBlockTag.blockaddr = protograph.ProcessData.BasicBlocksList[(int)faultingBasicBlock_ID].Item2[0].address;
+            interruptedBlockTag.blockaddr = protograph.ProcessData.BasicBlocksList[(int)faultingBasicBlock_ID].Item2[0].Address;
             interruptedBlockTag.insCount = (ulong)instructionsUntilFault;
             interruptedBlockTag.blockID = faultingBasicBlock_ID;
             interruptedBlockTag.jumpModifier = eCodeInstrumentation.eInstrumentedCode;

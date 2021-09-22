@@ -207,7 +207,7 @@ namespace rgat
                     }
 
                     //wait for all workers to terminate
-                    while (trace.ProcessThreads.Running())
+                    while (trace.ProcessThreads is not null && trace.ProcessThreads.Running())
                     {
                         Thread.Sleep(10);
                     }
@@ -308,7 +308,7 @@ namespace rgat
         /// </summary>
         /// <param name="trace">An optional TraceRecord to set as active</param>
         /// <param name="newest">If true, get the most recently spawned trace. If false get the first in the list (not guaranteed to be the oldest)</param>
-        public void SelectActiveTrace(TraceRecord trace = null, bool newest = false)
+        public void SelectActiveTrace(TraceRecord? trace = null, bool newest = false)
         {
             ActiveGraph = null;
 
@@ -333,16 +333,16 @@ namespace rgat
         /// <returns></returns>
         static bool InitialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, out BinaryTarget targetResult)
         {
-            BinaryTarget target = null;
+            BinaryTarget? target = null;
             targetResult = null;
 
-            string binaryPath = saveJSON.GetValue("BinaryPath").ToString();
-            if (binaryPath == null) return false;
+            string? binaryPath = saveJSON.GetValue("BinaryPath")?.ToString();
+            if (binaryPath is null) return false;
 
             if (!targets.GetTargetByPath(binaryPath, out target))
             {
                 bool isLibrary = false;
-                if (saveJSON.TryGetValue("IsLibrary", out JToken isLibTok) && isLibTok.Type == JTokenType.Boolean)
+                if (saveJSON.TryGetValue("IsLibrary", out JToken? isLibTok) && isLibTok.Type == JTokenType.Boolean)
                     isLibrary = isLibTok.ToObject<bool>();
                 target = targets.AddTargetByPath(binaryPath, isLibrary: isLibrary);
             }
@@ -421,7 +421,7 @@ namespace rgat
                 return;
             }
 
-            if (LastGraphs.TryGetValue(selectedTrace, out PlottedGraph foundGraph))
+            if (LastGraphs.TryGetValue(selectedTrace, out PlottedGraph? foundGraph))
             {
                 bool found = false;
                 List<PlottedGraph> traceGraphs = selectedTrace.GetPlottedGraphs();
@@ -433,7 +433,7 @@ namespace rgat
                 else
                 {
                     uint lastTID = LastSelectedTheads[selectedTrace];
-                    PlottedGraph lastgraph = traceGraphs.Find(pg => pg.tid == lastTID);
+                    PlottedGraph? lastgraph = traceGraphs.Find(pg => pg.tid == lastTID);
                     if (lastgraph != null)
                     {
                         SwitchToGraph(lastgraph);
@@ -444,7 +444,7 @@ namespace rgat
                 if (found) return;
             }
 
-            PlottedGraph firstgraph = selectedTrace.GetFirstGraph();
+            PlottedGraph? firstgraph = selectedTrace.GetFirstGraph();
             if (firstgraph != null)
             {
                 Logging.RecordLogEvent("Got first graph " + firstgraph.tid,
@@ -476,7 +476,7 @@ namespace rgat
         /// Get the currently active thread graph being shown by the UI
         /// </summary>
         /// <returns>The PlottedGraph object of the active thread graph</returns>
-        public PlottedGraph getActiveGraph()
+        public PlottedGraph? getActiveGraph()
         {
             if (ActiveGraph != null && ActiveGraph.beingDeleted) return null;
 
@@ -495,15 +495,16 @@ namespace rgat
         /// <param name="target">The binarytarget associated with the trace</param>
         /// <param name="traceResult">The output reconstructed TraceRecord</param>
         /// <returns>true if a new trace was created, false if failed or duplicated</returns>
-        static bool LoadTraceRecord(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTarget target, out TraceRecord traceResult)
+        static bool LoadTraceRecord(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTarget target, out TraceRecord? traceResult)
         {
             bool valid = true;
-            valid &= saveJSON.TryGetValue("PID", out JToken jPID);
-            valid &= saveJSON.TryGetValue("PID_ID", out JToken jID);
-            valid &= saveJSON.TryGetValue("StartTime", out JToken jTime);
+            valid &= saveJSON.TryGetValue("PID", out JToken? jPID) && jPID is not null;
+            valid &= saveJSON.TryGetValue("PID_ID", out JToken? jID) && jID is not null;
+            valid &= saveJSON.TryGetValue("StartTime", out JToken? jTime) && jTime is not null;
 
-            if (valid == false || jPID.Type != JTokenType.Integer ||
-                jID.Type != JTokenType.Integer)
+            if (valid is false || 
+                jPID!.Type != JTokenType.Integer ||
+                jID!.Type != JTokenType.Integer)
             {
                 Console.WriteLine("[rgat]Warning: Bad trace metadata. Load failed.");
                 traceResult = null;
@@ -513,7 +514,7 @@ namespace rgat
 
             //temporary loading of unix ts in old save files. TODO: move to new format
             DateTime StartTime;
-            if (jTime.Type == JTokenType.Date)
+            if (jTime!.Type == JTokenType.Date)
                 StartTime = jTime.ToObject<DateTime>();
             else
             {
@@ -547,7 +548,7 @@ namespace rgat
             //updateActivityStatus("Loading " + QString::fromStdString(traceFilePath.string()) + "...", 2000);
             trace = null;
             if (!File.Exists(path)) return false;
-            Newtonsoft.Json.Linq.JObject saveJSON = null;
+            Newtonsoft.Json.Linq.JObject? saveJSON = null;
             using (StreamReader file = File.OpenText(path))
             {
                 string jsnfile = file.ReadToEnd();
@@ -576,7 +577,7 @@ namespace rgat
                 return false;
             }
 
-            if (!LoadTraceRecord(saveJSON, target, out trace))
+            if (!LoadTraceRecord(saveJSON, target, out trace) || trace is null)
             {
                 return false;
             }
@@ -603,7 +604,7 @@ namespace rgat
         void ExtractChildTraceFilenames(JObject saveJSON, out List<string> childrenFiles)
         {
             childrenFiles = new List<string>();
-            if (saveJSON.TryGetValue("Children", out JToken jChildren) && jChildren.Type == JTokenType.Array)
+            if (saveJSON.TryGetValue("Children", out JToken? jChildren) && jChildren.Type == JTokenType.Array)
             {
                 JArray ChildrenArray = (JArray)jChildren;
                 foreach (JToken fname in ChildrenArray)
@@ -677,7 +678,7 @@ namespace rgat
 
                 if (!trace.WasLoadedFromSave)
                 {
-                    if (trace.Save(creationTime, out string path))
+                    if (trace.Save(creationTime, out string? path))
                     { 
                         savedCount += 1;
                         Logging.RecordLogEvent($"Saved Process {trace.PID} to {Path.GetDirectoryName(path)}", Logging.LogFilterType.TextAlert);
@@ -734,12 +735,14 @@ namespace rgat
             }
         }
 
-        public static byte[] ReadBinaryResource(string name)
+        public static byte[]? ReadBinaryResource(string name)
         {
             System.Reflection.Assembly assembly = Assembly.GetExecutingAssembly();
-            System.IO.Stream fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
+            System.IO.Stream? fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
+            if (fs is null) return null;
+
             System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
-            r.GetResourceData(name, out string rtype, out byte[] resBytes);
+            r.GetResourceData(name, out string? rtype, out byte[] resBytes);
             if (resBytes == null || rtype != "ResourceTypeCode.ByteArray") return null;
 
             //https://stackoverflow.com/questions/32891004/why-resourcereader-getresourcedata-return-data-of-type-resourcetypecode-stream

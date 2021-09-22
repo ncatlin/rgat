@@ -79,8 +79,7 @@ namespace rgat.Testing
         {
             lock (_lock)
             {
-                if (_testRuns.TryGetValue(ID, out TestCaseRun testrun)) return testrun;
-                return null;
+                return _testRuns[ID];
             }
         }
 
@@ -88,8 +87,7 @@ namespace rgat.Testing
         {
             lock (_lock)
             {
-                if (_testSessions.TryGetValue(ID, out TestSession session)) return session;
-                return null;
+                return _testSessions[ID];
             }
         }
 

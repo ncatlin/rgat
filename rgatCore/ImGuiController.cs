@@ -170,7 +170,7 @@ namespace ImGuiNET
             //embed in resource for distribution, once a font is settled on
 
             
-            byte[] notoFontBytes = rgatState.ReadBinaryResource("NotoSansSC_Regular");
+            byte[]? notoFontBytes = rgatState.ReadBinaryResource("NotoSansSC_Regular");
             if (notoFontBytes == null)
             {
                 Logging.RecordError($"No font resouce: \"NotoSansSC_Regular\"");
@@ -196,8 +196,8 @@ namespace ImGuiNET
                 _unicodeFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 17, null, ranges.Data);
 
                 // These icons get merged into the unicode font so its important they are built here
-                byte[] regularFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Regular_400");
-                byte[] solidFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Solid_900");
+                byte[]? regularFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Regular_400");
+                byte[]? solidFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Solid_900");
                 if (regularFontBytes != null && solidFontBytes != null)
                 {
                     Logging.RecordLogEvent($"Loading font resources", Logging.LogFilterType.TextDebug);
@@ -387,8 +387,8 @@ namespace ImGuiNET
             RecreateFontDeviceTexture(gd);
             _projMatrixBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 64, BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "ImGui.NET Projection Buffer");
 
-            byte[] vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-vertex", ShaderStages.Vertex);
-            byte[] fragmentShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-frag", ShaderStages.Fragment);
+            byte[]? vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-vertex", ShaderStages.Vertex);
+            byte[]? fragmentShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-frag", ShaderStages.Fragment);
             _vertexShader = factory.CreateShader(new ShaderDescription(ShaderStages.Vertex, vertexShaderBytes, "main"));
             _fragmentShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, fragmentShaderBytes, "main"));
 
@@ -463,7 +463,7 @@ namespace ImGuiNET
         /// </summary>
         public IntPtr GetOrCreateImGuiBinding(ResourceFactory factory, Texture texture, string name)
         {
-            if (!_autoViewsByTexture.TryGetValue(texture, out TextureView textureView))
+            if (!_autoViewsByTexture.TryGetValue(texture, out TextureView? textureView))
             {
                 //Debug.Assert(!texture.IsDisposed);
                 textureView = factory.CreateTextureView(texture);
@@ -549,7 +549,7 @@ namespace ImGuiNET
             }
         }
 
-        public byte[] LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
+        public byte[]? LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
         {
             switch (factory.BackendType)
             {
@@ -578,11 +578,11 @@ namespace ImGuiNET
             }
         }
 
-        private byte[] GetEmbeddedResourceBytes(string resourceName)
+        private byte[]? GetEmbeddedResourceBytes(string resourceName)
         {
             Assembly assembly = typeof(ImGuiController).Assembly;
 
-            using Stream resourceStream = assembly.GetManifestResourceStream(resourceName);
+            using Stream? resourceStream = assembly.GetManifestResourceStream(resourceName);
             if (resourceStream == null)
             {
                 Logging.RecordLogEvent("ERROR: Failed to find resource " + resourceName, filter: Logging.LogFilterType.TextError);

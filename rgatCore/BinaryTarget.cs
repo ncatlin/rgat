@@ -297,7 +297,8 @@ namespace rgat
         /// <returns>The snippet as a string</returns>
         public string HexTooltip()
         {
-            if (_hexTooltip.Length > 0) return _hexTooltip;
+            if (_hexTooltip?.Length > 0) return _hexTooltip;
+            _hexTooltip = "";
             byte[] fragment;
             for (var i = 0; i < 64; i++)
             {

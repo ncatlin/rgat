@@ -229,23 +229,26 @@ namespace rgat.Widgets
                                 ImGui.TableHeadersRow();
 
                                 ImGui.Indent(5);
-                                foreach (var rule in ruleList)
+                                if (ruleList is not null)
                                 {
-                                    ImGui.TableNextRow();
-                                    ImGui.TableNextColumn();
-                                    ImGui.TextWrapped(rule.Identifier);
-
-                                    ImGui.TableNextColumn();
-                                    ImGui.TextWrapped("folder 1 2 3");
-
-                                    ImGui.TableNextColumn();
-                                    foreach (var kvp in rule.Metas)
+                                    foreach (var rule in ruleList)
                                     {
-                                        ImGui.TextWrapped($"{kvp.Key}: \"{kvp.Value}\"");
-                                    }
-                                    if (rule.Tags.Any())
-                                    {
-                                        ImGui.TextWrapped($"Tags: {String.Join(", ", rule.Tags)}");
+                                        ImGui.TableNextRow();
+                                        ImGui.TableNextColumn();
+                                        ImGui.TextWrapped(rule.Identifier);
+
+                                        ImGui.TableNextColumn();
+                                        ImGui.TextWrapped("folder 1 2 3");
+
+                                        ImGui.TableNextColumn();
+                                        foreach (var kvp in rule.Metas)
+                                        {
+                                            ImGui.TextWrapped($"{kvp.Key}: \"{kvp.Value}\"");
+                                        }
+                                        if (rule.Tags.Any())
+                                        {
+                                            ImGui.TextWrapped($"Tags: {String.Join(", ", rule.Tags)}");
+                                        }
                                     }
                                 }
                                 ImGui.EndTable();
@@ -364,7 +367,7 @@ namespace rgat.Widgets
                                     }
                                     else
                                     {
-                                        string refreshError = sigset.LastRefreshError == null ? null : new string(sigset.LastRefreshError);
+                                        string? refreshError = sigset.LastRefreshError is null ? null : new string(sigset.LastRefreshError);
 
                                         if (refreshError != null)
                                         {
@@ -406,7 +409,7 @@ namespace rgat.Widgets
 
                                     ImGui.TableNextColumn();
 
-                                    string downloadError = sigset.LastDownloadError == null ? null : new string(sigset.LastDownloadError);
+                                    string? downloadError = sigset.LastDownloadError == null ? null : new string(sigset.LastDownloadError);
                                     if (downloadError != null)
                                     {
                                         ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff000030);
@@ -725,7 +728,7 @@ namespace rgat.Widgets
         {
             foreach (string path in sources)
             {
-                GlobalConfig.SignatureSource source = GlobalConfig.Settings.Signatures.GetSignatureRepo(path);
+                GlobalConfig.SignatureSource? source = GlobalConfig.Settings.Signatures.GetSignatureRepo(path);
                 if (source == null) continue;
                 if (source.SignatureType == eSignatureType.DIE)
                 {
@@ -818,8 +821,8 @@ namespace rgat.Widgets
             bool selected = false;
             bool hovered = false;
             bool hasPath = (path?.Length > 0);
-            string pathTxt = hasPath ? path : "[Not Set]";
-            string signerror = "";
+            string? pathTxt = hasPath ? path : "[Not Set]";
+            string? signerror = "";
 
             GlobalConfig.PreviousSignatureCheckPassed(path, out signerror, out bool signatureTimeWarning);
 
@@ -834,7 +837,7 @@ namespace rgat.Widgets
             ImGui.PopStyleColor();
             ImGui.TableNextColumn();
 
-            bool signatureError = signerror.Length > 0 && signerror != "No Error";
+            bool signatureError = signerror?.Length > 0 && signerror != "No Error";
 
             if (signatureError)
             {
@@ -1183,7 +1186,7 @@ namespace rgat.Widgets
         string pendingPresetName = "";
         unsafe void CreateOptionsPane_UITheme()
         {
-            Themes.GetMetadataValue("Name", out string activeThemeName);
+            Themes.GetMetadataValue("Name", out string? activeThemeName);
             if (Themes.UnsavedTheme)
             {
                 ImGui.Text($"Current Theme: {activeThemeName} [Modified - Unsaved]. Save as a preset to keep changes.");
@@ -1224,9 +1227,9 @@ namespace rgat.Widgets
                     if (ImGui.IsItemHovered())
                     {
                         string tipDescription = $"Name: {themeName}\r\n";
-                        if (Themes.GetMetadataValue("Description", out string themeDescription)) tipDescription += $"Description: {themeDescription}\r\n";
-                        if (Themes.GetMetadataValue("Author", out string auth1)) tipDescription += $"Source: {auth1}";
-                        if (Themes.GetMetadataValue("Author2", out string auth2)) tipDescription += $" ({auth2})";
+                        if (Themes.GetMetadataValue("Description", out string? themeDescription)) tipDescription += $"Description: {themeDescription}\r\n";
+                        if (Themes.GetMetadataValue("Author", out string? auth1)) tipDescription += $"Source: {auth1}";
+                        if (Themes.GetMetadataValue("Author2", out string? auth2)) tipDescription += $" ({auth2})";
 
                         ImGui.SetTooltip(tipDescription);
                     }
@@ -1405,7 +1408,7 @@ namespace rgat.Widgets
                 }
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip(expandBtnTip);
 
-                Themes.GetMetadataValue("Name", out string activeThemeName);
+                Themes.GetMetadataValue("Name", out string? activeThemeName);
                 if (activeThemeName != GlobalConfig.Settings.Themes.DefaultTheme)
                 {
                     ImGui.SameLine();
@@ -1437,7 +1440,7 @@ namespace rgat.Widgets
 
         void DeleteCurrentTheme()
         {
-            Themes.GetMetadataValue("Name", out string oldTheme);
+            Themes.GetMetadataValue("Name", out string? oldTheme);
             //todo load default theme
             if (Themes.BuiltinThemes.Count > 0)
             {
@@ -1568,7 +1571,7 @@ namespace rgat.Widgets
             //_theme_UI_JSON_Text
 
             //apply it to the config lists/arrays
-            if (!Themes.ActivateThemeObject(_theme_UI_JSON_Text, out string error))
+            if (!Themes.ActivateThemeObject(_theme_UI_JSON_Text, out string? error))
             {
                 Console.WriteLine("Failed to load json");
                 return;

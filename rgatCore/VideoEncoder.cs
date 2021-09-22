@@ -89,7 +89,7 @@ namespace rgat
             {
                 Loaded = true;
             }
-            else if (DetectFFmpeg(out string path))
+            else if (DetectFFmpeg(out string? path))
             {
                 Loaded = true;
                 GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.FFmpegPath, path);
@@ -128,7 +128,7 @@ namespace rgat
                         Logging.RecordLogEvent($"Warning: Recording has amassed {_bmpQueue.Count} frames in backlog, stopping recording");
                         StopRecording();
                     }
-                    if (_bmpQueue.TryDequeue(out Bitmap frame))
+                    if (_bmpQueue.TryDequeue(out Bitmap? frame) && frame is not null)
                     {
                         System.Diagnostics.Debug.Assert(frame.Width == CurrentVideoWidth && frame.Height == CurrentVideoHeight, "Can't change frame dimensions during recording");
 
@@ -215,11 +215,14 @@ namespace rgat
                 GlobalConfig.Settings.Media.ImageCapture_Format = "PNG";
             }
 
+            //todo this is windows only apparently
             ImageFormat format = ImageFormat.Bmp;
             string extension = ".bmp";
             foreach (var codec in _imageCodecs)
             {
-                if (codec.FormatDescription == GlobalConfig.Settings.Media.ImageCapture_Format)
+                if (codec is not null && 
+                    codec.FilenameExtension is not null &&
+                    codec.FormatDescription == GlobalConfig.Settings.Media.ImageCapture_Format)
                 {
                     extension = codec.FilenameExtension.Split(';')[0].Split('.')[1];
                     switch (GlobalConfig.Settings.Media.ImageCapture_Format)
@@ -384,7 +387,7 @@ namespace rgat
             }
             else
             {
-                if (DetectFFmpeg(out string path))
+                if (DetectFFmpeg(out string? path))
                 {
                     Loaded = true;
                     GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.FFmpegPath, path);
@@ -399,7 +402,7 @@ namespace rgat
 
 
         DateTime _lastCheck = DateTime.MinValue;
-        bool DetectFFmpeg(out string path)
+        bool DetectFFmpeg(out string? path)
         {
             path = "";
             if (DateTime.Now < _lastCheck.AddSeconds(5)) return false;

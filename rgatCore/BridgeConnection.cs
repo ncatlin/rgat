@@ -19,16 +19,18 @@ namespace rgat
 {
     public class BridgeConnection
     {
-        public enum emsgType { 
-            Meta, 
-            Command, 
-            CommandResponse, 
+        public enum emsgType
+        {
+            Meta,
+            Command,
+            CommandResponse,
             TraceMeta, TraceData,
-            TraceCommand, Log, 
+            TraceCommand, Log,
             /// <summary>
             /// Non-trace related data sent without requiring a command to generate it (eg: result of signature scanning)
             /// </summary>
-            AsyncData, BAD };
+            AsyncData, BAD
+        };
 
 
         public delegate void OnGotDataCallback(NETWORK_MSG data);
@@ -129,7 +131,7 @@ namespace rgat
             Task connect;
             try
             {
-                AddNetworkDisplayLogMessage($"Connecting from {((IPEndPoint)client.Client.LocalEndPoint).Address} to {remoteConnectAddress}:{remoteConnectPort}", null);
+                AddNetworkDisplayLogMessage($"Connecting from {((IPEndPoint)client.Client.LocalEndPoint!).Address} to {remoteConnectAddress}:{remoteConnectPort}", null);
                 connect = _ActiveClient.ConnectAsync(remoteConnectAddress, remoteConnectPort);
                 Task.WaitAny(new Task[] { connect }, CancelToken);
             }
@@ -178,7 +180,7 @@ namespace rgat
             }
             else
             {
-                if (connect.Status == TaskStatus.Faulted)
+                if (connect.Status == TaskStatus.Faulted && connect.Exception is not null)
                 {
                     switch (connect.Exception.InnerException)
                     {
@@ -256,7 +258,7 @@ namespace rgat
                 }
 
                 return ASCIIEncoding.ASCII.GetString(buf) == expectedPT;
-            } 
+            }
             catch (Exception e)
             {
                 Logging.RecordError($"Failed to authenticate connection: {e.Message}");
@@ -281,7 +283,7 @@ namespace rgat
             try
             {
                 Task<bool> authenticate = Task<bool>.Run(() => AuthenticateConnectionTask(isServer));
-                Task.WaitAny( new Task[] { authenticate }, (int)2500, CancelToken ); //wait on delay because a bad size field will hang the read() operation
+                Task.WaitAny(new Task[] { authenticate }, (int)2500, CancelToken); //wait on delay because a bad size field will hang the read() operation
                 return authenticate.IsCompleted && authenticate.Result is true;
             }
             catch (Exception e)
@@ -389,7 +391,7 @@ namespace rgat
         /// <returns>If successful</returns>
         bool RawSendData(NETWORK_MSG msg)
         {
-            Task write = null;
+            Task? write = null;
             try
             {
                 Span<byte> plaintext;
@@ -429,7 +431,7 @@ namespace rgat
                 }
                 else
                 {
-                    if (write.Status == TaskStatus.Faulted)
+                    if (write is not null && write.Status == TaskStatus.Faulted && write.Exception is not null)
                     {
                         switch (write.Exception.InnerException)
                         {
@@ -544,7 +546,7 @@ namespace rgat
             if (_ActiveClient != null && _ActiveClient.Connected)
             {
 
-                IPEndPoint clientEndpoint = (IPEndPoint)_ActiveClient.Client.RemoteEndPoint;
+                IPEndPoint? clientEndpoint = (IPEndPoint?)_ActiveClient.Client?.RemoteEndPoint;
                 AddNetworkDisplayLogMessage($"Incoming connection from {clientEndpoint}", null);
 
                 if (!TryCreateCryptoStream(_ActiveClient, isServer: true))
@@ -596,6 +598,12 @@ namespace rgat
 
         void ServeAuthenticatedConnection(OnConnectSuccessCallback connectedCallback)
         {
+            if (_ActiveClient.Client.RemoteEndPoint is null)
+            {
+                Teardown();
+                Logging.RecordError($"ServeAuthenticatedConnection got null remote endpoint");
+                return;
+            }
             RemoteEndPoint = (IPEndPoint)_ActiveClient.Client.RemoteEndPoint;
             LastAddress = RemoteEndPoint.Address.ToString();
             BridgeState = eBridgeState.Connected;
@@ -792,7 +800,7 @@ namespace rgat
                         if (_reader != null) _reader.Dispose();
                         if (_writer != null) _writer.Dispose();
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         AddNetworkDisplayLogMessage($"Teardown warning: {e.Message}", Themes.eThemeColour.eWarnStateColour);
                     }
@@ -843,7 +851,7 @@ namespace rgat
                     break;
                 }
 
-                NETWORK_MSG[] items = null;
+                NETWORK_MSG[]? items = null;
                 lock (_sendQueueLock)
                 {
                     items = _OutDataQueue.ToArray();
@@ -909,8 +917,11 @@ namespace rgat
                 }
                 else
                 {
-                    Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(_ActiveClient.Client.RemoteEndPoint)} - response did not decrypt to the expected value", 
-                        Logging.LogFilterType.TextError);
+                    if (_ActiveClient.Client.RemoteEndPoint is not null)
+                    {
+                        Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(_ActiveClient.Client.RemoteEndPoint)} - response did not decrypt to the expected value",
+                            Logging.LogFilterType.TextError);
+                    }
                     AddNetworkDisplayLogMessage("Authentication failed - Bad Key", Themes.eThemeColour.eAlertWindowBg);
                 }
                 return false;
@@ -954,7 +965,11 @@ namespace rgat
                 else
                 {
                     AddNetworkDisplayLogMessage("Authentication failed - Bad Key", Themes.eThemeColour.eAlertWindowBg);
-                    Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(_ActiveClient.Client.RemoteEndPoint)} - prelude did not decrypt to the expected value", Logging.LogFilterType.TextError);
+
+                    if (_ActiveClient.Client.RemoteEndPoint is not null)
+                    {
+                        Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(_ActiveClient.Client.RemoteEndPoint)} - prelude did not decrypt to the expected value", Logging.LogFilterType.TextError);
+                    }
                 }
                 return false;
             }

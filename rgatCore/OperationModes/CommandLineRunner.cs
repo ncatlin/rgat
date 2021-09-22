@@ -52,10 +52,10 @@ namespace rgat.OperationModes
             // api data is the startup item that can be loaded latest as it's only needed when looking at traces
             // we could load it in parallel with the widgets/config but if it gets big then it will be the limiting factor in start up speed
             // doing it last means the user can do stuff while it loads
-            Task apiTask = null;
+            Task? apiTask = null;
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
             {
-                string datafile = APIDetailsWin.FindAPIDatafile();
+                string? datafile = APIDetailsWin.FindAPIDatafile();
                 apiTask = Task.Run(() => APIDetailsWin.Load(datafile));
             }
             else

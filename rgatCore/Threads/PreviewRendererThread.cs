@@ -66,7 +66,7 @@ namespace rgat.Threads
 
                     if (graph.DrawnEdgesCount > 0)
                     {
-                        _graphWidget.GeneratePreviewGraph(cl, graph);
+                        _graphWidget!.GeneratePreviewGraph(cl, graph);
                     }
 
                     if (rgatState.rgatIsExiting) break;

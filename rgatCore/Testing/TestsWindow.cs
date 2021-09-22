@@ -858,7 +858,7 @@ namespace rgat.Widgets
                         foreach (string testDir in _orderedTestDirs)
                         {
 
-                            if (!_testDirectories.TryGetValue(testDir, out TestCategory category) || !category.Tests.Any()) continue;
+                            if (!_testDirectories.TryGetValue(testDir, out TestCategory? category) || !category.Tests.Any()) continue;
                             if (((eCatFilter)_selectedFilter) == eCatFilter.StarredCat && !category.Starred) continue;
 
                             List<TestCase> shownTests = new List<TestCase>();

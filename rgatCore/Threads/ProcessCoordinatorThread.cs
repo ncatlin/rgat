@@ -77,11 +77,11 @@ namespace rgat.Threads
 
         void ConnectCallback(IAsyncResult ar)
         {
-            NamedPipeServerStream nps = (NamedPipeServerStream)ar.AsyncState;
+            NamedPipeServerStream? nps = (NamedPipeServerStream?)ar.AsyncState;
 
             try
             {
-                nps.EndWaitForConnection(ar);
+                nps!.EndWaitForConnection(ar);
                 Logging.RecordLogEvent($"Incoming connection on coordinator pipe", Logging.LogFilterType.TextDebug);
             }
             catch (Exception e)

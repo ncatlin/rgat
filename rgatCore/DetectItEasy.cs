@@ -26,8 +26,9 @@ namespace rgat
         {
             if (Path.GetDirectoryName(sigsDiEPath) == "db")
             {
-                string parent = Directory.GetParent(sigsDiEPath).FullName;
-                if (Directory.Exists(parent)) sigsDiEPath = parent;
+                string? parent = Directory.GetParent(sigsDiEPath)?.FullName;
+                if (parent is not null && Directory.Exists(parent)) 
+                    sigsDiEPath = parent;
             }
 
             //Don't trust arbitrary scripts passed to jint, so only use original repo
@@ -131,7 +132,7 @@ namespace rgat
                 options.deepScan = false; //very slow
                 while (true)
                 {
-                    result = scanner.ScanFile(handle, targ.FilePath, options, out string error);
+                    result = scanner.ScanFile(handle, targ.FilePath, options, out string? error);
                     if (result == "Reload In Progress")
                     {
                         Thread.Sleep(100);
@@ -159,11 +160,11 @@ namespace rgat
         }
 
 
-        public DieScript.SCANPROGRESS GetDIEScanProgress(BinaryTarget targ)
+        public DieScript.SCANPROGRESS? GetDIEScanProgress(BinaryTarget targ)
         {
             if (DIEScanHandles.TryGetValue(targ, out ulong handle))
             {
-                return dielib.QueryProgress(handle);
+                return dielib?.QueryProgress(handle);
             }
             return new DieScript.SCANPROGRESS();
         }

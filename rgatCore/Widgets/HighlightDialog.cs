@@ -56,15 +56,15 @@ namespace rgat.Widgets
 
         private void RefreshExternHighlightData(uint[] externNodes)
         {
-            ProtoGraph protog = _ActiveGraph?.InternalProtoGraph;
-            ProcessRecord processrec = protog?.ProcessData;
+            ProtoGraph protog = _ActiveGraph.InternalProtoGraph;
+            ProcessRecord processrec = protog.ProcessData;
 
             if (processrec == null) return;
 
             foreach (uint nodeIdx in externNodes)
             {
-                NodeData n = protog.safe_get_node(nodeIdx);
-
+                NodeData? n = protog.safe_get_node(nodeIdx);
+                System.Diagnostics.Debug.Assert(n is not null);
                 if (!_activeHighlights.displayedModules.TryGetValue(n.GlobalModuleID, out moduleEntry modentry))
                 {
                     modentry = new moduleEntry();
@@ -102,7 +102,7 @@ namespace rgat.Widgets
 
             _ActiveGraph.LayoutState.Lock.EnterUpgradeableReadLock();
 
-            _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[] attribsArray);
+            _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[]? attribsArray);
             if (syminfo.selected)
             {
                 _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.eExternals);
@@ -123,7 +123,7 @@ namespace rgat.Widgets
         {
             module_modentry.symbols[syminfo.address] = syminfo;
             //todo lock?
-            _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[] attribsArray);
+            _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[]? attribsArray);
             if (syminfo.hovered)
             {
                 _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.eExternals);
@@ -317,7 +317,7 @@ namespace rgat.Widgets
                         }
 
                         _ActiveGraph.LayoutState.Lock.EnterUpgradeableReadLock();
-                        _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[] attribsArray);
+                        _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[]? attribsArray);
                         _ActiveGraph.RemoveHighlightedNodes(_ActiveGraph.HighlightedSymbolNodes, attribsArray, CONSTANTS.HighlightType.eExternals);
                         _ActiveGraph.LayoutState.Lock.ExitUpgradeableReadLock();
 

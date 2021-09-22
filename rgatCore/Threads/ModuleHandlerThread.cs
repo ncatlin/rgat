@@ -152,10 +152,10 @@ namespace rgat
             if (paramsTok.Type == JTokenType.Object)
             {
                 JObject parameters = (JObject)paramsTok;
-                if (parameters.TryGetValue("Thread#", out JToken threadTok) && (threadTok.Type == JTokenType.Integer) &&
-                    parameters.TryGetValue("Pipe#", out JToken pipeTok) && (pipeTok.Type == JTokenType.Integer))
+                if (parameters.TryGetValue("Thread#", out JToken? threadTok) && (threadTok.Type == JTokenType.Integer) &&
+                    parameters.TryGetValue("Pipe#", out JToken? pipeTok) && (pipeTok.Type == JTokenType.Integer))
                 {
-                    ProtoGraph graph = null;
+                    ProtoGraph? graph = null;
                     ulong ThreadRef = threadTok.ToObject<ulong>();
                     uint pipeID = pipeTok.ToObject<uint>();
                     lock (_lock)
@@ -260,14 +260,14 @@ namespace rgat
                 return;
             }
 
-            ProtoGraph protoGraph = trace.GetProtoGraphByID(TID);
+            ProtoGraph? protoGraph = trace.GetProtoGraphByID(TID);
             if (protoGraph != null && !protoGraph.Terminated)
             {
                 protoGraph.SetTerminated();
             }
 
             //shouldn't be needed - plotter should get this from the graph
-            if (trace.PlottedGraphs.TryGetValue(TID, out PlottedGraph graph))
+            if (trace.PlottedGraphs.TryGetValue(TID, out PlottedGraph? graph))
             {
                 graph.ReplayState = PlottedGraph.REPLAY_STATE.eEnded;
                 return;
@@ -285,7 +285,7 @@ namespace rgat
                 return;
             }
 
-            TraceRecord termTrace = this.trace.GetTraceByID(PID);
+            TraceRecord? termTrace = this.trace.GetTraceByID(PID);
             if (termTrace != null)
             {
                 termTrace.RecordTimelineEvent(Logging.eTimelineEvent.ProcessEnd, trace);
@@ -423,7 +423,7 @@ namespace rgat
 
         void ConnectCallback(IAsyncResult ar)
         {
-            string pipeType = (string)ar.AsyncState;
+            string? pipeType = (string?)ar.AsyncState;
             try
             {
                 if (pipeType == "Commands")
@@ -724,7 +724,7 @@ namespace rgat
             }
 
 
-            byte[] pendingBuf = null;
+            byte[]? pendingBuf = null;
             const int BufMax = 4096;
             int bytesRead = 0;
             while (!rgatState.rgatIsExiting && eventPipe.IsConnected)

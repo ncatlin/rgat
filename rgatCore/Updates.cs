@@ -61,9 +61,9 @@ namespace rgat
                     foreach (JToken releaseTok in responseArr)
                     {
                         if (releaseTok.Type != JTokenType.Object) continue;
-                        if (((JObject)releaseTok).TryGetValue("tag_name", out JToken releaseTagTok)
+                        if (((JObject)releaseTok).TryGetValue("tag_name", out JToken? releaseTagTok)
                             &&
-                            ((JObject)releaseTok).TryGetValue("zipball_url", out JToken zipUrlTok)
+                            ((JObject)releaseTok).TryGetValue("zipball_url", out JToken? zipUrlTok)
                             )
                         {
                             string tagString = releaseTagTok.ToString();
@@ -99,7 +99,7 @@ namespace rgat
                             content = response.Result.Content.ReadAsStringAsync();
                             content.Wait(exitToken);
                             JObject changelogObj = JObject.Parse(content.Result);
-                            if (changelogObj.TryGetValue("content", out JToken b64ChangelogTok) && b64ChangelogTok.Type == JTokenType.String)
+                            if (changelogObj.TryGetValue("content", out JToken? b64ChangelogTok) && b64ChangelogTok.Type == JTokenType.String)
                             {
                                 string parsedChangelogChanges = ParseChangelogChanges(b64ChangelogTok.ToString());
                                 GlobalConfig.RecordAvailableUpdateDetails(latestVersion, parsedChangelogChanges, latestZip);
@@ -151,7 +151,7 @@ namespace rgat
                 if (versionSectionLines.Length < 2) continue;
                 string line = versionSectionLines[0].Trim();
                 string versionString = line.Substring(1, line.IndexOf(']') - 1);
-                if (!System.Version.TryParse(versionString, out Version newChangeVersion)) continue; //'Unreleased'
+                if (!System.Version.TryParse(versionString, out Version? newChangeVersion)) continue; //'Unreleased'
                 if (newChangeVersion <= currentVersion) break;
 
                 totalNewVersionCount += 1;
@@ -177,7 +177,7 @@ namespace rgat
             string result = "";
             foreach (string expectedChangeType in expectedChangeTypes)
             {
-                if (changesDict.TryGetValue(expectedChangeType, out List<string> changes))
+                if (changesDict.TryGetValue(expectedChangeType, out List<string>? changes))
                 {
                     result += $"####{expectedChangeType}\n";
                     foreach (string change in changes) result += change + "\n";
@@ -349,12 +349,12 @@ namespace rgat
             try
             {
                 //first check for a staged download 
-                if (Version.TryParse(GlobalConfig.Settings.Updates.StagedDownloadVersion, out Version stagedVersion))
+                if (Version.TryParse(GlobalConfig.Settings.Updates.StagedDownloadVersion, out Version? stagedVersion))
                 {
                     if (stagedVersion == GlobalConfig.Settings.Updates.UpdateLastCheckVersion)
                     {
                         string stagedrgat = Path.Combine(GlobalConfig.Settings.Updates.StagedDownloadPath, "rgat.exe");
-                        if (File.Exists(stagedrgat) && GlobalConfig.PreviousSignatureCheckPassed(stagedrgat, out string error, out bool timeWarning))
+                        if (File.Exists(stagedrgat) && GlobalConfig.PreviousSignatureCheckPassed(stagedrgat, out string? error, out bool timeWarning))
                         {
                             if (timeWarning)
                             {
@@ -450,7 +450,7 @@ namespace rgat
             bool failed = false;
             if (File.Exists(new_rgatPath))
             {
-                if (GlobalConfig.VerifyCertificate(new_rgatPath, "Open Source Developer, Nia CATLIN", out string error, out string timeWarning))
+                if (GlobalConfig.VerifyCertificate(new_rgatPath, "Open Source Developer, Nia CATLIN", out string? error, out string? timeWarning))
                 {
                     if (timeWarning != null)
                     {
@@ -469,8 +469,8 @@ namespace rgat
                     try
                     {
                         File.Delete(new_rgatPath);
-                        string filedir = Path.GetDirectoryName(new_rgatPath);
-                        if (Directory.GetFiles(filedir).Length == 0)
+                        string? filedir = Path.GetDirectoryName(new_rgatPath);
+                        if (filedir is not null && Directory.GetFiles(filedir).Length == 0)
                         {
                             Directory.Delete(filedir);
                         }

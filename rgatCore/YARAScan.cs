@@ -149,7 +149,7 @@ namespace rgat
 
             //find precompiled rules files in the current directory of the form "[disk_|mem_][UINT]_.yarac"
             string[] filesList = Directory.GetFiles(rulesDir, "precompiled_rules*.yarac", SearchOption.TopDirectoryOnly);
-            string compiledFile = null;
+            string? compiledFile = null;
 
             //get the most recently modified disk_ and mem_ yarac files
             foreach (string filepath in filesList)
@@ -209,7 +209,7 @@ namespace rgat
         }
 
 
-        public Rule[] GetRuleData()
+        public Rule[]? GetRuleData()
         {
             if (loadedRules == null) return null;
             lock (_scanLock)

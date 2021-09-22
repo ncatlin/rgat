@@ -73,7 +73,7 @@ namespace rgat
 
 
 
-        public override byte[] DeQueueData()
+        public override byte[]? DeQueueData()
         {
             byte[] nextMessage;
             lock (QueueSwitchLock)
@@ -167,7 +167,7 @@ namespace rgat
             QueueIngestedData AddData = (QueueIngestedData)queueFunc;
             while (!rgatState.rgatIsExiting && (threadpipe.IsConnected || RawQueue.Count > 0))
             {
-                if (!RawQueue.TryDequeue(out Tuple<byte[], int> buf_sz))
+                if (!RawQueue.TryDequeue(out Tuple<byte[], int>? buf_sz))
                 {
                     try
                     {

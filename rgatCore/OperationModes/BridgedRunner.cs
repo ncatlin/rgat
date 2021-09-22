@@ -225,7 +225,7 @@ namespace rgat.OperationModes
                     try
                     {
                         string responseStr = GetString(item.data);
-                        if (!ParseResponse(responseStr, out int commandID, out JToken response))
+                        if (!ParseResponse(responseStr, out int commandID, out JToken? response))
                         {
                             rgatState.NetworkBridge.Teardown($"Bad command ({commandID}) response");
                             break;
@@ -308,7 +308,7 @@ namespace rgat.OperationModes
                         try
                         {
                             string asyncStr = GetString(item.data);
-                            if (!ParseAsync(asyncStr, out string name, out JToken data))
+                            if (!ParseAsync(asyncStr, out string? name, out JToken? data))
                             {
                                 rgatState.NetworkBridge.Teardown($"Bad async data ({name})");
                                 break;
@@ -333,14 +333,14 @@ namespace rgat.OperationModes
         }
 
 
-        bool ParseAsync(string injson, out string name, out JToken data)
+        bool ParseAsync(string injson, out string? name, out JToken? data)
         {
             name = null; data = null;
             try
             {
                 JObject msgObj = JObject.Parse(injson);
 
-                if (!msgObj.TryGetValue("Name", out JToken nameTok) || nameTok.Type != JTokenType.String) return false;
+                if (!msgObj.TryGetValue("Name", out JToken? nameTok) || nameTok.Type != JTokenType.String) return false;
                 name = nameTok.ToString();
                 if (msgObj.TryGetValue("Data", out data)) return true;
 
@@ -388,9 +388,12 @@ namespace rgat.OperationModes
         {
             if (data.Type is not JTokenType.Object) return false;
 
-            JObject values = data.ToObject<JObject>();
-            if (values.TryGetValue("YARA", out JToken yaraTok) && yaraTok.Type is JTokenType.Date) rgatState.YARALib.EndpointNewestSignature = yaraTok.ToObject<DateTime>();
-            if (values.TryGetValue("DIE", out JToken dieTok) && dieTok.Type is JTokenType.Date) rgatState.DIELib.EndpointNewestSignature = dieTok.ToObject<DateTime>();
+            JObject? values = data.ToObject<JObject>();
+            if (values is null) return false;
+            if (values.TryGetValue("YARA", out JToken? yaraTok) && yaraTok.Type is JTokenType.Date) 
+                rgatState.YARALib.EndpointNewestSignature = yaraTok.ToObject<DateTime>();
+            if (values.TryGetValue("DIE", out JToken? dieTok) && dieTok.Type is JTokenType.Date) 
+                rgatState.DIELib.EndpointNewestSignature = dieTok.ToObject<DateTime>();
 
             return true;
         }
@@ -399,17 +402,17 @@ namespace rgat.OperationModes
         {
             if (data.Type is not JTokenType.Object) return false;
 
-            JObject values = data.ToObject<JObject>();
-            if (!values.TryGetValue("Obj", out JToken sigObjTok)) return false;
-            if (!values.TryGetValue("TargetSHA", out JToken shaTok)) return false;
-            if (values.TryGetValue("Type", out JToken typeTok) && typeTok.Type is JTokenType.String)
+            JObject? values = data.ToObject<JObject>();
+            if (values is null || !values.TryGetValue("Obj", out JToken? sigObjTok)) return false;
+            if (!values.TryGetValue("TargetSHA", out JToken? shaTok)) return false;
+            if (values.TryGetValue("Type", out JToken? typeTok) && typeTok.Type is JTokenType.String)
             {
                 if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget target)) return false;
                 string sigType = typeTok.ToString();
                 switch (sigType)
                 {
                     case "YARA":
-                        YARAScan.YARAHit yarahit = sigObjTok.ToObject<YARAScan.YARAHit>();
+                        YARAScan.YARAHit? yarahit = sigObjTok.ToObject<YARAScan.YARAHit>();
                         target.AddYaraSignatureHit(yarahit);
                         break;
 
@@ -527,20 +530,20 @@ namespace rgat.OperationModes
 
 
 
-        bool ParseCommandFields(JObject cmd, out string actualCmd, out int cmdID, out JToken paramTok)
+        bool ParseCommandFields(JObject cmd, out string? actualCmd, out int cmdID, out JToken? paramTok)
         {
             actualCmd = "";
             paramTok = null;
             cmdID = -1;
 
-            if (!cmd.TryGetValue("Name", out JToken nameTok) || nameTok.Type != JTokenType.String)
+            if (!cmd.TryGetValue("Name", out JToken? nameTok) || nameTok.Type != JTokenType.String)
             {
                 Logging.RecordError("Error: Invalid command.");
                 return false;
             }
             actualCmd = nameTok.ToString();
 
-            if (!cmd.TryGetValue("CmdID", out JToken idTok) || idTok.Type != JTokenType.Integer)
+            if (!cmd.TryGetValue("CmdID", out JToken? idTok) || idTok.Type != JTokenType.Integer)
             {
                 Logging.RecordError("Error: Invalid command ID.");
                 return false;
@@ -561,7 +564,7 @@ namespace rgat.OperationModes
                 return;
             }
 
-            if (!ParseCommandFields(cmd, out string actualCmd, out int cmdID, out JToken paramfield))
+            if (!ParseCommandFields(cmd, out string? actualCmd, out int cmdID, out JToken? paramfield))
             {
                 rgatState.NetworkBridge.Teardown("Command parse failure");
                 return;
@@ -631,26 +634,31 @@ namespace rgat.OperationModes
                 return;
             }
 
-            JObject paramsObj = paramfield.ToObject<JObject>();
-            if (!paramsObj.TryGetValue("Type", out JToken typeTok) || typeTok.Type is not JTokenType.String ||
-                !paramsObj.TryGetValue("Zip", out JToken zipTok) || zipTok.Type is not JTokenType.String)
+            JObject? paramsObj = paramfield.ToObject<JObject>();
+            if (paramsObj is null ||
+                !paramsObj.TryGetValue("Type", out JToken? typeTok) || typeTok.Type is not JTokenType.String ||
+                !paramsObj.TryGetValue("Zip", out JToken? zipTok) || zipTok.Type is not JTokenType.String)
             {
                 Logging.RecordError("Bad params for HandleSignatureUpload");
                 return;
             }
 
-            string typeName = typeTok.ToString();
-            switch (typeName)
+            byte[]? zipBytes = zipTok.ToObject<byte[]>();
+            if (zipBytes is not null)
             {
-                case "YARA":
-                    rgatState.YARALib.ReplaceSignatures(zipTok.ToObject<byte[]>());
-                    break;
-                case "DIE":
-                    rgatState.DIELib.ReplaceSignatures(zipTok.ToObject<byte[]>());
-                    break;
-                default:
-                    Logging.RecordError($"Invalid signature type: {typeName}");
-                    break;
+                string typeName = typeTok.ToString();
+                switch (typeName)
+                {
+                    case "YARA":
+                        rgatState.YARALib.ReplaceSignatures(zipBytes);
+                        break;
+                    case "DIE":
+                        rgatState.DIELib.ReplaceSignatures(zipBytes);
+                        break;
+                    default:
+                        Logging.RecordError($"Invalid signature type: {typeName}");
+                        break;
+                }
             }
 
         }
@@ -663,9 +671,10 @@ namespace rgat.OperationModes
                 return;
             }
 
-            JObject paramsObj = paramfield.ToObject<JObject>();
-            if (!paramsObj.TryGetValue("Type", out JToken typeTok) || typeTok.Type is not JTokenType.String ||
-                !paramsObj.TryGetValue("TargetSHA1", out JToken shaTok) || shaTok.Type is not JTokenType.String)
+            JObject? paramsObj = paramfield.ToObject<JObject>();
+            if (paramsObj is null ||
+                !paramsObj.TryGetValue("Type", out JToken? typeTok) || typeTok.Type is not JTokenType.String ||
+                !paramsObj.TryGetValue("TargetSHA1", out JToken? shaTok) || shaTok.Type is not JTokenType.String)
             {
                 Logging.RecordError("Bad params for HandleSigScanCommand");
                 return;
@@ -677,7 +686,7 @@ namespace rgat.OperationModes
             }
 
             bool reload = false;
-            if (paramsObj.TryGetValue("Reload", out JToken reloadtok) && reloadtok.Type == JTokenType.Boolean )
+            if (paramsObj.TryGetValue("Reload", out JToken? reloadtok) && reloadtok.Type == JTokenType.Boolean )
                 reload = reloadtok.ToObject<bool>();
 
             string typeName = typeTok.ToString();
@@ -698,20 +707,24 @@ namespace rgat.OperationModes
 
         void StartHeadlessTrace(JToken paramfield)
         {
-            if (paramfield == null || paramfield.Type is not JTokenType.Object)
+            if (paramfield.Type is not JTokenType.Object)
             {
                 Logging.RecordError("Failed to parse StartHeadlessTrace params");
                 return;
             }
-            JObject paramsObj = paramfield.ToObject<JObject>();
+            JObject? paramsObj = paramfield.ToObject<JObject>();
+            if (paramsObj is null)
+            {
+                Logging.RecordError("Bad StartHeadlessTrace params");
+                return;
+            }
 
-
-            long testID = -1; string path = null;
-            if (paramsObj.TryGetValue("TestID", out JToken testIDTok) && testIDTok.Type == JTokenType.Integer)
+            long testID = -1; string? path = null;
+            if (paramsObj.TryGetValue("TestID", out JToken? testIDTok) && testIDTok.Type == JTokenType.Integer)
             {
                 testID = testIDTok.ToObject<long>();
             }
-            if (paramsObj.TryGetValue("TargetPath", out JToken pathTok) && pathTok.Type == JTokenType.String)
+            if (paramsObj.TryGetValue("TargetPath", out JToken? pathTok) && pathTok.Type == JTokenType.String)
             {
                 path = pathTok.ToString();
                 if (!File.Exists(path))
@@ -744,18 +757,18 @@ namespace rgat.OperationModes
             bool isDLL = target.PEFileObj.IsDll;
             int ordinal = 0;
 
-            if (isDLL && paramsObj.TryGetValue("Ordinal", out JToken ordTok) && ordTok.Type == JTokenType.Integer)
+            if (isDLL && paramsObj.TryGetValue("Ordinal", out JToken? ordTok) && ordTok.Type == JTokenType.Integer)
             {
                 ordinal = ordTok.ToObject<int>();
             }
 
-            string loaderName = null;
-            if (isDLL && paramsObj.TryGetValue("LoaderName", out JToken loaderTok) && loaderTok.Type == JTokenType.String)
+            string? loaderName = null;
+            if (isDLL && paramsObj.TryGetValue("LoaderName", out JToken? loaderTok) && loaderTok.Type == JTokenType.String)
             {
                 loaderName = loaderTok.ToObject<string>();
             }
 
-            Process p = ProcessLaunching.StartLocalTrace(pintool, path, target.PEFileObj, loaderName: loaderName, ordinal: ordinal, testID: testID);
+            Process? p = ProcessLaunching.StartLocalTrace(pintool, path, target.PEFileObj, loaderName: loaderName, ordinal: ordinal, testID: testID);
             if (p != null)
             {
                 rgatState.NetworkBridge.SendLog($"Trace of {path} launched as remote process ID {p.Id}", Logging.LogFilterType.TextAlert);
@@ -775,13 +788,14 @@ namespace rgat.OperationModes
                 Logging.RecordError("Failed to parse StartThreadIngestWorker params");
                 return false;
             }
-            JObject paramObj = paramfield.ToObject<JObject>();
+            JObject? paramObj = paramfield.ToObject<JObject>();
 
 
-            if (paramObj.TryGetValue("TID", out JToken tidTok) && tidTok.Type == JTokenType.Integer &&
-                paramObj.TryGetValue("PID", out JToken pidTok) && tidTok.Type == JTokenType.Integer &&
-                paramObj.TryGetValue("RID", out JToken ridTok) && tidTok.Type == JTokenType.Integer &&
-                paramObj.TryGetValue("ref", out JToken refTok) && tidTok.Type == JTokenType.Integer)
+            if (paramObj is not null &&
+                paramObj.TryGetValue("TID", out JToken? tidTok) && tidTok.Type == JTokenType.Integer &&
+                paramObj.TryGetValue("PID", out JToken? pidTok) && tidTok.Type == JTokenType.Integer &&
+                paramObj.TryGetValue("RID", out JToken? ridTok) && tidTok.Type == JTokenType.Integer &&
+                paramObj.TryGetValue("ref", out JToken? refTok) && tidTok.Type == JTokenType.Integer)
             {
                 string pipename = ModuleHandlerThread.GetTracePipeName(pidTok.ToObject<uint>(), ridTok.ToObject<long>(), tidTok.ToObject<ulong>());
                 Console.WriteLine("Opening pipe " + pipename);
@@ -831,13 +845,13 @@ namespace rgat.OperationModes
             data.Add("CurrentExists", Directory.Exists(dir));
             data.Add("Parent", (dirinfo.Parent != null) ? dirinfo.Parent.FullName : "");
             data.Add("ParentExists", dirinfo.Parent != null && Directory.Exists(dirinfo.Parent.FullName));
-            data.Add("Contents", GetDirectoryListing(dir, out string error));
+            data.Add("Contents", GetDirectoryListing(dir, out string? error));
             data.Add("Error", error);
             return data;
             //rootfolder
         }
 
-        JObject GetDirectoryListing(string param, out string error)
+        JObject GetDirectoryListing(string param, out string? error)
         {
             JArray files = new JArray();
             JArray dirs = new JArray();
@@ -890,13 +904,13 @@ namespace rgat.OperationModes
 
 
 
-        bool ParseResponse(string messageJson, out int commandID, out JToken responseData)
+        bool ParseResponse(string messageJson, out int commandID, out JToken? responseData)
         {
             commandID = -1; responseData = null;
             try
             {
                 JObject responseJsn = JObject.Parse(messageJson, _JSONLoadSettings);
-                if (!responseJsn.TryGetValue("CommandID", out JToken cID) || cID == null || cID.Type != JTokenType.Integer)
+                if (!responseJsn.TryGetValue("CommandID", out JToken? cID) || cID == null || cID.Type != JTokenType.Integer)
                 {
                     Logging.RecordLogEvent($"Missing valid command ID in response JSON: [snippet: {messageJson.Substring(0, Math.Min(messageJson.Length, 128))}]");
                     return false;
@@ -933,7 +947,7 @@ namespace rgat.OperationModes
         void ConnectToListener(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback onConnected)
         {
 
-            IPAddress localBinding = GetLocalAddress();
+            IPAddress? localBinding = GetLocalAddress();
             if (localBinding == null)
             {
                 Logging.RecordError($"Failed to get local address");
@@ -941,7 +955,7 @@ namespace rgat.OperationModes
             }
 
             Logging.RecordLogEvent($"Initialising . {GlobalConfig.StartOptions.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
-            if (!GetRemoteAddress(GlobalConfig.StartOptions.ConnectModeAddress, out string address, out int port))
+            if (!GetRemoteAddress(GlobalConfig.StartOptions.ConnectModeAddress, out string? address, out int port))
             {
                 Logging.RecordError($"Failed to parse address/port from param {GlobalConfig.StartOptions.ConnectModeAddress}");
                 return;
@@ -959,7 +973,7 @@ namespace rgat.OperationModes
         }
 
 
-        bool GetRemoteAddress(string param, out string address, out int port)
+        bool GetRemoteAddress(string param, out string? address, out int port)
         {
             address = "";
             port = -1;
@@ -979,9 +993,10 @@ namespace rgat.OperationModes
             return false;
         }
 
-        IPAddress GetLocalAddress()
+
+        IPAddress? GetLocalAddress()
         {
-            IPAddress result = null;
+            IPAddress? result = null;
             if (GlobalConfig.StartOptions.ActiveNetworkInterface == null && GlobalConfig.StartOptions.Interface != null)
             {
                 GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(GlobalConfig.StartOptions.Interface);
@@ -989,7 +1004,7 @@ namespace rgat.OperationModes
 
             if (GlobalConfig.StartOptions.ActiveNetworkInterface == null) //user didn't pass a param, or 
             {
-                if (IPAddress.TryParse(GlobalConfig.StartOptions.Interface, out IPAddress address))
+                if (IPAddress.TryParse(GlobalConfig.StartOptions.Interface, out IPAddress? address))
                 {
                     result = address;
                 }
@@ -1034,7 +1049,7 @@ namespace rgat.OperationModes
         void StartListenerMode(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback connectCallback)
         {
 
-            IPAddress localAddr = GetLocalAddress();
+            IPAddress? localAddr = GetLocalAddress();
             if (localAddr == null)
             {
                 Console.WriteLine("Error: no local address to connect from");
@@ -1067,7 +1082,7 @@ namespace rgat.OperationModes
             {
                 _incomingData.Clear();
             }
-            NETWORK_MSG[] incoming = null;
+            NETWORK_MSG[]? incoming = null;
             while (!rgatState.rgatIsExiting)
             {
                 try

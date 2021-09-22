@@ -51,27 +51,27 @@ namespace rgat
             {
                 apiObj = new APICALL();
                 if (apiTok.Type is not JTokenType.Object) return false;
-                JObject jobj = apiTok.ToObject<JObject>();
+                JObject? jobj = apiTok.ToObject<JObject>();
+                if (jobj is null) return false;
 
-
-                if (!jobj.TryGetValue("CallIdx", out JToken cidxTok)) return false;
+                if (!jobj.TryGetValue("CallIdx", out JToken? cidxTok)) return false;
                 apiObj.index = cidxTok.ToObject<int>();
-                if (!jobj.TryGetValue("Repeats", out JToken repTok)) return false;
+                if (!jobj.TryGetValue("Repeats", out JToken? repTok)) return false;
                 apiObj.repeats = repTok.ToObject<ulong>();
-                if (!jobj.TryGetValue("uniqID", out JToken idTok)) return false;
+                if (!jobj.TryGetValue("uniqID", out JToken? idTok)) return false;
                 apiObj.uniqID = idTok.ToObject<ulong>();
 
-                if (!jobj.TryGetValue("Graph", out JToken graphTimeTok)) return false;
+                if (!jobj.TryGetValue("Graph", out JToken? graphTimeTok)) return false;
                 DateTime graphTime = graphTimeTok.ToObject<DateTime>();
                 apiObj.graph = trace.GetProtoGraphByTime(graphTime);
                 if (apiObj.graph is null) return false;
 
-                if (!jobj.TryGetValue("Node", out JToken nidxTok)) return false;
+                if (!jobj.TryGetValue("Node", out JToken? nidxTok)) return false;
                 int nodeIdx = nidxTok.ToObject<int>();
                 if (nodeIdx < apiObj.graph.NodeList.Count)
                     apiObj.node = apiObj.graph.NodeList[nodeIdx];
 
-                if (jobj.TryGetValue("Details", out JToken deTok))
+                if (jobj.TryGetValue("Details", out JToken? deTok))
                 {
                     if (!DeserialiseEffects(deTok, apiObj)) return false;
                 }
@@ -89,37 +89,53 @@ namespace rgat
             {
                 try
                 {
-                    JObject deJObj = deTok.ToObject<JObject>();
+                    JObject? deJObj = deTok.ToObject<JObject>();
+                    if (deJObj is null) return false;
+
                     apiObj.APIDetails = deTok.ToObject<APIDetailsWin.API_ENTRY>();
                     if (apiObj.APIDetails is not null &&
-                        deJObj.TryGetValue("Effects", out JToken effTok) &&
+                        deJObj.TryGetValue("Effects", out JToken? effTok) &&
                         effTok.Type is JTokenType.Array)
                     {
-                        JArray effArray = effTok.ToObject<JArray>();
-                        for (int effecti = 0; effecti < effArray.Count; effecti++)
+                        JArray? effArray = effTok.ToObject<JArray>();
+                        for (int effecti = 0; effecti < effArray?.Count; effecti++)
                         {
                             JToken effItem = effArray[effecti];
-                            JObject effectObj = effItem.ToObject<JObject>();
-                            if (effectObj.TryGetValue("TypeName", out JToken nameTok))
+                            JObject? effectObj = effItem.ToObject<JObject>();
+                            if (effectObj is null) return false;
+                            if (effectObj.TryGetValue("TypeName", out JToken? nameTok) && nameTok is not null)
                             {
                                 switch (nameTok.ToString())
                                 {
                                     case "Link":
-                                        APIDetailsWin.LinkReferenceEffect linkEff = new APIDetailsWin.LinkReferenceEffect();
-                                        linkEff.entityIndex = effectObj["entityIndex"].ToObject<int>();
-                                        linkEff.referenceIndex = effectObj["referenceIndex"].ToObject<int>();
-                                        apiObj.APIDetails.Value.Effects[effecti] = linkEff;
-                                        break;
+                                        {
+                                            APIDetailsWin.LinkReferenceEffect linkEff = new APIDetailsWin.LinkReferenceEffect();
+                                            JToken? entityIdx = effectObj["entityIndex"];
+                                            JToken? refIdx = effectObj["referenceIndex"];
+                                            if (entityIdx is null || refIdx is null) return false;
+                                            linkEff.entityIndex = entityIdx.ToObject<int>();
+                                            linkEff.referenceIndex = refIdx.ToObject<int>();
+                                            apiObj.APIDetails.Value.Effects[effecti] = linkEff;
+                                            break;
+                                        }
                                     case "Use":
-                                        APIDetailsWin.UseReferenceEffect useEff = new APIDetailsWin.UseReferenceEffect();
-                                        useEff.referenceIndex = effectObj["referenceIndex"].ToObject<int>();
-                                        apiObj.APIDetails.Value.Effects[effecti] = useEff;
-                                        break;
+                                        {
+                                            APIDetailsWin.UseReferenceEffect useEff = new APIDetailsWin.UseReferenceEffect();
+                                            JToken? refIdx = effectObj["referenceIndex"];
+                                            if (refIdx is null) return false;
+                                            useEff.referenceIndex = refIdx.ToObject<int>();
+                                            apiObj.APIDetails.Value.Effects[effecti] = useEff;
+                                            break;
+                                        }
                                     case "Destroy":
-                                        APIDetailsWin.DestroyReferenceEffect destroyEff = new APIDetailsWin.DestroyReferenceEffect();
-                                        destroyEff.referenceIndex = effectObj["referenceIndex"].ToObject<int>();
-                                        apiObj.APIDetails.Value.Effects[effecti] = destroyEff;
-                                        break;
+                                        {
+                                            APIDetailsWin.DestroyReferenceEffect destroyEff = new APIDetailsWin.DestroyReferenceEffect();
+                                            JToken? refIdx = effectObj["referenceIndex"];
+                                            if (refIdx is null) return false;
+                                            destroyEff.referenceIndex = refIdx.ToObject<int>();
+                                            apiObj.APIDetails.Value.Effects[effecti] = destroyEff;
+                                            break;
+                                        }
                                 }
 
                             }
@@ -193,7 +209,7 @@ namespace rgat
 
             public TIMELINE_EVENT(JObject jobj, TraceRecord trace) : base(eLogFilterBaseType.TimeLine)
             {
-                if (!jobj.TryGetValue("EvtType", out JToken evtType) || evtType.Type != JTokenType.Integer)
+                if (!jobj.TryGetValue("EvtType", out JToken? evtType) || evtType.Type != JTokenType.Integer)
                 {
                     Logging.RecordError("Bad timeline event type in saved timeline");
                     return;
@@ -201,7 +217,7 @@ namespace rgat
 
                 _eventType = evtType.ToObject<eTimelineEvent>();
 
-                JToken idtok, pidtok;
+                JToken? idtok, pidtok;
                 if (!jobj.TryGetValue("ID", out idtok) || idtok.Type != JTokenType.Integer ||
                     !jobj.TryGetValue("PARENT", out pidtok) || pidtok.Type != JTokenType.Integer)
                 {
@@ -228,7 +244,7 @@ namespace rgat
                         break;
 
                     case eTimelineEvent.APICall:
-                        if (!jobj.TryGetValue("API", out JToken apiTok))
+                        if (!jobj.TryGetValue("API", out JToken? apiTok))
                         {
                             Logging.RecordError("No APICALL data in timeline api event");
                             return;

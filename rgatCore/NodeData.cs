@@ -129,7 +129,7 @@ namespace rgat
                 if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
                 int mutationIndex = nodeData[jsnArrIdx].ToObject<int>();
 
-                if (!processinfo.disassembly.TryGetValue(address, out List<InstructionData> addrInstructions))
+                if (!processinfo.disassembly.TryGetValue(address, out List<InstructionData>? addrInstructions))
                 {
                     Console.WriteLine("[rgat] Error. Failed to find address " + address + " in disassembly for node " + jsnArrIdx);
                     return ErrorAtIndex(jsnArrIdx);
@@ -244,7 +244,7 @@ namespace rgat
                         Label += "<";
                         foreach (int nidx in OutgoingNeighboursSet)
                         {
-                            EdgeData targEdge = graph.GetEdge(index, (uint)nidx);
+                            EdgeData? targEdge = graph.GetEdge(index, (uint)nidx);
                             if (targEdge != null)
                                 Label += $" {nidx}:{targEdge.executionCount}, ";
                         }
@@ -262,7 +262,7 @@ namespace rgat
         /// <returns>The label</returns>
         public string CreateSymbolLabel(ProtoGraph graph, int specificCallIndex = -1)
         {
-            string symbolText = "";
+            string? symbolText = "";
             bool found = false;
             if (graph.ProcessData.GetSymbol(GlobalModuleID, address, out symbolText))
             {
@@ -352,7 +352,7 @@ namespace rgat
         public List<Tuple<string, WritableRgbaFloat>> CreateColourisedSymbolCall(ProtoGraph graph, int specificCallIndex, WritableRgbaFloat colour1, WritableRgbaFloat colour2)
         {
             List<Tuple<string, WritableRgbaFloat>> result = new List<Tuple<string, WritableRgbaFloat>>();
-            string symbolText = "";
+            string? symbolText = "";
             bool found = false;
             if (!graph.ProcessData.GetSymbol(GlobalModuleID, address, out symbolText))
             {

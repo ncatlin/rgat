@@ -110,11 +110,11 @@ namespace rgat
             return result.ToArray();
         }
 
-        public static NetworkInterface ValidateNetworkInterface(string interfaceCmdlineString)
+        public static NetworkInterface? ValidateNetworkInterface(string interfaceCmdlineString)
         {
             if (interfaceCmdlineString == null) return null;
 
-            NetworkInterface matchedInterface = null;
+            NetworkInterface? matchedInterface = null;
             NetworkInterface[] validInterfaces = GetInterfaces();
 
             string comparer = interfaceCmdlineString.ToLower();

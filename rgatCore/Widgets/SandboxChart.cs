@@ -114,9 +114,8 @@ namespace rgat.Widgets
         {
             lock (_lock)
             {
-                if (_timelineEventEntities.TryGetValue(evt, out ItemNode entity)) return entity;
+                return _timelineEventEntities[evt];
             }
-            return null;
         }
 
         public ItemNode SelectedEntity { get; private set; }
@@ -125,7 +124,7 @@ namespace rgat.Widgets
         {
 
             string nodeName = $"PROCNODE_{trace.randID}";
-            ItemNode startProcess = null;
+            ItemNode? startProcess = null;
             lock (_lock)
             {
                 if (!addedNodes.TryGetValue(nodeName, out startProcess))
@@ -200,7 +199,7 @@ namespace rgat.Widgets
                                                     break;
                                                 }
 
-                                                if (!_interactionEntities.TryGetValue(entityParamRecord.EntityType, out Dictionary<string, ItemNode> entityDict))
+                                                if (!_interactionEntities.TryGetValue(entityParamRecord.EntityType, out Dictionary<string, ItemNode>? entityDict))
                                                 {
                                                     entityDict = new Dictionary<string, ItemNode>();
                                                     _interactionEntities.Add(entityParamRecord.EntityType, entityDict);
@@ -221,7 +220,7 @@ namespace rgat.Widgets
                                                 }
                                                 AddAPIEdge(threadNode, entityNode, apiinfo.Label);
 
-                                                if (!_timelineEventEntities.TryGetValue(timelineEvent, out ItemNode existingEntity))
+                                                if (!_timelineEventEntities.TryGetValue(timelineEvent, out ItemNode? existingEntity))
                                                 {
                                                     _timelineEventEntities.Add(timelineEvent, entityNode);
                                                 }
@@ -263,9 +262,9 @@ namespace rgat.Widgets
                                                     referenceString = referenceString.ToLower();
 
                                                 bool resolvedReference = false;
-                                                if (_interactionEntityReferences.TryGetValue(referenceParamRecord.RawType, out Dictionary<string, ItemNode> typeEntityList))
+                                                if (_interactionEntityReferences.TryGetValue(referenceParamRecord.RawType, out Dictionary<string, ItemNode>? typeEntityList))
                                                 {
-                                                    if (typeEntityList.TryGetValue(referenceString, out ItemNode entityNode))
+                                                    if (typeEntityList.TryGetValue(referenceString, out ItemNode? entityNode))
                                                     {
                                                         resolvedReference = true;
                                                         if (!_timelineEventEntities.ContainsKey(timelineEvent))
@@ -299,9 +298,9 @@ namespace rgat.Widgets
                                                     referenceString = referenceString.ToLower();
 
                                                 bool resolvedReference = false;
-                                                if (_interactionEntityReferences.TryGetValue(referenceParamRecord.RawType, out Dictionary<string, ItemNode> typeEntityList))
+                                                if (_interactionEntityReferences.TryGetValue(referenceParamRecord.RawType, out Dictionary<string, ItemNode>? typeEntityList))
                                                 {
-                                                    if (typeEntityList.TryGetValue(referenceString, out ItemNode entityNode))
+                                                    if (typeEntityList.TryGetValue(referenceString, out ItemNode? entityNode))
                                                     {
                                                         resolvedReference = true;
                                                         if(!_timelineEventEntities.ContainsKey(timelineEvent))
@@ -351,7 +350,7 @@ namespace rgat.Widgets
                 _addedEdges.Add(edgeTuple);
             }
 
-            if (!_edgeLabels.TryGetValue(edgeTuple, out List<string> thisEdgeLabels))
+            if (!_edgeLabels.TryGetValue(edgeTuple, out List<string>? thisEdgeLabels))
             {
                 _edgeLabels.Add(edgeTuple, new List<string>() { label });
             }
@@ -419,7 +418,7 @@ namespace rgat.Widgets
                         drawnEdges.Add(edgeTuple);
 
                         ImGui.GetWindowDrawList().AddLine(sourcePos, targPos, 0xffff00ff);
-                        if (_edgeLabels.TryGetValue(edgeTuple, out List<string> edgeLabels))
+                        if (_edgeLabels.TryGetValue(edgeTuple, out List<string>? edgeLabels))
                         {
                             ImGui.GetWindowDrawList().AddText(Vector2.Lerp(sourcePos, targPos, 0.5f), 0xff000000, String.Join(",", edgeLabels));
                         }
@@ -605,7 +604,7 @@ namespace rgat.Widgets
             {
                 case Logging.eTimelineEvent.ProcessStart:
                 case Logging.eTimelineEvent.ProcessEnd:
-                    TraceRecord trace = _rootTrace.GetTraceByID(evt.ID);
+                    TraceRecord? trace = _rootTrace.GetTraceByID(evt.ID);
                     if (trace == null) return;
                     foreach (var node in sbgraph.Vertices)
                     {
@@ -617,7 +616,7 @@ namespace rgat.Widgets
                     break;
                 case Logging.eTimelineEvent.ThreadStart:
                 case Logging.eTimelineEvent.ThreadEnd:
-                    ProtoGraph graph = _rootTrace.GetProtoGraphByID(evt.ID);
+                    ProtoGraph? graph = _rootTrace.GetProtoGraphByID(evt.ID);
                     if (graph == null) return;
                     foreach (var node in sbgraph.Vertices)
                     {
@@ -631,7 +630,7 @@ namespace rgat.Widgets
                 case Logging.eTimelineEvent.APICall:
                     {
                         SelectedAPIEvent = evt;
-                        if (_timelineEventEntities.TryGetValue(evt, out ItemNode newSelectedEntity))
+                        if (_timelineEventEntities.TryGetValue(evt, out ItemNode? newSelectedEntity))
                         {
                             SelectedEntity = newSelectedEntity;
                             _selectedNode = newSelectedEntity;

@@ -126,13 +126,13 @@ namespace rgat
         }
 
         //is there a better way of doing this?
-        public List<InstructionData> getDisassemblyBlock(uint blockID)
+        public List<InstructionData>? getDisassemblyBlock(uint blockID)
         {
             ROUTINE_STRUCT? stub = null;
             return getDisassemblyBlock(blockID, ref stub);
         }
 
-        public List<InstructionData> getDisassemblyBlock(uint blockID, ref ROUTINE_STRUCT? externBlock, ulong externBlockaddr = 0)
+        public List<InstructionData>? getDisassemblyBlock(uint blockID, ref ROUTINE_STRUCT? externBlock, ulong externBlockaddr = 0)
         {
             int iterations = 0;
 
@@ -280,7 +280,7 @@ namespace rgat
             return modsymsPlain.ContainsKey(GlobalModuleNumber) && modsymsPlain[GlobalModuleNumber].ContainsKey(address - LoadedModuleBounds[GlobalModuleNumber].Item1);
         }
 
-        public bool GetSymbol(int GlobalModuleNumber, ulong address, out string symbol)
+        public bool GetSymbol(int GlobalModuleNumber, ulong address, out string? symbol)
         {
             lock (ModulesLock)
             {
@@ -303,7 +303,7 @@ namespace rgat
         /// <param name="module">Path of module is output here, if found</param>
         /// <param name="symbol">Name of symbol is output here, if found</param>
         /// <returns>True if both module and symbol string resolved. False otherwise.</returns>
-        public bool ResolveSymbolAtAddress(ulong address, out int moduleID, out string module, out string symbol)
+        public bool ResolveSymbolAtAddress(ulong address, out int moduleID, out string? module, out string? symbol)
         {
             moduleID = FindContainingModule(address);
             if (moduleID == -1)
@@ -405,14 +405,30 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Filesystem paths of loaded modules
+        /// </summary>
         public List<string> LoadedModulePaths = new List<string>();
+        /// <summary>
+        /// Translation list of local module IDs (known to the instrumentation engine) to global module IDs (known to rgat)
+        /// </summary>
         public List<int> modIDTranslationVec = new List<int>();
+        /// <summary>
+        /// API references of modules for API metadata operations
+        /// </summary>
         public List<int> ModuleAPIReferences = new List<int>();
+        /// <summary>
+        /// Start and end memory addresses of each module
+        /// </summary>
         public List<Tuple<ulong, ulong>> LoadedModuleBounds = new List<Tuple<ulong, ulong>>();
+        /// <summary>
+        /// Whether each modules is instrumented or not
+        /// </summary>
         public List<eCodeInstrumentation> ModuleTraceStates = new List<eCodeInstrumentation>();
 
-        public Dictionary<string, long> globalModuleIDs = new Dictionary<string, long>();
+        /// <summary>
+        /// Number of loaded modules
+        /// </summary>
         public int LoadedModuleCount = 0;
 
         //todo review these
@@ -420,10 +436,15 @@ namespace rgat
         public readonly object ExternCallerLock = new object(); //todo stop this being public
 
         private readonly object SymbolsLock = new object();
-        private Dictionary<int, Dictionary<ulong, string>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string>>();
+        private Dictionary<int, Dictionary<ulong, string?>> modsymsPlain = new Dictionary<int, Dictionary<ulong, string?>>();
 
         private Dictionary<int, Dictionary<ulong, Logging.LogFilterType>> APITypes = new Dictionary<int, Dictionary<ulong, Logging.LogFilterType>>();
 
+        /// <summary>
+        /// Get the unique API reference value for the specified module
+        /// </summary>
+        /// <param name="GlobalModuleID">Global module ID</param>
+        /// <returns>An API reference value which can be used in API metadata lookup operations</returns>
         public int GetModuleReference(int GlobalModuleID)
         {
             if (GlobalModuleID >= modsymsPlain.Count) return -1; //todo race condition here where it could stay as -1 if requested too early?
@@ -436,7 +457,7 @@ namespace rgat
             if (moduleAPIRef == -1) return null;
 
             ulong symbolOffset = address - LoadedModuleBounds[globalModuleID].Item1;
-            if (modsymsPlain[globalModuleID].TryGetValue(symbolOffset, out string symname))
+            if (modsymsPlain[globalModuleID].TryGetValue(symbolOffset, out string? symname))
             {
                 return APIDetailsWin.GetAPIInfo(moduleAPIRef, symname);
             }
@@ -491,11 +512,11 @@ namespace rgat
         {
             lock (InstructionsLock)
             {
-                if (!disassembly.TryGetValue(addr, out List<InstructionData> inslist))
+                if (!disassembly.TryGetValue(addr, out List<InstructionData>? inslist))
                 {
                     if (externdict.TryGetValue(addr, out ROUTINE_STRUCT val))
                     {
-                        if (val.thread_callers.TryGetValue(TID, out List<Tuple<uint, uint>> callers)) 
+                        if (val.thread_callers.TryGetValue(TID, out List<Tuple<uint, uint>>? callers))
                         {
                             return callers.Select(x => x.Item2).ToList();
                         }
@@ -537,7 +558,7 @@ namespace rgat
             Logging.RecordLogEvent("Loading Module Symbols", Logging.LogFilterType.TextDebug);
             //display_only_status_message(symLoadMsg.str(), clientState);
 
-            if (!processJSON.TryGetValue("ModuleSymbols", out JToken symbolslist) || symbolslist.Type != JTokenType.Array)
+            if (!processJSON.TryGetValue("ModuleSymbols", out JToken? symbolslist) || symbolslist.Type != JTokenType.Array)
             {
                 Logging.RecordLogEvent("Failed to find valid ModuleSymbols in trace", Logging.LogFilterType.TextError);
                 return false;
@@ -546,14 +567,14 @@ namespace rgat
             ulong totalSyms = 0;
             foreach (JObject item in symbolslist.Children())
             {
-                if (!item.TryGetValue("ModuleID", out JToken modID) || modID.Type != JTokenType.Integer)
+                if (!item.TryGetValue("ModuleID", out JToken? modID) || modID.Type != JTokenType.Integer)
                 {
                     Logging.RecordLogEvent("ERROR: Symbols load failed: No valid module ID", Logging.LogFilterType.TextError);
                     return false;
                 }
                 modsymsPlain.Add(modID.ToObject<int>(), new Dictionary<ulong, string>());
 
-                if (!item.TryGetValue("Symbols", out JToken syms) || syms.Type != JTokenType.Array)
+                if (!item.TryGetValue("Symbols", out JToken? syms) || syms.Type != JTokenType.Array)
                 {
                     Logging.RecordLogEvent("[rgat]ERROR: Symbols load failed: No valid symbols list", Logging.LogFilterType.TextError);
                     return false;
@@ -566,10 +587,11 @@ namespace rgat
                         return false;
                     }
                     ulong SymAddress = sym[0].ToObject<ulong>();
-                    string SymName = sym[1].ToObject<string>();
+                    string? SymName = sym[1].ToObject<string>();
 
                     modsymsPlain[modID.ToObject<int>()][SymAddress] = SymName;
                     totalSyms += 1;
+
                 }
             }
 
@@ -582,13 +604,14 @@ namespace rgat
             //display_only_status_message("Loading Modules", clientState);
 
             Logging.RecordLogEvent("LoadModules() Loading Module Paths");
-            if (!processJSON.TryGetValue("ModulePaths", out JToken moduleslist))
+            if (!processJSON.TryGetValue("ModulePaths", out JToken? moduleslist))
             {
                 Logging.RecordLogEvent("LoadModules() Failed to find ModulePaths in trace", Logging.LogFilterType.TextError);
                 return false;
             }
 
             var modulesArray = moduleslist.ToObject<List<string>>();
+            if (modulesArray is null) return false;
 
             Logging.RecordLogEvent("Loading " + modulesArray.Count + " modules", Logging.LogFilterType.TextDebug);
             foreach (string b64entry in modulesArray)
@@ -597,12 +620,13 @@ namespace rgat
                 LoadedModulePaths.Add(plainpath);
             }
 
-            if (!processJSON.TryGetValue("ModuleBounds", out Newtonsoft.Json.Linq.JToken modulebounds))
+            if (!processJSON.TryGetValue("ModuleBounds", out JToken? modulebounds))
             {
                 Logging.RecordLogEvent("Failed to find ModuleBounds in trace", Logging.LogFilterType.TextError);
                 return false;
             }
             var modsBoundArray = modulebounds.ToObject<List<List<ulong>>>();
+            if (modsBoundArray is null) return false;
             LoadedModuleBounds.Clear();
 
             foreach (List<ulong> entry in modsBoundArray)
@@ -611,14 +635,17 @@ namespace rgat
             }
 
 
-            if (!processJSON.TryGetValue("ModuleTraceStates", out Newtonsoft.Json.Linq.JToken modtracestatesTkn))
+            if (!processJSON.TryGetValue("ModuleTraceStates", out JToken? modtracestatesTkn) || modtracestatesTkn is null)
             {
                 Logging.RecordLogEvent("Failed to find ModuleTraceStates in trace", Logging.LogFilterType.TextError);
                 return false;
             }
 
             ModuleTraceStates.Clear();
-            int[] intstates = modtracestatesTkn.ToObject<List<int>>().ToArray();
+
+
+            int[]? intstates = modtracestatesTkn.ToObject<List<int>>()?.ToArray();
+            if (intstates is null) return false;
             ModuleTraceStates = Array.ConvertAll(intstates, value => (eCodeInstrumentation)value).ToList();
             return true;
         }
@@ -714,7 +741,7 @@ namespace rgat
                         insdata.branchAddress = Convert.ToUInt64(insdata.op_str, 16);
                     } //todo: not a great idea actually... just point to the outgoing neighbours for labels
                     catch { insdata.branchAddress = 0; }
-                    insdata.condDropAddress = insdata.address + (ulong)insdata.numbytes;
+                    insdata.condDropAddress = insdata.Address + (ulong)insdata.numbytes;
                 }
 
             }
@@ -738,7 +765,7 @@ namespace rgat
                 ins.hasSymbol = addressData.hasSym;
                 ins.opcodes = System.Convert.FromBase64String(mutation[0].ToObject<string>());
                 ins.numbytes = ins.opcodes.Length;
-                ins.address = addressData.address;
+                ins.Address = addressData.address;
                 ins.BlockBoundary = addressData.blockBoundary;
 
                 if (ins.numbytes == 0)
@@ -807,7 +834,7 @@ namespace rgat
 
         bool LoadDisassembly(JObject processJSON)
         {
-            if (!processJSON.TryGetValue("BitWidth", out JToken tBitWidth) || tBitWidth.Type != JTokenType.Integer)
+            if (!processJSON.TryGetValue("BitWidth", out JToken? tBitWidth) || tBitWidth.Type != JTokenType.Integer)
             {
                 Logging.RecordLogEvent("Failed to find valid BitWidth in trace", Logging.LogFilterType.TextError);
                 return false;
@@ -819,7 +846,7 @@ namespace rgat
                 return false;
             }
 
-            if (!processJSON.TryGetValue("Disassembly", out JToken disassemblyList) || disassemblyList.Type != JTokenType.Array)
+            if (!processJSON.TryGetValue("Disassembly", out JToken? disassemblyList) || disassemblyList.Type != JTokenType.Array)
             {
                 Logging.RecordLogEvent("Failed to find valid Disassembly in trace", Logging.LogFilterType.TextError);
                 return false;
@@ -845,7 +872,7 @@ namespace rgat
 
         private bool LoadBlockData(JObject processJSON)
         {
-            if (!processJSON.TryGetValue("BasicBlocks", out JToken tBBLocks) || tBBLocks.Type != JTokenType.Array)
+            if (!processJSON.TryGetValue("BasicBlocks", out JToken? tBBLocks) || tBBLocks.Type != JTokenType.Array)
             {
                 Logging.RecordLogEvent("Failed to find valid BasicBlocks in trace", Logging.LogFilterType.TextError);
                 return false;
@@ -868,13 +895,18 @@ namespace rgat
 
                 for (var i = 0; i < insAddresses.Count; i++)
                 {
-                    ulong insAddress = insAddresses[i][0].ToObject<ulong>();
-                    int mutationIndex = insAddresses[i][1].ToObject<int>();
-                    InstructionData ins = disassembly[insAddress][mutationIndex];
+                    JToken insItem = insAddresses[i];
+                    if (insItem is null) return false;
+
+                    ulong? insAddress = insItem[0]?.ToObject<ulong>();
+                    int? mutationIndex = insItem[1]?.ToObject<int>();
+                    if (insAddress is null || mutationIndex is null) return false;
+
+                    InstructionData ins = disassembly[insAddress.Value][mutationIndex.Value];
                     blkInstructions.Add(ins);
                     if (ins.ContainingBlockIDs == null) ins.ContainingBlockIDs = new List<uint>();
                     ins.ContainingBlockIDs.Add(blockID);
-                    disassembly[insAddress][mutationIndex] = ins;
+                    disassembly[insAddress.Value][mutationIndex.Value] = ins;
 
                 }
                 blockID += 1;
@@ -889,7 +921,7 @@ namespace rgat
 
         bool UnpackExtern(JObject externEntry)
         {
-            if (!externEntry.TryGetValue("A", out JToken Addr) || Addr.Type != JTokenType.Integer)
+            if (!externEntry.TryGetValue("A", out JToken? Addr) || Addr.Type != JTokenType.Integer)
             {
                 Logging.RecordLogEvent("Error, address not found in extern entry", Logging.LogFilterType.TextError);
                 return false;
@@ -899,14 +931,14 @@ namespace rgat
             ROUTINE_STRUCT BBEntry = new ROUTINE_STRUCT();
 
 
-            if (!externEntry.TryGetValue("M", out JToken ModID) || ModID.Type != JTokenType.Integer)
+            if (!externEntry.TryGetValue("M", out JToken? ModID) || ModID.Type != JTokenType.Integer)
             {
                 Logging.RecordLogEvent("[rgat]Error: module ID not found in extern entry", Logging.LogFilterType.TextError);
                 return false;
             }
             BBEntry.globalmodnum = ModID.ToObject<int>();
 
-            if (!externEntry.TryGetValue("S", out JToken hasSym) || hasSym.Type != JTokenType.Boolean)
+            if (!externEntry.TryGetValue("S", out JToken? hasSym) || hasSym.Type != JTokenType.Boolean)
             {
                 Logging.RecordLogEvent("[rgat]Error: Symbol presence not found in extern entry", Logging.LogFilterType.TextError);
                 return false;
@@ -914,7 +946,7 @@ namespace rgat
             BBEntry.hasSymbol = ModID.ToObject<bool>();
 
 
-            if (externEntry.TryGetValue("C", out JToken callers) && callers.Type == JTokenType.Array)
+            if (externEntry.TryGetValue("C", out JToken? callers) && callers.Type == JTokenType.Array)
             {
                 BBEntry.thread_callers = new Dictionary<uint, List<Tuple<uint, uint>>>();
                 JArray CallersArray = (JArray)callers;
@@ -945,7 +977,7 @@ namespace rgat
 
         bool loadExterns(JObject processJSON)
         {
-            if (!processJSON.TryGetValue("Externs", out JToken jExterns) || jExterns.Type != JTokenType.Array)
+            if (!processJSON.TryGetValue("Externs", out JToken? jExterns) || jExterns.Type != JTokenType.Array)
             {
                 Console.WriteLine("[rgat] Failed to find valid Externs in trace");
                 return false;
@@ -1029,7 +1061,7 @@ namespace rgat
                     }
                     else
                     {
-                        Console.WriteLine($"Null thread verts: 0x{mutation.address:X} => {mutation.ins_text}, {mutation.globalmodnum}[{GetModulePath(mutation.globalmodnum)}]");
+                        Console.WriteLine($"Null thread verts: 0x{mutation.Address:X} => {mutation.ins_text}, {mutation.globalmodnum}[{GetModulePath(mutation.globalmodnum)}]");
                     }
                     mutationData.Add(threadsUsingInstruction);
                     opcodesMutationsList.Add(mutationData);
@@ -1107,7 +1139,7 @@ namespace rgat
                 foreach (InstructionData i in addr_inslist.Item2)
                 {
                     JArray insentry = new JArray();
-                    insentry.Add(i.address);
+                    insentry.Add(i.Address);
                     insentry.Add(i.mutationIndex);
                     inslist.Add(insentry);
                 }

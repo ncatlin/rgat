@@ -185,10 +185,12 @@ namespace rgat.Config
             RunMode = eRunMode.GUI;
         }
 
-        bool ParseConfigJSON(JObject jsn, out string error)
+        bool ParseConfigJSON(JObject jsn, out string? error)
         {
+            
             foreach (var kvp in jsn)
             {
+                if (kvp.Value is null) continue;
                 string keyname = kvp.Key.ToLower();
 
                 switch (keyname)
@@ -267,7 +269,7 @@ namespace rgat.Config
 
 
         //this merges a JSON options blob into the command line options
-        public bool ExtractJSONOptions(out string error)
+        public bool ExtractJSONOptions(out string? error)
         {
             error = "";
 
@@ -280,7 +282,7 @@ namespace rgat.Config
         }
 
 
-        bool ExtractJSONFileOptions(string path, out string error)
+        bool ExtractJSONFileOptions(string path, out string? error)
         {
             error = "";
             if (File.Exists(this.ConfigPath))

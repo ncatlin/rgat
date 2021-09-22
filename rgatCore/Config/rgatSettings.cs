@@ -314,7 +314,7 @@ namespace rgat.Config
                     foreach (var kvp in PrimaryKeybinds) { Active[kvp.Value] = kvp.Key; }
                     foreach (var kvp in AlternateKeybinds) { Active[kvp.Value] = kvp.Key; }
 
-                    ResponsiveKeys = Active.Where(x => ResponsiveHeldActions.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
+                    ResponsiveKeys = Active.Where(x => ResponsiveHeldActions!.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
                 }
             }
 
@@ -331,7 +331,7 @@ namespace rgat.Config
             {
                 lock (_lock)
                 {
-                    if (Paths.TryGetValue(setting, out string result)) return result;
+                    if (Paths.TryGetValue(setting, out string? result)) return result;
                 }
                 return "";
             }
@@ -342,7 +342,7 @@ namespace rgat.Config
                 lock (_lock)
                 {
                     //we call this when the values are the same to cause a signature check
-                    if (!Paths.TryGetValue(setting, out string oldval) || oldval != value)
+                    if (!Paths.TryGetValue(setting, out string? oldval) || oldval != value)
                     {
                         Paths[setting] = value;
                         MarkDirty();
@@ -389,7 +389,7 @@ namespace rgat.Config
                 {
                     case PathKey.PinPath:
                         {
-                            if (VerifyCertificate(path, SIGNERS.PIN_SIGNERS, out string error, out string warning))
+                            if (VerifyCertificate(path, SIGNERS.PIN_SIGNERS, out string? error, out string? warning))
                             {
                                 if (warning != null)
                                     Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
@@ -406,7 +406,7 @@ namespace rgat.Config
 
                     case PathKey.PinToolPath32:
                         {
-                            if (VerifyCertificate(path, SIGNERS.RGAT_SIGNERS, out string error, out string warning))
+                            if (VerifyCertificate(path, SIGNERS.RGAT_SIGNERS, out string? error, out string? warning))
                             {
                                 if (warning != null)
                                     Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
@@ -423,7 +423,7 @@ namespace rgat.Config
 
                     case PathKey.PinToolPath64:
                         {
-                            if (VerifyCertificate(path, SIGNERS.RGAT_SIGNERS, out string error, out string warning))
+                            if (VerifyCertificate(path, SIGNERS.RGAT_SIGNERS, out string? error, out string? warning))
                             {
                                 if (warning != null)
                                     Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
@@ -632,7 +632,7 @@ namespace rgat.Config
                     List<PathRecord> targetList = new List<PathRecord>();
                     targetList = RecentPaths[pathType];
 
-                    PathRecord found = targetList.Find(x => x.Path == path);
+                    PathRecord? found = targetList.Find(x => x.Path == path);
                     if (found == null)
                     {
                         found = new PathRecord()
@@ -737,8 +737,7 @@ namespace rgat.Config
             {
                 lock (_lock)
                 {
-                    if (_signatureSources.TryGetValue(path, out SignatureSource value)) return value;
-                    return null;
+                    return _signatureSources[path];
                 }
             }
 

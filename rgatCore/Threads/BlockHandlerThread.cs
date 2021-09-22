@@ -163,7 +163,7 @@ namespace rgat
                 Debug.Assert(insByteCount > 0 && insByteCount < 16);
 
                 byte[] opcodes = new ReadOnlySpan<byte>(buf, bufPos, insByteCount).ToArray(); bufPos += insByteCount;
-                List<InstructionData> foundList = null;
+                List<InstructionData>? foundList = null;
 
                 lock (trace.DisassemblyData.InstructionsLock)
                 {
@@ -189,7 +189,7 @@ namespace rgat
                     //Console.WriteLine($"Blockaddrhandler, Ins 0x{insaddr:X} not previously disassembled");
 
                     InstructionData instruction = new InstructionData();
-                    instruction.address = insaddr;
+                    instruction.Address = insaddr;
                     instruction.numbytes = insByteCount;
                     instruction.opcodes = opcodes;
                     instruction.globalmodnum = globalModNum;
@@ -329,7 +329,7 @@ namespace rgat
             }
 
 
-            byte[] pendingBuf = null;
+            byte[]? pendingBuf = null;
             const int BufMax = 4096; //todo experiment for perfomance
             int bytesRead = 0;
             while (!rgatState.rgatIsExiting && blockPipe.IsConnected)

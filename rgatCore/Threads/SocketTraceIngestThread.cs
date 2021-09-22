@@ -62,7 +62,7 @@ namespace rgat.Threads
             IncreaseMessageCount();
         }
 
-        public override byte[] DeQueueData()
+        public override byte[]? DeQueueData()
         {
             if (InQueue.Count == 0) return null;
             lock (_lock)

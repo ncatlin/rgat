@@ -36,10 +36,19 @@ namespace rgat
         public bool PossibleidataThunk;
         public bool IsMPX = false; //https://en.wikipedia.org/wiki/Intel_MPX
 
-        public ulong address;
+        /// <summary>
+        /// Memory address of this instruction
+        /// </summary>
+        public ulong Address;
+        /// <summary>
+        /// If this instruction is a branch, this is the address the taken branch leads to
+        /// </summary>
         public ulong branchAddress;
+        /// <summary>
+        /// Address of the instruction after this if there is no flow control
+        /// </summary>
         public ulong condDropAddress;
-        List<Tuple<uint, uint>> threadvertIdx; //was an unordered dictionary in the C++ version
+        List<Tuple<uint, uint>> _threadVertIndexes = new List<Tuple<uint, uint>>(); //was an unordered dictionary in the C++ version
         public int globalmodnum;
         public int mutationIndex;
 
@@ -48,19 +57,23 @@ namespace rgat
         //this was added later, might be worth ditching other stuff in exchange
         public byte[] opcodes;
         public int numbytes;
-        public List<Tuple<uint, uint>> ThreadVerts => threadvertIdx?.ToList();
+
+        /// <summary>
+        /// The indexe of the node containing this instruction in each thread <Thread ID, instruction index>
+        /// </summary>
+        public List<Tuple<uint, uint>> ThreadVerts => _threadVertIndexes.ToList();
 
         public bool GetThreadVert(uint TID, out uint vert)
         {
-            if (threadvertIdx == null)
+            if (_threadVertIndexes == null)
             {
                 vert = uint.MaxValue;
                 return false;
             }
 
-            for (var i = 0; i < threadvertIdx.Count; i++)
+            for (var i = 0; i < _threadVertIndexes.Count; i++)
             {
-                if (threadvertIdx[i].Item1 == TID) { vert = threadvertIdx[i].Item2; return true; }
+                if (_threadVertIndexes[i].Item1 == TID) { vert = _threadVertIndexes[i].Item2; return true; }
             }
             vert = uint.MaxValue;
             return false;
@@ -68,24 +81,20 @@ namespace rgat
 
         public bool InThread(uint TID)
         {
-            if (threadvertIdx == null)
+            if (_threadVertIndexes == null)
             {
                 return false;
             }
-            for (var i = 0; i < threadvertIdx.Count; i++)
+            for (var i = 0; i < _threadVertIndexes.Count; i++)
             {
-                if (threadvertIdx[i].Item1 == TID) { return true; }
+                if (_threadVertIndexes[i].Item1 == TID) { return true; }
             }
             return false;
         }
 
         public void AddThreadVert(uint TID, uint vert)
         {
-            if (threadvertIdx == null)
-            {
-                threadvertIdx = new List<Tuple<uint, uint>>();
-            }
-            threadvertIdx.Add(new Tuple<uint, uint>(TID, vert));
+            _threadVertIndexes.Add(new Tuple<uint, uint>(TID, vert));
         }
     }
 
@@ -177,7 +186,7 @@ namespace rgat
 
 
 
-        public PlottedGraph GetFirstGraph()
+        public PlottedGraph? GetFirstGraph()
         {
             if (PlottedGraphs.Count == 0) return null;
 
@@ -204,7 +213,7 @@ namespace rgat
             return MainPlottedGraphs.First();
         }
 
-        public PlottedGraph GetLatestGraph()
+        public PlottedGraph? GetLatestGraph()
         {
             if (PlottedGraphs.Count == 0) return null;
 
@@ -536,7 +545,7 @@ namespace rgat
         }
 
 
-        public TraceRecord GetTraceByID(ulong traceID)
+        public TraceRecord? GetTraceByID(ulong traceID)
         {
             if (PID == traceID) return this;
 
@@ -544,7 +553,7 @@ namespace rgat
             {
                 foreach (var child in children)
                 {
-                    TraceRecord rec = child.GetTraceByID(traceID);
+                    TraceRecord? rec = child.GetTraceByID(traceID);
                     if (rec != null) return rec;
                 }
             }
@@ -552,7 +561,7 @@ namespace rgat
         }
 
 
-        public ProtoGraph GetProtoGraphByID(ulong graphID)
+        public ProtoGraph? GetProtoGraphByID(ulong graphID)
         {
             lock (GraphListLock)
             {
@@ -562,14 +571,14 @@ namespace rgat
                 }
                 foreach (var child in children)
                 {
-                    ProtoGraph graph = child.GetProtoGraphByID(graphID);
+                    ProtoGraph? graph = child.GetProtoGraphByID(graphID);
                     if (graph != null) return graph;
                 }
             }
             return null;
         }
 
-        public ProtoGraph GetProtoGraphByTime(DateTime time)
+        public ProtoGraph? GetProtoGraphByTime(DateTime time)
         {
             lock (GraphListLock)
             {
@@ -579,7 +588,7 @@ namespace rgat
                 }
                 foreach (var child in children)
                 {
-                    ProtoGraph graph = child.GetProtoGraphByTime(time);
+                    ProtoGraph? graph = child.GetProtoGraphByTime(time);
                     if (graph != null) return graph;
                 }
             }
@@ -601,7 +610,7 @@ namespace rgat
 
         bool LoadProcessGraphs(JObject processJSON, Veldrid.GraphicsDevice device)
         {
-            if (!processJSON.TryGetValue("Threads", out JToken jThreads) || jThreads.Type != JTokenType.Array)
+            if (!processJSON.TryGetValue("Threads", out JToken? jThreads) || jThreads.Type != JTokenType.Array)
             {
                 Logging.RecordLogEvent("Failed to find valid Threads in trace", Logging.LogFilterType.TextError);
                 return false;
@@ -626,14 +635,14 @@ namespace rgat
 
         bool LoadGraph(JObject jThreadObj, Veldrid.GraphicsDevice device)
         {
-            if (!jThreadObj.TryGetValue("ThreadID", out JToken tTID) || tTID.Type != JTokenType.Integer)
+            if (!jThreadObj.TryGetValue("ThreadID", out JToken? tTID) || tTID.Type != JTokenType.Integer)
             {
                 Logging.RecordLogEvent("Failed to find valid ThreadID in thread", Logging.LogFilterType.TextError);
                 return false;
             }
             uint GraphThreadID = tTID.ToObject<uint>();
 
-            if (!jThreadObj.TryGetValue("StartAddress", out JToken tAddr) || tAddr.Type != JTokenType.Integer)
+            if (!jThreadObj.TryGetValue("StartAddress", out JToken? tAddr) || tAddr.Type != JTokenType.Integer)
             {
                 Logging.RecordLogEvent("Failed to find valid StartAddress in thread", Logging.LogFilterType.TextError);
                 return false;
@@ -684,7 +693,7 @@ namespace rgat
         /// <param name="traceStartedTime">The time the run was started</param>
         /// <param name="savePath">The filesystem path the trace was saved to</param>
         /// <returns>The path the trace was saved to</returns>
-        public bool Save(DateTime traceStartedTime, out string savePath)
+        public bool Save(DateTime traceStartedTime, out string? savePath)
         {
             savePath = null;
             Logging.RecordLogEvent($"Saving trace {binaryTarg.FilePath} -> PID {PID}");
@@ -694,7 +703,7 @@ namespace rgat
                 return false;
             }
 
-            JsonTextWriter wr = CreateSaveFile(traceStartedTime, out savePath);
+            JsonTextWriter? wr = CreateSaveFile(traceStartedTime, out savePath);
             if (wr == null)
             {
                 Logging.RecordLogEvent("\tSaving Failed: Unable to create filestream", Logging.LogFilterType.TextError);
@@ -715,7 +724,7 @@ namespace rgat
             int saveCount = 0;
             foreach (TraceRecord trace in children)
             {
-                if (trace.Save(trace.launchedTime, out string childpath))
+                if (trace.Save(trace.launchedTime, out string? childpath) && childpath is not null)
                 {
                     if (childpath.Length > 0)
                         childPathsArray.Add(childpath);
@@ -766,7 +775,7 @@ namespace rgat
         }
 
 
-        JsonTextWriter CreateSaveFile(DateTime startedTime, out string path)
+        JsonTextWriter? CreateSaveFile(DateTime startedTime, out string? path)
         {
             string saveFilename = $"{binaryTarg.FileName}-{PID}-{startedTime.ToString("MMM-dd__HH-mm-ss")}.rgat";
             string saveDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);
@@ -797,13 +806,14 @@ namespace rgat
 
         private bool LoadTimeline(JObject saveJSON)
         {
-            if (!saveJSON.TryGetValue("Timeline", out JToken arrTok) || arrTok.Type != JTokenType.Array)
+            if (!saveJSON.TryGetValue("Timeline", out JToken? arrTok) || arrTok.Type != JTokenType.Array)
             {
                 Logging.RecordLogEvent($"\tWarning: Missing or bad timeline in trace save", Logging.LogFilterType.TextInfo);
                 return false;
             }
             _timeline = new List<TIMELINE_EVENT>();
-            JArray arr = arrTok.ToObject<JArray>();
+            JArray? arr = arrTok.ToObject<JArray>();
+            if (arr is null) return false;
             foreach (JToken tlTok in arr)
             {
                 if (tlTok.Type != JTokenType.Object)
@@ -845,7 +855,7 @@ namespace rgat
                         /*
                         case eTimelineEvent.APICall:
                         APICALL apic = (APICALL)(evt.Item);
-                        if (apic.graph.ProcessData.GetSymbol(apic.node.GlobalModuleID, apic.node.address, out string sym))
+                        if (apic.graph.ProcessData.GetSymbol(apic.node.GlobalModuleID, apic.node.address, out string? sym))
                         {
                             try
                             {
@@ -923,13 +933,14 @@ namespace rgat
             List<uint> nodes = DisassemblyData.GetNodesAtAddress(stepAddr, graph.ThreadID);
             if (nodes.Count == 0) return;
 
-            NodeData n = graph.safe_get_node(nodes[^1]);
+            NodeData? n = graph.safe_get_node(nodes[^1]);
+            Debug.Assert(n is not null);
             if (n.ins.itype != CONSTANTS.eNodeType.eInsCall)
             {
                 SendDebugStep(graph.ThreadID);
                 return;
             }
-            ulong nextInsAddress = n.ins.address + (ulong)n.ins.numbytes;
+            ulong nextInsAddress = n.ins.Address + (ulong)n.ins.numbytes;
 
             string cmd = $"SOV,{nextInsAddress:X}";
             SendDebugCommand(graph.ThreadID, cmd);
@@ -980,7 +991,7 @@ namespace rgat
             {
                 Console.WriteLine($"Evaluating process requirement {req.Name} {req.Condition} [val] ");
                 bool passed = false;
-                string error = "";
+                string? error = "";
                 string compareValueString = "";
                 switch (req.Name)
                 {

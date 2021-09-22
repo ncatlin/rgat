@@ -22,7 +22,7 @@ namespace rgat
         {
             lock (targetslock)
             {
-                if (targets.TryGetValue(path, out BinaryTarget existingEntry))
+                if (targets.TryGetValue(path, out BinaryTarget? existingEntry))
                 {
                     result = existingEntry;
                     return true;
@@ -45,7 +45,7 @@ namespace rgat
         {
             lock (targetslock)
             {
-                BinaryTarget target = null;
+                BinaryTarget? target = null;
                 if (!targets.TryGetValue(path, out target))
                 {
                     target = new BinaryTarget(path, arch, remoteAddr, isLibrary: isLibrary);
@@ -59,7 +59,7 @@ namespace rgat
         {
             lock(targetslock)
             {
-                if (!this.sha1s.TryGetValue(sha1, out BinaryTarget existingTarget))
+                if (!this.sha1s.TryGetValue(sha1, out BinaryTarget? existingTarget))
                 {
                     this.sha1s.Add(sha1, target);
                 }

@@ -123,7 +123,7 @@ namespace rgat.Testing
             {
                 string compareValueString;
                 bool passed;
-                string error = "";
+                string? error = "";
                 switch (req.Name)
                 {
                     case "TotalProcesses":
@@ -185,7 +185,7 @@ namespace rgat.Testing
                     if (graph_results.Value.Failed.Count == 0) reqSatisfyGraphs[threadReqList].Add(graph);
                 }
             }
-            bool threadsVerified = VerifyAllThreadRequirements(reqSatisfyGraphs, out string threadVerifyError);
+            bool threadsVerified = VerifyAllThreadRequirements(reqSatisfyGraphs, out string? threadVerifyError);
             bool processesVerified = results.ProcessResults.Failed.Count == 0;
 
             //if(!threadsVerified) FailedTestRequirements.Add(null, $"Thread traces didn't satisfy conditions list: "+threadVerifyError);
@@ -204,7 +204,7 @@ namespace rgat.Testing
 
         }
 
-        bool VerifyAllThreadRequirements(Dictionary<REQUIREMENTS_LIST, List<ProtoGraph>> reqSatisfyGraphs, out string error)
+        bool VerifyAllThreadRequirements(Dictionary<REQUIREMENTS_LIST, List<ProtoGraph>> reqSatisfyGraphs, out string? error)
         {
             error = "";
             int reqListCount = reqSatisfyGraphs.Count;
@@ -277,7 +277,7 @@ namespace rgat.Testing
 
 
 
-        public TestResult[] Results()
+        public TestResult[]? Results()
         {
             if (!Complete) return null;
             lock (_lock)

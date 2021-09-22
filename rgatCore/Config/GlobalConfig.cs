@@ -25,7 +25,7 @@ namespace rgat
         /// <param name="error">Errors encountered in validating the certificate (no or invalid signer)</param>
         /// <param name="warning">Warnings encountered validating the certificate (time issues)</param>
         /// <returns>Whether the certificate was valid. Expired/Not yet valid certs will return true with the warning field set</returns>
-        public static bool VerifyCertificate(string path, string expectedSigners, out string error, out string warning)
+        public static bool VerifyCertificate(string path, string expectedSigners, out string? error, out string? warning)
         {
             error = null;
             warning = null;
@@ -232,10 +232,10 @@ namespace rgat
             Logging.RecordLogEvent($"Loading Resources", Logging.LogFilterType.TextDebug);
 
             System.Reflection.Assembly assembly = typeof(ImGuiController).Assembly;
-            System.IO.Stream fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
+            System.IO.Stream? fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
             System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
 
-            r.GetResourceData("BuiltinJSONThemes", out string type, out byte[] themesjsn);
+            r.GetResourceData("BuiltinJSONThemes", out string? type, out byte[] themesjsn);
             if (themesjsn != null && type == "ResourceTypeCode.String" && themesjsn.Length > 0)
             {
                 try
@@ -405,7 +405,7 @@ namespace rgat
 
 
 
-        public static bool PreviousSignatureCheckPassed(string path, out string error, out bool timeWarning)
+        public static bool PreviousSignatureCheckPassed(string path, out string? error, out bool timeWarning)
         {
             timeWarning = false;
             if (Settings.ToolPaths.BadSigners(out List<Tuple<string, string>> signerErrors))
@@ -623,7 +623,18 @@ namespace rgat
 
             string settingsContents = File.ReadAllText(settingsPath);
             System.Text.Json.JsonSerializerOptions settingParserOptions = new System.Text.Json.JsonSerializerOptions() { AllowTrailingCommas = true };
-            Settings = System.Text.Json.JsonSerializer.Deserialize<rgatSettings>(settingsContents, settingParserOptions);
+            try
+            {
+                Settings = System.Text.Json.JsonSerializer.Deserialize<rgatSettings>(settingsContents, settingParserOptions);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Error: {e.Message} parsing exceptions file {settingsPath}");
+            }
+            if (Settings is null)
+            {
+                Settings = new rgatSettings();
+            }
             Settings.FilePath = settingsPath;
             rgatSettings.SetChangeCallback(MarkDirty);
             Settings.EnsureValidity();

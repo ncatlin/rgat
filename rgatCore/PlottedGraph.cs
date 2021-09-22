@@ -364,8 +364,10 @@ namespace rgat
 
             for (uint i = 1; i < nodeCount; i++)
             {
-                NodeData n = InternalProtoGraph.safe_get_node(i);
-                NodeData firstParent = InternalProtoGraph.safe_get_node(n.parentIdx);
+                NodeData? n = InternalProtoGraph.safe_get_node(i);
+                Debug.Assert(n is not null);
+                NodeData? firstParent = InternalProtoGraph.safe_get_node(n.parentIdx);
+                Debug.Assert(firstParent is not null);
 
                 if (n.IsExternal)
                 {
@@ -1044,7 +1046,8 @@ namespace rgat
             int externals = 0;
             for (uint nodeIdx = 0; nodeIdx < nodecount; nodeIdx++)
             {
-                NodeData n = InternalProtoGraph.safe_get_node(nodeIdx);  //todo - this grabs a lot of locks. improve it
+                NodeData? n = InternalProtoGraph.safe_get_node(nodeIdx);  //todo - this grabs a lot of locks. improve it
+                Debug.Assert(n is not null);
 
                 uint blockSize;
                 int blockMid;
@@ -1524,7 +1527,7 @@ namespace rgat
         {
             ProcessRecord piddata = InternalProtoGraph.ProcessData;
             ROUTINE_STRUCT? externBlock = new ROUTINE_STRUCT();
-            List<InstructionData> block = piddata.getDisassemblyBlock((uint)blockID, ref externBlock, blockAddr);
+            List<InstructionData>? block = piddata.getDisassemblyBlock((uint)blockID, ref externBlock, blockAddr);
             if (block == null && externBlock == null)
             {
                 newnodelist = null;
@@ -1596,7 +1599,9 @@ namespace rgat
         void brighten_next_block_edge(uint blockID, ulong blockAddress)
         {
             ROUTINE_STRUCT? externStr = null;
-            var nextBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(blockID, ref externStr, blockAddress);
+            List<InstructionData>? nextBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(blockID, ref externStr, blockAddress);
+            if (nextBlock is null) return;
+
             Tuple<uint, uint>? LinkingPair = null;
             if (externStr != null)
             {
@@ -1639,7 +1644,7 @@ namespace rgat
 
             foreach (uint nodeIdx in nodeIDList)
             {
-                if (Opt_TextEnabledLive && listOffset == 0 && InternalProtoGraph.safe_get_node(nodeIdx).HasSymbol)
+                if (Opt_TextEnabledLive && listOffset == 0 && InternalProtoGraph.safe_get_node(nodeIdx)!.HasSymbol)
                 {
                     AddRisingSymbol(nodeIdx, (int)entry.count - 1, brightTime);
                 }
@@ -1679,11 +1684,11 @@ namespace rgat
 
             currentUnchainedBlocks.Clear();
             remove_unchained_from_animation();
-            List<InstructionData> firstChainedBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
-            bool found = firstChainedBlock[^1].GetThreadVert(tid, out uint vertID);
+            List<InstructionData>? firstChainedBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
+            uint vertID = 0;
+            bool found = firstChainedBlock is not null && firstChainedBlock[^1].GetThreadVert(tid, out vertID);
             Debug.Assert(found);
             LastAnimatedVert = vertID; //should this be front()?
-
         }
 
 
@@ -1843,7 +1848,8 @@ namespace rgat
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
             {
                 ProcessRecord piddata = InternalProtoGraph.ProcessData;
-                List<InstructionData> block = piddata.getDisassemblyBlock(entry.blockID);
+                List<InstructionData>? block = piddata.getDisassemblyBlock(entry.blockID);
+                Debug.Assert(block is not null);
                 unchainedWaitFrames += calculate_wait_frames(entry.count * (ulong)block.Count);
 
                 uint maxWait = (uint)Math.Floor((double)maxWaitFrames / stepSize); //todo test
@@ -2062,7 +2068,7 @@ namespace rgat
 
                 foreach (uint nidx in newnodeidxs)
                 {
-                    InternalProtoGraph.safe_get_node(nidx).SetHighlighted(true);
+                    InternalProtoGraph.safe_get_node(nidx)?.SetHighlighted(true);
                     DeletedHighlights.RemoveAll(x => x == nidx);
                 }
 
@@ -2082,8 +2088,10 @@ namespace rgat
         }
 
         //must hold read lock
-        public void RemoveHighlightedNodes(List<uint> nodeidxs, float[] attribsArray, HighlightType highlightType)
+        public void RemoveHighlightedNodes(List<uint> nodeidxs, float[]? attribsArray, HighlightType highlightType)
         {
+            if (attribsArray is null) return;
+
             List<uint> removedNodes = new List<uint>();
             List<uint> remainingNodes = new List<uint>();
             lock (textLock)
@@ -2107,7 +2115,7 @@ namespace rgat
                 AllHighlightedNodes.AddRange(HighlightedExceptionNodes.Where(n => !AllHighlightedNodes.Contains(n)));
                 foreach (uint nidx in nodeidxs)
                 {
-                    InternalProtoGraph.safe_get_node(nidx).SetHighlighted(false);
+                    InternalProtoGraph.safe_get_node(nidx)?.SetHighlighted(false);
                     NewHighlights.RemoveAll(x => x == nidx);
                 }
                 DeletedHighlights.AddRange(nodeidxs);
@@ -2198,7 +2206,8 @@ namespace rgat
 
         public void AddRisingSymbol(uint nodeIdx, int callIndex, int lingerFrames)
         {
-            NodeData n = InternalProtoGraph.safe_get_node(nodeIdx);
+            NodeData? n = InternalProtoGraph.safe_get_node(nodeIdx);
+            Debug.Assert(n is not null);
             if (n.Label == null) n.CreateLabel(this, callIndex);
             lock (animationLock)
             {

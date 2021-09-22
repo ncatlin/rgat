@@ -461,7 +461,7 @@ namespace rgat.Widgets
             ImGui.TableNextColumn();
             ImGui.Text("Local Port");
             ImGui.TableNextColumn();
-            string portstr = GlobalConfig.StartOptions.ListenPort.ToString();
+            string? portstr = GlobalConfig.StartOptions.ListenPort.ToString();
             if (ImGui.InputText("##InPort1", ref portstr, 6))
             {
                 if (int.TryParse(portstr, out int outport))

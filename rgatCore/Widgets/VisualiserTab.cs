@@ -463,11 +463,13 @@ namespace rgat
                                 uint blkID = lastEntry.blockID;
                                 if (blkID < uint.MaxValue)
                                 {
-                                    List<InstructionData> inslist = graph.ProcessData.getDisassemblyBlock(blockID: blkID);
-
-                                    for (var i = Math.Max(0, inslist.Count - 5); i < inslist.Count; i++)
+                                    List<InstructionData>? inslist = graph.ProcessData.getDisassemblyBlock(blockID: blkID);
+                                    if (inslist is not null)
                                     {
-                                        ImGui.Text(inslist[i].ins_text);
+                                        for (var i = Math.Max(0, inslist.Count - 5); i < inslist.Count; i++)
+                                        {
+                                            ImGui.Text(inslist[i].ins_text);
+                                        }
                                     }
                                 }
                             }
@@ -642,9 +644,12 @@ namespace rgat
                                     ImGui.Text($"Thread Start: 0x{graph.StartAddress:X} [{graph.StartModuleName}]");
                                     if (graph.NodeList.Count > 0)
                                     {
-                                        NodeData n = graph.safe_get_node(0);
-                                        string insBase = System.IO.Path.GetFileName(graph.ProcessData.GetModulePath(n.GlobalModuleID));
-                                        ImGui.Text($"First Instrumented: 0x{n.address:X} [{insBase}]");
+                                        NodeData? n = graph.safe_get_node(0);
+                                        if (n is not null)
+                                        {
+                                            string insBase = System.IO.Path.GetFileName(graph.ProcessData.GetModulePath(n.GlobalModuleID));
+                                            ImGui.Text($"First Instrumented: 0x{n.address:X} [{insBase}]");
+                                        }
                                     }
                                     ImGui.EndTooltip();
                                 }

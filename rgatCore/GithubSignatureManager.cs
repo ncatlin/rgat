@@ -102,11 +102,11 @@ namespace rgat
                     Task<string> content = request.Result.Content.ReadAsStringAsync();
                     content.Wait(_token);
 
-                    if (JObject.Parse(content.Result).TryGetValue("commit", out Newtonsoft.Json.Linq.JToken tok1) && 
+                    if (JObject.Parse(content.Result).TryGetValue("commit", out JToken? tok1) && 
                         tok1.Type == JTokenType.Object &&
-                        ((JObject)tok1).TryGetValue("committer", out JToken tok2) && 
+                        ((JObject)tok1).TryGetValue("committer", out JToken? tok2) && 
                         tok2.Type == JTokenType.Object &&
-                        ((JObject)tok2).TryGetValue("date", out JToken updateTok))         
+                        ((JObject)tok2).TryGetValue("date", out JToken? updateTok))         
                     {
                         if (updateTok.Type == Newtonsoft.Json.Linq.JTokenType.Date)
                         {
@@ -143,7 +143,7 @@ namespace rgat
         }
 
 
-        string GetRepoDirectory(ref GlobalConfig.SignatureSource repo, string sigsdir)
+        string? GetRepoDirectory(ref GlobalConfig.SignatureSource repo, string sigsdir)
         {
 
             try
@@ -215,7 +215,7 @@ namespace rgat
             client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", CONSTANTS.RGAT_VERSION_SEMANTIC.ToString()));
             try
             {
-                string repoDirectory = null;
+                string? repoDirectory = null;
 
                 if (repo.SignatureType == CONSTANTS.eSignatureType.YARA)
                 {
@@ -306,7 +306,7 @@ namespace rgat
         /// <param name="repopath">Repo key</param>
         public void PurgeRepoFiles(GlobalConfig.SignatureSource repo)
         {
-            string repoDirectory = null;
+            string? repoDirectory = null;
             if (repo.SignatureType == CONSTANTS.eSignatureType.YARA)
             {
                 repoDirectory = GetRepoDirectory(ref repo, GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory));

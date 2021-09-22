@@ -8,7 +8,7 @@ namespace rgat
     public class APIDetailsWin
     {
         public static bool Loaded { get; private set; }
-        public static void Load(string datapath, IProgress<float> progress = null)
+        public static void Load(string datapath, IProgress<float>? progress = null)
         {
             if (!File.Exists(datapath))
             {
@@ -27,7 +27,7 @@ namespace rgat
                 return;
             }
 
-            Newtonsoft.Json.Linq.JArray apiDataJSON = null;
+            Newtonsoft.Json.Linq.JArray? apiDataJSON = null;
 
             string jsnfile = file.ReadToEnd();
             try
@@ -53,7 +53,7 @@ namespace rgat
             file.Close();
         }
 
-        public static string FindAPIDatafile()
+        public static string? FindAPIDatafile()
         {
             try
             {
@@ -63,7 +63,7 @@ namespace rgat
                 candidate = System.IO.Path.Combine(AppContext.BaseDirectory, "APIDataWin.json");
                 if (File.Exists(candidate)) return candidate;
 
-                byte[] apiFileBytes = rgatState.ReadBinaryResource("APIDataWin");
+                byte[]? apiFileBytes = rgatState.ReadBinaryResource("APIDataWin");
                 if (apiFileBytes != null)
                 {
                     File.WriteAllBytes(candidate, apiFileBytes);
@@ -123,8 +123,10 @@ namespace rgat
                     return;
                 }
 
-                JObject moduleEntry = moduleEntryTok.ToObject<JObject>();
-                if (!moduleEntry.TryGetValue("Library", out JToken libnameTok) || libnameTok.Type != JTokenType.String)
+                JObject? moduleEntry = moduleEntryTok.ToObject<JObject>();
+                if (moduleEntry is null || 
+                    !moduleEntry.TryGetValue("Library", out JToken? libnameTok) || 
+                    libnameTok.Type != JTokenType.String)
                 {
                     Logging.RecordLogEvent("API Data library entry has no 'Library' name string. Abandoning Load.", Logging.LogFilterType.TextError);
                     return;
@@ -141,7 +143,7 @@ namespace rgat
 
 
                 string moduleFilter;
-                if (moduleEntry.TryGetValue("DefaultFilter", out JToken filterTok) && filterTok.Type == JTokenType.String)
+                if (moduleEntry.TryGetValue("DefaultFilter", out JToken? filterTok) && filterTok.Type == JTokenType.String)
                 {
                     moduleFilter = filterTok.ToString();
                 }
@@ -152,20 +154,22 @@ namespace rgat
 
                 _defaultFilters.Add(moduleReference, moduleFilter);
 
-                if (moduleEntry.TryGetValue("Interfaces", out JToken ifTok) && ifTok.Type == JTokenType.Object)
+                if (moduleEntry.TryGetValue("Interfaces", out JToken? ifTok) && ifTok.Type == JTokenType.Object)
                 {
                     Dictionary<string, API_ENTRY> moduleSyms = new Dictionary<string, API_ENTRY>();
 
-                    JObject APIs = ifTok.ToObject<JObject>();
+                    JObject? APIs = ifTok.ToObject<JObject>();
+                    if (APIs is null) continue;
                     foreach (var API in APIs)
                     {
-                        if (API.Value.Type != JTokenType.Object)
+                        if (API.Value is null || API.Value.Type != JTokenType.Object)
                         {
                             Logging.RecordLogEvent($"API data entry {libname}:{API.Key} is not an object", Logging.LogFilterType.TextError);
                             continue;
                         }
+                        JObject? APIJsn = API.Value.ToObject<JObject>();
+                        if (APIJsn is null) continue;
                         string apiname = API.Key;
-                        JObject APIJsn = API.Value.ToObject<JObject>();
 
                         API_ENTRY APIItem = new API_ENTRY();
                         APIItem.ModuleName = libname;
@@ -180,14 +184,14 @@ namespace rgat
                             APIItem.FilterType = moduleFilter;
                         }
 
-                        if (APIJsn.TryGetValue("Parameters", out JToken paramsTok) && paramsTok.Type == JTokenType.Array)
+                        if (APIJsn.TryGetValue("Parameters", out JToken? paramsTok) && paramsTok is not null && paramsTok.Type == JTokenType.Array)
                         {
-                            JArray callParams = paramsTok.ToObject<JArray>();
+                            JArray? callParams = paramsTok.ToObject<JArray>();
                             APIItem.LoggedParams = ExtractParameters(callParams, libname, apiname);
 
                             if (APIItem.LoggedParams != null && APIItem.LoggedParams.Count > 0)
                             {
-                                if (APIJsn.TryGetValue("Effects", out JToken effectsTok) && effectsTok.Type == JTokenType.Array)
+                                if (APIJsn.TryGetValue("Effects", out JToken? effectsTok) && effectsTok.Type == JTokenType.Array)
                                 {
                                     APIItem.Effects = ExtractEffects(effectsTok.ToObject<JArray>(), libname, apiname, APIItem.LoggedParams);
                                 } 
@@ -195,7 +199,7 @@ namespace rgat
 
                         }
 
-                        if (APIJsn.TryGetValue("Label", out JToken interactionTok) && interactionTok.Type == JTokenType.String)
+                        if (APIJsn.TryGetValue("Label", out JToken? interactionTok) && interactionTok.Type == JTokenType.String)
                         {
                             APIItem.Label = interactionTok.ToObject<string>();
                         }
@@ -209,8 +213,10 @@ namespace rgat
             }
         }
 
-        static List<API_PARAM_ENTRY> ExtractParameters(JArray callParams, string libname, string apiname)
+        static List<API_PARAM_ENTRY>? ExtractParameters(JArray callParams, string libname, string apiname)
         {
+            if (callParams is null) return null;
+
             List<API_PARAM_ENTRY> result = new List<API_PARAM_ENTRY>();
             int paramsOffset = -1;
             foreach (JToken callParamTok in callParams)
@@ -223,13 +229,15 @@ namespace rgat
                     return null;
                 }
 
-                JObject callParam = callParamTok.ToObject<JObject>();
-                if (!callParam.TryGetValue("Index", out JToken paramIndexTok) || paramIndexTok.Type != JTokenType.Integer)
+                JObject? callParam = callParamTok.ToObject<JObject>();
+                if (callParam is null ||
+                    !callParam.TryGetValue("Index", out JToken? paramIndexTok) || 
+                    paramIndexTok.Type != JTokenType.Integer)
                 {
                     Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter with no valid index", Logging.LogFilterType.TextError);
                     return null;
                 }
-                if (!callParam.TryGetValue("Name", out JToken paramNameTok) || paramNameTok.Type != JTokenType.String)
+                if (!callParam.TryGetValue("Name", out JToken? paramNameTok) || paramNameTok.Type != JTokenType.String)
                 {
                     Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter with no valid name", Logging.LogFilterType.TextError);
                     return null;
@@ -239,17 +247,17 @@ namespace rgat
                 param.index = paramIndexTok.ToObject<int>();
                 param.name = paramNameTok.ToObject<string>();
 
-                if (callParam.TryGetValue("Type", out JToken paramTypeTok) && paramTypeTok.Type == JTokenType.String)
+                if (callParam.TryGetValue("Type", out JToken? paramTypeTok) && paramTypeTok.Type == JTokenType.String)
                 {
-                    if (Enum.TryParse(typeof(APIParamType), paramTypeTok.ToObject<string>(), ignoreCase: true, out object paramtype))
+                    if (Enum.TryParse(typeof(APIParamType), paramTypeTok.ToObject<string>(), ignoreCase: true, out object? paramtype))
                     {
                         param.paramType = (APIParamType)paramtype;
 
                         if (param.paramType != APIParamType.Info)
                         {
-                            if (!callParam.TryGetValue("EntityType", out JToken catTok) ||
+                            if (!callParam.TryGetValue("EntityType", out JToken? catTok) ||
                                 catTok.Type != JTokenType.String ||
-                                !Enum.TryParse(typeof(InteractionEntityType), catTok.ToString(), out object categoryEnum))
+                                !Enum.TryParse(typeof(InteractionEntityType), catTok.ToString(), out object? categoryEnum))
                             {
                                 Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter ({param.name}) with no valid Category", Logging.LogFilterType.TextError);
                                 return null;
@@ -258,9 +266,9 @@ namespace rgat
                             param.EntityType = (InteractionEntityType)categoryEnum;
 
 
-                            if (!callParam.TryGetValue("RawType", out JToken rawTypeTok) ||
+                            if (!callParam.TryGetValue("RawType", out JToken? rawTypeTok) ||
                                 rawTypeTok.Type != JTokenType.String ||
-                                !Enum.TryParse(typeof(InteractionRawType), rawTypeTok.ToString(), out object rawtypeEnum))
+                                !Enum.TryParse(typeof(InteractionRawType), rawTypeTok.ToString(), out object? rawtypeEnum))
                             {
                                 Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter ({param.name}) with no valid RawType", Logging.LogFilterType.TextError);
                                 return null;
@@ -279,7 +287,7 @@ namespace rgat
                         param.paramType = APIParamType.Info;
                     }
 
-                    if (callParam.TryGetValue("Conditional", out JToken condTok) && condTok.Type == JTokenType.Boolean)
+                    if (callParam.TryGetValue("Conditional", out JToken? condTok) && condTok.Type == JTokenType.Boolean)
                     {
                         param.IsConditional = condTok.ToObject<bool>();
                     }
@@ -301,8 +309,10 @@ namespace rgat
                     Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a non-object interaction effect", Logging.LogFilterType.TextError);
                     break;
                 }
-                JObject effectJsn = effectTok.ToObject<JObject>();
-                if (!effectJsn.TryGetValue("Type", out JToken typetok) || typetok.Type != JTokenType.String)
+                JObject? effectJsn = effectTok.ToObject<JObject>();
+                if (effectJsn is null || 
+                    !effectJsn.TryGetValue("Type", out JToken? typetok) || 
+                    typetok.Type != JTokenType.String)
                 {
                     Logging.RecordLogEvent($"API data entry {libname}:{apiname} has an untyped interaction effect", Logging.LogFilterType.TextError);
                     break;
@@ -311,8 +321,8 @@ namespace rgat
                 switch (typetok.ToString())
                 {
                     case "LinkReference":
-                        if (effectJsn.TryGetValue("EntityIndex", out JToken entidx) &&
-                            effectJsn.TryGetValue("ReferenceIndex", out JToken refidx) &&
+                        if (effectJsn.TryGetValue("EntityIndex", out JToken? entidx) &&
+                            effectJsn.TryGetValue("ReferenceIndex", out JToken? refidx) &&
                             entidx.Type == JTokenType.Integer &&
                             refidx.Type == JTokenType.Integer)
                         {

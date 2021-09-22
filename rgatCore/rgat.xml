@@ -83,6 +83,52 @@
             <param name="remoteAddr">The address of the remote rgat instance where this target is being traced</param>
             <param name="isLibrary">if the target is a library or not. This value will be used if the binary cannot be found and parsed</param>
         </member>
+        <member name="M:rgat.BinaryTarget.InitialiseFromRemoteData(Newtonsoft.Json.Linq.JToken)">
+            <summary>
+            Load serialsed target data into this object 
+            </summary>
+            <param name="dataTok">JSON target data</param>
+            <returns>Success or failure</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.HexTooltip">
+            <summary>
+            Get an annoted hexdump snippet of the start of the target binary
+            </summary>
+            <returns>The snippet as a string</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetCurrentTraceConfiguration">
+            <summary>
+            Get the tracing configuration settings as a dictrionary of keyvaluepair strings
+            </summary>
+            <returns>Settings dictionary</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.SetTraceConfig(System.String,System.String)">
+            <summary>
+            Set a tracing configuration value to be sent to the instrumentation tool
+            </summary>
+            <param name="key">Setting to set</param>
+            <param name="value">Value of the setting</param>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetYaraHits(rgat.YARAScan.YARAHit[]@)">
+            <summary>
+            Get Yara hits recorded for the target
+            </summary>
+            <param name="hits">Array of YARAHit objects describing rule hits from the last scan</param>
+            <returns>true if there were any hits</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetDieHits(System.String[]@)">
+            <summary>
+            Get an array of Detect It Easy signature hits from the last scan of the target
+            </summary>
+            <param name="hits">Array of hit texts</param>
+            <returns>true if there were any hits</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.ClearSignatureHits(rgat.CONSTANTS.eSignatureType)">
+            <summary>
+            Purge the signature hits recorded by the last scan
+            </summary>
+            <param name="sigType">Type of signature hits to remove</param>
+        </member>
         <member name="F:rgat.BridgeConnection.emsgType.AsyncData">
             <summary>
             Non-trace related data sent without requiring a command to generate it (eg: result of signature scanning)
@@ -426,14 +472,18 @@
             </summary>
             <param name="repopath">Repo key</param>
         </member>
-        <member name="M:rgat.GraphLayoutEngine.ChangePreset(rgat.PlottedGraph)">
+        <member name="M:rgat.GraphLayoutEngine.#ctor(Veldrid.GraphicsDevice,ImGuiNET.ImGuiController,System.String)">
             <summary>
-            Must have writer lock
-            If graph buffers already stored in VRAM, load the reference
-            Otherwise, fill GPU buffers from stored data in the plottedgraph
-            
+            Runs the computation shaders on graph layout buffers 
             </summary>
-            
+            <param name="gdev">GPU GraphicsDevice to perform computation with</param>
+            <param name="controller">An ImGuiController to load shader code from [todo: remove it from the controller, will need these in non-imgui runners]</param>
+            <param name="name">A name to identify the layout engine in logfiles</param>
+        </member>
+        <member name="P:rgat.GraphLayoutEngine.EngineID">
+            <summary>
+            The unique name of the layout engine
+            </summary>
         </member>
         <member name="M:rgat.GraphLayoutEngine.GetScreenFitOffsets(rgat.PlottedGraph,System.Numerics.Matrix4x4,System.Numerics.Vector2,System.Numerics.Vector2@,System.Numerics.Vector2@,System.Numerics.Vector2@)">
             <summary>
@@ -449,13 +499,58 @@
             <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
             <param name="zoffsets">zoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
         </member>
-        <member name="M:rgat.GraphLayoutEngine.FindHighXYZ(Veldrid.DeviceBuffer,System.Int32@)">
+        <member name="M:rgat.GraphLayoutEngine.GetPreviewFitOffsets(System.Numerics.Vector2,rgat.PlottedGraph,System.Numerics.Vector2@,System.Numerics.Vector2@,System.Numerics.Vector2@)">
+            <summary>
+            Iterate over all the nodes and figure out how far they are from the edges of the screen in each dimension
+            </summary>
+            <param name="graphWidgetSize">Size of the rendering widget</param>
+            <param name="graph">Graph being displayed in the widget</param>
+            <param name="xoffsets">Furthest from the left and right sides of the widget</param>
+            <param name="yoffsets">Furthest from the top and bottom of the widget</param>
+            <param name="zoffsets">Furthest from in front of/behind the camera lens in the Z direction</param>
+            <returns>true if a meaningful result was returned</returns>
+        </member>
+        <member name="M:rgat.GraphLayoutEngine.FindHighXYZ(Veldrid.DeviceBuffer,System.Int32,System.Int32@)">
             <summary>
             Must have read lock to call
-            Find fastest node speed
+            Find the node with the highest x/y/z dimension. Ignores w.
             </summary>
-            <param name="buf"></param>
+            <param name="buf">Device buffer containing values (can be speeds or positions)</param>
+            <param name="nodeCount">Number of nodes to iterate over</param>
+            <param name="highIndex">set to the index of the highest node</param>
             <returns></returns>
+        </member>
+        <member name="M:rgat.GraphLayoutEngine.Compute(Veldrid.CommandList,rgat.PlottedGraph,System.Int32,System.Boolean)">
+            <summary>
+            Do the actual computation of graph layout and animation
+            Uses the velocity shader to adjust the velocity based on relative positions
+            Uses the position shader to move the nodes at the calculated velocity
+            Adjusts the size/alpha of nodes based on the attribute buffer
+            </summary>
+            <param name="cl">Thread-specific command list</param>
+            <param name="graph">Graph to perform computation on</param>
+            <param name="mouseoverNodeID">The index of the node the users mouse is hovering over</param>
+            <param name="isAnimated">If the graph should have animation attributes computed (ie: main graph with live/replay active)</param>
+            <returns>The version ID associated with the produced graph layout computed</returns>
+        </member>
+        <member name="M:rgat.GraphLayoutEngine.RenderPosition(Veldrid.CommandList,rgat.PlottedGraph,Veldrid.ResourceSet,System.Single)">
+            <summary>
+            Used the velocity buffer to move the nodes in the positions buffer
+            </summary>
+            <param name="cl">Thread-specific Veldrid command list to use</param>
+            <param name="graph">PlottedGraph to compute</param>
+            <param name="resources">Position shader resource set</param>
+            <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
+        </member>
+        <member name="M:rgat.GraphLayoutEngine.RenderVelocity(Veldrid.CommandList,rgat.PlottedGraph,Veldrid.ResourceSet,System.Single,System.Single)">
+            <summary>
+            Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
+            </summary>
+            <param name="cl">Thread-specific Veldrid command list to use</param>
+            <param name="graph">PlottedGraph to compute</param>
+            <param name="resources">Velocity shader resource set</param>
+            <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
+            <param name="temperature">The activity level of the layout state. Higher balues => bigger movements</param>
         </member>
         <member name="M:rgat.GraphLayoutEngine.RenderNodeAttribs(Veldrid.CommandList,rgat.PlottedGraph,Veldrid.DeviceBuffer,Veldrid.ResourceSet,System.Single,System.Int32,System.Boolean)">
             <summary>
@@ -469,11 +564,44 @@
             <param name="mouseoverNodeID">Index of the node the mouse is over</param>
             <param name="useAnimAttribs">Flag to specify the graph is in animated-alpha mode</param>
         </member>
+        <member name="M:rgat.GraphLayoutEngine.ApplyHighlightAttributes(Veldrid.CommandList,rgat.PlottedGraph,Veldrid.DeviceBuffer)">
+            <summary>
+            Set the highlight state of nodes in the attributes buffer so they can be animated/have their icon set
+            </summary>
+            <param name="cl">Thread specific Veldrid CommandList</param>
+            <param name="graph">Graph with highlights to apply</param>
+            <param name="attribsBuf">Attributes buffer to apply highlight data to</param>
+        </member>
+        <member name="M:rgat.GraphLayoutEngine.SetHighlightedNodes(Veldrid.CommandList,System.Collections.Generic.List{System.UInt32},Veldrid.DeviceBuffer,rgat.CONSTANTS.HighlightType)">
+            <summary>
+            Set a node to highlighted in the attribute buffer
+            </summary>
+            <param name="cl">Thread specific Veldrid CommandList</param>
+            <param name="nodeIdxs">List of node indexes to set as highlighted</param>
+            <param name="attribsBuf">Attributes buffer to set highlight state in</param>
+            <param name="highlightType">CONSTANTS.HighlightType of highlight [Currently unused, could be used to select the icon]</param>
+        </member>
+        <member name="M:rgat.GraphLayoutEngine.UnsetHighlightedNodes(Veldrid.CommandList,System.Collections.Generic.List{System.UInt32},Veldrid.DeviceBuffer)">
+            <summary>
+            Remove a nodes highlighted state in the attribute buffer
+            </summary>
+            <param name="cl">Thread specific Veldrid CommandList</param>
+            <param name="nodeIdxs">List of node indexes to set as not highlighted</param>
+            <param name="attribsBuf">Attributes buffer to set highlight state in</param>
+        </member>
         <member name="P:rgat.GraphLayoutEngine.AverageComputeTime">
             <summary>
             Average time in Milliseconds taken by the GPU to perform a round of velocity/position/attribute computation
             Average computed over GlobalConfig.StatisticsTimeAvgWindow frames
             </summary>
+        </member>
+        <member name="M:rgat.GraphLayoutEngine.DebugPrintOutputFloatBuffer(Veldrid.DeviceBuffer,System.String,System.Int32)">
+            <summary>
+            Read out some values from a DeviceBuffer and print them to the console. Just for debugging.
+            </summary>
+            <param name="buf">GPU DeviceBuffer to read</param>
+            <param name="message">Caption for the printout</param>
+            <param name="printCount">Max values to print</param>
         </member>
         <member name="M:rgat.GraphLayoutState.LockedUploadStateToVRAM(rgat.GraphLayoutState.CPUBuffers)">
             <summary>
@@ -481,6 +609,12 @@
             Refreshes VRAM layout buffers from cached RAM data
             </summary>
             <param name="_gd"></param>
+        </member>
+        <member name="M:rgat.GraphLayoutState.SyncRAMToVRAM(rgat.CONSTANTS.LayoutStyles.Style)">
+            <summary>
+            Upload the CPUBuffers for a specific layout into VRAM
+            </summary>
+            <param name="layout">The layout state to be uploaded</param>
         </member>
         <member name="M:rgat.GraphLayoutState.DownloadStateFromVRAM">
             <summary>
@@ -513,6 +647,15 @@
             Must hold writer lock before calling
             </summary>
             <param name="bufferSize"></param>
+        </member>
+        <member name="M:rgat.GraphLayoutState.GetAttributes(rgat.CONSTANTS.LayoutStyles.Style,System.Single[]@)">
+            <summary>
+            Get the stored (RAM) attribute buffers 
+            Must hold upgradable read lock
+            </summary>
+            <param name="layoutStyle">The saved plot</param>
+            <param name="buf">The outout float buffer containing the retrieved values</param>
+            <returns>true if found</returns>
         </member>
         <member name="T:rgat.GraphLayoutState.PositionResetStyle">
             <summary>
@@ -710,6 +853,11 @@
             <param name="nodecount">Number of nodes to add. This isn't just taken from nodelist because
             it may be intended for a texture of a certain size</param>
         </member>
+        <member name="M:rgat.PlottedGraph.BeginNewLayout">
+            <summary>
+            Reset the layout tracking statistics and reset the temperature to a high value
+            </summary>
+        </member>
         <member name="M:rgat.PlottedGraph.AddNewEdgesToLayoutBuffers(System.Int32)">
             <summary>
             Add new edges to the layout buffer
@@ -775,6 +923,43 @@
             </summary>
             <param name="GlobalModuleID">rgat internal ID for module in target process</param>
             <returns>string containing the module path</returns>
+        </member>
+        <member name="F:rgat.ProcessRecord.LoadedModulePaths">
+            <summary>
+            Filesystem paths of loaded modules
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessRecord.modIDTranslationVec">
+            <summary>
+            Translation list of local module IDs (known to the instrumentation engine) to global module IDs (known to rgat)
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessRecord.ModuleAPIReferences">
+            <summary>
+            API references of modules for API metadata operations
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessRecord.LoadedModuleBounds">
+            <summary>
+            Start and end memory addresses of each module
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessRecord.ModuleTraceStates">
+            <summary>
+            Whether each modules is instrumented or not
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessRecord.LoadedModuleCount">
+            <summary>
+            Number of loaded modules
+            </summary>
+        </member>
+        <member name="M:rgat.ProcessRecord.GetModuleReference(System.Int32)">
+            <summary>
+            Get the unique API reference value for the specified module
+            </summary>
+            <param name="GlobalModuleID">Global module ID</param>
+            <returns>An API reference value which can be used in API metadata lookup operations</returns>
         </member>
         <member name="T:rgat.Properties.Resources">
             <summary>
@@ -914,6 +1099,12 @@
         <member name="M:rgat.ProtoGraph.AddEdge_LastToTargetVert(System.Boolean,System.Int32,System.UInt64)">
             todo is this needed
             yes. yes it is.
+        </member>
+        <member name="M:rgat.ProtoGraph.PushAnimUpdate(rgat.ANIMATIONENTRY)">
+            <summary>
+            Store a processed trace data entry from instrumentation for replay
+            </summary>
+            <param name="entry">The ANIMATIONENTRY value</param>
         </member>
         <member name="T:rgat.rgatState">
             <summary>
@@ -1269,6 +1460,22 @@
             </summary>
             <param name="ProcessMessageobj"></param>
         </member>
+        <member name="F:rgat.InstructionData.Address">
+            <summary>
+            Memory address of this instruction
+            </summary>
+        </member>
+        <member name="F:rgat.InstructionData.branchAddress">
+            <summary>
+            If this instruction is a branch, this is the address the taken branch leads to
+            </summary>
+        </member>
+        <member name="F:rgat.InstructionData.condDropAddress">
+            <summary>
+            Address of the instruction after this if there is no flow control
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:rgat.InstructionData.ThreadVerts" -->
         <member name="M:rgat.TraceRecord.GetTimeLineEntries(System.Int64,System.Int32)">
             <summary>
             Fetches an array of the newest timeline events for the trace

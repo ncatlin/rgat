@@ -442,7 +442,7 @@ namespace rgatFilePicker
         public static FilePicker GetRemoteFilePicker(object o, BridgeConnection remoteMirror, string searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
 
-            if (!_filePickers.TryGetValue(o, out FilePicker fp) || fp._remoteMirror != null && (fp._remoteMirror.LastAddress != remoteMirror.LastAddress))
+            if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror != null && (fp._remoteMirror.LastAddress != remoteMirror.LastAddress))
             {
                 fp = new FilePicker(remoteMirror: remoteMirror);
                 fp.Data.CurrentDirectory = RemoteDataMirror.RootDirectory;
@@ -474,7 +474,7 @@ namespace rgatFilePicker
         public static FilePicker GetFilePicker(object o, string startingPath, string searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
 
-            if (!_filePickers.TryGetValue(o, out FilePicker fp) || fp._remoteMirror != null)
+            if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror != null)
             {
                 fp = new FilePicker(remoteMirror: null);
                 fp.OnlyAllowFolders = onlyAllowFolders;
@@ -581,15 +581,16 @@ namespace rgatFilePicker
         bool InitCurrentDirInfo(JToken responseTok)
         {
             if (responseTok.Type != JTokenType.Object) return false;
-            JObject response = responseTok.ToObject<JObject>();
+            JObject? response = responseTok.ToObject<JObject>();
+            if (response is null) return false;
 
-            if (!response.TryGetValue("Current", out JToken currentDirTok) || currentDirTok.Type != JTokenType.String) return false;
+            if (!response.TryGetValue("Current", out JToken? currentDirTok) || currentDirTok.Type != JTokenType.String) return false;
             string path = currentDirTok.ToString();
-            if (!response.TryGetValue("CurrentExists", out JToken ctokexists) || ctokexists.Type != JTokenType.Boolean) return false;
-            if (!response.TryGetValue("Parent", out JToken parentTok) || parentTok.Type != JTokenType.String) return false;
-            if (!response.TryGetValue("ParentExists", out JToken ptokexists) || ptokexists.Type != JTokenType.Boolean) return false;
-            if (!response.TryGetValue("Error", out JToken errTok) || errTok.Type != JTokenType.String) return false;
-            if (!response.TryGetValue("Contents", out JToken contentsTok) || contentsTok.Type != JTokenType.Object) return false;
+            if (!response.TryGetValue("CurrentExists", out JToken? ctokexists) || ctokexists.Type != JTokenType.Boolean) return false;
+            if (!response.TryGetValue("Parent", out JToken? parentTok) || parentTok.Type != JTokenType.String) return false;
+            if (!response.TryGetValue("ParentExists", out JToken? ptokexists) || ptokexists.Type != JTokenType.Boolean) return false;
+            if (!response.TryGetValue("Error", out JToken? errTok) || errTok.Type != JTokenType.String) return false;
+            if (!response.TryGetValue("Contents", out JToken? contentsTok) || contentsTok.Type != JTokenType.Object) return false;
 
             if (!ParseRemoteDirectoryContents(path, contentsTok.ToObject<JObject>(), out DirectoryContents newDirContents)) return false;
 
@@ -619,8 +620,8 @@ namespace rgatFilePicker
         bool ParseRemoteDirectoryContents(string dirpath, JObject remoteData, out DirectoryContents contents)
         {
             contents = new DirectoryContents(dirpath);
-            if (!remoteData.TryGetValue("Files", out JToken filesTok) || filesTok.Type != JTokenType.Array
-                || !remoteData.TryGetValue("Dirs", out JToken dirsTok) || dirsTok.Type != JTokenType.Array)
+            if (!remoteData.TryGetValue("Files", out JToken? filesTok) || filesTok.Type != JTokenType.Array
+                || !remoteData.TryGetValue("Dirs", out JToken? dirsTok) || dirsTok.Type != JTokenType.Array)
             {
                 return false;
             }
@@ -708,7 +709,7 @@ namespace rgatFilePicker
                 switch (status)
                 {
                     case RemoteDataMirror.ResponseStatus.eNoRecord:
-                        string param = (Data.NextRemoteDirectory != null) ? Data.NextRemoteDirectory : Data.CurrentDirectory;
+                        string? param = (Data.NextRemoteDirectory != null) ? Data.NextRemoteDirectory : Data.CurrentDirectory;
                         int cmdid = rgatState.NetworkBridge.SendCommand("DirectoryInfo", recipientID: this.myID, callback: HandleRemoteDirInfoCallback, param: param);
                         lock (_lock)
                         {
@@ -767,7 +768,7 @@ namespace rgatFilePicker
 
         void DrawPickerControlsBar()
         {
-            string root = Path.GetPathRoot(Data.CurrentDirectory);
+            string? root = Path.GetPathRoot(Data.CurrentDirectory);
             bool enabled = _directoryHistoryPosition < (_directoryHistory.Count - 1);
             if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_LEFT}", enabled: enabled))
             {
@@ -781,7 +782,9 @@ namespace rgatFilePicker
             ImGui.SameLine();
             if (ImGui.Button($"{ImGuiController.FA_ICON_UP}"))
             {
-                SetActiveDirectory(Directory.GetParent(Data.CurrentDirectory).FullName);
+                DirectoryInfo? parent = Directory.GetParent(Data.CurrentDirectory);
+                if (parent is not null)
+                    SetActiveDirectory(parent.FullName);
             }
             SmallWidgets.MouseoverText("Parent Directory");
             ImGui.SameLine();
@@ -987,7 +990,7 @@ namespace rgatFilePicker
             }
 
             Data.CurrentDirectoryParentExists = thisdir.Parent != null && Directory.Exists(thisdir.Parent.FullName);
-            if (Data.CurrentDirectoryParentExists)
+            if (Data.CurrentDirectoryParentExists && thisdir.Parent is not null)
             {
                 Data.CurrentDirectoryParent = thisdir.Parent.FullName;
             }
@@ -1083,7 +1086,7 @@ namespace rgatFilePicker
 
             if (ImGui.IsAnyMouseDown())
             {
-                _filePickers.TryGetValue(objKey, out FilePicker thisFilePicker);
+                _filePickers.TryGetValue(objKey, out FilePicker? thisFilePicker);
                 if (thisFilePicker?.Created.AddMilliseconds(800) < DateTime.Now) //ignore clicks very shortly after creation
                 {
                     if (!ImGui.IsMouseHoveringRect(ImGui.GetWindowPos(), ImGui.GetWindowPos() + ImGui.GetWindowSize()) && !ImGui.IsWindowHovered())
@@ -1352,8 +1355,8 @@ namespace rgatFilePicker
             {
                 if (dir_drive.Type != JTokenType.Object) return false;
                 JObject drivetuple = (JObject)dir_drive;
-                if (drivetuple.TryGetValue("Item1", out JToken val1) && val1.Type == JTokenType.String &&
-                     drivetuple.TryGetValue("Item2", out JToken val2) && val2.Type == JTokenType.String)
+                if (drivetuple.TryGetValue("Item1", out JToken? val1) && val1.Type == JTokenType.String &&
+                     drivetuple.TryGetValue("Item2", out JToken? val2) && val2.Type == JTokenType.String)
                 {
                     result.Add(new Tuple<string, string>(val1.ToString(), val2.ToString()));
                 }
