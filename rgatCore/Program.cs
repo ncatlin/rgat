@@ -113,7 +113,7 @@ namespace ImGuiNET
         {
             bool exit = false;
             //list valid network interfaces if the -i param was provided with a list arg or invalid interface
-            string interfaceOption = GlobalConfig.StartOptions.Interface;
+            string? interfaceOption = GlobalConfig.StartOptions.Interface;
             if (interfaceOption != null)
             {
                 HandleInterfaceParam(interfaceOption, ref exit);

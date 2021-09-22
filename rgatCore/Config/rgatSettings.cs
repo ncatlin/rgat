@@ -325,7 +325,7 @@ namespace rgat.Config
             {
                 lock (_lock)
                 {
-                    if (Paths.TryGetValue(setting, out string? result)) return result;
+                    if (Paths is not null && Paths.TryGetValue(setting, out string? result)) return result;
                 }
                 return "";
             }

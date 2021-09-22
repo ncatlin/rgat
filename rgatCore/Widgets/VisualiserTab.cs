@@ -538,7 +538,7 @@ namespace rgat
 
         private void SetActiveGraph(PlottedGraph graph)
         {
-            if (_rgatState.ActiveGraph is not null && graph.pid != _rgatState.ActiveGraph.pid)
+            if (_rgatState.ActiveGraph is not null && graph.PID != _rgatState.ActiveGraph.PID)
             {
                 Console.WriteLine("Warning: Graph selected in inactive trace");
                 return;
@@ -555,7 +555,7 @@ namespace rgat
             foreach (TraceRecord child in tr.children)
             {
                 string tabs = new String("  ");
-                if (ImGui.Selectable(tabs + "PID " + child.PID, _rgatState.ActiveGraph?.pid == child.PID))
+                if (ImGui.Selectable(tabs + "PID " + child.PID, _rgatState.ActiveGraph?.PID == child.PID))
                 {
                     _rgatState.SelectActiveTrace(child);
                 }
@@ -619,7 +619,7 @@ namespace rgat
                         {
                             foreach (PlottedGraph selectablegraph in graphs)
                             {
-                                string caption = $"{selectablegraph.tid}: {selectablegraph.InternalProtoGraph.StartModuleName}";
+                                string caption = $"{selectablegraph.TID}: {selectablegraph.InternalProtoGraph.StartModuleName}";
                                 int nodeCount = selectablegraph.GraphNodeCount();
                                 if (nodeCount == 0)
                                 {
@@ -632,7 +632,7 @@ namespace rgat
                                     caption += $" [{nodeCount} nodes]";
                                 }
 
-                                if (ImGui.Selectable(caption, graph.ThreadID == selectablegraph.tid) && nodeCount > 0)
+                                if (ImGui.Selectable(caption, graph.ThreadID == selectablegraph.TID) && nodeCount > 0)
                                 {
                                     SetActiveGraph(selectablegraph);
                                 }
@@ -786,7 +786,7 @@ namespace rgat
                 {
                     string caption = "No trace to display";
                     ImguiUtils.DrawRegionCenteredText(caption);
-                    ImGui.Text($"temp: {_rgatState.ActiveGraph?.temperature}");
+                    ImGui.Text($"temp: {_rgatState.ActiveGraph?.Temperature}");
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
@@ -1000,7 +1000,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text($"Graph Temperature");
                     ImGui.TableNextColumn();
-                    ImGui.Text($"{graphplot.temperature}");
+                    ImGui.Text($"{graphplot.Temperature}");
                     ImGui.TableNextColumn();
                     ImGui.Text("This sets the speed of graph layout and slows over time");
 

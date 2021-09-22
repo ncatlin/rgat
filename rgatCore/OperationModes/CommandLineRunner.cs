@@ -11,12 +11,17 @@ namespace rgat.OperationModes
     /// </summary>
     public class CommandLineRunner
     {
+        /// <summary>
+        /// Create a commandline runner
+        /// </summary>
         public CommandLineRunner()
         {
 
         }
 
-
+        /// <summary>
+        /// Initialise for GPU-less operations, such as on an analysis sandbox were only tracing will be performed
+        /// </summary>
         public void InitNoGPU()
         {
             LoadingThreadCommandLine();
@@ -54,7 +59,8 @@ namespace rgat.OperationModes
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
             {
                 string? datafile = APIDetailsWin.FindAPIDatafile();
-                apiTask = Task.Run(() => APIDetailsWin.Load(datafile));
+                if (datafile is not null)
+                    apiTask = Task.Run(() => APIDetailsWin.Load(datafile));
             }
             else
             {

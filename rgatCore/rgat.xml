@@ -719,11 +719,62 @@
             Non-trace related data sent without requiring a command to generate it (eg: result of signature scanning)
             </summary>
         </member>
+        <member name="P:rgat.BridgeConnection.ActiveNetworking">
+            <summary>
+            Are we either listening, connecting or connected
+            </summary>
+        </member>
+        <member name="T:rgat.BridgeConnection.eBridgeState">
+            <summary>
+            Connection activity
+            </summary>
+        </member>
+        <member name="F:rgat.BridgeConnection.eBridgeState.Inactive">
+            <summary>
+            There is no network activity
+            </summary>
+        </member>
+        <member name="F:rgat.BridgeConnection.eBridgeState.Connecting">
+            <summary>
+            rgat is connecting out
+            </summary>
+        </member>
+        <member name="F:rgat.BridgeConnection.eBridgeState.Listening">
+            <summary>
+            rgat is waiting for an incoming connection
+            </summary>
+        </member>
+        <member name="F:rgat.BridgeConnection.eBridgeState.Connected">
+            <summary>
+            rgat is connected
+            </summary>
+        </member>
+        <member name="F:rgat.BridgeConnection.eBridgeState.Teardown">
+            <summary>
+            The connecton has been torn down
+            </summary>
+        </member>
+        <member name="P:rgat.BridgeConnection.BridgeState">
+            <summary>
+            The state of the connection
+            </summary>
+        </member>
         <member name="P:rgat.BridgeConnection.GUIMode">
             <summary>
             Whether this instance is the GUI.
             The GUI sends tracing commands and recieves trace data and associated metadata (available files to execute, signature hits, etc)
             It does not do the opposite. Ever.
+            </summary>
+        </member>
+        <member name="P:rgat.BridgeConnection.HeadlessMode">
+            <summary>
+            Is rgat running in non-GUI mode
+            </summary>
+        </member>
+        <member name="P:rgat.BridgeConnection.CancelToken">
+            <summary>
+            Get a cancellation token. This will be cancelled if the connection is torn down
+            All blocking operations should respect it
             </summary>
         </member>
         <member name="F:rgat.BridgeConnection.RemoteEndPoint">
@@ -930,6 +981,83 @@
             how many frame timing values to store for calculating UI performance statistics
             </summary>
         </member>
+        <member name="T:rgat.Config.LaunchConfig">
+            <summary>
+            rgat operation configuration based on command line options
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.TargetPath">
+            <summary>
+            if present - trace target file and exit
+            this mode does not require a GPU, unless paired with the draw or mp4 options
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.ConnectModeAddress">
+            <summary>
+            if present - go into headless bridge mode and act as a proxy for the specified rgat instance on a remote machine
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.ListenPort">
+            <summary>
+            if present - go into headless bridge mode and act as a proxy for the next rgat instance to connect to this port
+            this mode does not require a GPU
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.Interface">
+            <summary>
+            The interface to use for network connections
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.NetworkKey">
+            <summary>
+            The encryption key to use for network connections
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.TraceSaveDirectory">
+            <summary>
+            Write the collected trace to this path, for opening later by rgat in UI mode
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.DrawImage">
+            <summary>
+            draw the rendered graph to a png image
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.RecordVideoReplay">
+            <summary>
+            once tracing and graph layout is complete, record playback to an mp4 video. 
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.RecordVideoLive">
+            <summary>
+            record a video of tracing and layout.
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.FFmpegPath">
+            <summary>
+            Path to ffmpeg.exe to use for video captures
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.NoFollowDescendants">
+            <summary>
+            if set to true, rgat will not trace child processes
+            </summary>
+        </member>
+        <member name="P:rgat.Config.LaunchConfig.ConfigPath">
+            <summary>
+            Provide config options in a file to support automation
+            </summary>
+        </member>
+        <member name="F:rgat.Config.LaunchConfig.ActiveNetworkInterface">
+            <summary>
+            The network interface being used for listening or connecting
+            </summary>
+        </member>
+        <member name="T:rgat.Config.LaunchConfig.eRunMode">
+            <summary>
+            Modes rgat can operate in
+            </summary>
+        </member>
         <member name="F:rgat.Config.LaunchConfig.eRunMode.GUI">
             <summary>
             Full GPU rendered GUI mode
@@ -957,6 +1085,17 @@
             The provided command line arguments were not valid for any supported mode of operation
             </summary>
         </member>
+        <member name="F:rgat.Config.LaunchConfig.RunMode">
+            <summary>
+            The basic mode of operation for this rgat run
+            </summary>
+        </member>
+        <member name="M:rgat.Config.LaunchConfig.Init(System.String[])">
+            <summary>
+            Initialise the configuration
+            </summary>
+            <param name="originalParams">The commandline parameters</param>
+        </member>
         <member name="M:rgat.Config.LaunchConfig.DeNullifyArgumentless(System.String[])">
             <summary>
             nothing => null
@@ -970,6 +1109,13 @@
             <summary>
             Work out what the user wants to do based on the arguments
             </summary>
+        </member>
+        <member name="M:rgat.Config.LaunchConfig.ExtractJSONOptions(System.String@)">
+            <summary>
+            Merges a JSON options blob into the command line options
+            </summary>
+            <param name="error">any error message produced by the operation</param>
+            <returns>success or failure</returns>
         </member>
         <member name="F:rgat.Config.rgatSettings.Inited">
             <summary>
@@ -1690,6 +1836,16 @@
             or with the GPU to generate a video or image
             </summary>
         </member>
+        <member name="M:rgat.OperationModes.CommandLineRunner.#ctor">
+            <summary>
+            Create a commandline runner
+            </summary>
+        </member>
+        <member name="M:rgat.OperationModes.CommandLineRunner.InitNoGPU">
+            <summary>
+            Initialise for GPU-less operations, such as on an analysis sandbox were only tracing will be performed
+            </summary>
+        </member>
         <member name="T:rgat.OperationModes.ImGuiRunner">
             <summary>
             Creates and manages a Veldrid/ImGui based rgat GUI
@@ -1726,7 +1882,7 @@
             Currently being played
             </summary>
         </member>
-        <member name="F:rgat.PlottedGraph.REPLAY_STATE.PPaused">
+        <member name="F:rgat.PlottedGraph.REPLAY_STATE.Paused">
             <summary>
             Paused in an animated state
             </summary>
@@ -1749,10 +1905,78 @@
             inserts them into the graphcis buffers for layout/drawing
             </summary>
         </member>
+        <member name="M:rgat.PlottedGraph.SeekToAnimationPosition(System.Single)">
+            <summary>
+            Seek to a user specified position in the replay
+            </summary>
+            <param name="position">A position in the replay from 0-1</param>
+        </member>
+        <member name="M:rgat.PlottedGraph.ProcessReplayUpdates">
+            <summary>
+            Process more animation replay updates
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.LastAnimatedVert">
+            <summary>
+            Last instruction that was replayed
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.ResetAnimation">
+            <summary>
+            Reset the replay animation state
+            This should only ever be called from the maingraph rendering thread
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.GetAnimationProgress">
+            <summary>
+            How far the animation as progressed through the recorded animation entries
+            </summary>
+            <returns>Progress as a float from 0-1</returns>
+        </member>
+        <member name="P:rgat.PlottedGraph.BeingDeleted">
+            <summary>
+            probably defunct. todo for when trace deletion is implemented
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.SetAnimated(System.Boolean)">
+            <summary>
+            Set the graph animation state
+            </summary>
+            <param name="newState">animated or not</param>
+        </member>
+        <member name="M:rgat.PlottedGraph.StepPausedAnimation(System.Int32)">
+            <summary>
+            Move forward in the animation
+            </summary>
+            <param name="steps">The number of animation entries to process</param>
+        </member>
+        <member name="M:rgat.PlottedGraph.PlayPauseClicked">
+            <summary>
+            Toggle replay paused state
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.ResetClicked">
+            <summary>
+            Schedule the animation to be reset
+            </summary>
+        </member>
         <member name="P:rgat.PlottedGraph.RenderingComplete">
             <summary>
             Are all of the edges rendered
             </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.render_new_blocks">
+            <summary>
+            Construct more graph geometry from un-rendered edges in the ProtoGraph
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.GeneratePresetPositions(rgat.CONSTANTS.LayoutStyles.Style)">
+            <summary>
+            Create a preset graph layout for the specified style
+            If force directed it will retrieve a saved layout if available, or randomise if not
+            </summary>
+            <param name="style">The layout style</param>
+            <returns>Positions for each node</returns>
         </member>
         <member name="M:rgat.PlottedGraph.GetIllustrationEdges(System.Collections.Generic.List{System.UInt32}@)">
             <summary>
@@ -1824,6 +2048,11 @@
         <member name="M:rgat.PlottedGraph.BeginNewLayout">
             <summary>
             Reset the layout tracking statistics and reset the temperature to a high value
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.ProcessLiveAnimationUpdates">
+            <summary>
+            Process more animation updates from a live trace
             </summary>
         </member>
         <member name="M:rgat.PlottedGraph.ApplyMouseWheelDelta(System.Single)">
@@ -1921,11 +2150,319 @@
             <param name="index">Index of the far node</param>
             <param name="farDimension">Greatest (absolute) coordinate of any node</param>
         </member>
+        <member name="M:rgat.PlottedGraph.SetLayout(rgat.CONSTANTS.LayoutStyles.Style)">
+            <summary>
+            Change the layout of the graph
+            </summary>
+            <param name="newStyle">The style to change it to</param>
+            <returns></returns>
+        </member>
+        <member name="F:rgat.PlottedGraph.HighlightedSymbolNodes">
+            <summary>
+            Indexes of highlighted symbol nodes
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.HighlightedAddressNodes">
+            <summary>
+            Indexes of highlighted address nodes
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.HighlightedAddresses">
+            <summary>
+            Highlighted addresses
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.HighlightedExceptionNodes">
+            <summary>
+            Indexes of highlighted exception nodes
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.AllHighlightedNodes">
+            <summary>
+            Indexes of all highlighted nodes
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.DeletedHighlights">
+            <summary>
+            Indexes of nodes to have their highlight removed by the layout engine
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.NewHighlights">
+            <summary>
+            Indexes of nodes which need highlight adding by the layout engine
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.IsAnimated">
+            <summary>
+            The graph is in an animated (running or replay) state
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.Opt_NodesVisible">
+            <summary>
+            Nodes are being drawn
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.Opt_EdgesVisible">
+            <summary>
+            Edges are being drawn
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.Opt_TextEnabled">
+            <summary>
+            Text is being drawn
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.Opt_TextEnabledIns">
+            <summary>
+            Instruction text is being drawn
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.Opt_TextEnabledSym">
+            <summary>
+            Symbol text is being drawn
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.Opt_ShowNodeAddresses">
+            <summary>
+            The addresses of nodes are added to their label
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.Opt_ShowNodeIndexes">
+            <summary>
+            Whether node labels will include the internal index of the node
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.Opt_ShowSymbolModules">
+            <summary>
+            Whether symbols will show the modules they reside in
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.Opt_ShowSymbolModulePaths">
+            <summary>
+            Whether symbol labels include the full path of the module
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.Opt_TextEnabledLive">
+            <summary>
+            Enable animated live instruction text
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.Opt_LiveNodeEdgeEnabled">
+            <summary>
+            Enable an illustration edge that points to the most recently animated instruction
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph._unprojWorldCoordTL">
+            <summary>
+            Estimated world space coordinates for the top left and right of the screen
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph._unprojWorldCoordBR">
+            <summary>
+            Estimated world space coordinates for the top left and right of the screen
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.UpdatePreviewVisibleRegion(System.Numerics.Vector2)">
+            <summary>
+            Gather values for calculating the camera indicator box in the preview window
+            </summary>
+            <param name="graphWidgetSize">Size of the main graph widget</param> // weird parameter?
+        </member>
+        <member name="M:rgat.PlottedGraph.GetPreviewVisibleRegion(System.Numerics.Vector2,System.Numerics.Matrix4x4,System.Numerics.Vector2@,System.Numerics.Vector2@)">
+            <summary>
+            Use the values from UpdatePreviewVisibleRegion to work out where to draw the preview camera box
+            </summary>
+            <param name="PrevWidgetSize">Size of the preview pane box for the graph</param>
+            <param name="previewProjection">Projection matrix for the preview graph</param>
+            <param name="TopLeft">Top left value for the camera</param>
+            <param name="BaseRight">Base right value for the camera</param>
+        </member>
+        <member name="M:rgat.PlottedGraph.MoveCameraToPreviewClick(System.Numerics.Vector2,System.Numerics.Vector2,System.Numerics.Vector2,System.Numerics.Matrix4x4)">
+            <summary>
+            Move the camera in the main graph widget towards the location clicked in the preview graph widget
+            </summary>
+            <param name="pos">Click position</param>
+            <param name="previewSize">Size of the graph in the preview pane</param>
+            <param name="mainGraphWidgetSize">Size of the graph in the main pane</param>
+            <param name="previewProjection">Projection matrix for the preview graph</param>
+        </member>
+        <member name="F:rgat.PlottedGraph.ThreadCallStack">
+            <summary>
+            This was used to render call/returns in the graph layout
+            Currently unimplemented but keeping it around
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.InternalProtoGraph">
+            <summary>
+            The main 'graph' datastore
+            Stores both the raw trace data for the graph and the processed connections between instructions
+            The data can be used to plot graphical layouts
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.graphColours">
+            <summary>
+            A cache of graph geometry colours for different types of node/edge
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.ActiveLayoutStyle">
+            <summary>
+            The current layout format of the graph
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.LayoutState">
+            <summary>
+            The actual store of graphical data for the graph layout
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph._previewFramebuffer1">
+            <summary>
+            Framebuffers for the preview texture
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph._previewFramebuffer2">
+            <summary>
+            Framebuffers for the preview texture
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.GetPreviewFramebuffer(Veldrid.Framebuffer@)">
+            <summary>
+            Get the preview framebuffer that is currently being written to for writing
+            </summary>
+            <param name="drawtarget">output buffer</param>
+        </member>
+        <member name="M:rgat.PlottedGraph.ReleasePreviewFramebuffer">
+            <summary>
+            The framebuffer has been written. Swap it with the other one.
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.GetLatestTexture(Veldrid.Texture@)">
+            <summary>
+            Get the main graph texture that is not currently being written to for reading
+            </summary>
+            <param name="graphtexture"></param>
+        </member>
         <member name="M:rgat.PlottedGraph.RecordComputeTime(System.Int64)">
             <summary>
             Update the graph computation time stats
             </summary>
             <param name="ms">Time taken for the latest round of velocity/position computation in Milliseconds</param>
+        </member>
+        <member name="M:rgat.PlottedGraph.ResetLayoutStats">
+            <summary>
+            Reset the tracking info for layout time/steps
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.ComputeLayoutTime">
+            <summary>
+            How many MS were spent in compute shaders for this layout
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.ComputeLayoutSteps">
+            <summary>
+            How many rounds of computation were completed for this layout
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CameraZoom">
+            <summary>
+            The current main camera zoom
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CameraXOffset">
+            <summary>
+            Main camera X offset
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CameraYOffset">
+            <summary>
+            Main camera Y offset
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.PreviewCameraXOffset">
+            <summary>
+            The currentt preview camera zoom
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.PreviewCameraYOffset">
+            <summary>
+            The current preview camera X offset
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.PreviewCameraZoom">
+            <summary>
+            The current preview camera Y offset
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CameraFieldOfView">
+            <summary>
+            Field of view value for the main camera
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CameraClippingFar">
+            <summary>
+            Far clippling limit for the main camera
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CameraClippingNear">
+            <summary>
+            Near clipping limit for the main camera
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.RotationMatrix">
+            <summary>
+            Rotation matrix for the main camera
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.PID">
+            <summary>
+            Process ID of this graph
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.TID">
+            <summary>
+            Thread ID of this graph
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.AnimationRate">
+            <summary>
+            How many trace items are processed per animation replay step
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.unchainedWaitFrames">
+            <summary>
+            This used to add some delay for unchained areas. Unused at the moment but keeping it around
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.AnimationIndex">
+            <summary>
+            Which trace record item the animation is running in
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph._userSelectedAnimPosition">
+            <summary>
+            A custom animation position set by the user clicking the replay bar
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.ReplayState">
+            <summary>
+            Animation replay state
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.textLock">
+            <summary>
+            main lock for access to this objects data
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.GraphNodeCount">
+            <summary>
+            Number of nodes recorded in this threads trace
+            </summary>
+            <returns>Number of nodes</returns>
+        </member>
+        <member name="M:rgat.PlottedGraph.RenderedNodeCount">
+            <summary>
+            Number of nodes drawn on this graph
+            </summary>
+            <returns>Number of nodes</returns>
         </member>
         <member name="F:rgat.PlottedGraph._graphStructureBalanced">
             <summary>
@@ -1938,6 +2475,11 @@
             <summary>
             The raw list of nodes with a one way edge they connect to
             This is used for drawing nodes and edges
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.Temperature">
+            <summary>
+            Force-directed layout activity of this graph
             </summary>
         </member>
         <member name="M:rgat.ProcessRecord.ResolveSymbolAtAddress(System.UInt64,System.Int32@,System.String@,System.String@)">
@@ -2454,6 +2996,16 @@
             Return true if the quickmenu swallows is (ie: not to be used for other graph actions)
             </summary>
         </member>
+        <member name="T:rgat.Widgets.RemoteDialog">
+            <summary>
+            A dialog for configuring remote tracing
+            </summary>
+        </member>
+        <member name="M:rgat.Widgets.RemoteDialog.#ctor">
+            <summary>
+            Create a dialog for configuring remote tracing
+            </summary>
+        </member>
         <member name="M:rgat.Widgets.VisualiserBar.Draw(System.Single,System.Single)">
             <summary>
             Draw the latest rendered visualiser bar
@@ -2776,10 +3328,158 @@
             The Texposition is the location (in the positions texture) to read and then draw geometry at with the specified colour.
             </summary>
         </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position2DColour.Position">
+            <summary>
+            Texture coordinate
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position2DColour.Color">
+            <summary>
+            Colour of the geometry
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position2DColour.SizeInBytes">
+            <summary>
+            Size of this structure in bytes
+            </summary>
+        </member>
         <member name="T:rgat.VeldridGraphBuffers.GeomPositionColour">
             <summary>
             This just describes raw position and colour of geometry. Used for things unrelated to graph geometry like wireframes
             If Position.W == 1 then x,y are used as a positions texture reference as in TextureOffsetColour
+            </summary>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.DoDispose(Veldrid.Texture)">
+            <summary>
+            Dispose of a Texture
+            </summary>
+            <param name="tx">Texture set to dispose</param>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.DoDispose(Veldrid.Framebuffer)">
+            <summary>
+            Dispose of a Framebuffer
+            </summary>
+            <param name="fb">Framebuffer set to dispose</param>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.DoDispose(Veldrid.ResourceSet)">
+            <summary>
+            Dispose of a ResourceSet
+            </summary>
+            <param name="rs">Resource set to dispose</param>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.VRAMDispose(Veldrid.DeviceBuffer)">
+            <summary>
+            Dispose of a VRAM devide buffer and track the deallocation
+            </summary>
+            <param name="db">DeviceBuffer to dispose</param>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.ZeroFillBuffer(Veldrid.DeviceBuffer,Veldrid.GraphicsDevice,System.UInt32)">
+            <summary>
+            Fill a devicebuffer with null bytes
+            </summary>
+            <param name="buffer">Buffer to fill</param>
+            <param name="gd">GraphicsDevice to use</param>
+            <param name="zeroStartOffset">Offset to start filling from</param>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.CreateZeroFilledBuffer(Veldrid.BufferDescription,Veldrid.GraphicsDevice,System.UInt32,System.String)">
+            <summary>
+            Create a devicebuffer filled with null bytes
+            </summary>
+            <param name="bd">Description of the buffer to fill</param>
+            <param name="gd">GraphicsDevice to use</param>
+            <param name="zeroStartOffset">Where to start filling with zeros (before these is reserved for copying existing data)</param>
+            <param name="name">Name for the buffer</param>
+            <returns></returns>
+        </member>
+        <member name="P:rgat.VideoEncoder.Loaded">
+            <summary>
+            Is FFMpeg configured
+            </summary>
+        </member>
+        <member name="P:rgat.VideoEncoder.Initialised">
+            <summary>
+            Are the video capture settings configured
+            </summary>
+        </member>
+        <member name="P:rgat.VideoEncoder.Error">
+            <summary>
+            The last error, if one was recorded
+            </summary>
+        </member>
+        <member name="P:rgat.VideoEncoder.CurrentVideoWidth">
+            <summary>
+            Width of the frames of the recorded video
+            </summary>
+        </member>
+        <member name="P:rgat.VideoEncoder.CurrentVideoHeight">
+            <summary>
+            Height of the frames of the recorded video
+            </summary>
+        </member>
+        <member name="F:rgat.VideoEncoder.CurrentRecordingFile">
+            <summary>
+            Filepath of the video being recorded
+            </summary>
+        </member>
+        <member name="P:rgat.VideoEncoder.Recording">
+            <summary>
+            Video recording is active, though it may still be paused
+            </summary>
+        </member>
+        <member name="F:rgat.VideoEncoder.CapturePaused">
+            <summary>
+            Recording new frames to video is suspended
+            </summary>
+        </member>
+        <member name="P:rgat.VideoEncoder.FrameQueueSize">
+            <summary>
+            Number of frames awaiting recording
+            </summary>
+        </member>
+        <member name="T:rgat.VideoEncoder.CaptureContent">
+            <summary>
+            Types of content that can be recorded
+            </summary>
+        </member>
+        <member name="F:rgat.VideoEncoder.CaptureContent.Graph">
+            <summary>
+            The graph in the main graph widget
+            </summary>
+        </member>
+        <member name="F:rgat.VideoEncoder.CaptureContent.GraphAndPreviews">
+            <summary>
+            The graph and previews in the visualiser tab
+            </summary>
+        </member>
+        <member name="F:rgat.VideoEncoder.CaptureContent.Window">
+            <summary>
+            The entire UI
+            </summary>
+        </member>
+        <member name="F:rgat.VideoEncoder.CaptureContent.Invalid">
+            <summary>
+            Invalid
+            </summary>
+        </member>
+        <member name="M:rgat.VideoEncoder.GetCapturedContent">
+            <summary>
+            What is being recorded
+            </summary>
+            <returns>CaptureContent of the area being recorded</returns>
+        </member>
+        <member name="M:rgat.VideoEncoder.Load">
+            <summary>
+            Setup the path to the FFMpeg tool
+            </summary>
+        </member>
+        <member name="M:rgat.VideoEncoder.StartRecording">
+            <summary>
+            Begin capture of the selected content to the video file
+            </summary>
+        </member>
+        <member name="M:rgat.VideoEncoder.StopRecording">
+            <summary>
+            Stop recording video to the file
             </summary>
         </member>
         <member name="P:rgat.VideoEncoder.RecordingStateChangeTimeAgo">
@@ -2787,13 +3487,44 @@
             How long ago the recording stopped/started in milliseconds
             </summary>
         </member>
+        <member name="M:rgat.VideoEncoder.GetCaptureDirectory">
+            <summary>
+            Get the path of the directory videos will be stored to
+            </summary>
+            <returns>The filepath</returns>
+        </member>
+        <member name="M:rgat.VideoEncoder.GenerateVideoFilepath(rgat.PlottedGraph)">
+            <summary>
+            Generate the filepath for a new video
+            </summary>
+            <param name="graph">The graph to generate a video for, or null for generic content</param>
+            <returns></returns>
+        </member>
         <member name="M:rgat.VideoEncoder.SaveImage(rgat.PlottedGraph,System.Drawing.Bitmap)">
             <summary>
-            
+            Write an image to disk
             </summary>
-            <param name="graph"></param>
-            <param name="bmp"></param>
-            <returns></returns>
+            <param name="graph">Optional graph being captured, for filename generation</param>
+            <param name="bmp">The bitmap of the image</param>
+            <returns>The path of the saved image</returns>
+        </member>
+        <member name="M:rgat.VideoEncoder.Go(rgat.PlottedGraph)">
+            <summary>
+            A task for recording a video
+            </summary>
+            <param name="graph">Optional graph to record</param>
+        </member>
+        <member name="M:rgat.VideoEncoder.QueueFrame(System.Drawing.Bitmap,rgat.PlottedGraph)">
+            <summary>
+            Add a bitmap to record to video
+            </summary>
+            <param name="frame">The bitmap to store</param>
+            <param name="graph">The optional graph being recorded</param>
+        </member>
+        <member name="M:rgat.VideoEncoder.DrawSettingsPane">
+            <summary>
+            Draw the video options pane
+            </summary>
         </member>
         <member name="F:rgat.rgatUI.ExitFlag">
             <summary>
@@ -2855,6 +3586,20 @@
             Draws a dropdown allowing selection of one of the loaded target binaries
             </summary>
             <returns>true if at least one binary is loaded, otherwise false</returns>
+        </member>
+        <member name="T:rgat.GraphPlotWidget">
+            <summary>
+            A widget for displaying a rendered graph plot
+            </summary>
+        </member>
+        <member name="M:rgat.GraphPlotWidget.#ctor(ImGuiNET.ImGuiController,Veldrid.GraphicsDevice,rgat.rgatState,System.Nullable{System.Numerics.Vector2})">
+            <summary>
+            A widget for displaying a rendered graph plot
+            </summary>
+            <param name="controller">The ImGui controller</param>
+            <param name="gdev">A Veldrid GraphicsDevice</param>
+            <param name="clientState">The rgat clientstate</param>
+            <param name="initialSize">The initial size of the widget</param>
         </member>
         <member name="M:rgat.GraphPlotWidget.SetStateChangeCallback(System.Action{System.Boolean})">
             <summary>
@@ -2945,7 +3690,7 @@
             <summary>
             Get the most recently drawn framebuffer for displaying to the user
             </summary>
-            <param name="graphtexture"></param>
+            <param name="graphtexture">Texture of the framebuffer contents</param>
         </member>
         <member name="M:rgat.GraphPlotWidget.SetupRenderingResources">
             <summary>

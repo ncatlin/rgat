@@ -39,7 +39,7 @@ namespace rgat.Widgets
             _refreshTimer.AutoReset = true;
             _refreshTimerFired = true;
 
-            string addr = GlobalConfig.StartOptions.ConnectModeAddress;
+            string? addr = GlobalConfig.StartOptions.ConnectModeAddress;
             if (addr != null)
             { 
                 currentAddress = addr; 

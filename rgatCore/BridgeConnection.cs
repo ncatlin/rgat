@@ -37,10 +37,42 @@ namespace rgat
 
         public bool Connected => BridgeState == eBridgeState.Connected;
         public string LastAddress { get; private set; } = "";
+
+        /// <summary>
+        /// Are we either listening, connecting or connected
+        /// </summary>
         public bool ActiveNetworking => BridgeState == eBridgeState.Connected || BridgeState == eBridgeState.Listening || BridgeState == eBridgeState.Connecting;
 
-        //public IPEndPoint ConnectedEndpoint = null;
-        public enum eBridgeState { Inactive, Connecting, Listening, Connected, Errored, Teardown };
+        /// <summary>
+        /// Connection activity
+        /// </summary>
+        public enum eBridgeState
+        {
+            /// <summary>
+            /// There is no network activity
+            /// </summary>
+            Inactive,
+            /// <summary>
+            /// rgat is connecting out
+            /// </summary>
+            Connecting,
+            /// <summary>
+            /// rgat is waiting for an incoming connection
+            /// </summary>
+            Listening,
+            /// <summary>
+            /// rgat is connected
+            /// </summary>
+            Connected,
+            /// <summary>
+            /// The connecton has been torn down
+            /// </summary>
+            Teardown
+        };
+
+        /// <summary>
+        /// The state of the connection
+        /// </summary>
         public eBridgeState BridgeState
         {
             get => _bridgeState;
@@ -61,6 +93,9 @@ namespace rgat
         /// It does not do the opposite. Ever.
         /// </summary>
         public bool GUIMode { get; private set; }
+        /// <summary>
+        /// Is rgat running in non-GUI mode
+        /// </summary>
         public bool HeadlessMode => !GUIMode;
 
         public struct NETWORK_MSG
@@ -73,8 +108,12 @@ namespace rgat
         readonly Queue<NETWORK_MSG> _OutDataQueue = new Queue<NETWORK_MSG>();
         readonly ManualResetEventSlim NewOutDataEvent = new ManualResetEventSlim(false);
 
-        CancellationTokenSource cancelTokens;
+        CancellationTokenSource cancelTokens = new CancellationTokenSource();
 
+        /// <summary>
+        /// Get a cancellation token. This will be cancelled if the connection is torn down
+        /// All blocking operations should respect it
+        /// </summary>
         public CancellationToken CancelToken => cancelTokens.Token;
         readonly object _sendQueueLock = new object();
 
@@ -565,7 +604,6 @@ namespace rgat
                     Teardown();
                     Logging.RecordLogEvent($"Failed connection from {clientEndpoint}", Logging.LogFilterType.TextAlert);
                     _ActiveClient = null;
-                    BridgeState = eBridgeState.Errored;
                     return;
                 }
             }
@@ -573,7 +611,6 @@ namespace rgat
             {
                 Teardown();
                 Console.WriteLine($"StartListenForConnection not connected");
-                BridgeState = eBridgeState.Errored;
             }
         }
 

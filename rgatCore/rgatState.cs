@@ -85,7 +85,6 @@ namespace rgat
         public void InitVeldrid(Veldrid.GraphicsDevice _gd)
         {
             _GraphicsDevice = _gd;
-            PlottedGraph.clientState = this;
         }
 
         /// <summary>
@@ -369,13 +368,13 @@ namespace rgat
 
             TraceRecord? trace = ActiveTrace;
             if (trace == null) return;
-            if (ActiveTrace?.PID != graph.pid) return;
+            if (ActiveTrace?.PID != graph.PID) return;
 
             if (SetActiveGraph(graph))
             {
-                Debug.Assert(trace.PID == graph.pid);
+                Debug.Assert(trace.PID == graph.PID);
                 LastGraphs[trace] = graph;
-                LastSelectedTheads[trace] = graph.tid;
+                LastSelectedTheads[trace] = graph.TID;
             }
             //setGraphUIControls(graph);
         }
@@ -432,7 +431,7 @@ namespace rgat
                 else
                 {
                     uint lastTID = LastSelectedTheads[selectedTrace];
-                    PlottedGraph? lastgraph = traceGraphs.Find(pg => pg.tid == lastTID);
+                    PlottedGraph? lastgraph = traceGraphs.Find(pg => pg.TID == lastTID);
                     if (lastgraph != null)
                     {
                         SwitchToGraph(lastgraph);
@@ -446,7 +445,7 @@ namespace rgat
             PlottedGraph? firstgraph = selectedTrace.GetFirstGraph();
             if (firstgraph != null)
             {
-                Logging.RecordLogEvent("Got first graph " + firstgraph.tid,
+                Logging.RecordLogEvent("Got first graph " + firstgraph.TID,
                     Logging.LogFilterType.TextDebug, trace: firstgraph.InternalProtoGraph.TraceData);
                 SwitchToGraph(firstgraph);
             }
@@ -465,7 +464,7 @@ namespace rgat
 
             ClearActiveGraph();
 
-            if (ActiveTrace is not null && graph.pid != ActiveTrace.PID) 
+            if (ActiveTrace is not null && graph.PID != ActiveTrace.PID) 
                 ActiveTrace = null;
 
             Debug.Assert(ActiveGraph == null);

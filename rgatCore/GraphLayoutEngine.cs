@@ -127,7 +127,7 @@ namespace rgat
         /// <returns>true if a meaningful result was returned</returns>
         public bool GetPreviewFitOffsets(Vector2 graphWidgetSize, PlottedGraph graph, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
         {
-            Logging.RecordLogEvent($"GetPreviewFitOffsets Start {graph.tid} layout {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"GetPreviewFitOffsets Start {graph.TID} layout {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             float zoom;
             xoffsets = new Vector2(0, 0);
             yoffsets = new Vector2(0, 0);
@@ -343,7 +343,7 @@ namespace rgat
             }
 
             int edgesCount = graph.DrawnEdgesCount;
-            Logging.RecordLogEvent($"Marker Compute start {EngineID} graph {graph.tid}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"Marker Compute start {EngineID} graph {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
 
             Debug.Assert(graph != null, "Layout engine called to compute without active graph");
             if (_velocityShader == null)
@@ -371,7 +371,7 @@ namespace rgat
             //todo set this on layout change
             bool isForceDirected = CONSTANTS.LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle);
 
-            bool forceComputationActive = GlobalConfig.LayoutPositionsActive && graph.temperature > 0 && (graph.LayoutState.ActivatingPreset || isForceDirected);
+            bool forceComputationActive = GlobalConfig.LayoutPositionsActive && graph.Temperature > 0 && (graph.LayoutState.ActivatingPreset || isForceDirected);
 
             if (graph.LayoutState.flip())
             {
@@ -421,13 +421,13 @@ namespace rgat
 
             if (forceComputationActive)
             {
-                RenderVelocity(cl, graph, velocityComputeResourceSet, delta, graph.temperature);
+                RenderVelocity(cl, graph, velocityComputeResourceSet, delta, graph.Temperature);
                 RenderPosition(cl, graph, posRS, delta);
                 layout.IncrementVersion();
 
-                graph.temperature *= CONSTANTS.Layout_Constants.TemperatureStepMultiplier;
-                if (graph.temperature <= CONSTANTS.Layout_Constants.MinimumTemperature)
-                    graph.temperature = 0;
+                graph.Temperature *= CONSTANTS.Layout_Constants.TemperatureStepMultiplier;
+                if (graph.Temperature <= CONSTANTS.Layout_Constants.MinimumTemperature)
+                    graph.Temperature = 0;
 
 
 
@@ -502,7 +502,7 @@ namespace rgat
             if (GlobalConfig.LayoutPositionsActive)
                 graph.RecordComputeTime(timer.ElapsedMilliseconds);
 
-            Logging.RecordLogEvent($"Marker Compute end {EngineID} graph {graph.tid}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"Marker Compute end {EngineID} graph {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
 
             return newversion;
         }

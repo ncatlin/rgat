@@ -71,7 +71,7 @@ namespace rgat.Threads
                         //check for trace data that hasn't been rendered yet
                         ProtoGraph protoGraph = graph.InternalProtoGraph;
 
-                        //Console.WriteLine($"Rendering new preview verts for thread {graph.tid}");
+                        //Console.WriteLine($"Rendering new preview verts for thread {graph.TID}");
                         graph.RenderGraph();
                         if (!graph.RenderingComplete)
                             moreRenderingNeeded = true;

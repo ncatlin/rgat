@@ -616,17 +616,17 @@ namespace rgat
         /// <summary>
         /// Get the most recently drawn framebuffer for displaying to the user
         /// </summary>
-        /// <param name="graphtexture"></param>
+        /// <param name="graphtexture">Texture of the framebuffer contents</param>
         void GetLatestTexture(out Texture graphtexture)
         {
             if (latestWrittenTexture == 1)
             {
-                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph.tid}  Returning latest written graph texture 1", Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph.TID}  Returning latest written graph texture 1", Logging.LogFilterType.BulkDebugLogFile);
                 graphtexture = _outputTexture1;
             }
             else
             {
-                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph.tid}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph.TID}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
                 graphtexture = _outputTexture2;
             }
         }
@@ -1542,25 +1542,25 @@ namespace rgat
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.ForceDirected3DNodes),
                 iconSize, buttonWidth, "Force Directed Nodes", graph.ActiveLayoutStyle == LayoutStyles.Style.ForceDirected3DNodes))
             {
-                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.ForceDirected3DNodes, _gd)) { graph.BeginNewLayout(); }
+                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.ForceDirected3DNodes)) { graph.BeginNewLayout(); }
             }
 
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.ForceDirected3DBlocks),
                 iconSize, buttonWidth, "Force Directed Blocks", graph.ActiveLayoutStyle == LayoutStyles.Style.ForceDirected3DBlocks))
             {
-                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.ForceDirected3DBlocks, _gd)) { graph.BeginNewLayout(); }
+                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.ForceDirected3DBlocks)) { graph.BeginNewLayout(); }
             }
 
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.CylinderLayout),
                 iconSize, buttonWidth, "Cylinder", graph.ActiveLayoutStyle == LayoutStyles.Style.CylinderLayout))
             {
-                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.CylinderLayout, _gd)) { graph.BeginNewLayout(); }
+                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.CylinderLayout)) { graph.BeginNewLayout(); }
             }
 
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.Circle),
                 iconSize, buttonWidth, "Circle", graph.ActiveLayoutStyle == LayoutStyles.Style.Circle))
             {
-                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.Circle, _gd)) { graph.BeginNewLayout(); }
+                if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.Circle)) { graph.BeginNewLayout(); }
             }
         }
 

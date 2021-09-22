@@ -303,7 +303,7 @@ namespace rgat
             }
             if (_show_remote_dialog)
             {
-                if (_RemoteDialog == null) { _RemoteDialog = new RemoteDialog(_rgatState); }
+                if (_RemoteDialog == null) { _RemoteDialog = new RemoteDialog(); }
                 shown = _show_remote_dialog;
                 _RemoteDialog.Draw(ref shown);
                 if (!shown) ToggleRemoteDialog();
@@ -527,7 +527,7 @@ namespace rgat
         {
             if (_show_remote_dialog == false)
             {
-                if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog(_rgatState);// _rgatState, _controller);
+                if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog();
             }
             _show_remote_dialog = !_show_remote_dialog;
             _controller.DialogChange(_show_remote_dialog);
@@ -702,7 +702,7 @@ namespace rgat
                     PlottedGraph? graph = _rgatState.ActiveGraph;
                     if (record is not null && graph is not null)
                     {
-                        _rgatState.ExportTraceAsPajek(record, graph.tid);
+                        _rgatState.ExportTraceAsPajek(record, graph.TID);
                     }
                 }
                 ImGui.Separator();

@@ -19,7 +19,8 @@ namespace rgat
         /// <summary>
         /// The animation replay state of this graph
         /// </summary>
-        public enum REPLAY_STATE { 
+        public enum REPLAY_STATE
+        {
             /// <summary>
             /// Not being replayed
             /// </summary>
@@ -27,15 +28,15 @@ namespace rgat
             /// <summary>
             /// Currently being played
             /// </summary>
-            Playing, 
+            Playing,
             /// <summary>
             /// Paused in an animated state
             /// </summary>
-            Paused, 
+            Paused,
             /// <summary>
             /// Awaiting reset to a stopped state
             /// </summary>
-            Ended 
+            Ended
         };
 
         /// <summary>
@@ -45,11 +46,9 @@ namespace rgat
         /// <param name="device">GraphicsDevice of the GPU this thread is being rendered on</param>
         public PlottedGraph(ProtoGraph protoGraph, GraphicsDevice device)
         {
-            pid = protoGraph.TraceData.PID;
-            tid = protoGraph.ThreadID;
+            InternalProtoGraph = protoGraph;
             LayoutState = new GraphLayoutState(this, device, LayoutStyles.Style.ForceDirected3DNodes);
 
-            InternalProtoGraph = protoGraph;
 
             IsAnimated = !InternalProtoGraph.Terminated;
             InitGraphColours();
@@ -132,7 +131,6 @@ namespace rgat
 
             unchainedWaitFrames = 0;
             remove_unchained_from_animation();
-            currentUnchainedBlocks.Clear();
             animBuildingLoop = false;
             SetAnimated(false);
 
@@ -809,7 +807,7 @@ namespace rgat
         /// </summary>
         public void IncreaseTemperature()
         {
-            temperature += _graphStructureLinear.Count / 2;
+            Temperature += _graphStructureLinear.Count / 2;
         }
 
         /// <summary>
@@ -818,26 +816,15 @@ namespace rgat
         /// <param name="temp">Activity level</param>
         public void IncreaseTemperature(float temp)
         {
-            temperature = temp;
+            Temperature = temp;
         }
 
-
-        void WaitforBufferDownload()
-        {
-            while (BufferDownloadActive)
-            {
-                textureLock.ExitReadLock();
-                Thread.Sleep(4);
-                textureLock.EnterReadLock();
-            }
-        }
 
         unsafe void AddNode(uint nodeIdx, EdgeData? edge = null)
         {
 
             textureLock.EnterReadLock();
-            if (BufferDownloadActive)
-                WaitforBufferDownload();
+
 
             Debug.Assert(nodeIdx == _graphStructureLinear.Count); //todo, asserting here on load. i dont remember if this is important
             uint futureCount = (uint)_graphStructureLinear.Count + 1;
@@ -1072,7 +1059,7 @@ namespace rgat
                     var block = InternalProtoGraph.ProcessData.BasicBlocksList[blockIdx].Item2;
                     int midIdx = (int)Math.Ceiling((block.Count - 1.0) / 2.0);
                     var middleIns = block[midIdx];
-                    if (!middleIns.GetThreadVert(tid, out uint centerNodeID))
+                    if (!middleIns.GetThreadVert(TID, out uint centerNodeID))
                     {
                         blockMiddles[blockIdx] = -1; //instructions sent and not executed? why?
                         //Debug.Assert(false, $"Instruction 0x{middleIns.address:X} not found in thread {tid}");
@@ -1434,7 +1421,7 @@ namespace rgat
         {
             lock (textureLock)
             {
-                graphColours = new List<WritableRgbaFloat>() {
+                graphColours = new WritableRgbaFloat[] {
                 Themes.GetThemeColourWRF(Themes.eThemeColour.edgeCall),
                 Themes.GetThemeColourWRF(Themes.eThemeColour.edgeOld),
                 Themes.GetThemeColourWRF(Themes.eThemeColour.edgeRet),
@@ -1560,7 +1547,6 @@ namespace rgat
         }
 
 
-
         protected void Add_to_callstack(ulong address, uint idx)
         {
             ThreadCallStack.Push(new Tuple<ulong, uint>(address, idx));
@@ -1568,7 +1554,7 @@ namespace rgat
 
 
         //node+edge col+pos
-        bool get_block_nodelist(ulong blockAddr, long blockID, out List<uint> newnodelist)
+        bool get_block_nodelist(ulong blockAddr, long blockID, out List<uint>? newnodelist)
         {
             ProcessRecord piddata = InternalProtoGraph.ProcessData;
             ROUTINE_STRUCT? externBlock = new ROUTINE_STRUCT();
@@ -1594,7 +1580,7 @@ namespace rgat
                         }
                         else
                         {
-                            found = externBlock.Value.thread_callers.TryGetValue(tid, out calls);
+                            found = externBlock.Value.thread_callers.TryGetValue(TID, out calls);
                         }
                     }
                     if (found) break;
@@ -1604,7 +1590,7 @@ namespace rgat
                         newnodelist = null;
                         return false;
                     }
-                    Console.WriteLine($"[rgat]get_block_nodelist() Fail to find edge for thread {tid} calling extern 0x{blockAddr:x}");
+                    Console.WriteLine($"[rgat]get_block_nodelist() Fail to find edge for thread {TID} calling extern 0x{blockAddr:x}");
                 }
 
 
@@ -1632,7 +1618,7 @@ namespace rgat
             {
                 foreach (InstructionData ins in block)
                 {
-                    if (!ins.GetThreadVert(tid, out uint val)) return false;
+                    if (!ins.GetThreadVert(TID, out uint val)) return false;
                     newnodelist.Add(val);
                 }
             }
@@ -1727,21 +1713,23 @@ namespace rgat
         void end_unchained(ANIMATIONENTRY entry)
         {
 
-            currentUnchainedBlocks.Clear();
             remove_unchained_from_animation();
             List<InstructionData>? firstChainedBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
             uint vertID = 0;
-            bool found = firstChainedBlock is not null && firstChainedBlock[^1].GetThreadVert(tid, out vertID);
+            bool found = firstChainedBlock is not null && firstChainedBlock[^1].GetThreadVert(TID, out vertID);
             Debug.Assert(found);
             LastAnimatedVert = vertID; //should this be front()?
         }
 
 
+        /// <summary>
+        /// Process more animation updates from a live trace
+        /// </summary>
         public void ProcessLiveAnimationUpdates()
         {
             //too many updates at a time damages interactivity
-            //too few creates big backlogs which delays the animation (can still see realtime in Structure mode though)
-            int updateLimit = LiveAnimationUpdatesPerFrame;
+            //too few creates big backlogs which delays the animation (can still see realtime in static mode though)
+            int updateLimit = GlobalConfig.LiveAnimationUpdatesPerFrame;
             while (updateProcessingIndex < InternalProtoGraph.SavedAnimationData.Count && (updateLimit-- > 0))
             {
                 if (!process_live_update()) break;
@@ -1788,23 +1776,22 @@ namespace rgat
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
             {
                 string s = "";
-                if (get_block_nodelist(0, entry.blockID, out List<uint> nodeIDListFFF))
+                if (get_block_nodelist(0, entry.blockID, out List<uint>? nodeIDListUC) && nodeIDListUC is not null)
                 {
-                    foreach (int x in nodeIDListFFF) s += $"{x},";
+                    foreach (int x in nodeIDListUC) s += $"{x},";
                 }
 
                 Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.blockID}: " + s, Logging.LogFilterType.BulkDebugLogFile);
-                currentUnchainedBlocks.Add(entry); //todo see if removable
                 brightTime = Anim_Constants.KEEP_BRIGHT;
             }
             else
                 brightTime = GlobalConfig.ExternAnimDisplayFrames;
 
             //break if block not rendered yet
-            if (!get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint> nodeIDList))
+            if (!get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint>? nodeIDList) || nodeIDList is null)
             {
                 //expect to get an incomplete block with exception or animation attempt before static rendering
-                if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (nodeIDList.Count > (int)entry.count))
+                if ((entry.entryType == eTraceUpdateType.eAnimExecException))// && (nodeIDList.Count > (int)entry.count))
                     return true;
                 return false;
             }
@@ -1935,7 +1922,7 @@ namespace rgat
 
 
 
-            if (!get_block_nodelist(entry.blockAddr, (long)entry.blockID, out List<uint> nodeIDList) &&
+            if (!get_block_nodelist(entry.blockAddr, (long)entry.blockID, out List<uint>? nodeIDList) &&
                 entry.entryType != eTraceUpdateType.eAnimExecException)
             {
                 Thread.Sleep(5);
@@ -2046,9 +2033,9 @@ namespace rgat
                 {
                     return;
                 }
-                _previewFramebuffer1.Dispose();
+                _previewFramebuffer1?.Dispose();
                 _previewTexture1.Dispose();
-                _previewFramebuffer2.Dispose();
+                _previewFramebuffer2?.Dispose();
                 _previewTexture2.Dispose();
             }
 
@@ -2225,7 +2212,7 @@ namespace rgat
                 {
                     HighlightedAddresses.Add(address);
 
-                    List<uint> nodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(address, tid);  //todo: external
+                    List<uint> nodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(address, TID);  //todo: external
                     AddHighlightedNodes(nodes, HighlightType.Addresses);
                 }
             }
@@ -2364,29 +2351,66 @@ namespace rgat
         }
 
 
-        public bool SetLayout(LayoutStyles.Style newStyle, GraphicsDevice gd)
+        /// <summary>
+        /// Change the layout of the graph
+        /// </summary>
+        /// <param name="newStyle">The style to change it to</param>
+        /// <returns></returns>
+        public bool SetLayout(LayoutStyles.Style newStyle)
         {
             if (newStyle == ActiveLayoutStyle) return false;
             LayoutState.TriggerLayoutChange(newStyle);
             return true;
         }
 
-
+        /// <summary>
+        /// Indexes of highlighted symbol nodes
+        /// </summary>
         public List<uint> HighlightedSymbolNodes = new List<uint>();
+        /// <summary>
+        /// Indexes of highlighted address nodes
+        /// </summary>
         public List<uint> HighlightedAddressNodes = new List<uint>();
+        /// <summary>
+        /// Highlighted addresses
+        /// </summary>
         public List<ulong> HighlightedAddresses = new List<ulong>();
+        /// <summary>
+        /// Indexes of highlighted exception nodes
+        /// </summary>
         public List<uint> HighlightedExceptionNodes = new List<uint>();
+        /// <summary>
+        /// Indexes of all highlighted nodes
+        /// </summary>
         public List<uint> AllHighlightedNodes = new List<uint>();
+        /// <summary>
+        /// Indexes of nodes to have their highlight removed by the layout engine
+        /// </summary>
         public List<uint> DeletedHighlights = new List<uint>();
+        /// <summary>
+        /// Indexes of nodes which need highlight adding by the layout engine
+        /// </summary>
         public List<uint> NewHighlights = new List<uint>();
 
         bool animBuildingLoop = false;
 
+        /// <summary>
+        /// The graph is in an animated (running or replay) state
+        /// </summary>
         public bool IsAnimated { get; private set; } = false;
+        /// <summary>
+        /// Nodes are being drawn
+        /// </summary>
         public bool Opt_NodesVisible { get; set; } = true;
+        /// <summary>
+        /// Edges are being drawn
+        /// </summary>
         public bool Opt_EdgesVisible { get; set; } = true;
 
         bool _textEnabled = true;
+        /// <summary>
+        /// Text is being drawn
+        /// </summary>
         public bool Opt_TextEnabled
         {
             get => _textEnabled;
@@ -2398,6 +2422,9 @@ namespace rgat
         }
 
         bool _textEnabledIns = true;
+        /// <summary>
+        /// Instruction text is being drawn
+        /// </summary>
         public bool Opt_TextEnabledIns
         {
             get => _textEnabledIns;
@@ -2409,6 +2436,9 @@ namespace rgat
         }
 
         bool _textEnabledSym = true;
+        /// <summary>
+        /// Symbol text is being drawn
+        /// </summary>
         public bool Opt_TextEnabledSym
         {
             get => _textEnabledSym;
@@ -2420,6 +2450,9 @@ namespace rgat
         }
 
         bool _showNodeAdresses = true;
+        /// <summary>
+        /// The addresses of nodes are added to their label
+        /// </summary>
         public bool Opt_ShowNodeAddresses
         {
             get => _showNodeAdresses;
@@ -2487,6 +2520,10 @@ namespace rgat
         Vector3 _unprojWorldCoordTL, _unprojWorldCoordBR;
 
 
+        /// <summary>
+        /// Gather values for calculating the camera indicator box in the preview window
+        /// </summary>
+        /// <param name="graphWidgetSize">Size of the main graph widget</param> // weird parameter?
         public void UpdatePreviewVisibleRegion(Vector2 graphWidgetSize)
         {
 
@@ -2504,7 +2541,13 @@ namespace rgat
             _unprojWorldCoordBR = GraphicsMaths.ScreenToWorldCoord(graphWidgetSize, NDC.Z, ClipAfterProj.W, invWV, invProj, graphWidgetSize);
         }
 
-
+        /// <summary>
+        /// Use the values from UpdatePreviewVisibleRegion to work out where to draw the preview camera box
+        /// </summary>
+        /// <param name="PrevWidgetSize">Size of the preview pane box for the graph</param>
+        /// <param name="previewProjection">Projection matrix for the preview graph</param>
+        /// <param name="TopLeft">Top left value for the camera</param>
+        /// <param name="BaseRight">Base right value for the camera</param>
         public void GetPreviewVisibleRegion(Vector2 PrevWidgetSize, Matrix4x4 previewProjection, out Vector2 TopLeft, out Vector2 BaseRight)
         {
             //Vector2 PrevWidgetSize = new Vector2(290, 150);
@@ -2522,6 +2565,13 @@ namespace rgat
          * I'm not good enough at graphics to work out how far to move the camera in one click. Instead move towards the click location
          * In a few frames it will get there.
          */
+        /// <summary>
+        /// Move the camera in the main graph widget towards the location clicked in the preview graph widget
+        /// </summary>
+        /// <param name="pos">Click position</param>
+        /// <param name="previewSize">Size of the graph in the preview pane</param>
+        /// <param name="mainGraphWidgetSize">Size of the graph in the main pane</param>
+        /// <param name="previewProjection">Projection matrix for the preview graph</param>
         public void MoveCameraToPreviewClick(Vector2 pos, Vector2 previewSize, Vector2 mainGraphWidgetSize, Matrix4x4 previewProjection)
         {
             Vector4 ClipAfterProj = Vector4.Transform(new Vector3(0, 0, PreviewCameraZoom), previewProjection);
@@ -2546,34 +2596,63 @@ namespace rgat
             CameraYOffset += YDiff;
         }
 
+        /// <summary>
+        /// This was used to render call/returns in the graph layout
+        /// Currently unimplemented but keeping it around
+        /// </summary>
         protected Stack<Tuple<ulong, uint>> ThreadCallStack = new Stack<Tuple<ulong, uint>>();
 
-        public ProtoGraph InternalProtoGraph { get; protected set; } = null;
+        /// <summary>
+        /// The main 'graph' datastore
+        /// Stores both the raw trace data for the graph and the processed connections between instructions
+        /// The data can be used to plot graphical layouts
+        /// </summary>
+        public ProtoGraph InternalProtoGraph { get; protected set; }
 
-        protected List<ANIMATIONENTRY> currentUnchainedBlocks = new List<ANIMATIONENTRY>();
-        protected List<WritableRgbaFloat> graphColours = new List<WritableRgbaFloat>();
+        /// <summary>
+        /// A cache of graph geometry colours for different types of node/edge
+        /// </summary>
+        protected WritableRgbaFloat[] graphColours;
 
+        /// <summary>
+        /// The current layout format of the graph
+        /// </summary>
         public LayoutStyles.Style ActiveLayoutStyle => LayoutState.Style;
+        /// <summary>
+        /// The actual store of graphical data for the graph layout
+        /// </summary>
         public GraphLayoutState LayoutState;
+
+
         readonly ReaderWriterLockSlim textureLock = new ReaderWriterLockSlim();
         Veldrid.Texture _previewTexture1, _previewTexture2;
-        public Veldrid.Framebuffer _previewFramebuffer1, _previewFramebuffer2;
+        /// <summary>
+        /// Framebuffers for the preview texture
+        /// </summary>
+        public Veldrid.Framebuffer? _previewFramebuffer1, _previewFramebuffer2;
 
         int latestWrittenTexture = 1;
+        /// <summary>
+        /// Get the preview framebuffer that is currently being written to for writing
+        /// </summary>
+        /// <param name="drawtarget">output buffer</param>
         public void GetPreviewFramebuffer(out Framebuffer drawtarget)
         {
-            textureLock.EnterWriteLock();
+            textureLock.EnterWriteLock(); //why write lock?
             if (latestWrittenTexture == 1)
             {
-                drawtarget = _previewFramebuffer2;
+                drawtarget = _previewFramebuffer2!;
             }
             else
             {
-                drawtarget = _previewFramebuffer1;
+                drawtarget = _previewFramebuffer1!;
             }
             textureLock.ExitWriteLock();
         }
 
+        /// <summary>
+        /// The framebuffer has been written. Swap it with the other one.
+        /// </summary>
         public void ReleasePreviewFramebuffer()
         {
             textureLock.EnterWriteLock();
@@ -2581,6 +2660,10 @@ namespace rgat
             textureLock.ExitWriteLock();
         }
 
+        /// <summary>
+        /// Get the main graph texture that is not currently being written to for reading
+        /// </summary>
+        /// <param name="graphtexture"></param>
         public void GetLatestTexture(out Texture graphtexture)
         {
             textureLock.EnterReadLock();
@@ -2606,40 +2689,87 @@ namespace rgat
             ComputeLayoutSteps += 1;
         }
 
-
+        /// <summary>
+        /// Reset the tracking info for layout time/steps
+        /// </summary>
         public void ResetLayoutStats()
         {
             ComputeLayoutTime = 0;
             ComputeLayoutSteps = 0;
         }
 
+        /// <summary>
+        /// How many MS were spent in compute shaders for this layout
+        /// </summary>
         public long ComputeLayoutTime = 0;
+        /// <summary>
+        /// How many rounds of computation were completed for this layout
+        /// </summary>
         public long ComputeLayoutSteps = 0;
 
-        //todo - methods
+        /// <summary>
+        /// The current main camera zoom
+        /// </summary>
         public float CameraZoom = -5000;
+        /// <summary>
+        /// Main camera X offset
+        /// </summary>
         public float CameraXOffset = 0f;
+        /// <summary>
+        /// Main camera Y offset
+        /// </summary>
         public float CameraYOffset = 0f;
 
+        /// <summary>
+        /// The currentt preview camera zoom
+        /// </summary>
         public float PreviewCameraXOffset = 0f;
+        /// <summary>
+        /// The current preview camera X offset
+        /// </summary>
         public float PreviewCameraYOffset = 0f;
+        /// <summary>
+        /// The current preview camera Y offset
+        /// </summary>
         public float PreviewCameraZoom = -4000;
+        /// <summary>
+        /// Field of view value for the main camera
+        /// </summary>
         public float CameraFieldOfView = 0.6f;
+        /// <summary>
+        /// Far clippling limit for the main camera
+        /// </summary>
         public float CameraClippingFar = 60000;
+        /// <summary>
+        /// Near clipping limit for the main camera
+        /// </summary>
         public float CameraClippingNear = 1;
+        /// <summary>
+        /// Rotation matrix for the main camera
+        /// </summary>
         public Matrix4x4 RotationMatrix = Matrix4x4.Identity;
-
-        public uint pid { get; private set; }
-        public uint tid { get; private set; }
-
-        public int LiveAnimationUpdatesPerFrame = GlobalConfig.LiveAnimationUpdatesPerFrame;
-
+        /// <summary>
+        /// Process ID of this graph
+        /// </summary>
+        public uint PID => InternalProtoGraph.TraceData.PID;
+        /// <summary>
+        /// Thread ID of this graph
+        /// </summary>
+        public uint TID => InternalProtoGraph.ThreadID;
+        /// <summary>
+        /// How many trace items are processed per animation replay step
+        /// </summary>
         public float AnimationRate { get; set; } = 1;
 
+        /// <summary>
+        /// This used to add some delay for unchained areas. Unused at the moment but keeping it around
+        /// </summary>
         ulong unchainedWaitFrames = 0;
         readonly uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays
 
-        //which BB we are pointing to in the sequence list
+        /// <summary>
+        /// Which trace record item the animation is running in
+        /// </summary>
         public double AnimationIndex { get; private set; }
 
         readonly List<uint> _PulseActiveNodes = new List<uint>();
@@ -2649,20 +2779,31 @@ namespace rgat
         readonly List<uint> _DeactivatedNodes = new List<uint>();// Array.Empty<uint>();
         private readonly object animationLock = new object();
 
-        public bool BufferDownloadActive { get; private set; } = false;
-
-        public static rgatState clientState;
-        public ulong vertResizeIndex = 0;
+        /// <summary>
+        /// A custom animation position set by the user clicking the replay bar
+        /// </summary>
         public int _userSelectedAnimPosition = -1;
 
+        /// <summary>
+        /// Animation replay state
+        /// </summary>
         public REPLAY_STATE ReplayState = REPLAY_STATE.Ended;
         int updateProcessingIndex = 0;
-        protected float maxA = 0, maxB = 0, maxC = 0;
 
+        /// <summary>
+        /// main lock for access to this objects data
+        /// </summary>
         protected readonly Object textLock = new Object();
 
-
+        /// <summary>
+        /// Number of nodes recorded in this threads trace
+        /// </summary>
+        /// <returns>Number of nodes</returns>
         public int GraphNodeCount() { return InternalProtoGraph.NodeList.Count; }
+        /// <summary>
+        /// Number of nodes drawn on this graph
+        /// </summary>
+        /// <returns>Number of nodes</returns>
         public int RenderedNodeCount() { return _graphStructureLinear.Count; }
 
         /*
@@ -2682,7 +2823,10 @@ namespace rgat
         /// </summary>
         readonly List<List<int>> _graphStructureLinear = new List<List<int>>();
 
-        public float temperature = 100f;
+        /// <summary>
+        /// Force-directed layout activity of this graph
+        /// </summary>
+        public float Temperature = 100f;
 
     }
 }

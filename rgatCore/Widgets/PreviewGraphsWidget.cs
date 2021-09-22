@@ -80,7 +80,7 @@ namespace rgat
 
         public void SetSelectedGraph(PlottedGraph graph)
         {
-            selectedGraphTID = graph.tid;
+            selectedGraphTID = graph.TID;
         }
 
         private void HandleClickedGraph(PlottedGraph graph) => clickedGraph = graph;
@@ -391,7 +391,7 @@ namespace rgat
                     result = graphs.ToList().OrderByDescending(x => x.InternalProtoGraph.LastUpdated).Select(x => graphs.IndexOf(x)).ToList();
                     break;
                 case PreviewSortMethod.ThreadID:
-                    result = graphs.ToList().OrderBy(x => x.tid).Select(x => graphs.IndexOf(x)).ToList();
+                    result = graphs.ToList().OrderBy(x => x.TID).Select(x => graphs.IndexOf(x)).ToList();
                     break;
                 case PreviewSortMethod.StartOrder:
                     result = Enumerable.Range(0, DrawnPreviewGraphs.Count).ToList();
@@ -448,8 +448,8 @@ namespace rgat
                 }
             }
 
-            ImGui.Text($"Graph TID: {graph.tid} [{runningState}]");
-            ImGui.Text($"Graph PID: {graph.pid}");
+            ImGui.Text($"Graph TID: {graph.TID} [{runningState}]");
+            ImGui.Text($"Graph PID: {graph.PID}");
             ImGui.Text($"Unique Instructions: {graph.InternalProtoGraph.NodeList.Count}");
             ImGui.Text($"Total Instructions: {graph.InternalProtoGraph.TotalInstructions}");
             ImGui.Text($"Animation Entries: {graph.InternalProtoGraph.SavedAnimationData.Count}");
@@ -520,15 +520,15 @@ namespace rgat
                         PreviewPopupGraph = hoverGraph;
 
                     ImGui.Separator();
-                    ImGui.Text($"Graph {PreviewPopupGraph.tid}");
+                    ImGui.Text($"Graph {PreviewPopupGraph.TID}");
                     if (!PreviewPopupGraph.InternalProtoGraph.Terminated && ImGui.MenuItem("Terminate"))
                     {
-                        PreviewPopupGraph.InternalProtoGraph.TraceData.SendDebugCommand(PreviewPopupGraph.tid, "KILL");
+                        PreviewPopupGraph.InternalProtoGraph.TraceData.SendDebugCommand(PreviewPopupGraph.TID, "KILL");
                     }
                     if (!PreviewPopupGraph.InternalProtoGraph.Terminated && ImGui.MenuItem("Force Terminate"))
                     {
                         //todo - rgat doesn't detect this because pin threads still run, keeping pipes open
-                        IntPtr handle = OpenThread(1, false, PreviewPopupGraph.tid);
+                        IntPtr handle = OpenThread(1, false, PreviewPopupGraph.TID);
                         if (handle != (IntPtr)0)
                         {
                             TerminateThread(handle, 0);
@@ -584,14 +584,14 @@ namespace rgat
 
         public void GeneratePreviewGraph(CommandList cl, PlottedGraph graph)
         {
-            Logging.RecordLogEvent($"GeneratePreviewGraph Preview updating pos caches {graph.tid} start", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"GeneratePreviewGraph Preview updating pos caches {graph.TID} start", Logging.LogFilterType.BulkDebugLogFile);
 
             if (graph != _rgatState.ActiveGraph)
             {
                 _layoutEngine.Compute(cl, graph, -1, false);
             }
 
-            Logging.RecordLogEvent($"GeneratePreviewGraph starting render {graph.tid}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"GeneratePreviewGraph starting render {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
             renderPreview(cl, graph: graph);
 
 
@@ -607,14 +607,14 @@ namespace rgat
             if (graphNodeCount == 0) return clicked;
             graph.GetLatestTexture(out Texture previewTexture);
             if (previewTexture == null) return clicked;
-            bool isSelected = graph.tid == selectedGraphTID;
+            bool isSelected = graph.TID == selectedGraphTID;
 
 
             //copy in the actual rendered graph
             ImGui.SetCursorPosY(ImGui.GetCursorPosY());
             Vector2 subGraphPosition = ImGui.GetCursorScreenPos() + new Vector2(xPadding, 0);
 
-            IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, previewTexture, $"PreviewPlot{graph.tid}");
+            IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, previewTexture, $"PreviewPlot{graph.TID}");
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId,
                 p_min: subGraphPosition,
                 p_max: new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight),
@@ -638,7 +638,7 @@ namespace rgat
             }
 
             //write the caption
-            string Caption = $"TID:{graph.tid} {graphNodeCount}nodes {(isSelected ? "[Selected]" : "")}";
+            string Caption = $"TID:{graph.TID} {graphNodeCount}nodes {(isSelected ? "[Selected]" : "")}";
             ImGui.SetCursorPosX(ImGui.GetCursorPosX());
             Vector2 captionBGStart = subGraphPosition + new Vector2(borderThickness, borderThickness);
             Vector2 captionBGEnd = new Vector2((captionBGStart.X + EachGraphWidth - borderThickness * 2), captionBGStart.Y + captionHeight);
@@ -679,7 +679,7 @@ namespace rgat
             //invisible button to detect graph click
 
             ImGui.SetCursorPos(new Vector2(1, ImGui.GetCursorPosY() - (float)(captionHeight)));
-            if (ImGui.InvisibleButton("PrevGraphBtn" + graph.tid, new Vector2(EachGraphWidth, EachGraphHeight - 2)) || ImGui.IsItemActive())
+            if (ImGui.InvisibleButton("PrevGraphBtn" + graph.TID, new Vector2(EachGraphWidth, EachGraphHeight - 2)) || ImGui.IsItemActive())
             {
                 clicked = true;
                 if (isSelected)
@@ -840,7 +840,7 @@ namespace rgat
             ResourceSet crscore = _factory.CreateResourceSet(crs_core_rsd);
 
 
-            Logging.RecordLogEvent($"render preview {graph.tid} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"render preview {graph.TID} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _NodeCircleSpritetview);
             ResourceSet crsnodesedge = _factory.CreateResourceSet(crs_nodesEdges_rsd);
 
@@ -872,9 +872,9 @@ namespace rgat
             cl.End();
             if (!Exiting)
             {
-                Logging.RecordLogEvent($"render preview start commands {graph.tid}. Pos{graph.LayoutState.PositionsVRAM1.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"render preview start commands {graph.TID}. Pos{graph.LayoutState.PositionsVRAM1.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
                 _gd.SubmitCommands(cl);
-                Logging.RecordLogEvent($"render preview finished commands {graph.tid}", filter: Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"render preview finished commands {graph.TID}", filter: Logging.LogFilterType.BulkDebugLogFile);
                 _gd.WaitForIdle(); //needed?
             }
 
@@ -883,7 +883,7 @@ namespace rgat
 
             //Debug.Assert(!_NodeVertexBuffer.IsDisposed);
             crscore.Dispose();
-            //Logging.RecordLogEvent($"render preview {graph.tid} disposing rsrcset {nodeAttributesBuffer.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
+            //Logging.RecordLogEvent($"render preview {graph.TID} disposing rsrcset {nodeAttributesBuffer.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
             crsnodesedge.Dispose();
 
             Logging.RecordLogEvent("render preview Done", filter: Logging.LogFilterType.BulkDebugLogFile);

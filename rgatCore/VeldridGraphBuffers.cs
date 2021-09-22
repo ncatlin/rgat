@@ -12,8 +12,6 @@ namespace rgat
 {
     public class VeldridGraphBuffers
     {
-        public VeldridGraphBuffers() { }
-
         //LineStrip
         Pipeline _linesPipeline;
         //LineList
@@ -24,74 +22,7 @@ namespace rgat
         Pipeline _trianglesPipeline;
 
         ResourceSet _projViewSet;
-        public DeviceBuffer _viewBuffer { get; private set; }
-
         ResourceSet _animBuffSet;
-        public DeviceBuffer _animBuffer { get; private set; }
-
-        ResourceLayout SetupProjectionBuffers(GraphicsDevice gd)
-        {
-            ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("ViewBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex);
-            ResourceLayout projViewLayout = gd.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription(vb));
-            _viewBuffer = TrackedVRAMAlloc(gd, 64, BufferUsage.UniformBuffer, name: "ViewBuffer");
-            _projViewSet = gd.ResourceFactory.CreateResourceSet(new ResourceSetDescription(projViewLayout, _viewBuffer));
-            return projViewLayout;
-        }
-
-        ResourceLayout SetupAnimDataBuffers(GraphicsDevice gd)
-        {
-            ResourceLayoutElementDescription vb = new ResourceLayoutElementDescription("AnimBuffer", ResourceKind.UniformBuffer, ShaderStages.Fragment);
-            ResourceLayout animLayout = gd.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription(vb));
-            _animBuffer = TrackedVRAMAlloc(gd, 64, BufferUsage.UniformBuffer, name: "AnimDataBuffer");
-            _animBuffSet = gd.ResourceFactory.CreateResourceSet(new ResourceSetDescription(animLayout, _animBuffer));
-            return animLayout;
-        }
-
-        public struct AnimDataStruct
-        {
-            public int animEnabled; //if the basealpha overrides the true alpha of each vert
-            //public float baseAlpha; //the base alpha to override it with
-        }
-
-        //todo unused?
-        public void InitPipelines(GraphicsDevice _gd, ShaderSetDescription shaders, Framebuffer frmbuf, bool wireframe = false)
-        {
-            ResourceFactory factory = _gd.ResourceFactory;
-            ResourceLayout projViewLayout = SetupProjectionBuffers(_gd);
-            ResourceLayout AnimDataLayout = SetupAnimDataBuffers(_gd);
-
-
-            // Create pipelines
-            GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
-            pipelineDescription.BlendState = BlendStateDescription.SingleAlphaBlend;
-            pipelineDescription.DepthStencilState = new DepthStencilStateDescription(
-                depthTestEnabled: true,
-                depthWriteEnabled: true,
-                comparisonKind: ComparisonKind.LessEqual);
-
-            pipelineDescription.RasterizerState = new RasterizerStateDescription(
-                cullMode: FaceCullMode.Back,
-                fillMode: PolygonFillMode.Solid,
-                frontFace: FrontFace.Clockwise,
-                depthClipEnabled: true,
-                scissorTestEnabled: false);
-            pipelineDescription.ResourceLayouts = new[] { projViewLayout, AnimDataLayout };
-            pipelineDescription.ShaderSet = shaders;
-
-            pipelineDescription.Outputs = frmbuf.OutputDescription;
-
-            pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
-            _IllustrationLinePipeline = factory.CreateGraphicsPipeline(pipelineDescription);
-
-            pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineStrip;
-            _linesPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
-
-            pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
-            _pointsPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
-
-            pipelineDescription.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            _trianglesPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
-        }
 
 
         /// <summary>
@@ -100,15 +31,18 @@ namespace rgat
         /// </summary>
         public struct Position2DColour
         {
+            /// <summary>
+            /// Texture coordinate
+            /// </summary>
             public Vector2 Position;
+            /// <summary>
+            /// Colour of the geometry
+            /// </summary>
             public WritableRgbaFloat Color;
+            /// <summary>
+            /// Size of this structure in bytes
+            /// </summary>
             public const uint SizeInBytes = 24;
-
-            public Position2DColour(Vector2 position, WritableRgbaFloat color)
-            {
-                Position = position;
-                Color = color;
-            }
         }
 
 
@@ -154,24 +88,45 @@ namespace rgat
             return readback;
         }
 
-        public static void DoDispose(Texture tx)
+
+        /// <summary>
+        /// Dispose of a Texture
+        /// </summary>
+        /// <param name="tx">Texture set to dispose</param>
+        public static void DoDispose(Texture? tx)
         {
             // if (tx != null && tx.IsDisposed == false) tx.Dispose();
             if (tx != null) tx.Dispose();
         }
-        public static void DoDispose(Framebuffer fb)
+
+
+        /// <summary>
+        /// Dispose of a Framebuffer
+        /// </summary>
+        /// <param name="fb">Framebuffer set to dispose</param>
+        public static void DoDispose(Framebuffer? fb)
         {
             // if (fb != null && fb.IsDisposed == false) fb.Dispose();
             if (fb != null) fb.Dispose();
         }
-        public static void DoDispose(ResourceSet rs)
+
+
+        /// <summary>
+        /// Dispose of a ResourceSet
+        /// </summary>
+        /// <param name="rs">Resource set to dispose</param>
+        public static void DoDispose(ResourceSet? rs)
         {
             if (rs != null) rs.Dispose();
             //if (rs != null && rs.IsDisposed == false) rs.Dispose();
         }
 
         static long total_1 = 0;
-        public static void VRAMDispose(DeviceBuffer db)
+        /// <summary>
+        /// Dispose of a VRAM devide buffer and track the deallocation
+        /// </summary>
+        /// <param name="db">DeviceBuffer to dispose</param>
+        public static void VRAMDispose(DeviceBuffer? db)
         {
             lock (b_lock)
             {
@@ -332,7 +287,12 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Fill a devicebuffer with null bytes
+        /// </summary>
+        /// <param name="buffer">Buffer to fill</param>
+        /// <param name="gd">GraphicsDevice to use</param>
+        /// <param name="zeroStartOffset">Offset to start filling from</param>
         public unsafe static void ZeroFillBuffer(DeviceBuffer buffer, GraphicsDevice gd, uint zeroStartOffset)
         {
             ResourceFactory rf = gd.ResourceFactory;
@@ -350,12 +310,22 @@ namespace rgat
             cl.Dispose();
         }
 
+
+        /// <summary>
+        /// Create a devicebuffer filled with null bytes
+        /// </summary>
+        /// <param name="bd">Description of the buffer to fill</param>
+        /// <param name="gd">GraphicsDevice to use</param>
+        /// <param name="zeroStartOffset">Where to start filling with zeros (before these is reserved for copying existing data)</param>
+        /// <param name="name">Name for the buffer</param>
+        /// <returns></returns>
         public unsafe static DeviceBuffer CreateZeroFilledBuffer(BufferDescription bd, GraphicsDevice gd, uint zeroStartOffset = 0, string name = "")
         {
             DeviceBuffer buf = TrackedVRAMAlloc(gd, bd.SizeInBytes, bd.Usage, bd.StructureByteStride, name);
             ZeroFillBuffer(buf, gd, zeroStartOffset);
             return buf;
         }
+
 
         public unsafe static DeviceBuffer CreateDefaultAttributesBuffer(BufferDescription bd, GraphicsDevice gd, string name = "")
         {

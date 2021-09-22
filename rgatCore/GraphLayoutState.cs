@@ -16,13 +16,13 @@ namespace rgat
             dbgGraphDeleteMe = tempDebugGraph; //todo remove
             _VRAMBuffers.Style = style;
             _gd = device;
-            Logging.RecordLogEvent($"Layout state {dbgGraphDeleteMe.tid} inited", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"Layout state {dbgGraphDeleteMe.TID} inited", Logging.LogFilterType.BulkDebugLogFile);
         }
 
         ~GraphLayoutState()
         {
 
-            Logging.RecordLogEvent($"Layout state {dbgGraphDeleteMe.tid} disposed", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"Layout state {dbgGraphDeleteMe.TID} disposed", Logging.LogFilterType.BulkDebugLogFile);
         }
 
         public PlottedGraph dbgGraphDeleteMe;
@@ -128,7 +128,7 @@ namespace rgat
 
         void LockedUploadStateToVRAM(LayoutStyles.Style style)
         {
-            Logging.RecordLogEvent($"UploadGraphDataToVRAMA Start {dbgGraphDeleteMe.tid} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"UploadGraphDataToVRAMA Start {dbgGraphDeleteMe.TID} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
             if (!SavedStates.TryGetValue(style, out CPUBuffers? sourceBuffers))
             {
                 sourceBuffers = new CPUBuffers(style);
@@ -144,20 +144,20 @@ namespace rgat
         /// <param name="_gd"></param>
         void LockedUploadStateToVRAM(CPUBuffers sourceBuffers)
         {
-            Logging.RecordLogEvent($"UploadGraphDataToVRAMB Start {dbgGraphDeleteMe.tid} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"UploadGraphDataToVRAMB Start {dbgGraphDeleteMe.TID} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
 
 
-            var bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.VelocityArray, _gd, $"_AvelBuf_{dbgGraphDeleteMe.tid}_");
+            var bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.VelocityArray, _gd, $"_AvelBuf_{dbgGraphDeleteMe.TID}_");
             _VRAMBuffers.Velocities1 = bufferPair.Item1;
             _VRAMBuffers.Velocities2 = bufferPair.Item2;
 
 
-            bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.PositionsArray, _gd, $"_AvelBuf_{dbgGraphDeleteMe.tid}_");
+            bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.PositionsArray, _gd, $"_AvelBuf_{dbgGraphDeleteMe.TID}_");
 
             _VRAMBuffers.Positions1 = bufferPair.Item1;
             _VRAMBuffers.Positions2 = bufferPair.Item2;
 
-            bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.NodeAttribArray, _gd, $"_AvelBuf_{dbgGraphDeleteMe.tid}_");
+            bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.NodeAttribArray, _gd, $"_AvelBuf_{dbgGraphDeleteMe.TID}_");
             _VRAMBuffers.Attributes1 = bufferPair.Item1;
             _VRAMBuffers.Attributes2 = bufferPair.Item2;
             _VRAMBuffers.RenderVersion = sourceBuffers.RenderVersion;
@@ -270,11 +270,11 @@ namespace rgat
 
             if (_VRAMBuffers.RenderVersion > destbuffers.RenderVersion)
             {
-                //Logging.RecordLogEvent($"{graph.tid} layout {this.EngineID} version {currentRenderVersion}>{graph.renderFrameVersion}", Logging.LogFilterType.BulkDebugLogFile);
+                //Logging.RecordLogEvent($"{graph.TID} layout {this.EngineID} version {currentRenderVersion}>{graph.renderFrameVersion}", Logging.LogFilterType.BulkDebugLogFile);
                 Download_NodePositions_VRAM_to_Graph(destbuffers);
                 Download_NodeVelocity_VRAM_to_Graph(destbuffers);
                 destbuffers.RenderVersion = _VRAMBuffers.RenderVersion;
-                Logging.RecordLogEvent($"{dbgGraphDeleteMe.tid} layout version updated", Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"{dbgGraphDeleteMe.TID} layout version updated", Logging.LogFilterType.BulkDebugLogFile);
 
             }
         }
@@ -284,7 +284,7 @@ namespace rgat
 
             DeviceBuffer positionsBuffer = _VRAMBuffers.Positions1;
             //
-            Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph fetching {dbgGraphDeleteMe.tid} posbufs {positionsBuffer.Name}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph fetching {dbgGraphDeleteMe.TID} posbufs {positionsBuffer.Name}", Logging.LogFilterType.BulkDebugLogFile);
 
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, positionsBuffer);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
@@ -300,7 +300,7 @@ namespace rgat
             int floatCount = newPositions.Count;//xyzw
             if (destbuffer.Length < floatCount)
             {
-                Logging.RecordLogEvent($"UpdateNodePositions called changing grp_{dbgGraphDeleteMe.tid} size from {destbuffer.Length} to {newPositions.Count}", Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"UpdateNodePositions called changing grp_{dbgGraphDeleteMe.TID} size from {destbuffer.Length} to {newPositions.Count}", Logging.LogFilterType.BulkDebugLogFile);
                 destbuffer = new float[floatCount]; //todo should be lots bigger
             }
 
@@ -314,7 +314,7 @@ namespace rgat
         void Download_NodeVelocity_VRAM_to_Graph(CPUBuffers destbuffers)
         {
 
-            Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph {dbgGraphDeleteMe.tid} layout", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph {dbgGraphDeleteMe.TID} layout", Logging.LogFilterType.BulkDebugLogFile);
             DeviceBuffer velocityBuffer = _VRAMBuffers.Velocities1;
 
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, velocityBuffer);
@@ -337,7 +337,7 @@ namespace rgat
             int floatCount = newVelocities.Count;//xyzw
             if (destbuffer.Length < floatCount)
             {
-                Logging.RecordLogEvent($"UpdateNodeVelocities called changing grp_{dbgGraphDeleteMe.tid} velsize from {destbuffer.Length} to {newVelocities.Count}");
+                Logging.RecordLogEvent($"UpdateNodeVelocities called changing grp_{dbgGraphDeleteMe.TID} velsize from {destbuffer.Length} to {newVelocities.Count}");
                 destbuffer = new float[floatCount];
             }
 
@@ -367,7 +367,7 @@ namespace rgat
             }
             //}
 
-            Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {graph.tid} complete", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {graph.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
         }
 
 
@@ -385,7 +385,7 @@ namespace rgat
 
             //VeldridGraphBuffers.DoDispose(_VRAMBuffers.PresetPositions);
             // _VRAMBuffers.PresetPositions = _VRAMBuffers.Positions1;
-            //VeldridGraphBuffers.CreateFloatsDeviceBuffer(SavedStates[Style].PositionsArray, _gd, $"PLP_PresetPosbuf_{graph.tid}");
+            //VeldridGraphBuffers.CreateFloatsDeviceBuffer(SavedStates[Style].PositionsArray, _gd, $"PLP_PresetPosbuf_{graph.TID}");
 
         }
 
@@ -406,7 +406,7 @@ namespace rgat
                 }
 
                 //_VRAMBuffers.PresetPositions =
-                //    VeldridGraphBuffers.CreateFloatsDeviceBuffer(SavedStates[Style].PositionsArray, _gd, $"PLP_PresetPosbuf_{graph.tid}");
+                //    VeldridGraphBuffers.CreateFloatsDeviceBuffer(SavedStates[Style].PositionsArray, _gd, $"PLP_PresetPosbuf_{graph.TID}");
 
             }
             else
@@ -424,7 +424,7 @@ namespace rgat
         /// <returns></returns>
         unsafe bool CreateEdgeDataBuffers(PlottedGraph graph)
         {
-            Logging.RecordLogEvent($"CreateEdgeDataBuffers  {graph.tid}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"CreateEdgeDataBuffers  {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnections);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnectionIndexes);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeStrengths);
@@ -432,16 +432,16 @@ namespace rgat
             if (!graph.GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargets, out int[] edgeMetaOffsets))
             {
                 Logging.RecordLogEvent($"CreateEdgeDataBuffers zerobuf", Logging.LogFilterType.BulkDebugLogFile);
-                _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeTargets_T{graph.tid}");
-                _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeStrengths_T{graph.tid}");
-                _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeOffsets_T{graph.tid}");
+                _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeTargets_T{graph.TID}");
+                _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeStrengths_T{graph.TID}");
+                _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeOffsets_T{graph.TID}");
                 return false;
             }
 
 
-            _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeTargets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeTargetsBuf_T{graph.tid}");
-            _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeStrengths.Length * sizeof(float), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeStrengthsBuf_T{graph.tid}");
-            _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeMetaOffsets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeOffsetsBuf_T{graph.tid}");
+            _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeTargets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeTargetsBuf_T{graph.TID}");
+            _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeStrengths.Length * sizeof(float), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeStrengthsBuf_T{graph.TID}");
+            _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeMetaOffsets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeOffsetsBuf_T{graph.TID}");
 
             //Logging.RecordLogEvent($"CreateEdgeDataBuffers processing {edgeStrengths.Length * sizeof(int)} bufsize {EdgeStrengthsBuf.SizeInBytes}", Logging.LogFilterType.BulkDebugLogFile);
             fixed (int* targsPtr = edgeTargets)
@@ -484,7 +484,7 @@ namespace rgat
         unsafe void CreateBlockMetadataBuffer(PlottedGraph graph)
         {
 
-            Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.tid}", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
 
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMetadata);
 
@@ -496,7 +496,7 @@ namespace rgat
                     blockdats = new int[] { 0 };
 
                 _VRAMBuffers.BlockMetadata = VeldridGraphBuffers.TrackedVRAMAlloc(_gd,
-                    (uint)blockdats.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMetadata_T{graph.tid}");
+                    (uint)blockdats.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMetadata_T{graph.TID}");
 
                 if (blockdats.Length == 0) return;
 
@@ -515,7 +515,7 @@ namespace rgat
 
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, newBuffer));
 
-            Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.tid} complete", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
             //PrintBufferArray(textureArray, "Created data texture:");
         }
 
@@ -528,7 +528,7 @@ namespace rgat
         /// <param name="finalCount"></param>
         public unsafe void AddNewNodesToComputeBuffers(int finalCount, PlottedGraph graph)
         {
-            Logging.RecordLogEvent($"AddNewNodesToComputeBuffers <{finalCount - graph.ComputeBufferNodeCount}?  {graph.tid} start", Logging.LogFilterType.BulkDebugLogFile);
+            Logging.RecordLogEvent($"AddNewNodesToComputeBuffers <{finalCount - graph.ComputeBufferNodeCount}?  {graph.TID} start", Logging.LogFilterType.BulkDebugLogFile);
             int newNodeCount = finalCount - graph.ComputeBufferNodeCount;
             if (newNodeCount == 0) return;
 
@@ -559,12 +559,12 @@ namespace rgat
                     }
                     else
                     {
-                        Logging.RecordLogEvent($"Creating VRAM buffers size {bufferSize} for graph {graph.tid}", Logging.LogFilterType.TextDebug);
+                        Logging.RecordLogEvent($"Creating VRAM buffers size {bufferSize} for graph {graph.TID}", Logging.LogFilterType.TextDebug);
                     }
                     ResizeComputeBuffers(graph, bufferSize, cl, ref disposals);
                 }
                 _lock.ExitWriteLock();
-                Logging.RecordLogEvent($"AddNewNodesToComputeBuffers  {graph.tid} done", Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"AddNewNodesToComputeBuffers  {graph.TID} done", Logging.LogFilterType.BulkDebugLogFile);
             }
 
 
@@ -618,12 +618,12 @@ namespace rgat
 
             BufferDescription bd = new BufferDescription(bufferSize, BufferUsage.StructuredBufferReadWrite, 4);
 
-            DeviceBuffer velocityBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Vel1ZeroFilled_T{graph.tid}");
-            DeviceBuffer positionsBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Pos1ZeroFilled_T{graph.tid}");
-            DeviceBuffer velocityBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Vel2ZeroFilled_T{graph.tid}");
-            DeviceBuffer positionsBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Pos2ZeroFilled_T{graph.tid}");
-            DeviceBuffer attribsBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Att1ZeroFilled_T{graph.tid}");
-            DeviceBuffer attribsBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Att2ZeroFilled_T{graph.tid}");
+            DeviceBuffer velocityBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Vel1ZeroFilled_T{graph.TID}");
+            DeviceBuffer positionsBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Pos1ZeroFilled_T{graph.TID}");
+            DeviceBuffer velocityBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Vel2ZeroFilled_T{graph.TID}");
+            DeviceBuffer positionsBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Pos2ZeroFilled_T{graph.TID}");
+            DeviceBuffer attribsBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Att1ZeroFilled_T{graph.TID}");
+            DeviceBuffer attribsBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Att2ZeroFilled_T{graph.TID}");
 
             if (_VRAMBuffers.Initialised)
             {
@@ -670,7 +670,7 @@ namespace rgat
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Attributes2);
 
             _VRAMBuffers.Attributes1 = VeldridGraphBuffers.CreateDefaultAttributesBuffer(bd, _gd);
-            _VRAMBuffers.Attributes2 = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, _VRAMBuffers.Attributes1.SizeInBytes, _VRAMBuffers.Attributes1.Usage, 4, $"RNA_AattBuf2_{ dbgGraphDeleteMe.tid}");
+            _VRAMBuffers.Attributes2 = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, _VRAMBuffers.Attributes1.SizeInBytes, _VRAMBuffers.Attributes1.Usage, 4, $"RNA_AattBuf2_{ dbgGraphDeleteMe.TID}");
 
             _VRAMBuffers._flop = true; //process attribs buffer 1 first into buffer 2, saves on an extra copy
         }

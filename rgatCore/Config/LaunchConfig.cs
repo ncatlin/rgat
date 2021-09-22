@@ -25,7 +25,7 @@ namespace rgat.Config
             "Traces are saved to the standard save directory, unless accompanied by the -o option.\n" +
             "This mode does not require a GPU, unless accompanied by the 'draw' and/or 'mp4' options"
             )]
-        public string TargetPath { get; set; } = "";
+        public string? TargetPath { get; set; }
 
 
         /// <summary>
@@ -36,7 +36,7 @@ namespace rgat.Config
             "Requires the address:port of an rgat instance in GUI mode with listening activated.\n" +
             "Not compatible with the listening mode optins. --key parameter is mandatory if no preconfigured key is set.\n" +
             "This mode does not require a GPU.")]
-        public string ConnectModeAddress { get; set; } = "";
+        public string? ConnectModeAddress { get; set; }
 
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace rgat.Config
         /// Path to ffmpeg.exe to use for video captures
         /// </summary>
         [Option("ffmpeg", Required = false, Hidden = true, MetaValue = "[\"path_to_ffmpeg.exe\"]", HelpText = "[Not implemented]Provide a path to FFMpeg.exe to enable video recording if one is not configured. With no argument, prints status of configured FFMpeg.")]
-        public string FFmpegPath { get; set; } = "";
+        public string? FFmpegPath { get; set; }
 
         /// <summary>
         /// if set to true, rgat will not trace child processes
@@ -122,7 +122,7 @@ namespace rgat.Config
         /// Provide config options in a file to support automation
         /// </summary>
         [Option('c', "configfile", Required = false, MetaValue = "[\"path_to_config.json\"]", HelpText = "A path or current directory filename of a file containing a JSON configuration blob. Values in this configuration can be used instead of (or be overidden by) command line arguments.")]
-        public string ConfigPath { get; set; } = "";
+        public string? ConfigPath { get; set; } = null;
 
 
 
@@ -163,7 +163,7 @@ namespace rgat.Config
         /// <summary>
         /// The basic mode of operation for this rgat run
         /// </summary>
-        public eRunMode RunMode;
+        public eRunMode RunMode = eRunMode.GUI;
 
         /// <summary>
         /// Initialise the configuration

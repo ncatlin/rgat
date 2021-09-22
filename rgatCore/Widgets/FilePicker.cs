@@ -341,8 +341,6 @@ namespace rgatFilePicker
             }
 
 
-
-
             public void RefreshDirectoryContents(List<Tuple<string, bool>> latest_dir_entires, DirectoryContents newContentsObj = null)
             {
 

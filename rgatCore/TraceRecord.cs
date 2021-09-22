@@ -217,14 +217,14 @@ namespace rgat
             lock (GraphListLock)
             {
 
-                if (ProtoGraphs.ContainsKey(mainplot.tid))
+                if (ProtoGraphs.ContainsKey(mainplot.TID))
                 {
                     Console.WriteLine("Warning - thread with duplicate ID detected. This should never happen. Undefined behaviour ahoy.");
                     return false;
                 }
 
-                ProtoGraphs.Add(mainplot.tid, mainplot.InternalProtoGraph);
-                PlottedGraphs[mainplot.tid] = mainplot;
+                ProtoGraphs.Add(mainplot.TID, mainplot.InternalProtoGraph);
+                PlottedGraphs[mainplot.TID] = mainplot;
 
                 //runtimeline.notify_new_thread(getPID(), randID, TID);
             }

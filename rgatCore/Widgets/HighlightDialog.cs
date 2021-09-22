@@ -350,7 +350,7 @@ namespace rgat.Widgets
                 ulong address = _activeHighlights.SelectedAddresses[selitem];
                 _activeHighlights.SelectedAddresses.RemoveAt(selitem);
                 _ActiveGraph.HighlightedAddresses.Remove(address);
-                List<uint> nodes = _ActiveGraph.InternalProtoGraph.ProcessData.GetNodesAtAddress(address, _ActiveGraph.tid);
+                List<uint> nodes = _ActiveGraph.InternalProtoGraph.ProcessData.GetNodesAtAddress(address, _ActiveGraph.TID);
                 _ActiveGraph.RemoveHighlightedNodes(nodes, null, CONSTANTS.HighlightType.Addresses);
             }
 
@@ -392,7 +392,7 @@ namespace rgat.Widgets
             uint[] exceptionNodes = _ActiveGraph.InternalProtoGraph.GetExceptionNodes();
             if (exceptionNodes.Length == 0)
             {
-                string caption = $"No exceptions recorded in thread ID {_ActiveGraph.tid}";
+                string caption = $"No exceptions recorded in thread ID {_ActiveGraph.TID}";
                 ImguiUtils.DrawRegionCenteredText(caption);
                 return;
             }
