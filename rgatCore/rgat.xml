@@ -1128,6 +1128,36 @@
             Adds any values that might have appeared in a new version
             </summary>
         </member>
+        <member name="T:rgat.Config.rgatSettings.PathRecord">
+            <summary>
+            A class for recording filesystem paths and when rgat accessed them
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.PathRecord.Path">
+            <summary>
+            Filesystem path of the file
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.PathRecord.OpenCount">
+            <summary>
+            How many times rgat has opened the file
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.PathRecord.FirstOpen">
+            <summary>
+            When the file was first opened by rgat
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.PathRecord.LastOpen">
+            <summary>
+            The most recent time the file was opened
+            </summary>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.PathRecord.SortLatestAccess">
+            <summary>
+            Sort by the latest open time
+            </summary>
+        </member>
         <member name="T:rgat.Config.rgatSettings.NetworkSettings">
             <summary>
             Connection settings for remote tracing
@@ -1639,6 +1669,286 @@
             <param name="buf">GPU DeviceBuffer to read</param>
             <param name="message">Caption for the printout</param>
             <param name="printCount">Max values to print</param>
+        </member>
+        <member name="T:rgat.GraphLayoutState">
+            <summary>
+            Contains the actual geometry of a renered graph as RAM and VRAM buffers
+            Contains one set of VRAM buffers for active drawing and a dictionary
+            of RAM buffers for previously computed states. This way we can switch between
+            layouts without having to recompute them
+            </summary>
+        </member>
+        <member name="M:rgat.GraphLayoutState.#ctor(rgat.PlottedGraph,Veldrid.GraphicsDevice,rgat.CONSTANTS.LayoutStyles.Style)">
+            <summary>
+            Create buffers for a graph rendering
+            </summary>
+            <param name="graph">The graph the layout applies to</param>
+            <param name="device">The graphicsdevice for VRAM operations</param>
+            <param name="style">The intial style of the layout</param>
+        </member>
+        <member name="M:rgat.GraphLayoutState.Finalize">
+            <summary>
+            Destructor to log destruction
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GraphPlot">
+            <summary>
+            The graph for this layout
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState._gd">
+            <summary>
+            Veldrid GraphicsDevice for GPU operations
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.Style">
+            <summary>
+            The layout style currently plotted in the VRAM buffers
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState._VRAMBuffers">
+            <summary>
+            Active VRAM resident layout data for display and computation on the GPU
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.Positions1">
+            <summary>
+            Positions buffers, contains node positions
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.Positions2">
+            <summary>
+            Positions buffers, contains node positions
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.Velocities1">
+            <summary>
+            Velocity buffers, with the velocity of each node
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.Velocities2">
+            <summary>
+            Velocity buffers, with the velocity of each node
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.Attributes1">
+            <summary>
+            Node attributes buffers, contains node animation data
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.Attributes2">
+            <summary>
+            Node attributes buffers, contains node animation data
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.PresetPositions">
+            <summary>
+            Preset positions buffers, holds a target state for nodes to be moved towards
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.EdgeConnections">
+            <summary>
+            Edge connections, describes which nodes each node is connected to
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.EdgeConnectionIndexes">
+            <summary>
+            Edge Connection Indexes, used to speed up Edge connection buffer lookups
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.EdgeStrengths">
+            <summary>
+            Edge strengths, the attraction force between each connected node
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.BlockMetadata">
+            <summary>
+            Various descriptions of basic blocks, for the block-based layouts
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.RenderVersion">
+            <summary>
+            The current version of the layout, incremented every time a compute pass is done
+            Used to compare RAM and VRAM buffers
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.Initialised">
+            <summary>
+            Have the buffers been assigned
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.Style">
+            <summary>
+            The style of the layout in the active buffers
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers._flop">
+            <summary>
+            Whether buffers 1 or 2 are being written to
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.PositionsVRAM1">
+            <summary>
+            First VRAM node postions buffer 
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.PositionsVRAM2">
+            <summary>
+            Second VRAM node postions buffer
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.VelocitiesVRAM1">
+            <summary>
+            First VRAM node velocity buffer 
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.VelocitiesVRAM2">
+            <summary>
+            First VRAM node velocity buffer 
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.AttributesVRAM1">
+            <summary>
+            First VRAM node attributes buffer
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.AttributesVRAM2">
+            <summary>
+            Second VRAM node attributes buffer
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.EdgeConnections">
+            <summary>
+            VRAM Edge connections buffer
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.EdgeConnectionIndexes">
+            <summary>
+            VRAM Edge connections indexes buffer
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.BlockMetadata">
+            <summary>
+            VRAM Basic Block descriptions buffer
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.EdgeStrengths">
+            <summary>
+            VRAM Edge attraction strenths buffer
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.PresetPositions">
+            <summary>
+            VRAM preset node postions buffer
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.RenderVersion">
+            <summary>
+            VRAM latest render version
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.Initialised">
+            <summary>
+            Are VRAM buffers initialised
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.ActivatingPreset">
+            <summary>
+            Is the layout currently snapping towards a preset layout
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.PresetStyle">
+            <summary>
+            Current preset style
+            </summary>
+        </member>
+        <member name="M:rgat.GraphLayoutState.IncrementPresetSteps">
+            <summary>
+            Increment and return the preset counter
+            </summary>
+            <returns>The preset counter</returns>
+        </member>
+        <member name="M:rgat.GraphLayoutState.IncrementVersion">
+            <summary>
+            Increment the VRAM layout version
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.Lock">
+            <summary>
+            Get the VRAM buffer lock
+            </summary>
+        </member>
+        <member name="M:rgat.GraphLayoutState.flip">
+            <summary>
+            Flip to the next buffer set and return the flop result
+            </summary>
+            <returns>flop (which buffer set to use)</returns>
+        </member>
+        <member name="T:rgat.GraphLayoutState.CPUBuffers">
+            <summary>
+            RAM stored layout states
+            </summary>
+        </member>
+        <member name="M:rgat.GraphLayoutState.CPUBuffers.#ctor(rgat.CONSTANTS.LayoutStyles.Style)">
+            <summary>
+            Create a RAM storage object for a layout state
+            </summary>
+            <param name="style">The style of the layout</param>
+        </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.PositionsArray">
+            <summary>
+            Stored node positions
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.VelocityArray">
+            <summary>
+            Stored node velocities
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.NodeAttribArray">
+            <summary>
+            Stored node attributes
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.PresetPositions">
+            <summary>
+            Stored node preset positions
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.RenderVersion">
+            <summary>
+            Layout version of the stored state
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.EdgeCount">
+            <summary>
+            Number of edges rendered in the stored state
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.Style">
+            <summary>
+            Layout style of the stored state
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.EdgeConnections">
+            <summary>
+            Edge connection descriptors
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.EdgeConnectionIndexes">
+            <summary>
+            Edge connection buffer indexes
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.EdgeStrengths">
+            <summary>
+            The attraction strength of each edge 
+            </summary>
+        </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.BlockMetadata">
+            <summary>
+            Basic Block metadata
+            </summary>
         </member>
         <member name="M:rgat.GraphLayoutState.LockedUploadStateToVRAM(rgat.GraphLayoutState.CPUBuffers)">
             <summary>
@@ -2945,6 +3255,281 @@
             <param name="trace">The associated TraceRecord of the test</param>
             <returns>true if found, false otherwise</returns>
         </member>
+        <member name="T:rgat.Testing.RequirementCondition">
+            <summary>
+            Comparisons that can be applied to process/thread attributes
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.RequirementCondition.Equals">
+            <summary>
+            The attribute is equal to a specified value
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.RequirementCondition.LessThan">
+            <summary>
+            The attribute is less than the specified value
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.RequirementCondition.LessThanOrEqualTo">
+            <summary>
+            The attribute is less than or equal to the specified value
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.RequirementCondition.GreaterThan">
+            <summary>
+            The attribute is greater than the specified value
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.RequirementCondition.GreaterThanOrEqualTo">
+            <summary>
+            The attribute is greater than or equal to the specified value
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.RequirementCondition.Exists">
+            <summary>
+            The attribute exists in a collection
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.RequirementCondition.Absent">
+            <summary>
+            The attribute does not exist in a specified list of values 
+            /// </summary>
+        </member>
+        <member name="F:rgat.Testing.RequirementCondition.Contains">
+            <summary>
+            The attribute is a collection which contains the value
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.RequirementCondition.OneOf">
+            <summary>
+            The attribute exists in a specified list of values
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.RequirementCondition.INVALID">
+            <summary>
+            The attribute is equal to a specified value
+            </summary>
+        </member>
+        <member name="T:rgat.Testing.REQUIREMENT_TEST_RESULTS">
+            <summary>
+            Results from evaluating a test requirement
+            </summary>
+        </member>
+        <member name="M:rgat.Testing.REQUIREMENT_TEST_RESULTS.#ctor">
+            <summary>
+            Results from evaluating a test requirement
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.REQUIREMENT_TEST_RESULTS.Passed">
+            <summary>
+            Passed requirements
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.REQUIREMENT_TEST_RESULTS.Failed">
+            <summary>
+            Failed requirements
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.REQUIREMENT_TEST_RESULTS.Errors">
+            <summary>
+            Errors encountered evaluating each requirement
+            </summary>
+        </member>
+        <member name="T:rgat.Testing.TestRequirement">
+            <summary>
+            A requirement to apply to a process or thread
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestRequirement.Name">
+            <summary>
+            The name of the requirement
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestRequirement.Comment">
+            <summary>
+            A comment about the requirement
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestRequirement.ExpectedValue">
+            <summary>
+            The expected value of the requirement to evaluate to
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestRequirement.ExpectedValueString">
+            <summary>
+            A string representation of the expected value
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestRequirement.Condition">
+            <summary>
+            How to compare the test result to the expected value
+            </summary>
+        </member>
+        <member name="M:rgat.Testing.TestRequirement.#ctor(System.String,Newtonsoft.Json.Linq.JToken,System.String)">
+            <summary>
+            A requirement for the test to pass
+            </summary>
+            <param name="name">Name of the requirement</param>
+            <param name="value">Value being compared</param>
+            <param name="condition">The comparison to perform</param>
+        </member>
+        <member name="M:rgat.Testing.TestRequirement.Compare(System.Int32,System.String@)">
+            <summary>
+            Compare an integer value
+            </summary>
+            <param name="value">An integer value</param>
+            <param name="error">An error describing why it failed</param>
+            <returns>true if pass, false if fail</returns>
+        </member>
+        <member name="M:rgat.Testing.TestRequirement.Compare(System.Int64,System.String@)">
+            <summary>
+            Compare a long value
+            </summary>
+            <param name="value">An long value</param>
+            <param name="error">An error describing why it failed</param>
+            <returns>true if pass, false if fail</returns>
+        </member>
+        <member name="M:rgat.Testing.TestRequirement.Compare(System.UInt64,System.String@)">
+            <summary>
+            Compare a ulong value
+            </summary>
+            <param name="value">A ulong value</param>
+            <param name="error">An error describing why it failed</param>
+            <returns>true if pass, false if fail</returns>
+        </member>
+        <member name="M:rgat.Testing.TestRequirement.SetComment(System.String)">
+            <summary>
+            Set the requirement comment
+            </summary>
+            <param name="value"></param>
+        </member>
+        <member name="T:rgat.Testing.TraceRequirements">
+            <summary>
+            A set of requirements for a test process, threads and child processes
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TraceRequirements.ProcessRequirements">
+            <summary>
+            list of requirements the process (ie: TraceRecord) must meet
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TraceRequirements.ThreadRequirements">
+            <summary>
+            list of requirements the process threads (ie: ProtoGraphs) must meet
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TraceRequirements.ChildProcessRequirements">
+            <summary>
+            list of requirements for descendant processes
+            </summary>
+        </member>
+        <member name="T:rgat.Testing.eTestState">
+            <summary>
+            A basic state for a test run
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.eTestState.NotRun">
+            <summary>
+            Not executed yet
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.eTestState.Passed">
+            <summary>
+            All requirements passed
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.eTestState.Failed">
+            <summary>
+            At least one requirement was not met
+            </summary>
+        </member>
+        <member name="T:rgat.Testing.TestCase">
+            <summary>
+            A test consisting of a set of requirements and an associated binary to apply them to
+            </summary>
+        </member>
+        <member name="M:rgat.Testing.TestCase.#ctor(System.String,System.String)">
+            <summary>
+            Load a test case from a json file
+            </summary>
+            <param name="jsonpath">Path of a JSON test description file to load</param>
+            <param name="category">The category of the test</param>
+        </member>
+        <member name="F:rgat.Testing.TestCase.LoadingErrors">
+            <summary>
+            Errors encountered loading the test case from JSON
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.Loaded">
+            <summary>
+            If the test was sucessfully loaded
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestCase.LatestResultState">
+            <summary>
+            The lastest result from running this test
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.LatestTestRun">
+            <summary>
+            The latest run object for this test
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.LatestErrorReason">
+            <summary>
+            The latest error from this test
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.JSONPath">
+            <summary>
+            File path of the test description
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.BinaryPath">
+            <summary>
+            File path of the test binary
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.BinaryDirectory">
+            <summary>
+            Directory of the test binary
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.CategoryName">
+            <summary>
+            Category of the test
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.TestName">
+            <summary>
+            Name of the test
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestCase.Starred">
+            <summary>
+            The test is starred on the UI
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.Comment">
+            <summary>
+            The test writers comment for the test
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.TestBits">
+            <summary>
+            Is the test binary 32 or 64 bits
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.TestOS">
+            <summary>
+            What OS the test runs on
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCase.Running">
+            <summary>
+            Is the test currently running
+            </summary>
+        </member>
         <member name="F:rgat.Testing.TestCase._TestRunRequirements">
             <summary>
             A list of conditions met by the entire test itself
@@ -2974,6 +3559,57 @@
             <param name="tok">JToken containing requirement</param>
             <param name="testRequirement">Result requirement object</param>
             <returns>true if it loaded without error</returns>
+        </member>
+        <member name="M:rgat.Testing.TestCase.TestRunRequirements">
+            <summary>
+            Fetch test run requirements. Thread safe for GUi rendering
+            </summary>
+            <returns>Array of test run requirements</returns>
+        </member>
+        <member name="M:rgat.Testing.TestCase.TraceRequirements">
+            <summary>
+            Fetch trace (whole process) requirements. Thread safe for GUi rendering
+            </summary>
+            <returns>Array of process requirements</returns>
+        </member>
+        <member name="M:rgat.Testing.TestCase.RecordRunning">
+            <summary>
+            Increase the count of running tests
+            </summary>
+        </member>
+        <member name="M:rgat.Testing.TestCase.RecordFinished">
+            <summary>
+            Decrease the count of running tests
+            </summary>
+        </member>
+        <member name="M:rgat.Testing.TestCase.RecordPassed(System.Int32,rgat.Testing.TestCaseRun)">
+            <summary>
+            Record a test where all requirements were met
+            </summary>
+            <param name="sessionID">Session ID of the test</param>
+            <param name="testrun">The sucedssful test run</param>
+        </member>
+        <member name="M:rgat.Testing.TestCase.CountPassed(System.Int32)">
+            <summary>
+            Get the number of passed tests in the session
+            </summary>
+            <param name="sessionID">Session ID to check</param>
+            <returns>number of passed tests</returns>
+        </member>
+        <member name="M:rgat.Testing.TestCase.RecordFailed(System.Int32,rgat.Testing.TestCaseRun,System.String)">
+            <summary>
+            Record a test where one or more requirements were not met
+            </summary>
+            <param name="sessionID">Session ID of the test</param>
+            <param name="testrun">The sucedssful test run</param>
+            <param name="reason">Explaination for why the test failed</param>
+        </member>
+        <member name="M:rgat.Testing.TestCase.CountFailed(System.Int32)">
+            <summary>
+            Get the number of failed tests in the session
+            </summary>
+            <param name="sessionID">Session ID to check</param>
+            <returns>number of failed tests</returns>
         </member>
         <member name="M:rgat.Widgets.QuickMenu.SetStateChangeCallback(System.Action{System.Boolean})">
             <summary>
@@ -3021,6 +3657,291 @@
             <param name="width"></param>
             <param name="height"></param>
             <param name="graph"></param>
+        </member>
+        <member name="T:rgat.Themes.eThemeColour">
+            <summary>
+            UI and Graph properties that can have a custom theme colour
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.ePreviewText">
+            <summary>
+            Labels on preview graphs
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.ePreviewTextBackground">
+            <summary>
+            The background of text on preview graphs to provide contrast
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.ePreviewPaneBorder">
+            <summary>
+            The border of the preview pane
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.ePreviewPaneBackground">
+            <summary>
+            The background of the preview pane
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.ePreviewZoomEnvelope">
+            <summary>
+            The box used to show the camera location in the preview pane
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.PreviewBGRunning">
+            <summary>
+            The background of running thread preview graphs
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.PreviewBGTerminated">
+            <summary>
+            The background of terminated thread preview graphs
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.PreviewBGSuspended">
+            <summary>
+            The background of suspended thread preview graphs
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eTextEmphasis1">
+            <summary>
+            Emphasised text style 1
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eTextEmphasis2">
+            <summary>
+            Emphasised text style 2
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eTextDull1">
+            <summary>
+            Subtle text style 1
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eTextDull2">
+            <summary>
+            Subtle text style 2
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eHeat0Lowest">
+            <summary>
+            The lowest 10% active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eHeat1">
+            <summary>
+            10-19% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eHeat2">
+            <summary>
+            20-29% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eHeat3">
+            <summary>
+            30-39% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eHeat4">
+            <summary>
+            40-49% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eHeat5">
+            <summary>
+            50-59% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eHeat6">
+            <summary>
+            60-69% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eHeat7">
+            <summary>
+            70-79% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eHeat8">
+            <summary>
+            80-89% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eHeat9Highest">
+            <summary>
+            The top 10% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eVisBarPlotLine">
+            <summary>
+            The instruction count plot line on the visualisation bar
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eVisBarBg">
+            <summary>
+            The background of the visualiser bar
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eAlertWindowBg">
+            <summary>
+            The background of the alert box
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eAlertWindowBorder">
+            <summary>
+            The border of the alert box
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eBadStateColour">
+            <summary>
+            Colour for bad events/errors
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eWarnStateColour">
+            <summary>
+            Colour for warnings
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eGoodStateColour">
+            <summary>
+            Colour for successful events
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.eSandboxChartBG">
+            <summary>
+            Background of the analysis chart
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.GraphBackground">
+            <summary>
+            Background of the main graph visualiser
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.edgeCall">
+            <summary>
+            Colour of call edges
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.edgeOld">
+            <summary>
+            Colour of edges to existing instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.edgeRet">
+            <summary>
+            Colour of return edges
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.edgeLib">
+            <summary>
+            Colour of API call edges (to uninstrumented code)
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.edgeNew">
+            <summary>
+            Colour of edges to new instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.edgeExcept">
+            <summary>
+            Colour of exception edges
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.nodeStd">
+            <summary>
+            Colour of non-flow control nodes
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.nodeJump">
+            <summary>
+            Colour of jump nodes
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.nodeCall">
+            <summary>
+            Colour of call nodes
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.nodeRet">
+            <summary>
+            Colour of return nodes
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.nodeExtern">
+            <summary>
+            Colour of API nodes
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.nodeExcept">
+            <summary>
+            Colour of Exception nodes
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.SymbolText">
+            <summary>
+            Colour of API label captions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.SymbolRising">
+            <summary>
+            Colour of animated rising API captions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.InternalSymbol">
+            <summary>
+            Colour of internal symbol labels
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.InstructionText">
+            <summary>
+            Colour of instruction text labels
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.WireFrame">
+            <summary>
+            Colour of graph wireframes
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.COUNT">
+            <summary>
+            The number of available colours
+            </summary>
+        </member>
+        <member name="T:rgat.Themes.eThemeSize">
+            <summary>
+            Customisable size values
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeSize.ePreviewSelectedBorder">
+            <summary>
+            The weight of the border of selected preview graphs
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeSize.COUNT">
+            <summary>
+            The number of available sizes
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.IsBuiltinTheme">
+            <summary>
+            Theme is bundled with rgat
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.UnsavedTheme">
+            <summary>
+            Theme has changes which have not been written to the config file
+            </summary>
+        </member>
+        <member name="M:rgat.Themes.ApplyThemeColours">
+            <summary>
+            Activate the themes ImGui colours
+            </summary>
+        </member>
+        <member name="M:rgat.Themes.ResetThemeColours">
+            <summary>
+            Must be called every time the UI is drawn using ApplyThemeColours
+            </summary>
         </member>
         <member name="M:rgat.Themes.InitUnsetCustomColours">
             <summary>
