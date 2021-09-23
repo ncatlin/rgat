@@ -9,21 +9,43 @@ using System.Threading.Tasks;
 
 namespace rgat
 {
+
+    /// <summary>
+    /// Manages signature updates and downloads
+    /// </summary>
     public class GithubSignatureManager
     {
         System.Collections.Concurrent.BlockingCollection<GlobalConfig.SignatureSource> _repos = new System.Collections.Concurrent.BlockingCollection<GlobalConfig.SignatureSource>();
 
         CancellationToken _token;
+        /// <summary>
+        /// Is a download/update in progress
+        /// </summary>
         public bool Running { get; private set; }
+        /// <summary>
+        /// What kind of task is in progress
+        /// </summary>
         public string TaskType { get; private set; } = "";
 
+        /// <summary>
+        /// How many update/download tasks were queued
+        /// </summary>
         public int InitialTaskCount { get; private set; }
+        /// <summary>
+        /// How many tasks have completed
+        /// </summary>
         public int CompletedTaskCount { get; private set; }
+
         int _activeWorkers = 0;
         readonly object _lock = new object();
         readonly List<string> _currentRepos = new List<string>();
-        Action<GlobalConfig.SignatureSource> activeTaskAction;
 
+        Action<GlobalConfig.SignatureSource>? activeTaskAction;
+
+        /// <summary>
+        /// Get the list of signaturesources
+        /// </summary>
+        /// <returns>A list of github repo paths</returns>
         public List<string> GetActive()
         {
             lock (_lock)
@@ -32,6 +54,13 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// Check selected repos for updates
+        /// </summary>
+        /// <param name="repos">List of SignatureSource repos</param>
+        /// <param name="workerCount">Number of workers to run in parallel</param>
+        /// <param name="cancelToken">token to listen for for cancellation</param>
         public void StartRefresh(List<GlobalConfig.SignatureSource> repos, int workerCount, CancellationToken cancelToken)
         {
             TaskType = "Refresh";
@@ -39,6 +68,13 @@ namespace rgat
             StartWorkers(repos, workerCount, cancelToken);
         }
 
+
+        /// <summary>
+        /// Download selected repos
+        /// </summary>
+        /// <param name="repos">List of SignatureSource repos</param>
+        /// <param name="workerCount">Number of workers to run in parallel</param>
+        /// <param name="cancelToken">token to listen for for cancellation</param>
         public void StartDownloads(List<GlobalConfig.SignatureSource> repos, int workerCount, CancellationToken cancelToken)
         {
             TaskType = "Download";
@@ -65,6 +101,8 @@ namespace rgat
 
         void StartWork()
         {
+            System.Diagnostics.Debug.Assert(activeTaskAction is not null);
+
             foreach (GlobalConfig.SignatureSource repo in _repos.GetConsumingEnumerable())
             {
 
@@ -302,7 +340,7 @@ namespace rgat
         /// Remove the associated signature download directory for this repo
         /// Must be called before the removal of the repo metadata via DeleteSignatureSource
         /// </summary>
-        /// <param name="repopath">Repo key</param>
+        /// <param name="repo">Repo key</param>
         public void PurgeRepoFiles(GlobalConfig.SignatureSource repo)
         {
             string? repoDirectory = null;
@@ -321,7 +359,10 @@ namespace rgat
             }
             try
             {
-                PurgeDirectory(repoDirectory);
+                if (repoDirectory is null)
+                    Logging.RecordError($"Failed to derive repo directory for signatures folder of {repo.RepoName}");
+                else
+                    PurgeDirectory(repoDirectory);
             }
             catch (Exception e)
             {

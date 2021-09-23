@@ -198,8 +198,8 @@ namespace rgat.Widgets
             {
                 if (rgatState.NetworkBridge.ActiveNetworking)
                 {
-                    IPEndPoint endpoint = rgatState.NetworkBridge.RemoteEndPoint;
-                    if (rgatState.ConnectedToRemote)
+                    IPEndPoint? endpoint = rgatState.NetworkBridge.RemoteEndPoint;
+                    if (endpoint is not null && rgatState.ConnectedToRemote)
                     {
                         ImguiUtils.DrawRegionCenteredText($"Connected to {endpoint}");
                     }
@@ -733,9 +733,10 @@ namespace rgat.Widgets
             {
                 rgatState.NetworkBridge.AddNetworkDisplayLogMessage($"Uploading signatures to {rgatState.NetworkBridge.RemoteEndPoint}", null);
                 List<Task> tasks = new List<Task>();
-                tasks.Add(Task.Run(() => rgatState.YARALib.UploadSignatures()));
-                tasks.Add(Task.Run(() => rgatState.DIELib.UploadSignatures()));
-                Task.WaitAll(tasks.ToArray(), rgatState.ExitToken);
+                if (rgatState.YARALib is not null) tasks.Add(Task.Run(() => rgatState.YARALib.UploadSignatures()));
+                if (rgatState.DIELib is not null) tasks.Add(Task.Run(() => rgatState.DIELib.UploadSignatures()));
+                if (tasks.Any())
+                    Task.WaitAll(tasks.ToArray(), rgatState.ExitToken);
             }
             catch (Exception e)
             {

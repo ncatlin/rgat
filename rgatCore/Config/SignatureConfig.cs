@@ -6,9 +6,14 @@ namespace rgat
 {
     public partial class GlobalConfig
     {
-        /************* Signature sources ***************/
+        /// <summary>
+        /// Github signature sources
+        /// </summary>
         public class SignatureSource
         {
+            /// <summary>
+            /// Create a github signature source
+            /// </summary>
             public SignatureSource() { }
 
             /// <summary>
@@ -53,11 +58,11 @@ namespace rgat
             /// <summary>
             /// Last error encountered checking the repo for updates
             /// </summary>
-            public string LastRefreshError;
+            public string? LastRefreshError;
             /// <summary>
             /// Last error encountered downloading the repo
             /// </summary>
-            public string LastDownloadError;
+            public string? LastDownloadError;
 
             /// <summary>
             /// Where to fetch the download to

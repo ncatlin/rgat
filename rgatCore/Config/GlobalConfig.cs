@@ -13,6 +13,9 @@ using static rgat.CONSTANTS;
 
 namespace rgat
 {
+    /// <summary>
+    /// Runtime rgat settings
+    /// </summary>
     public partial class GlobalConfig
     {
         static GlobalConfig()

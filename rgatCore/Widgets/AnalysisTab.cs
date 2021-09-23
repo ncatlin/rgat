@@ -9,7 +9,7 @@ namespace rgat
     partial class rgatUI
     {
 
-        private void DrawAnalysisTab(TraceRecord activeTrace)
+        private void DrawAnalysisTab(TraceRecord? activeTrace)
         {
             if (activeTrace == null || !ImGui.BeginTabItem("Timeline")) return;
             _currentTab = "Timeline";
@@ -177,10 +177,10 @@ namespace rgat
                                 Logging.APICALL call = (Logging.APICALL)(TLevent.Item);
                                 selected = TLevent == SelectedAPIEvent;
 
-                                if (call.node.IsExternal)
+                                if (call.Node.IsExternal)
                                 {
                                     eventType = "API - " + call.APIType();
-                                    module = Path.GetFileNameWithoutExtension(trace.DisassemblyData.GetModulePath(call.node.GlobalModuleID));
+                                    module = Path.GetFileNameWithoutExtension(trace.DisassemblyData.GetModulePath(call.Node.GlobalModuleID));
 
                                     //api call is selected if it is either directly activated, or interacts with a reference to the active entity
                                     //eg: if the file.txt node is selected, writefile to the relevant handle will also be selected
@@ -188,9 +188,9 @@ namespace rgat
                                     if (!selected && selectedNode != null)
                                     {
                                         //select all apis called by selected thread node
-                                        selected = selected || (ThreadNodeSelected && call.graph.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
+                                        selected = selected || (ThreadNodeSelected && call.Graph.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
                                         //select all apis called by selected process node
-                                        selected = selected || (ProcessNodeSelected && call.graph.TraceData.PID == ((TraceRecord)selectedNode.reference).PID);
+                                        selected = selected || (ProcessNodeSelected && call.Graph.TraceData.PID == ((TraceRecord)selectedNode.reference).PID);
                                     }
                                     //WinAPIDetails.API_ENTRY = call.APIEntry;
                                 }
@@ -311,13 +311,13 @@ namespace rgat
                 ImGui.TableNextColumn();
                 ImGui.Text($"Thread ID");
                 ImGui.TableNextColumn();
-                ImGui.Text($"{call.graph.ThreadID}");
+                ImGui.Text($"{call.Graph.ThreadID}");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text($"Library");
                 ImGui.TableNextColumn();
-                ImGui.TextWrapped($"{call.graph.TraceData.DisassemblyData.GetModulePath(call.node.GlobalModuleID)}");
+                ImGui.TextWrapped($"{call.Graph.TraceData.DisassemblyData.GetModulePath(call.Node.GlobalModuleID)}");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -329,12 +329,12 @@ namespace rgat
                 }
                 else
                 {
-                    if (call.graph.TraceData.DisassemblyData.GetSymbol(call.node.GlobalModuleID, call.node.address, out string? symbol))
+                    if (call.Graph.TraceData.DisassemblyData.GetSymbol(call.Node.GlobalModuleID, call.Node.address, out string? symbol))
                         ImGui.TextWrapped(symbol);
                     else
                     {
-                        if (call.node.Label is not null)
-                            ImGui.TextWrapped($"{call.node.Label.Split(' ')[^1]}");
+                        if (call.Node.Label is not null)
+                            ImGui.TextWrapped($"{call.Node.Label.Split(' ')[^1]}");
                     }
                 }
                 ImGui.TableNextColumn();

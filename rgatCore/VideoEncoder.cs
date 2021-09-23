@@ -34,11 +34,12 @@ namespace rgat
 
         readonly System.Drawing.Imaging.ImageCodecInfo[] _imageCodecs;
 
+        /// <summary>
+        /// Create a video encoder object
+        /// </summary>
         public VideoEncoder()
-        {
-
+        { 
             _imageCodecs = ImageCodecInfo.GetImageEncoders();
-
         }
 
         /// <summary>
@@ -454,7 +455,7 @@ namespace rgat
             }
             else
             {
-                if (DetectFFmpeg(out string? path))
+                if (DetectFFmpeg(out string? path) && path is not null)
                 {
                     Loaded = true;
                     GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.FFmpegPath, path);
@@ -591,7 +592,7 @@ namespace rgat
                 {
                     foreach (var codec in _imageCodecs)
                     {
-                        if (ImGui.Selectable(codec.FormatDescription))
+                        if (codec.FormatDescription is not null && ImGui.Selectable(codec.FormatDescription))
                         {
                             GlobalConfig.Settings.Media.ImageCapture_Format = codec.FormatDescription;
                         }

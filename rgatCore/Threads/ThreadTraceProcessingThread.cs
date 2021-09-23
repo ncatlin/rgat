@@ -475,7 +475,6 @@ namespace rgat.Threads
         {
             //modType could be known unknown here
             //in case of unknown, this waits until we know. hopefully rare.
-            int attempts = 1;
 
             TAG externTag = new TAG();
             externTag.InstrumentationState = eCodeInstrumentation.eUninstrumentedCode;
@@ -821,9 +820,9 @@ namespace rgat.Threads
             }
 
             //process traces until program exits or the trace ingest stops + the queues are empty
-            while (!rgatState.rgatIsExiting && (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData()))
+            while (!rgatState.rgatIsExiting && (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData))
             {
-                byte[] msg = protograph.TraceReader.DeQueueData();
+                byte[]? msg = protograph.TraceReader.DeQueueData();
                 if (msg == null)
                 {
                     AssignBlockRepeats();

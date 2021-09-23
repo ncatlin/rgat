@@ -72,8 +72,8 @@ namespace rgat.OperationModes
         public static void SendSigDates()
         {
             JObject sigDates = new JObject();
-            sigDates.Add("YARA", rgatState.YARALib.NewestSignature);
-            sigDates.Add("DIE", rgatState.DIELib.NewestSignature);
+            if (rgatState.YARALib is not null) sigDates.Add("YARA", rgatState.YARALib.NewestSignature);
+            if (rgatState.DIELib is not null) sigDates.Add("DIE", rgatState.DIELib.NewestSignature);
             rgatState.NetworkBridge.SendAsyncData("SignatureTimes", sigDates);
         }
 
@@ -224,7 +224,7 @@ namespace rgat.OperationModes
                     try
                     {
                         string responseStr = GetString(item.data);
-                        if (!ParseResponse(responseStr, out int commandID, out JToken? response))
+                        if (!ParseResponse(responseStr, out int commandID, out JToken? response) || response is null)
                         {
                             rgatState.NetworkBridge.Teardown($"Bad command ({commandID}) response");
                             break;
@@ -242,13 +242,13 @@ namespace rgat.OperationModes
 
                 case emsgType.TraceMeta:
 
-                    if (!ParseTraceMeta(item.data, out TraceRecord trace, out string[] items))
+                    if (!ParseTraceMeta(item.data, out TraceRecord? trace, out string[]? items))
                     {
                         rgatState.NetworkBridge.Teardown($"Bad Trace Metadata");
                         break;
                     }
                     Console.WriteLine($"Processing trace meta {GetString(item.data)}");
-                    if (!HandleTraceMeta(trace, items))
+                    if (!HandleTraceMeta(trace, items!))
                     {
                         Logging.RecordLogEvent($"Failed processing trace meta {GetString(item.data)}", Logging.LogFilterType.TextError);
                         rgatState.NetworkBridge.Teardown($"Trace Meta processing failed");
@@ -259,9 +259,9 @@ namespace rgat.OperationModes
                     {
 
                         //Console.WriteLine("handletracedata to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(item.data, 0, item.data.Length));
-                        if (RemoteDataMirror.GetPipeInterface(item.destinationID, out RemoteDataMirror.ProcessIncomingWorkerData dataFunc))
+                        if (RemoteDataMirror.GetPipeInterface(item.destinationID, out RemoteDataMirror.ProcessIncomingWorkerData? dataFunc))
                         {
-                            dataFunc(item.data);
+                            dataFunc!(item.data);
                         }
                         else
                         {
@@ -276,8 +276,8 @@ namespace rgat.OperationModes
                     {
                         Console.WriteLine("Incoming trace command:" + GetString(item.data));
                         if (rgatState.NetworkBridge.HeadlessMode &&
-                            RemoteDataMirror.GetPipeWorker(item.destinationID, out TraceProcessorWorker moduleHandler) &&
-                            moduleHandler.GetType() == typeof(ModuleHandlerThread))
+                            RemoteDataMirror.GetPipeWorker(item.destinationID, out TraceProcessorWorker? moduleHandler) &&
+                            moduleHandler!.GetType() == typeof(ModuleHandlerThread))
                         {
                             ((ModuleHandlerThread)moduleHandler).ProcessIncomingTraceCommand(item.data);
                         }
@@ -313,7 +313,7 @@ namespace rgat.OperationModes
                                 break;
                             }
                             Console.WriteLine($"Delivering async {name}");
-                            ProcessAsync(name, data);
+                            ProcessAsync(name!, data!);
                         }
                         catch (Exception e)
                         {
@@ -341,7 +341,7 @@ namespace rgat.OperationModes
 
                 if (!msgObj.TryGetValue("Name", out JToken? nameTok) || nameTok.Type != JTokenType.String) return false;
                 name = nameTok.ToString();
-                if (msgObj.TryGetValue("Data", out data)) return true;
+                if (msgObj.TryGetValue("Data", out data)) return name is not null && data is not null;
 
             }
             catch (Exception e)
@@ -389,9 +389,14 @@ namespace rgat.OperationModes
 
             JObject? values = data.ToObject<JObject>();
             if (values is null) return false;
-            if (values.TryGetValue("YARA", out JToken? yaraTok) && yaraTok.Type is JTokenType.Date)
+
+            if (rgatState.YARALib is not null &&
+                values.TryGetValue("YARA", out JToken? yaraTok) && 
+                yaraTok.Type is JTokenType.Date)
                 rgatState.YARALib.EndpointNewestSignature = yaraTok.ToObject<DateTime>();
-            if (values.TryGetValue("DIE", out JToken? dieTok) && dieTok.Type is JTokenType.Date)
+            
+            if (rgatState.DIELib is not null &&
+                values.TryGetValue("DIE", out JToken? dieTok) && dieTok.Type is JTokenType.Date)
                 rgatState.DIELib.EndpointNewestSignature = dieTok.ToObject<DateTime>();
 
             return true;
@@ -412,7 +417,8 @@ namespace rgat.OperationModes
                 {
                     case "YARA":
                         YARAScan.YARAHit? yarahit = sigObjTok.ToObject<YARAScan.YARAHit>();
-                        target.AddYaraSignatureHit(yarahit);
+                        if (yarahit is not null)
+                            target.AddYaraSignatureHit(yarahit);
                         break;
 
                     case "DIE":
@@ -435,8 +441,8 @@ namespace rgat.OperationModes
         /// <param name="infoBytes">The raw bytes of the data</param>
         /// <param name="trace">The trace the metadata applies to</param>
         /// <param name="metaparams">The metadata string items produced</param>
-        /// <returns></returns>
-        bool ParseTraceMeta(byte[] infoBytes, out TraceRecord trace, out string[] metaparams)
+        /// <returns>If parsing succeeded</returns>
+        bool ParseTraceMeta(byte[] infoBytes, out TraceRecord? trace, out string[]? metaparams)
         {
             trace = null;
             metaparams = null;
@@ -482,10 +488,11 @@ namespace rgat.OperationModes
             }
 
             metaparams = infostr.Split('@');
-            return true;
+            return metaparams is not null;
         }
 
-        bool HandleTraceMeta(TraceRecord trace, string[] inparams)
+
+        bool HandleTraceMeta(TraceRecord? trace, string[] inparams)
         {
             Debug.Assert(trace != null);
 
@@ -618,7 +625,7 @@ namespace rgat.OperationModes
 
         }
 
-        void HandleSignatureUpload(JToken paramfield)
+        void HandleSignatureUpload(JToken? paramfield)
         {
             if (rgatState.NetworkBridge.GUIMode)
             {
@@ -649,10 +656,10 @@ namespace rgat.OperationModes
                 switch (typeName)
                 {
                     case "YARA":
-                        rgatState.YARALib.ReplaceSignatures(zipBytes);
+                        rgatState.YARALib?.ReplaceSignatures(zipBytes);
                         break;
                     case "DIE":
-                        rgatState.DIELib.ReplaceSignatures(zipBytes);
+                        rgatState.DIELib?.ReplaceSignatures(zipBytes);
                         break;
                     default:
                         Logging.RecordError($"Invalid signature type: {typeName}");
@@ -662,9 +669,9 @@ namespace rgat.OperationModes
 
         }
 
-        void HandleSigScanCommand(JToken paramfield)
+        void HandleSigScanCommand(JToken? paramfield)
         {
-            if (paramfield == null || paramfield.Type is not JTokenType.Object)
+            if (paramfield is null || paramfield.Type is not JTokenType.Object)
             {
                 Logging.RecordError("Failed to parse HandleSigScanCommand params");
                 return;
@@ -705,9 +712,9 @@ namespace rgat.OperationModes
         }
 
 
-        void StartHeadlessTrace(JToken paramfield)
+        void StartHeadlessTrace(JToken? paramfield)
         {
-            if (paramfield.Type is not JTokenType.Object)
+            if (paramfield is null || paramfield.Type is not JTokenType.Object)
             {
                 Logging.RecordError("Failed to parse StartHeadlessTrace params");
                 return;
@@ -768,6 +775,11 @@ namespace rgat.OperationModes
                 loaderName = loaderTok.ToObject<string>();
             }
 
+            if (loaderName is null)
+            {
+                loaderName = "LoadDLL";
+            }
+
             Process? p = ProcessLaunching.StartLocalTrace(pintool, path, target.PEFileObj, loaderName: loaderName, ordinal: ordinal, testID: testID);
             if (p != null)
             {
@@ -781,9 +793,9 @@ namespace rgat.OperationModes
 
 
 
-        bool StartThreadIngestWorker(int cmdID, JToken paramfield)
+        bool StartThreadIngestWorker(int cmdID, JToken? paramfield)
         {
-            if (paramfield == null || paramfield.Type is not JTokenType.Object)
+            if (paramfield is null || paramfield.Type is not JTokenType.Object)
             {
                 Logging.RecordError("Failed to parse StartThreadIngestWorker params");
                 return false;
@@ -810,7 +822,7 @@ namespace rgat.OperationModes
                 rgatState.NetworkBridge.SendResponseJSON(cmdID, response);
                 threadListener.WaitForConnection();
 
-                PipeTraceIngestThread worker = new PipeTraceIngestThread(null, threadListener, tidTok.ToObject<uint>(), pipeID);
+                PipeTraceIngestThread worker = new PipeTraceIngestThread(threadListener, tidTok.ToObject<uint>(), null, pipeID);
 
                 RemoteDataMirror.RegisterRemotePipe(pipeID, worker, null);
                 worker.Begin();
@@ -826,12 +838,12 @@ namespace rgat.OperationModes
 
 
 
-        JObject GetDirectoryInfo(JToken dirObj)
+        JObject GetDirectoryInfo(JToken? dirObj)
         {
 
             JObject data = new JObject();
             string dir = Environment.CurrentDirectory;
-            if (dirObj != null && dirObj.Type is JTokenType.String)
+            if (dirObj is not null && dirObj.Type is JTokenType.String)
             {
                 string dirString = dirObj.ToString();
                 if (dirString.Length != 0) dir = dirString.ToString();
@@ -845,8 +857,8 @@ namespace rgat.OperationModes
             data.Add("Contents", GetDirectoryListing(dir, out string? error));
             data.Add("Error", error);
             return data;
-            //rootfolder
         }
+
 
         JObject GetDirectoryListing(string param, out string? error)
         {
@@ -883,13 +895,13 @@ namespace rgat.OperationModes
         }
 
 
-        JToken GatherTargetInitData(JToken pathTok)
+        JToken GatherTargetInitData(JToken? pathTok)
         {
             if (pathTok != null && pathTok.Type == JTokenType.String)
             {
                 BinaryTarget target = rgatState.targets.AddTargetByPath(pathTok.ToString());
-                rgatState.YARALib.StartYARATargetScan(target);
-                rgatState.DIELib.StartDetectItEasyScan(target);
+                rgatState.YARALib?.StartYARATargetScan(target);
+                rgatState.DIELib?.StartDetectItEasyScan(target);
                 if (target != null)
                     return (JToken)target.GetRemoteLoadInitData();
             }
@@ -952,7 +964,8 @@ namespace rgat.OperationModes
             }
 
             Logging.RecordLogEvent($"Initialising . {GlobalConfig.StartOptions!.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
-            if (!GetRemoteAddress(GlobalConfig.StartOptions.ConnectModeAddress, out string? address, out int port))
+            if (GlobalConfig.StartOptions.ConnectModeAddress is null || 
+                !GetRemoteAddress(GlobalConfig.StartOptions.ConnectModeAddress, out string? address, out int port))
             {
                 Logging.RecordError($"Failed to parse address/port from param {GlobalConfig.StartOptions.ConnectModeAddress}");
                 return;
@@ -1065,8 +1078,8 @@ namespace rgat.OperationModes
                 port = 0;
             }
 
-            Task connect = connection.Start(localAddr, port, GotData, connectCallback);
-            connect.Wait();
+            Task? connect = connection.Start(localAddr, port, GotData, connectCallback);
+            connect?.Wait();
         }
 
 

@@ -25,9 +25,9 @@ namespace rgat.Config
         public delegate void ProcessIncomingWorkerData(byte[] arg);
 
         static readonly Dictionary<uint, Threads.TraceProcessorWorker> _remoteDataWorkers = new Dictionary<uint, Threads.TraceProcessorWorker>();
-        static readonly Dictionary<uint, ProcessIncomingWorkerData> _pipeInterfaces = new Dictionary<uint, ProcessIncomingWorkerData>();
+        static readonly Dictionary<uint, ProcessIncomingWorkerData?> _pipeInterfaces = new Dictionary<uint, ProcessIncomingWorkerData?>();
 
-        public static void RegisterRemotePipe(uint pipeID, Threads.TraceProcessorWorker worker, ProcessIncomingWorkerData func)
+        public static void RegisterRemotePipe(uint pipeID, Threads.TraceProcessorWorker worker, ProcessIncomingWorkerData? func)
         {
             lock (_lock)
             {
@@ -36,7 +36,7 @@ namespace rgat.Config
             }
         }
 
-        public static bool GetPipeWorker(uint pipeID, out Threads.TraceProcessorWorker worker)
+        public static bool GetPipeWorker(uint pipeID, out Threads.TraceProcessorWorker? worker)
         {
             lock (_lock)
             {
@@ -44,7 +44,7 @@ namespace rgat.Config
             }
         }
 
-        public static bool GetPipeInterface(uint pipeID, out ProcessIncomingWorkerData func)
+        public static bool GetPipeInterface(uint pipeID, out ProcessIncomingWorkerData? func)
         {
             lock (_lock)
             {

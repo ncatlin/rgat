@@ -8,18 +8,36 @@ using System.Threading;
 
 namespace rgat
 {
-
+    /// <summary>
+    /// Manage the workers for a trace
+    /// </summary>
     public class TraceProcessorWorkers
     {
         //could probably just put them in a map instead
         readonly List<TraceProcessorWorker> workers = new List<TraceProcessorWorker>();
-        public ModuleHandlerThread modThread;
-        public BlockHandlerThread BBthread;
-        public PreviewRendererThread previewThread;
+        /// <summary>
+        /// Module handler worker for this trace
+        /// </summary>
+        public ModuleHandlerThread? modThread;
+
+        /// <summary>
+        /// Basic block disassembler worker for this treace
+        /// </summary>
+        public BlockHandlerThread? BBthread;
+
+        /// <summary>
+        /// Preview renderer worker for this trace
+        /// </summary>
+        public PreviewRendererThread? previewThread;
+
         //public HeatRankingThread heatmapThread;
         //public ConditionalRendererThread conditionalThread;
         readonly object _lock = new object();
 
+        /// <summary>
+        /// Register a worker for this trace
+        /// </summary>
+        /// <param name="worker">TraceProcessorWorker worker</param>
         public void Register(TraceProcessorWorker worker)
         {
             lock (_lock)

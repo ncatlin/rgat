@@ -22,7 +22,8 @@ namespace rgat
         NamedPipeServerStream? eventPipe = null;
         readonly uint? _remoteEventPipeID;
         uint? _remoteCommandPipeID = null;
-        System.Threading.Tasks.Task _headlessCommandListener;
+
+        System.Threading.Tasks.Task? _headlessCommandListener;
 
         /// <summary>
         /// The pipe ID of the command pipe connected to a remote tracing instance
@@ -39,8 +40,19 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Action to call when receiving new trace data
+        /// </summary>
+        /// <param name="buf">data received</param>
+        /// <param name="bytesRead">How many bytes were received</param>
         public delegate void ProcessPipeMessageAction(byte[] buf, int bytesRead);
 
+        /// <summary>
+        /// Worker for ingesting process trace events and symbol data
+        /// </summary>
+        /// <param name="binaryTarg">Binary associated with the trace</param>
+        /// <param name="runrecord">The trace record being recorded</param>
+        /// <param name="remotePipeID">Optional ID of remote pipe</param>
         public ModuleHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, uint? remotePipeID = null)
         {
             target = binaryTarg;
@@ -49,6 +61,9 @@ namespace rgat
 
         }
 
+        /// <summary>
+        /// Start work
+        /// </summary>
         public override void Begin()
         {
             base.Begin();
@@ -91,6 +106,13 @@ namespace rgat
             return GetTracePipeName(trace.PID, trace.randID, TID);
         }
 
+        /// <summary>
+        /// Derive a pipe name for threads in the instrumentation tool to connect on
+        /// </summary>
+        /// <param name="PID">Process ID</param>
+        /// <param name="randID">Process UniqueID</param>
+        /// <param name="TID">Thread ID</param> //probably fine if everything is cleaned up? still need a unique thread ID. todo
+        /// <returns></returns>
         public static string GetTracePipeName(uint PID, long randID, ulong TID)
         {
             return "TR" + PID.ToString() + randID.ToString() + TID.ToString();
@@ -137,13 +159,13 @@ namespace rgat
 
             PlottedGraph MainGraph = new PlottedGraph(graph, _clientState._GraphicsDevice);
 
-            graph.TraceReader = new PipeTraceIngestThread(graph, threadListener, graph.ThreadID);
+            graph.TraceReader = new PipeTraceIngestThread(threadListener, graph.ThreadID, graph);
             graph.TraceProcessor = new ThreadTraceProcessingThread(graph);
             graph.TraceReader.Begin();
             graph.TraceProcessor.Begin();
 
             graph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph: graph);
-            if (!trace.InsertNewThread(MainGraph))
+            if (!trace.InsertNewThread(graph, MainGraph))
             {
                 Console.WriteLine("[rgat]ERROR: Trace rendering thread creation failed");
                 return;
@@ -187,7 +209,7 @@ namespace rgat
 
                     PlottedGraph MainGraph = new PlottedGraph(graph, _clientState._GraphicsDevice);
 
-                    if (!trace.InsertNewThread(MainGraph))
+                    if (!trace.InsertNewThread(MainGraph.InternalProtoGraph, MainGraph))
                     {
                         Logging.RecordLogEvent("ERROR: Trace rendering thread creation failed", Logging.LogFilterType.TextError);
                         return false;
@@ -302,12 +324,11 @@ namespace rgat
         }
 
 
-
-
-
-
-
-
+        /// <summary>
+        /// Send a command the the instrumentation tool in the traced process
+        /// </summary>
+        /// <param name="cmd">The command text</param>
+        /// <returns>Sending succeeded</returns>
         public bool SendCommand(byte[] cmd)
         {
             Debug.Assert(commandPipe != null, "Error: Remote commands not yet implemented"); //todo - remote commands
@@ -662,9 +683,9 @@ namespace rgat
         /// This is run by the UI in remote mode, passing trace events to the trace processor
         /// </summary>
         /// <param name="ProcessMessageobj"></param>
-        void RemoteEventListener(object ProcessMessageobj)
+        void RemoteEventListener(object? ProcessMessageobj)
         {
-            ProcessPipeMessageAction ProcessMessage = (ProcessPipeMessageAction)ProcessMessageobj;
+            ProcessPipeMessageAction ProcessMessage = (ProcessPipeMessageAction)ProcessMessageobj!;
 
             SendTraceSettings();
 
@@ -711,9 +732,9 @@ namespace rgat
 
 
 
-        async void PipeEventListener(object ProcessMessageobj)
+        async void PipeEventListener(object? ProcessMessageobj)
         {
-            ProcessPipeMessageAction ProcessMessage = (ProcessPipeMessageAction)ProcessMessageobj;
+            ProcessPipeMessageAction ProcessMessage = (ProcessPipeMessageAction)ProcessMessageobj!;
             string cmdPipeName = GetCommandPipeName(trace.PID, trace.randID);
             string eventPipeName = GetEventPipeName(trace.PID, trace.randID);
 

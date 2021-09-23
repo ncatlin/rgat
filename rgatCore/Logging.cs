@@ -8,44 +8,106 @@ namespace rgat
 {
     public class Logging
     {
+        /// <summary>
+        /// A base category of this log
+        /// </summary>
+        public enum eLogFilterBaseType {
+            /// <summary>
+            /// An event
+            /// </summary>
+            TimeLine, 
+            /// <summary>
+            /// A message
+            /// </summary>
+            Text 
+        }
 
-        public enum eLogFilterBaseType { TimeLine, Text }
+        /// <summary>
+        /// Base event log class
+        /// </summary>
         public class LOG_EVENT
         {
+            /// <summary>
+            /// Create a log entry
+            /// </summary>
+            /// <param name="type">The base type of log</param>
             public LOG_EVENT(eLogFilterBaseType type)
             {
                 _eventTimeMS = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                 _type = type;
             }
+            /// <summary>
+            /// When the event was recorded
+            /// </summary>
             public long EventTimeMS => _eventTimeMS;
+
+            /// <summary>
+            /// The base type of log
+            /// </summary>
             public eLogFilterBaseType LogType => _type;
 
             readonly long _eventTimeMS;
             readonly eLogFilterBaseType _type;
+            /// <summary>
+            /// How this log is handled
+            /// </summary>
             public LogFilterType Filter;
-            public ProtoGraph _graph;
-            public TraceRecord Trace;
+            /// <summary>
+            /// The graph that generated the log
+            /// </summary>
+            public ProtoGraph? Graph;
+            /// <summary>
+            /// The trace that generated the log
+            /// </summary>
+            public TraceRecord? Trace;
         }
 
         public class APICALL
         {
-            public APICALL()
-            {
-                APIDetails = null;
-            }
-            public NodeData node;
-            public int index;
-            public ulong repeats;
-            public ulong uniqID;
-            public ProtoGraph graph;
+            /// <summary>
+            /// The node associated with this call
+            /// </summary>
+            public NodeData Node;
+            /// <summary>
+            /// The index of the call in the call list
+            /// </summary>
+            public int Index;
+            /// <summary>
+            /// How many times this was repeated
+            /// </summary>
+            public ulong Repeats;
+            /// <summary>
+            /// The unique ID of the call
+            /// </summary>
+            public ulong UniqID;
+            /// <summary>
+            /// The graph associated with the call
+            /// </summary>
+            public ProtoGraph Graph;
 
+            /// <summary>
+            /// The actual API call ingformation
+            /// </summary>
             public APIDetailsWin.API_ENTRY? APIDetails;
+
+            /// <summary>
+            /// The API category
+            /// </summary>
+            /// <returns>The name of the category</returns>
             public string APIType()
             {
                 if (APIDetails == null) return "Other";
                 return APIDetails.Value.FilterType;
             }
 
+
+            /// <summary>
+            /// Deserialise an API call from JSON
+            /// </summary>
+            /// <param name="apiTok">The token</param>
+            /// <param name="trace">The trace the call belongs to</param>
+            /// <param name="apiObj">The resulting API object</param>
+            /// <returns></returns>
             public static bool TryDeserialise(JToken apiTok, TraceRecord trace, out APICALL apiObj)
             {
                 apiObj = new APICALL();
@@ -54,21 +116,21 @@ namespace rgat
                 if (jobj is null) return false;
 
                 if (!jobj.TryGetValue("CallIdx", out JToken? cidxTok)) return false;
-                apiObj.index = cidxTok.ToObject<int>();
+                apiObj.Index = cidxTok.ToObject<int>();
                 if (!jobj.TryGetValue("Repeats", out JToken? repTok)) return false;
-                apiObj.repeats = repTok.ToObject<ulong>();
+                apiObj.Repeats = repTok.ToObject<ulong>();
                 if (!jobj.TryGetValue("uniqID", out JToken? idTok)) return false;
-                apiObj.uniqID = idTok.ToObject<ulong>();
+                apiObj.UniqID = idTok.ToObject<ulong>();
 
                 if (!jobj.TryGetValue("Graph", out JToken? graphTimeTok)) return false;
                 DateTime graphTime = graphTimeTok.ToObject<DateTime>();
-                apiObj.graph = trace.GetProtoGraphByTime(graphTime);
-                if (apiObj.graph is null) return false;
+                apiObj.Graph = trace.GetProtoGraphByTime(graphTime);
+                if (apiObj.Graph is null) return false;
 
                 if (!jobj.TryGetValue("Node", out JToken? nidxTok)) return false;
                 int nodeIdx = nidxTok.ToObject<int>();
-                if (nodeIdx < apiObj.graph.NodeList.Count)
-                    apiObj.node = apiObj.graph.NodeList[nodeIdx];
+                if (nodeIdx < apiObj.Graph.NodeList.Count)
+                    apiObj.Node = apiObj.Graph.NodeList[nodeIdx];
 
                 if (jobj.TryGetValue("Details", out JToken? deTok))
                 {
@@ -149,12 +211,13 @@ namespace rgat
 
             public JObject Serialise()
             {
+
                 JObject result = new JObject();
-                result.Add("Node", (int)node.Index);
-                result.Add("CallIdx", index);
-                result.Add("Repeats", repeats);
-                result.Add("uniqID", uniqID);
-                result.Add("Graph", graph.ConstructedTime);
+                result.Add("Node", (int)Node.Index);
+                result.Add("CallIdx", Index);
+                result.Add("Repeats", Repeats);
+                result.Add("uniqID", UniqID);
+                result.Add("Graph", Graph.ConstructedTime);
 
                 if (APIDetails.HasValue)
                 {
@@ -192,7 +255,7 @@ namespace rgat
                         }
                     case eTimelineEvent.APICall:
                         {
-                            TraceRecord process = ((APICALL)item).graph.TraceData;
+                            TraceRecord process = ((APICALL)item).Graph.TraceData;
                             SetIDs(process.PID);
                             break;
                         }
@@ -228,7 +291,7 @@ namespace rgat
                     case eTimelineEvent.ProcessStart:
                     case eTimelineEvent.ProcessEnd:
                         SetIDs(ID: idtok.ToObject<ulong>(), parentID: pidtok.ToObject<ulong>());
-                        _item = trace.GetTraceByID(ID);
+                        _item = trace.GetTraceByID(ID)!;
                         Debug.Assert(_item != null);
                         Inited = true;
                         break;
@@ -236,7 +299,8 @@ namespace rgat
                     case eTimelineEvent.ThreadEnd:
                         Debug.Assert(trace.ParentTrace == null || idtok.ToObject<ulong>() == trace.ParentTrace.PID);
                         SetIDs(ID: idtok.ToObject<ulong>());
-                        _item = trace.GetProtoGraphByTID(ID);
+                        _item = trace.GetProtoGraphByTID(ID)!;
+                        Debug.Assert(_item != null);
                         Inited = true;
                         break;
 
@@ -264,6 +328,10 @@ namespace rgat
 
             }
 
+            /// <summary>
+            /// Serialise the timeline event to JSON
+            /// </summary>
+            /// <returns>The JSON value</returns>
             public JObject Serialise()
             {
                 JObject obj = new JObject();
@@ -282,8 +350,12 @@ namespace rgat
             }
 
 
-            List<Tuple<string, WritableRgbaFloat>> _cachedLabel = null;
+            List<Tuple<string, WritableRgbaFloat>>? _cachedLabel = null;
             ulong _cachedLabelTheme = 0;
+            /// <summary>
+            /// Get the label of the timeline event
+            /// </summary>
+            /// <returns>The list of strings and colours which need to be joined to make a label</returns>
             public List<Tuple<string, WritableRgbaFloat>> Label()
             {
                 if (_cachedLabel != null && _cachedLabelTheme == Themes.ThemeVariant) return _cachedLabel;
@@ -320,8 +392,8 @@ namespace rgat
                     case eTimelineEvent.APICall:
                         {
                             Logging.APICALL call = (Logging.APICALL)_item;
-                            NodeData n = call.node;
-                            var labelitems = n.CreateColourisedSymbolCall(call.graph, call.index, textColour, Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1));
+                            NodeData n = call.Node;
+                            var labelitems = n.CreateColourisedSymbolCall(call.Graph, call.Index, textColour, Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1));
                             _cachedLabel.AddRange(labelitems);
                             break;
                         }
@@ -334,22 +406,40 @@ namespace rgat
 
             }
 
-            public void ReplaceItem(object newitem)
-            {
-                Debug.Assert(newitem.GetType() == _item.GetType());
-                _item = newitem;
-            }
 
-            //process/thread ID of event source. parent ID optional, depending on context
+
+            /// <summary>
+            /// process/thread ID of event source. parent ID optional, depending on context
+            /// </summary>
+            /// <param name="ID">process/thread ID of event source</param>
+            /// <param name="parentID">parent ID. optional.</param>
             public void SetIDs(ulong ID, ulong parentID = ulong.MaxValue) { _ID = ID; _parentID = parentID; }
+            /// <summary>
+            /// The type of timeline event
+            /// </summary>
             public eTimelineEvent TimelineEventType => _eventType;
+            /// <summary>
+            /// The event-type dependant ID of the event
+            /// </summary>
             public ulong ID => _ID;
+            /// <summary>
+            /// The event-type dependant parent of the event
+            /// </summary>
             public ulong Parent => _parentID;
+            /// <summary>
+            /// The underlying event data
+            /// </summary>
             public object Item => _item;
 
-            //an error was encountered processing this event, usually on the timeline chart
-            //this does not indicate an error with the actual API
+            /// <summary>
+            /// an error was encountered processing this event, usually on the timeline chart
+            /// this does not indicate an error with the actual API
+            /// </summary>
             public string MetaError = null;
+
+            /// <summary>
+            /// The event has been inted
+            /// </summary>
             public bool Inited { get; private set; }
 
             readonly eTimelineEvent _eventType;
@@ -361,16 +451,30 @@ namespace rgat
 
         public enum LogFilterType
         {
-            //Uninteresting events which may be useful for debugging
+            /// <summary>
+            /// Uninteresting events which may be useful for debugging
+            /// </summary>
             TextDebug,
-            //Events a user might want to know about if they check the logs
+            /// <summary>
+            /// Events a user might want to know about if they check the logs
+            /// </summary>
             TextInfo,
-            //Something bad happened. Alert the user
+            /// <summary>
+            /// Something bad happened. Alert the user
+            /// </summary>
             TextError,
-            //Something interesting happened. Alert the user
+            /// <summary>
+            /// Something interesting happened. Alert the user
+            /// </summary>
             TextAlert,
-            //Something very common and routine happened. Log it to a file if bulk debug logging is enabled.
-            BulkDebugLogFile, COUNT
+            /// <summary>
+            /// Something very common and routine happened. Log it to a file if bulk debug logging is enabled.
+            /// </summary>
+            BulkDebugLogFile, 
+            /// <summary>
+            /// The number of available log types
+            /// </summary>
+            COUNT
         };
         static readonly int[] MessageCounts = new int[(int)LogFilterType.COUNT];
 
@@ -424,26 +528,47 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// A text log event
+        /// </summary>
         public class TEXT_LOG_EVENT : LOG_EVENT
         {
+            /// <summary>
+            /// Create a text log event
+            /// </summary>
+            /// <param name="filter">How this log is handled</param>
+            /// <param name="text">The log entry</param>
             public TEXT_LOG_EVENT(LogFilterType filter, string text) : base(eLogFilterBaseType.Text)
             {
-                _filter = filter;
-                _text = text;
+                Text = text;
                 Filter = filter;
             }
 
+            /// <summary>
+            /// Set the graph (ie: thread) that generated this log
+            /// </summary>
+            /// <param name="graph">A ProtoGraph</param>
             public void SetAssociatedGraph(ProtoGraph graph)
             {
-                _graph = graph;
+                Graph = graph;
                 Trace = graph.TraceData;
             }
 
-
+            /// <summary>
+            /// Set the trace (ie: process) that generated this log
+            /// </summary>
+            /// <param name="trace"></param>
             public void SetAssociatedTrace(TraceRecord trace) => Trace = trace;
-            public LogFilterType _filter;
-            public string _text;
-            //public uint? colour;
+
+            /// <summary>
+            /// How this log is handled
+            /// </summary>
+            public LogFilterType Filter;
+
+            /// <summary>
+            /// The text of the log
+            /// </summary>
+            public string Text;
         }
 
 
@@ -482,7 +607,7 @@ namespace rgat
                 if (filter != LogFilterType.BulkDebugLogFile)
                 {
                     _logMessages.Add(log);
-                    if (log._filter == LogFilterType.TextAlert || log.Filter == LogFilterType.TextError)
+                    if (log.Filter == LogFilterType.TextAlert || log.Filter == LogFilterType.TextError)
                     {
                         UnseenAlerts += 1;
                         _alertNotifications.Add(log);
@@ -535,7 +660,7 @@ namespace rgat
             }
             if (_logFile != null)
             {
-                _logFile.WriteLine($"{System.Threading.Thread.CurrentThread.Name}:{log.Trace?.PID}:{log._graph?.ThreadID}:{log._text}");
+                _logFile.WriteLine($"{System.Threading.Thread.CurrentThread.Name}:{log.Trace?.PID}:{log.Graph?.ThreadID}:{log.Text}");
                 _logFile.Flush();
             }
         }

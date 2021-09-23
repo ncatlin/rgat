@@ -16,32 +16,53 @@ using System.Threading.Tasks;
 
 namespace rgat
 {
+    /// <summary>
+    /// Manages the remote tracing connection to another rgat instance
+    /// </summary>
     public class BridgeConnection
     {
+        /// <summary>
+        /// Message types
+        /// </summary>
         public enum emsgType
         {
+            /// <summary>
+            /// Involved in the management of the connection
+            /// </summary>
             Meta,
+            /// <summary>
+            /// A GUI-issued command
+            /// </summary>
             Command,
+            /// <summary>
+            /// A response to the GUI
+            /// </summary>
             CommandResponse,
-            TraceMeta, TraceData,
-            TraceCommand, Log,
+            /// <summary>
+            /// Involved in managing the transfer of trace data
+            /// </summary>
+            TraceMeta,
+            /// <summary>
+            /// Trace data from an instrumented process
+            /// </summary>
+            TraceData,
+            /// <summary>
+            /// A trace command
+            /// </summary>
+            TraceCommand,
+            /// <summary>
+            /// A log event
+            /// </summary>
+            Log,
             /// <summary>
             /// Non-trace related data sent without requiring a command to generate it (eg: result of signature scanning)
             /// </summary>
-            AsyncData, BAD
+            AsyncData,
+            /// <summary>
+            /// No
+            /// </summary>
+            BAD
         };
-
-
-        public delegate void OnGotDataCallback(NETWORK_MSG data);
-        public delegate void OnConnectSuccessCallback();
-
-        public bool Connected => BridgeState == eBridgeState.Connected;
-        public string LastAddress { get; private set; } = "";
-
-        /// <summary>
-        /// Are we either listening, connecting or connected
-        /// </summary>
-        public bool ActiveNetworking => BridgeState == eBridgeState.Connected || BridgeState == eBridgeState.Listening || BridgeState == eBridgeState.Connecting;
 
         /// <summary>
         /// Connection activity
@@ -71,6 +92,32 @@ namespace rgat
         };
 
         /// <summary>
+        /// A handler for a network message
+        /// </summary>
+        /// <param name="data">Decrypted data from the network</param>
+        public delegate void OnGotDataCallback(NETWORK_MSG data);
+        /// <summary>
+        /// An event called when a connection is established
+        /// </summary>
+        public delegate void OnConnectSuccessCallback();
+
+        /// <summary>
+        /// Is there an established connection
+        /// </summary>
+        public bool Connected => BridgeState == eBridgeState.Connected;
+
+        /// <summary>
+        /// The most recently connected host
+        /// </summary>
+        public string LastAddress { get; private set; } = "";
+
+        /// <summary>
+        /// Are we either listening, connecting or connected
+        /// </summary>
+        public bool ActiveNetworking => BridgeState == eBridgeState.Connected || BridgeState == eBridgeState.Listening || BridgeState == eBridgeState.Connecting;
+
+
+        /// <summary>
         /// The state of the connection
         /// </summary>
         public eBridgeState BridgeState
@@ -83,6 +130,13 @@ namespace rgat
         }
         eBridgeState _bridgeState = eBridgeState.Inactive;
 
+        //nacl.core doesn't mention thread safety anywhere so have one for each direction
+        NetworkStream? _networkStream;
+        NaCl.Core.ChaCha20Poly1305? _encryptor;
+        BinaryWriter? _writer;
+        NaCl.Core.ChaCha20Poly1305? _decryptor;
+        BinaryReader? _reader;
+        BigInteger _sendIV;
 
         readonly object _messagesLock = new object();
         List<Tuple<string, Themes.eThemeColour?>> _displayLogMessages = new List<Tuple<string, Themes.eThemeColour?>>();
@@ -98,10 +152,22 @@ namespace rgat
         /// </summary>
         public bool HeadlessMode => !GUIMode;
 
+        /// <summary>
+        /// A network message
+        /// </summary>
         public struct NETWORK_MSG
         {
+            /// <summary>
+            /// The message type
+            /// </summary>
             public emsgType msgType;
+            /// <summary>
+            /// The intended recipient of the message
+            /// </summary>
             public uint destinationID;
+            /// <summary>
+            /// The content of the message
+            /// </summary>
             public byte[] data;
         }
 
@@ -117,13 +183,14 @@ namespace rgat
         public CancellationToken CancelToken => cancelTokens.Token;
         readonly object _sendQueueLock = new object();
 
-        TcpClient _ActiveClient;
-        TcpListener _ActiveListener;
-        OnGotDataCallback _registeredIncomingDataCallback;
+        TcpClient? _ActiveClient;
+        TcpListener? _ActiveListener;
+
+        OnGotDataCallback? _registeredIncomingDataCallback;
         /// <summary>
         /// An IPEndPoint for the host we are connected to
         /// </summary>
-        public IPEndPoint RemoteEndPoint;
+        public IPEndPoint? RemoteEndPoint;
 
 
         const string connectPreludeGUI = "rgat connect GUI prelude";
@@ -171,8 +238,10 @@ namespace rgat
             try
             {
                 AddNetworkDisplayLogMessage($"Connecting from {((IPEndPoint)client.Client.LocalEndPoint!).Address} to {remoteConnectAddress}:{remoteConnectPort}", null);
-                connect = _ActiveClient.ConnectAsync(remoteConnectAddress, remoteConnectPort);
+
+                connect = client.ConnectAsync(remoteConnectAddress, remoteConnectPort);
                 Task.WaitAny(new Task[] { connect }, CancelToken);
+
             }
             catch (SocketException e)
             {
@@ -204,13 +273,13 @@ namespace rgat
             {
                 AddNetworkDisplayLogMessage($"Connected to {remoteConnectAddress}:{remoteConnectPort}", null);
 
-                if (!TryCreateCryptoStream(_ActiveClient, isServer: false))
+                if (!TryCreateCryptoStream(client, isServer: false))
                 {
                     Teardown();
                     return;
                 }
 
-                if (AuthenticateOutgoingConnection())
+                if (AuthenticateOutgoingConnection(client))
                 {
                     AddNetworkDisplayLogMessage($"Authenticated to {remoteConnectAddress}:{remoteConnectPort}", Themes.eThemeColour.eGoodStateColour);
                     ServeAuthenticatedConnection(connectCallback);
@@ -241,13 +310,7 @@ namespace rgat
             Teardown("Connect Mode Finished");
         }
 
-        //nacl.core doesn't mention thread safety anywhere so have one for each direction
-        NetworkStream _networkStream;
-        NaCl.Core.ChaCha20Poly1305 _encryptor;
-        BinaryWriter _writer;
-        NaCl.Core.ChaCha20Poly1305 _decryptor;
-        BinaryReader _reader;
-        BigInteger _sendIV;
+
 
 
         /// <summary>
@@ -274,14 +337,14 @@ namespace rgat
                 _decryptor = new NaCl.Core.ChaCha20Poly1305(keybytes);
                 _encryptor.Encrypt(IV, buf, buf, tag);
 
-                _writer.Write(IV);
+                _writer!.Write(IV);
                 _writer.Write(tag);
                 _writer.Write((ushort)buf.Length);
                 _writer.Write(buf);
 
                 string expectedPT = isServer ? "rgat_client" : "rgat_server";
 
-                _reader.Read(IV, 0, 12);
+                _reader!.Read(IV, 0, 12);
                 _reader.Read(tag, 0, 16);
                 ushort ctsize = _reader.ReadUInt16();
                 buf = _reader.ReadBytes(ctsize);
@@ -315,12 +378,12 @@ namespace rgat
         /// <returns></returns>
         bool TryCreateCryptoStream(TcpClient client, bool isServer)
         {
-            _networkStream = client.GetStream();
-            _reader = new BinaryReader(_networkStream);
-            _writer = new BinaryWriter(_networkStream);
 
             try
             {
+                _networkStream = client.GetStream();
+                _reader = new BinaryReader(_networkStream);
+                _writer = new BinaryWriter(_networkStream);
                 Task<bool> authenticate = Task<bool>.Run(() => AuthenticateConnectionTask(isServer));
                 Task.WaitAny(new Task[] { authenticate }, (int)2500, CancelToken); //wait on delay because a bad size field will hang the read() operation
                 return authenticate.IsCompleted && authenticate.Result is true;
@@ -345,14 +408,14 @@ namespace rgat
         {
             try
             {
-                _reader.Read(_readIV, 0, 12);
+                _reader!.Read(_readIV, 0, 12);
                 _reader.Read(_readTag, 0, 16);
                 int ctsize = _reader.ReadInt32();
                 byte[] buf = _reader.ReadBytes(ctsize);
 
                 try
                 {
-                    _decryptor.Decrypt(_readIV, buf, _readTag, buf);
+                    _decryptor!.Decrypt(_readIV, buf, _readTag, buf);
                 }
                 catch (CryptographicException e)
                 {
@@ -447,9 +510,9 @@ namespace rgat
 
                 _sendIV += 1;
                 Span<byte> IV = _sendIV.ToByteArray();
-                _encryptor.Encrypt(IV, plaintext, plaintext, _sendTag);
+                _encryptor!.Encrypt(IV, plaintext, plaintext, _sendTag);
 
-                _writer.Write(IV);
+                _writer!.Write(IV);
                 _writer.Write(_sendTag);
                 _writer.Write(plaintext.Length);
                 _writer.Write(plaintext);
@@ -514,7 +577,10 @@ namespace rgat
             }
         }
 
-
+        /// <summary>
+        /// Get recent connection event messages
+        /// </summary>
+        /// <returns>List of messages and their colours</returns>
         public List<Tuple<string, Themes.eThemeColour?>> GetRecentConnectEvents()
         {
             lock (_messagesLock)
@@ -523,14 +589,17 @@ namespace rgat
             }
         }
 
+
         /// <summary>
         /// Initiate a bridge connection in listener mode
         /// This will be complete when another rgat instance connects to it with the right network key
         /// </summary>
         /// <param name="localBindAddress">The local ip address to bind to</param>
         /// <param name="localBindPort">The local TCP port to listen on</param>
+        /// <param name="dataCallback">Event called when data is received</param>
+        /// <param name="connectCallback">Event called when the connection is established</param>
         /// <returns></returns>
-        public Task Start(IPAddress localBindAddress, int localBindPort, OnGotDataCallback dataCallback, OnConnectSuccessCallback connectCallback)
+        public Task? Start(IPAddress localBindAddress, int localBindPort, OnGotDataCallback dataCallback, OnConnectSuccessCallback connectCallback)
         {
             Reset();
 
@@ -545,6 +614,7 @@ namespace rgat
             {
                 AddNetworkDisplayLogMessage($"Listen Failed: {e.SocketErrorCode}", Themes.eThemeColour.eWarnStateColour);
                 Teardown();
+
             }
             catch (Exception e)
             {
@@ -552,8 +622,15 @@ namespace rgat
                 Teardown();
             }
 
-            _registeredIncomingDataCallback = dataCallback;
-            return Task.Run(() => StartListenForConnection(_ActiveListener, connectCallback));
+            if (BridgeState is eBridgeState.Listening)
+            {
+                _registeredIncomingDataCallback = dataCallback;
+                return Task.Run(() => StartListenForConnection(_ActiveListener!, connectCallback));
+            }
+            else
+            {
+                return null;
+            }
         }
 
         void StartListenForConnection(TcpListener listener, OnConnectSuccessCallback connectCallback)
@@ -581,19 +658,21 @@ namespace rgat
                 return;
             }
 
-            if (_ActiveClient != null && _ActiveClient.Connected)
+
+            TcpClient? client = _ActiveClient;
+            if (client != null && client.Connected)
             {
 
-                IPEndPoint? clientEndpoint = (IPEndPoint?)_ActiveClient.Client?.RemoteEndPoint;
+                IPEndPoint? clientEndpoint = (IPEndPoint?)client.Client?.RemoteEndPoint;
                 AddNetworkDisplayLogMessage($"Incoming connection from {clientEndpoint}", null);
 
-                if (!TryCreateCryptoStream(_ActiveClient, isServer: true))
+                if (!TryCreateCryptoStream(client, isServer: true))
                 {
                     Teardown();
                     return;
                 }
 
-                if (AuthenticateIncomingConnection())
+                if (AuthenticateIncomingConnection(client))
                 {
                     AddNetworkDisplayLogMessage("Connected to rgat", Themes.eThemeColour.eGoodStateColour);
                     Logging.RecordLogEvent($"New connection from {clientEndpoint}", Logging.LogFilterType.TextAlert);
@@ -614,7 +693,9 @@ namespace rgat
             }
         }
 
-
+        /// <summary>
+        /// Reset the connection state
+        /// </summary>
         public void Reset()
         {
             if (cancelTokens != null)
@@ -634,7 +715,7 @@ namespace rgat
 
         void ServeAuthenticatedConnection(OnConnectSuccessCallback connectedCallback)
         {
-            if (_ActiveClient.Client.RemoteEndPoint is null)
+            if (_ActiveClient is null || _ActiveClient.Client.RemoteEndPoint is null)
             {
                 Teardown();
                 Logging.RecordError($"ServeAuthenticatedConnection got null remote endpoint");
@@ -761,12 +842,13 @@ namespace rgat
             TypeNameHandling = TypeNameHandling.None,
         });
 
+
         /// <summary>
         /// Used to send raw .net data types (serialised as JSON) as command responses
         /// Useful for when the GUI just wants a copy of some pre-existing data
         /// </summary>
-        /// <param name="command"></param>
-        /// <param name="response"></param>
+        /// <param name="commandID">ID of the command being responsded to</param>
+        /// <param name="response">Command-specific response</param>
         public void SendResponseObject(int commandID, object response)
         {
             lock (_sendQueueLock)
@@ -853,8 +935,8 @@ namespace rgat
         void ReceiveIncomingTraffic()
         {
             Console.WriteLine("ReceiveIncomingTraffic started");
-
-            while (_ActiveClient.Connected && !cancelTokens.IsCancellationRequested)
+            Debug.Assert(_registeredIncomingDataCallback is not null);
+            while (_ActiveClient is not null && _ActiveClient.Connected && !cancelTokens.IsCancellationRequested)
             {
                 bool success = ReadData(out NETWORK_MSG? newdata);
                 if (!success || newdata == null)
@@ -872,7 +954,7 @@ namespace rgat
 
         void SendOutgoingTraffic()
         {
-            while (_ActiveClient.Connected && !cancelTokens.IsCancellationRequested)
+            while (_ActiveClient is not null && _ActiveClient.Connected && !cancelTokens.IsCancellationRequested)
             {
                 try
                 {
@@ -909,14 +991,20 @@ namespace rgat
             Teardown("Send outgoing failed");
         }
 
-        public bool AuthenticateOutgoingConnection()
+
+        /// <summary>
+        /// Ensure the rgat server we are connecting to knows our network key and is running in the opposite mode type (GUI/Headless) 
+        /// </summary>
+        /// <param name="client">The endpoint</param>
+        /// <returns>Authenticated</returns>
+        public bool AuthenticateOutgoingConnection(TcpClient client)
         {
             Console.WriteLine($"AuthenticateOutgoingConnection Sending prelude '{(GUIMode ? connectPreludeGUI : connectPreludeHeadless)}'");
-
+            
 
             if (!RawSendData(emsgType.Meta, GUIMode ? connectPreludeGUI : connectPreludeHeadless))
             {
-                Console.WriteLine($"Failed to send prelude using {_ActiveClient}");
+                Console.WriteLine($"Failed to send prelude using {client}");
                 return false;
             }
 
@@ -954,9 +1042,9 @@ namespace rgat
                 }
                 else
                 {
-                    if (_ActiveClient.Client.RemoteEndPoint is not null)
+                    if (client.Client.RemoteEndPoint is not null)
                     {
-                        Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(_ActiveClient.Client.RemoteEndPoint)} - response did not decrypt to the expected value",
+                        Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(client.Client.RemoteEndPoint)} - response did not decrypt to the expected value",
                             Logging.LogFilterType.TextError);
                     }
                     AddNetworkDisplayLogMessage("Authentication failed - Bad Key", Themes.eThemeColour.eAlertWindowBg);
@@ -966,7 +1054,13 @@ namespace rgat
 
         }
 
-        public bool AuthenticateIncomingConnection()
+
+        /// <summary>
+        /// Ensure the rgat client connecting to us knows our network key and is running in the opposite mode type (GUI/Headless) 
+        /// </summary>
+        /// <param name="client">The endpoint</param>
+        /// <returns>Authenticated</returns>
+        public bool AuthenticateIncomingConnection(TcpClient client)
         {
             NETWORK_MSG? recvd;
 
@@ -977,8 +1071,8 @@ namespace rgat
             if (recvd == null || msg.msgType != emsgType.Meta || msg.data.Length == 0)
             {
                 AddNetworkDisplayLogMessage("Authentication failed - no vald data", Themes.eThemeColour.eBadStateColour);
-                Console.WriteLine($"AuthenticateIncomingConnection No prelude from {_ActiveClient}, ignoring");
-                Logging.RecordLogEvent($"No prelude from {_ActiveClient}, ignoring", Logging.LogFilterType.TextDebug);
+                Console.WriteLine($"AuthenticateIncomingConnection No prelude from {client}, ignoring");
+                Logging.RecordLogEvent($"No prelude from {client}, ignoring", Logging.LogFilterType.TextDebug);
                 return false;
             }
 
@@ -1003,9 +1097,9 @@ namespace rgat
                 {
                     AddNetworkDisplayLogMessage("Authentication failed - Bad Key", Themes.eThemeColour.eAlertWindowBg);
 
-                    if (_ActiveClient.Client.RemoteEndPoint is not null)
+                    if (client.Client.RemoteEndPoint is not null)
                     {
-                        Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(_ActiveClient.Client.RemoteEndPoint)} - prelude did not decrypt to the expected value", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(client.Client.RemoteEndPoint)} - prelude did not decrypt to the expected value", Logging.LogFilterType.TextError);
                     }
                 }
                 return false;

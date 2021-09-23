@@ -59,11 +59,10 @@ namespace ImGuiNET
                 case LaunchConfig.eRunMode.GPURenderCommand:
                     Logging.RecordError("Command line media output not yet implemented");
                     return;
-                    runner = new CommandLineRunner();
-                    runner.InitGPU();
-                    runner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: GlobalConfig.StartOptions.RecordVideoLive);
-
-                    break;
+                    //runner = new CommandLineRunner();
+                    //runner.InitGPU();
+                    //runner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: GlobalConfig.StartOptions.RecordVideoLive);
+                    //break;
 
 
                 default:

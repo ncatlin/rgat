@@ -162,8 +162,8 @@ namespace rgat
                         case eLogFilterBaseType.Text:
                             {
                                 Logging.TEXT_LOG_EVENT text_evt = (Logging.TEXT_LOG_EVENT)msg;
-                                sourceString = $"{msg.LogType} - {text_evt._filter}";
-                                msgString = text_evt._text;
+                                sourceString = $"{msg.LogType} - {text_evt.Filter}";
+                                msgString = text_evt.Text;
                                 break;
                             }
                         case eLogFilterBaseType.TimeLine:

@@ -888,6 +888,11 @@
             <param name="command"></param>
             <param name="response"></param>
         </member>
+        <member name="T:rgat.GlobalConfig">
+            <summary>
+            Runtime rgat settings
+            </summary>
+        </member>
         <member name="M:rgat.GlobalConfig.VerifyCertificate(System.String,System.String,System.String@,System.String@)">
             <summary>
             Checks that a binary has a valid code signing certificate issued to one of the expected subject names
@@ -1165,6 +1170,85 @@
             <param name="GUI">true if loading in GUI mode</param>
             <param name="progress">optional IProgress</param>
         </member>
+        <member name="T:rgat.GlobalConfig.SignatureSource">
+            <summary>
+            Github signature sources
+            </summary>
+        </member>
+        <member name="M:rgat.GlobalConfig.SignatureSource.#ctor">
+            <summary>
+            Create a github signature source
+            </summary>
+        </member>
+        <member name="P:rgat.GlobalConfig.SignatureSource.RepoName">
+            <summary>
+            Name of the github repo
+            </summary>
+        </member>
+        <member name="P:rgat.GlobalConfig.SignatureSource.OrgName">
+            <summary>
+            Name of the repo organisation
+            </summary>
+        </member>
+        <member name="P:rgat.GlobalConfig.SignatureSource.SubDir">
+            <summary>
+            Subdirectory of the downloaded archive to use
+            </summary>
+        </member>
+        <member name="P:rgat.GlobalConfig.SignatureSource.LastCheck">
+            <summary>
+             when rgat last checked the repo for updates
+            </summary>
+        </member>
+        <member name="P:rgat.GlobalConfig.SignatureSource.LastUpdate">
+            <summary>
+            when the repo itself was last updated
+            </summary>
+        </member>
+        <member name="P:rgat.GlobalConfig.SignatureSource.LastFetch">
+            <summary>
+            when rgat last downloaded the repo
+            </summary>
+        </member>
+        <member name="P:rgat.GlobalConfig.SignatureSource.RuleCount">
+            <summary>
+            How many rules were found in the repo
+            </summary>
+        </member>
+        <member name="P:rgat.GlobalConfig.SignatureSource.SignatureType">
+            <summary>
+            The type of signatures expected in the repo
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.SignatureSource.LastRefreshError">
+            <summary>
+            Last error encountered checking the repo for updates
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.SignatureSource.LastDownloadError">
+            <summary>
+            Last error encountered downloading the repo
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.SignatureSource._fetchPath">
+            <summary>
+            Where to fetch the download to
+            </summary>
+        </member>
+        <member name="P:rgat.GlobalConfig.SignatureSource.FetchPath">
+            <summary>
+            The github path for the repo
+            </summary>
+        </member>
+        <member name="M:rgat.GlobalConfig.SignatureSource.RepoComponentsToPath(System.String,System.String,System.String)">
+            <summary>
+            Convert repo data to a github URL
+            </summary>
+            <param name="org">The repo org</param>
+            <param name="repo">The repo name</param>
+            <param name="directory">The subdirectory of the repo to store</param>
+            <returns></returns>
+        </member>
         <member name="T:rgat.Config.LaunchConfig">
             <summary>
             rgat operation configuration based on command line options
@@ -1301,6 +1385,37 @@
             <param name="error">any error message produced by the operation</param>
             <returns>success or failure</returns>
         </member>
+        <member name="T:rgat.Config.rgatSettings.PathType">
+            <summary>
+            Path categories for recently recorded paths
+            </summary>
+        </member>
+        <member name="F:rgat.Config.rgatSettings.PathType.Binary">
+            <summary>
+            A tracing binary
+            </summary>
+        </member>
+        <member name="F:rgat.Config.rgatSettings.PathType.Trace">
+            <summary>
+            A recorded trace
+            </summary>
+        </member>
+        <member name="F:rgat.Config.rgatSettings.PathType.Directory">
+            <summary>
+            A directory
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.FilePath">
+            <summary>
+            Path to the loaded settings file
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.SetChangeCallback(System.Action)">
+            <summary>
+            Set the action to perform when a setting is changed
+            </summary>
+            <param name="_updateAction">callback</param>
+        </member>
         <member name="F:rgat.Config.rgatSettings.Inited">
             <summary>
             A flag used to prevent saving of the settings during the loading process
@@ -1311,6 +1426,82 @@
             Perform some checks on the loaded config to try and make sure it won't crash the program
             Adds any values that might have appeared in a new version
             </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.RecentPaths">
+            <summary>
+            Recently accessed files
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.Network">
+            <summary>
+            Remote tracing settings
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.ToolPaths">
+            <summary>
+            Paths for tools rgat uses
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UI">
+            <summary>
+            UI Settings
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.Tracing">
+            <summary>
+            Instrumentation settings
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.Media">
+            <summary>
+            Video/screenshot settings
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.Keybinds">
+            <summary>
+            Keyboard shortcuts
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.Updates">
+            <summary>
+            rgat update settings
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.Logs">
+            <summary>
+            Log related settings
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.Signatures">
+            <summary>
+            Signature scanning settings
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.Themes">
+            <summary>
+            UI/Graph theme settings
+            </summary>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.ThemeSettings">
+            <summary>
+            Configurable UI/Graph themes
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.ThemeSettings.DefaultTheme">
+            <summary>
+            The theme that will be loaded on rgat start
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.ThemeSettings.CustomThemes">
+            <summary>
+            User themes (as opposed to built in)
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.ThemeSettings.SetCustomThemes(System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            Store a dictionary of custom themes
+            </summary>
+            <param name="themes"></param>
         </member>
         <member name="T:rgat.Config.rgatSettings.PathRecord">
             <summary>
@@ -1347,6 +1538,129 @@
             Connection settings for remote tracing
             </summary>
         </member>
+        <member name="P:rgat.Config.rgatSettings.NetworkSettings.DefaultConnectAddress">
+            <summary>
+            Default address to connect to
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.NetworkSettings.DefaultListenPort">
+            <summary>
+            Default port to listen on
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.NetworkSettings.DefaultNetworkKey">
+            <summary>
+            Saved network key
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.NetworkSettings.DefaultListenModeIF">
+            <summary>
+            Default network interface to listen on
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.NetworkSettings.DefaultConnectModeIF">
+            <summary>
+            Default network interface for outgoing connections
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.NetworkSettings._RecentConnectedAddresses">
+            <summary>
+            Addresses we have connected to recently
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.NetworkSettings.RecordRecentConnectAddress(System.String)">
+            <summary>
+            Record an address we have connected to
+            </summary>
+            <param name="address">network address</param>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.NetworkSettings.RecentConnectedAddresses">
+            <summary>
+            List of recently connected network addresses
+            </summary>
+            <returns>Address list</returns>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.UISettings">
+            <summary>
+            User interface settings
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.MaxStoredRecentPaths">
+            <summary>
+            Max number of recent paths to store
+            </summary>
+        </member>
+        <member name="F:rgat.Config.rgatSettings.UISettings.ScreencapAnimation">
+            <summary>
+            Display an box around the area that was screencaptured
+            </summary>
+        </member>
+        <member name="F:rgat.Config.rgatSettings.UISettings.AlertAnimation">
+            <summary>
+            Display a ring around alerts
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.InstalledVersion">
+            <summary>
+            The version of rgat this config file was created by
+            Used on updating to trigger the writing of the latest tools to disk
+            </summary>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.LogSettings">
+            <summary>
+            Logging settings
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.LogSettings.BulkLogging">
+            <summary>
+            Highly verbose logging to a file in the trace directory used for debugging.
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.LogSettings.StoreSavedTracesAsRecent">
+            <summary>
+            true => traces we save will be added to recent traces list. false => only ones we load will
+            </summary>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.KeybindSettings">
+            <summary>
+            Keyboard shortcuts
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.KeybindSettings.#ctor">
+            <summary>
+            Create keybind settings
+            </summary>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.KeybindSettings.CustomKeybind">
+            <summary>
+            A keybind for an action
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.KeybindSettings.CustomKeybind.Action">
+            <summary>
+            The action the keybind triggers
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.KeybindSettings.CustomKeybind.BindIndex">
+            <summary>
+            Primary or secondary keybind for this action
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.KeybindSettings.CustomKeybind.Key">
+            <summary>
+            Key for the keybind
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.KeybindSettings.CustomKeybind.Modifiers">
+            <summary>
+            Modifier keys
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.KeybindSettings.ResetKeybinds">
+            <summary>
+            Clear all keybinds and restore to default
+            </summary>
+        </member>
         <member name="M:rgat.Config.rgatSettings.KeybindSettings.InitDefaultKeybinds">
             <summary>
             A set of standard keybinds for new installs
@@ -1359,6 +1673,58 @@
             of listening for the key action
             
             Alt/Shift/Ctrl modifiers are reserved for these keys, so two different actions can't be bound to a key this way.
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.KeybindSettings.ApplyUserKeybinds">
+            <summary>
+            Enable user keybinds
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.KeybindSettings.SetKeybind(rgat.CONSTANTS.eKeybind,System.Int32,Veldrid.Key,Veldrid.ModifierKeys,System.Boolean)">
+            <summary>
+            Set a keybind to an action
+            </summary>
+            <param name="action">The action to activate</param>
+            <param name="bindIndex">Primary or secondardy keybind set</param>
+            <param name="k">The keybind key</param>
+            <param name="mod">Modifier keys</param>
+            <param name="userSpecified">Is a user specified keybind</param>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.KeybindSettings.UserKeybinds">
+            <summary>
+            User-defined keybinds
+            </summary>
+        </member>
+        <member name="F:rgat.Config.rgatSettings.KeybindSettings.Active">
+            <summary>
+            All active keybinds
+            </summary>
+        </member>
+        <member name="F:rgat.Config.rgatSettings.KeybindSettings.PrimaryKeybinds">
+            <summary>
+            The first set of keybinds
+            </summary>
+        </member>
+        <member name="F:rgat.Config.rgatSettings.KeybindSettings.AlternateKeybinds">
+            <summary>
+            The second set of keybinds
+            </summary>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.PathSettings">
+            <summary>
+            Paths for tools and directories rgat uses
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.PathSettings.Get(rgat.CONSTANTS.PathKey)">
+            <summary>
+            Fetch the value of a setting
+            </summary>
+            <param name="setting">Setting to fetch</param>
+            <returns>Path result</returns>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.PathSettings.EnsureValidity">
+            <summary>
+            Call this after loading
             </summary>
         </member>
         <member name="P:rgat.Config.rgatSettings.PathSettings.Paths">
@@ -1384,9 +1750,48 @@
             <param name="path">A filesystem path for the setting</param>
             <returns></returns>
         </member>
+        <member name="M:rgat.Config.rgatSettings.PathSettings.SetDirectoryPath(rgat.CONSTANTS.PathKey,System.String)">
+            <summary>
+            Set a directory setting
+            </summary>
+            <param name="setting">The setting</param>
+            <param name="path">The path</param>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.PathSettings.BadSigners(System.Collections.Generic.List{System.Tuple{System.String,System.String}}@)">
+            <summary>
+            Failed signature checks
+            </summary>
+            <param name="errors">Signature validation errors</param>
+            <returns>Errors were found</returns>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.TracingSettings">
+            <summary>
+            Configuration for tracing
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.TracingSettings.TraceBufferSize">
+            <summary>
+            How big the tracebuffer can get before we pause instrumentation
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.TracingSettings.SymbolSearchDistance">
+            <summary>
+            How far back from an address to search for a symbol
+            </summary>
+        </member>
         <member name="P:rgat.Config.rgatSettings.TracingSettings.ArgStorageMax">
             <summary>
-            how many bytes back from an instruction to search for a symbol of the function it belongs to
+            Maximum number of arguments to store for an API, to prevent excess memory usage
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UpdateSettings.DoUpdateCheck">
+            <summary>
+            Checking the rgat repo for updates is enabled
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UpdateSettings.UpdateLastCheckVersionString">
+            <summary>
+            Latest available rgat version
             </summary>
         </member>
         <member name="T:rgat.Config.rgatSettings.MediaCaptureSettings">
@@ -1394,9 +1799,109 @@
             Video encoding and screenshot related config
             </summary>
         </member>
+        <member name="P:rgat.Config.rgatSettings.MediaCaptureSettings.FFmpegPath">
+            <summary>
+            Path to ffmpeg.exe
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.MediaCaptureSettings.VideoCodec_Speed">
+            <summary>
+            FFMpeg speed setting
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.MediaCaptureSettings.VideoCodec_Quality">
+            <summary>
+            FFMpeg quality setting
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.MediaCaptureSettings.VideoCodec_FPS">
+            <summary>
+            FFMpeg framerate setting
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.MediaCaptureSettings.VideoCodec_Content">
+            <summary>
+            Which content to capture
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.MediaCaptureSettings.ImageCapture_Format">
+            <summary>
+            The format for image capture files
+            </summary>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.CachedRecentPaths">
+            <summary>
+            Storage of recently accessed paths
+            </summary>
+        </member>
         <member name="P:rgat.Config.rgatSettings.CachedRecentPaths.RecentPaths">
             <summary>
             Filesystem locations the user has accessed (opened binaries, opened traces, filepicker directories)
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.CachedRecentPaths.RecordRecentPath(rgat.Config.rgatSettings.PathType,System.String)">
+            <summary>
+            Record a recently accessed path
+            </summary>
+            <param name="pathType">The category of file accessed</param>
+            <param name="path">The path</param>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.CachedRecentPaths.EnsureValidity">
+            <summary>
+            Check the loaded data won't crash us
+            </summary>
+        </member>
+        <member name="T:rgat.Config.rgatSettings.SignatureSettings">
+            <summary>
+            Configuration for signature scanning
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.SignatureSettings.UpdateSignatureSource(rgat.GlobalConfig.SignatureSource)">
+            <summary>
+            Replace the metadata of a signature repo
+            </summary>
+            <param name="source">new data</param>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.SignatureSettings.AddSignatureSource(rgat.GlobalConfig.SignatureSource)">
+            <summary>
+            Add a new signature repo
+            </summary>
+            <param name="source">new data</param>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.SignatureSettings.DeleteSignatureSource(System.String)">
+            <summary>
+            Delete a repo
+            </summary>
+            <param name="sourcePath">github path</param>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.SignatureSettings.GetSignatureRepo(System.String)">
+            <summary>
+            Get a signature repos metadata
+            </summary>
+            <param name="path">github path</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.SignatureSettings.InitDefaultSignatureSources">
+            <summary>
+            Add some default signature sources
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.SignatureSettings.GetSignatureSources">
+            <summary>
+            Get all signature repos
+            </summary>
+            <returns>Array of repo metadata</returns>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.SignatureSettings.RepoExists(System.String)">
+            <summary>
+            Check a repo path exists
+            </summary>
+            <param name="githubPath">path</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.SignatureSettings.EnsureValidity">
+            <summary>
+            Init the signature sources if invalid
             </summary>
         </member>
         <member name="F:rgat.CONSTANTS.PROGRAMVERSION.MAJOR">
@@ -1911,12 +2416,59 @@
             </summary>
             <param name="zipfile">A zipfile of signatures</param>
         </member>
+        <member name="T:rgat.GithubSignatureManager">
+            <summary>
+            Manages signature updates and downloads
+            </summary>
+        </member>
+        <member name="P:rgat.GithubSignatureManager.Running">
+            <summary>
+            Is a download/update in progress
+            </summary>
+        </member>
+        <member name="P:rgat.GithubSignatureManager.TaskType">
+            <summary>
+            What kind of task is in progress
+            </summary>
+        </member>
+        <member name="P:rgat.GithubSignatureManager.InitialTaskCount">
+            <summary>
+            How many update/download tasks were queued
+            </summary>
+        </member>
+        <member name="P:rgat.GithubSignatureManager.CompletedTaskCount">
+            <summary>
+            How many tasks have completed
+            </summary>
+        </member>
+        <member name="M:rgat.GithubSignatureManager.GetActive">
+            <summary>
+            Get the list of signaturesources
+            </summary>
+            <returns>A list of github repo paths</returns>
+        </member>
+        <member name="M:rgat.GithubSignatureManager.StartRefresh(System.Collections.Generic.List{rgat.GlobalConfig.SignatureSource},System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Check selected repos for updates
+            </summary>
+            <param name="repos">List of SignatureSource repos</param>
+            <param name="workerCount">Number of workers to run in parallel</param>
+            <param name="cancelToken">token to listen for for cancellation</param>
+        </member>
+        <member name="M:rgat.GithubSignatureManager.StartDownloads(System.Collections.Generic.List{rgat.GlobalConfig.SignatureSource},System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Download selected repos
+            </summary>
+            <param name="repos">List of SignatureSource repos</param>
+            <param name="workerCount">Number of workers to run in parallel</param>
+            <param name="cancelToken">token to listen for for cancellation</param>
+        </member>
         <member name="M:rgat.GithubSignatureManager.PurgeRepoFiles(rgat.GlobalConfig.SignatureSource)">
             <summary>
             Remove the associated signature download directory for this repo
             Must be called before the removal of the repo metadata via DeleteSignatureSource
             </summary>
-            <param name="repopath">Repo key</param>
+            <param name="repo">Repo key</param>
         </member>
         <member name="M:rgat.GraphLayoutEngine.#ctor(Veldrid.GraphicsDevice,ImGuiNET.ImGuiController,System.String)">
             <summary>
@@ -2088,6 +2640,11 @@
         <member name="F:rgat.GraphLayoutState._VRAMBuffers">
             <summary>
             Active VRAM resident layout data for display and computation on the GPU
+            </summary>
+        </member>
+        <member name="T:rgat.GraphLayoutState.GPUBuffers">
+            <summary>
+            Active graph layout in VRAM
             </summary>
         </member>
         <member name="F:rgat.GraphLayoutState.GPUBuffers.Positions1">
@@ -2334,7 +2891,13 @@
             Must hold writer lock
             Refreshes VRAM layout buffers from cached RAM data
             </summary>
-            <param name="_gd"></param>
+            <param name="sourceBuffers">CPUBuffers stored graph layout data to upload</param>
+        </member>
+        <member name="M:rgat.GraphLayoutState.DownloadVRAMPositions">
+            <summary>
+            Retrieve the current node postitions from VRAM
+            </summary>
+            <returns>Array of XYZW floats</returns>
         </member>
         <member name="M:rgat.GraphLayoutState.SyncRAMToVRAM(rgat.CONSTANTS.LayoutStyles.Style)">
             <summary>
@@ -2346,6 +2909,13 @@
             <summary>
             must hold write lock
             </summary>
+        </member>
+        <member name="M:rgat.GraphLayoutState.CopyMappedVRAMBufferToFloatArray(Veldrid.MappedResourceView{System.Single},System.Single[])">
+            <summary>
+            Set the saved float buffer in the graph after computing them in the GPU
+            </summary>
+            <param name="VRAMBuf">Mapped GPU buffer</param>
+            <param name="destbuffer">RAM buffer to copy them to</param>
         </member>
         <member name="M:rgat.GraphLayoutState.RegenerateEdgeDataBuffers(rgat.PlottedGraph)">
             <summary>
@@ -2425,6 +2995,102 @@
             </summary>
             <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
         </member>
+        <member name="T:rgat.Logging.eLogFilterBaseType">
+            <summary>
+            A base category of this log
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.eLogFilterBaseType.TimeLine">
+            <summary>
+            An event
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.eLogFilterBaseType.Text">
+            <summary>
+            A message
+            </summary>
+        </member>
+        <member name="T:rgat.Logging.LOG_EVENT">
+            <summary>
+            Base event log class
+            </summary>
+        </member>
+        <member name="M:rgat.Logging.LOG_EVENT.#ctor(rgat.Logging.eLogFilterBaseType)">
+            <summary>
+            Create a log entry
+            </summary>
+            <param name="type">The base type of log</param>
+        </member>
+        <member name="P:rgat.Logging.LOG_EVENT.EventTimeMS">
+            <summary>
+            When the event was recorded
+            </summary>
+        </member>
+        <member name="P:rgat.Logging.LOG_EVENT.LogType">
+            <summary>
+            The base type of log
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.LOG_EVENT.Filter">
+            <summary>
+            How this log is handled
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.LOG_EVENT.Graph">
+            <summary>
+            The graph that generated the log
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.LOG_EVENT.Trace">
+            <summary>
+            The trace that generated the log
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.APICALL.Node">
+            <summary>
+            The node associated with this call
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.APICALL.Index">
+            <summary>
+            The index of the call in the call list
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.APICALL.Repeats">
+            <summary>
+            How many times this was repeated
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.APICALL.UniqID">
+            <summary>
+            The unique ID of the call
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.APICALL.Graph">
+            <summary>
+            The graph associated with the call
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.APICALL.APIDetails">
+            <summary>
+            The actual API call ingformation
+            </summary>
+        </member>
+        <member name="M:rgat.Logging.APICALL.APIType">
+            <summary>
+            The API category
+            </summary>
+            <returns>The name of the category</returns>
+        </member>
+        <member name="M:rgat.Logging.APICALL.TryDeserialise(Newtonsoft.Json.Linq.JToken,rgat.TraceRecord,rgat.Logging.APICALL@)">
+            <summary>
+            Deserialise an API call from JSON
+            </summary>
+            <param name="apiTok">The token</param>
+            <param name="trace">The trace the call belongs to</param>
+            <param name="apiObj">The resulting API object</param>
+            <returns></returns>
+        </member>
         <member name="M:rgat.Logging.APICALL.DeserialiseEffects(Newtonsoft.Json.Linq.JToken,rgat.Logging.APICALL)">
             <summary>
             Implementing effects as derived classes means safe deserialisation is quite clunky
@@ -2432,6 +3098,86 @@
             <param name="deTok">JToken of the APICALL details</param>
             <param name="apiObj">APICALL being deserialised</param>
             <returns></returns>
+        </member>
+        <member name="M:rgat.Logging.TIMELINE_EVENT.Serialise">
+            <summary>
+            Serialise the timeline event to JSON
+            </summary>
+            <returns>The JSON value</returns>
+        </member>
+        <member name="M:rgat.Logging.TIMELINE_EVENT.Label">
+            <summary>
+            Get the label of the timeline event
+            </summary>
+            <returns>The list of strings and colours which need to be joined to make a label</returns>
+        </member>
+        <member name="M:rgat.Logging.TIMELINE_EVENT.SetIDs(System.UInt64,System.UInt64)">
+            <summary>
+            process/thread ID of event source. parent ID optional, depending on context
+            </summary>
+            <param name="ID">process/thread ID of event source</param>
+            <param name="parentID">parent ID. optional.</param>
+        </member>
+        <member name="P:rgat.Logging.TIMELINE_EVENT.TimelineEventType">
+            <summary>
+            The type of timeline event
+            </summary>
+        </member>
+        <member name="P:rgat.Logging.TIMELINE_EVENT.ID">
+            <summary>
+            The event-type dependant ID of the event
+            </summary>
+        </member>
+        <member name="P:rgat.Logging.TIMELINE_EVENT.Parent">
+            <summary>
+            The event-type dependant parent of the event
+            </summary>
+        </member>
+        <member name="P:rgat.Logging.TIMELINE_EVENT.Item">
+            <summary>
+            The underlying event data
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.TIMELINE_EVENT.MetaError">
+            <summary>
+            an error was encountered processing this event, usually on the timeline chart
+            this does not indicate an error with the actual API
+            </summary>
+        </member>
+        <member name="P:rgat.Logging.TIMELINE_EVENT.Inited">
+            <summary>
+            The event has been inted
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.LogFilterType.TextDebug">
+            <summary>
+            Uninteresting events which may be useful for debugging
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.LogFilterType.TextInfo">
+            <summary>
+            Events a user might want to know about if they check the logs
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.LogFilterType.TextError">
+            <summary>
+            Something bad happened. Alert the user
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.LogFilterType.TextAlert">
+            <summary>
+            Something interesting happened. Alert the user
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.LogFilterType.BulkDebugLogFile">
+            <summary>
+            Something very common and routine happened. Log it to a file if bulk debug logging is enabled.
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.LogFilterType.COUNT">
+            <summary>
+            The number of available log types
+            </summary>
         </member>
         <member name="M:rgat.Logging.GetTextFilterCounts">
             <summary>
@@ -2450,6 +3196,40 @@
         <member name="M:rgat.Logging.ClearAlertsBox">
             <summary>
             Acknowledge the latest alerts, stop displaying them on the UI
+            </summary>
+        </member>
+        <member name="T:rgat.Logging.TEXT_LOG_EVENT">
+            <summary>
+            A text log event
+            </summary>
+        </member>
+        <member name="M:rgat.Logging.TEXT_LOG_EVENT.#ctor(rgat.Logging.LogFilterType,System.String)">
+            <summary>
+            Create a text log event
+            </summary>
+            <param name="filter">How this log is handled</param>
+            <param name="text">The log entry</param>
+        </member>
+        <member name="M:rgat.Logging.TEXT_LOG_EVENT.SetAssociatedGraph(rgat.ProtoGraph)">
+            <summary>
+            Set the graph (ie: thread) that generated this log
+            </summary>
+            <param name="graph">A ProtoGraph</param>
+        </member>
+        <member name="M:rgat.Logging.TEXT_LOG_EVENT.SetAssociatedTrace(rgat.TraceRecord)">
+            <summary>
+            Set the trace (ie: process) that generated this log
+            </summary>
+            <param name="trace"></param>
+        </member>
+        <member name="F:rgat.Logging.TEXT_LOG_EVENT.Filter">
+            <summary>
+            How this log is handled
+            </summary>
+        </member>
+        <member name="F:rgat.Logging.TEXT_LOG_EVENT.Text">
+            <summary>
+            The text of the log
             </summary>
         </member>
         <member name="M:rgat.Logging.RecordLogEvent(System.String,rgat.Logging.LogFilterType,rgat.ProtoGraph,rgat.TraceRecord)">
@@ -2665,7 +3445,7 @@
             <param name="infoBytes">The raw bytes of the data</param>
             <param name="trace">The trace the metadata applies to</param>
             <param name="metaparams">The metadata string items produced</param>
-            <returns></returns>
+            <returns>If parsing succeeded</returns>
         </member>
         <member name="T:rgat.OperationModes.CommandLineRunner">
             <summary>
@@ -3388,6 +4168,12 @@
             <summary>
             Force-directed layout activity of this graph
             </summary>
+        </member>
+        <member name="M:rgat.TraceProcessorWorkers.Running">
+            <summary>
+            Are any workers running
+            </summary>
+            <returns>A running worker was found</returns>
         </member>
         <member name="T:rgat.ProcessRecord">
             <summary>
@@ -5311,6 +6097,28 @@
             <param name="trace">The running trace</param>
             <param name="testID">Optional test ID if the trace is a test</param>
         </member>
+        <member name="M:rgat.Threads.TraceIngestWorker.IncreaseMessageCount">
+            <summary>
+            count a new message
+            </summary>
+        </member>
+        <member name="M:rgat.Threads.TraceIngestWorker.Terminate">
+            <summary>
+            Stop processing, cause the worker to exit
+            </summary>
+        </member>
+        <member name="M:rgat.Threads.TraceIngestWorker.DeQueueData">
+            <summary>
+            Fetch the next data from the queue
+            </summary>
+            <returns>The next data, or null if none</returns>
+        </member>
+        <member name="P:rgat.Threads.TraceIngestWorker.HasPendingData">
+            <summary>
+            Is there queued data to process
+            </summary>
+            <returns></returns>
+        </member>
         <member name="T:rgat.ModuleHandlerThread">
             <summary>
             A worker for processing process and thread events for a trace as well as symbol data and trace commands
@@ -5320,6 +6128,42 @@
             <summary>
             The pipe ID of the command pipe connected to a remote tracing instance
             </summary>
+        </member>
+        <member name="T:rgat.ModuleHandlerThread.ProcessPipeMessageAction">
+            <summary>
+            Action to call when receiving new trace data
+            </summary>
+            <param name="buf">data received</param>
+            <param name="bytesRead">How many bytes were received</param>
+        </member>
+        <member name="M:rgat.ModuleHandlerThread.#ctor(rgat.BinaryTarget,rgat.TraceRecord,System.Nullable{System.UInt32})">
+            <summary>
+            Worker for ingesting process trace events and symbol data
+            </summary>
+            <param name="binaryTarg">Binary associated with the trace</param>
+            <param name="runrecord">The trace record being recorded</param>
+            <param name="remotePipeID">Optional ID of remote pipe</param>
+        </member>
+        <member name="M:rgat.ModuleHandlerThread.Begin">
+            <summary>
+            Start work
+            </summary>
+        </member>
+        <member name="M:rgat.ModuleHandlerThread.GetTracePipeName(System.UInt32,System.Int64,System.UInt64)">
+            <summary>
+            Derive a pipe name for threads in the instrumentation tool to connect on
+            </summary>
+            <param name="PID">Process ID</param>
+            <param name="randID">Process UniqueID</param>
+            <param name="TID">Thread ID</param> //probably fine if everything is cleaned up? still need a unique thread ID. todo
+            <returns></returns>
+        </member>
+        <member name="M:rgat.ModuleHandlerThread.SendCommand(System.Byte[])">
+            <summary>
+            Send a command the the instrumentation tool in the traced process
+            </summary>
+            <param name="cmd">The command text</param>
+            <returns>Sending succeeded</returns>
         </member>
         <member name="M:rgat.ModuleHandlerThread.GetCommandPipeName(System.UInt32,System.Int64)">
             <summary>
@@ -5365,6 +6209,36 @@
             This is run by the UI in remote mode, passing trace events to the trace processor
             </summary>
             <param name="ProcessMessageobj"></param>
+        </member>
+        <member name="T:rgat.PipeTraceIngestThread">
+            <summary>
+            A worker to ingest trace data from a named pipe
+            </summary>
+        </member>
+        <member name="F:rgat.PipeTraceIngestThread.RawIngestCompleteEvent">
+            <summary>
+            Set when there is no more data to ingest (eg: pipe broke)
+            </summary>
+        </member>
+        <member name="M:rgat.PipeTraceIngestThread.#ctor(System.IO.Pipes.NamedPipeServerStream,System.UInt32,rgat.ProtoGraph,System.Nullable{System.UInt32})">
+            <summary>
+            Create a pipe ingest worker
+            </summary>
+            <param name="_threadpipe">The pipe to read</param>
+            <param name="threadID">The ID of the graph being read</param>
+            <param name="newProtoGraph">The graph to ingest. Can be null if a remote trace</param>
+            <param name="remotePipe">ID of the remote pipe, or null if a local trace</param>
+        </member>
+        <member name="M:rgat.PipeTraceIngestThread.Begin">
+            <summary>
+            Start work
+            </summary>
+        </member>
+        <member name="M:rgat.PipeTraceIngestThread.DeQueueData">
+            <summary>
+            Fetch the next trace data item to process
+            </summary>
+            <returns>The bytes of the trace data</returns>
         </member>
         <member name="T:rgat.InstructionData">
             <summary>
@@ -5466,6 +6340,151 @@
             The index of the node containing this instruction in each thread [Thread ID/instruction index]
             </summary>
         </member>
+        <member name="M:rgat.InstructionData.GetThreadVert(System.UInt32,System.UInt32@)">
+            <summary>
+            Get the node index of this instruction in the specified thread
+            </summary>
+            <param name="TID">Thread ID</param>
+            <param name="vert">Ndoe index of the instruction</param>
+            <returns>If found</returns>
+        </member>
+        <member name="M:rgat.InstructionData.InThread(System.UInt32)">
+            <summary>
+            Test if the instruction was executed by a specific thread
+            </summary>
+            <param name="TID">Thread ID</param>
+            <returns>If executed</returns>
+        </member>
+        <member name="M:rgat.InstructionData.AddThreadVert(System.UInt32,System.UInt32)">
+            <summary>
+            Note that this instruction was executed by a thread
+            </summary>
+            <param name="TID">The thread ID</param>
+            <param name="vert">The node index</param>
+        </member>
+        <member name="T:rgat.TraceRecord">
+            <summary>
+            A record of a traced process
+            </summary>
+        </member>
+        <member name="T:rgat.TraceRecord.eTracePurpose">
+            <summary>
+            The type of tracing done
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.eTracePurpose.eVisualiser">
+            <summary>
+            Gather trace data of the process executing normally to visualise it
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.eTracePurpose.eFuzzer">
+            <summary>
+            Not implemented
+            </summary>
+        </member>
+        <member name="T:rgat.TraceRecord.eTraceState">
+            <summary>
+            The state of the process being traced
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.eTraceState.eRunning">
+            <summary>
+            The process is running
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.eTraceState.eSuspended">
+            <summary>
+            The process is suspended by rgat
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.eTraceState.eTerminated">
+            <summary>
+            The process is terminated
+            </summary>
+        </member>
+        <member name="M:rgat.TraceRecord.#ctor(System.UInt32,System.Int64,rgat.BinaryTarget,System.DateTime,rgat.TraceRecord.eTracePurpose,System.Int32)">
+            <summary>
+            Create a trace record
+            </summary>
+            <param name="newPID">The OS process ID of the process</param>
+            <param name="randomNo">A random ID generated by the instrumentation to identify the process</param>
+            <param name="binary">The associated BinaryTarget of the process</param>
+            <param name="timeStarted">When the process was recorded starting</param>
+            <param name="purpose">A purpose value for the trace [only visualiser is supported]</param>
+            <param name="arch">32 or 64 bits, or 0 if unknown (remote)</param>
+        </member>
+        <member name="P:rgat.TraceRecord.TestRunID">
+            <summary>
+            The ID of the test for this trace run
+            </summary>
+        </member>
+        <member name="M:rgat.TraceRecord.SetTestRunID(System.Int64)">
+            <summary>
+            Set a test run ID
+            </summary>
+            <param name="val">The ID</param>
+        </member>
+        <member name="P:rgat.TraceRecord.WasLoadedFromSave">
+            <summary>
+            Was this recorded in this session or loaded from a save
+            </summary>
+        </member>
+        <member name="M:rgat.TraceRecord.SetTraceState(rgat.TraceRecord.eTraceState)">
+            <summary>
+            Set the trace state
+            </summary>
+            <param name="newState">The new state</param>
+        </member>
+        <member name="M:rgat.TraceRecord.InsertNewThread(rgat.ProtoGraph,rgat.PlottedGraph)">
+            <summary>
+            Insert a new thread
+            </summary>
+            <param name="graph">The ProtoGraph of the thread</param>
+            <param name="mainplot">Optional PlottedGraph of the thread</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.TraceRecord.GetFirstGraph">
+            <summary>
+            Get any plotted graph with instrumented instructions
+            </summary>
+            <returns>A PlottedGraph with nodes or null if none</returns>
+        </member>
+        <member name="M:rgat.TraceRecord.GetLatestGraph">
+            <summary>
+            Get the most recently recorded graph with instrumented instructions
+            </summary>
+            <returns>The latest PlottedGraph with nodes</returns>
+        </member>
+        <member name="M:rgat.TraceRecord.Load(Newtonsoft.Json.Linq.JObject,Veldrid.GraphicsDevice)">
+            <summary>
+            Deserialise a TraceRecord from JSON
+            </summary>
+            <param name="saveJSON">The JObject of the trace</param>
+            <param name="device">A GraphicsDevice to start rendering the graphs with</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.TraceRecord.RecordTimelineEvent(rgat.Logging.eTimelineEvent,rgat.TraceRecord,rgat.ProtoGraph)">
+            <summary>
+            Record a process/thread stop/start
+            </summary>
+            <param name="type">Event type</param>
+            <param name="trace">Optional process trace object</param>
+            <param name="graph">Optional thread graph</param>
+        </member>
+        <member name="M:rgat.TraceRecord.RecordAPICall(rgat.NodeData,rgat.ProtoGraph,System.Int32,System.UInt64)">
+            <summary>
+            Record an APi call
+            </summary>
+            <param name="node">The node of the call</param>
+            <param name="graph">The graph of the node</param>
+            <param name="callIndex">The index of the call</param>
+            <param name="repeats">How many repeats were recorded</param>
+        </member>
+        <member name="P:rgat.TraceRecord.TimelineItemsCount">
+            <summary>
+            How many timeline items are recorded
+            </summary>
+        </member>
         <member name="M:rgat.TraceRecord.GetTimeLineEntries(System.Int64,System.Int32)">
             <summary>
             Fetches an array of the newest timeline events for the trace
@@ -5473,6 +6492,14 @@
             <param name="oldest">The oldest event to return</param>
             <param name="max">The most events to return. Default 5.</param>
             <returns>And array of TIMELINE_EVENT objects</returns>
+        </member>
+        <member name="M:rgat.TraceRecord.FindContainingModule(System.UInt64,System.Int32@)">
+            <summary>
+            Find the module containing the address
+            </summary>
+            <param name="address">The address to find</param>
+            <param name="localmodID">The module the address was in</param>
+            <returns>If the address was found in a module</returns>
         </member>
         <member name="M:rgat.TraceRecord.GetProtoGraphs">
             <summary>
@@ -5552,6 +6579,19 @@
             <param name="graphID">Thread ID of the graph</param>
             <returns>ProtoGraph if found, or null</returns>
         </member>
+        <member name="M:rgat.TraceRecord.GetProtoGraphByTime(System.DateTime)">
+            <summary>
+            Get a thread graph by time of creation
+            </summary>
+            <param name="time">Time the graph was created</param>
+            <returns>Graph or null if not found</returns>
+        </member>
+        <member name="M:rgat.TraceRecord.CountDescendantGraphs">
+            <summary>
+            How many thread graphs this trace has spawned, including those of any child processes
+            </summary>
+            <returns>Threads in this and child processes</returns>
+        </member>
         <member name="M:rgat.TraceRecord.Save(System.DateTime,System.String@)">
             <summary>
             Save all the data needed to reconstruct a process run and all its thread graphs
@@ -5578,6 +6618,13 @@
             Send a step command to execute a single instruction in a paused trace. Will step into function calls
             </summary>
             <param name="graph">The graph of the thread to step over</param>
+        </member>
+        <member name="M:rgat.TraceRecord.SendDebugCommand(System.UInt32,System.String)">
+            <summary>
+            Send a debug command to a traced thread
+            </summary>
+            <param name="threadID">The thread ID</param>
+            <param name="command">A command</param>
         </member>
         <member name="P:rgat.TraceRecord.DisassemblyData">
             <summary>
@@ -5616,6 +6663,13 @@
             <param name="ptreq">Trace requirements object for the test</param>
             <param name="resultsobj">A Test results commentary object which describes how the test executed</param>
             <returns>The results of the test</returns>
+        </member>
+        <member name="M:rgat.TraceRecord.EvaluateThreadTestRequirements(rgat.Testing.REQUIREMENTS_LIST)">
+            <summary>
+            Determine if the thread meets a set of test requirements
+            </summary>
+            <param name="threadTestReqs">REQUIREMENTS_LIST</param>
+            <returns>A dictionary of REQUIREMENT_TEST_RESULTS for each thread</returns>
         </member>
         <member name="M:rgat.Updates.ParseChangelogChanges(System.String)">
             <summary>
@@ -5706,6 +6760,11 @@
         <member name="P:rgat.VideoEncoder.Error">
             <summary>
             The last error, if one was recorded
+            </summary>
+        </member>
+        <member name="M:rgat.VideoEncoder.#ctor">
+            <summary>
+            Create a video encoder object
             </summary>
         </member>
         <member name="P:rgat.VideoEncoder.CurrentVideoWidth">
@@ -6196,6 +7255,75 @@
             Called whenever the widget opens/closes an inner dialog
             </summary>
             <param name="action">Function to call when dialog is opened/closed. Param is open/closed state.</param>
+        </member>
+        <member name="T:rgat.YARAScan.eYaraScanProgress">
+            <summary>
+            State of the scanner
+            </summary>
+        </member>
+        <member name="F:rgat.YARAScan.eYaraScanProgress.eRunning">
+            <summary>
+            Scanning
+            </summary>
+        </member>
+        <member name="F:rgat.YARAScan.eYaraScanProgress.eComplete">
+            <summary>
+            Scan Finished
+            </summary>
+        </member>
+        <member name="F:rgat.YARAScan.eYaraScanProgress.eNotStarted">
+            <summary>
+            Not started
+            </summary>
+        </member>
+        <member name="F:rgat.YARAScan.eYaraScanProgress.eFailed">
+            <summary>
+            Scanner couldnt load
+            </summary>
+        </member>
+        <member name="F:rgat.YARAScan.YARAHit.MatchingRule">
+            <summary>
+            The rule that was hit on
+            </summary>
+        </member>
+        <member name="F:rgat.YARAScan.YARAHit.Matches">
+            <summary>
+            A list of string matches
+            </summary>
+        </member>
+        <member name="T:rgat.YARAScan.YARAHit.YaraHitMatch">
+            <summary>
+            A serialisable description of a signature hit
+            </summary>
+        </member>
+        <member name="P:rgat.YARAScan.YARAHit.YaraHitMatch.Base">
+            <summary>
+            The base of the match (what is this?)
+            </summary>
+        </member>
+        <member name="P:rgat.YARAScan.YARAHit.YaraHitMatch.Offset">
+            <summary>
+            The offset of the match
+            </summary>
+        </member>
+        <member name="P:rgat.YARAScan.YARAHit.YaraHitMatch.Data">
+            <summary>
+            The data of the match
+            </summary>
+        </member>
+        <member name="M:rgat.YARAScan.StartYARATargetScan(rgat.BinaryTarget,System.Boolean)">
+            <summary>
+            Scan a target binary file
+            </summary>
+            <param name="targ">File path</param>
+            <param name="reload">reload the signatures first</param>
+        </member>
+        <member name="M:rgat.YARAScan.RefreshRules(System.String,System.Boolean)">
+            <summary>
+            Reload the signatures from disk
+            </summary>
+            <param name="rulesDir">Signatures directory</param>
+            <param name="forceRecompile">Recompile the signatures even if no changes seen</param>
         </member>
         <member name="M:rgat.YARAScan.RecompileRules(System.String)">
             <summary>

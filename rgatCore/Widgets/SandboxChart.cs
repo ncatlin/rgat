@@ -164,13 +164,13 @@ namespace rgat.Widgets
                             APIDetailsWin.API_ENTRY apiinfo = call.APIDetails.Value;
                             if (apiinfo.Effects != null)
                             {
-                                ProtoGraph caller = call.graph;
-                                if (call.index >= call.node.callRecordsIndexs.Count)
+                                ProtoGraph caller = call.Graph;
+                                if (call.Index >= call.Node.callRecordsIndexs.Count)
                                 {
-                                    Logging.RecordLogEvent($"Warning: Call {call.APIDetails.Value.ModuleName}:{call.APIDetails.Value.Symbol} tried to place call {call.index} on timeline, but only {call.node.callRecordsIndexs.Count} recorded");
+                                    Logging.RecordLogEvent($"Warning: Call {call.APIDetails.Value.ModuleName}:{call.APIDetails.Value.Symbol} tried to place call {call.Index} on timeline, but only {call.Node.callRecordsIndexs.Count} recorded");
                                     continue;
                                 }
-                                int recordsIndex = (int)call.node.callRecordsIndexs[call.index];
+                                int recordsIndex = (int)call.Node.callRecordsIndexs[call.Index];
                                 if (recordsIndex >= caller.SymbolCallRecords.Count)
                                 {
                                     Logging.RecordLogEvent($"Warning: Call {call.APIDetails.Value.ModuleName}:{call.APIDetails.Value.Symbol} tried to place record {recordsIndex} on timeline, but caller has only {caller.SymbolCallRecords} recorded");

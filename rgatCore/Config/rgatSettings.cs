@@ -505,8 +505,16 @@ namespace rgat.Config
         }
 
 
+        /// <summary>
+        /// Paths for tools and directories rgat uses
+        /// </summary>
         public class PathSettings
         {
+            /// <summary>
+            /// Fetch the value of a setting
+            /// </summary>
+            /// <param name="setting">Setting to fetch</param>
+            /// <returns>Path result</returns>
             public string Get(CONSTANTS.PathKey setting)
             {
                 lock (_lock)
@@ -598,7 +606,10 @@ namespace rgat.Config
                             else
                             {
                                 Logging.RecordError($"Binary signature validation failed for {path}: {error}");
-                                lock (_lock) { BinaryValidationErrors[path] = error; }
+                                if (error is not null)
+                                {
+                                    lock (_lock) { BinaryValidationErrors[path] = error; }
+                                }
                             }
                             SetPath(setting, path);
                             break;

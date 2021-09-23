@@ -15,14 +15,18 @@ namespace rgat
         {
             _SwitchToTraceSelectTab = false;
             _currentTab = "Start Trace";
-            DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X);
 
-            ImGui.BeginGroup();
+            if (activeTarget is not null)
             {
-                DrawTraceTab_InstrumentationSettings(activeTarget, 600);
-                ImGui.SameLine();
-                DrawTraceTab_ExecutionSettings(activeTarget, ImGui.GetContentRegionAvail().X);
-                ImGui.EndGroup();
+                DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X);
+
+                ImGui.BeginGroup();
+                {
+                    DrawTraceTab_InstrumentationSettings(activeTarget, 600);
+                    ImGui.SameLine();
+                    DrawTraceTab_ExecutionSettings(activeTarget, ImGui.GetContentRegionAvail().X);
+                    ImGui.EndGroup();
+                }
             }
             ImGui.EndTabItem();
         }

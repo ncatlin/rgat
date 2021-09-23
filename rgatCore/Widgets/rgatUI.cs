@@ -734,7 +734,9 @@ namespace rgat
                 {
                     ToggleRemoteDialog();
                 }
-                SmallWidgets.MouseoverText($"Samples will be executed on {rgatState.NetworkBridge.RemoteEndPoint.Address}");
+                System.Net.IPEndPoint? endpoint = rgatState.NetworkBridge.RemoteEndPoint;
+                if (endpoint is not null)
+                    SmallWidgets.MouseoverText($"Samples will be executed on {endpoint.Address}");
             }
             else
             {
@@ -913,7 +915,7 @@ namespace rgat
             {
                 if (!Directory.Exists(path))
                     path = Path.GetDirectoryName(path);
-                if (!Directory.Exists(path))
+                if (path is null || !Directory.Exists(path))
                 {
                     Logging.RecordError($"Requested {label} directory {path} was not available");
                     return;
@@ -1009,7 +1011,7 @@ namespace rgat
                         string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
                         ImGui.Text(timeString);
                         ImGui.TableNextColumn();
-                        ImGui.Text(msg._text);
+                        ImGui.Text(msg.Text);
                     }
                     ImGui.EndTable();
                 }
@@ -1051,7 +1053,7 @@ namespace rgat
 
             for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
             {
-                widestAlert = Math.Max(widestAlert, ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[i])._text).X + 50);
+                widestAlert = Math.Max(widestAlert, ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[i]).Text).X + 50);
             }
 
             Vector2 windowSize = ImGui.GetWindowSize();
@@ -1097,7 +1099,7 @@ namespace rgat
                     ImGui.SameLine();
                     textColour = new WritableRgbaFloat(textColour).ToUint((uint?)alpha);
                     ImGui.PushStyleColor(ImGuiCol.Text, textColour);
-                    ImGui.Text(item._text);
+                    ImGui.Text(item.Text);
                     ImGui.PopStyleColor();
 
                 }
@@ -1201,6 +1203,7 @@ namespace rgat
                 }
                 else
                     tabDrawn = ImGui.BeginTabItem("Start Trace");
+
                 if (tabDrawn)
                 {
                     _currentTab = "TraceSelect";
@@ -1226,7 +1229,6 @@ namespace rgat
 
                     visualiserTab!.Draw();
                 }
-
 
                 DrawAnalysisTab(_rgatState.ActiveTrace);
 

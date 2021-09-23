@@ -33,8 +33,14 @@ namespace rgat.Threads
             StatsTimer.Start();
         }
 
+        /// <summary>
+        /// count a new message
+        /// </summary>
         protected void IncreaseMessageCount() => _recentMsgCount += 1;
 
+        /// <summary>
+        /// Stop processing, cause the worker to exit
+        /// </summary>
         public virtual void Terminate()
         {
             if (!StopFlag)
@@ -44,9 +50,17 @@ namespace rgat.Threads
             }
         }
 
-        public abstract byte[] DeQueueData();
+        /// <summary>
+        /// Fetch the next data from the queue
+        /// </summary>
+        /// <returns>The next data, or null if none</returns>
+        public abstract byte[]? DeQueueData();
 
-        public virtual bool HasPendingData() { return PendingDataSize != 0; }
+        /// <summary>
+        /// Is there queued data to process
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool HasPendingData => PendingDataSize != 0;
 
         private readonly Object _statsLock = new Object();
         readonly System.Timers.Timer StatsTimer;

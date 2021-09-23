@@ -44,8 +44,8 @@ namespace rgat.Threads
         public void ThreadProc()
         {
             Logging.RecordLogEvent($"PreviewRenderThread ThreadProc START", Logging.LogFilterType.BulkDebugLogFile);
-
-            Veldrid.CommandList cl = _clientState._GraphicsDevice.ResourceFactory.CreateCommandList();
+            
+            Veldrid.CommandList cl = _clientState._GraphicsDevice!.ResourceFactory.CreateCommandList();
             List<PlottedGraph> graphlist;
             int StopTimer = -1;
             bool moreRenderingNeeded;

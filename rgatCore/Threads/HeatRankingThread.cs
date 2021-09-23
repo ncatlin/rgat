@@ -16,7 +16,11 @@ namespace rgat.Threads
             base.Begin();
             WorkerThread = new Thread(ThreadProc);
             WorkerThread.Name = $"HeakRankingWorker";
-            WorkerThread.Start();
+
+
+            //WorkerThread.Start();//temporarily disable in lieu of marking ranking complete for a thread
+
+
         }
 
         static void PerformEdgeHeatRanking(ProtoGraph graph)
@@ -81,12 +85,11 @@ namespace rgat.Threads
 
         public void ThreadProc()
         {
-            return; //temporarily disable in lieu of marking ranking complete for a thread
 
             while (!rgatState.rgatIsExiting)
             {
 
-                PlottedGraph graph = _clientState.ActiveGraph;
+                PlottedGraph? graph = _clientState.ActiveGraph;
                 if (graph == null)
                 {
                     Thread.Sleep(200);
@@ -100,8 +103,7 @@ namespace rgat.Threads
                 }
 
 
-                TraceRecord activeTrace = _clientState.ActiveTrace;
-
+                TraceRecord? activeTrace = _clientState.ActiveTrace;
                 if (activeTrace == null)
                 {
                     Thread.Sleep(200);

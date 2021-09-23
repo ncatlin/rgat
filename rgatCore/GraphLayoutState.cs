@@ -46,7 +46,7 @@ namespace rgat
         /// <summary>
         /// Veldrid GraphicsDevice for GPU operations
         /// </summary>
-        static GraphicsDevice _gd;
+        private GraphicsDevice _gd;
 
         /// <summary>
         /// The layout style currently plotted in the VRAM buffers
@@ -63,7 +63,9 @@ namespace rgat
         //data for the most recent layout retrieved from VRAM, for serialisation and caching to disk to free up VRAM
         readonly Dictionary<LayoutStyles.Style, CPUBuffers> SavedStates = new Dictionary<LayoutStyles.Style, CPUBuffers>();
 
-
+        /// <summary>
+        /// Active graph layout in VRAM
+        /// </summary>
         public class GPUBuffers
         {
             /// <summary>
@@ -298,7 +300,7 @@ namespace rgat
         /// Must hold writer lock
         /// Refreshes VRAM layout buffers from cached RAM data
         /// </summary>
-        /// <param name="_gd"></param>
+        /// <param name="sourceBuffers">CPUBuffers stored graph layout data to upload</param>
         void LockedUploadStateToVRAM(CPUBuffers sourceBuffers)
         {
             Logging.RecordLogEvent($"UploadGraphDataToVRAMB Start {GraphPlot.TID} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
@@ -344,6 +346,10 @@ namespace rgat
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMetadata);
         }
 
+        /// <summary>
+        /// Retrieve the current node postitions from VRAM
+        /// </summary>
+        /// <returns>Array of XYZW floats</returns>
         public float[] DownloadVRAMPositions()
         {
             _lock.EnterReadLock();
@@ -355,6 +361,7 @@ namespace rgat
                 return saved.PositionsArray.ToArray();
             }
 
+            Debug.Assert(_VRAMBuffers.Positions1 is not null);
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, _VRAMBuffers.Positions1);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
             float[] destbuffer = new float[destinationReadView.Count];
@@ -443,25 +450,30 @@ namespace rgat
 
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, PositionsVRAM1);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
-            UpdateNodePositions(destinationReadView, destbuffers.PositionsArray);
+            CopyMappedVRAMBufferToFloatArray(destinationReadView, destbuffers.PositionsArray);
             _gd.Unmap(destinationReadback);
             VeldridGraphBuffers.VRAMDispose(destinationReadback);
             Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph finished", Logging.LogFilterType.BulkDebugLogFile);
 
         }
 
-        public void UpdateNodePositions(MappedResourceView<float> newPositions, float[] destbuffer)
+        /// <summary>
+        /// Set the saved float buffer in the graph after computing them in the GPU
+        /// </summary>
+        /// <param name="VRAMBuf">Mapped GPU buffer</param>
+        /// <param name="destbuffer">RAM buffer to copy them to</param>
+        public void CopyMappedVRAMBufferToFloatArray(MappedResourceView<float> VRAMBuf, float[] destbuffer)
         {
-            int floatCount = newPositions.Count;//xyzw
+            int floatCount = VRAMBuf.Count;//xyzw
             if (destbuffer.Length < floatCount)
             {
-                Logging.RecordLogEvent($"UpdateNodePositions called changing grp_{GraphPlot.TID} size from {destbuffer.Length} to {newPositions.Count}", Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"UpdateNodePositions called changing grp_{GraphPlot.TID} size from {destbuffer.Length} to {VRAMBuf.Count}", Logging.LogFilterType.BulkDebugLogFile);
                 destbuffer = new float[floatCount]; //todo should be lots bigger
             }
 
             for (var i = 0; i < floatCount; i++)
             {
-                destbuffer[i] = newPositions[i];
+                destbuffer[i] = VRAMBuf[i];
             }
         }
 
@@ -478,31 +490,11 @@ namespace rgat
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
             //uint floatCount = Math.Min(textureSize * textureSize * 4, (uint)destinationReadView.Count);
             uint floatCount = (uint)destinationReadView.Count;
-            UpdateNodeVelocities(destinationReadView, destbuffers.VelocityArray);
+            CopyMappedVRAMBufferToFloatArray(destinationReadView, destbuffers.VelocityArray);
             Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph done updatenode", Logging.LogFilterType.BulkDebugLogFile);
             _gd.Unmap(destinationReadback);
             VeldridGraphBuffers.VRAMDispose(destinationReadback);
         }
-
-
-        //This is assumed to never shrink
-        public void UpdateNodeVelocities(MappedResourceView<float> newVelocities, float[] destbuffer)
-        {
-
-            int floatCount = newVelocities.Count;//xyzw
-            if (destbuffer.Length < floatCount)
-            {
-                Logging.RecordLogEvent($"UpdateNodeVelocities called changing grp_{GraphPlot.TID} velsize from {destbuffer.Length} to {newVelocities.Count}");
-                destbuffer = new float[floatCount];
-            }
-
-            for (var i = 0; i < floatCount; i++)
-            {
-                destbuffer[i] = newVelocities[i];
-            }
-        }
-
-
 
 
         /// <summary>

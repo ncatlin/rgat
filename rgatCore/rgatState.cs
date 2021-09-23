@@ -36,15 +36,15 @@ namespace rgat
         /// <summary>
         /// A Veldrid GraphicsDevice reference available for general usage
         /// </summary>
-        public Veldrid.GraphicsDevice _GraphicsDevice;
+        public Veldrid.GraphicsDevice? _GraphicsDevice;
         /// <summary>
         /// The loaded Detect-It-Easy(.Net) engine
         /// </summary>
-        public static DetectItEasy DIELib;
+        public static DetectItEasy? DIELib;
         /// <summary>
         /// The loaded dnYara engine
         /// </summary>
-        public static YARAScan YARALib;
+        public static YARAScan? YARALib;
         /// <summary>
         /// A VideoEncoder object which managed FFMpeg capture
         /// </summary>
@@ -70,7 +70,7 @@ namespace rgat
         /// <summary>
         /// A thread object which manages local trace connections over a named pipe
         /// </summary>
-        public static Threads.ProcessCoordinatorThread processCoordinatorThreadObj = null;
+        public static Threads.ProcessCoordinatorThread? processCoordinatorThreadObj = null;
 
 
         public rgatState()
@@ -583,7 +583,7 @@ namespace rgat
                 return false;
             }
 
-            if (!trace.load(saveJSON, _GraphicsDevice))
+            if (!trace.Load(saveJSON, _GraphicsDevice))
             {
                 target.DeleteTrace(trace.LaunchedTime);
                 trace = null;
