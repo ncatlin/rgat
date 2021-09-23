@@ -645,7 +645,7 @@ namespace rgat
                 delta = delta,
                 selectedNode = mouseoverNodeID,
                 edgesTexCount = (int)graph.LayoutState.EdgeConnections!.SizeInBytes / 4,
-                MinimumAlpha = GlobalConfig.MinimumAlpha,
+                MinimumAlpha = GlobalConfig.AnimatedFadeMinimumAlpha,
                 hoverMode = 1,
                 isAnimated = useAnimAttribs
             };

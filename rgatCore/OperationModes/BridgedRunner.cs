@@ -574,7 +574,7 @@ namespace rgat.OperationModes
             switch (actualCmd)
             {
                 case "GetRecentBinaries":
-                    rgatSettings.PathRecord[] recentPaths = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Binary);
+                    rgatSettings.PathRecord[] recentPaths = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Binary);
                     rgatState.NetworkBridge.SendResponseObject(cmdID, recentPaths);
                     break;
 

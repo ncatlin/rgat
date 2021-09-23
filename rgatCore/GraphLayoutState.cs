@@ -688,7 +688,6 @@ namespace rgat
             if (newNodeCount == 0) return;
 
             Debug.Assert(graph.ActiveLayoutStyle == _VRAMBuffers.Style);
-            Debug.Assert(VelocitiesVRAM1 is not null);
 
             uint offset = (uint)graph.ComputeBufferNodeCount * 4 * sizeof(float);
             uint updateSize = 4 * sizeof(float) * (uint)newNodeCount;
@@ -711,7 +710,7 @@ namespace rgat
 
                     if (_VRAMBuffers.Initialised)
                     {
-                        Logging.RecordLogEvent($"Recreating buffers as {bufferSize} > {VelocitiesVRAM1.SizeInBytes}", Logging.LogFilterType.TextDebug);
+                        Logging.RecordLogEvent($"Recreating buffers as {bufferSize} > {VelocitiesVRAM1!.SizeInBytes}", Logging.LogFilterType.TextDebug);
                     }
                     else
                     {
@@ -723,6 +722,7 @@ namespace rgat
                 Logging.RecordLogEvent($"AddNewNodesToComputeBuffers  {graph.TID} done", Logging.LogFilterType.BulkDebugLogFile);
             }
 
+            Debug.Assert(VelocitiesVRAM1 is not null);
 
 
             uint endOfComputeBufferOffset = (uint)graph.ComputeBufferNodeCount * 4;

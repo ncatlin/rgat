@@ -12,11 +12,35 @@ namespace rgat.Config
 {
     public class rgatSettings
     {
+        /// <summary>
+        /// Path categories for recently recorded paths
+        /// </summary>
+        public enum PathType {
+            /// <summary>
+            /// A tracing binary
+            /// </summary>
+            Binary, 
+            /// <summary>
+            /// A recorded trace
+            /// </summary>
+            Trace, 
+            /// <summary>
+            /// A directory
+            /// </summary>
+            Directory 
+        };
 
-        public enum eRecentPathType { Binary, Trace, Directory };
+        /// <summary>
+        /// Path to the loaded settings file
+        /// </summary>
         public string FilePath { get; set; }
 
-        static Action MarkDirtyCallback = null;
+
+        static Action? MarkDirtyCallback = null;
+        /// <summary>
+        /// Set the action to perform when a setting is changed
+        /// </summary>
+        /// <param name="_updateAction">callback</param>
         public static void SetChangeCallback(Action _updateAction) => MarkDirtyCallback = _updateAction;
 
         static void MarkDirty()
@@ -42,34 +66,77 @@ namespace rgat.Config
             Signatures.EnsureValidity();
         }
 
-
+        /// <summary>
+        /// Recently accessed files
+        /// </summary>
         public CachedRecentPaths RecentPaths { get; set; } = new CachedRecentPaths();
+        /// <summary>
+        /// Remote tracing settings
+        /// </summary>
         public NetworkSettings Network { get; set; } = new NetworkSettings();
+        /// <summary>
+        /// Paths for tools rgat uses
+        /// </summary>
         public PathSettings ToolPaths { get; set; } = new PathSettings();
+        /// <summary>
+        /// UI Settings
+        /// </summary>
         public UISettings UI { get; set; } = new UISettings();
+        /// <summary>
+        /// Instrumentation settings
+        /// </summary>
         public TracingSettings Tracing { get; set; } = new TracingSettings();
+        /// <summary>
+        /// Video/screenshot settings
+        /// </summary>
         public MediaCaptureSettings Media { get; set; } = new MediaCaptureSettings();
+        /// <summary>
+        /// Keyboard shortcuts
+        /// </summary>
         public KeybindSettings Keybinds { get; set; } = new KeybindSettings();
+        /// <summary>
+        /// rgat update settings
+        /// </summary>
         public UpdateSettings Updates { get; set; } = new UpdateSettings();
+        /// <summary>
+        /// Log related settings
+        /// </summary>
         public LogSettings Logs { get; set; } = new LogSettings();
+        /// <summary>
+        /// Signature scanning settings
+        /// </summary>
         public SignatureSettings Signatures { get; set; } = new SignatureSettings();
+        /// <summary>
+        /// UI/Graph theme settings
+        /// </summary>
         public ThemeSettings Themes { get; set; } = new ThemeSettings();
 
-
-
+        /// <summary>
+        /// Configurable UI/Graph themes
+        /// </summary>
         public class ThemeSettings
         {
 
             string _DefaultTheme = "";
+            /// <summary>
+            /// The theme that will be loaded on rgat start
+            /// </summary>
             public string DefaultTheme { get => _DefaultTheme; set { _DefaultTheme = value; MarkDirty(); } }
 
             Dictionary<string, string> _CustomThemes = new Dictionary<string, string>();
+            /// <summary>
+            /// User themes (as opposed to built in)
+            /// </summary>
             public Dictionary<string, string> CustomThemes
             {
                 get { lock (_lock) { return _CustomThemes; } }
                 set { lock (_lock) { _CustomThemes = value; } }
             }
 
+            /// <summary>
+            /// Store a dictionary of custom themes
+            /// </summary>
+            /// <param name="themes"></param>
             public void SetCustomThemes(Dictionary<string, string> themes)
             {
                 lock (_lock) { CustomThemes = themes; }
@@ -117,24 +184,46 @@ namespace rgat.Config
         /// </summary>
         public class NetworkSettings
         {
-            string _DefaultHeadlessAddress = "";
-            public string DefaultHeadlessAddress { get => _DefaultHeadlessAddress; set { _DefaultHeadlessAddress = value; MarkDirty(); } }
+            string _DefaultConnectAddress = "";
+            /// <summary>
+            /// Default address to connect to
+            /// </summary>
+            public string DefaultConnectAddress { get => _DefaultConnectAddress; set { _DefaultConnectAddress = value; MarkDirty(); } }
 
             int _DefaultListenPort = -1;
+            /// <summary>
+            /// Default port to listen on
+            /// </summary>
             public int DefaultListenPort { get => _DefaultListenPort; set { _DefaultListenPort = value; MarkDirty(); } }
 
             string _DefaultNetworkKey = "";
+            /// <summary>
+            /// Saved network key
+            /// </summary>
             public string DefaultNetworkKey { get => _DefaultNetworkKey; set { _DefaultNetworkKey = value; MarkDirty(); } }
 
             string _DefaultListenModeIF = "";
+            /// <summary>
+            /// Default network interface to listen on
+            /// </summary>
             public string DefaultListenModeIF { get => _DefaultListenModeIF; set { _DefaultListenModeIF = value; MarkDirty(); } }
 
             string _DefaultConnectModeIF = "";
+            /// <summary>
+            /// Default network interface for outgoing connections
+            /// </summary>
             public string DefaultConnectModeIF { get => _DefaultConnectModeIF; set { _DefaultConnectModeIF = value; MarkDirty(); } }
 
+            /// <summary>
+            /// Addresses we have connected to recently
+            /// </summary>
             [JsonPropertyName("RecentConnectedAddresses")]
             public List<string> _RecentConnectedAddresses { get; set; } = new List<string>();
 
+            /// <summary>
+            /// Record an address we have connected to
+            /// </summary>
+            /// <param name="address">network address</param>
             public void RecordRecentConnectAddress(string address)
             {
                 lock (_lock)
@@ -146,6 +235,11 @@ namespace rgat.Config
                     MarkDirty();
                 }
             }
+
+            /// <summary>
+            /// List of recently connected network addresses
+            /// </summary>
+            /// <returns>Address list</returns>
             public List<string> RecentConnectedAddresses()
             {
                 lock (_lock)
@@ -160,23 +254,43 @@ namespace rgat.Config
         public class UISettings
         {
             int _MaxStoredRecentPaths = 10;
+            /// <summary>
+            /// Max number of recent paths to store
+            /// </summary>
             public int MaxStoredRecentPaths { get => _MaxStoredRecentPaths; set { _MaxStoredRecentPaths = value; MarkDirty(); } }
 
+            /// <summary>
+            /// Display an box around the area that was screencaptured
+            /// </summary>
             public bool ScreencapAnimation = true;
+            /// <summary>
+            /// Display a ring around alerts
+            /// </summary>
             public bool AlertAnimation = true;
 
             string _InstalledVersion = "None";
+            /// <summary>
+            /// The version of rgat this config file was created by
+            /// Used on updating to trigger the writing of the latest tools to disk
+            /// </summary>
             public string InstalledVersion { get => _InstalledVersion; set { _InstalledVersion = value; MarkDirty(); } }
         }
 
-
+        /// <summary>
+        /// Logging settings
+        /// </summary>
         public class LogSettings
         {
             bool _BulkLogging = false;
+            /// <summary>
+            /// Highly verbose logging to a file in the trace directory used for debugging.
+            /// </summary>
             public bool BulkLogging { get => _BulkLogging; set { _BulkLogging = value; MarkDirty(); } }
 
-            //true => traces we save will be added to recent traces list. false => only ones we load will
             bool _StoreSavedTracesAsRecent = true;
+            /// <summary>
+            /// true => traces we save will be added to recent traces list. false => only ones we load will
+            /// </summary>
             public bool StoreSavedTracesAsRecent { get => _StoreSavedTracesAsRecent; set { _StoreSavedTracesAsRecent = value; MarkDirty(); } }
         }
 
@@ -624,8 +738,8 @@ namespace rgat.Config
             /// <summary>
             /// Filesystem locations the user has accessed (opened binaries, opened traces, filepicker directories)
             /// </summary>
-            public Dictionary<eRecentPathType, List<PathRecord>> RecentPaths { get; set; } = new Dictionary<eRecentPathType, List<PathRecord>>();
-            public PathRecord[] Get(eRecentPathType pathType)
+            public Dictionary<PathType, List<PathRecord>> RecentPaths { get; set; } = new Dictionary<PathType, List<PathRecord>>();
+            public PathRecord[] Get(PathType pathType)
             {
                 lock (_lock)
                 {
@@ -636,7 +750,7 @@ namespace rgat.Config
 
 
 
-            public void RecordRecentPath(eRecentPathType pathType, string path)
+            public void RecordRecentPath(PathType pathType, string path)
             {
                 lock (_lock)
                 {
@@ -663,11 +777,11 @@ namespace rgat.Config
 
                     targetList.Sort(new rgatSettings.PathRecord.SortLatestAccess());
 
-                    if (pathType != eRecentPathType.Directory)
+                    if (pathType != PathType.Directory)
                     {
                         try
                         {
-                            RecordRecentPath(eRecentPathType.Directory, Path.GetDirectoryName(path));
+                            RecordRecentPath(PathType.Directory, Path.GetDirectoryName(path));
                         }
                         catch (Exception e)
                         {
@@ -681,7 +795,7 @@ namespace rgat.Config
 
             public void EnsureValidity()
             {
-                eRecentPathType[] requiredRecentPathTypes = new eRecentPathType[] { eRecentPathType.Binary, eRecentPathType.Trace, eRecentPathType.Directory };
+                PathType[] requiredRecentPathTypes = new PathType[] { PathType.Binary, PathType.Trace, PathType.Directory };
                 foreach (var pathType in requiredRecentPathTypes)
                 {
                     if (!RecentPaths.ContainsKey(pathType)) { RecentPaths.Add(pathType, new List<PathRecord>()); MarkDirty(); }
@@ -752,6 +866,10 @@ namespace rgat.Config
                 }
             }
 
+
+            /// <summary>
+            /// Add some default signature sources
+            /// </summary>
             public void InitDefaultSignatureSources()
             {
                 //todo embed as a resource

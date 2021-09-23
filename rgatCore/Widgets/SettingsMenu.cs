@@ -1321,11 +1321,11 @@ namespace rgat.Widgets
                 GlobalConfig.Settings.Logs.BulkLogging = debglog;
             }
 
-            float minGraphAlpha = GlobalConfig.MinimumAlpha;
+            float minGraphAlpha = GlobalConfig.AnimatedFadeMinimumAlpha;
             ImGui.SetNextItemWidth(80);
             if (ImGui.DragFloat("Graph Minimum Animation Alpha", ref minGraphAlpha, 0.01f, 0, 1))
             {
-                GlobalConfig.MinimumAlpha = minGraphAlpha;
+                GlobalConfig.AnimatedFadeMinimumAlpha = minGraphAlpha;
             }
 
             bool screencapAnim = GlobalConfig.Settings.UI.ScreencapAnimation;

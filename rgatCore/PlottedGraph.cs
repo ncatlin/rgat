@@ -1963,7 +1963,7 @@ namespace rgat
             }
             else
             {
-                brightTime = GlobalConfig.animationLingerFrames;
+                brightTime = GlobalConfig.AnimationLingerFrames;
             }
 
 

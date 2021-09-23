@@ -841,7 +841,7 @@ namespace rgat
 
             if (GlobalConfig.Settings.Logs.StoreSavedTracesAsRecent)
             {
-                GlobalConfig.Settings.RecentPaths.RecordRecentPath(Config.rgatSettings.eRecentPathType.Trace, savePath);
+                GlobalConfig.Settings.RecentPaths.RecordRecentPath(Config.rgatSettings.PathType.Trace, savePath);
             }
             return true;
         }

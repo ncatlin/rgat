@@ -69,9 +69,9 @@ namespace rgat.Widgets
 
             if (GlobalConfig.StartOptions.ConnectModeAddress == null || GlobalConfig.StartOptions.ConnectModeAddress.Length == 0)
             {
-                if (GlobalConfig.Settings.Network.DefaultHeadlessAddress != null && GlobalConfig.Settings.Network.DefaultHeadlessAddress.Length > 0)
+                if (GlobalConfig.Settings.Network.DefaultConnectAddress != null && GlobalConfig.Settings.Network.DefaultConnectAddress.Length > 0)
                 {
-                    GlobalConfig.StartOptions.ConnectModeAddress = GlobalConfig.Settings.Network.DefaultHeadlessAddress;
+                    GlobalConfig.StartOptions.ConnectModeAddress = GlobalConfig.Settings.Network.DefaultConnectAddress;
                     ListenMode = false;
                 }
             }
@@ -658,7 +658,7 @@ namespace rgat.Widgets
         void SelectRemoteAddress(string address)
         {
             GlobalConfig.StartOptions.ConnectModeAddress = address;
-            GlobalConfig.Settings.Network.DefaultHeadlessAddress = address;
+            GlobalConfig.Settings.Network.DefaultConnectAddress = address;
         }
 
 

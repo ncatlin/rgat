@@ -120,11 +120,16 @@ namespace rgat
         /// </summary>
         public static float animationFadeRate = 0.07f;
 
+        /// <summary>
+        /// Minimum brighteness for faded animated geometry
+        /// </summary>
         public static float AnimatedFadeMinimumAlpha = 0.3f;
 
-        public static int animationLingerFrames = 0; //number of frames before fade begins
+        /// <summary>
+        /// How long to linger animated geometry before fading it
+        /// </summary>
+        public static int AnimationLingerFrames = 6; //number of frames before fade begins
 
-        public static float MinimumAlpha = 0.06f;
 
         /// <summary>
         /// Milliseconds to wait between frames of Main (displayed) Graph rendering
@@ -178,13 +183,30 @@ namespace rgat
         /// </summary>
         public static float IngestStatWindow = 5f;
 
+        /// <summary>
+        /// How long to display shortcut keypresses
+        /// </summary>
         public static int KeystrokeDisplayMS = 4000;
+        /// <summary>
+        /// How long remaining on the keypress label to start fading it
+        /// </summary>
         public static int KeystrokeStartFadeMS = 350;
+        /// <summary>
+        /// Max keyboard shortcuts to display
+        /// </summary>
         public static int KeystrokeDisplayMaxCount = 5;
+        /// <summary>
+        /// Show keyboard shortcut activations
+        /// </summary>
         public static bool ShowKeystrokes = true;
 
-
+        /// <summary>
+        /// How long to display in-visualiser messages
+        /// </summary>
         public static int VisMessageMaxLingerTime = 6500;
+        /// <summary>
+        /// When to fade in-visualiser messages as they approach the end of their display
+        /// </summary>
         public static int VisMessageFadeStartTime = 500;
 
         /// <summary>
@@ -540,9 +562,26 @@ namespace rgat
 
 
 
-
+        /// <summary>
+        /// Get the filepath associated with a setting
+        /// </summary>
+        /// <param name="setting">The setting</param>
+        /// <returns>The path</returns>
         public static string GetSettingPath(CONSTANTS.PathKey setting) => Settings.ToolPaths.Get(setting);
+
+        /// <summary>
+        /// Set a binary path assocated for a setting
+        /// </summary>
+        /// <param name="setting">The setting</param>
+        /// <param name="value">The path</param>
         public static void SetBinaryPath(CONSTANTS.PathKey setting, string value) => Settings.ToolPaths.SetBinaryPath(setting, value);
+
+
+        /// <summary>
+        /// Set a directory path setting
+        /// </summary>
+        /// <param name="setting">The setting</param>
+        /// <param name="value">The path</param>
         public static void SetDirectoryPath(PathKey setting, string value) => Settings.ToolPaths.SetDirectoryPath(setting, value);
 
         /// <summary>
@@ -576,10 +615,21 @@ namespace rgat
          * Trace related config
          */
 
-
+        /// <summary>
+        /// Static file YARA scanning enabled
+        /// </summary>
         public static bool ScanFilesYARA = true;
+        /// <summary>
+        /// Static file Detect It Easy scanning enabled
+        /// </summary>
         public static bool ScanFilesDiE = true;
+        /// <summary>
+        /// Yara scanning of memory enabled
+        /// </summary>
         public static bool ScanMemoryYARA = true;
+        /// <summary>
+        /// Detect it easy of file-like memory enabled
+        /// </summary>
         public static bool ScanMemoryDiE = true;
 
         //~~user customised signature scan locations, to restrict certain signatures to scanning disk/mem/none. non-presence => scan all.~~
@@ -629,9 +679,11 @@ namespace rgat
 
             string settingsContents = File.ReadAllText(settingsPath);
             System.Text.Json.JsonSerializerOptions settingParserOptions = new System.Text.Json.JsonSerializerOptions() { AllowTrailingCommas = true };
+            rgatSettings? loadedSettings = null;
             try
             {
-                Settings = System.Text.Json.JsonSerializer.Deserialize<rgatSettings>(settingsContents, settingParserOptions);
+                loadedSettings = System.Text.Json.JsonSerializer.Deserialize<rgatSettings>(settingsContents, settingParserOptions);
+                Settings = loadedSettings!;
             }
             catch (Exception e)
             {
@@ -700,11 +752,15 @@ namespace rgat
             try
             {
                 string tool32Path = Path.Combine(BaseDirectory, "tools", "pintool32.dll");
-                File.WriteAllBytes(tool32Path, rgatState.ReadBinaryResource("PinTool32"));
+                byte[]? tool32bytes = rgatState.ReadBinaryResource("PinTool32");
+                if (tool32bytes is null) throw new EndOfStreamException("No PinTool32 resource available");
+                File.WriteAllBytes(tool32Path, tool32bytes);
                 SetBinaryPath(CONSTANTS.PathKey.PinToolPath32, tool32Path);
 
                 string tool64Path = Path.Combine(BaseDirectory, "tools", "pintool64.dll");
-                File.WriteAllBytes(tool64Path, rgatState.ReadBinaryResource("PinTool64"));
+                byte[]? tool64bytes = rgatState.ReadBinaryResource("PinTool64");
+                if (tool64bytes is null) throw new EndOfStreamException("No PinTool64 resource available");
+                File.WriteAllBytes(tool64Path, tool64bytes);
                 SetBinaryPath(CONSTANTS.PathKey.PinToolPath64, tool64Path);
             }
             catch (Exception e)

@@ -184,8 +184,8 @@ namespace rgat
         void CheckMissingPaths()
         {
 
-            rgatSettings.PathRecord[] recentBins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Binary);
-            rgatSettings.PathRecord[] recentTraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Trace);
+            rgatSettings.PathRecord[] recentBins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Binary);
+            rgatSettings.PathRecord[] recentTraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Trace);
             List<rgatSettings.PathRecord[]> allRecent = new List<rgatSettings.PathRecord[]>() { recentBins, recentTraces };
             foreach (var pathList in allRecent)
             {
@@ -670,7 +670,7 @@ namespace rgat
             {
                 if (ImGui.MenuItem("Select Target Executable")) { ToggleLoadExeWindow(); }
 
-                var recentbins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Binary);
+                var recentbins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Binary);
                 if (ImGui.BeginMenu("Recent Binaries", recentbins.Any()))
                 {
                     foreach (var entry in recentbins.Take(Math.Min(10, recentbins.Length)).Reverse())
@@ -683,7 +683,7 @@ namespace rgat
                     ImGui.EndMenu();
                 }
 
-                var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Trace);
+                var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Trace);
                 if (ImGui.BeginMenu("Recent Traces", recenttraces.Any()))
                 {
                     foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Length)).Reverse())
@@ -1290,7 +1290,7 @@ namespace rgat
                 else
                 {
                     _rgatState.SetActiveTarget(path: null);
-                    GlobalConfig.Settings.RecentPaths.RecordRecentPath(rgatSettings.eRecentPathType.Binary, path);
+                    GlobalConfig.Settings.RecentPaths.RecordRecentPath(rgatSettings.PathType.Binary, path);
                     _rgatState.AddTargetByPath(path);
                     _SwitchToTraceSelectTab = true;
                 }
@@ -1370,7 +1370,7 @@ namespace rgat
                 Logging.RecordError($"Failed to load invalid trace: {filepath}");
                 return false;
             }
-            GlobalConfig.Settings.RecentPaths.RecordRecentPath(rgatSettings.eRecentPathType.Trace, filepath);
+            GlobalConfig.Settings.RecentPaths.RecordRecentPath(rgatSettings.PathType.Trace, filepath);
 
             BinaryTarget target = trace.Target;
 

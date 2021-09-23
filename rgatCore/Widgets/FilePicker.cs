@@ -1304,7 +1304,7 @@ namespace rgatFilePicker
                     ImGui.TableHeadersRow();
                     ImGui.PopStyleColor(2);
 
-                    var recentDirs = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Directory);
+                    var recentDirs = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Directory);
                     foreach (var dir in recentDirs)
                     {
                         ImGui.TableNextRow();

@@ -52,7 +52,7 @@ namespace rgat
         DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer;
         DeviceBuffer _NodeVertexBuffer, _NodeIndexBuffer;
 
-        TextureView _NodeCircleSpritetview;
+        TextureView _NodeCircleSpriteview;
         Pipeline _edgesPipeline, _pointsPipeline;
 
         readonly GraphLayoutEngine _layoutEngine;
@@ -75,6 +75,8 @@ namespace rgat
             _factory = gdev.ResourceFactory;
             _layoutEngine = new GraphLayoutEngine(gdev, controller, "Preview");
             SetupRenderingResources();
+
+            _NodeCircleSpriteview = _ImGuiController.IconTexturesView;
         }
 
 
@@ -892,7 +894,7 @@ namespace rgat
 
 
             Logging.RecordLogEvent($"render preview {graph.TID} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
-            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _NodeCircleSpritetview);
+            ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _NodeCircleSpriteview);
             ResourceSet crsnodesedge = _factory.CreateResourceSet(crs_nodesEdges_rsd);
 
 

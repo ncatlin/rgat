@@ -13,7 +13,7 @@ namespace rgat
         void DrawStartSplash()
         {
 
-            var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Trace);
+            var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Trace);
 
 
             if (rgatState.NetworkBridge != null && rgatState.ConnectedToRemote)
@@ -22,7 +22,7 @@ namespace rgat
             }
             else
             {
-                var recentbins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.eRecentPathType.Binary);
+                var recentbins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Binary);
                 DrawSplash(recentbins, recenttraces);
             }
         }
