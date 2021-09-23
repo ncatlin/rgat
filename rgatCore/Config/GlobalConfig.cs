@@ -485,9 +485,9 @@ namespace rgat
         public static bool PreviousSignatureCheckPassed(string path, out string? error, out bool timeWarning)
         {
             timeWarning = false;
-            if (Settings.ToolPaths.BadSigners(out List<Tuple<string, string>> signerErrors))
+            if (Settings.ToolPaths.BadSigners(out List<Tuple<string, string>>? signerErrors))
             {
-                foreach (var val in signerErrors)
+                foreach (var val in signerErrors!)
                 {
                     if (val.Item1 == path)
                     {

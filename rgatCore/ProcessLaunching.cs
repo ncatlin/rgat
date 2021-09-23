@@ -52,6 +52,10 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Are any workers running
+        /// </summary>
+        /// <returns>A running worker was found</returns>
         public bool Running()
         {
             lock (_lock)
@@ -67,7 +71,8 @@ namespace rgat
     class ProcessLaunching
     {
 
-        public static System.Diagnostics.Process? StartLocalTrace(string pintool, string targetBinary, PeNet.PeFile targetPE = null, string loaderName = "LoadDLL", int ordinal = 0, long testID = -1)
+        public static System.Diagnostics.Process? StartLocalTrace(string pintool, string targetBinary, PeNet.PeFile? targetPE = null,
+            string loaderName = "LoadDLL", int ordinal = 0, long testID = -1)
         {
             if (!File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath)))
             {

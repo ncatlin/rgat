@@ -561,10 +561,10 @@ namespace rgat
                     }
                 }
 
-                if (GlobalConfig.Settings.ToolPaths.BadSigners(out List<Tuple<string, string>> issues))
+                if (GlobalConfig.Settings.ToolPaths.BadSigners(out List<Tuple<string, string>>? issues))
                 {
                     string pinpath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath);
-                    issues = issues.Where(i => (i.Item1 == pintoolpath || i.Item1 == pinpath)).ToList();
+                    issues = issues!.Where(i => (i.Item1 == pintoolpath || i.Item1 == pinpath)).ToList();
                     if (issues.Any())
                     {
                         //todo: be more specific on tooltip, but prevent a potential errordictionary reading race condition

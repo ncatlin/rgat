@@ -251,6 +251,10 @@ namespace rgat.Config
 
         }
 
+
+        /// <summary>
+        /// User interface settings
+        /// </summary>
         public class UISettings
         {
             int _MaxStoredRecentPaths = 10;
@@ -294,8 +298,15 @@ namespace rgat.Config
             public bool StoreSavedTracesAsRecent { get => _StoreSavedTracesAsRecent; set { _StoreSavedTracesAsRecent = value; MarkDirty(); } }
         }
 
+
+        /// <summary>
+        /// Keyboard shortcuts
+        /// </summary>
         public class KeybindSettings
         {
+            /// <summary>
+            /// Create keybind settings
+            /// </summary>
             public KeybindSettings()
             {
                 ResponsiveHeldActions = new List<eKeybind>();
@@ -314,13 +325,33 @@ namespace rgat.Config
                 InitResponsiveKeys();
             }
 
+            /// <summary>
+            /// A keybind for an action
+            /// </summary>
             public class CustomKeybind
             {
+                /// <summary>
+                /// The action the keybind triggers
+                /// </summary>
                 public eKeybind Action { get; set; }
+                /// <summary>
+                /// Primary or secondary keybind for this action
+                /// </summary>
                 public int BindIndex { get; set; }
+                /// <summary>
+                /// Key for the keybind
+                /// </summary>
                 public Key Key { get; set; }
+                /// <summary>
+                /// Modifier keys
+                /// </summary>
                 public ModifierKeys Modifiers { get; set; }
             }
+
+
+            /// <summary>
+            /// Clear all keybinds and restore to default
+            /// </summary>
             public void ResetKeybinds()
             {
                 PrimaryKeybinds.Clear();
@@ -384,12 +415,24 @@ namespace rgat.Config
                 ResponsiveKeys = Active.Where(x => ResponsiveHeldActions.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
             }
 
+
+            /// <summary>
+            /// Enable user keybinds
+            /// </summary>
             public void ApplyUserKeybinds()
             {
                 UserKeybinds.ForEach(kb => SetKeybind(kb.Action, kb.BindIndex, kb.Key, kb.Modifiers));
             }
 
 
+            /// <summary>
+            /// Set a keybind to an action
+            /// </summary>
+            /// <param name="action">The action to activate</param>
+            /// <param name="bindIndex">Primary or secondardy keybind set</param>
+            /// <param name="k">The keybind key</param>
+            /// <param name="mod">Modifier keys</param>
+            /// <param name="userSpecified">Is a user specified keybind</param>
             public void SetKeybind(eKeybind action, int bindIndex, Key k, ModifierKeys mod, bool userSpecified = false)
             {
                 lock (_lock)
@@ -443,9 +486,21 @@ namespace rgat.Config
                 }
             }
 
+            /// <summary>
+            /// User-defined keybinds
+            /// </summary>
             public List<CustomKeybind> UserKeybinds { get; set; } = new List<CustomKeybind>();
+            /// <summary>
+            /// All active keybinds
+            /// </summary>
             public Dictionary<Tuple<Key, ModifierKeys>, eKeybind> Active = new Dictionary<Tuple<Key, ModifierKeys>, eKeybind>();
+            /// <summary>
+            /// The first set of keybinds
+            /// </summary>
             public Dictionary<eKeybind, Tuple<Key, ModifierKeys>> PrimaryKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
+            /// <summary>
+            /// The second set of keybinds
+            /// </summary>
             public Dictionary<eKeybind, Tuple<Key, ModifierKeys>> AlternateKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
         }
 
@@ -475,6 +530,9 @@ namespace rgat.Config
                 }
             }
 
+            /// <summary>
+            /// Call this after loading
+            /// </summary>
             public void EnsureValidity()
             {
                 if (Paths == null)
@@ -589,7 +647,12 @@ namespace rgat.Config
                 return true;
             }
 
-            public void SetDirectoryPath(CONSTANTS.PathKey setting, string path, bool save = true)
+            /// <summary>
+            /// Set a directory setting
+            /// </summary>
+            /// <param name="setting">The setting</param>
+            /// <param name="path">The path</param>
+            public void SetDirectoryPath(CONSTANTS.PathKey setting, string path)
             {
                 switch (setting)
                 {
@@ -606,7 +669,12 @@ namespace rgat.Config
                 }
             }
 
-            public bool BadSigners(out List<Tuple<string, string>> errors)
+            /// <summary>
+            /// Failed signature checks
+            /// </summary>
+            /// <param name="errors">Signature validation errors</param>
+            /// <returns>Errors were found</returns>
+            public bool BadSigners(out List<Tuple<string, string>>? errors)
             {
                 lock (_lock)
                 {
@@ -621,17 +689,26 @@ namespace rgat.Config
             }
         }
 
+        /// <summary>
+        /// Configuration for tracing
+        /// </summary>
         public class TracingSettings
         {
             uint _TraceBufferSize = 400000;
+            /// <summary>
+            /// How big the tracebuffer can get before we pause instrumentation
+            /// </summary>
             public uint TraceBufferSize { get => _TraceBufferSize; set { _TraceBufferSize = value; MarkDirty(); } }
 
             ulong _SymbolSearchDistance = 4096;
+            /// <summary>
+            /// How far back from an address to search for a symbol
+            /// </summary>
             public ulong SymbolSearchDistance { get => _SymbolSearchDistance; set { _SymbolSearchDistance = value; MarkDirty(); } }
 
             int _ArgStorageMax = 100;
             /// <summary>
-            /// how many bytes back from an instruction to search for a symbol of the function it belongs to
+            /// Maximum number of arguments to store for an API, to prevent excess memory usage
             /// </summary>
             public int ArgStorageMax { get => _ArgStorageMax; set { _ArgStorageMax = value; MarkDirty(); } }
 
@@ -641,6 +718,9 @@ namespace rgat.Config
         public class UpdateSettings
         {
             bool _DoUpdateCheck = true;
+            /// <summary>
+            /// Checking the rgat repo for updates is enabled
+            /// </summary>
             public bool DoUpdateCheck { get => _DoUpdateCheck; set { _DoUpdateCheck = value; MarkDirty(); } }
 
             DateTime _UpdateLastCheckTime = DateTime.MinValue;
@@ -669,7 +749,10 @@ namespace rgat.Config
                 }
             }
 
-            public string _UpdateLastCheckVersionString;
+            string _UpdateLastCheckVersionString;
+            /// <summary>
+            /// Latest available rgat version
+            /// </summary>
             public string UpdateLastCheckVersionString
             {
                 get => UpdateLastCheckVersion.ToString();
@@ -713,28 +796,48 @@ namespace rgat.Config
         public class MediaCaptureSettings
         {
             string _FFmpegPath = "";
+            /// <summary>
+            /// Path to ffmpeg.exe
+            /// </summary>
             public string FFmpegPath { get => _FFmpegPath; set { _FFmpegPath = value; MarkDirty(); } }
 
             string _VideoCodec_Speed = "Medium";
+            /// <summary>
+            /// FFMpeg speed setting
+            /// </summary>
             public string VideoCodec_Speed { get => _VideoCodec_Speed; set { _VideoCodec_Speed = value; MarkDirty(); } }
 
             int _VideoCodec_Quality = 6;
+            /// <summary>
+            /// FFMpeg quality setting
+            /// </summary>
             public int VideoCodec_Quality { get => _VideoCodec_Quality; set { _VideoCodec_Quality = value; MarkDirty(); } }
 
             double _VideoCodec_FPS = 30;
+            /// <summary>
+            /// FFMpeg framerate setting
+            /// </summary>
             public double VideoCodec_FPS { get => _VideoCodec_FPS; set { _VideoCodec_FPS = value; MarkDirty(); } }
 
             string _VideoCodec_Content = "Graph";
+            /// <summary>
+            /// Which content to capture
+            /// </summary>
             public string VideoCodec_Content { get => _VideoCodec_Content; set { _VideoCodec_Content = value; MarkDirty(); } }
 
             string _ImageCapture_Format = "PNG";
+            /// <summary>
+            /// The format for image capture files
+            /// </summary>
             public string ImageCapture_Format { get => _ImageCapture_Format; set { _ImageCapture_Format = value; MarkDirty(); } }
         }
 
+
+        /// <summary>
+        /// Storage of recently accessed paths
+        /// </summary>
         public class CachedRecentPaths
         {
-
-
             /// <summary>
             /// Filesystem locations the user has accessed (opened binaries, opened traces, filepicker directories)
             /// </summary>
@@ -749,7 +852,11 @@ namespace rgat.Config
             }
 
 
-
+            /// <summary>
+            /// Record a recently accessed path
+            /// </summary>
+            /// <param name="pathType">The category of file accessed</param>
+            /// <param name="path">The path</param>
             public void RecordRecentPath(PathType pathType, string path)
             {
                 lock (_lock)
@@ -792,7 +899,9 @@ namespace rgat.Config
                 MarkDirty();
             }
 
-
+            /// <summary>
+            /// Check the loaded data won't crash us
+            /// </summary>
             public void EnsureValidity()
             {
                 PathType[] requiredRecentPathTypes = new PathType[] { PathType.Binary, PathType.Trace, PathType.Directory };
@@ -805,6 +914,10 @@ namespace rgat.Config
 
         }
 
+
+        /// <summary>
+        /// Configuration for signature scanning
+        /// </summary>
         public class SignatureSettings
         {
             bool inited = false;
@@ -828,7 +941,10 @@ namespace rgat.Config
                 }
             }
 
-
+            /// <summary>
+            /// Replace the metadata of a signature repo
+            /// </summary>
+            /// <param name="source">new data</param>
             public void UpdateSignatureSource(SignatureSource source)
             {
                 lock (_lock)
@@ -838,6 +954,10 @@ namespace rgat.Config
                 }
             }
 
+            /// <summary>
+            /// Add a new signature repo
+            /// </summary>
+            /// <param name="source">new data</param>
             public void AddSignatureSource(SignatureSource source)
             {
                 lock (_lock)
@@ -846,6 +966,11 @@ namespace rgat.Config
                     MarkDirty();
                 }
             }
+
+            /// <summary>
+            /// Delete a repo
+            /// </summary>
+            /// <param name="sourcePath">github path</param>
             public void DeleteSignatureSource(string sourcePath)
             {
                 lock (_lock)
@@ -858,6 +983,12 @@ namespace rgat.Config
                     }
                 }
             }
+
+            /// <summary>
+            /// Get a signature repos metadata
+            /// </summary>
+            /// <param name="path">github path</param>
+            /// <returns></returns>
             public SignatureSource? GetSignatureRepo(string path)
             {
                 lock (_lock)
@@ -873,7 +1004,6 @@ namespace rgat.Config
             public void InitDefaultSignatureSources()
             {
                 //todo embed as a resource
-
                 Dictionary<string, SignatureSource> result = new Dictionary<string, SignatureSource>();
                 SignatureSource item1 = new SignatureSource()
                 {
@@ -909,6 +1039,10 @@ namespace rgat.Config
             }
 
 
+            /// <summary>
+            /// Get all signature repos
+            /// </summary>
+            /// <returns>Array of repo metadata</returns>
             public SignatureSource[] GetSignatureSources()
             {
                 lock (_lock)
@@ -918,6 +1052,11 @@ namespace rgat.Config
             }
 
 
+            /// <summary>
+            /// Check a repo path exists
+            /// </summary>
+            /// <param name="githubPath">path</param>
+            /// <returns></returns>
             public bool RepoExists(string githubPath)
             {
                 lock (_lock)
@@ -926,6 +1065,9 @@ namespace rgat.Config
                 }
             }
 
+            /// <summary>
+            /// Init the signature sources if invalid
+            /// </summary>
             public void EnsureValidity()
             {
                 lock (_lock)

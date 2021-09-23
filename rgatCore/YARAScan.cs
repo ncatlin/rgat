@@ -16,9 +16,29 @@ namespace rgat
         readonly object _scanLock = new object();
         readonly YaraContext ctx;
 
-        CompiledRules loadedRules = null;
+        CompiledRules? loadedRules = null;
 
-        public enum eYaraScanProgress { eRunning, eComplete, eNotStarted, eFailed };
+        /// <summary>
+        /// State of the scanner
+        /// </summary>
+        public enum eYaraScanProgress {
+            /// <summary>
+            /// Scanning
+            /// </summary>
+            eRunning, 
+            /// <summary>
+            /// Scan Finished
+            /// </summary>
+            eComplete, 
+            /// <summary>
+            /// Not started
+            /// </summary>
+            eNotStarted, 
+            /// <summary>
+            /// Scanner couldnt load
+            /// </summary>
+            eFailed 
+        };
 
         readonly Dictionary<BinaryTarget, eYaraScanProgress> targetScanProgress = new Dictionary<BinaryTarget, eYaraScanProgress>();
 
@@ -88,30 +108,43 @@ namespace rgat
                 }
             }
 
-            public YARAHit()
-            {
-            }
-
-
+            /// <summary>
+            /// The rule that was hit on
+            /// </summary>
             public Rule MatchingRule;
+
+            /// <summary>
+            /// A list of string matches
+            /// </summary>
             public Dictionary<string, List<YARAHit.YaraHitMatch>> Matches;
 
+            /// <summary>
+            /// A serialisable description of a signature hit
+            /// </summary>
             public class YaraHitMatch
             {
-                public YaraHitMatch()
-                {
-
-                }
+                /// <summary>
+                /// The base of the match (what is this?)
+                /// </summary>
                 public long Base { get; set; }
+                /// <summary>
+                /// The offset of the match
+                /// </summary>
                 public long Offset { get; set; }
+                /// <summary>
+                /// The data of the match
+                /// </summary>
                 public byte[] Data { get; set; }
             }
 
         }
 
 
-
-        //scan a target binary file
+        /// <summary>
+        /// Scan a target binary file
+        /// </summary>
+        /// <param name="targ">File path</param>
+        /// <param name="reload">reload the signatures first</param>
         public void StartYARATargetScan(BinaryTarget targ, bool reload = false)
         {
             targ.ClearSignatureHits(CONSTANTS.eSignatureType.YARA);
@@ -145,6 +178,11 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Reload the signatures from disk
+        /// </summary>
+        /// <param name="rulesDir">Signatures directory</param>
+        /// <param name="forceRecompile">Recompile the signatures even if no changes seen</param>
         public void RefreshRules(string rulesDir, bool forceRecompile = false)
         {
 
