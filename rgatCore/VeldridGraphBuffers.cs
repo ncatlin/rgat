@@ -12,19 +12,6 @@ namespace rgat
 {
     public class VeldridGraphBuffers
     {
-        //LineStrip
-        Pipeline _linesPipeline;
-        //LineList
-        Pipeline _IllustrationLinePipeline;
-        //Nodes
-        Pipeline _pointsPipeline;
-        //Triangles
-        Pipeline _trianglesPipeline;
-
-        ResourceSet _projViewSet;
-        ResourceSet _animBuffSet;
-
-
         /// <summary>
         /// This is used for shaders where the coordinate being referenced is contained in a texture. 
         /// The Texposition is the location (in the positions texture) to read and then draw geometry at with the specified colour.

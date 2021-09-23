@@ -315,8 +315,8 @@ namespace rgat.Widgets
 
             //todo - list of test results, not latest
 
-            eTestState activeState;
             /*
+            eTestState activeState;
             if (autoStopOnFailure && testcase.CountFailed(_currentSession) > 0)
             {
                 activeState = eTestState.Failed;

@@ -870,6 +870,7 @@
             <param name="command">The task to perform</param>
             <param name="recipientID">The intended recipient of the task, eg a certain file picker requested the directory they are in</param>
             <param name="callback">A callback to be performed with the response</param>
+            <param name="param">Optional parameters JSON for the command</param>
         </member>
         <member name="M:rgat.BridgeConnection.SendResponseObject(System.Int32,System.Object)">
             <summary>
@@ -980,6 +981,18 @@
             <summary>
             how many frame timing values to store for calculating UI performance statistics
             </summary>
+        </member>
+        <member name="P:rgat.GlobalConfig.BaseDirectory">
+            <summary>
+            The directory of the original rgat.exe, rather than the rgat.dll runtime directory
+            </summary>
+        </member>
+        <member name="M:rgat.GlobalConfig.LoadConfig(System.Boolean,System.IProgress{System.Single})">
+            <summary>
+            Load the rgat settings.json
+            </summary>
+            <param name="GUI">true if loading in GUI mode</param>
+            <param name="progress">optional IProgress</param>
         </member>
         <member name="T:rgat.Config.LaunchConfig">
             <summary>
@@ -1531,6 +1544,27 @@
             <summary>
             Close the open dialog/menu
             </summary>
+        </member>
+        <member name="P:rgat.DetectItEasy.NewestSignature">
+            <summary>
+            Date of the newest signature in the DetectItEasy signatures directory of this machine
+            </summary>
+        </member>
+        <member name="F:rgat.DetectItEasy.EndpointNewestSignature">
+            <summary>
+            Date of the newest signature in the DetectItEasy signatures directory of the remote machine
+            </summary>
+        </member>
+        <member name="P:rgat.DetectItEasy.StaleRemoteSignatures">
+            <summary>
+            If the available signatures are newer than those on the remote host
+            </summary>
+        </member>
+        <member name="M:rgat.DetectItEasy.ReplaceSignatures(System.Byte[])">
+            <summary>
+            Replace the DIE signatures directory
+            </summary>
+            <param name="zipfile">A zipfile of signatures</param>
         </member>
         <member name="M:rgat.GithubSignatureManager.PurgeRepoFiles(rgat.GlobalConfig.SignatureSource)">
             <summary>
@@ -2359,6 +2393,16 @@
             <summary>
             Reset the layout tracking statistics and reset the temperature to a high value
             </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.GetEdgeLineVerts(rgat.CONSTANTS.eRenderingMode,System.Collections.Generic.List{System.UInt32}@,System.Int32@,System.Int32@)">
+            <summary>
+            Get the geometry and colour of every edge
+            </summary>
+            <param name="renderingMode">Rendering mode (standard, heatmap, etc)</param>
+            <param name="edgeIndices">Output list of edge indexes for drawing</param>
+            <param name="vertCount">Output number of edge vertics to draw</param>
+            <param name="graphDrawnEdgeCount">The number of edges being drawn</param>
+            <returns></returns>
         </member>
         <member name="M:rgat.PlottedGraph.ProcessLiveAnimationUpdates">
             <summary>
@@ -3611,6 +3655,31 @@
             <param name="sessionID">Session ID to check</param>
             <returns>number of failed tests</returns>
         </member>
+        <member name="F:rgat.Widgets.QuickMenu.MenuEntry.Icon">
+            <summary>
+            Icon name for the menu button
+            </summary>
+        </member>
+        <member name="F:rgat.Widgets.QuickMenu.MenuEntry.Popup">
+            <summary>
+            Popup window name for the menu button
+            </summary>
+        </member>
+        <member name="F:rgat.Widgets.QuickMenu.MenuEntry.ToolTip">
+            <summary>
+            Mouseover tooltip for the menu button
+            </summary>
+        </member>
+        <member name="F:rgat.Widgets.QuickMenu.MenuEntry.Action">
+            <summary>
+            Action triggered on button activation
+            </summary>
+        </member>
+        <member name="F:rgat.Widgets.QuickMenu.MenuEntry.Label">
+            <summary>
+            Text label for the button
+            </summary>
+        </member>
         <member name="M:rgat.Widgets.QuickMenu.SetStateChangeCallback(System.Action{System.Boolean})">
             <summary>
             Called whenever the menu is opened/closed
@@ -3948,6 +4017,106 @@
             Set any missing theme settings
             </summary>
         </member>
+        <member name="P:rgat.Themes.ThemeVersion">
+            <summary>
+            Version of the active theme
+            </summary>
+        </member>
+        <member name="M:rgat.Themes.SetThemeColourImGui(ImGuiNET.ImGuiCol,System.UInt32)">
+            <summary>
+            Set an ImGui theme colour
+            </summary>
+            <param name="item">The ImGuiCol colour type</param>
+            <param name="color">The colour value</param>
+        </member>
+        <member name="M:rgat.Themes.GetThemeSize(rgat.Themes.eThemeSize)">
+            <summary>
+            Get a custom theme size
+            </summary>
+            <param name="item">The size to retrieve</param>
+            <returns>The float size value</returns>
+        </member>
+        <member name="M:rgat.Themes.DrawColourSelectors">
+            <summary>
+            Draw the theme colour customisation widget
+            </summary>
+            <returns>true if a setting was changed</returns>
+        </member>
+        <member name="M:rgat.Themes.GetMetadataValue(System.String,System.String@)">
+            <summary>
+            Get a theme metadata value
+            </summary>
+            <param name="name">Value to retrieve</param>
+            <param name="value">The value retrieved</param>
+            <returns>true if succesful</returns>
+        </member>
+        <member name="M:rgat.Themes.SaveMetadataChange(System.String,System.String)">
+            <summary>
+            Change a theme metadata value
+            </summary>
+            <param name="key">The value to change</param>
+            <param name="value">The new value</param>
+        </member>
+        <member name="M:rgat.Themes.DeleteTheme(System.String)">
+            <summary>
+            Delete a theme
+            </summary>
+            <param name="name">Name of the theme to delete</param>
+        </member>
+        <member name="M:rgat.Themes.SavePresetTheme(System.String,System.Boolean)">
+            <summary>
+            Store the current theme as a preset
+            </summary>
+            <param name="name">The name to store the theme as</param>
+            <param name="setAsDefault">if true, this theme will be loaded on rgat start</param>
+        </member>
+        <member name="P:rgat.Themes.ThemeVariant">
+            <summary>
+            Controls can compare this value with a cached value to see if the theme has changed
+            </summary>
+        </member>
+        <member name="M:rgat.Themes.RegenerateUIThemeJSON">
+            <summary>
+            Write all the current theme attributes into a JSON object
+            Updates the ThemeVariant value
+            </summary>
+            <returns>The JSON serialised theme</returns>
+        </member>
+        <member name="M:rgat.Themes.ActivateThemeObject(System.String,System.String@)">
+            <summary>
+            Load and apply a JSON serialised theme
+            </summary>
+            <param name="themeJSON">JSON theme</param>
+            <param name="error">Set to any error encountered while loading it</param>
+            <returns>success if the theme was loaded</returns>
+        </member>
+        <member name="M:rgat.Themes.LoadTheme(System.String)">
+            <summary>
+            Activate a theme by name
+            </summary>
+            <param name="themename">Name of the theme to activate</param>
+        </member>
+        <member name="F:rgat.Themes.CustomThemes">
+            <summary>
+            Custom themes
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.BuiltinThemes">
+            <summary>
+            Builtin themes
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.ThemesMetadataCatalogue">
+            <summary>
+            Metadata for all available themes
+            </summary>
+        </member>
+        <member name="M:rgat.Themes.LoadBuiltinThemes(Newtonsoft.Json.Linq.JArray)">
+            <summary>
+            Load the builtin rgat themes to make them available for activation
+            </summary>
+            <param name="themesArray">JArray of builtin themes</param>
+        </member>
         <member name="T:rgat.BlockHandlerThread">
             <summary>
             A worker for disassembling the instructions sent by an instrumented trace
@@ -4162,7 +4331,11 @@
             How many bytes of opcodes the instruction has
             </summary>
         </member>
-        <!-- Badly formed XML comment ignored for member "P:rgat.InstructionData.ThreadVerts" -->
+        <member name="P:rgat.InstructionData.ThreadVerts">
+            <summary>
+            The index of the node containing this instruction in each thread [Thread ID/instruction index]
+            </summary>
+        </member>
         <member name="M:rgat.TraceRecord.GetTimeLineEntries(System.Int64,System.Int32)">
             <summary>
             Fetches an array of the newest timeline events for the trace

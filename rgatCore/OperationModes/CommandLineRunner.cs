@@ -35,7 +35,7 @@ namespace rgat.OperationModes
 
             System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
             timer.Start();
-            float configProgress = 0, widgetProgress = 0;
+            //float configProgress = 0, widgetProgress = 0;
 
             GlobalConfig.LoadConfig(GUI: false); // 900ms~ depending on themes
 

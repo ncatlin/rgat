@@ -366,7 +366,6 @@ namespace rgat
             ResourceSetDescription velocity_rsrc_desc, pos_rsrc_desc, attr_rsrc_desc;
             GraphLayoutState layout = graph.LayoutState;
             DeviceBuffer inputAttributes;
-            DeviceBuffer outputAttributes;
 
             //todo set this on layout change
             bool isForceDirected = CONSTANTS.LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle);

@@ -433,9 +433,6 @@ namespace rgat.Widgets
                 float Xoffset = (_width - pSep * backIdx) - tagWidth;
 
                 Xoffset -= scrollOffset;
-                bool drawPlotLine;
-                //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Cyan), Position = new Vector2(Xoffset, 0) });
-                //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Cyan), Position = new Vector2(Xoffset, 50) });
                 int blkID = (int)ae.blockID;
 
                 if (blkID < 0 || blkID >= graph.BlocksFirstLastNodeList.Count) continue;
@@ -451,7 +448,7 @@ namespace rgat.Widgets
                 switch (ae.entryType)
                 {
                     case eTraceUpdateType.eAnimExecTag:
-                        drawPlotLine = true;
+                        //drawPlotLine = true;
                         break;
 
                     case eTraceUpdateType.eAnimUnchained:
@@ -468,7 +465,7 @@ namespace rgat.Widgets
 
                     case eTraceUpdateType.eAnimUnchainedResults:
                         {
-                            drawPlotLine = true;
+                            //drawPlotLine = true;
                             float symbase = 12f;
                             //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset, 2) });
                             //lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LimeGreen), Position = new Vector2(Xoffset + pSep, 2) });
@@ -756,7 +753,6 @@ namespace rgat.Widgets
             if (animationData.Count == 0) return;
 
             //Draw cumulative instruction count plot
-            ulong cumulativeInsCount = 0;
             int lastPlotXPixel = -1;
             float thirdHeight = (float)Math.Floor(_height / 3);
             Vector2 lastCumuLinePos = new Vector2(0, thirdHeight);

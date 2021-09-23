@@ -15,6 +15,12 @@ namespace rgat
 {
     public partial class GlobalConfig
     {
+        static GlobalConfig()
+        {
+            //with single executables the AppContext.BaseDirectory value is the temp extract dir
+            BaseDirectory = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]) ?? AppContext.BaseDirectory;
+            StartOptions = new LaunchConfig(); //dummy to avoid nullable warning
+        }
 
         /// <summary>
         /// Checks that a binary has a valid code signing certificate issued to one of the expected subject names
@@ -85,20 +91,6 @@ namespace rgat
             }
         }
 
-        public struct SYMS_VISIBILITY
-        {
-            public bool enabled;
-            public bool showWhenZoomed;
-            public float autoVisibleZoom;
-
-            public bool duringAnimationFaded;
-            public bool duringAnimationHighlighted;
-            public bool notAnimated;
-            public bool fullPaths;
-            public bool addresses;
-            public bool offsets;
-            public bool extraDetail;
-        };
 
         /*
          * Launch config derived from command line arguments/defaults
@@ -127,7 +119,11 @@ namespace rgat
         /// Amount of alpha to reduce fading item by each frame
         /// </summary>
         public static float animationFadeRate = 0.07f;
+
+        public static float AnimatedFadeMinimumAlpha = 0.3f;
+
         public static int animationLingerFrames = 0; //number of frames before fade begins
+
         public static float MinimumAlpha = 0.06f;
 
         /// <summary>
@@ -140,28 +136,47 @@ namespace rgat
         /// </summary>
         public static int LiveAnimationUpdatesPerFrame = 500;
 
+        /// <summary>
+        /// Animate a rising caption of API nodes when they are animated
+        /// </summary>
         public static bool showRisingAnimated = true;
 
-        public static SYMS_VISIBILITY externalSymbolVisibility;
-        public static SYMS_VISIBILITY internalSymbolVisibility;
-        public static SYMS_VISIBILITY placeholderLabelVisibility;
-        public static SYMS_VISIBILITY instructionTextVisibility;
+        /// <summary>
+        /// When to make ins text smaller  [todo: reimplement]
+        /// </summary>
         public static float insTextCompactThreshold = 2.5f;
+        /// <summary>
+        /// Upper limit on how many labels to draw on screen at once [todo: reimplement]
+        /// </summary>
         public static int OnScreenNodeTextCountLimit = 100;
-
+        /// <summary>
+        /// Upper limit on how far an instruction can be from the camera to be drawn [todo: reimplement]
+        /// </summary>
         public static float FurthestInstructionText = 2500f;
+        /// <summary>
+        /// Upper limit on how far a symbol can be from the camera to be drawn [todo: reimplement]
+        /// </summary>
         public static float FurthestSymbol = 5000f;
 
-        public static float AnimatedFadeMinimumAlpha = 0.3f;
-        public static float WireframeAnimatedAlpha = 0.7f;
-
+        /// <summary>
+        /// How many frames to animate API calls for
+        /// </summary>
         public static int ExternAnimDisplayFrames = 60;
+        /// <summary>
+        /// How far API labels rise during animation frames [todo should be in consts]
+        /// </summary>
         public static float ExternAnimRisePerFrame = 1.4f;
 
-        public static uint MaximumLoadedGraphs = 1; //todo for dev - change to something like 20 later
+        //public static uint MaximumLoadedGraphs = 1; //todo for dev - change to something like 20 later
 
-        public static uint IngestStatsPerSecond = 6; //granularity of thread update rate plot
-        public static float IngestStatWindow = 5f; //length of time a small thread activity plot covers (last X seconds)
+        /// <summary>
+        /// granularity of thread update rate plot
+        /// </summary>
+        public static uint IngestStatsPerSecond = 6;
+        /// <summary>
+        /// length of time a small thread activity plot covers (last X seconds)
+        /// </summary>
+        public static float IngestStatWindow = 5f;
 
         public static int KeystrokeDisplayMS = 4000;
         public static int KeystrokeStartFadeMS = 350;
@@ -171,8 +186,10 @@ namespace rgat
 
         public static int VisMessageMaxLingerTime = 6500;
         public static int VisMessageFadeStartTime = 500;
-        public static bool ShowVisMessages = true;
 
+        /// <summary>
+        /// Whether a tooltip should be shown on graph node mouseover
+        /// </summary>
         public static bool ShowNodeMouseoverTooltip = true;
 
         public static int NodeClumpLimit = 50;
@@ -197,14 +214,26 @@ namespace rgat
         public static bool LayoutAttribsActive = true;
 
         /// <summary>
-        /// Maximum speed of force-directed nodes. Fast nodes will layout quickly but wobble
+        /// Maximum configurable speed of force-directed nodes. Fast nodes will layout quickly but wobble
         /// in their low energy position
         /// </summary>
         public static float NodeSoftSpeedLimit = 200f;
+        /// <summary>
+        /// Speed limit nodes cannot exceed
+        /// </summary>
         public static readonly float NodeHardSpeedLimit = 1000f; //match with value in velocity shader
 
-
+        /// <summary>
+        /// A new rgat release is available to download
+        /// </summary>
         public static bool NewVersionAvailable = false;
+
+        /// <summary>
+        /// Record the details of a new rgat version
+        /// </summary>
+        /// <param name="releaseVersion">The release version</param>
+        /// <param name="releaseCumulativeChanges">Text of changes from the current version</param>
+        /// <param name="downloadLink">Link to download the release from</param>
         public static void RecordAvailableUpdateDetails(Version releaseVersion, string releaseCumulativeChanges, string downloadLink)
         {
             try
@@ -222,16 +251,31 @@ namespace rgat
 
 
 
+        //public static Dictionary<string, string> LoadedStringResources = new Dictionary<string, string>();
 
-        public static Dictionary<string, string> LoadedStringResources = new Dictionary<string, string>();
-
-
+        /// <summary>
+        /// Fetch and load builtin rgat themes from the Assembly resources
+        /// </summary>
         public static void LoadThemesFromResource()
         {
             Logging.RecordLogEvent($"Loading Resources", Logging.LogFilterType.TextDebug);
 
             System.Reflection.Assembly assembly = typeof(ImGuiController).Assembly;
-            System.IO.Stream? fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
+            System.IO.Stream? fs = null;
+            try
+            {
+                fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
+                if (fs is null)
+                {
+                    Logging.RecordError("LoadThemesFromResource: Failed to load manifest resource stream");
+                    return;
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"LoadThemesFromResource: Failed to load manifest resource stream: {e.Message}");
+                return;
+            }
             System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
 
             r.GetResourceData("BuiltinJSONThemes", out string? type, out byte[] themesjsn);
@@ -240,7 +284,7 @@ namespace rgat
                 try
                 {
                     string preset = System.Text.Encoding.ASCII.GetString(themesjsn, 0, themesjsn.Length);
-                    Themes.LoadPresetThemes(Newtonsoft.Json.Linq.JArray.Parse(preset));
+                    Themes.LoadBuiltinThemes(Newtonsoft.Json.Linq.JArray.Parse(preset));
                 }
                 catch (Exception e)
                 {
@@ -250,6 +294,12 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Try to find a path to store working data
+        /// </summary>
+        /// <param name="baseDir">Directory to search in</param>
+        /// <param name="name">Name of directory to create</param>
+        /// <returns>Path of created directory</returns>
         public static string GetStorageDirectoryPath(string baseDir, string name)
         {
             List<string> candidates = new List<string>() {
@@ -403,7 +453,13 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Get the code signing certificate validation result for a binary
+        /// </summary>
+        /// <param name="path">Path of the binary</param>
+        /// <param name="error">Certificate error reason</param>
+        /// <param name="timeWarning">If the failure was due to a time issue (before/after validity)</param>
+        /// <returns>If the certificate is valid</returns>
         public static bool PreviousSignatureCheckPassed(string path, out string? error, out bool timeWarning)
         {
             timeWarning = false;
@@ -430,62 +486,6 @@ namespace rgat
 
             error = "No Error";
             return true;
-        }
-
-        static void LoadTextSettingsColours()
-        {
-
-            const int EXTERN_VISIBLE_ZOOM_FACTOR = 40;
-            const int INSTEXT_VISIBLE_ZOOMFACTOR = 5;
-
-            externalSymbolVisibility = new SYMS_VISIBILITY
-            {
-                enabled = true,
-                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
-                offsets = true,
-                addresses = false,
-                fullPaths = false,
-                extraDetail = true,
-                duringAnimationFaded = false,
-                duringAnimationHighlighted = true,
-                notAnimated = true
-            };
-
-            internalSymbolVisibility = new SYMS_VISIBILITY
-            {
-                enabled = true,
-                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
-                addresses = false,
-                fullPaths = false,
-                extraDetail = true,
-                duringAnimationFaded = false,
-                duringAnimationHighlighted = true,
-                notAnimated = true
-            };
-
-            placeholderLabelVisibility = new SYMS_VISIBILITY
-            {
-                enabled = true,
-                autoVisibleZoom = EXTERN_VISIBLE_ZOOM_FACTOR,
-                addresses = false,
-                fullPaths = false,
-                extraDetail = true,
-                duringAnimationFaded = false,
-                duringAnimationHighlighted = true,
-                notAnimated = true
-            };
-
-
-            instructionTextVisibility = new SYMS_VISIBILITY
-            {
-                enabled = true,
-                autoVisibleZoom = INSTEXT_VISIBLE_ZOOMFACTOR,
-                addresses = false,
-                offsets = true,
-                fullPaths = true, //label for targets of calls/jmps
-                extraDetail = true //only show control flow
-            };
-
         }
 
 
@@ -586,15 +586,22 @@ namespace rgat
         // -> this idea is shelved for the foreseeable future, see https://trello.com/c/ShIWBywy/141-specify-rule-rule-group-exec-conditions-file-mem
         //public static Dictionary<string, eSigScanLocation> SignatureScanLimits = new Dictionary<string, eSigScanLocation>();
 
+        /// <summary>
+        /// The directory of the original rgat.exe, rather than the rgat.dll runtime directory
+        /// </summary>
         public static string BaseDirectory { get; private set; }
 
 
-        public static void LoadConfig(bool GUI, IProgress<float> progress = null)
+        /// <summary>
+        /// Load the rgat settings.json
+        /// </summary>
+        /// <param name="GUI">true if loading in GUI mode</param>
+        /// <param name="progress">optional IProgress</param>
+        public static void LoadConfig(bool GUI, IProgress<float>? progress = null)
         {
             System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
             timer.Start();
 
-            BaseDirectory = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]); //with single executables the AppContext.BaseDirectory value is the temp extract dir
             string settingsPath = Path.Combine(BaseDirectory, "settings.json");
             if (!File.Exists(settingsPath))
             {
@@ -661,8 +668,6 @@ namespace rgat
                 progress?.Report(0.5f);
 
                 Settings.Keybinds.ApplyUserKeybinds();
-
-                LoadTextSettingsColours();
 
                 progress?.Report(0.7f);
             }

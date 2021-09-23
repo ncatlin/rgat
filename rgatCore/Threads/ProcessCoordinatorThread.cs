@@ -234,6 +234,11 @@ namespace rgat.Threads
         }
 
 
+        /// <summary>
+        /// Launch threads to handle a trace running on the local system
+        /// </summary>
+        /// <param name="trace">The running trace</param>
+        /// <param name="testID">Optional test ID if the trace is a test</param>
         public void StartLocalTraceThreads(TraceRecord trace, long testID = -1)
         {
             if (testID != -1)

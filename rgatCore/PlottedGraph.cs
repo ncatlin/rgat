@@ -1476,7 +1476,14 @@ namespace rgat
 
 
 
-
+        /// <summary>
+        /// Get the geometry and colour of every edge
+        /// </summary>
+        /// <param name="renderingMode">Rendering mode (standard, heatmap, etc)</param>
+        /// <param name="edgeIndices">Output list of edge indexes for drawing</param>
+        /// <param name="vertCount">Output number of edge vertics to draw</param>
+        /// <param name="graphDrawnEdgeCount">The number of edges being drawn</param>
+        /// <returns></returns>
         public Position2DColour[] GetEdgeLineVerts(eRenderingMode renderingMode,
             out List<uint> edgeIndices, out int vertCount, out int graphDrawnEdgeCount)
         {

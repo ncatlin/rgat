@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using Veldrid;
@@ -29,7 +30,7 @@ namespace rgat.Widgets
         }
         bool _stayExpanded; //otherwise only expanded on mouse hover of button or child menus
 
-        bool ExpansionFinished => Math.Floor(_expandProgress) == _baseMenuEntry.children.Count;
+        bool ExpansionFinished => Math.Floor(_expandProgress) == _baseMenuEntry.children!.Count;
         public bool Expanded => _expanded;
 
         float _expandProgress = 0f;
@@ -43,15 +44,30 @@ namespace rgat.Widgets
 
         class MenuEntry
         {
-            public string Icon;
-            public string Popup;
-            public string ToolTip;
-            public ActionName Action;
-            public string Label;
+            /// <summary>
+            /// Icon name for the menu button
+            /// </summary>
+            public string? Icon;
+            /// <summary>
+            /// Popup window name for the menu button
+            /// </summary>
+            public string? Popup;
+            /// <summary>
+            /// Mouseover tooltip for the menu button
+            /// </summary>
+            public string? ToolTip;
+            /// <summary>
+            /// Action triggered on button activation
+            /// </summary>
+            public ActionName? Action;
+            /// <summary>
+            /// Text label for the button
+            /// </summary>
+            public string? Label;
             public bool CloseMenu;
             public Key Shortcut;
-            public List<MenuEntry> children;
-            public MenuEntry parent;
+            public List<MenuEntry>? children;
+            public MenuEntry? parent;
             bool _isActive;
             public bool active
             {
@@ -285,10 +301,9 @@ namespace rgat.Widgets
 
         void PopulateMenuActionsList(MenuEntry entry)
         {
-            if (entry.Action != null)
-            {
-                menuActions[entry.Action] = entry;
-            }
+            Debug.Assert(entry.Action is not null);
+            menuActions[entry.Action.Value] = entry;
+
             if (entry.children?.Count > 0)
             {
                 foreach (MenuEntry child in entry.children)
@@ -336,10 +351,10 @@ namespace rgat.Widgets
                 {
                     if (entry.Action != null)
                     {
-                        if (ActivateAction(entry.Action, hotKey: true, out string? resultText))
+                        if (ActivateAction(entry.Action.Value, hotKey: true, out string? resultText))
                         {
                             string combo = String.Join("-", keyCombo.ToArray());
-                            string label = entry.Label;
+                            string label = entry.Label!;
                             if (resultText != null)
                                 label += $": {resultText}";
                             ComboAction = new Tuple<string, string>(combo, label);

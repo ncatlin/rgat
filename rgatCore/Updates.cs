@@ -334,7 +334,6 @@ namespace rgat
         static string _update_style = "";
         static float _download_progress = -1;
         static bool _download_complete;
-        static bool _update_ready;
         static readonly CancellationTokenSource _download_cancel_tokensrc = new CancellationTokenSource();
 
         static void StartUpdater(bool delayed_install = false)
@@ -363,7 +362,6 @@ namespace rgat
                                 Directory.Delete(GlobalConfig.Settings.Updates.StagedDownloadPath);
                             }
                             _download_complete = true;
-                            _update_ready = true;
                             InitiateFileSwap(stagedrgat);
                             return;
                         }

@@ -255,7 +255,6 @@ namespace rgat
                 //should only be one
                 string exdir = Directory.GetDirectories(tempExtractDir)[0];
 
-                string fromDir;
                 if (repo.SubDir == "")
                 {
                     Directory.Move(exdir, repoDirectory);

@@ -19,7 +19,7 @@ namespace rgat
 
         readonly BinaryTarget target;
         readonly TraceRecord trace;
-        NamedPipeServerStream blockPipe = null;
+        NamedPipeServerStream? blockPipe = null;
         readonly int bitWidth;
         readonly CapstoneX86Disassembler disassembler;
         readonly uint? _remotePipeID;
@@ -101,7 +101,7 @@ namespace rgat
         {
             try
             {
-                blockPipe.EndWaitForConnection(ar);
+                blockPipe!.EndWaitForConnection(ar);
                 Console.WriteLine("Block pipe connected for PID " + trace.PID);
             }
             catch (Exception e)
@@ -114,6 +114,7 @@ namespace rgat
         void MirrorMessageToUI(byte[] buf, int bytesRead)
         {
             //Console.WriteLine($"Mirrormsg len {bytesRead}/{buf.Length} to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(buf, 0, bytesRead));
+            Debug.Assert(_remotePipeID is not null);
             rgatState.NetworkBridge.SendRawTraceData(_remotePipeID.Value, buf, bytesRead);
         }
 
@@ -290,7 +291,7 @@ namespace rgat
         readonly object _lock = new object();
 
 
-        void RemoteListener(object ProcessMessageobj)
+        void RemoteListener(object? ProcessMessageobj)
         {
             byte[][] newItems;
             while (!rgatState.rgatIsExiting)
@@ -334,8 +335,10 @@ namespace rgat
         }
 
 
-        async void LocalListener(object ProcessMessageobj)
+        async void LocalListener(object? ProcessMessageobj)
         {
+            if (ProcessMessageobj is null) return;
+
             string name = GetBlockPipeName(trace.PID, trace.randID);
             ProcessPipeMessageAction ProcessMessage = (ProcessPipeMessageAction)ProcessMessageobj;
             blockPipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);

@@ -21,7 +21,7 @@ namespace ImGuiNET
 
             InitialSetup();
 
-            switch (GlobalConfig.StartOptions.RunMode)
+            switch (GlobalConfig.StartOptions!.RunMode)
             {
                 case LaunchConfig.eRunMode.GUI:
                     ImGuiRunner Ui = new ImGuiRunner(_rgatState);
@@ -113,7 +113,7 @@ namespace ImGuiNET
         {
             bool exit = false;
             //list valid network interfaces if the -i param was provided with a list arg or invalid interface
-            string? interfaceOption = GlobalConfig.StartOptions.Interface;
+            string? interfaceOption = GlobalConfig.StartOptions!.Interface;
             if (interfaceOption != null)
             {
                 HandleInterfaceParam(interfaceOption, ref exit);
@@ -130,6 +130,7 @@ namespace ImGuiNET
 
         static void HandleInterfaceParam(string interfaceOption, ref bool exit)
         {
+            LaunchConfig startOpts = GlobalConfig.StartOptions!;
             switch (interfaceOption)
             {
                 case "list all":
@@ -151,22 +152,22 @@ namespace ImGuiNET
 
                 case "all":
                 case "any":
-                    if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.Bridged)
+                    if (startOpts.RunMode == LaunchConfig.eRunMode.Bridged)
                     {
-                        GlobalConfig.StartOptions.Interface = "0.0.0.0";
+                        startOpts.Interface = "0.0.0.0";
                     }
                     break;
 
                 default:
                     {
-                        if (GlobalConfig.StartOptions.RunMode != LaunchConfig.eRunMode.Bridged) return;
+                        if (startOpts.RunMode != LaunchConfig.eRunMode.Bridged) return;
 
-                        if (!System.Net.IPAddress.TryParse(GlobalConfig.StartOptions.Interface, out System.Net.IPAddress? address) ||
-                            int.TryParse(GlobalConfig.StartOptions.Interface, out int ipInt) && ipInt > 0 && ipInt < 128)
+                        if (!System.Net.IPAddress.TryParse(startOpts.Interface, out System.Net.IPAddress? address) ||
+                            int.TryParse(startOpts.Interface, out int ipInt) && ipInt > 0 && ipInt < 128)
                         {
                             //see if it matches a property from the interface list
-                            GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(interfaceOption);
-                            if (GlobalConfig.StartOptions.ActiveNetworkInterface == null)
+                            startOpts.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(interfaceOption);
+                            if (startOpts.ActiveNetworkInterface == null)
                             {
                                 Console.WriteLine($"Error: Specified network interface '{interfaceOption}' could not be matched to a valid network interface\n");
                                 NetworkUtilities.PrintInterfaces();

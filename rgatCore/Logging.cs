@@ -356,7 +356,6 @@ namespace rgat
             ulong _ID;
             ulong _parentID;
             object _item;
-            readonly bool _inited;
         }
 
 

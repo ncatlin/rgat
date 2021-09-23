@@ -34,7 +34,7 @@ namespace rgat.OperationModes
 
         public void StartGUIConnect(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback onConnected)
         {
-            if (GlobalConfig.StartOptions.ConnectModeAddress != null)
+            if (GlobalConfig.StartOptions!.ConnectModeAddress != null)
             {
                 Logging.RecordLogEvent("Starting GUI connect mode", Logging.LogFilterType.TextDebug);
                 try
@@ -52,7 +52,7 @@ namespace rgat.OperationModes
 
         public void StartGUIListen(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback onConnected)
         {
-            if (GlobalConfig.StartOptions.ListenPort != null)
+            if (GlobalConfig.StartOptions!.ListenPort != null)
             {
                 Logging.RecordLogEvent("Starting GUI listen mode", Logging.LogFilterType.TextDebug);
                 try
@@ -86,6 +86,7 @@ namespace rgat.OperationModes
         {
             GlobalConfig.LoadConfig(GUI: false, progress: null);
             InitStartOptions();
+            Debug.Assert(GlobalConfig.StartOptions is not null);
 
             Task sigsTask = Task.Run(() => rgatState.LoadSignatures(completionCallback: SendSigDates));
 
@@ -128,7 +129,7 @@ namespace rgat.OperationModes
             string defaultKey = GlobalConfig.Settings.Network.DefaultNetworkKey;
             if (defaultKey?.Length > 0)
             {
-                GlobalConfig.StartOptions.NetworkKey = defaultKey;
+                GlobalConfig.StartOptions!.NetworkKey = defaultKey;
             }
 
         }
@@ -950,7 +951,7 @@ namespace rgat.OperationModes
                 return;
             }
 
-            Logging.RecordLogEvent($"Initialising . {GlobalConfig.StartOptions.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Initialising . {GlobalConfig.StartOptions!.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
             if (!GetRemoteAddress(GlobalConfig.StartOptions.ConnectModeAddress, out string? address, out int port))
             {
                 Logging.RecordError($"Failed to parse address/port from param {GlobalConfig.StartOptions.ConnectModeAddress}");
@@ -993,7 +994,7 @@ namespace rgat.OperationModes
         IPAddress? GetLocalAddress()
         {
             IPAddress? result = null;
-            if (GlobalConfig.StartOptions.ActiveNetworkInterface == null && GlobalConfig.StartOptions.Interface != null)
+            if (GlobalConfig.StartOptions!.ActiveNetworkInterface == null && GlobalConfig.StartOptions.Interface != null)
             {
                 GlobalConfig.StartOptions.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(GlobalConfig.StartOptions.Interface);
             }
@@ -1053,7 +1054,7 @@ namespace rgat.OperationModes
             }
 
             Int32 port;
-            if (GlobalConfig.StartOptions.ListenPort != null && GlobalConfig.StartOptions.ListenPort.Value > 0)
+            if (GlobalConfig.StartOptions!.ListenPort != null && GlobalConfig.StartOptions.ListenPort.Value > 0)
             {
                 port = GlobalConfig.StartOptions.ListenPort.Value;
                 Console.WriteLine($"Starting TCP server on {localAddr}:{port}");

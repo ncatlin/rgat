@@ -452,12 +452,26 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Version of the active theme
+        /// </summary>
         public static ulong ThemeVersion { get; private set; } = 0;
+
+        /// <summary>
+        /// Set an ImGui theme colour
+        /// </summary>
+        /// <param name="item">The ImGuiCol colour type</param>
+        /// <param name="color">The colour value</param>
         public static void SetThemeColourImGui(ImGuiCol item, uint color)
         {
             lock (_lock) { ThemeColoursStandard[item] = color; ThemeVersion++; }
         }
 
+        /// <summary>
+        /// Get a custom theme size
+        /// </summary>
+        /// <param name="item">The size to retrieve</param>
+        /// <returns>The float size value</returns>
         public static float GetThemeSize(eThemeSize item)
         {
             lock (_lock)
@@ -468,6 +482,11 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// Draw the theme colour customisation widget
+        /// </summary>
+        /// <returns>true if a setting was changed</returns>
         public unsafe static bool DrawColourSelectors()
         {
             bool changed = false;
@@ -562,6 +581,12 @@ namespace rgat
             return changed;
         }
 
+        /// <summary>
+        /// Get a theme metadata value
+        /// </summary>
+        /// <param name="name">Value to retrieve</param>
+        /// <param name="value">The value retrieved</param>
+        /// <returns>true if succesful</returns>
         public static bool GetMetadataValue(string name, out string? value)
         {
             lock (_lock)
@@ -770,10 +795,17 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Change a theme metadata value
+        /// </summary>
+        /// <param name="key">The value to change</param>
+        /// <param name="value">The new value</param>
         public static void SaveMetadataChange(string key, string value)
         {
             ThemeMetadata[key] = value;
-            if (currentThemeJSON.TryGetValue("MetaData", out JToken? mdTok) && mdTok.Type is JTokenType.Object)
+            if (currentThemeJSON is not null && 
+                currentThemeJSON.TryGetValue("MetaData", out JToken? mdTok) && 
+                mdTok.Type is JTokenType.Object)
             {
                 mdTok.ToObject<JObject>()![key] = value;
                 UnsavedTheme = true;
@@ -782,6 +814,10 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Delete a theme
+        /// </summary>
+        /// <param name="name">Name of the theme to delete</param>
         public static void DeleteTheme(string name)
         {
             if (ThemeMetadata["Name"] != name && !BuiltinThemes.ContainsKey(name))
@@ -793,6 +829,11 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Store the current theme as a preset
+        /// </summary>
+        /// <param name="name">The name to store the theme as</param>
+        /// <param name="setAsDefault">if true, this theme will be loaded on rgat start</param>
         public static void SavePresetTheme(string name, bool setAsDefault)
         {
             if (name.Length == 0 || BuiltinThemes.ContainsKey(name)) return;
@@ -802,8 +843,7 @@ namespace rgat
                 SaveMetadataChange("Name", name);
             }
 
-
-            CustomThemes[name] = currentThemeJSON;
+            CustomThemes[name] = currentThemeJSON!;
             ThemesMetadataCatalogue[name] = ThemeMetadata;
             UnsavedTheme = false;
             WriteCustomThemesToConfig();
@@ -813,10 +853,18 @@ namespace rgat
 
         }
 
-        static JObject currentThemeJSON;
-        //controls can check this value to see if the theme has changed
+
+        static JObject? currentThemeJSON;
+        /// <summary>
+        /// Controls can compare this value with a cached value to see if the theme has changed
+        /// </summary>
         public static ulong ThemeVariant { get; private set; } = 0;
 
+        /// <summary>
+        /// Write all the current theme attributes into a JSON object
+        /// Updates the ThemeVariant value
+        /// </summary>
+        /// <returns>The JSON serialised theme</returns>
         public static string RegenerateUIThemeJSON()
         {
             lock (_lock)
@@ -856,7 +904,13 @@ namespace rgat
         }
 
 
-        public static bool ActivateThemeObject(string themeJSON, out string? error)
+        /// <summary>
+        /// Load and apply a JSON serialised theme
+        /// </summary>
+        /// <param name="themeJSON">JSON theme</param>
+        /// <param name="error">Set to any error encountered while loading it</param>
+        /// <returns>success if the theme was loaded</returns>
+        public static bool ActivateThemeObject(string themeJSON, out string error)
         {
             JObject? themeJson = null;
             try
@@ -882,7 +936,7 @@ namespace rgat
         }
 
 
-        static bool LoadMetadataStrings(JObject themeObj, out Dictionary<string, string> result, out string? error)
+        static bool LoadMetadataStrings(JObject themeObj, out Dictionary<string, string> result, out string error)
         {
             result = new Dictionary<string, string>();
 
@@ -921,6 +975,10 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Activate a theme by name
+        /// </summary>
+        /// <param name="themename">Name of the theme to activate</param>
         public static void LoadTheme(string themename)
         {
             if (ThemeMetadata.TryGetValue("Name", out string? currentTheme) && currentTheme == themename)
@@ -945,19 +1003,34 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Custom themes
+        /// </summary>
         public static Dictionary<string, JObject> CustomThemes = new Dictionary<string, JObject>();
+        /// <summary>
+        /// Builtin themes
+        /// </summary>
         public static Dictionary<string, JObject> BuiltinThemes = new Dictionary<string, JObject>();
+        /// <summary>
+        /// Metadata for all available themes
+        /// </summary>
         public static Dictionary<string, Dictionary<string, string>> ThemesMetadataCatalogue = new Dictionary<string, Dictionary<string, string>>();
 
-        public static void LoadPresetThemes(JArray themesArray)
+
+        /// <summary>
+        /// Load the builtin rgat themes to make them available for activation
+        /// </summary>
+        /// <param name="themesArray">JArray of builtin themes</param>
+        public static void LoadBuiltinThemes(JArray themesArray)
         {
             Logging.RecordLogEvent($"Loading {themesArray.Count} builtin themes", Logging.LogFilterType.TextDebug);
             for (var i = 0; i < themesArray.Count; i++)
             {
                 JObject? theme = themesArray[i].Value<JObject>();
-                if (!LoadMetadataStrings(theme, out Dictionary<string, string> metadata, out string? error))
+                string? error = null;
+                if (theme is null || !LoadMetadataStrings(theme, out Dictionary<string, string> metadata, out error))
                 {
-                    Logging.RecordLogEvent($"Error loading metadata for preloaded theme {i}: {error}");
+                    Logging.RecordLogEvent($"Error loading metadata for preloaded theme {i}: {(error is not null ? error : "Bad Object")}");
                     continue;
                 }
 
@@ -1005,6 +1078,7 @@ namespace rgat
                     }
                 }
             }
+
             string defaultTheme = GlobalConfig.Settings.Themes.DefaultTheme;
             if (defaultTheme.Length > 0)
             {

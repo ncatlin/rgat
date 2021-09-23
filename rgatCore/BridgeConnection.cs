@@ -668,7 +668,8 @@ namespace rgat
         /// <param name="command">The task to perform</param>
         /// <param name="recipientID">The intended recipient of the task, eg a certain file picker requested the directory they are in</param>
         /// <param name="callback">A callback to be performed with the response</param>
-        public int SendCommand(string command, string recipientID, RemoteDataMirror.ProcessResponseCallback callback, JToken param = null)
+        /// <param name="param">Optional parameters JSON for the command</param>
+        public int SendCommand(string command, string? recipientID, RemoteDataMirror.ProcessResponseCallback? callback, JToken? param = null)
         {
             lock (_sendQueueLock)
             {

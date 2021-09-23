@@ -110,7 +110,7 @@ namespace rgat
         public int NumBytes => Opcodes.Length;
 
         /// <summary>
-        /// The indexe of the node containing this instruction in each thread <Thread ID, instruction index>
+        /// The index of the node containing this instruction in each thread [Thread ID/instruction index]
         /// </summary>
         public List<Tuple<uint, uint>> ThreadVerts => _threadVertIndexes.ToList();
 

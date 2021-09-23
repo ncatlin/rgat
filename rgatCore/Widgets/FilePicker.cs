@@ -427,8 +427,6 @@ namespace rgatFilePicker
             public bool CurrentDirectoryParentExists;
             public string ErrMsg;
         }
-        private readonly bool _badDir = false;
-
         public static FilePicker GetDirectoryPicker(object o, string startingPath)
             => GetFilePicker(o, startingPath, null, true);
 

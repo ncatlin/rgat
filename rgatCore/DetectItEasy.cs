@@ -177,13 +177,22 @@ namespace rgat
         }
 
         readonly DateTime _lastCheck = DateTime.MinValue;
+        /// <summary>
+        /// Date of the newest signature in the DetectItEasy signatures directory of this machine
+        /// </summary>
         public DateTime NewestSignature { get; private set; } = DateTime.MinValue;
+        /// <summary>
+        /// Date of the newest signature in the DetectItEasy signatures directory of the remote machine
+        /// </summary>
         public DateTime EndpointNewestSignature = DateTime.MinValue;
+        /// <summary>
+        /// If the available signatures are newer than those on the remote host
+        /// </summary>
         public bool StaleRemoteSignatures => (EndpointNewestSignature != DateTime.MinValue && EndpointNewestSignature > NewestSignature);
 
         DateTime LatestSignatureChange(string rulesDir)
         {
-            if (NewestSignature != null && (DateTime.Now - _lastCheck).TotalSeconds < 20) return NewestSignature;
+            if ((DateTime.Now - _lastCheck).TotalSeconds < 20) return NewestSignature;
 
             var sigDirs = Directory.GetDirectories(rulesDir, "*", SearchOption.AllDirectories)
                 .SelectMany(x => new List<DateTime>() { Directory.GetCreationTime(x), Directory.GetLastWriteTime(x) });
@@ -227,6 +236,10 @@ namespace rgat
         }
 
         //todo this is a copy of the routine in yarascan. put a generic version somewhere
+        /// <summary>
+        /// Replace the DIE signatures directory
+        /// </summary>
+        /// <param name="zipfile">A zipfile of signatures</param>
         public void ReplaceSignatures(byte[] zipfile)
         {
             Console.WriteLine($"Replacing die sigs with zip size {zipfile.Length}");

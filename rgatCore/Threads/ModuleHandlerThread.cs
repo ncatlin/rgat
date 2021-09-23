@@ -41,7 +41,7 @@ namespace rgat
 
         public delegate void ProcessPipeMessageAction(byte[] buf, int bytesRead);
 
-        public ModuleHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord = null, uint? remotePipeID = null)
+        public ModuleHandlerThread(BinaryTarget binaryTarg, TraceRecord runrecord, uint? remotePipeID = null)
         {
             target = binaryTarg;
             trace = runrecord;
