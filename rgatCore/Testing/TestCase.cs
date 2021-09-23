@@ -82,21 +82,41 @@ namespace rgat.Testing
     }
 
 
+    /// <summary>
+    /// Results of a test run being compared against its requirements
+    /// </summary>
     public class TRACE_TEST_RESULTS
     {
+        /// <summary>
+        /// Results of process requirements
+        /// </summary>
         public REQUIREMENT_TEST_RESULTS ProcessResults = new REQUIREMENT_TEST_RESULTS();
 
+        /// <summary>
+        /// Results of thread requirements
+        /// </summary>
         public Dictionary<REQUIREMENTS_LIST, Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS>> ThreadResults =
             new Dictionary<REQUIREMENTS_LIST, Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS>>();
 
+        /// <summary>
+        /// Results of child trace requirements
+        /// </summary>
         public Dictionary<TraceRequirements, Dictionary<TraceRecord, TRACE_TEST_RESULTS>> ChildResults =
             new Dictionary<TraceRequirements, Dictionary<TraceRecord, TRACE_TEST_RESULTS>>();
     }
 
+
+    /// <summary>
+    /// A list of test requirements
+    /// </summary>
     public struct REQUIREMENTS_LIST
     {
+        /// <summary>
+        /// list of requirements
+        /// </summary>
         public List<TestRequirement> value;
     }
+
 
     /// <summary>
     /// A requirement to apply to a process or thread
@@ -479,18 +499,23 @@ namespace rgat.Testing
         /// <param name="category">The category of the test</param>
         public TestCase(string jsonpath, string category)
         {
+            JSONPath = jsonpath;
+            CategoryName = category;
             TestName = Path.GetFileName(jsonpath).Split(CONSTANTS.TESTS.testextension)[0];
             try
             {
                 BinaryDirectory = Directory.GetParent(jsonpath)?.FullName;
+                if (BinaryDirectory == null || BinaryDirectory == "")
+                {
+                    DeclareLoadingError($"Unable to get directory of test {jsonpath}");
+                    return;
+                }
             }
             catch (Exception e)
             {
                 DeclareLoadingError($"Exception {e.Message} getting directory of test {jsonpath}");
                 return;
             }
-            JSONPath = jsonpath;
-            CategoryName = category;
 
             lock (_lock)
             {
@@ -536,11 +561,11 @@ namespace rgat.Testing
         /// <summary>
         /// The latest run object for this test
         /// </summary>
-        public TestCaseRun LatestTestRun { get; private set; }
+        public TestCaseRun? LatestTestRun { get; private set; }
         /// <summary>
         /// The latest error from this test
         /// </summary>
-        public string LatestErrorReason { get; private set; }
+        public string? LatestErrorReason { get; private set; }
         /// <summary>
         /// File path of the test description
         /// </summary>
@@ -549,11 +574,11 @@ namespace rgat.Testing
         /// <summary>
         /// File path of the test binary
         /// </summary>
-        public string BinaryPath { get; private set; }
+        public string BinaryPath { get; private set; } = "";
         /// <summary>
         /// Directory of the test binary
         /// </summary>
-        public string BinaryDirectory { get; private set; }
+        public string? BinaryDirectory { get; private set; }
         /// <summary>
         /// Category of the test
         /// </summary>
@@ -609,6 +634,7 @@ namespace rgat.Testing
             {
                 StreamReader file = File.OpenText(jsonpath);
                 jsnfile = file.ReadToEnd();
+                file.Close();
             }
             catch (Exception e)
             {
@@ -638,7 +664,7 @@ namespace rgat.Testing
             //mandatory for test cases to have metadata
             if (!testSpec.TryGetValue("Meta", out JToken? metaTok) ||
                 metaTok is null ||
-                metaTok.Type == JTokenType.Object)
+                metaTok.Type is not JTokenType.Object)
             {
                 DeclareLoadingError($"No test metadata in test specification");
                 return false;

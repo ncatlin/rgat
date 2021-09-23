@@ -2,6 +2,7 @@
 using rgat.Threads;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
@@ -20,28 +21,32 @@ namespace rgat.OperationModes
 
         //rgat ui state
 
-        private ImGuiController _controller = null;
+        private ImGuiController? _controller = null;
 
         //rgat program state
         private readonly rgatState _rgatState;
 
-        Threads.HeatRankingThread heatRankThreadObj = null;
+        Threads.HeatRankingThread? heatRankThreadObj = null;
 
-        rgatUI _rgatUI;
+        rgatUI? _rgatUI;
+
+        private Sdl2Window? _window;
+        private GraphicsDevice? _gd;
+        private CommandList? _cl;
 
         Vector2 WindowStartPos = new Vector2(100f, 100f);
         Vector2 WindowOffset = new Vector2(0, 0);
 
-
+        /// <summary>
+        /// Create an ImGui GUI rgat session
+        /// </summary>
+        /// <param name="state">rgat state obj</param>
         public ImGuiRunner(rgatState state)
         {
             _rgatState = state;
         }
 
 
-        private Sdl2Window _window;
-        private GraphicsDevice _gd;
-        private CommandList _cl;
 
         // UI state
         private static Vector3 _clearColor = new Vector3(0.15f, 0.15f, 0.16f);
@@ -52,7 +57,7 @@ namespace rgat.OperationModes
 
 
         //perform rare events like freeing resources which havent been used in a while
-        static System.Timers.Timer _longTimer;
+        static System.Timers.Timer? _longTimer;
         static bool _housekeepingTimerFired;
         private void FireLongTimer(object sender, System.Timers.ElapsedEventArgs e) { _housekeepingTimerFired = true; }
 
@@ -80,6 +85,7 @@ namespace rgat.OperationModes
                 return;
             }
 
+            Debug.Assert(_window is not null && _rgatUI is not null);
             while (_window.Exists && !_rgatUI.ExitFlag)
             {
                 try
@@ -141,7 +147,7 @@ namespace rgat.OperationModes
                 Logging.RecordError($"Error 2: unable to initialise the Vulkan drivers. {e.Message}");
             }
 
-            if (!loadSuccess) return false;
+            if (!loadSuccess || _gd is null || _window is null) return false;
 
             _cl = _gd.ResourceFactory.CreateCommandList();
             _rgatState.InitVeldrid(_gd);
@@ -151,7 +157,7 @@ namespace rgat.OperationModes
             _rgatUI = new rgatUI(_rgatState, _controller);
 
             //load in a thread to keep things interactive
-            Task loader = Task.Run(() => LoadingThread(_controller, _gd));
+            Task loader = Task.Run(() => LoadingThread());
 
 
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
@@ -163,10 +169,10 @@ namespace rgat.OperationModes
         /// </summary>
         void InitEventHandlers()
         {
-
-            _window.Resized += () =>
+            Debug.Assert(_controller is not null);
+            _window!.Resized += () =>
             {
-                _gd.MainSwapchain.Resize((uint)_window.Width, (uint)_window.Height);
+                _gd!.MainSwapchain.Resize((uint)_window.Width, (uint)_window.Height);
                 _controller.WindowResized(_window.Width, _window.Height);
                 AlertResized(new Vector2(_window.Width, _window.Height));
             };
@@ -210,14 +216,14 @@ namespace rgat.OperationModes
 
         private void Update()
         {
-            InputSnapshot snapshot = _window.PumpEvents();
+            InputSnapshot snapshot = _window!.PumpEvents();
             if (!_window.Exists) { return; }
 
 
             HeldResponsiveKeys.ForEach(key => AlertResponsiveKeyEvent(key));
 
 
-            _controller.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
+            _controller!.Update(1f / 60f, snapshot); // Feed the input events to our ImGui controller, which passes them through to ImGui.
 
             if (!DrawUI())
             {
@@ -229,8 +235,8 @@ namespace rgat.OperationModes
                 ImGui.ShowDemoWindow(ref _showDemoWindow);
             }
 
-            _gd.WaitForIdle();
-            _cl.Begin();
+            _gd!.WaitForIdle();
+            _cl!.Begin();
             _cl.SetFramebuffer(_gd.MainSwapchain.Framebuffer);
             _cl.ClearColorTarget(0, new RgbaFloat(_clearColor.X, _clearColor.Y, _clearColor.Z, 1f));
             _controller.Render(_gd, _cl);
@@ -247,7 +253,7 @@ namespace rgat.OperationModes
             {
                 _controller.ClearCachedImageResources();
                 _housekeepingTimerFired = false;
-                _longTimer.Start();
+                _longTimer!.Start();
             }
 
         }
@@ -256,18 +262,18 @@ namespace rgat.OperationModes
         {
             //exit if no video capture or screenshot pending
             VideoEncoder recorder = rgatState.VideoRecorder;
-            if ((recorder == null || !recorder.Recording) && _rgatUI.PendingScreenshot == VideoEncoder.CaptureContent.Invalid) return;
+            if ((recorder == null || !recorder.Recording) && _rgatUI!.PendingScreenshot == VideoEncoder.CaptureContent.Invalid) return;
 
 
             if (rgatState.VideoRecorder.Recording && !rgatState.VideoRecorder.CapturePaused)
             {
 
-                _rgatUI.GetFrameDimensions(rgatState.VideoRecorder.GetCapturedContent(), out int startX, out int startY, out int width, out int height);
+                _rgatUI!.GetFrameDimensions(rgatState.VideoRecorder.GetCapturedContent(), out int startX, out int startY, out int width, out int height);
                 System.Drawing.Bitmap videoBmp = MediaDrawing.CreateRecordingFrame(fbuf, startX, startY, width, height);
                 rgatState.VideoRecorder.QueueFrame(videoBmp, _rgatState.ActiveGraph);
             }
 
-            if (_rgatUI.PendingScreenshot != VideoEncoder.CaptureContent.Invalid)
+            if (_rgatUI!.PendingScreenshot != VideoEncoder.CaptureContent.Invalid)
             {
                 string? savePath = null;
                 try
@@ -280,7 +286,8 @@ namespace rgat.OperationModes
                 {
                     Logging.RecordLogEvent($"Unhandled exception while taking screenshot {_rgatUI.PendingScreenshot}: {e.Message}");
                 }
-                _rgatUI.NotifyScreenshotComplete(savePath);
+                if (savePath is not null)
+                    _rgatUI.NotifyScreenshotComplete(savePath);
             }
         }
 
@@ -294,10 +301,10 @@ namespace rgat.OperationModes
 
             Exit();
             // Clean up Veldrid resources
-            _gd.WaitForIdle();
-            _controller.Dispose();
-            _cl.Dispose();
-            _gd.Dispose();
+            _gd?.WaitForIdle();
+            _controller?.Dispose();
+            _cl?.Dispose();
+            _gd?.Dispose();
         }
 
 
@@ -305,11 +312,11 @@ namespace rgat.OperationModes
 
 
         //todo - make Exit wait until this returns
-        async void LoadingThread(ImGuiController imguicontroller, GraphicsDevice _gd)
+        async void LoadingThread()
         {
 
             Logging.RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug);
-            double currentUIProgress = _rgatUI.StartupProgress;
+            double currentUIProgress = _rgatUI!.StartupProgress;
 
             System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
             timer.Start();
@@ -405,7 +412,7 @@ namespace rgat.OperationModes
 
             //wait for the ui stop stop and the main renderer to quit
             while (
-                (!_UIStopped && Thread.CurrentThread.Name != "rgatUIMain") || _rgatUI.ThreadsRunning)
+                (!_UIStopped && Thread.CurrentThread.Name != "rgatUIMain") || _rgatUI!.ThreadsRunning)
             {
                 Thread.Sleep(10);
             }
@@ -419,23 +426,23 @@ namespace rgat.OperationModes
         }
 
 
-        public void AlertKeyEvent(Tuple<Key, ModifierKeys> keyCombo) => _rgatUI.AddKeyPress(keyCombo);
+        public void AlertKeyEvent(Tuple<Key, ModifierKeys> keyCombo) => _rgatUI!.AddKeyPress(keyCombo);
 
         public void AlertResponsiveKeyEvent(Key key)
         {
-            _rgatUI.AddKeyPress(new Tuple<Key, ModifierKeys>(key, ModifierKeys.None));
+            _rgatUI!.AddKeyPress(new Tuple<Key, ModifierKeys>(key, ModifierKeys.None));
         }
 
         public void AlertDragDrop(DragDropEvent dd)
         {
-            _rgatUI.LoadSelectedBinary(dd.File, false);
+            _rgatUI!.LoadSelectedBinary(dd.File, false);
         }
 
         public void AlertMouseWheel(MouseWheelEventArgs mw)
         {
             float thisDelta = mw.WheelDelta;
             if (ImGui.GetIO().KeyShift) { thisDelta *= 10; }
-            _rgatUI.AddMouseWheelDelta(thisDelta);
+            _rgatUI!.AddMouseWheelDelta(thisDelta);
         }
 
         public void AlertMouseMove(MouseMoveEventArgs mm, Vector2 delta)
@@ -443,7 +450,7 @@ namespace rgat.OperationModes
             if (mm.State.IsButtonDown(MouseButton.Left) || mm.State.IsButtonDown(MouseButton.Right))
             {
                 if (ImGui.GetIO().KeyShift) { delta = new Vector2(delta.X * 10, delta.Y * 10); }
-                _rgatUI.AddMouseDragDelta(delta);
+                _rgatUI!.AddMouseDragDelta(delta);
             }
             _lastMousePos = mm.MousePosition;
         }
@@ -464,7 +471,7 @@ namespace rgat.OperationModes
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.None;
             window_flags |= ImGuiWindowFlags.NoDecoration;
             window_flags |= ImGuiWindowFlags.DockNodeHost;
-            if (_rgatUI.MenuBarVisible)
+            if (_rgatUI!.MenuBarVisible)
                 window_flags |= ImGuiWindowFlags.MenuBar;
             window_flags |= ImGuiWindowFlags.NoBringToFrontOnFocus;
 
@@ -473,7 +480,7 @@ namespace rgat.OperationModes
 
             ImGui.SetNextWindowPos(new Vector2(0, 0), ImGuiCond.Always);
 
-            ImGui.SetNextWindowSize(new Vector2(_controller.WindowWidth, _controller.WindowHeight), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new Vector2(_controller!.WindowWidth, _controller.WindowHeight), ImGuiCond.Always);
             //ImGui.SetNextWindowSize(new Vector2(1200, 800), ImGuiCond.Appearing);
 
             Themes.ApplyThemeColours();

@@ -27,6 +27,7 @@ https://github.com/jitbit/MurmurHash.net
 using System;
 namespace MurmurHash
 {
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
     public class MurmurHash2
     {
         public static uint Hash(string data)
@@ -85,4 +86,5 @@ namespace MurmurHash
             return h;
         }
     }
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 }

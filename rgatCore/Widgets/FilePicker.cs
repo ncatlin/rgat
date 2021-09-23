@@ -47,6 +47,9 @@ namespace rgatFilePicker
         bool _refreshTimerFired = false;
         readonly BridgeConnection? _remoteMirror;
         private const int RefreshThresholdSeconds = 2;
+        /// <summary>
+        /// When the picker was created
+        /// </summary>
         public DateTime Created { get; private set; }
 
         readonly string myID;
@@ -133,15 +136,15 @@ namespace rgatFilePicker
 
             private DateTime lastRefreshed;
             private readonly string basePath;
-            private List<string> latestDirPaths = null;
-            private List<string> latestFilePaths = null;
+            private List<string>? latestDirPaths = null;
+            private List<string>? latestFilePaths = null;
             private readonly List<string> addedDirPaths = new List<string>();
             private readonly List<string> addedFilePaths = new List<string>();
             private readonly List<FileMetadata> lostDirs = new List<FileMetadata>();
             private readonly List<FileMetadata> lostFiles = new List<FileMetadata>();
             public string ErrMsg = "";
-            public Dictionary<string, FileMetadata> fileData { get; private set; } = null;
-            public Dictionary<string, FileMetadata> dirData { get; private set; } = null;
+            public Dictionary<string, FileMetadata> fileData { get; private set; }
+            public Dictionary<string, FileMetadata> dirData { get; private set; }
 
             public DirectoryContents(string _path)
             {
@@ -235,13 +238,14 @@ namespace rgatFilePicker
 
             private void TransferRemoteFileMetadata(DirectoryContents newContentsObj)
             {
+                if (latestFilePaths is null) return;
                 Dictionary<string, FileMetadata> newFileData = new Dictionary<string, FileMetadata>();
                 foreach (string path in latestFilePaths)
                 {
                     newFileData[path] = newContentsObj.fileData[path];
 
                     //newly created while window was open
-                    if ((bool)addedFilePaths?.Contains(path))
+                    if (addedFilePaths.Contains(path))
                     {
                         newFileData[path].isNew = true;
                         newFileData[path].timeFound = DateTime.Now;
@@ -254,6 +258,7 @@ namespace rgatFilePicker
 
             private void ExtractMetaData_Files()
             {
+                if (latestFilePaths is null) return;
                 Dictionary<string, FileMetadata> newFileData = new Dictionary<string, FileMetadata>();
                 foreach (string path in latestFilePaths)
                 {
@@ -270,7 +275,7 @@ namespace rgatFilePicker
                     m.namewidth = ImGui.CalcTextSize(m.filename).X;
 
                     //newly created while window was open
-                    if ((bool)addedFilePaths?.Contains(path))
+                    if (addedFilePaths.Contains(path))
                     {
                         m.isNew = true;
                         m.timeFound = DateTime.Now;
@@ -286,11 +291,12 @@ namespace rgatFilePicker
 
             private void ExtractMetaData_Dirs()
             {
+                if (latestDirPaths is null) return;
 
                 Dictionary<string, FileMetadata> newDirData = new Dictionary<string, FileMetadata>();
                 foreach (string path in latestDirPaths)
                 {
-                    if ((bool)dirData?.ContainsKey(path))
+                    if (dirData.ContainsKey(path))
                     {
                         newDirData[path] = dirData[path];
                         continue;
@@ -302,7 +308,7 @@ namespace rgatFilePicker
                     m.filename = Path.GetFileName(path);
                     m.namewidth = ImGui.CalcTextSize(m.filename).X;
 
-                    if ((bool)addedDirPaths?.Contains(path))
+                    if (addedDirPaths.Contains(path))
                     {
                         m.isNew = true;
                         m.timeFound = DateTime.Now;
@@ -331,7 +337,7 @@ namespace rgatFilePicker
                 foreach (string path in dirData.Keys)
                 {
                     //newly created while window was open
-                    if ((bool)addedDirPaths?.Contains(path))
+                    if (addedDirPaths.Contains(path))
                     {
                         dirData[path].isNew = true;
                         dirData[path].timeFound = DateTime.Now;
@@ -481,7 +487,7 @@ namespace rgatFilePicker
             /// <summary>
             /// The last error message
             /// </summary>
-            public string ErrMsg;
+            public string? ErrMsg;
         }
 
 
@@ -503,7 +509,7 @@ namespace rgatFilePicker
         /// <param name="onlyAllowFolders">Restrict selection to directories</param>
         /// <param name="allowMulti">Allow selection of multiple items</param>
         /// <returns></returns>
-        public static FilePicker GetRemoteFilePicker(object o, string searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
+        public static FilePicker GetRemoteFilePicker(object o, string? searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
             BridgeConnection connection = rgatState.NetworkBridge;
             if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror != null && (fp._remoteMirror.LastAddress != connection.LastAddress))
@@ -565,7 +571,10 @@ namespace rgatFilePicker
             return fp;
         }
 
-
+        /// <summary>
+        /// Delete a file picker
+        /// </summary>
+        /// <param name="o">file picker key</param>
         public static void RemoveFilePicker(object o) => _filePickers.Remove(o);
 
         /// <summary>
@@ -655,7 +664,10 @@ namespace rgatFilePicker
             if (!response.TryGetValue("Error", out JToken? errTok) || errTok.Type != JTokenType.String) return false;
             if (!response.TryGetValue("Contents", out JToken? contentsTok) || contentsTok.Type != JTokenType.Object) return false;
 
-            if (!ParseRemoteDirectoryContents(path, contentsTok.ToObject<JObject>(), out DirectoryContents newDirContents)) return false;
+            JObject? contents = contentsTok.ToObject<JObject>();
+            if (contents is null) return false;
+
+            if (!ParseRemoteDirectoryContents(path, contents, out DirectoryContents newDirContents)) return false;
 
 
             if (Data.Contents != null && Data.CurrentDirectory == currentDirTok.ToString() && Data.NextRemoteDirectory == Data.CurrentDirectory)
@@ -761,6 +773,11 @@ namespace rgatFilePicker
 
         int pendingCmdCount = 0;
 
+        /// <summary>
+        /// Draw the file picker window
+        /// </summary>
+        /// <param name="objKey">specific picker to draw</param>
+        /// <returns>File picker result</returns>
         public unsafe PickerResult Draw(object objKey)
         {
             if (Data.CurrentDirectory == null || Data.NextRemoteDirectory != null)
@@ -1071,8 +1088,8 @@ namespace rgatFilePicker
         }
 
 
-        List<KeyValuePair<string, FileMetadata>> _sortedDirs;
-        List<KeyValuePair<string, FileMetadata>> _sortedFiles;
+        List<KeyValuePair<string, FileMetadata>>? _sortedDirs;
+        List<KeyValuePair<string, FileMetadata>>? _sortedFiles;
         PickerResult DrawFilesList(float height, object objKey)
         {
             PickerResult result = PickerResult.eNoAction;
@@ -1222,6 +1239,8 @@ namespace rgatFilePicker
 
         PickerResult DrawDirsFilesList()
         {
+            if (_sortedDirs is null || _sortedFiles is null) return PickerResult.eNoAction; 
+
             PickerResult result = PickerResult.eNoAction;
             float longestFilename = 100;
             foreach (var path_data in _sortedDirs)

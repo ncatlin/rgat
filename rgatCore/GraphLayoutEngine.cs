@@ -10,6 +10,10 @@ using Veldrid;
 
 namespace rgat
 {
+    /// <summary>
+    /// A thread safe interface to the GPU for running compute shaders
+    /// Has a position, velocity and attribute pipeline for laying out and animating graphs
+    /// </summary>
     public class GraphLayoutEngine
     {
         /// <summary>
@@ -52,6 +56,7 @@ namespace rgat
         /// Acquires reader lock
         /// </summary>
         /// <param name="graph">The graph being measured</param>
+        /// <param name="worldView">The world view matrix of the active graph</param>
         /// <param name="graphWidgetSize">Size of the graph widget</param>
         /// <param name="xoffsets">xoffsets.X = distance of furthest left node from left of the widget. Ditto xoffsets.Y for right node/side</param>
         /// <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>

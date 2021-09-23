@@ -6,6 +6,9 @@ using System.Linq;
 
 namespace rgat
 {
+    /// <summary>
+    /// Class for managing logs and messages
+    /// </summary>
     public class Logging
     {
         /// <summary>

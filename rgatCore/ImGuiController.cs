@@ -26,7 +26,10 @@ namespace ImGuiNET
         private DeviceBuffer _indexBuffer;
         private DeviceBuffer _projMatrixBuffer;
         private Texture _fontTexture;
-        public TextureView _fontTextureView;
+        /// <summary>
+        /// Shader accessible font texture
+        /// </summary>
+        public TextureView? _fontTextureView;
         private Shader _vertexShader;
         private Shader _fragmentShader;
         private ResourceLayout _layout;
@@ -137,6 +140,13 @@ namespace ImGuiNET
         public static readonly char FA_ICON_DOWNLOAD = '\uf56d';
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
+        /// <summary>
+        /// A general UI management class
+        /// </summary>
+        /// <param name="gd">GraphicsDevice for rendering</param>
+        /// <param name="outputDescription">Framebuffer details</param>
+        /// <param name="width">window width</param>
+        /// <param name="height">window height</param>
         public unsafe ImGuiController(GraphicsDevice gd, OutputDescription outputDescription, int width, int height)
         {
             _gd = gd;
@@ -172,6 +182,9 @@ namespace ImGuiNET
         }
 
 
+        /// <summary>
+        /// Load the fonts
+        /// </summary>
         public unsafe void BuildFonts()
         {
             if (_unicodeFontLoaded) return;
@@ -285,26 +298,39 @@ namespace ImGuiNET
         }
 
 
-
+        /// <summary>
+        /// Size of large splash screen icons
+        /// </summary>
         public readonly Vector2 LargeIconSize = new Vector2(65, 65);
         ImFontPtr _fafontSolid;
         ImFontPtr _fafontRegular;
         ImFontPtr _iconsLargeFont;
 
 
+        /// <summary>
+        /// Was this font glyph loaded in the unicode font
+        /// </summary>
+        /// <param name="code">character code</param>
+        /// <returns>the glyph is in the unicode font</returns>
         public unsafe bool GlyphExists(ushort code)
         {
             ImFontGlyphPtr result = _unicodeFont.FindGlyphNoFallback(code);
             return (ulong)result.NativePtr != 0;
         }
 
+        /// <summary>
+        /// Large font for splash screen buttons
+        /// </summary>
         public ImFontPtr SplashLargeFont
         {
-            get { return _splashButtonFont.Value; }
+            get { return _splashButtonFont!.Value; }
             private set { _splashButtonFont = value; }
         }
 
         ImFontPtr? _titleFont;
+        /// <summary>
+        /// Larger font for the splash screen title
+        /// </summary>
         public ImFontPtr rgatLargeFont
         {
             get { return _titleFont.Value; }
@@ -383,33 +409,50 @@ namespace ImGuiNET
         }
 
         public Texture GetImage(string name) => _imageTextures[name];
+        /// <summary>
+        /// Get a shader accessible texture view of the loaded images
+        /// </summary>
         public TextureView IconTexturesView => _gd.ResourceFactory.CreateTextureView(_imagesTextureArray);
 
-
+        /// <summary>
+        /// Callback for window resize
+        /// </summary>
+        /// <param name="width">New width</param>
+        /// <param name="height">New height</param>
         public void WindowResized(int width, int height)
         {
             WindowWidth = width;
             WindowHeight = height;
         }
 
-        public void DestroyDeviceObjects()
-        {
-            Dispose();
-        }
 
+        /// <summary>
+        /// Activate the base ImGui font
+        /// </summary>
         public void PushOriginalFont()
         {
             ImGui.PushFont(_originalFont);
         }
+        /// <summary>
+        /// Activate the custom unicode font
+        /// </summary>
         public void PushUnicodeFont()
         {
             ImGui.PushFont(_unicodeFont);
         }
+        /// <summary>
+        /// Activate the big title font
+        /// </summary>
         public void PushBigIconFont()
         {
             ImGui.PushFont(_iconsLargeFont);
         }
 
+        /// <summary>
+        /// Create general GPU resources for UI drawing
+        /// </summary>
+        /// <param name="gd">Veldrid GraphicsDevice</param>
+        /// <param name="outputDescription">Framebuffer description</param>
         public void CreateDeviceResources(GraphicsDevice gd, OutputDescription outputDescription)
         {
             _gd = gd;
@@ -524,8 +567,9 @@ namespace ImGuiNET
 
         readonly List<Tuple<IDisposable, DateTime>> expiredResources = new List<Tuple<IDisposable, DateTime>>();
 
-        // my attempts to stem this minor potential memory leak have failed in crashes so far
-        // try to avoid calling GetOrCreateImGuiBinding with too many different things (ie: reuse texture rather than recreate each frame)
+        /// <summary>
+        /// Occasionally dispose of expired resources
+        /// </summary>
         public void ClearCachedImageResources()
         {
             for (int i = expiredResources.Count - 1; i >= 0; i--)
@@ -582,6 +626,13 @@ namespace ImGuiNET
             }
         }
 
+        /// <summary>
+        /// Load a shader from resources
+        /// </summary>
+        /// <param name="factory">Resource factory</param>
+        /// <param name="name">shader name</param>
+        /// <param name="stage">unused</param>
+        /// <returns>shader bytes or null if not found</returns>
         public byte[]? LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
         {
             switch (factory.BackendType)
@@ -938,7 +989,7 @@ namespace ImGuiNET
             _indexBuffer.Dispose();
             _projMatrixBuffer.Dispose();
             _fontTexture.Dispose();
-            _fontTextureView.Dispose();
+            _fontTextureView?.Dispose();
             _vertexShader.Dispose();
             _fragmentShader.Dispose();
             _layout.Dispose();

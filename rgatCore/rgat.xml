@@ -882,6 +882,8 @@
             <param name="localBindAddress">The local ip address to connect from</param>
             <param name="remoteConnectAddress">The remote ip address or domain to connect to</param>
             <param name="remoteConnectPort">The remote TCP port to connect to</param>
+            <param name="datacallback">The event for data being received</param>
+            <param name="connectCallback">The main connection handler which will serve the connection</param>
             <returns></returns>
         </member>
         <member name="M:rgat.BridgeConnection.StartConnectOut(System.Net.Sockets.TcpClient,System.String,System.Int32,rgat.BridgeConnection.OnConnectSuccessCallback)">
@@ -985,6 +987,21 @@
             <param name="message">Message to send</param>
             <param name="msgType">Message type</param>
         </member>
+        <member name="M:rgat.BridgeConnection.SendRawTraceData(System.UInt32,System.Byte[],System.Int32)">
+            <summary>
+            Sends trace data to be processed by the GUI
+            </summary>
+            <param name="pipeID">The worker pipe reference</param>
+            <param name="buf">Data to send</param>
+            <param name="bufSize">Data size</param>
+        </member>
+        <member name="M:rgat.BridgeConnection.SendTraceMeta(rgat.TraceRecord,System.String)">
+            <summary>
+            Send trace metadata to the GUI
+            </summary>
+            <param name="trace">The tracerecord the metadata applies to</param>
+            <param name="info">The data</param>
+        </member>
         <member name="M:rgat.BridgeConnection.SendResponseObject(System.Int32,System.Object)">
             <summary>
             Used to send raw .net data types (serialised as JSON) as command responses
@@ -1007,6 +1024,12 @@
             </summary>
             <param name="dataName">Type of event</param>
             <param name="data">JSON event data</param>
+        </member>
+        <member name="M:rgat.BridgeConnection.Teardown(System.String)">
+            <summary>
+            Destroy the connection
+            </summary>
+            <param name="reason">Why the connection was torn down</param>
         </member>
         <member name="M:rgat.BridgeConnection.AuthenticateOutgoingConnection(System.Net.Sockets.TcpClient)">
             <summary>
@@ -1163,6 +1186,16 @@
         <member name="F:rgat.GlobalConfig.ShowNodeMouseoverTooltip">
             <summary>
             Whether a tooltip should be shown on graph node mouseover
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.NodeClumpLimit">
+            <summary>
+             work in progress  
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.NodeClumpForce">
+            <summary>
+            work in progress 
             </summary>
         </member>
         <member name="F:rgat.GlobalConfig.NewGraphLayout">
@@ -1562,6 +1595,11 @@
             <param name="dataTok">JToken of recent paths</param>
             <returns>Successful deserialising</returns>
         </member>
+        <member name="T:rgat.Config.rgatSettings">
+            <summary>
+            Storage class for settings that can be stored/loaded
+            </summary>
+        </member>
         <member name="T:rgat.Config.rgatSettings.PathType">
             <summary>
             Path categories for recently recorded paths
@@ -1907,11 +1945,6 @@
             <param name="setting">Setting to fetch</param>
             <returns>Path result</returns>
         </member>
-        <member name="M:rgat.Config.rgatSettings.PathSettings.EnsureValidity">
-            <summary>
-            Call this after loading
-            </summary>
-        </member>
         <member name="P:rgat.Config.rgatSettings.PathSettings.Paths">
             <summary>
             Filesystem locations containing things rgat needs (instrumentation tools, signatures, etc)
@@ -2160,6 +2193,11 @@
             The SemVer version of rgat
             </summary>
         </member>
+        <member name="T:rgat.CONSTANTS.UI">
+            <summary>
+            UI constants
+            </summary>
+        </member>
         <member name="F:rgat.CONSTANTS.UI.MAX_MODULE_PATH_LENGTH">
             <summary>
             Limit length of displayed module paths
@@ -2211,6 +2249,26 @@
             How long alerts will stay in the alert pane
             </summary>
         </member>
+        <member name="F:rgat.CONSTANTS.UI.ALERT_CIRCLE_ANIMATION_TIME">
+            <summary>
+            How long to aniamate the alert circle
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.UI.ALERT_CIRCLE_ANIMATION_RADIUS">
+            <summary>
+            How big the alert animation circle is
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.UI.FILEPICKER_HISTORY_MAX">
+            <summary>
+            Maxmimum directories to store in filepicker history
+            </summary>
+        </member>
+        <member name="T:rgat.CONSTANTS.Anim_Constants">
+            <summary>
+            Animation constants
+            </summary>
+        </member>
         <member name="F:rgat.CONSTANTS.Anim_Constants.ASSUME_INS_PER_BLOCK">
             <summary>
             farcical but useful way to estimate how long a block spends executing
@@ -2226,9 +2284,67 @@
             Maintain full alpha until deactivated
             </summary>
         </member>
+        <member name="F:rgat.CONSTANTS.Anim_Constants.DEFAULT_NODE_DIAMETER">
+            <summary>
+            Default node diameter in pixels
+            </summary>
+        </member>
+        <member name="T:rgat.CONSTANTS.Layout_Constants">
+            <summary>
+            Graph Layout Constants
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.Layout_Constants.MinimumTemperature">
+            <summary>
+            The lowest temperature that is considered 'running'
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.Layout_Constants.TemperatureStepMultiplier">
+            <summary>
+            How much to reduce the temperature with every step
+            </summary>
+        </member>
+        <member name="T:rgat.CONSTANTS.NETWORK">
+            <summary>
+            Remote tracing constants
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.NETWORK.DefaultKeyLength">
+            <summary>
+            Length of auto-generate network keys
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.NETWORK.HostLockoutLimit">
+            <summary>
+            number of times a host can try to connect with the wrong key
+            ! this is not used - we just turn networking off on the first bad attempt
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.NETWORK.TotalLockoutLimit">
+            <summary>
+            number of wrong-key connections allowed before the listener disables itself
+            ! this is not used - we just turn networking off on the first bad attempt
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.NETWORK.InterfaceRefreshIntervalMS">
+            <summary>
+            How often to refresh the list of interfaces with the Remote tracing dialog open
+            </summary>
+        </member>
         <member name="F:rgat.CONSTANTS.NETWORK.UpdateCheckMinimumDelayMinutes">
             <summary>
             How long to wait between checks for new versions (check only happens on startup)
+            This stops constant network connections if the user is opening and closing rgat a lot
+            </summary>
+        </member>
+        <member name="T:rgat.CONSTANTS.TRACING">
+            <summary>
+            Tracing constants
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.TRACING.TagCacheSize">
+            <summary>
+            Size of the tag cache allocated for each message part
             </summary>
         </member>
         <member name="T:rgat.CONSTANTS.SIGNERS">
@@ -2246,9 +2362,39 @@
             Expected code certificate subject for rgat binaries
             </summary>
         </member>
+        <member name="T:rgat.CONSTANTS.TESTS">
+            <summary>
+            Test constants
+            </summary>
+        </member>
         <member name="F:rgat.CONSTANTS.TESTS.testextension">
             <summary>
             The file extension for test description data files
+            </summary>
+        </member>
+        <member name="T:rgat.CONSTANTS.eNodeType">
+            <summary>
+            Node control flow type
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eNodeType.eInsUndefined">
+            <summary>
+            Unknown or no control flow
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eNodeType.eInsJump">
+            <summary>
+            Performs  ajump
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eNodeType.eInsReturn">
+            <summary>
+            Performs a return
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eNodeType.eInsCall">
+            <summary>
+            Performs a call
             </summary>
         </member>
         <member name="T:rgat.CONSTANTS.eEdgeNodeType">
@@ -2324,6 +2470,31 @@
         <member name="F:rgat.CONSTANTS.eEdgeNodeType.eFIRST_IN_THREAD">
             <summary>
             The first instruction in a thread
+            </summary>
+        </member>
+        <member name="T:rgat.CONSTANTS.eRenderingMode">
+            <summary>
+            Supported graph colourations
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eRenderingMode.eStandardControlFlow">
+            <summary>
+            Control flow type of nodes/edges
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eRenderingMode.eHeatmap">
+            <summary>
+            How busy nodes/edges are
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eRenderingMode.eConditionals">
+            <summary>
+            Conditional jump state
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.eRenderingMode.eDegree">
+            <summary>
+            How connected nodes are
             </summary>
         </member>
         <member name="T:rgat.CONSTANTS.HighlightType">
@@ -2424,6 +2595,11 @@
         <member name="F:rgat.CONSTANTS.ConditionalType.CONDCOMPLETE">
             <summary>
             The conditional jump was taken and fell though in the same trace
+            </summary>
+        </member>
+        <member name="T:rgat.CONSTANTS.eKeybind">
+            <summary>
+            Available keybind actions
             </summary>
         </member>
         <member name="F:rgat.CONSTANTS.eKeybind.MoveLeft">
@@ -2581,6 +2757,11 @@
             Ways of laying out nodes
             </summary>
         </member>
+        <member name="T:rgat.CONSTANTS.LayoutStyles.Style">
+            <summary>
+            Available layout styles
+            </summary>
+        </member>
         <member name="F:rgat.CONSTANTS.LayoutStyles.Style.CylinderLayout">
             <summary>
             Plot nodes in a spiralling cylinder
@@ -2631,6 +2812,51 @@
             </summary>
             <param name="DBPath">Path to the DIE signatures</param>
         </member>
+        <member name="P:rgat.DetectItEasy.LastError">
+            <summary>
+            Last scan error
+            </summary>
+        </member>
+        <member name="P:rgat.DetectItEasy.ScriptsLoaded">
+            <summary>
+            Did the database load successfully
+            </summary>
+        </member>
+        <member name="P:rgat.DetectItEasy.NumScriptsLoaded">
+            <summary>
+            Number of scripts loaded
+            </summary>
+        </member>
+        <member name="P:rgat.DetectItEasy.GetSignatures">
+            <summary>
+            Get the array of loaded signatures
+            </summary>
+        </member>
+        <member name="M:rgat.DetectItEasy.ReloadDIEScripts(System.String)">
+            <summary>
+            Reload the scripts database
+            </summary>
+            <param name="path"></param>
+        </member>
+        <member name="M:rgat.DetectItEasy.DetectItScanThread(System.Object)">
+            <summary>
+            A DIE scan thread
+            </summary>
+            <param name="argslist">scanner, target args object</param> 
+        </member>
+        <member name="M:rgat.DetectItEasy.GetDIEScanProgress(rgat.BinaryTarget)">
+            <summary>
+            Get progress of the current scan for a target
+            </summary>
+            <param name="targ">BinaryTarget being scanned</param>
+            <returns>Progress value</returns>
+        </member>
+        <member name="M:rgat.DetectItEasy.CancelDIEScan(rgat.BinaryTarget)">
+            <summary>
+            Cancel the scan for the specified target
+            </summary>
+            <param name="targ">Target to cancel the scan for</param>
+        </member>
         <member name="P:rgat.DetectItEasy.NewestSignature">
             <summary>
             Date of the newest signature in the DetectItEasy signatures directory of this machine
@@ -2644,6 +2870,11 @@
         <member name="P:rgat.DetectItEasy.StaleRemoteSignatures">
             <summary>
             If the available signatures are newer than those on the remote host
+            </summary>
+        </member>
+        <member name="M:rgat.DetectItEasy.UploadSignatures">
+            <summary>
+            Zip up the DIE sigs database and sent it to the remote party
             </summary>
         </member>
         <member name="M:rgat.DetectItEasy.ReplaceSignatures(System.Byte[])">
@@ -2772,6 +3003,12 @@
             </summary>
             <param name="repo">Repo key</param>
         </member>
+        <member name="T:rgat.GraphLayoutEngine">
+            <summary>
+            A thread safe interface to the GPU for running compute shaders
+            Has a position, velocity and attribute pipeline for laying out and animating graphs
+            </summary>
+        </member>
         <member name="M:rgat.GraphLayoutEngine.#ctor(Veldrid.GraphicsDevice,ImGuiNET.ImGuiController,System.String)">
             <summary>
             Runs the computation shaders on graph layout buffers 
@@ -2794,6 +3031,7 @@
             Acquires reader lock
             </summary>
             <param name="graph">The graph being measured</param>
+            <param name="worldView">The world view matrix of the active graph</param>
             <param name="graphWidgetSize">Size of the graph widget</param>
             <param name="xoffsets">xoffsets.X = distance of furthest left node from left of the widget. Ditto xoffsets.Y for right node/side</param>
             <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
@@ -3808,11 +4046,30 @@
             Initialise for GPU-less operations, such as on an analysis sandbox were only tracing will be performed
             </summary>
         </member>
+        <member name="M:rgat.OperationModes.CommandLineRunner.InitGPU">
+            <summary>
+            Init a GPU usage mode
+            </summary>
+        </member>
+        <member name="M:rgat.OperationModes.CommandLineRunner.TraceBinary(System.String,System.String,System.Boolean)">
+            <summary>
+            Begin tracing a binary in command line mode
+            </summary>
+            <param name="targetPath">Binary to trace</param>
+            <param name="saveDirectory">Where to save the result</param>
+            <param name="recordVideo">If a video is being recorded</param>
+        </member>
         <member name="T:rgat.OperationModes.ImGuiRunner">
             <summary>
             Creates and manages a Veldrid/ImGui based rgat GUI
             This requires access to a GPU (with Vulkan drivers)
             </summary>
+        </member>
+        <member name="M:rgat.OperationModes.ImGuiRunner.#ctor(rgat.rgatState)">
+            <summary>
+            Create an ImGui GUI rgat session
+            </summary>
+            <param name="state">rgat state obj</param>
         </member>
         <member name="M:rgat.OperationModes.ImGuiRunner.Run">
             <summary>
@@ -4579,6 +4836,16 @@
             <param name="blockID">IF of the block</param>
             <returns></returns>
         </member>
+        <member name="M:rgat.ProcessRecord.GetDisassemblyBlock(System.UInt32,System.Nullable{rgat.ROUTINE_STRUCT}@,System.UInt64)">
+            <summary>
+            Get the list of instructions for a block
+            This blocks until the data is disassembled and is generally some of the oldest and worst code in the codebase
+            </summary>
+            <param name="blockID">Block ID</param>
+            <param name="externBlock">If external, the associated object</param>
+            <param name="externBlockaddr">An optional external address</param>
+            <returns></returns>
+        </member>
         <member name="M:rgat.ProcessRecord.FindContainingModule(System.UInt64,System.Nullable{System.Int32}@)">
             <summary>
             Find the module containing this address
@@ -4714,6 +4981,34 @@
             </summary>
             <param name="GlobalModuleID">Global module ID</param>
             <returns>An API reference value which can be used in API metadata lookup operations</returns>
+        </member>
+        <member name="M:rgat.ProcessRecord.GetAPIEntry(System.Int32,System.Int32,System.UInt64)">
+            <summary>
+            Get API details for a module/address
+            </summary>
+            <param name="globalModuleID">Module</param>
+            <param name="moduleAPIRef">API data reference</param>
+            <param name="address">Address of the symbol</param>
+            <returns>API details for that entry or null if not found</returns>
+        </member>
+        <member name="M:rgat.ProcessRecord.GetNodesAtAddress(System.UInt64,System.UInt32)">
+            <summary>
+            Get all the nodes found at an address in a thread
+            </summary>
+            <param name="addr">Memory address</param>
+            <param name="TID">The thread with the instructions in it</param>
+            <returns></returns>
+        </member>
+        <member name="F:rgat.ProcessRecord.InstructionsLock">
+            <summary>
+            Guard disassembly data structures
+            This needs to not be public
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessRecord.BasicBlocksList">
+            <summary>
+            list of address, basic blocks - guarded by instructionslock
+            </summary>
         </member>
         <member name="F:rgat.ProcessRecord.externdict">
             <summary>
@@ -5642,6 +5937,31 @@
             Errors encountered evaluating each requirement
             </summary>
         </member>
+        <member name="T:rgat.Testing.TRACE_TEST_RESULTS">
+            <summary>
+            Results of a test run being compared against its requirements
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TRACE_TEST_RESULTS.ProcessResults">
+            <summary>
+            Results of process requirements
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TRACE_TEST_RESULTS.ThreadResults">
+            <summary>
+            Results of thread requirements
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TRACE_TEST_RESULTS.ChildResults">
+            <summary>
+            Results of child trace requirements
+            </summary>
+        </member>
+        <member name="T:rgat.Testing.REQUIREMENTS_LIST">
+            <summary>
+            A list of test requirements
+            </summary>
+        </member>
         <member name="T:rgat.Testing.TestRequirement">
             <summary>
             A requirement to apply to a process or thread
@@ -5917,6 +6237,62 @@
             </summary>
             <param name="sessionID">Session ID to check</param>
             <returns>number of failed tests</returns>
+        </member>
+        <member name="T:rgat.Testing.TestResultCommentary">
+            <summary>
+            Explanations for why a test requirement passed/failed
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestResultCommentary.requirement">
+            <summary>
+            The requirement object
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestResultCommentary.result">
+            <summary>
+            The result of the comparison
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestResultCommentary.matchingGraphs">
+            <summary>
+            Graphs that match a graph requirement
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestResultCommentary.matchingTraces">
+            <summary>
+            Traces that match a trace requirement
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestResultCommentary.comparedValueString">
+            <summary>
+            The value that was compared
+            </summary>
+        </member>
+        <member name="T:rgat.Testing.TestSession">
+            <summary>
+            a collection of testcases run in a session of tests
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestSession.tests">
+            <summary>
+            a collection of testcases run in a session of tests
+            </summary>
+        </member>
+        <member name="T:rgat.Testing.TestResult">
+            <summary>
+            A result of a test
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestResult.text">
+            <summary>
+            Result text
+            </summary>
+        </member>
+        <member name="M:rgat.Testing.TestHarnessThread.NotifyComplete(System.Int64)">
+            <summary>
+            Mark a test as complete
+            </summary>
+            <param name="testID">The test ID</param>
         </member>
         <member name="T:rgat.Widgets.QuickMenu">
             <summary>
@@ -7699,6 +8075,92 @@
             Called whenever the widget opens/closes an inner dialog
             </summary>
             <param name="action">Function to call when dialog is opened/closed. Param is open/closed state.</param>
+        </member>
+        <member name="T:rgat.WritableRgbaFloat">
+            <summary>
+            A colour format conversion class for dealing with colours 
+            in formats that Veldrid, ImGui and .NET require
+            </summary>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.#ctor(System.Drawing.Color)">
+            <summary>
+            Create a colour from a .NET drawing Colour
+            </summary>
+            <param name="col">Colour</param>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.#ctor(System.Single,System.Single,System.Single,System.Single)">
+            <summary>
+            Create a colour float colour values (0-1)
+            </summary>
+            <param name="Rf">red</param>
+            <param name="Gf">green</param>
+            <param name="Bf">blue</param>
+            <param name="Af">alpha</param>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.#ctor(System.Numerics.Vector4)">
+            <summary>
+            Create a colour from a Vector
+            </summary>
+            <param name="col">Vector4 of rgba</param>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.#ctor(System.UInt32)">
+            <summary>
+            Create a colour from an ImGui uint 
+            </summary>
+            <param name="col">uint colour</param>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.ToUint(System.Nullable{System.UInt32})">
+            <summary>
+            Get the uint value of this colour required by ImGui
+            </summary>
+            <param name="customAlpha">An optional alpha value</param>
+            <returns>This colour as a uint</returns>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.ToVec4">
+            <summary>
+            This colour as a vector
+            </summary>
+            <returns>Vector4</returns>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.ToVec4(System.Drawing.Color)">
+            <summary>
+            Convert a .NET Colour to a Vector4
+            </summary>
+            <param name="col">Input Colour</param>
+            <returns>output Vector4</returns>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.ToRgbaFloat(System.Drawing.Color)">
+            <summary>
+            Convert a .NET Colour to a Veldrid RgbaFloat
+            </summary>
+            <param name="col"></param>
+            <returns>RgbaFloat</returns>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.ToRgbaFloat">
+            <summary>
+            Get this colour as a Veldrid RgbaFloat
+            </summary>
+            <returns>RgbaFloat</returns>
+        </member>
+        <member name="P:rgat.WritableRgbaFloat.R">
+            <summary>
+            The red value
+            </summary>
+        </member>
+        <member name="P:rgat.WritableRgbaFloat.G">
+            <summary>
+            The green value
+            </summary>
+        </member>
+        <member name="P:rgat.WritableRgbaFloat.B">
+            <summary>
+            The blue value
+            </summary>
+        </member>
+        <member name="P:rgat.WritableRgbaFloat.A">
+            <summary>
+            The alpha value
+            </summary>
         </member>
         <member name="T:rgat.YARAScanner">
             <summary>

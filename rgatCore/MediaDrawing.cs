@@ -21,16 +21,16 @@ namespace rgat
             _commandList = controller.graphicsDevice.ResourceFactory.CreateCommandList();
         }
 
-        public static void Cleanup() => _commandList.Dispose();
+        public static void Cleanup() => _commandList?.Dispose();
 
 
-        static Texture _recordingStager;
-        static ImGuiNET.ImGuiController _controller;
-        static CommandList _commandList;
+        static Texture? _recordingStager;
+        static ImGuiNET.ImGuiController? _controller;
+        static CommandList? _commandList;
 
         public static unsafe Bitmap CreateRecordingFrame(Framebuffer fbuf, float startX, float startY, float drawWidth, float drawHeight)
         {
-            GraphicsDevice gd = _controller.graphicsDevice;
+            GraphicsDevice gd = _controller!.graphicsDevice;
             Texture ftex = fbuf.ColorTargets[0].Target;
             if (_recordingStager == null || _recordingStager.Width != ftex.Width || _recordingStager.Height != ftex.Height)
             {
@@ -39,7 +39,7 @@ namespace rgat
                     1, 1, 1, PixelFormat.B8_G8_R8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
             }
 
-            _commandList.Begin();
+            _commandList!.Begin();
             _commandList.CopyTexture(ftex, _recordingStager);
             _commandList.End();
             gd.SubmitCommands(_commandList);

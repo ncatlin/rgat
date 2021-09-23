@@ -4,15 +4,36 @@ using System.Linq;
 
 namespace rgat.Testing
 {
+    /// <summary>
+    /// Explanations for why a test requirement passed/failed
+    /// </summary>
     public class TestResultCommentary
     {
+        public TestResultCommentary(TestRequirement req) {
+            requirement = req;
+        }
+
+        /// <summary>
+        /// The requirement object
+        /// </summary>
         public TestRequirement requirement;
-        public string comparisonTest;
+
+        /// <summary>
+        /// The result of the comparison
+        /// </summary>
         public eTestState result;
+        /// <summary>
+        /// Graphs that match a graph requirement
+        /// </summary>
         public List<ProtoGraph> matchingGraphs = new List<ProtoGraph>();
+        /// <summary>
+        /// Traces that match a trace requirement
+        /// </summary>
         public List<TraceRecord> matchingTraces = new List<TraceRecord>();
-        public string comparisonNote;
-        public string comparedValueString;
+        /// <summary>
+        /// The value that was compared
+        /// </summary>
+        public string comparedValueString = "";
 
     }
 
@@ -55,10 +76,18 @@ namespace rgat.Testing
 
     }
 
-    //object associated with one execution of a testcase
+    
+    /// <summary>
+    /// object associated with one execution of a testcase
+    /// </summary>
     public class TestCaseRun
     {
-
+        /// <summary>
+        /// Create a testcase run
+        /// </summary>
+        /// <param name="testc">Testcase</param>
+        /// <param name="session">Session this test was run in</param>
+        /// <param name="testID">ID of the test</param>
         public TestCaseRun(TestCase testc, int session, long testID)
         {
             Session = session;
@@ -66,28 +95,53 @@ namespace rgat.Testing
             _test = testc;
         }
 
+        /// <summary>
+        /// Get information about the test results
+        /// </summary>
         public TraceTestResultCommentary ResultCommentary = new TraceTestResultCommentary();
 
+        /// <summary>
+        /// Run is complete
+        /// </summary>
         public bool Complete { get; private set; }
+        /// <summary>
+        /// Test session ID
+        /// </summary>
         public int Session;
+        /// <summary>
+        /// Test ID
+        /// </summary>
         public long TestID;
-        public TraceRecord FirstTrace { get; private set; }
+        /// <summary>
+        /// The first trace of the test
+        /// </summary>
+        public TraceRecord? FirstTrace { get; private set; }
+        /// <summary>
+        /// Set the initial trace
+        /// </summary>
+        /// <param name="trace"></param>
         public void SetFirstTrace(TraceRecord trace) => FirstTrace = trace;
 
-        readonly TestCase _test = null;
+        readonly TestCase _test;
+        /// <summary>
+        /// Get the testcase for this test run
+        /// </summary>
         public TestCase GetTestCase => _test;
 
         readonly List<TestResult> results = new List<TestResult>();
 
         readonly object _lock = new object();
 
+        /// <summary>
+        /// Mark the run as complete
+        /// </summary>
         public void MarkFinished()
         {
             EvaluateResults();
             Complete = true;
         }
 
-        readonly Dictionary<TestRequirement, string> FailedTestRequirements = new Dictionary<TestRequirement, string>();
+        readonly Dictionary<TestRequirement, string?> FailedTestRequirements = new Dictionary<TestRequirement, string?>();
 
         void EvaluateResults()
         {
@@ -128,13 +182,13 @@ namespace rgat.Testing
                 switch (req.Name)
                 {
                     case "TotalProcesses":
-                        int processCount = FirstTrace.CountDescendantTraces();
+                        int processCount = FirstTrace!.CountDescendantTraces();
                         passed = req.Compare(processCount, out error);
                         compareValueString = $"{processCount}";
                         break;
 
                     case "TotalGraphs":
-                        int graphCount = FirstTrace.CountDescendantGraphs();
+                        int graphCount = FirstTrace!.CountDescendantGraphs();
                         passed = req.Compare(graphCount, out error);
                         compareValueString = $"{graphCount}";
                         break;
@@ -148,13 +202,12 @@ namespace rgat.Testing
                 }
                 if (!passed)
                 {
-                    FailedTestRequirements.Add(req, error);
+                    FailedTestRequirements.Add(req, error!);
                 }
-                ResultCommentary.generalTests[req] = new TestResultCommentary()
+                ResultCommentary.generalTests[req] = new TestResultCommentary(req)
                 {
                     comparedValueString = compareValueString,
-                    result = passed ? eTestState.Passed : eTestState.Failed,
-                    requirement = req
+                    result = passed ? eTestState.Passed : eTestState.Failed
                 };
 
                 /*

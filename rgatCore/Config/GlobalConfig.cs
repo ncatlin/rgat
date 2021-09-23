@@ -217,8 +217,14 @@ namespace rgat
         /// </summary>
         public static bool ShowNodeMouseoverTooltip = true;
 
+        /// <summary>
+        ///  work in progress  
+        /// </summary>
         public static int NodeClumpLimit = 50;
-        public static float NodeClumpForce = 880.01f;
+        /// <summary>
+        /// work in progress 
+        /// </summary>
+        public static float NodeClumpForce =0.1f;
 
         /// <summary>
         /// The initial graph layout used for new traces

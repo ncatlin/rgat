@@ -6,11 +6,40 @@ using static rgat.Config.rgatSettings;
 
 namespace rgat.Config
 {
+    /// <summary>
+    /// A storage class for data from the remote rgat session
+    /// </summary>
     public class RemoteDataMirror
     {
         static readonly object _lock = new object();
 
-        public enum ResponseStatus { eNoRecord, eWaiting, eDelivered, eError };
+        /// <summary>
+        /// Status of a command
+        /// </summary>
+        public enum ResponseStatus { 
+            /// <summary>
+            /// No record of it
+            /// </summary>
+            eNoRecord,
+            /// <summary>
+            /// Waiting for a response
+            /// </summary>
+            eWaiting,
+            /// <summary>
+            /// The response has arrived
+            /// </summary>
+            eDelivered,
+            /// <summary>
+            /// Error
+            /// </summary>
+            eError
+        };
+
+        /// <summary>
+        /// A callback to a command response being delivered
+        /// </summary>
+        /// <param name="response">JSON of the reponse</param>
+        /// <returns></returns>
         public delegate bool ProcessResponseCallback(JToken response);
 
         static readonly Dictionary<int, ProcessResponseCallback> _pendingCommandCallbacks = new Dictionary<int, ProcessResponseCallback>();
@@ -21,7 +50,10 @@ namespace rgat.Config
 
         static readonly Dictionary<string, uint> _pipeIDDictionary = new Dictionary<string, uint>();
 
-
+        /// <summary>
+        /// Callback to process incoming trace data
+        /// </summary>
+        /// <param name="arg">trace data</param>
         public delegate void ProcessIncomingWorkerData(byte[] arg);
 
         static readonly Dictionary<uint, Threads.TraceProcessorWorker> _remoteDataWorkers = new Dictionary<uint, Threads.TraceProcessorWorker>();
@@ -89,23 +121,37 @@ namespace rgat.Config
         }
 
 
-
+        /// <summary>
+        /// Register a recipient and optional callback for a command response
+        /// </summary>
+        /// <param name="commandID">ID of the command</param>
+        /// <param name="cmd">Command text</param>
+        /// <param name="recipient">Recipient for responses</param>
+        /// <param name="callback">Callback to handle the response (otherwise it will have to be fetched)</param>
         public static void RegisterPendingResponse(int commandID, string cmd, string recipient, ProcessResponseCallback? callback = null)
         {
             string addressedCmd = cmd + recipient;
             lock (_lock)
             {
-                Debug.Assert(!_pendingEvents.ContainsKey(addressedCmd));
-                Debug.Assert(!_pendingEventsReverse.ContainsKey(commandID));
-                _pendingEvents.Add(addressedCmd, commandID);
-                _pendingEventsReverse.Add(commandID, addressedCmd);
+                if (callback is not null)
+                {
+                    Debug.Assert(!_pendingEvents.ContainsKey(addressedCmd));
+                    Debug.Assert(!_pendingEventsReverse.ContainsKey(commandID));
+                    _pendingEvents.Add(addressedCmd, commandID);
+                    _pendingEventsReverse.Add(commandID, addressedCmd);
 
-                Debug.Assert(!_pendingCommandCallbacks.ContainsKey(commandID));
-                _pendingCommandCallbacks.Add(commandID, callback);
-
+                    Debug.Assert(!_pendingCommandCallbacks.ContainsKey(commandID));
+                    _pendingCommandCallbacks.Add(commandID, callback!);
+                }
             }
         }
 
+        /// <summary>
+        /// Check if a response has been received
+        /// </summary>
+        /// <param name="command">A command</param>
+        /// <param name="recipient">A recipient waiting for a response to it</param>
+        /// <returns></returns>
         public static ResponseStatus CheckTaskStatus(string command, string recipient)
         {
             string addressedCmd = command + recipient;
@@ -117,7 +163,11 @@ namespace rgat.Config
             }
         }
 
-
+        /// <summary>
+        /// Deliver a response to a command
+        /// </summary>
+        /// <param name="commandID">The ID of the command</param>
+        /// <param name="response">JSON reponse data</param>
         public static void DeliverResponse(int commandID, JToken response)
         {
             lock (_lock)
@@ -156,6 +206,10 @@ namespace rgat.Config
         // file info
 
         static List<PathRecord> _cachedRecentBins = new List<PathRecord>();
+        /// <summary>
+        /// Record recent path data from the remote host
+        /// </summary>
+        /// <param name="entries">Pathrecord entries</param>
         public static void SetRecentPaths(List<PathRecord> entries)
         {
             lock (_lock)
@@ -222,7 +276,10 @@ namespace rgat.Config
         }
 
 
-
+        /// <summary>
+        /// Fetch recently executed binaries
+        /// </summary>
+        /// <returns>Array of path records</returns>
         public static PathRecord[] GetRecentBins()
         {
             lock (_lock)
@@ -231,6 +288,9 @@ namespace rgat.Config
             }
         }
 
-        public static string RootDirectory;
+        /// <summary>
+        /// Root directory of the remote host session
+        /// </summary>
+        public static string RootDirectory = "";
     }
 }

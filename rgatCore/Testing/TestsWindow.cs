@@ -45,7 +45,6 @@ namespace rgat.Widgets
         readonly List<TestCase> _queuedTests = new List<TestCase>();
         readonly List<TestCase> _allTests = new List<TestCase>();
         Dictionary<string, float> _sessionStats = new Dictionary<string, float>();
-        readonly List<Testing.TestOutput> _outputText = new List<Testing.TestOutput>();
 
         readonly object _TestsLock = new object();
 
@@ -809,8 +808,12 @@ namespace rgat.Widgets
             ImGui.Text(testcase.JSONPath);
             ImGui.Text(testcase.BinaryPath);
 
-            TestCaseRun failedTest = testcase.LatestTestRun;
-
+            TestCaseRun? failedTest = testcase.LatestTestRun;
+            if (failedTest is not null)
+            {
+                //todo flesh this out?
+                ImGui.Text("Test ID:" + failedTest.TestID);
+            }
 
             ImGui.Indent(5);
 

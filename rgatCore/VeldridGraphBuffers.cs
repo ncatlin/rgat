@@ -10,6 +10,9 @@ using Veldrid.SPIRV;
 
 namespace rgat
 {
+    /// <summary>
+    /// Class for managing VRAM buffers
+    /// </summary>
     public class VeldridGraphBuffers
     {
         /// <summary>
@@ -51,7 +54,12 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Get a CPU readable mapping of VRAM
+        /// </summary>
+        /// <param name="gd">A veldrid graphics device</param>
+        /// <param name="buffer">The buffer to read</param>
+        /// <returns></returns>
         public static DeviceBuffer GetReadback(GraphicsDevice gd, DeviceBuffer buffer)
         {
             DeviceBuffer readback;
@@ -130,6 +138,15 @@ namespace rgat
         readonly static object b_lock = new object();
         static readonly List<string> _allocatedBufs = new List<string>();
 
+        /// <summary>
+        /// Allocate tracked VRAM memory
+        /// </summary>
+        /// <param name="gd">GraphicsDevice</param>
+        /// <param name="size">Size of the buffer to allocate</param>
+        /// <param name="usage">How the buffer is used</param>
+        /// <param name="stride">Data stride</param>
+        /// <param name="name">Name for the buffer</param>
+        /// <returns>Allocated device buffer</returns>
         public static DeviceBuffer TrackedVRAMAlloc(GraphicsDevice gd, uint size, BufferUsage usage = BufferUsage.StructuredBufferReadWrite, uint stride = 0, string name = "?")
         {
             lock (b_lock)
@@ -144,6 +161,13 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Upload an array of floats to a new VRAM buffer
+        /// </summary>
+        /// <param name="floats">floats</param>
+        /// <param name="gdev">Graphics Device</param>
+        /// <param name="name">Buffer name</param>
+        /// <returns>VRAM DeviceBuffer</returns>
         public static unsafe DeviceBuffer CreateFloatsDeviceBuffer(float[] floats, GraphicsDevice gdev, string name = "?")
         {
             DeviceBuffer buffer = TrackedVRAMAlloc(gdev, (uint)floats.Length * sizeof(float), stride: 4, name: name);

@@ -1052,7 +1052,8 @@ namespace rgat
                 }
                 else
                 {
-                    var block = InternalProtoGraph.ProcessData.BasicBlocksList[blockIdx].Item2;
+                    var block = InternalProtoGraph.ProcessData.BasicBlocksList[blockIdx]?.Item2;
+                    Debug.Assert(block is not null);
                     int midIdx = (int)Math.Ceiling((block.Count - 1.0) / 2.0);
                     var middleIns = block[midIdx];
                     if (!middleIns.GetThreadVert(TID, out uint centerNodeID))
@@ -1606,7 +1607,7 @@ namespace rgat
         {
             ProcessRecord piddata = InternalProtoGraph.ProcessData;
             ROUTINE_STRUCT? externBlock = new ROUTINE_STRUCT();
-            List<InstructionData>? block = piddata.getDisassemblyBlock((uint)blockID, ref externBlock, blockAddr);
+            List<InstructionData>? block = piddata.GetDisassemblyBlock((uint)blockID, ref externBlock, blockAddr);
             if (block == null && externBlock == null)
             {
                 newnodelist = null;
@@ -1678,7 +1679,7 @@ namespace rgat
         void brighten_next_block_edge(uint blockID, ulong blockAddress)
         {
             ROUTINE_STRUCT? externStr = null;
-            List<InstructionData>? nextBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(blockID, ref externStr, blockAddress);
+            List<InstructionData>? nextBlock = InternalProtoGraph.ProcessData.GetDisassemblyBlock(blockID, ref externStr, blockAddress);
             if (nextBlock is null) return;
 
             Tuple<uint, uint>? LinkingPair = null;
@@ -1980,9 +1981,12 @@ namespace rgat
                 }
             }
 
-            Console.WriteLine($"Trace type {entry.entryType} brightening nodes {String.Join(",", nodeIDList.Select(x => x.ToString()))} for time {brightTime}");
-            //add all the nodes+edges in the block to the brightening list
-            brighten_node_list(entry, brightTime, nodeIDList);
+            if (nodeIDList is not null)
+            {
+                Console.WriteLine($"Trace type {entry.entryType} brightening nodes {String.Join(",", nodeIDList!.Select(x => x.ToString()))} for time {brightTime}");
+                //add all the nodes+edges in the block to the brightening list
+                brighten_node_list(entry, brightTime, nodeIDList);
+            }
 
             //brighten edge to next unchained block
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)

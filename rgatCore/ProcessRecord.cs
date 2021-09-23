@@ -114,14 +114,23 @@ namespace rgat
         public List<InstructionData>? getDisassemblyBlock(uint blockID)
         {
             ROUTINE_STRUCT? stub = null;
-            return getDisassemblyBlock(blockID, ref stub);
+            return GetDisassemblyBlock(blockID, ref stub);
         }
 
-        public List<InstructionData>? getDisassemblyBlock(uint blockID, ref ROUTINE_STRUCT? externBlock, ulong externBlockaddr = 0)
+
+        /// <summary>
+        /// Get the list of instructions for a block
+        /// This blocks until the data is disassembled and is generally some of the oldest and worst code in the codebase
+        /// </summary>
+        /// <param name="blockID">Block ID</param>
+        /// <param name="externBlock">If external, the associated object</param>
+        /// <param name="externBlockaddr">An optional external address</param>
+        /// <returns></returns>
+        public List<InstructionData>? GetDisassemblyBlock(uint blockID, ref ROUTINE_STRUCT? externBlock, ulong externBlockaddr = 0)
         {
             int iterations = 0;
 
-            while (true)
+            while (!rgatState.rgatIsExiting)
             {
                 if (externBlockaddr != 0 || blockID == uint.MaxValue)
                 {
@@ -161,11 +170,10 @@ namespace rgat
                 if (iterations++ > 200)
                 {
                     Console.WriteLine($"[rgat]Warning: Giving up waiting for disassembly of block ID {blockID}");
-                    return null;
+                    break;
                 }
-
-                if (rgatState.rgatIsExiting) return null;
             }
+            return null;
         }
 
         //todo broke on replay with extern modules
@@ -335,8 +343,13 @@ namespace rgat
 
                 if (modsymsPlain.ContainsKey(moduleID))
                 {
+                    string? foundSym;
                     ulong offset = address - LoadedModuleBounds[moduleID].Item1;
-                    if (modsymsPlain[moduleID].TryGetValue(offset, out symbol)) return true;
+                    if (modsymsPlain[moduleID].TryGetValue(offset, out foundSym))
+                    {
+                        symbol = foundSym!;
+                        return symbol is not null;
+                    }
                 }
             }
             symbol = "";
@@ -408,10 +421,14 @@ namespace rgat
 
                 lock (InstructionsLock)
                 {
-                    if (BasicBlocksList.Count > blockID && BasicBlocksList[(int)blockID] != null)
+                    if (BasicBlocksList.Count > blockID)
                     {
-                        address = BasicBlocksList[(int)blockID].Item1;
-                        return true;
+                        var item = BasicBlocksList[(int)blockID];
+                        if (item is not null)
+                        {
+                            address = item.Item1;
+                            return true;
+                        }
                     }
                 }
                 if (rgatState.rgatIsExiting)
@@ -443,7 +460,9 @@ namespace rgat
         public ulong GetAddressOfBlock(int blockID)
         {
             Debug.Assert(blockID != -1 && blockID < BasicBlocksList.Count);
-            return BasicBlocksList[blockID].Item1;
+            var item = BasicBlocksList[blockID];
+            Debug.Assert(item is not null);
+            return item.Item1;
         }
 
 
@@ -535,12 +554,19 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Get API details for a module/address
+        /// </summary>
+        /// <param name="globalModuleID">Module</param>
+        /// <param name="moduleAPIRef">API data reference</param>
+        /// <param name="address">Address of the symbol</param>
+        /// <returns>API details for that entry or null if not found</returns>
         public APIDetailsWin.API_ENTRY? GetAPIEntry(int globalModuleID, int moduleAPIRef, ulong address)
         {
             if (moduleAPIRef == -1) return null;
 
             ulong symbolOffset = address - LoadedModuleBounds[globalModuleID].Item1;
-            if (modsymsPlain[globalModuleID].TryGetValue(symbolOffset, out string? symname))
+            if (modsymsPlain[globalModuleID].TryGetValue(symbolOffset, out string? symname) && symname is not null)
             {
                 return APIDetailsWin.GetAPIInfo(moduleAPIRef, symname);
             }
@@ -549,48 +575,12 @@ namespace rgat
         }
 
 
-
-        public bool GetInstructionBefore(ulong addr, out ulong result)
-        {
-            const int LARGEST_X86_INSTRUCTION = 15;
-            {
-                //first lookup in cache
-                if (previousInstructionsCache.TryGetValue(addr, out result))
-                {
-                    return true;
-                }
-
-                //the code that is executing has not been disassembled yet
-                if (disassembly.Count == 0) return false;
-
-                //x86 has variable length instructions so we have to 
-                //search backwards, byte by byte
-                lock (InstructionsLock)
-                {
-                    ulong testaddr = 0, addrMinus;
-                    for (addrMinus = 1; addrMinus < (LARGEST_X86_INSTRUCTION + 1); addrMinus++)
-                    {
-                        testaddr = addr - addrMinus;
-                        if (disassembly.ContainsKey(testaddr))
-                        {
-                            break;
-                        }
-                    }
-
-                    if (addrMinus > LARGEST_X86_INSTRUCTION)
-                    {
-                        //cerr << "[rgat]Error: Unable to find instruction before 0x" << hex << addr << endl;
-                        return false;
-                    }
-
-                    previousInstructionsCache.Add(addr, testaddr);
-                    result = testaddr;
-                    return true;
-                }
-
-            }
-        }
-
+        /// <summary>
+        /// Get all the nodes found at an address in a thread
+        /// </summary>
+        /// <param name="addr">Memory address</param>
+        /// <param name="TID">The thread with the instructions in it</param>
+        /// <returns></returns>
         public List<uint> GetNodesAtAddress(ulong addr, uint TID)
         {
             lock (InstructionsLock)
@@ -621,17 +611,27 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// Guard disassembly data structures
+        /// This needs to not be public
+        /// </summary>
         public readonly object InstructionsLock = new object();
+
 
         //maps instruction addresses to list of different instructions that resided at that address
         public Dictionary<ulong, List<InstructionData>> disassembly = new Dictionary<ulong, List<InstructionData>>();
 
+
         //useful for mapping return addresses to callers without a locking search
         public Dictionary<ulong, ulong> previousInstructionsCache = new Dictionary<ulong, ulong>();
 
-        //list of basic blocks - guarded by instructionslock
-        //              address
-        public List<Tuple<ulong, List<InstructionData>>> BasicBlocksList = new List<Tuple<ulong, List<InstructionData>>>();
+
+        /// <summary>
+        /// list of address, basic blocks - guarded by instructionslock
+        /// </summary>
+        public List<Tuple<ulong, List<InstructionData>>?> BasicBlocksList = new();
+
         private readonly Dictionary<ulong, List<ulong>> blockIDDict = new Dictionary<ulong, List<ulong>>();
 
         /// <summary>
@@ -1226,6 +1226,8 @@ namespace rgat
 
             foreach (var addr_inslist in BasicBlocksList)
             {
+                if (addr_inslist is null) continue;
+
                 JArray blockArray = new JArray();
                 blockArray.Add(addr_inslist.Item1);
 

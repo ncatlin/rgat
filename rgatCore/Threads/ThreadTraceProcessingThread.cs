@@ -20,7 +20,7 @@ namespace rgat.Threads
             public uint blockID;
             public ulong repeatCount;
             public List<Tuple<uint, ulong>> targEdges; //BlockID_Count
-            public List<Tuple<ulong, ulong>> targExternEdges; //Addr_Count
+            public List<Tuple<ulong, ulong>>? targExternEdges; //Addr_Count
             public List<InstructionData>? blockInslist;
         };
 
@@ -46,7 +46,10 @@ namespace rgat.Threads
 
         Dictionary<int, APITHUNK> ApiThunks = new Dictionary<int, APITHUNK>();
 
-
+        /// <summary>
+        /// Worker for processing trace data
+        /// </summary>
+        /// <param name="newProtoGraph">Thread graph being processed</param>
         public ThreadTraceProcessingThread(ProtoGraph newProtoGraph)
         {
             protograph = newProtoGraph;
@@ -91,12 +94,9 @@ namespace rgat.Threads
             ABRtime.Start();
 
             int RecordedBlocksQty = protograph.BlocksFirstLastNodeList.Count;
-            //List<BLOCKREPEAT> remainingRepeats = new List<BLOCKREPEAT>();
             for (var i = blockRepeatQueue.Count - 1; i >= 0; i--)
             {
                 BLOCKREPEAT brep = blockRepeatQueue[i];
-                //first find the blocks instruction list
-                //if (brep.blockID >= RecordedBlocksQty) { remainingRepeats.Add(brep); continue; }
                 NodeData? n = null;
 
                 if (brep.blockInslist == null)
@@ -105,7 +105,9 @@ namespace rgat.Threads
                     {
                         continue;
                     }
-                    brep.blockInslist = protograph.ProcessData.BasicBlocksList[(int)brep.blockID].Item2;
+                    var block = protograph.ProcessData.BasicBlocksList[(int)brep.blockID];
+                    if (block is null) continue;
+                    brep.blockInslist = block.Item2;
                 }
 
                 bool needWait = false;
@@ -122,22 +124,28 @@ namespace rgat.Threads
                         (protograph.BlocksFirstLastNodeList[edgeblock] == null &&
                         !ApiThunks.ContainsKey(edgeblock)))
                     {
-                        if (protograph.ProcessData.BasicBlocksList[edgeblock].Item2[0].PossibleidataThunk)
+                        var block = protograph.ProcessData.BasicBlocksList[edgeblock];
+                        if (block is null) continue;
+                        if (block.Item2[0].PossibleidataThunk)
                         {
                             //block has not been processed (and its probably (...) not a thunk)
                             needWait = true;
                             break;
                         }
                     }
-                    if (!protograph.ProcessData.BasicBlocksList[edgeblock].Item2[0].InThread(protograph.ThreadID))
+
+                    var blockB = protograph.ProcessData.BasicBlocksList[edgeblock];
+                    if (blockB is null || !blockB.Item2[0].InThread(protograph.ThreadID))
                     {
                         //block has not been placed on graph
                         needWait = true;
                         break;
                     }
                 }
+
                 if (needWait) continue;
 
+                ///store pending changes, only apply them if all the data is available
                 List<Tuple<NodeData, ulong>> increaseNodes = new List<Tuple<NodeData, ulong>>();
                 List<Tuple<EdgeData, ulong>> increaseEdges = new List<Tuple<EdgeData, ulong>>();
 
@@ -165,8 +173,7 @@ namespace rgat.Threads
                                 {
                                     EdgeData? e = protograph.GetEdge(lastNodeIdx, outn.Index);
                                     if (e == null) continue;
-                                    //outn.IncreaseExecutionCount(execCount);
-                                    //e.IncreaseExecutionCount(execCount);
+
                                     increaseNodes.Add(new Tuple<NodeData, ulong>(outn, execCount));
                                     increaseEdges.Add(new Tuple<EdgeData, ulong>(e, execCount));
                                     found = true;
@@ -226,15 +233,8 @@ namespace rgat.Threads
                 {
                     continue;
                 }
-                foreach (var nodeInc in increaseNodes)
-                {
-                    nodeInc.Item1.IncreaseExecutionCount(nodeInc.Item2);
-                    protograph.TotalInstructions += nodeInc.Item2;
-                }
-                foreach (var edgeInc in increaseEdges)
-                {
-                    edgeInc.Item1.IncreaseExecutionCount(edgeInc.Item2);
-                }
+
+                List<ExtraEdge> newEdges = new List<ExtraEdge>();
 
                 //create any new edges between unchained nodes
                 foreach (var targblockID_Count in brep.targEdges)
@@ -253,21 +253,24 @@ namespace rgat.Threads
                             }
                             else
                             {
-                                Debug.Assert(false);
+                                Console.WriteLine($"No callers for node 0x{n.address:X}");
+                                needWait = true;
+                                break;
                             }
                         }
                         else
                         {
                             //sometimes blocks get a new id
-                            InstructionData altIns = protograph.ProcessData.BasicBlocksList[targetBlockID].Item2[0];
-                            if (altIns.GetThreadVert(protograph.ThreadID, out uint altFirstNodeIdx))
+                            InstructionData? altIns = protograph.ProcessData.BasicBlocksList[targetBlockID]?.Item2[0];
+                            if (altIns is not null && altIns.GetThreadVert(protograph.ThreadID, out uint altFirstNodeIdx))
                             {
                                 targNodeID = altFirstNodeIdx;
                             }
                             else
                             {
-
-                                Debug.Assert(false);
+                                Console.WriteLine($"No callers for node 0x{altIns?.Address:X}");
+                                needWait = true;
+                                break;
                             }
                         }
                         //var il = protograph.ProcessData.getDisassemblyBlock((uint)targetBlockID);
@@ -282,7 +285,8 @@ namespace rgat.Threads
                     if (n!.OutgoingNeighboursSet.Contains(targNodeID) is false)
                     {
                         //again let new tag execution handle it
-                        protograph.AddEdge(n.Index, targNodeID, execCount);
+                        newEdges.Add(new ExtraEdge() { count = execCount, source = n.Index, target = targNodeID });
+
                         Logging.RecordLogEvent($"Blockrepeat adding edge {n.Index},{targNodeID} with {execCount} execs",
                            Logging.LogFilterType.BulkDebugLogFile);
 
@@ -293,10 +297,26 @@ namespace rgat.Threads
                         Debug.Assert(edge is not null);
                         Logging.RecordLogEvent($"Blockrepeat increasing execs of edge {n.Index},{targNodeID} from {edge.ExecutionCount} to {edge.ExecutionCount + execCount}",
                            Logging.LogFilterType.BulkDebugLogFile);
-                        edge.IncreaseExecutionCount(execCount);
+                        increaseEdges.Add(new Tuple<EdgeData, ulong>(edge, execCount));
                     }
                 }
 
+                if (needWait) continue;
+
+                //Now everything is validated, apply to the graph
+                foreach (ExtraEdge newEdge in newEdges)
+                {
+                    protograph.AddEdge(newEdge.source, newEdge.target, newEdge.count);
+                }
+                foreach (var nodeInc in increaseNodes)
+                {
+                    nodeInc.Item1.IncreaseExecutionCount(nodeInc.Item2);
+                    protograph.TotalInstructions += nodeInc.Item2;
+                }
+                foreach (var edgeInc in increaseEdges)
+                {
+                    edgeInc.Item1.IncreaseExecutionCount(edgeInc.Item2);
+                }
 
 
                 blockRepeatQueue.RemoveAt(i);
@@ -304,6 +324,14 @@ namespace rgat.Threads
             ABRtime.Stop();
             LastBlockRepeatsTime = ABRtime.Elapsed.TotalMilliseconds;
         }
+
+
+        struct ExtraEdge
+        {
+            public uint source;
+            public uint target;
+            public ulong count;
+        };
 
 
         bool _ignore_next_tag = false;
@@ -787,8 +815,10 @@ namespace rgat.Threads
 
             }
 
+            var faultblock = protograph.ProcessData.BasicBlocksList[(int)faultingBasicBlock_ID];
+            Debug.Assert(faultblock is not null);
             TAG interruptedBlockTag;
-            interruptedBlockTag.blockaddr = protograph.ProcessData.BasicBlocksList[(int)faultingBasicBlock_ID].Item2[0].Address;
+            interruptedBlockTag.blockaddr = faultblock.Item2[0].Address;
             interruptedBlockTag.insCount = (ulong)instructionsUntilFault;
             interruptedBlockTag.blockID = faultingBasicBlock_ID;
             interruptedBlockTag.InstrumentationState = eCodeInstrumentation.eInstrumentedCode;
@@ -897,7 +927,10 @@ namespace rgat.Threads
             }
 
             IrregularActionTimer.Stop();
+
+            //final pass
             PerformIrregularActions();
+
 
             Console.WriteLine($"{WorkerThread.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
             Debug.Assert(blockRepeatQueue.Count == 0 || protograph.TraceReader.StopFlag);

@@ -219,6 +219,8 @@ namespace rgat
         /// <param name="localBindAddress">The local ip address to connect from</param>
         /// <param name="remoteConnectAddress">The remote ip address or domain to connect to</param>
         /// <param name="remoteConnectPort">The remote TCP port to connect to</param>
+        /// <param name="datacallback">The event for data being received</param>
+        /// <param name="connectCallback">The main connection handler which will serve the connection</param>
         /// <returns></returns>
         public void Start(IPAddress localBindAddress, string remoteConnectAddress, int remoteConnectPort, OnGotDataCallback datacallback, BridgeConnection.OnConnectSuccessCallback connectCallback)
         {
@@ -810,6 +812,12 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Sends trace data to be processed by the GUI
+        /// </summary>
+        /// <param name="pipeID">The worker pipe reference</param>
+        /// <param name="buf">Data to send</param>
+        /// <param name="bufSize">Data size</param>
         public void SendRawTraceData(uint pipeID, byte[] buf, int bufSize)
         {
             Debug.Assert(rgatState.NetworkBridge.HeadlessMode);
@@ -824,7 +832,6 @@ namespace rgat
                 data = buf;
             }
 
-
             lock (_sendQueueLock)
             {
                 _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.TraceData, destinationID = pipeID, data = data });
@@ -833,6 +840,11 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Send trace metadata to the GUI
+        /// </summary>
+        /// <param name="trace">The tracerecord the metadata applies to</param>
+        /// <param name="info">The data</param>
         public void SendTraceMeta(TraceRecord trace, string info)
         {
             Debug.Assert(rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode);
@@ -848,10 +860,6 @@ namespace rgat
 
 
         //https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca2328
-        readonly Newtonsoft.Json.JsonSerializer serialiserIn = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
-        {
-            TypeNameHandling = TypeNameHandling.None,
-        });
         readonly Newtonsoft.Json.JsonSerializer serialiserOut = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
         {
             TypeNameHandling = TypeNameHandling.None,
@@ -917,6 +925,10 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Destroy the connection
+        /// </summary>
+        /// <param name="reason">Why the connection was torn down</param>
         public void Teardown(string reason = "")
         {
             lock (_lock)
@@ -1029,7 +1041,7 @@ namespace rgat
 
 
             bool success = ReadData(out NETWORK_MSG? response) && response != null;
-            if (!success || response.Value.data == null || response.Value.msgType != emsgType.Meta) return false;
+            if (!success || response!.Value.data == null || response.Value.msgType != emsgType.Meta) return false;
             string authString;
 
             try

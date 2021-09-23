@@ -221,10 +221,10 @@ namespace rgat.Widgets
             }
         }
 
-        public static void MouseoverText(string text)
+        public static void MouseoverText(string? text)
         {
 
-            if (text?.Length > 0 && ImGui.IsItemHovered())
+            if (text is not null && text.Length > 0 && ImGui.IsItemHovered())
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));

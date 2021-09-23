@@ -821,8 +821,8 @@ namespace rgat
         public void ResetNodeAttributes(GraphicsDevice _gd)
         {
             Logging.RecordLogEvent($"ResetNodeAttributes ", Logging.LogFilterType.BulkDebugLogFile);
-            Debug.Assert(AttributesVRAM1 is not null);
-            uint bufferSize = AttributesVRAM1!.SizeInBytes; //todo attribs1 can be null here
+
+            uint bufferSize = AttributesVRAM1?.SizeInBytes ?? 1024; 
             BufferDescription bd = new BufferDescription(bufferSize, BufferUsage.StructuredBufferReadWrite, 4);
 
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Attributes1);

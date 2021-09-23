@@ -7,27 +7,30 @@ using System.Threading;
 namespace rgat.Testing
 {
 
-
-    //a collection of testcases run in a session
+    /// <summary>
+    /// a collection of testcases run in a session of tests
+    /// </summary>
     public class TestSession
     {
+        /// <summary>
+        /// a collection of testcases run in a session of tests
+        /// </summary>
         public List<TestCaseRun> tests = new List<TestCaseRun>();
     }
 
-    public class TestOutput
-    {
-        public string text;
-    }
-
+    /// <summary>
+    /// A result of a test
+    /// </summary>
     public class TestResult
     {
-        public string text;
+        /// <summary>
+        /// Result text
+        /// </summary>
+        public string? text;
     }
 
     class TestHarnessThread
     {
-
-        Thread thisThread = null;
         readonly object _lock = new object();
         readonly rgatState _rgatState;
         readonly Dictionary<int, TestSession> _testSessions = new Dictionary<int, TestSession>();
@@ -44,12 +47,6 @@ namespace rgat.Testing
             _rgatState = clientState;
         }
 
-        public void Begin(string _)
-        {
-            thisThread = new Thread(new ParameterizedThreadStart(Listener));
-            thisThread.Name = "TestHarness";
-            thisThread.Start(null);
-        }
 
         public void InitSession(int session)
         {
@@ -93,6 +90,10 @@ namespace rgat.Testing
         }
 
 
+        /// <summary>
+        /// Mark a test as complete
+        /// </summary>
+        /// <param name="testID">The test ID</param>
         public void NotifyComplete(long testID)
         {
             lock (_lock)
@@ -105,21 +106,6 @@ namespace rgat.Testing
 
                 //_newResults.Add(tcr.MarkFinished());
                 tcr.MarkFinished();
-            }
-        }
-
-
-        void Listener(Object pipenameO)
-        {
-            while (!rgatState.rgatIsExiting)
-            {
-                Thread.Sleep(1000);
-                lock (_lock)
-                {
-                    if (_testsQueue.Any())
-                    {
-                    }
-                }
             }
         }
 

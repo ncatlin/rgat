@@ -120,12 +120,6 @@ namespace rgat
         /// <returns>If found</returns>
         public bool GetThreadVert(uint TID, out uint vert)
         {
-            if (_threadVertIndexes == null)
-            {
-                vert = uint.MaxValue;
-                return false;
-            }
-
             for (var i = 0; i < _threadVertIndexes.Count; i++)
             {
                 if (_threadVertIndexes[i].Item1 == TID) { vert = _threadVertIndexes[i].Item2; return true; }
@@ -142,10 +136,6 @@ namespace rgat
         /// <returns>If executed</returns>
         public bool InThread(uint TID)
         {
-            if (_threadVertIndexes == null)
-            {
-                return false;
-            }
             for (var i = 0; i < _threadVertIndexes.Count; i++)
             {
                 if (_threadVertIndexes[i].Item1 == TID) { return true; }
@@ -1258,11 +1248,10 @@ namespace rgat
                         Logging.RecordLogEvent("Invalid process test requirement: " + req.Name, Logging.LogFilterType.TextError);
                         break;
                 }
-                TestResultCommentary comment = new TestResultCommentary()
+                TestResultCommentary comment = new TestResultCommentary(req)
                 {
                     comparedValueString = compareValueString,
                     result = passed ? eTestState.Passed : eTestState.Failed,
-                    requirement = req
                 };
                 if (passed)
                 {

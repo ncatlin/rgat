@@ -10,6 +10,9 @@ using static rgat.GlobalConfig;
 
 namespace rgat.Config
 {
+    /// <summary>
+    /// Storage class for settings that can be stored/loaded
+    /// </summary>
     public class rgatSettings
     {
         /// <summary>
@@ -63,7 +66,6 @@ namespace rgat.Config
         {
             Inited = true;
             RecentPaths.EnsureValidity();
-            ToolPaths.EnsureValidity();
             Signatures.EnsureValidity();
         }
 
@@ -533,7 +535,8 @@ namespace rgat.Config
             {
                 lock (_lock)
                 {
-                    if (Paths is not null && Paths.TryGetValue(setting, out string? result)) return result;
+                    if (Paths.TryGetValue(setting, out string? result))
+                        return result;
                 }
                 return "";
             }
@@ -552,17 +555,6 @@ namespace rgat.Config
                 }
             }
 
-            /// <summary>
-            /// Call this after loading
-            /// </summary>
-            public void EnsureValidity()
-            {
-                if (Paths == null)
-                {
-                    Paths = new Dictionary<CONSTANTS.PathKey, string>();
-                    MarkDirty();
-                }
-            }
 
             /// <summary>
             /// Filesystem locations containing things rgat needs (instrumentation tools, signatures, etc)

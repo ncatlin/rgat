@@ -11,6 +11,10 @@ namespace rgat.OperationModes
     /// </summary>
     public class CommandLineRunner
     {
+
+
+        ProcessCoordinatorThread? coordThread;
+
         /// <summary>
         /// Create a commandline runner
         /// </summary>
@@ -73,7 +77,8 @@ namespace rgat.OperationModes
                 _ = Task.Run(() => Updates.CheckForUpdates()); //functionality does not depend on this so we don't wait for it
             }
             */
-            Task.WhenAll(apiTask);
+            if (apiTask is not null)
+                Task.WhenAll(apiTask);
 
             coordThread = new ProcessCoordinatorThread();
             coordThread.Begin();
@@ -84,13 +89,20 @@ namespace rgat.OperationModes
 
         }
 
-        ProcessCoordinatorThread coordThread;
+        /// <summary>
+        /// Init a GPU usage mode
+        /// </summary>
         public void InitGPU()
         {
 
         }
 
-
+        /// <summary>
+        /// Begin tracing a binary in command line mode
+        /// </summary>
+        /// <param name="targetPath">Binary to trace</param>
+        /// <param name="saveDirectory">Where to save the result</param>
+        /// <param name="recordVideo">If a video is being recorded</param>
         public void TraceBinary(string targetPath, string? saveDirectory = null, bool recordVideo = false)
         {
 

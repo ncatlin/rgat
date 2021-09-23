@@ -53,6 +53,11 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Begin a scan
+        /// </summary>
+        /// <param name="targ">Target to scan</param>
+        /// <param name="reload">If rules should be reloaded</param>
         public void StartDetectItEasyScan(BinaryTarget targ, bool reload = false)
         {
             targ.ClearSignatureHits(CONSTANTS.eSignatureType.DIE);
@@ -91,6 +96,9 @@ namespace rgat
         readonly Dictionary<BinaryTarget, ulong> DIEScanHandles = new Dictionary<BinaryTarget, ulong>();
 
 
+        /// <summary>
+        /// Cancel all scans
+        /// </summary>
         public void CancelAllScans()
         {
             lock (scansLock)
@@ -102,19 +110,39 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Last scan error
+        /// </summary>
         public string LastError => dielib.LastError;
+        /// <summary>
+        /// Did the database load successfully
+        /// </summary>
         public bool ScriptsLoaded => dielib.DatabaseLoaded;
+        /// <summary>
+        /// Number of scripts loaded
+        /// </summary>
         public int NumScriptsLoaded => dielib.CountScriptsLoaded;
+        /// <summary>
+        /// Get the array of loaded signatures
+        /// </summary>
         public DieScriptEngine.SIGNATURE_RECORD[] GetSignatures => dielib.GetSignatures;
 
-
+        /// <summary>
+        /// Reload the scripts database
+        /// </summary>
+        /// <param name="path"></param>
         public void ReloadDIEScripts(string path)
         {
             dielib.ReloadScriptDatabase(GetScriptsPath(path));
         }
 
-        static void DetectItScanThread(object argslist)
+        /// <summary>
+        /// A DIE scan thread
+        /// </summary>
+        /// <param name="argslist">scanner, target args object</param> 
+        static void DetectItScanThread(object? argslist)
         {
+            if (argslist is null) return;
 
             List<object> args = (List<object>)argslist;
             DiELibDotNet.DieLib scanner = (DiELibDotNet.DieLib)args[0];
@@ -166,22 +194,38 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Get progress of the current scan for a target
+        /// </summary>
+        /// <param name="targ">BinaryTarget being scanned</param>
+        /// <returns>Progress value</returns>
         public DieScript.SCANPROGRESS? GetDIEScanProgress(BinaryTarget targ)
         {
-            if (DIEScanHandles.TryGetValue(targ, out ulong handle))
+            lock (scansLock)
             {
-                return dielib?.QueryProgress(handle);
+                if (DIEScanHandles.TryGetValue(targ, out ulong handle))
+                {
+                    return dielib?.QueryProgress(handle);
+                }
+                return new DieScript.SCANPROGRESS();
             }
-            return new DieScript.SCANPROGRESS();
         }
 
+        /// <summary>
+        /// Cancel the scan for the specified target
+        /// </summary>
+        /// <param name="targ">Target to cancel the scan for</param>
         public void CancelDIEScan(BinaryTarget targ)
         {
-            if (DIEScanHandles.TryGetValue(targ, out ulong handle))
+            lock (scansLock)
             {
-                dielib.CancelScan(handle);
+                if (DIEScanHandles.TryGetValue(targ, out ulong handle))
+                {
+                    dielib.CancelScan(handle);
+                }
             }
         }
+
 
         readonly DateTime _lastCheck = DateTime.MinValue;
         /// <summary>
@@ -216,12 +260,15 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Zip up the DIE sigs database and sent it to the remote party
+        /// </summary>
         public void UploadSignatures()
         {
             try
             {
                 string tempfile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-                System.IO.Compression.ZipFile.CreateFromDirectory(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory), tempfile);
+                System.IO.Compression.ZipFile.CreateFromDirectory(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory), tempfile);
                 if (File.Exists(tempfile))
                 {
                     byte[] zipfile = File.ReadAllBytes(tempfile);

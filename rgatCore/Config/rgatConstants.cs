@@ -42,7 +42,9 @@ namespace rgat
 
 
 
-
+        /// <summary>
+        /// UI constants
+        /// </summary>
         public static class UI
         {
             /// <summary>
@@ -86,13 +88,23 @@ namespace rgat
             /// How long alerts will stay in the alert pane
             /// </summary>
             public const double ALERT_TEXT_LINGER_TIME = 9000;
+            /// <summary>
+            /// How long to aniamate the alert circle
+            /// </summary>
             public const double ALERT_CIRCLE_ANIMATION_TIME = 600;
+            /// <summary>
+            /// How big the alert animation circle is
+            /// </summary>
             public const double ALERT_CIRCLE_ANIMATION_RADIUS = 100;
-
+            /// <summary>
+            /// Maxmimum directories to store in filepicker history
+            /// </summary>
             public const int FILEPICKER_HISTORY_MAX = 10;
         }
 
-
+        /// <summary>
+        /// Animation constants
+        /// </summary>
         public static class Anim_Constants
         {
             /// <summary>
@@ -111,32 +123,71 @@ namespace rgat
                 /// </summary>
                 KEEP_BRIGHT = -1 
             };
+
+            /// <summary>
+            /// Default node diameter in pixels
+            /// </summary>
             public const float DEFAULT_NODE_DIAMETER = 200f;
 
         }
 
+        /// <summary>
+        /// Graph Layout Constants
+        /// </summary>
         public static class Layout_Constants
         {
+            /// <summary>
+            /// The lowest temperature that is considered 'running'
+            /// </summary>
             public const float MinimumTemperature = 0.1f;
+            /// <summary>
+            /// How much to reduce the temperature with every step
+            /// </summary>
             public const float TemperatureStepMultiplier = 0.99f;
         }
 
+        /// <summary>
+        /// Remote tracing constants
+        /// </summary>
         public static class NETWORK
         {
+            /// <summary>
+            /// Length of auto-generate network keys
+            /// </summary>
             public const int DefaultKeyLength = 9;
-            //number of times a host can try to connect with the wrong key
+            
+            /// <summary>
+            /// number of times a host can try to connect with the wrong key
+            /// ! this is not used - we just turn networking off on the first bad attempt
+            /// </summary>
             public const int HostLockoutLimit = 5;
-            //number of wrong-key connections allowed before the listener disables itself
+
+            /// <summary>
+            /// number of wrong-key connections allowed before the listener disables itself
+            /// ! this is not used - we just turn networking off on the first bad attempt
+            /// </summary>
             public const int TotalLockoutLimit = 15;
+
+            /// <summary>
+            /// How often to refresh the list of interfaces with the Remote tracing dialog open
+            /// </summary>
             public const int InterfaceRefreshIntervalMS = 6000;
+
             /// <summary>
             /// How long to wait between checks for new versions (check only happens on startup)
+            /// This stops constant network connections if the user is opening and closing rgat a lot
             /// </summary>
             public const int UpdateCheckMinimumDelayMinutes = 6 * 60;
         }
 
+        /// <summary>
+        /// Tracing constants
+        /// </summary>
         public static class TRACING
         {
+            /// <summary>
+            /// Size of the tag cache allocated for each message part
+            /// </summary>
             public const int TagCacheSize = 1024;
         }
 
@@ -156,7 +207,9 @@ namespace rgat
             public const string RGAT_SIGNERS = "rgat dev";
         }
 
-
+        /// <summary>
+        /// Test constants
+        /// </summary>
         public static class TESTS
         {
             /// <summary>
@@ -170,7 +223,27 @@ namespace rgat
          * Enums
          * 
          */
-        public enum eNodeType { eInsUndefined, eInsJump, eInsReturn, eInsCall };
+        /// <summary>
+        /// Node control flow type
+        /// </summary>
+        public enum eNodeType {
+            /// <summary>
+            /// Unknown or no control flow
+            /// </summary>
+            eInsUndefined,
+            /// <summary>
+            /// Performs  ajump
+            /// </summary>
+            eInsJump,
+            /// <summary>
+            /// Performs a return
+            /// </summary>
+            eInsReturn, 
+            /// <summary>
+            /// Performs a call
+            /// </summary>
+            eInsCall 
+        };
 
         /// <summary>
         /// Types for nodes edges which control how they are laid out or rendered
@@ -235,7 +308,28 @@ namespace rgat
             eFIRST_IN_THREAD = 99
         };
 
-        public enum eRenderingMode { eStandardControlFlow, eHeatmap, eConditionals, eDegree }
+        /// <summary>
+        /// Supported graph colourations
+        /// </summary>
+        public enum eRenderingMode {
+            /// <summary>
+            /// Control flow type of nodes/edges
+            /// </summary>
+            eStandardControlFlow, 
+            /// <summary>
+            /// How busy nodes/edges are
+            /// </summary>
+            eHeatmap, 
+            /// <summary>
+            /// Conditional jump state
+            /// </summary>
+            eConditionals,
+            /// <summary>
+            /// How connected nodes are
+            /// </summary>
+            eDegree 
+        }
+
 
         /// <summary>
         /// Category of filter used to highlight nodes
@@ -326,7 +420,9 @@ namespace rgat
             CONDCOMPLETE = (ISCONDITIONAL | CONDFELLTHROUGH | CONDTAKEN)
         }
 
-
+        /// <summary>
+        /// Available keybind actions
+        /// </summary>
         public enum eKeybind
         {
             /// <summary>
@@ -458,7 +554,9 @@ namespace rgat
         /// </summary>
         public static class LayoutStyles
         {
-
+            /// <summary>
+            /// Available layout styles
+            /// </summary>
             public enum Style { 
                 /// <summary>
                 /// Plot nodes in a spiralling cylinder

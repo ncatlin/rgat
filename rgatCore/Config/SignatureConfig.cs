@@ -19,15 +19,15 @@ namespace rgat
             /// <summary>
             /// Name of the github repo
             /// </summary>
-            public string RepoName { get; set; }
+            public string RepoName { get; set; } = "";
             /// <summary>
             /// Name of the repo organisation
             /// </summary>
-            public string OrgName { get; set; }
+            public string OrgName { get; set; } = "";
             /// <summary>
             /// Subdirectory of the downloaded archive to use
             /// </summary>
-            public string SubDir { get; set; }
+            public string SubDir { get; set; } = "";
 
             /// <summary>
             ///  when rgat last checked the repo for updates

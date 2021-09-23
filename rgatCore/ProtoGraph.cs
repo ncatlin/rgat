@@ -497,7 +497,7 @@ namespace rgat
 
 
             ROUTINE_STRUCT? foundExtern = null;
-            List<InstructionData>? block = ProcessData.getDisassemblyBlock(tag.blockID, ref foundExtern, tag.blockaddr);
+            List<InstructionData>? block = ProcessData.GetDisassemblyBlock(tag.blockID, ref foundExtern, tag.blockaddr);
             if (block == null)
             {
                 Logging.RecordLogEvent($"Faulting Block {tag.blockID} 0x{tag.blockaddr:X} not recorded in disassembly");
@@ -1479,8 +1479,10 @@ namespace rgat
                     var blocktuple = BlocksFirstLastNodeList[i];
                     if (blocktuple == null)
                     {
-                        ProcessData.BasicBlocksList[i].Item2[0].GetThreadVert(ThreadID, out uint startVert);
-                        ProcessData.BasicBlocksList[i].Item2[^1].GetThreadVert(ThreadID, out uint endVert);
+                        var block = ProcessData.BasicBlocksList[i];
+                        Debug.Assert(block is not null);
+                        block.Item2[0].GetThreadVert(ThreadID, out uint startVert);
+                        block.Item2[^1].GetThreadVert(ThreadID, out uint endVert);
                         blockBounds.Add(startVert);
                         blockBounds.Add(endVert);
                     }
@@ -1814,11 +1816,10 @@ namespace rgat
                         break;
                 }
 
-                TestResultCommentary comment = new TestResultCommentary()
+                TestResultCommentary comment = new TestResultCommentary(req)
                 {
                     comparedValueString = compareValueString,
-                    result = passed ? eTestState.Passed : eTestState.Failed,
-                    requirement = req
+                    result = passed ? eTestState.Passed : eTestState.Failed
                 };
 
                 if (passed)
