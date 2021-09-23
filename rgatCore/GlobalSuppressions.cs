@@ -5,4 +5,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
+//Windows/Linux issues
 [assembly: SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>", Scope = "member", Target = "~M:rgat.MediaDrawing.CreateRecordingFrame(Veldrid.Framebuffer,System.Single,System.Single,System.Single,System.Single)~System.Drawing.Bitmap")]
+[assembly: SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>", Scope = "member", Target = "~M:rgat.ModuleHandlerThread.PipeEventListener(System.Object)")]
+[assembly: SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>", Scope = "member", Target = "~M:rgat.BlockHandlerThread.LocalListener(System.Object)")]

@@ -6,16 +6,20 @@ using static rgat.CONSTANTS;
 
 namespace rgat
 {
+    /// <summary>
+    /// An object representing an executed instruction on the graph
+    /// </summary>
     public class NodeData
     {
-
-        public NodeData() { }
-
+        /// <summary>
+        /// Serialise this node to JSON for saving
+        /// </summary>
+        /// <returns>A JArray of ndoe data</returns>
         public JArray Serialise()
         {
             JArray nodearr = new JArray();
 
-            nodearr.Add(index);
+            nodearr.Add(Index);
             nodearr.Add(BlockID);
             nodearr.Add(conditional);
             nodearr.Add(GlobalModuleID);
@@ -48,13 +52,17 @@ namespace rgat
             return nodearr;
         }
 
-        //takes a file with a pointer next to a node entry, loads it into the node
-
+        /// <summary>
+        /// Restore a node from JSON
+        /// </summary>
+        /// <param name="nodeData">JArray of node data</param>
+        /// <param name="processinfo">The process record this node was generated with</param>
+        /// <returns></returns>
         public bool Deserialise(JArray nodeData, ProcessRecord processinfo)
         {
             int jsnArrIdx = 0;
             if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
-            index = nodeData[jsnArrIdx].ToObject<uint>();
+            Index = nodeData[jsnArrIdx].ToObject<uint>();
             jsnArrIdx++;
 
             if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
@@ -153,6 +161,10 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// The control flow type of this node
+        /// </summary>
+        /// <returns>An eEdgeNodeType value</returns>
         public eEdgeNodeType VertType()
         {
             if (_nodeType != eEdgeNodeType.eENLAST) return _nodeType;
@@ -189,7 +201,7 @@ namespace rgat
             if (!plot.Opt_TextEnabled) return false;
 
             //always display node label on the active graph, unless text display is disabled entirely
-            if (plot.IsAnimated && plot.InternalProtoGraph.ProtoLastVertID == index) return true;
+            if (plot.IsAnimated && plot.InternalProtoGraph.ProtoLastVertID == Index) return true;
 
             if (plot.Opt_TextEnabledSym && HasSymbol) return true;
             if (plot.Opt_TextEnabledIns && ins != null && ins.InsText?.Length > 0) return true;
@@ -202,8 +214,8 @@ namespace rgat
         /// This creates the label drawn on the graph
         /// For symbol labels drawn in logs/analysis tabs see CreateColourisedSymbolCall
         /// </summary>
-        /// <param name="plot"></param>
-        /// <param name="specificCallIndex"></param>
+        /// <param name="plot">Graph the label belongs to</param>
+        /// <param name="specificCallIndex">Index of the APi call in the graph</param>
         public void CreateLabel(PlottedGraph plot, int specificCallIndex = -1)
         {
             ProtoGraph graph = plot.InternalProtoGraph;
@@ -217,7 +229,7 @@ namespace rgat
             Dirty = false;
             Label = "";
 
-            if (plot.Opt_ShowNodeIndexes) Label += $"{this.index}:";
+            if (plot.Opt_ShowNodeIndexes) Label += $"{this.Index}:";
             if (plot.Opt_ShowNodeAddresses) Label += $"0x{this.address:X}:";
 
             if (!IsExternal && ins.InsText?.Length > 0)
@@ -244,7 +256,7 @@ namespace rgat
                         Label += "<";
                         foreach (int nidx in OutgoingNeighboursSet)
                         {
-                            EdgeData? targEdge = graph.GetEdge(index, (uint)nidx);
+                            EdgeData? targEdge = graph.GetEdge(Index, (uint)nidx);
                             if (targEdge != null)
                                 Label += $" {nidx}:{targEdge.executionCount}, ";
                         }
@@ -411,52 +423,140 @@ namespace rgat
             return result;
         }
 
+        /// <summary>
+        /// Is this node highlighted
+        /// </summary>
         public bool Highlighted { get; private set; } = false;
-        public bool SetHighlighted(bool state) => Highlighted = state;
-        public uint index = 0;
+        /// <summary>
+        /// Mark this nodes highlight state
+        /// </summary>
+        /// <param name="state"></param>
+        public void SetHighlighted(bool state) => Highlighted = state;
+        /// <summary>
+        /// The index of this node in the node array and various node collections
+        /// </summary>
+        public uint Index = 0;
 
-        public bool IsConditional() => conditional != ConditionalType.NOTCONDITIONAL;
+        /// <summary>
+        /// The node is a conditional jump instruction
+        /// </summary>
+        public bool IsConditional => conditional != ConditionalType.NOTCONDITIONAL;
+
+        /// <summary>
+        /// The conditional jump status (how it executed)
+        /// </summary>
         public ConditionalType conditional = ConditionalType.NOTCONDITIONAL;
+
+        /// <summary>
+        /// The disassembled instruction
+        /// </summary>
         public InstructionData ins;
+
+        /// <summary>
+        /// The node is an entry to uninstrumented code
+        /// </summary>
         public bool IsExternal { get; set; } = false;
+
+        /// <summary>
+        /// The node calls an API thunk
+        /// </summary>
         public bool ThunkCaller = false;
 
         bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
+
+        /// <summary>
+        /// The module the node belongs to
+        /// </summary>
         public int GlobalModuleID;
 
+        /// <summary>
+        /// The block the node belongs to
+        /// </summary>
         public uint BlockID;
 
-        //an index used to lookup the caller/arguments of each instance of this being called
+        
+        /// <summary>
+        /// An index used to lookup the caller/arguments of each instance of this being called
+        /// </summary>
         public List<ulong> callRecordsIndexs = new List<ulong>();
+
+        /// <summary>
+        /// The latest call index
+        /// </summary>
         public int currentCallIndex = 1; //need to review how this works and if it achieves anything
+
+        /// <summary>
+        /// The node needs its label regenerating
+        /// </summary>
         public bool Dirty;
 
-        //number of external functions called
+        
+        /// <summary>
+        /// number of external functions called
+        /// </summary>
         public uint childexterns = 0;
+
+        /// <summary>
+        /// Memory address of the node instruction
+        /// </summary>
         public ulong address = 0;
+
+        /// <summary>
+        /// Which instruction first lead to this node
+        /// </summary>
         public uint parentIdx = 0;
 
+        /// <summary>
+        /// How many times the instruction has been recorded executing
+        /// </summary>
         public ulong executionCount { get; private set; } = 0;
+
+        /// <summary>
+        /// Set the execution count
+        /// </summary>
+        /// <param name="value">How many times the instruction has been recorded executing</param>
         public void SetExecutionCount(ulong value)
         {
             executionCount = value;
             Dirty = true;
         }
+
+        /// <summary>
+        /// Add a number to the execution count of this node
+        /// </summary>
+        /// <param name="value">Number of new executions recorded</param>
         public void IncreaseExecutionCount(ulong value)
         {
             SetExecutionCount(executionCount + value);
         }
 
-        public float heatRank = 0; //0-9 least to most busy
+        /// <summary>
+        /// How often the instruction is executed relative to other instuctions (0 [least] to 9 [most])
+        /// </summary>
+        public float heatRank = 0; 
 
-
+        /// <summary>
+        /// Sources for this node
+        /// </summary>
         public List<uint> IncomingNeighboursSet = new List<uint>();
-        public List<uint> OutgoingNeighboursSet = new List<uint>();
-        eEdgeNodeType _nodeType = eEdgeNodeType.eENLAST;
-        string _label;
-        public bool HasSymbol;
 
-        public string Label
+        /// <summary>
+        /// Targets for this node
+        /// </summary>
+        public List<uint> OutgoingNeighboursSet = new List<uint>();
+
+
+        /// <summary>
+        /// The node has a symbol associated with it
+        /// </summary>
+        public bool HasSymbol;
+        eEdgeNodeType _nodeType = eEdgeNodeType.eENLAST;
+
+        string? _label;
+        /// <summary>
+        /// Get the node label text
+        /// </summary>
+        public string? Label
         {
             get
             {
@@ -467,6 +567,5 @@ namespace rgat
                 _label = value;
             }
         }
-        public bool placeholder = false;
     }
 }

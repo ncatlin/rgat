@@ -9,9 +9,16 @@ using static rgat.CONSTANTS;
 
 namespace rgat
 {
+    /// <summary>
+    /// Record of an API call for UI display
+    /// </summary>
     public struct APICALLDATA
     {
+        /// <summary>
+        /// Caller -> Target node pair
+        /// </summary>
         public Tuple<uint, uint> edgeIdx;
+
         /// <summary>
         /// a list of (index, value) tuples
         /// where 
@@ -21,42 +28,141 @@ namespace rgat
         public List<Tuple<int, string>> argList;
     };
 
+    /// <summary>
+    /// The instrumentation state for a module/instruction
+    /// </summary>
+    public enum eCodeInstrumentation
+    {
+        /// <summary>
+        /// Instructions are instrumented
+        /// </summary>
+        eInstrumentedCode = 0,
+        /// <summary>
+        /// Instructions are not instrumented, will be marked as an API call
+        /// </summary>
+        eUninstrumentedCode = 1
+    };
+
+    /// <summary>
+    /// Description of entries into uninstrumented code, usually APi calls
+    /// </summary>
     public struct ROUTINE_STRUCT
     {
-        public List<InstructionData> inslist;
-        public int globalmodnum;
-        //list of threads that call this BB
-        //inside is list of the threads verts that call it
-        //it can exist multiple times on map so caller.this is listed
-        //  tid     
-        public Dictionary<uint, List<Tuple<uint, uint>>> thread_callers;
-        public bool hasSymbol;
+        /// <summary>
+        /// The module ID of the code
+        /// </summary>
+        public int Module;
+
+        /// <summary>
+        /// list of threads that call this routine (ThreadID, (caller, target))
+        /// ProcessData.ExternCallerLock should be held to access this, which is terrible
+        /// </summary>
+        public Dictionary<uint, List<Tuple<uint, uint>>> ThreadCallers;
+
+        /// <summary>
+        /// Does the routine have a symbol associated with it
+        /// </summary>
+        public bool HasSymbol;
     };
 
+    /// <summary>
+    /// The Tag associated with an executed basic block
+    /// </summary>
     public struct TAG
     {
-        //come from trace
+        /// <summary>
+        /// Address of the block
+        /// </summary>
         public ulong blockaddr;
+        /// <summary>
+        /// ID of the block
+        /// </summary>
         public uint blockID;
+        /// <summary>
+        /// How many instructions are in the block
+        /// </summary>
         public ulong insCount;
         //used internally
-        public eCodeInstrumentation jumpModifier;
+        /// <summary>
+        /// Did the block lead to instrumented code
+        /// </summary>
+        public eCodeInstrumentation InstrumentationState;
+        /// <summary>
+        /// A known API associated with this tag
+        /// </summary>
         public ROUTINE_STRUCT? foundExtern;
     };
-    public enum eTraceUpdateType { eAnimExecTag, eAnimUnchained, eAnimUnchainedResults, eAnimReinstrument, eAnimRepExec, eAnimExecException };
-    public enum eLoopState { eNoLoop, eBuildingLoop, eLoopProgress };
-    public enum eCodeInstrumentation { eInstrumentedCode = 0, eUninstrumentedCode = 1 };
 
+    /// <summary>
+    /// A recorded thread trace event
+    /// </summary>
+    public enum eTraceUpdateType
+    {
+        /// <summary>
+        /// A basic block was executed
+        /// </summary>
+        eAnimExecTag,
+        /// <summary>
+        /// A basic block was executed so much it went into 
+        /// a low-overhead light instrumentation mode
+        /// </summary>
+        eAnimUnchained,
+        /// <summary>
+        /// A region of light instrumentation was exited, the details
+        /// of what happened are enclosed
+        /// </summary>
+        eAnimUnchainedResults,
+        /// <summary>
+        /// Execution is resuming in full-instrumentation mode
+        /// </summary>
+        eAnimReinstrument,
+        /// <summary>
+        /// A REP prefixed instruction executed
+        /// </summary>
+        eAnimRepExec,
+        /// <summary>
+        /// An exception happened
+        /// </summary>
+        eAnimExecException
+    };
+
+
+    /// <summary>
+    /// A trace event that can be replayed
+    /// The interpretation of all the values depends on the entry type
+    /// </summary>
     public struct ANIMATIONENTRY
     {
+        /// <summary>
+        /// The type of action that caused this entry
+        /// </summary>
         public eTraceUpdateType entryType;
+        /// <summary>
+        /// The address of the basic block this happened in
+        /// </summary>
         public ulong blockAddr;
+        /// <summary>
+        /// The ID of the basic block
+        /// </summary>
         public uint blockID;
+        /// <summary>
+        /// Which edges were involved, how many times
+        /// </summary>
         public List<Tuple<uint, ulong>>? edgeCounts;
+        /// <summary>
+        /// A count for this event
+        /// </summary>
         public ulong count;
+        /// <summary>
+        /// The target address of the event
+        /// </summary>
         public ulong targetAddr;
+        /// <summary>
+        /// The block ID of the target
+        /// </summary>
         public uint targetID;
     };
+
 
     /// <summary>
     /// The data structure representing a recorded process thread
@@ -87,34 +193,37 @@ namespace rgat
         public uint ThreadID = 0;
 
         /// <summary>
-        /// The address of the first instruction executed by the thread
+        /// The address of the first instruction executed by the thread. May not be instrumented.
         /// </summary>
         public ulong StartAddress = 0;
 
         /// <summary>
         /// The worker which is reading trace data from the instrumented thread
         /// </summary>
-        public TraceIngestWorker TraceReader { set; get; } = null;
+        public TraceIngestWorker? TraceReader { set; get; } = null;
         /// <summary>
         /// The worker which is processing trace data from the instrumented thread
         /// </summary>
-        public ThreadTraceProcessingThread TraceProcessor { set; get; } = null;
+        public ThreadTraceProcessingThread? TraceProcessor { set; get; } = null;
 
         /// <summary>
         /// Process data shared by all threads (instruction disassembly, API metadata, etc)
         /// </summary>
-        public ProcessRecord ProcessData { private set; get; } = null;
+        public ProcessRecord ProcessData { private set; get; }
 
         /// <summary>
         /// Describes the lifetime of the process, parent storage class for threads
         /// </summary>
-        public TraceRecord TraceData { private set; get; } = null;
+        public TraceRecord TraceData { private set; get; }
 
         /// <summary>
         /// When the thread was recorded, used as a unique identifier for threads
         /// </summary>
         public DateTime ConstructedTime { private set; get; } = DateTime.Now;
 
+        /// <summary>
+        /// The order of most busy instructions has been calculated since the graph was last updated
+        /// </summary>
         public bool HeatSolvingComplete = false; //todo set this once processing is done?
 
         /*
@@ -126,7 +235,9 @@ namespace rgat
         public Dictionary<string, InteractionTarget> Interacted_Mutexes = new Dictionary<string, InteractionTarget>();
  */
 
-
+        /// <summary>
+        /// Mark this thread as having completed execution
+        /// </summary>
         public void SetTerminated()
         {
             lock (AnimDataLock)
@@ -151,7 +262,7 @@ namespace rgat
                     return false;
                 }
 
-                InsertNode(n.index, n);
+                InsertNode(n.Index, n);
             }
 
             return true;
@@ -168,6 +279,7 @@ namespace rgat
             return true;
         }
 
+
         private bool LoadStats(JObject graphData)
         {
             if (!graphData.TryGetValue("Module", out JToken? jModID) || jModID.Type != JTokenType.Integer)
@@ -178,7 +290,6 @@ namespace rgat
 
             if (exeModuleID < 0 || exeModuleID >= TraceData.DisassemblyData.LoadedModuleBounds.Count)
                 return false;
-            moduleBase = TraceData.DisassemblyData.LoadedModuleBounds[exeModuleID].Item1;
 
             if (!graphData.TryGetValue("TotalInstructions", out JToken? jTotal) || jTotal.Type != JTokenType.Integer)
             {
@@ -294,7 +405,7 @@ namespace rgat
 
 
 
-            NodeData? sourcenode = safe_get_node(ProtoLastVertID);
+            NodeData? sourcenode = GetNode(ProtoLastVertID);
             Debug.Assert(sourcenode is not null);
             if (sourcenode.ThunkCaller) return;
 
@@ -302,7 +413,7 @@ namespace rgat
             //if (sourcenode.IsExternal)
             //    sourcenode = safe_get_node(ProtoLastLastVertID);
 
-            if (!EdgeExists(new Tuple<uint, uint>(sourcenode.index, targVertID)))
+            if (!EdgeExists(new Tuple<uint, uint>(sourcenode.Index, targVertID)))
             {
                 EdgeData newEdge = new EdgeData(index: EdgeList.Count, sourceType: lastNodeType, execCount: repeats);
 
@@ -331,16 +442,38 @@ namespace rgat
                 }
 
                 //Console.WriteLine($"Creating edge src{sourcenode.index} -> targvid{targVertID}");
-                AddEdge(newEdge, sourcenode, safe_get_node(targVertID));
+                NodeData? targNode = GetNode(targVertID);
+                Debug.Assert(targNode is not null);
+                AddEdge(newEdge, sourcenode, targNode);
             }
 
 
         }
 
+        /// <summary>
+        /// A step command was just issued
+        /// </summary>
         public bool HasRecentStep { private set; get; } = false;
+        /// <summary>
+        /// The last address stepped from
+        /// </summary>
         public ulong RecentStepAddr { private set; get; }
+        /// <summary>
+        /// The address being stepped to
+        /// </summary>
         public ulong NextStepAddr { private set; get; }
+        /// <summary>
+        /// Stepping is done
+        /// </summary>
         public void ClearRecentStep() => HasRecentStep = false;
+
+        /// <summary>
+        /// Setup a step operation
+        /// </summary>
+        /// <param name="blockID">The block stepped to</param>
+        /// <param name="address">The address stepped from</param>
+        /// <param name="nextAddr">The address stepped to</param>
+        /// <returns></returns>
         public bool SetRecentStep(uint blockID, ulong address, ulong nextAddr)
         {
             HasRecentStep = true;
@@ -392,7 +525,7 @@ namespace rgat
                 if (!alreadyExecuted)
                     targVertID = handle_new_instruction(instruction, tag.blockID, 1);
                 else
-                    safe_get_node(targVertID)?.IncreaseExecutionCount(1);
+                    GetNode(targVertID)?.IncreaseExecutionCount(1);
                 AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, 1);
 
                 //BB_addExceptionEdge(alreadyExecuted, instructionIndex, 1);
@@ -424,7 +557,7 @@ namespace rgat
             }
 
             //start by examining our caller
-            NodeData? lastNode = safe_get_node(ProtoLastVertID);
+            NodeData? lastNode = GetNode(ProtoLastVertID);
             if (lastNode is null || lastNode.IsExternal) { resultPair = null; return false; }
             Debug.Assert(lastNode.ins.NumBytes > 0);
 
@@ -432,21 +565,22 @@ namespace rgat
             if (ProcessData.ModuleTraceStates[lastNode.GlobalModuleID] == eCodeInstrumentation.eUninstrumentedCode) { resultPair = null; return false; }
 
 
-            int modnum = ProcessData.FindContainingModule(targaddr);
-            if (modnum == -1)
+            bool found = ProcessData.FindContainingModule(targaddr, out int? moduleNo);
+            if (!found)
             {
                 //this happens in test binary: -mems-
                 Console.WriteLine("Warning: Code executed which is not in image or an external module. Possibly a buffer.");
                 resultPair = null;
                 return false;
             }
+            int modnum = moduleNo!.Value;
 
             ProcessData.get_extern_at_address(targaddr, modnum, out ROUTINE_STRUCT thisbb);
 
 
             //see if caller already called this
             //if so, get the destination node so we can just increase edge weight
-            if (thisbb.thread_callers.TryGetValue(ThreadID, out List<Tuple<uint, uint>>? callers))
+            if (thisbb.ThreadCallers.TryGetValue(ThreadID, out List<Tuple<uint, uint>>? callers))
             {
                 //piddata->getExternCallerReadLock();
                 foreach (var caller in callers)
@@ -470,7 +604,7 @@ namespace rgat
                         Logging.RecordLogEvent($"Bad edge in RunExternal: {caller.Item1},{caller.Item2} in thread {this.ThreadID}, module {this.ProcessData.GetModulePath(modnum)}");
                     }
 
-                    NodeData? targNode = safe_get_node(targVertID);
+                    NodeData? targNode = GetNode(targVertID);
                     Debug.Assert(targNode is not null);
                     targNode.IncreaseExecutionCount(repeats);
 
@@ -491,7 +625,7 @@ namespace rgat
             //piddata->dropExternCallerReadLock();
 
             lastNode.childexterns += 1;
-            targVertID = get_num_nodes();
+            targVertID = NodeCount;
             resultPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
 
             lock (ProcessData.ExternCallerLock)
@@ -502,20 +636,20 @@ namespace rgat
                     List<Tuple<uint, uint>> callervec = new List<Tuple<uint, uint>>();
                     //cout << "add extern addr " << std::hex<<  targaddr << " mod " << std::dec << modnum << endl;
                     callervec.Add(resultPair);
-                    thisbb.thread_callers.Add(ThreadID, callervec);
+                    thisbb.ThreadCallers.Add(ThreadID, callervec);
                 }
                 else
                     callers.Add(resultPair);
             }
 
-            int module = thisbb.globalmodnum;
+            int module = thisbb.Module;
 
             //make new external/library call node
             NodeData newTargNode = new NodeData();
             newTargNode.GlobalModuleID = module;
             newTargNode.IsExternal = true;
             newTargNode.address = targaddr;
-            newTargNode.index = targVertID;
+            newTargNode.Index = targVertID;
             newTargNode.parentIdx = ProtoLastVertID;
             newTargNode.SetExecutionCount(repeats);
             newTargNode.BlockID = uint.MaxValue;
@@ -527,23 +661,25 @@ namespace rgat
             TraceData.RecordAPICall(newTargNode, this, 0, repeats);
 
 
-            NodeData? sourceNode = safe_get_node(ProtoLastVertID);
+            NodeData? sourceNode = GetNode(ProtoLastVertID);
             Debug.Assert(sourceNode is not null);
+            NodeData? targetNode = GetNode(targVertID);
+            Debug.Assert(targetNode is not null);
+
             EdgeData newEdge = new EdgeData(index: EdgeList.Count, sourceType: sourceNode.VertType(), execCount: repeats);
             newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
-            AddEdge(newEdge, sourceNode, safe_get_node(targVertID));
+            AddEdge(newEdge, sourceNode, targetNode);
             //cout << "added external edge from " << lastVertID << "->" << targVertID << endl;
             lastNodeType = eEdgeNodeType.eNodeExternal;
             ProtoLastLastVertID = ProtoLastVertID;
-            ProtoLastVertID = newTargNode.index;
+            ProtoLastVertID = newTargNode.Index;
             // ProtoLastLastVertID = ProtoLastVertID;
             //ProtoLastVertID = targVertID;
             return true;
         }
 
 
-
-        public readonly object argsLock = new object();
+        readonly object argsLock = new object();
 
         //call arguments are recieved out-of-order from trace tags due to tag caching. they are stored here until they can be associated with the correct node
         private readonly List<INCOMING_CALL_ARGUMENT> _unprocessedCallArguments = new List<INCOMING_CALL_ARGUMENT>();
@@ -568,10 +704,10 @@ namespace rgat
         }
 
 
-        /*
-         * Runs through the cached API call arguments and attempts to match complete
-         * sets up to corresponding nodes on the graph once they have been inserted
-         */
+        /// <summary>
+        /// Runs through the cached API call arguments and attempts to match complete
+        /// sets up to corresponding nodes on the graph once they have been inserted
+        /// </summary>
         public void ProcessIncomingCallArguments()
         {
             if (_unprocessedCallArguments.Count == 0) return;
@@ -627,7 +763,7 @@ namespace rgat
                     //ulong callerAddress = callerNode.ins.address;
 
                     if (threadCalls[i].Item1 != callerNodeIdx) continue;
-                    NodeData? functionNode = safe_get_node(threadCalls[i].Item2);
+                    NodeData? functionNode = GetNode(threadCalls[i].Item2);
                     Debug.Assert(functionNode is not null);
 
                     //each node can only have a certain number of arguments to prevent simple denial of service
@@ -663,7 +799,7 @@ namespace rgat
 
                 if (!sequenceProcessed)
                 {
-                    NodeData? targnode = safe_get_node(threadCalls[0].Item2);
+                    NodeData? targnode = GetNode(threadCalls[0].Item2);
                     Debug.Assert(targnode is not null);
                     ProcessData.GetSymbol(targnode.GlobalModuleID, arg.calledAddress, out string? sym);
                     Console.WriteLine($"\tProcessIncomingCallArguments - Failed to find *specific* caller of 0x{arg.calledAddress:X} [{sym}] in current thread. Leaving until it appears.");
@@ -688,15 +824,21 @@ namespace rgat
             //int  moduleEnum = ProcessData.ModuleAPIReferences[node.GlobalModuleID];
 
             ProcessData.GetSymbol(node.GlobalModuleID, node.address, out string? symbol);
-            Console.WriteLine($"Node {node.index} is system interaction {node.IsExternal}");
+            Console.WriteLine($"Node {node.Index} is system interaction {node.IsExternal}");
 
         }
 
-        /*
-         * Inserts API call argument data from the trace into the cache
-         * Attempts to add it to the graph if a full set of arguments is collected
-         */
+
         //future optimisation - try to insert complete complete sequences immediately
+        /// <summary>
+        /// Inserts API call argument data from the trace into the cache
+        /// Attempts to add it to the graph if a full set of arguments is collected
+        /// </summary>
+        /// <param name="funcpc">Address of the function the argument is for</param>
+        /// <param name="sourceBlockID">The block that called the function</param>
+        /// <param name="argpos">The position of the argument in the parameter list</param>
+        /// <param name="contents">A string representation of the argument</param>
+        /// <param name="isLastArgInCall">Is this the last argument being recorded for this call?</param>
         public void CacheIncomingCallArgument(ulong funcpc, ulong sourceBlockID, int argpos, string contents, bool isLastArgInCall)
         {
 
@@ -727,7 +869,7 @@ namespace rgat
             {
                 if (TraceData.DisassemblyData.externdict.TryGetValue(called_function_address, out ROUTINE_STRUCT rtn))
                 {
-                    return rtn.thread_callers.TryGetValue(ThreadID, out callEdges);
+                    return rtn.ThreadCallers.TryGetValue(ThreadID, out callEdges);
                 }
             }
 
@@ -736,34 +878,30 @@ namespace rgat
         }
 
 
-
-
-        //public void LinkBasicBlocks(List<InstructionData> source, List<InstructionData> target);
-
         void InsertNode(uint targVertID, NodeData node)
         {
             lock (nodeLock)
             {
-                Debug.Assert((NodeList.Count == 0) || (targVertID == NodeList[^1].index + 1));
+                Debug.Assert((NodeList.Count == 0) || (targVertID == NodeList[^1].Index + 1));
 
                 if (node.IsExternal)
                 {
-                    //highlightsLock.lock () ;
-                    externalNodeList.Add(node.index);
-                    //highlightsLock.unlock();
+                    externalNodeList.Add(node.Index);
                 }
                 else if (node.ins.hasSymbol)
                 {
-                    //highlightsLock.lock () ;
-                    internalNodeList.Add(node.index);
-                    //highlightsLock.unlock();
+                    internalNodeList.Add(node.Index);
                 }
 
                 NodeList.Add(node);
             }
         }
 
-
+        /// <summary>
+        /// Are two nodes linked by an edge? (ie: does one instruction lead to another)
+        /// </summary>
+        /// <param name="edge">The node pair</param>
+        /// <returns>An edge was found</returns>
         public bool EdgeExists(Tuple<uint, uint> edge)
         {
             lock (edgeLock)
@@ -772,6 +910,14 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// Are two nodes linked by an edge? (ie: does one instruction lead to another)
+        /// Also returns the edge
+        /// </summary>
+        /// <param name="edge">The node pair</param>
+        /// <param name="edged">The edge, if found</param>
+        /// <returns>An edge was found</returns>
         public bool EdgeExists(Tuple<uint, uint> edge, out EdgeData? edged)
         {
             lock (edgeLock)
@@ -780,6 +926,10 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Get a thread-safe copy of the nodepair edge list
+        /// </summary>
+        /// <returns>The list of nodepairs</returns>
         public List<Tuple<uint, uint>> GetEdgelistCopy()
         {
 
@@ -789,6 +939,10 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Get a thread-safe copy of the EdgeData edge list
+        /// </summary>
+        /// <returns>The list of EdgeData</returns>
         public List<EdgeData> GetEdgeObjListCopy()
         {
             lock (edgeLock)
@@ -797,6 +951,10 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Get a thread-safe copy of the nodedata list
+        /// </summary>
+        /// <returns>The list of NodeData</returns>
         public List<NodeData> GetNodeObjlistCopy()
         {
             lock (nodeLock)
@@ -805,6 +963,13 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// Get an edge data object by source and target node
+        /// </summary>
+        /// <param name="src">Source node index</param>
+        /// <param name="targ">Target node index</param>
+        /// <returns>The edge if found, or null</returns>
         public EdgeData? GetEdge(uint src, uint targ)
         {
             lock (edgeLock)
@@ -817,36 +982,64 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// Get an edge data object by source and target node tuple
+        /// The edge must already be known to exist
+        /// </summary>
+        /// <param name="srcTarg">Source/Target node tuple</param>
+        /// <returns>The edge</returns>
         public EdgeData GetEdge(Tuple<uint, uint> srcTarg)
         {
-
             lock (edgeLock)
             {
                 return _edgeDict[srcTarg];
             }
         }
 
-        public void GetEdgeNodes(int index, out Tuple<uint, uint> srcTarg, out EdgeData e)
+        /// <summary>
+        /// Get the node objects associated with an edge index
+        /// </summary>
+        /// <param name="EdgeIndex">index of the edge in the edgelist</param>
+        /// <param name="source">NodeData source</param>
+        /// <param name="targ">NodeData target</param>
+        /// <returns>The edge nodes</returns>
+        public void GetEdgeNodes(int EdgeIndex, out NodeData source, out NodeData targ)
         {
             lock (edgeLock)
             {
-                if (index < EdgeList.Count)
-                {
-                    srcTarg = EdgeList[index];
-                    _edgeDict.TryGetValue(srcTarg, out e);
-                }
-                else
-                {
-                    srcTarg = null;
-                    e = null;
-                }
+                Tuple<uint,uint> nodes = EdgeList[EdgeIndex];
+                source = NodeList[(int)nodes.Item1];
+                targ = NodeList[(int)nodes.Item2];
             }
         }
 
+        /// <summary>
+        /// Retrieve an nodepair and an edgedata object for a given edge index
+        /// </summary>
+        /// <param name="index">The index of the edge</param>
+        /// <param name="srcTarg">Output nodepaid</param>
+        /// <param name="e">Output edge data</param>
+        public void GetEdgeNodes(int index, out Tuple<uint, uint> srcTarg, out EdgeData e)
+        {
+            Debug.Assert(index < EdgeList.Count);
+            lock (edgeLock)
+            {
+                srcTarg = EdgeList[index];
+                _edgeDict.TryGetValue(srcTarg, out e);
+            }
+        }
+
+        /// <summary>
+        /// Add an edge by source,target index pair
+        /// </summary>
+        /// <param name="SrcNodeIdx">Source index</param>
+        /// <param name="TargNodeIdx">Target index</param>
+        /// <param name="execCount">Execution count</param>
         public void AddEdge(uint SrcNodeIdx, uint TargNodeIdx, ulong execCount)
         {
-            NodeData? sourceNode = safe_get_node(SrcNodeIdx);
-            NodeData? targNode = safe_get_node(TargNodeIdx);
+            NodeData? sourceNode = GetNode(SrcNodeIdx);
+            NodeData? targNode = GetNode(TargNodeIdx);
 
             Debug.Assert(sourceNode is not null && targNode is not null);
 
@@ -864,13 +1057,18 @@ namespace rgat
                 newEdge.edgeClass = eEdgeNodeType.eEdgeOld;
 
             AddEdge(newEdge, sourceNode, targNode);
-
         }
 
 
+        /// <summary>
+        /// Add an existing edge, given pre-existing edge and node data
+        /// </summary>
+        /// <param name="e">Edgedata</param>
+        /// <param name="source">Source NodeData</param>
+        /// <param name="target">Target NodeData</param>
         public void AddEdge(EdgeData e, NodeData source, NodeData target)
         {
-            Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.index, target.index);
+            Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.Index, target.Index);
             //Console.WriteLine($"\t\tAddEdge {source.index} -> {target.index}");
 
 
@@ -880,8 +1078,7 @@ namespace rgat
             }
 
 
-            if (source.conditional != ConditionalType.NOTCONDITIONAL &&
-                source.conditional != ConditionalType.CONDCOMPLETE)
+            if (source.IsConditional && source.conditional != ConditionalType.CONDCOMPLETE)
             {
                 if (source.ins.condDropAddress == target.address)
                 {
@@ -917,17 +1114,20 @@ namespace rgat
 
         }
 
-
+        /// <summary>
+        /// Record an exception in the instruented process
+        /// </summary>
+        /// <param name="thistag">The exception tag</param>
         public void handle_exception_tag(TAG thistag)
         {
-            if (thistag.jumpModifier == eCodeInstrumentation.eInstrumentedCode)
+            if (thistag.InstrumentationState == eCodeInstrumentation.eInstrumentedCode)
             {
                 run_faulting_BB(thistag);
 
                 TotalInstructions += thistag.insCount;
             }
 
-            else if (thistag.jumpModifier == eCodeInstrumentation.eUninstrumentedCode) //call to (uninstrumented) external library
+            else if (thistag.InstrumentationState == eCodeInstrumentation.eUninstrumentedCode) //call to (uninstrumented) external library
             {
                 if (ProtoLastVertID == 0) return;
 
@@ -947,16 +1147,21 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Handle an event in the traced graph
+        /// </summary>
+        /// <param name="thistag">The event tag</param>
+        /// <param name="skipFirstEdge">If we are expecting this and have already recorded the edge that leads to this</param> //messy
         public void handle_tag(TAG thistag, bool skipFirstEdge = false)
         {
-            if (thistag.jumpModifier == eCodeInstrumentation.eInstrumentedCode)
+            if (thistag.InstrumentationState == eCodeInstrumentation.eInstrumentedCode)
             {
                 //Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} [BLOCKID: {thistag.blockID}] inscount {thistag.insCount}");
 
                 addBlockToGraph(thistag.blockID, 1, !skipFirstEdge);
             }
 
-            else if (thistag.jumpModifier == eCodeInstrumentation.eUninstrumentedCode)
+            else if (thistag.InstrumentationState == eCodeInstrumentation.eUninstrumentedCode)
             {
                 //if (ProtoLastVertID == 0) return;
 
@@ -975,15 +1180,22 @@ namespace rgat
 
         }
 
-        public bool hasPendingArguments() { return _unprocessedCallArguments.Count != 0; }
+        /// <summary>
+        /// Arguments have been recorded for an API call which we haven't consolidated yet
+        /// </summary>
+        public bool HasPendingArguments => _unprocessedCallArguments.Any();
 
         private readonly object edgeLock = new object();
 
         //node id pairs to edge data
         readonly Dictionary<Tuple<uint, uint>, EdgeData> _edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
-        //order of edge execution
-        //todo - make this private, hide from view for thread safety
-        public List<Tuple<uint, uint>> EdgeList = new List<Tuple<uint, uint>>();
+
+        /// <summary>
+        /// Ordered list of executing edges
+        /// </summary>
+        List<Tuple<uint, uint>> EdgeList = new List<Tuple<uint, uint>>();
+        public int EdgeCount => EdgeList.Count; 
+
         public List<EdgeData> edgeObjList = new List<EdgeData>();
         //light-touch list of blocks for filling in edges without locking disassembly data
         public List<Tuple<uint, uint>> BlocksFirstLastNodeList = new List<Tuple<uint, uint>>();
@@ -996,19 +1208,21 @@ namespace rgat
         public List<NodeData> NodeList = new List<NodeData>(); //node id to node data
 
         public bool node_exists(uint idx) { return (NodeList.Count > idx); }
-        public uint get_num_nodes() { return (uint)NodeList.Count; }
-        public uint get_num_edges() { return (uint)EdgeList.Count; }
-        /*
-		public void acquireNodeReadLock() { getNodeReadLock(); }
-		public void releaseNodeReadLock() { dropNodeReadLock(); }
-                */
+        public uint NodeCount => (uint)NodeList.Count;
 
+        /// <summary>
+        /// Record the execution of an instruction on the graph
+        /// </summary>
+        /// <param name="instruction">The instruction to record</param>
+        /// <param name="blockID">The basic block the instruction is in</param>
+        /// <param name="repeats">How many times this instruction was executed this time</param>
+        /// <returns>A node index for the created node</returns>
         public uint handle_new_instruction(InstructionData instruction, uint blockID, ulong repeats)
         {
 
             NodeData thisnode = new NodeData();
-            uint targVertID = get_num_nodes();
-            thisnode.index = targVertID;
+            uint targVertID = NodeCount;
+            thisnode.Index = targVertID;
             thisnode.ins = instruction;
             thisnode.conditional = thisnode.ins.conditional ? ConditionalType.ISCONDITIONAL : ConditionalType.NOTCONDITIONAL;
             thisnode.address = instruction.Address;
@@ -1033,7 +1247,7 @@ namespace rgat
 
         public void handle_previous_instruction(uint targVertID, ulong repeats)
         {
-            NodeData? prevInstruction = safe_get_node(targVertID);
+            NodeData? prevInstruction = GetNode(targVertID);
 
             Debug.Assert(prevInstruction is not null);
             prevInstruction.IncreaseExecutionCount(repeats);
@@ -1151,44 +1365,26 @@ namespace rgat
         public int ExternalNodesCount => externalNodeList.Count;
         public uint[] copyExternalNodeList()
         {
-            return externalNodeList.ToArray();
+            lock (nodeLock)
+            {
+                return externalNodeList.ToArray();
+            }
         }
 
-        //list of all internal nodes with symbols
+        //list of all internal nodes with symbols. Unused.
         readonly List<uint> internalNodeList = new List<uint>();
-        //List<uint> copyInternalNodeList();
-        /*
-		//these are called a lot. make sure as efficient as possible
-		EdgeData get_edge(Tuple<uint,uint> edge)
-        {
-			if (edgeindex >= edgeList.size()) return 0;
 
-			getEdgeReadLock();
-			EDGEMAP::iterator edgeIt = edgeDict.find(edgeList.at(edgeindex));
-			dropEdgeReadLock();
-
-			if (edgeIt != edgeDict.end())
-				return &edgeIt.second;
-			else
-				return null;
-		}
-		inline edge_data * unsafe_get_edge(Tuple<uint, uint> edgePair);
-
-		edge_data* get_edge(uint edgeindex);
-
-		//edge_data *get_or_create_edge(node_data *source, node_data *target);
-
-		node_data* unsafe_get_node(uint index);
-		*/
-
-        public NodeData? safe_get_node(uint index)
+        /// <summary>
+        /// Get a NodeData object by index
+        /// </summary>
+        /// <param name="index">Index of the node</param>
+        /// <returns>The node data or null if a bad index</returns>
+        public NodeData? GetNode(uint index)
         {
             if (index >= NodeList.Count)
                 return null;
 
-            //getNodeReadLock();
             NodeData n = NodeList[(int)index];
-            //dropNodeReadLock();
             return n;
 
         }
@@ -1199,8 +1395,8 @@ namespace rgat
             {
                 uint source = entry[0].ToObject<uint>();
                 uint target = entry[1].ToObject<uint>();
-                NodeData? srcNode = safe_get_node(source);
-                NodeData? targNode = safe_get_node(target);
+                NodeData? srcNode = GetNode(source);
+                NodeData? targNode = GetNode(target);
 
                 if (srcNode is null || targNode is null) return false;
                 EdgeData edge = new EdgeData(serialised: entry, index: EdgeList.Count, sourceType: srcNode.VertType());
@@ -1225,39 +1421,39 @@ namespace rgat
             LastUpdated = DateTime.Now;
         }
 
-
+        /// <summary>
+        /// When an animation entry was last added
+        /// </summary>
         public DateTime LastUpdated { get; private set; } = DateTime.Now;
         private readonly object AnimDataLock = new object();
-        //animation data received from target
+
+        /// <summary>
+        /// A list of trace entries which can be replayed
+        /// </summary>
         public List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
         readonly List<uint> ExceptionNodeIndexes = new List<uint>();
+
+        /// <summary>
+        /// The module the thread was located in, usually the argument passed to CreateThread (or the linux equivalent)
+        /// </summary>
         public string StartModuleName { get; private set; } = "";
 
         void AssignModulePath()
         {
-            exeModuleID = ProcessData.FindContainingModule(StartAddress);
-            if (exeModuleID < 0 || exeModuleID >= ProcessData.LoadedModulePaths.Count) return;
+            bool found = ProcessData.FindContainingModule(StartAddress, out int? exeModuleID);
+            if (!found || exeModuleID >= ProcessData.LoadedModulePaths.Count) return;
 
-            StartModuleName = System.IO.Path.GetFileName(ProcessData.LoadedModulePaths[exeModuleID]);
-            moduleBase = TraceData.DisassemblyData.LoadedModuleBounds[exeModuleID].Item1;
-
+            StartModuleName = System.IO.Path.GetFileName(ProcessData.LoadedModulePaths[exeModuleID!.Value]);
 
             if (StartModuleName.Length > UI.MAX_MODULE_PATH_LENGTH)
                 StartModuleName = ".." + StartModuleName.Substring(StartModuleName.Length - UI.MAX_MODULE_PATH_LENGTH, UI.MAX_MODULE_PATH_LENGTH);
         }
-        /*
-		public ulong BacklogOutgoing = 0;
-		public ulong BacklogIncoming = 0;
-
-		ulong get_backlog_total();
-        */
-
-        public void RecordAPIEvent()
-        {
-
-        }
 
 
+        /// <summary>
+        /// Serialise this thread to JSON for writing to disk
+        /// </summary>
+        /// <returns>The JObject of the thread</returns>
         public JObject Serialise()
         {
             JObject result = new JObject();
@@ -1363,6 +1559,13 @@ namespace rgat
             return result;
         }
 
+
+        /// <summary>
+        /// Restore a thread ProtoGraph from a JObject
+        /// </summary>
+        /// <param name="graphData">The serialised ProtoGraph JObject</param>
+        /// <param name="processinfo">The processdata associated with the thread</param>
+        /// <returns>The deserialised ProtoGraph</returns>
         public bool Deserialise(JObject graphData, ProcessRecord processinfo)
         {
             if (!graphData.TryGetValue("Nodes", out JToken? jNodes) || jNodes.Type != JTokenType.Array)
@@ -1451,8 +1654,16 @@ namespace rgat
         }
 
 
-        //todo - pointless copying these, can access directly
-        //gets latest count entries in order of most recent first
+        /*
+         todo - pointless copying these, can access directly
+        gets latest count entries in order of most recent first
+        */
+        /// <summary>
+        /// Get recent animation entries for rendering by the visualiser bar
+        /// </summary>
+        /// <param name="count"></param>
+        /// <param name="result"></param>
+        /// <returns></returns>
         public int GetRecentAnimationEntries(int count, out List<ANIMATIONENTRY> result)
         {
             result = new List<ANIMATIONENTRY>();
@@ -1465,20 +1676,31 @@ namespace rgat
             return index;
         }
 
+
+        /// <summary>
+        /// Get the list of thread animation entries
+        /// </summary>
+        /// <returns>The original list of entries</returns>
         public List<ANIMATIONENTRY> GetSavedAnimationData() => SavedAnimationData;
 
-        /*
-		bool instructions_to_nodepair(InstructionData sourceIns, InstructionData targIns, NODEPAIR &result);
-		*/
+        /// <summary>
+        /// The API calls made by the thread
+        /// </summary>
         public List<APICALLDATA> SymbolCallRecords = new List<APICALLDATA>();
+
+        /// <summary>
+        /// A count of the total number of instrumented instructions (including repeats) executed in the thread
+        /// </summary>
         public ulong TotalInstructions { get; set; } = 0;
+
+        /// <summary>
+        /// The module ID of the thread
+        /// </summary>
         public int exeModuleID = -1;
-        public ulong moduleBase = 0;
-        public string modulePath;
-        public Dictionary<ulong, uint> InternalPlaceholderFuncNames = new Dictionary<ulong, uint>();
+
 
         //important state variables!
-        public uint targVertID = 0; //new vert we are creating
+        uint targVertID = 0; //new vert we are creating
 
         //temp debug setup for breakpointing
         /*
@@ -1494,6 +1716,9 @@ namespace rgat
 
         uint _pplvid = 0;
 
+        /// <summary>
+        /// The index of the last added node
+        /// </summary>
         public uint ProtoLastVertID
         {
             get { return _pplvid; }
@@ -1503,8 +1728,10 @@ namespace rgat
             }
         }
 
-        //public uint ProtoLastVertID = 0; //the vert that led to new instruction
-        public uint ProtoLastLastVertID = 0; //the vert that led to the previous instruction
+        /// <summary>
+        /// The index of the node before the last added node
+        /// </summary>
+        public uint ProtoLastLastVertID = 0;
 
         eEdgeNodeType lastNodeType = eEdgeNodeType.eFIRST_IN_THREAD;
 
@@ -1512,13 +1739,16 @@ namespace rgat
         public List<ulong> _nodeHeatThresholds = Enumerable.Repeat((ulong)0, 9).ToList();
 
         public ulong BusiestBlockExecCount = 0;
-        public eLoopState loopState = eLoopState.eNoLoop;
         readonly List<string> loggedCalls = new List<string>();
 
         //number of times an external function has been called. used to Dictionary arguments to calls
         public Dictionary<uint, ulong> externFuncCallCounter = new Dictionary<uint, ulong>();
         readonly List<uint> exceptionSet = new List<uint>();
 
+        /// <summary>
+        /// Get all exception event nodes
+        /// </summary>
+        /// <returns>List of node indexes</returns>
         public uint[] GetExceptionNodes()
         {
             lock (highlightsLock)
@@ -1527,13 +1757,22 @@ namespace rgat
             }
         }
 
-        //void start_edgeL_iteration(EDGELIST::iterator* edgeIt, EDGELIST::iterator* edgeEnd);
-        //void stop_edgeL_iteration();
-
+        /// <summary>
+        /// Is this thread terminated
+        /// </summary>
         public bool Terminated { get; private set; } = false;
+
+        /// <summary>
+        /// Is this thread in a low-instrumentation busy area
+        /// </summary>
         public bool PerformingUnchainedExecution = false;
 
 
+        /// <summary>
+        /// Check if this thread meets the thread requirements of a test
+        /// </summary>
+        /// <param name="requirements">REQUIREMENTS_LIST</param>
+        /// <returns>REQUIREMENT_TEST_RESULTS</returns>
         public Testing.REQUIREMENT_TEST_RESULTS MeetsTestRequirements(REQUIREMENTS_LIST requirements)
         {
             REQUIREMENT_TEST_RESULTS results = new REQUIREMENT_TEST_RESULTS();
@@ -1673,13 +1912,6 @@ namespace rgat
             return false;
         }
 
-
-        public class APITHUNK
-        {
-            public Dictionary<int, int> callerNodes = new Dictionary<int, int>();
-        }
-
-        public Dictionary<int, APITHUNK> ApiThunks = new Dictionary<int, APITHUNK>();
 
     }
 }

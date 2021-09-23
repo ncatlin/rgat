@@ -332,7 +332,10 @@ namespace rgat
                     if (call.graph.TraceData.DisassemblyData.GetSymbol(call.node.GlobalModuleID, call.node.address, out string? symbol))
                         ImGui.TextWrapped(symbol);
                     else
-                        ImGui.TextWrapped($"{call.node.Label.Split(' ')[^1]}");
+                    {
+                        if (call.node.Label is not null)
+                            ImGui.TextWrapped($"{call.node.Label.Split(' ')[^1]}");
+                    }
                 }
                 ImGui.TableNextColumn();
 

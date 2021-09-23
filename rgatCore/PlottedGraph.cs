@@ -222,7 +222,7 @@ namespace rgat
         /// <summary>
         /// Are all of the edges rendered
         /// </summary>
-        public bool RenderingComplete => DrawnEdgesCount >= InternalProtoGraph.EdgeList.Count;
+        public bool RenderingComplete => DrawnEdgesCount >= InternalProtoGraph.EdgeCount;
 
 
         /// <summary>
@@ -230,7 +230,7 @@ namespace rgat
         /// </summary>
         protected void render_new_blocks()
         {
-            int endIndex = InternalProtoGraph.EdgeList.Count;
+            int endIndex = InternalProtoGraph.EdgeCount;
             int drawCount = endIndex - (int)DrawnEdgesCount;
             if (drawCount <= 0) return;
             int dbglimit = 9999;
@@ -241,8 +241,6 @@ namespace rgat
             {
                 InternalProtoGraph.GetEdgeNodes(edgeIdx, out Tuple<uint, uint> edgeNodes, out EdgeData e);
 
-                Debug.Assert(edgeNodes != null);
-                Debug.Assert(e != null);
                 if (edgeNodes.Item1 >= _graphStructureLinear.Count)
                 {
                     AddNode(edgeNodes.Item1);
@@ -273,13 +271,11 @@ namespace rgat
             //GlobalConfig.NodeClumpLimit = 1;
             if (GlobalConfig.NodeClumpLimit > 0)
             {
-                var edgenodes = InternalProtoGraph.EdgeList[edge.EdgeListIndex];
-                var sourceNode = InternalProtoGraph.NodeList[(int)edgenodes.Item1];
-                var targNode = InternalProtoGraph.NodeList[(int)edgenodes.Item2];
-                if (sourceNode.OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
-                if (targNode.IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
-                if (sourceNode.IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
-                if (targNode.OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
+                InternalProtoGraph.GetEdgeNodes(edge.EdgeListIndex, out NodeData source, out NodeData target);
+                if (source.OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
+                if (target.IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
+                if (source.IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
+                if (target.OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
             }
 
             //return 5000;
@@ -389,9 +385,9 @@ namespace rgat
 
             for (uint i = 1; i < nodeCount; i++)
             {
-                NodeData? n = InternalProtoGraph.safe_get_node(i);
+                NodeData? n = InternalProtoGraph.GetNode(i);
                 Debug.Assert(n is not null);
-                NodeData? firstParent = InternalProtoGraph.safe_get_node(n.parentIdx);
+                NodeData? firstParent = InternalProtoGraph.GetNode(n.parentIdx);
                 Debug.Assert(firstParent is not null);
 
                 if (n.IsExternal)
@@ -410,7 +406,7 @@ namespace rgat
 
                         case eEdgeNodeType.eNodeJump:
 
-                            if (firstParent.conditional != ConditionalType.NOTCONDITIONAL && n.address == firstParent.ins.condDropAddress)
+                            if (firstParent.IsConditional && n.address == firstParent.ins.condDropAddress)
                             {
                                 b += B_BETWEEN_BLOCKNODES;
                                 break;
@@ -759,9 +755,9 @@ namespace rgat
             int nodeCount = _graphStructureLinear.Count;
             uint textureSize = LinearIndexTextureSize();
 
-            if (InternalProtoGraph.EdgeList.Count > RenderedEdgeCount)
+            if (InternalProtoGraph.EdgeCount > RenderedEdgeCount)
             {
-                Console.WriteLine($"Drawing preset {InternalProtoGraph.EdgeList.Count }  > {RenderedEdgeCount}  edges with {nodeCount} nodes tex size {textureSize}");
+                Console.WriteLine($"Drawing preset {InternalProtoGraph.EdgeCount }  > {RenderedEdgeCount}  edges with {nodeCount} nodes tex size {textureSize}");
             }
             float increase = ((float)Math.PI * 2.0f) / (float)_graphStructureLinear.Count;
             float angle = 0;
@@ -1075,7 +1071,7 @@ namespace rgat
             int externals = 0;
             for (uint nodeIdx = 0; nodeIdx < nodecount; nodeIdx++)
             {
-                NodeData? n = InternalProtoGraph.safe_get_node(nodeIdx);  //todo - this grabs a lot of locks. improve it
+                NodeData? n = InternalProtoGraph.GetNode(nodeIdx);  //todo - this grabs a lot of locks. improve it
                 Debug.Assert(n is not null);
 
                 uint blockSize;
@@ -1097,8 +1093,8 @@ namespace rgat
                 else
                 {
                     externals += 1;
-                    FirstLastIdx = new Tuple<uint, uint>(n.index, n.index);
-                    blockMid = (int)n.index;
+                    FirstLastIdx = new Tuple<uint, uint>(n.Index, n.Index);
+                    blockMid = (int)n.Index;
                     blockSize = 1;
                     //external nodes dont have a block id so just give them a unique one
                     //all that matters in the shader is it's unique
@@ -1218,7 +1214,10 @@ namespace rgat
             return positions;
         }
 
-
+        /// <summary>
+        /// Reset the layout state for drawing a new plot
+        /// </summary>
+        /// <param name="resetStyle">How to distribute the reset nodes</param>
         public void ResetPlot(GraphLayoutState.PositionResetStyle resetStyle)
         {
             LayoutState.Reset(resetStyle);
@@ -1240,9 +1239,16 @@ namespace rgat
         public uint NestedIndexTextureSize() { return indexTextureSize(_graphStructureBalanced.Count); }
 
         public uint EdgeTextureWidth() { return dataTextureSize(countDataArrayItems(_graphStructureBalanced)); }
-        public uint EdgeVertsTextureWidth() { return dataTextureSize(InternalProtoGraph.EdgeList.Count); }
+        public uint EdgeVertsTextureWidth() { return dataTextureSize(InternalProtoGraph.EdgeCount); }
 
 
+        /// <summary>
+        /// Get the colour of the node for the specified rendering style
+        /// </summary>
+        /// <param name="nodeIndex">Index of the node</param>
+        /// <param name="renderingMode">Rendering style</param>
+        /// <param name="themeGraphColours">Array of theme colours</param>
+        /// <returns>The node colour</returns>
         public WritableRgbaFloat GetNodeColor(int nodeIndex, eRenderingMode renderingMode, WritableRgbaFloat[] themeGraphColours)
         {
             if (nodeIndex >= InternalProtoGraph.NodeList.Count)
@@ -1264,14 +1270,19 @@ namespace rgat
                     return new WritableRgbaFloat(1, 0, 0, 1);
                 case eRenderingMode.eConditionals:
                     {
-                        if (n.conditional == ConditionalType.NOTCONDITIONAL)
-                            return new WritableRgbaFloat(0, 0, 0, 0.7f);
-                        if (n.conditional == ConditionalType.CONDCOMPLETE)
-                            return new WritableRgbaFloat(1, 1, 1, .7f);
-                        if (((int)n.conditional & (int)ConditionalType.CONDTAKEN) != 0)
-                            return new WritableRgbaFloat(0, 1, 0, 0.7f);
-                        if (((int)n.conditional & (int)ConditionalType.CONDFELLTHROUGH) != 0)
-                            return new WritableRgbaFloat(1, 0, 0, 0.7f);
+                        if (n.IsConditional is false)
+                        { 
+                            return new WritableRgbaFloat(0, 0, 0, 0.7f); 
+                        }
+                        else
+                        {
+                            if (n.conditional == ConditionalType.CONDCOMPLETE)
+                                return new WritableRgbaFloat(1, 1, 1, .7f);
+                            if (((int)n.conditional & (int)ConditionalType.CONDTAKEN) != 0)
+                                return new WritableRgbaFloat(0, 1, 0, 0.7f);
+                            if (((int)n.conditional & (int)ConditionalType.CONDFELLTHROUGH) != 0)
+                                return new WritableRgbaFloat(1, 0, 0, 0.7f);
+                        }
                         return new WritableRgbaFloat(Color.Yellow);
                     }
                 default:
@@ -1280,6 +1291,12 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Get the colour of this edge in the specified mode
+        /// </summary>
+        /// <param name="edge">The nodeIndex->nodeIndex description of the edge</param>
+        /// <param name="renderingMode">The rendering mode</param>
+        /// <returns>The colour of the edge</returns>
         public WritableRgbaFloat GetEdgeColor(Tuple<uint, uint> edge, eRenderingMode renderingMode)
         {
 
@@ -1321,7 +1338,7 @@ namespace rgat
         }
 
 
-        Tuple<string, uint> CreateNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
+        Tuple<string?, uint> CreateNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
         {
             NodeData n = InternalProtoGraph.NodeList[index];
             if (n.Label == null || n.Dirty || forceNew)
@@ -1330,24 +1347,35 @@ namespace rgat
             }
 
             if (n.IsExternal)
-                return new Tuple<string, uint>(n.Label, Themes.GetThemeColourUINT(Themes.eThemeColour.SymbolText));
+                return new Tuple<string?, uint>(n.Label!, Themes.GetThemeColourUINT(Themes.eThemeColour.SymbolText));
             else if (n.HasSymbol)
-                return new Tuple<string, uint>(n.Label, Themes.GetThemeColourUINT(Themes.eThemeColour.InternalSymbol));
+                return new Tuple<string?, uint>(n.Label!, Themes.GetThemeColourUINT(Themes.eThemeColour.InternalSymbol));
             else
-                return new Tuple<string, uint>(n.Label, Themes.GetThemeColourUINT(Themes.eThemeColour.InstructionText));
+                return new Tuple<string?, uint>(n.Label!, Themes.GetThemeColourUINT(Themes.eThemeColour.InstructionText));
         }
 
         void RegenerateLabels() => _newLabels = true;
         bool _newLabels;
 
         eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
+        /// <summary>
+        /// Get the currently selected rendering mode of the graph (heatmap, etc)
+        /// </summary>
         public eRenderingMode RenderingMode => lastRenderingMode;
 
         ulong lastThemeVersion = 0;
 
         //important todo - cacheing!  once the result is good
+        /// <summary>
+        /// Get the node drawing data for the preview version of this graph
+        /// </summary>
+        /// <param name="renderingMode">Rendering mode (heatmap, etc)</param>
+        /// <param name="nodeIndices">Output node indexes</param>
+        /// <param name="nodePickingColors">Output node mouse hover picking data</param>
+        /// <param name="captions">Node caption texts</param>
+        /// <returns>Node drawing data</returns>
         public Position2DColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode,
-            out List<uint> nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string, uint>> captions)
+            out List<uint> nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string?, uint>> captions)
         {
             bool createNewLabels = false;
             if (renderingMode != lastRenderingMode || _newLabels)
@@ -1370,7 +1398,7 @@ namespace rgat
             Position2DColour[] nodeVerts = new Position2DColour[textureSize * textureSize];
 
             nodePickingColors = new Position2DColour[textureSize * textureSize];
-            captions = new List<Tuple<string, uint>>();
+            captions = new List<Tuple<string?, uint>>();
 
             nodeIndices = new List<uint>();
             int nodeCount = RenderedNodeCount();
@@ -1440,8 +1468,13 @@ namespace rgat
 
 
 
-
-        public Position2DColour[] GetPreviewgraphNodeVerts(out List<uint> nodeIndices, eRenderingMode renderingMode)
+        /// <summary>
+        /// Get the node drawing data for the preview version of this graph
+        /// </summary>
+        /// <param name="renderingMode">Rendering mode of the preview</param>
+        /// <param name="nodeIndices">Output node index list</param>
+        /// <returns>Node geometry array</returns>
+        public Position2DColour[] GetPreviewgraphNodeVerts(eRenderingMode renderingMode, out List<uint> nodeIndices)
         {
             uint textureSize = LinearIndexTextureSize();
             Position2DColour[] NodeVerts = new Position2DColour[textureSize * textureSize];
@@ -1523,14 +1556,18 @@ namespace rgat
             return EdgeLineVerts;
         }
 
-
-        public static uint dataTextureSize(int num)
+        /// <summary>
+        /// Size of data textures for compute shaders
+        /// </summary>
+        /// <param name="num">Node count</param>
+        /// <returns>Texture size</returns>
+        static uint dataTextureSize(int num)
         {
             return indexTextureSize((int)Math.Ceiling((double)num / 4.0));
         }
 
 
-        public static uint indexTextureSize(int nodesEdgesLength)
+        static uint indexTextureSize(int nodesEdgesLength)
         {
             var power = 1;
             while (power * power < nodesEdgesLength)
@@ -1553,7 +1590,11 @@ namespace rgat
             return counter;
         }
 
-
+        /// <summary>
+        /// unused
+        /// </summary>
+        /// <param name="address">address</param>
+        /// <param name="idx">index</param>
         protected void Add_to_callstack(ulong address, uint idx)
         {
             ThreadCallStack.Push(new Tuple<ulong, uint>(address, idx));
@@ -1581,13 +1622,13 @@ namespace rgat
                 {
                     lock (piddata.ExternCallerLock)
                     {
-                        if (externBlock.Value.thread_callers == null)
+                        if (externBlock.Value.ThreadCallers == null)
                         {
                             Console.WriteLine($"Error: Extern block thread_callers was null [block 0x{blockAddr:x}]");
                         }
                         else
                         {
-                            found = externBlock.Value.thread_callers.TryGetValue(TID, out calls);
+                            found = externBlock.Value.ThreadCallers.TryGetValue(TID, out calls);
                         }
                     }
                     if (found) break;
@@ -1643,7 +1684,7 @@ namespace rgat
             Tuple<uint, uint>? LinkingPair = null;
             if (externStr != null)
             {
-                var callers = externStr.Value.thread_callers[InternalProtoGraph.ThreadID];
+                var callers = externStr.Value.ThreadCallers[InternalProtoGraph.ThreadID];
                 var caller = callers.Find(n => n.Item2 == LastAnimatedVert);
                 if (caller == null) return;
 
@@ -1682,7 +1723,7 @@ namespace rgat
 
             foreach (uint nodeIdx in nodeIDList)
             {
-                if (Opt_TextEnabledLive && listOffset == 0 && InternalProtoGraph.safe_get_node(nodeIdx)!.HasSymbol)
+                if (Opt_TextEnabledLive && listOffset == 0 && InternalProtoGraph.GetNode(nodeIdx)!.HasSymbol)
                 {
                     AddRisingSymbol(nodeIdx, (int)entry.count - 1, brightTime);
                 }
@@ -1697,11 +1738,9 @@ namespace rgat
                     //if it doesn't exist it may be because user is skipping code with animation slider
                 }
 
-                if (brightTime == Anim_Constants.KEEP_BRIGHT)
+                if (brightTime == (int)Anim_Constants.BRIGHTNESS.KEEP_BRIGHT)
                 {
-
                     AddContinuousActiveNode(nodeIdx);
-
                 }
                 else
                 {
@@ -1789,7 +1828,7 @@ namespace rgat
                 }
 
                 Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.blockID}: " + s, Logging.LogFilterType.BulkDebugLogFile);
-                brightTime = Anim_Constants.KEEP_BRIGHT;
+                brightTime = (int)Anim_Constants.BRIGHTNESS.KEEP_BRIGHT;
             }
             else
                 brightTime = GlobalConfig.ExternAnimDisplayFrames;
@@ -1920,7 +1959,7 @@ namespace rgat
             if (entry.entryType == eTraceUpdateType.eAnimUnchained || animBuildingLoop)
             {
                 if (verbose) Console.WriteLine($"\tUpdate Replay eAnimUnchained/buildingloop");
-                brightTime = Anim_Constants.KEEP_BRIGHT;
+                brightTime = (int)Anim_Constants.BRIGHTNESS.KEEP_BRIGHT;
             }
             else
             {
@@ -2151,7 +2190,7 @@ namespace rgat
 
                 foreach (uint nidx in newnodeidxs)
                 {
-                    InternalProtoGraph.safe_get_node(nidx)?.SetHighlighted(true);
+                    InternalProtoGraph.GetNode(nidx)?.SetHighlighted(true);
                     DeletedHighlights.RemoveAll(x => x == nidx);
                 }
 
@@ -2198,7 +2237,7 @@ namespace rgat
                 AllHighlightedNodes.AddRange(HighlightedExceptionNodes.Where(n => !AllHighlightedNodes.Contains(n)));
                 foreach (uint nidx in nodeidxs)
                 {
-                    InternalProtoGraph.safe_get_node(nidx)?.SetHighlighted(false);
+                    InternalProtoGraph.GetNode(nidx)?.SetHighlighted(false);
                     NewHighlights.RemoveAll(x => x == nidx);
                 }
                 DeletedHighlights.AddRange(nodeidxs);
@@ -2289,12 +2328,16 @@ namespace rgat
 
         public void AddRisingSymbol(uint nodeIdx, int callIndex, int lingerFrames)
         {
-            NodeData? n = InternalProtoGraph.safe_get_node(nodeIdx);
+            NodeData? n = InternalProtoGraph.GetNode(nodeIdx);
             Debug.Assert(n is not null);
-            if (n.Label == null) n.CreateLabel(this, callIndex);
+            if (n.Label is null)
+            {
+                n.CreateLabel(this, callIndex);
+                if (n.Label is null) return;
+            }
             lock (animationLock)
             {
-                if (lingerFrames == Anim_Constants.KEEP_BRIGHT)
+                if (lingerFrames == (int)Anim_Constants.BRIGHTNESS.KEEP_BRIGHT)
                 {
                     _RisingSymbolsLingering.Add(new Tuple<uint, string>(nodeIdx, n.Label));
                 }

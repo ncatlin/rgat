@@ -63,7 +63,7 @@ namespace rgat.Widgets
 
             foreach (uint nodeIdx in externNodes)
             {
-                NodeData? n = protog.safe_get_node(nodeIdx);
+                NodeData? n = protog.GetNode(nodeIdx);
                 System.Diagnostics.Debug.Assert(n is not null);
                 if (!_activeHighlights.displayedModules.TryGetValue(n.GlobalModuleID, out moduleEntry modentry))
                 {
@@ -82,13 +82,13 @@ namespace rgat.Widgets
                     {
                         symentry.name = "[No Symbol Name]";
                     }
-                    symentry.threadNodes = new List<uint>() { n.index };
+                    symentry.threadNodes = new List<uint>() { n.Index };
 
                     modentry.symbols.Add(n.address, symentry);
                 }
                 else
                 {
-                    if (!symentry.threadNodes.Contains(n.index)) symentry.threadNodes.Add(n.index);
+                    if (!symentry.threadNodes.Contains(n.Index)) symentry.threadNodes.Add(n.Index);
                 }
 
             }

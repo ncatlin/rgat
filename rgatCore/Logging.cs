@@ -150,7 +150,7 @@ namespace rgat
             public JObject Serialise()
             {
                 JObject result = new JObject();
-                result.Add("Node", (int)node.index);
+                result.Add("Node", (int)node.Index);
                 result.Add("CallIdx", index);
                 result.Add("Repeats", repeats);
                 result.Add("uniqID", uniqID);
@@ -236,7 +236,7 @@ namespace rgat
                     case eTimelineEvent.ThreadEnd:
                         Debug.Assert(trace.ParentTrace == null || idtok.ToObject<ulong>() == trace.ParentTrace.PID);
                         SetIDs(ID: idtok.ToObject<ulong>());
-                        _item = trace.GetProtoGraphByID(ID);
+                        _item = trace.GetProtoGraphByTID(ID);
                         Inited = true;
                         break;
 

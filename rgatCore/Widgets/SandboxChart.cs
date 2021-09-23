@@ -617,7 +617,7 @@ namespace rgat.Widgets
                     break;
                 case Logging.eTimelineEvent.ThreadStart:
                 case Logging.eTimelineEvent.ThreadEnd:
-                    ProtoGraph? graph = _rootTrace.GetProtoGraphByID(evt.ID);
+                    ProtoGraph? graph = _rootTrace.GetProtoGraphByTID(evt.ID);
                     if (graph == null) return;
                     foreach (var node in sbgraph.Vertices)
                     {

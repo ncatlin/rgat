@@ -164,7 +164,7 @@ namespace rgatFilePicker
                 return result;
             }
 
-            public void IngestDirectories(List<string> dirs, DirectoryContents newContentsObj = null)
+            public void IngestDirectories(List<string> dirs, DirectoryContents? newContentsObj = null)
             {
                 if (latestDirPaths != null)
                 {
@@ -201,7 +201,7 @@ namespace rgatFilePicker
 
             }
 
-            public void IngestFiles(List<string> files, DirectoryContents newContentsObj = null)
+            public void IngestFiles(List<string> files, DirectoryContents? newContentsObj = null)
             {
                 if (latestFilePaths != null)
                 {
@@ -341,7 +341,7 @@ namespace rgatFilePicker
             }
 
 
-            public void RefreshDirectoryContents(List<Tuple<string, bool>> latest_dir_entires, DirectoryContents newContentsObj = null)
+            public void RefreshDirectoryContents(List<Tuple<string, bool>> latest_dir_entires, DirectoryContents? newContentsObj = null)
             {
 
                 if (lostFiles.RemoveAll(s => s.expired) > 0)
@@ -401,17 +401,55 @@ namespace rgatFilePicker
      }
  }
  */
+        /// <summary>
+        /// Result of file picking
+        /// </summary>
+        public enum PickerResult
+        {
+            /// <summary>
+            /// No file was chosen
+            /// </summary>
+            eNoAction,
+            /// <summary>
+            /// A file was chosen
+            /// </summary>
+            eTrue,
+            /// <summary>
+            /// Picking was cancelled
+            /// </summary>
+            eFalse
+        };
 
-        public enum PickerResult { eNoAction, eTrue, eFalse };
         static readonly Dictionary<object, FilePicker> _filePickers = new Dictionary<object, FilePicker>();
         static readonly Dictionary<object, FILEPICKER_DATA> _filePickerData = new Dictionary<object, FILEPICKER_DATA>();
         readonly FILEPICKER_DATA Data = new FILEPICKER_DATA();
+        /// <summary>
+        /// When the drivelist was list refreshed
+        /// </summary>
         public DateTime LastDriveListRefresh = DateTime.MinValue;
-        public string SelectedFile;
-        public List<string> SelectedFiles;
-        public List<string> SelectedDirectories;
+        /// <summary>
+        /// The selected file
+        /// </summary>
+        public string? SelectedFile;
+        /// <summary>
+        /// Currently selected files
+        /// </summary>
+        public List<string> SelectedFiles = new List<string>();
+        /// <summary>
+        /// Currently selected directories
+        /// </summary>
+        public List<string> SelectedDirectories = new List<string>();
+        /// <summary>
+        /// File extensions which can be selected
+        /// </summary>
         public List<string> AllowedExtensions = new List<string>();
+        /// <summary>
+        /// Only folders can be selected
+        /// </summary>
         public bool OnlyAllowFolders;
+        /// <summary>
+        /// Multiple files can be selected
+        /// </summary>
         public bool AllowMultiSelect;
         readonly object _lock = new object();
 
@@ -419,42 +457,61 @@ namespace rgatFilePicker
         class FILEPICKER_DATA
         {
             public List<Tuple<string, string>> AvailableDriveStrings = new List<Tuple<string, string>>();
-            public DirectoryContents Contents;
-            public string CurrentDirectory;
+            /// <summary>
+            /// The contents of the current directory
+            /// </summary>
+            public DirectoryContents? Contents;
+            /// <summary>
+            /// The path of the current directory
+            /// </summary>
+            public string? CurrentDirectory;
+            /// <summary>
+            /// The current directory exists
+            /// </summary>
             public bool CurrentDirectoryExists;
-            public string CurrentDirectoryParent;
-            public string NextRemoteDirectory;
+            /// <summary>
+            /// The parent of the current directory
+            /// </summary>
+            public string? CurrentDirectoryParent;
+            /// <summary>
+            /// The directory to be set as current on the remote device
+            /// </summary>
+            public string? NextRemoteDirectory;
             public bool CurrentDirectoryParentExists;
+            /// <summary>
+            /// The last error message
+            /// </summary>
             public string ErrMsg;
         }
+
+
+        /// <summary>
+        /// Get the directory-only file picker associated with key 'o'
+        /// </summary>
+        /// <param name="o">Picker to retrieve</param>
+        /// <param name="startingPath">Initial directory</param>
+        /// <returns>FilePicker object</returns>
         public static FilePicker GetDirectoryPicker(object o, string startingPath)
             => GetFilePicker(o, startingPath, null, true);
 
-        //this feels like a very C way of doing things, the Imgui.InputText needs a byte array though
-        public int SelectedFileBytes(ref byte[] result)
+
+        /// <summary>
+        /// Get a filepicker for a remote machine
+        /// </summary>
+        /// <param name="o">Key object</param>
+        /// <param name="searchFilter">Allowed extensions filter string</param>
+        /// <param name="onlyAllowFolders">Restrict selection to directories</param>
+        /// <param name="allowMulti">Allow selection of multiple items</param>
+        /// <returns></returns>
+        public static FilePicker GetRemoteFilePicker(object o, string searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
-            byte[] pathBytes = Encoding.ASCII.GetBytes(SelectedFile);
-            int resultLen = Math.Min(pathBytes.Length + 1, result.Length - 1);
-            Array.Copy(pathBytes, result, resultLen - 1);
-            result[resultLen - 1] = 0;
-            return resultLen;
-        }
-
-
-        public static FilePicker GetRemoteFilePicker(object o, BridgeConnection remoteMirror, string searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
-        {
-
-            if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror != null && (fp._remoteMirror.LastAddress != remoteMirror.LastAddress))
+            BridgeConnection connection = rgatState.NetworkBridge;
+            if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror != null && (fp._remoteMirror.LastAddress != connection.LastAddress))
             {
-                fp = new FilePicker(remoteMirror: remoteMirror);
+                fp = new FilePicker(remoteMirror: connection);
                 fp.Data.CurrentDirectory = RemoteDataMirror.RootDirectory;
                 fp.OnlyAllowFolders = onlyAllowFolders;
                 fp.AllowMultiSelect = allowMulti;
-                if (fp.AllowMultiSelect)
-                {
-                    fp.SelectedFiles = new List<string>();
-                    fp.SelectedDirectories = new List<string>();
-                }
 
                 if (searchFilter != null)
                 {
@@ -473,7 +530,16 @@ namespace rgatFilePicker
         }
 
 
-        public static FilePicker GetFilePicker(object o, string startingPath, string searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
+        /// <summary>
+        /// Get a filepicker associated with key object 'o'
+        /// </summary>
+        /// <param name="o">Key object</param>
+        /// <param name="startingPath">Initial directory to display</param>
+        /// <param name="searchFilter">Allowed extensions filter string</param>
+        /// <param name="onlyAllowFolders">Restrict selection to directories</param>
+        /// <param name="allowMulti">Allow selection of multiple items</param>
+        /// <returns></returns>
+        public static FilePicker GetFilePicker(object o, string startingPath, string? searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
 
             if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror != null)
@@ -491,11 +557,6 @@ namespace rgatFilePicker
                     fp.AllowedExtensions.AddRange(searchFilter.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries));
                 }
                 fp.AllowMultiSelect = allowMulti;
-                if (fp.AllowMultiSelect)
-                {
-                    fp.SelectedFiles = new List<string>();
-                    fp.SelectedDirectories = new List<string>();
-                }
 
                 fp.SetActiveDirectory(startingPath);
                 _filePickers.Add(o, fp);
@@ -782,7 +843,7 @@ namespace rgatFilePicker
                 ShowDirectoryHistory();
             }
             ImGui.SameLine();
-            if (ImGui.Button($"{ImGuiController.FA_ICON_UP}"))
+            if (ImGui.Button($"{ImGuiController.FA_ICON_UP}") && Data.CurrentDirectory is not null)
             {
                 DirectoryInfo? parent = Directory.GetParent(Data.CurrentDirectory);
                 if (parent is not null)
@@ -800,14 +861,17 @@ namespace rgatFilePicker
             {
                 ShowDirectoryHistory();
             }
-            ImGui.SameLine();
-            string currentDirString = Data.CurrentDirectory;
-            ImGuiInputTextFlags flags = ImGuiInputTextFlags.EnterReturnsTrue;
-            if (ImGui.InputText("Path", ref currentDirString, 4096, flags))
+            if (Data.CurrentDirectory is not null)
             {
-                if (Path.GetDirectoryName(currentDirString + "\\") != Data.CurrentDirectory)
+                ImGui.SameLine();
+                string currentDirString = Data.CurrentDirectory;
+                ImGuiInputTextFlags flags = ImGuiInputTextFlags.EnterReturnsTrue;
+                if (ImGui.InputText("Path", ref currentDirString, 4096, flags))
                 {
-                    SetActiveDirectory(currentDirString);
+                    if (Path.GetDirectoryName(currentDirString + "\\") != Data.CurrentDirectory)
+                    {
+                        SetActiveDirectory(currentDirString);
+                    }
                 }
             }
 
@@ -1103,6 +1167,8 @@ namespace rgatFilePicker
 
         void SortDisplayFiles(ImGuiTableColumnSortSpecsPtr sortSpecs)
         {
+            Debug.Assert(Data.Contents is not null);
+
             _sortedDirs = new List<KeyValuePair<string, FileMetadata>>();
             switch (sortSpecs.ColumnIndex)
             {
@@ -1256,6 +1322,7 @@ namespace rgatFilePicker
             }
         }
 
+        /*
         bool TryGetFileInfo(string fileName, out FileInfo realFile)
         {
             try
@@ -1269,11 +1336,11 @@ namespace rgatFilePicker
                 return false;
             }
         }
-
-
+        */
 
         List<Tuple<string, bool>> GetFileSystemEntries()
         {
+            Debug.Assert(Data.CurrentDirectory is not null);
             List<Tuple<string, bool>> newFileListing = new List<Tuple<string, bool>>();
             try
             {
@@ -1292,7 +1359,7 @@ namespace rgatFilePicker
             return newFileListing;
         }
 
-        DirectoryContents SetFileSystemEntries(string fullName, List<Tuple<string, bool>> newFileListing, DirectoryContents newDirContentsObj = null)
+        DirectoryContents SetFileSystemEntries(string fullName, List<Tuple<string, bool>> newFileListing, DirectoryContents? newDirContentsObj = null)
         {
             if (newDirContentsObj == null)
             {
@@ -1383,7 +1450,10 @@ namespace rgatFilePicker
             LastDriveListRefresh = DateTime.Now;
         }
 
-
+        /// <summary>
+        /// Get the drive list of this computer
+        /// </summary>
+        /// <returns>List of rootdirectory, drivename pairs</returns>
         public static List<Tuple<string, string>> GetLocalDriveStrings()
         {
             List<Tuple<string, string>> result = new List<Tuple<string, string>>();

@@ -1334,7 +1334,7 @@ namespace rgat
                 bool isRemote = rgatState.ConnectedToRemote;
                 if (isRemote)
                 {
-                    picker = rgatFilePicker.FilePicker.GetRemoteFilePicker(this, rgatState.NetworkBridge);
+                    picker = rgatFilePicker.FilePicker.GetRemoteFilePicker(this);
                 }
                 else
                 {

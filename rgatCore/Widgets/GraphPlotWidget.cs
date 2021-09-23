@@ -1109,7 +1109,7 @@ namespace rgat
 
             Position2DColour[] NodeVerts = graph.GetMaingraphNodeVerts(_renderingMode,
             out List<uint> nodeIndices, out Position2DColour[] nodePickingColors,
-            out List<Tuple<string, uint>> captions);
+            out List<Tuple<string?, uint>> captions);
 
             //_layoutEngine.GetScreenFitOffsets(WidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 

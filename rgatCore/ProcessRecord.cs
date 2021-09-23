@@ -10,9 +10,15 @@ using System.Threading;
 
 namespace rgat
 {
+    /// <summary>
+    /// Records process data which is shared between threads
+    /// </summary>
     public class ProcessRecord
     {
-
+        /// <summary>
+        /// Create a ProcessRecord
+        /// </summary>
+        /// <param name="binaryBitWidth">32 or 64 bits</param>
         public ProcessRecord(int binaryBitWidth)
         {
             BitWidth = binaryBitWidth;
@@ -25,24 +31,34 @@ namespace rgat
         //public bool get_modpath(uint modNum, boost::filesystem::path* path);
         //bool get_modbase(uint modNum, ulong &moduleBase);
 
-
-        public void get_extern_at_address(ulong address, int moduleNum, out ROUTINE_STRUCT BB)
+        /// <summary>
+        /// Get information about the entry to uninstrumented code at the given address
+        /// </summary>
+        /// <param name="address">Address of uninstrumented code</param>
+        /// <param name="moduleNum">Module the address is in </param>
+        /// <param name="RTN">ROUTINE_STRUCT output</param>
+        public void get_extern_at_address(ulong address, int moduleNum, out ROUTINE_STRUCT RTN)
         {
             lock (ExternCallerLock)
             {
-                if (!externdict.TryGetValue(address, out BB))
+                if (!externdict.TryGetValue(address, out RTN))
                 {
-                    BB = new ROUTINE_STRUCT();
-                    BB.globalmodnum = moduleNum;
-                    BB.thread_callers = new Dictionary<uint, List<Tuple<uint, uint>>>();
-                    externdict.Add(address, BB);
-
+                    RTN = new ROUTINE_STRUCT();
+                    RTN.Module = moduleNum;
+                    RTN.ThreadCallers = new Dictionary<uint, List<Tuple<uint, uint>>>();
+                    externdict.Add(address, RTN);
                 }
             }
         }
-        //public void save(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
 
-        public bool load(JObject tracejson)
+
+        //public void save(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+        /// <summary>
+        /// Deserialise the process record
+        /// </summary>
+        /// <param name="tracejson">JSON processrecord</param>
+        /// <returns>If successful</returns>
+        public bool Load(JObject tracejson)
         {
 
             var processDataJSON = tracejson.GetValue("ProcessData");
@@ -89,43 +105,12 @@ namespace rgat
 
 
 
-        //returns address once it does
-        //todo - failure on limit excess
-        public bool EnsureBlockExistsGetAddress(uint blockID, out ulong address)
-        {
-            int timewaited = 0;
-            while (true)
-            {
-
-                lock (InstructionsLock)
-                {
-                    if (BasicBlocksList.Count > blockID && BasicBlocksList[(int)blockID] != null)
-                    {
-                        address = BasicBlocksList[(int)blockID].Item1;
-                        return true;
-                    }
-                }
-                if (dieFlag)
-                {
-                    address = 0;
-                    return false;
-                }
-                Thread.Sleep(2);
-                timewaited += 2;
-                if (timewaited > 2500 && (timewaited % 1000) == 0)
-                {
-                    Console.WriteLine($"Warning, long wait for block {blockID}. Currently {timewaited / 1000}s");
-                    if (timewaited > 5000)
-                    {
-                        address = 0;
-                        return false;
-                    }
-                }
-
-            }
-        }
-
         //is there a better way of doing this?
+        /// <summary>
+        /// Get lsit of instructions for a block
+        /// </summary>
+        /// <param name="blockID">IF of the block</param>
+        /// <returns></returns>
         public List<InstructionData>? getDisassemblyBlock(uint blockID)
         {
             ROUTINE_STRUCT? stub = null;
@@ -140,16 +125,16 @@ namespace rgat
             {
                 if (externBlockaddr != 0 || blockID == uint.MaxValue)
                 {
-                    int moduleNo = FindContainingModule(externBlockaddr);
-                    if (ModuleTraceStates.Count <= moduleNo || moduleNo == -1)
+                    bool found = FindContainingModule(externBlockaddr, out int? moduleNo);
+                    if (!found || ModuleTraceStates.Count <= moduleNo)
                     {
                         Console.WriteLine($"Error: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
                         externBlock = null;
                         return null;
                     }
-                    if (ModuleTraceStates[moduleNo] == eCodeInstrumentation.eUninstrumentedCode)
+                    if (ModuleTraceStates[moduleNo!.Value] == eCodeInstrumentation.eUninstrumentedCode)
                     {
-                        get_extern_at_address(externBlockaddr, moduleNo, out ROUTINE_STRUCT tmpexternBlock);
+                        get_extern_at_address(externBlockaddr, moduleNo!.Value, out ROUTINE_STRUCT tmpexternBlock);
                         externBlock = tmpexternBlock;
                         return null;
                     }
@@ -179,12 +164,18 @@ namespace rgat
                     return null;
                 }
 
-                if (dieFlag) return null;
+                if (rgatState.rgatIsExiting) return null;
             }
         }
 
         //todo broke on replay with extern modules
-        public int FindContainingModule(ulong address)
+        /// <summary>
+        /// Find the module containing this address
+        /// </summary>
+        /// <param name="address">Address to find</param>
+        /// <param name="moduleID">Module containing this address</param>
+        /// <returns>If the address was found</returns>
+        public bool FindContainingModule(ulong address, out int? moduleID)
         {
             int numModules = LoadedModuleBounds.Count;
             for (int modNo = 0; modNo < numModules; ++modNo)
@@ -193,14 +184,23 @@ namespace rgat
                 if (moduleBounds == null) continue;
                 if (address >= moduleBounds.Item1 && address <= moduleBounds.Item2)
                 {
-                    return modNo;
+                    moduleID = modNo;
+                    return true;
                 }
             }
-
-            return -1;
+            moduleID = null;
+            return false;
         }
 
 
+        /// <summary>
+        /// Record a module for this process
+        /// </summary>
+        /// <param name="localmodID">Internal module number returned by the instrumentation tool</param>
+        /// <param name="path">Filesystem path of the module</param>
+        /// <param name="start">Module start address</param>
+        /// <param name="end">Module end address</param>
+        /// <param name="isInstrumented">If the instrumentation tool is instrumenting this module</param>
         public void AddModule(int localmodID, string path, ulong start, ulong end, char isInstrumented)
         {
             if (localmodID > 1000)
@@ -231,11 +231,12 @@ namespace rgat
 
 
 
-
-
-
-
-
+        /// <summary>
+        /// Add a recorded symbol to an address
+        /// </summary>
+        /// <param name="localModnum">Internal module number returned by the instrumentation tool</param>
+        /// <param name="offset">Offset of the symbol in the module</param>
+        /// <param name="name">Name of the symbol</param>
         public void AddSymbol(int localModnum, ulong offset, string name)
         {
             int attempts = 10;
@@ -275,11 +276,25 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Does a symbol exist at this address
+        /// </summary>
+        /// <param name="GlobalModuleNumber">The module containing the address</param>
+        /// <param name="address">The address</param>
+        /// <returns>true if a symbol exists here</returns>
         public bool SymbolExists(int GlobalModuleNumber, ulong address)
         {
-            return modsymsPlain.ContainsKey(GlobalModuleNumber) && modsymsPlain[GlobalModuleNumber].ContainsKey(address - LoadedModuleBounds[GlobalModuleNumber].Item1);
+            return modsymsPlain.TryGetValue(GlobalModuleNumber, out Dictionary<ulong, string?>? syms) && syms.ContainsKey(address - LoadedModuleBounds[GlobalModuleNumber].Item1);
         }
 
+
+        /// <summary>
+        /// Get the symbol at an address
+        /// </summary>
+        /// <param name="GlobalModuleNumber">The module containing the address</param>
+        /// <param name="address">The address</param>
+        /// <param name="symbol">Output symbol retrieved</param>
+        /// <returns>If found</returns>
         public bool GetSymbol(int GlobalModuleNumber, ulong address, out string? symbol)
         {
             lock (ModulesLock)
@@ -303,15 +318,16 @@ namespace rgat
         /// <param name="module">Path of module is output here, if found</param>
         /// <param name="symbol">Name of symbol is output here, if found</param>
         /// <returns>True if both module and symbol string resolved. False otherwise.</returns>
-        public bool ResolveSymbolAtAddress(ulong address, out int moduleID, out string? module, out string? symbol)
+        public bool ResolveSymbolAtAddress(ulong address, out int moduleID, out string module, out string symbol)
         {
-            moduleID = FindContainingModule(address);
-            if (moduleID == -1)
+            if (!FindContainingModule(address, out int? modNum))
             {
+                moduleID = -1;
                 module = "";
                 symbol = "";
                 return false;
             }
+            moduleID = modNum!.Value;
 
             lock (ModulesLock)
             {
@@ -340,25 +356,33 @@ namespace rgat
             }
         }
 
-        //Debug here
-        public ulong GetBlockAtAddress(ulong address)
+
+        /// <summary>
+        /// Get the ID of the block at the specified address
+        /// This is a blocking operation which waits for the block to appear in 
+        /// disassembly if it was not present at the time of the call
+        /// </summary>
+        /// <param name="address">Address of the block</param>
+        /// <returns>The ID of the block</returns>
+        public ulong WaitForBlockAtAddress(ulong address)
         {
             bool hasBlock = false;
-            while (!hasBlock)
+            while (!hasBlock && !rgatState.rgatIsExiting)
             {
                 lock (InstructionsLock)
                 {
                     hasBlock = blockIDDict.ContainsKey(address);
                 }
                 if (hasBlock) break;
-                int moduleNo = FindContainingModule(address);
-                if (ModuleTraceStates.Count <= moduleNo || moduleNo == -1)
+
+                bool found = FindContainingModule(address, out int? moduleNo);
+                if (!found || ModuleTraceStates.Count <= moduleNo)
                 {
                     Console.WriteLine($"Warning: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
                     Thread.Sleep(15);
                     continue;
                 }
-                if (ModuleTraceStates[moduleNo] == eCodeInstrumentation.eUninstrumentedCode)
+                if (ModuleTraceStates[moduleNo!.Value] == eCodeInstrumentation.eUninstrumentedCode)
                 {
                     return ulong.MaxValue;
                 }
@@ -369,6 +393,53 @@ namespace rgat
             return blockIDDict[address][^1];
         }
 
+
+        /// <summary>
+        /// Given a block ID, wait until it is dissembled and return the address
+        /// </summary>
+        /// <param name="blockID">Block ID to find</param>
+        /// <param name="address">output address when it exists</param>
+        /// <returns>if the block was found. will only return false if cancelled by rgat exit</returns>
+        public bool WaitForAddressOfBlock(uint blockID, out ulong address)
+        {
+            int timewaited = 0;
+            while (true)
+            {
+
+                lock (InstructionsLock)
+                {
+                    if (BasicBlocksList.Count > blockID && BasicBlocksList[(int)blockID] != null)
+                    {
+                        address = BasicBlocksList[(int)blockID].Item1;
+                        return true;
+                    }
+                }
+                if (rgatState.rgatIsExiting)
+                {
+                    address = 0;
+                    return false;
+                }
+                Thread.Sleep(2);
+                timewaited += 2;
+                if (timewaited > 2500 && (timewaited % 1000) == 0)
+                {
+                    Console.WriteLine($"Warning, long wait for block {blockID}. Currently {timewaited / 1000}s");
+                    if (timewaited > 5000)
+                    {
+                        address = 0;
+                        return false;
+                    }
+                }
+
+            }
+        }
+
+
+        /// <summary>
+        /// Get the address of a block
+        /// </summary>
+        /// <param name="blockID">The ID of the block</param>
+        /// <returns>The address of the block</returns>
         public ulong GetAddressOfBlock(int blockID)
         {
             Debug.Assert(blockID != -1 && blockID < BasicBlocksList.Count);
@@ -376,6 +447,12 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Record a disassembled block from the blockreader worker
+        /// </summary>
+        /// <param name="blockID">ID of the block</param>
+        /// <param name="address">Address of the block</param>
+        /// <param name="instructions">The blocks disassembled instructions</param>
         public void AddDisassembledBlock(uint blockID, ulong address, List<InstructionData> instructions)
         {
             //these arrive out of order so have to add some dummy entries
@@ -433,6 +510,12 @@ namespace rgat
 
         //todo review these
         private readonly object ModulesLock = new object();
+
+        /// <summary>
+        /// Guards access to API call data
+        /// This is accessed from plottedgraph, protograph and process record but shouldnt be
+        /// May need to give each ROUTINE_STRUCT threadcallers item its own lock
+        /// </summary>
         public readonly object ExternCallerLock = new object(); //todo stop this being public
 
         private readonly object SymbolsLock = new object();
@@ -514,11 +597,14 @@ namespace rgat
             {
                 if (!disassembly.TryGetValue(addr, out List<InstructionData>? inslist))
                 {
-                    if (externdict.TryGetValue(addr, out ROUTINE_STRUCT val))
+                    lock (ExternCallerLock)
                     {
-                        if (val.thread_callers.TryGetValue(TID, out List<Tuple<uint, uint>>? callers))
+                        if (externdict.TryGetValue(addr, out ROUTINE_STRUCT val))
                         {
-                            return callers.Select(x => x.Item2).ToList();
+                            if (val.ThreadCallers.TryGetValue(TID, out List<Tuple<uint, uint>>? callers))
+                            {
+                                return callers.Select(x => x.Item2).ToList();
+                            }
                         }
                     }
                     return new List<uint>();
@@ -548,7 +634,14 @@ namespace rgat
         public List<Tuple<ulong, List<InstructionData>>> BasicBlocksList = new List<Tuple<ulong, List<InstructionData>>>();
         private readonly Dictionary<ulong, List<ulong>> blockIDDict = new Dictionary<ulong, List<ulong>>();
 
+        /// <summary>
+        /// The entries into uninstrumented code
+        /// </summary>
         public Dictionary<ulong, ROUTINE_STRUCT> externdict = new Dictionary<ulong, ROUTINE_STRUCT>();
+
+        /// <summary>
+        /// This process is 32 or 64 bit
+        /// </summary>
         public int BitWidth;
 
 
@@ -935,19 +1028,19 @@ namespace rgat
                 Logging.RecordLogEvent("[rgat]Error: module ID not found in extern entry", Logging.LogFilterType.TextError);
                 return false;
             }
-            BBEntry.globalmodnum = ModID.ToObject<int>();
+            BBEntry.Module = ModID.ToObject<int>();
 
             if (!externEntry.TryGetValue("S", out JToken? hasSym) || hasSym.Type != JTokenType.Boolean)
             {
                 Logging.RecordLogEvent("[rgat]Error: Symbol presence not found in extern entry", Logging.LogFilterType.TextError);
                 return false;
             }
-            BBEntry.hasSymbol = ModID.ToObject<bool>();
+            BBEntry.HasSymbol = ModID.ToObject<bool>();
 
 
             if (externEntry.TryGetValue("C", out JToken? callers) && callers.Type == JTokenType.Array)
             {
-                BBEntry.thread_callers = new Dictionary<uint, List<Tuple<uint, uint>>>();
+                BBEntry.ThreadCallers = new Dictionary<uint, List<Tuple<uint, uint>>>();
                 JArray CallersArray = (JArray)callers;
 
                 foreach (JArray caller in CallersArray)
@@ -964,7 +1057,7 @@ namespace rgat
                         ThreadExternCalls.Add(new Tuple<uint, uint>(source, target));
                     }
 
-                    BBEntry.thread_callers.Add(threadID, ThreadExternCalls);
+                    BBEntry.ThreadCallers.Add(threadID, ThreadExternCalls);
 
                 }
             }
@@ -1006,8 +1099,10 @@ namespace rgat
             }
             SerialiseModules(ref result);
             SerialiseSymbols(ref result);
-            SerialiseExternDict(ref result);
-
+            lock (ExternCallerLock)
+            {
+                SerialiseExternDict(ref result);
+            }
             return result;
         }
 
@@ -1159,14 +1254,14 @@ namespace rgat
                 externObj.Add("A", addr_rtnstruct.Key);
 
                 ROUTINE_STRUCT externStruc = addr_rtnstruct.Value;
-                externObj.Add("M", externStruc.globalmodnum);
-                externObj.Add("S", externStruc.hasSymbol);
+                externObj.Add("M", externStruc.Module);
+                externObj.Add("S", externStruc.HasSymbol);
 
-                if (externStruc.thread_callers.Count > 0)
+                if (externStruc.ThreadCallers.Count > 0)
                 {
                     JArray callersArr = new JArray();
 
-                    foreach (var thread_edgelist in externStruc.thread_callers)
+                    foreach (var thread_edgelist in externStruc.ThreadCallers)
                     {
                         JArray callerCalls = new JArray();
                         callerCalls.Add(thread_edgelist.Key);
@@ -1190,8 +1285,5 @@ namespace rgat
             }
             saveObject.Add("Externs", externsArray);
         }
-
-
-        public bool dieFlag = false;
     }
 }

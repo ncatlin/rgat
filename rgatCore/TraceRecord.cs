@@ -17,16 +17,14 @@ namespace rgat
     /// </summary>
     public class InstructionData
     {
-        public int DebugID;
-
         /// <summary>
         /// Text of the instruction mnemonic
         /// </summary>
-        public string Mnemonic;
+        public string Mnemonic = "";
         /// <summary>
         /// Texe of the instruction operands
         /// </summary>
-        public string OpStr;
+        public string OpStr = "";
 
 
 
@@ -34,7 +32,7 @@ namespace rgat
          * memory/speed tradeoff 
 		1.construct every frame and save memory 
 		2.construct at disassemble time and improve render speed
-		*/ 
+		*/
         /// <summary>
         /// All the basic blocks this instruction is a member of
         /// </summary>
@@ -43,7 +41,7 @@ namespace rgat
         /// <summary>
         /// Full text of the disassembled instruction
         /// </summary>
-        public string? InsText;
+        public string InsText = "";
 
         /// <summary>
         /// Flow control type of the instruction
@@ -87,7 +85,7 @@ namespace rgat
         /// The module this instruction is located in
         /// </summary>
         public int GlobalModNum;
-  
+
         /// <summary>
         /// Which version of the instruction at this address is this disassembly for
         /// </summary>
@@ -102,12 +100,12 @@ namespace rgat
         /// <summary>
         /// The raw bytes of the instruction
         /// </summary>
-        public byte[] Opcodes;
+        public byte[]? Opcodes;
 
         /// <summary>
         /// How many bytes of opcodes the instruction has
         /// </summary>
-        public int NumBytes => Opcodes.Length;
+        public int NumBytes => Opcodes!.Length;
 
         /// <summary>
         /// The index of the node containing this instruction in each thread [Thread ID/instruction index]
@@ -255,7 +253,7 @@ namespace rgat
                 return graphsWithInstructions.First();
             }
 
-            var graphsWithData = MainPlottedGraphs.Where(g => g.InternalProtoGraph.TraceReader.HasPendingData());
+            var graphsWithData = MainPlottedGraphs.Where(g => g.InternalProtoGraph.TraceReader is not null && g.InternalProtoGraph.TraceReader.HasPendingData());
             if (graphsWithData.Any())
             {
                 return graphsWithData.First();
@@ -282,7 +280,7 @@ namespace rgat
                 return graphsWithInstructions.Last();
             }
 
-            var graphsWithData = MainPlottedGraphs.Where(g => g.InternalProtoGraph.TraceReader.HasPendingData());
+            var graphsWithData = MainPlottedGraphs.Where(g => g.InternalProtoGraph.TraceReader is not null && g.InternalProtoGraph.TraceReader.HasPendingData());
             if (graphsWithData.Any())
             {
                 return graphsWithData.Last();
@@ -307,7 +305,7 @@ namespace rgat
         {
             try
             {
-                if (!DisassemblyData.load(saveJSON)) //todo - get the relevant dynamic bit for this trace
+                if (!DisassemblyData.Load(saveJSON)) //todo - get the relevant dynamic bit for this trace
                 {
                     Logging.RecordLogEvent("ERROR: Process data load failed", Logging.LogFilterType.TextError);
                     return false;
@@ -515,34 +513,39 @@ namespace rgat
 
         public eCodeInstrumentation FindContainingModule(ulong address, out int localmodID)
         {
-            localmodID = DisassemblyData.FindContainingModule(address);
-            if (localmodID == -1)
+            bool found = DisassemblyData.FindContainingModule(address, out int? outID);
+            if (found)
             {
-
-                Console.WriteLine($"Warning: Unknown module in traceRecord::FindContainingModule for address 0x{address:X}");
-                int attempts = 1;
-                while (attempts-- != 0)
-                {
-                    Thread.Sleep(30);
-                    localmodID = DisassemblyData.FindContainingModule(address);
-                    if (localmodID != -1)
-                    {
-                        Console.WriteLine("FindContainingModule found!");
-                        break;
-                    }
-                }
-
-                return eCodeInstrumentation.eUninstrumentedCode;
-                //assert(localmodID != -1);
+                localmodID = outID!.Value;
+                return DisassemblyData.ModuleTraceStates[localmodID];
             }
 
-            return DisassemblyData.ModuleTraceStates[localmodID];
+            localmodID = -1;
+            Console.WriteLine($"Warning: Unknown module in traceRecord::FindContainingModule for address 0x{address:X}");
+            int attempts = 1;
+            while (attempts-- != 0)
+            {
+                Thread.Sleep(30);
+                found = DisassemblyData.FindContainingModule(address, out outID);
+                if (found)
+                {
+                    localmodID = outID!.Value;
+                    Console.WriteLine("FindContainingModule found!");
+                    break;
+                }
+            }
+
+            Debug.Assert(found);
+            return DisassemblyData.ModuleTraceStates[localmodID!];
         }
 
         private readonly object GraphListLock = new object();
         readonly Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
 
-        //get a copy of the protographs list
+        /// <summary>
+        /// get a copy of the protographs list
+        /// </summary>
+        /// <returns></returns>
         public List<ProtoGraph> GetProtoGraphs()
         {
             lock (GraphListLock)
@@ -550,10 +553,24 @@ namespace rgat
                 return ProtoGraphs.Values.ToList();
             }
         }
+
+        /// <summary>
+        /// The number of graphs in the trace
+        /// </summary>
         public int GraphCount => ProtoGraphs.Count;
 
+
+        //todo: thread IDs are not unique!
+        /// <summary>
+        /// Dictionary of plotted graphs by thread ID
+        /// </summary>
         public Dictionary<uint, PlottedGraph> PlottedGraphs = new Dictionary<uint, PlottedGraph>();
 
+
+        /// <summary>
+        /// Get a thread safe copy of the list of plotted graphs
+        /// </summary>
+        /// <returns>List of plotted graphs</returns>
         public List<PlottedGraph> GetPlottedGraphs()
         {
             lock (GraphListLock)
@@ -562,12 +579,26 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// The type of trace. Currently visualiser is the only supported type
+        /// </summary>
         public eTracePurpose TraceType { get; private set; } = eTracePurpose.eVisualiser;
 
-        public TraceRecord ParentTrace = null;
+        /// <summary>
+        /// The trace of the process which spawn this process, if this process is a child
+        /// </summary>
+        public TraceRecord? ParentTrace = null;
+
+        /// <summary>
+        /// Child processes spawned by this process
+        /// </summary>
         public List<TraceRecord> children = new List<TraceRecord>();
 
-        //returns a copy of the child trace list
+        
+        /// <summary>
+        /// returns a copy of the child trace list
+        /// </summary>
+        /// <returns>Child tracerecords</returns>
         public List<TraceRecord> GetChildren()
         {
             lock (GraphListLock)
@@ -576,14 +607,26 @@ namespace rgat
             }
         }
 
-
+        /// <summary>
+        /// Trace data handling workers
+        /// </summary>
         public TraceProcessorWorkers ProcessThreads = new TraceProcessorWorkers();
         //void* fuzzRunPtr = null;
 
+        /// <summary>
+        /// Process ID of the process being traced
+        /// </summary>
         public uint PID { get; private set; }
-        public long randID { get; private set; } //to distinguish between processes with identical PIDs
 
+        /// <summary>
+        /// Unique ID to distinguish between processes with identical PIDs
+        /// </summary>
+        public long randID { get; private set; }
 
+        /// <summary>
+        /// Count how many processes are desecended from this process. Count includes this one.
+        /// </summary>
+        /// <returns>1 + number of child processes</returns>
         public int CountDescendantTraces()
         {
             int TraceCount = 1;
@@ -595,6 +638,11 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Get a trace by unique ID
+        /// </summary>
+        /// <param name="traceID">ID of the trace</param>
+        /// <returns>TraceRecord or null if not found</returns>
         public TraceRecord? GetTraceByID(ulong traceID)
         {
             if (PID == traceID) return this;
@@ -611,7 +659,12 @@ namespace rgat
         }
 
 
-        public ProtoGraph? GetProtoGraphByID(ulong graphID)
+        /// <summary>
+        /// Get a thread associated with a thread ID. todo this is bad due to non uniqueness
+        /// </summary>
+        /// <param name="graphID">Thread ID of the graph</param>
+        /// <returns>ProtoGraph if found, or null</returns>
+        public ProtoGraph? GetProtoGraphByTID(ulong graphID)
         {
             lock (GraphListLock)
             {
@@ -621,7 +674,7 @@ namespace rgat
                 }
                 foreach (var child in children)
                 {
-                    ProtoGraph? graph = child.GetProtoGraphByID(graphID);
+                    ProtoGraph? graph = child.GetProtoGraphByTID(graphID);
                     if (graph != null) return graph;
                 }
             }
@@ -958,13 +1011,13 @@ namespace rgat
 
             foreach (NodeData n in pgraph.NodeList)
             {
-                outfile.Write(Encoding.ASCII.GetBytes(n.index + " \"" + n.ins.InsText + "\"\n"));
+                outfile.Write(Encoding.ASCII.GetBytes(n.Index + " \"" + n.ins.InsText + "\"\n"));
             }
 
             outfile.Write(Encoding.ASCII.GetBytes("*edgeslist " + pgraph.NodeList.Count + "\n"));
             foreach (NodeData n in pgraph.NodeList)
             {
-                outfile.Write(Encoding.ASCII.GetBytes(n.index + " "));
+                outfile.Write(Encoding.ASCII.GetBytes(n.Index + " "));
                 foreach (int nodeidx in n.OutgoingNeighboursSet)
                 {
                     outfile.Write(Encoding.ASCII.GetBytes(nodeidx.ToString() + " "));
@@ -986,7 +1039,7 @@ namespace rgat
             List<uint> nodes = DisassemblyData.GetNodesAtAddress(stepAddr, graph.ThreadID);
             if (nodes.Count == 0) return;
 
-            NodeData? n = graph.safe_get_node(nodes[^1]);
+            NodeData? n = graph.GetNode(nodes[^1]);
             Debug.Assert(n is not null);
             if (n.ins.itype != CONSTANTS.eNodeType.eInsCall)
             {
@@ -1032,7 +1085,7 @@ namespace rgat
         /// <summary>
         /// the time the user pressed start, not when the first process was seen
         /// </summary>
-        public DateTime LaunchedTime { private set; get; } 
+        public DateTime LaunchedTime { private set; get; }
 
         /// <summary>
         /// The BinaryTarget associated with this trace object

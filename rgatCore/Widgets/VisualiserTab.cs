@@ -642,7 +642,7 @@ namespace rgat
                                     ImGui.Text($"Thread Start: 0x{graph.StartAddress:X} [{graph.StartModuleName}]");
                                     if (graph.NodeList.Count > 0)
                                     {
-                                        NodeData? n = graph.safe_get_node(0);
+                                        NodeData? n = graph.GetNode(0);
                                         if (n is not null)
                                         {
                                             string insBase = System.IO.Path.GetFileName(graph.ProcessData.GetModulePath(n.GlobalModuleID));
@@ -680,7 +680,7 @@ namespace rgat
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
                 if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
                 {
-                    ImGui.Text($"Edges: {graph.EdgeList.Count}");
+                    ImGui.Text($"Edges: {graph.EdgeCount}");
                     ImGui.Text($"Nodes: {graph.NodeList.Count}");
                     ImGui.Text($"Updates: {graph.SavedAnimationData.Count}");
                     ImGui.Text($"Instructions: {graph.TotalInstructions}");
@@ -711,7 +711,7 @@ namespace rgat
                     }
                     SmallWidgets.MouseoverText("Busy if the thread is in a lightly instrumented high-CPU usage area");
 
-                    ThreadTraceProcessingThread traceProcessor = graph.TraceProcessor;
+                    ThreadTraceProcessingThread? traceProcessor = graph.TraceProcessor;
                     if (traceProcessor != null)
                     {
                         string BrQlab = $"{traceProcessor.PendingBlockRepeats}";
@@ -922,7 +922,7 @@ namespace rgat
                     ImGui.Text($"Repeat Queue");
                     ImGui.TableNextColumn();
 
-                    ThreadTraceProcessingThread traceProcessor = graph.TraceProcessor;
+                    ThreadTraceProcessingThread? traceProcessor = graph.TraceProcessor;
                     if (traceProcessor != null)
                     {
                         string BrQlab = $"{traceProcessor.PendingBlockRepeats}";

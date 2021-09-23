@@ -13,8 +13,16 @@ using static rgat.VeldridGraphBuffers;
 
 namespace rgat.Widgets
 {
+    /// <summary>
+    /// Create an animation progress control bar which doubles as an extra visualiser
+    /// </summary>
     class VisualiserBar
     {
+        /// <summary>
+        /// Create a visualiser bar for the specified device and controller
+        /// </summary>
+        /// <param name="graphicsDev">Veldrid GraphicsDevice to render on</param>
+        /// <param name="controller">ImGui Controller</param>
         public VisualiserBar(GraphicsDevice graphicsDev, ImGuiController controller)
         {
             _gd = graphicsDev;
@@ -26,16 +34,19 @@ namespace rgat.Widgets
         readonly ImGuiController _controller;
         readonly GraphicsDevice _gd;
         readonly ResourceFactory _factory;
-        Pipeline _lineListPipeline, _pointPipeline, _triPipeline;
-        ResourceLayout _rsrcLayout;
-        DeviceBuffer _pointsVertexBuffer, _pointsIndexBuffer;
-        DeviceBuffer _linesVertexBuffer, _linesIndexBuffer;
-        DeviceBuffer _trisVertexBuffer, _trisIndexBuffer;
-        Texture _outputTexture;
-        Framebuffer _outputFramebuffer;
-        DeviceBuffer _paramsBuffer;
-        ResourceSet _rsrcs;
-        TextureView _iconsTextureView;
+        Pipeline? _lineListPipeline, _pointPipeline, _triPipeline;
+        ResourceLayout? _rsrcLayout;
+        DeviceBuffer? _pointsVertexBuffer, _pointsIndexBuffer;
+        DeviceBuffer? _linesVertexBuffer, _linesIndexBuffer;
+        DeviceBuffer? _trisVertexBuffer, _trisIndexBuffer;
+        Texture? _outputTexture;
+        Framebuffer? _outputFramebuffer;
+        DeviceBuffer? _paramsBuffer;
+        ResourceSet? _rsrcs;
+        TextureView? _iconsTextureView;
+        Position2DColour[]? _pointVerts;
+        Position2DColour[]? _lineVerts;
+        Position2DColour[]? _triangleVerts;
 
         public void InitGraphics()
         {
@@ -72,7 +83,7 @@ namespace rgat.Widgets
 
 
 
-            pipelineDescription.Outputs = _outputFramebuffer.OutputDescription;
+            pipelineDescription.Outputs = _outputFramebuffer!.OutputDescription;
 
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
             _pointPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
@@ -102,9 +113,6 @@ namespace rgat.Widgets
         float _width;
         float _height;
         float _newWidth = 400, _newHeight = 80;
-        Position2DColour[] _pointVerts;
-        Position2DColour[] _lineVerts;
-        Position2DColour[] _triangleVerts;
 
         void CreateTextures(float width, float height)
         {
@@ -124,9 +132,10 @@ namespace rgat.Widgets
 
         void MaintainBuffers()
         {
-            //todo pointverts can be null?
+            if (_pointVerts is null || _lineVerts is null || _triangleVerts is null) return;//shouldnt be called before generatelive/generatereplay
+
             uint requiredSize = (uint)_pointVerts.Length * Position2DColour.SizeInBytes;
-            if (_pointsVertexBuffer.SizeInBytes < requiredSize)
+            if (_pointsVertexBuffer!.SizeInBytes < requiredSize)
             {
                 VeldridGraphBuffers.VRAMDispose(_pointsVertexBuffer);
                 _pointsVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, requiredSize * 2, BufferUsage.VertexBuffer, name: "VisBarPointsVertex");
@@ -136,7 +145,7 @@ namespace rgat.Widgets
             }
 
             requiredSize = (uint)_lineVerts.Length * Position2DColour.SizeInBytes;
-            if (_linesVertexBuffer.SizeInBytes < requiredSize)
+            if (_linesVertexBuffer!.SizeInBytes < requiredSize)
             {
                 VeldridGraphBuffers.VRAMDispose(_linesVertexBuffer);
                 _linesVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, requiredSize * 2, BufferUsage.VertexBuffer, name: "VisBarLinesVertex");
@@ -145,7 +154,7 @@ namespace rgat.Widgets
             }
 
             requiredSize = (uint)_triangleVerts.Length * Position2DColour.SizeInBytes;
-            if (_trisVertexBuffer.SizeInBytes < requiredSize)
+            if (_trisVertexBuffer!.SizeInBytes < requiredSize)
             {
                 VeldridGraphBuffers.VRAMDispose(_trisVertexBuffer);
                 VeldridGraphBuffers.VRAMDispose(_trisIndexBuffer);
@@ -157,6 +166,8 @@ namespace rgat.Widgets
 
         public void Render()
         {
+            if (_pointVerts is null || _lineVerts is null || _triangleVerts is null) return; //shouldnt be called before generatelive/generatereplay
+
             BarShaderParams shaderParams = new BarShaderParams
             {
                 useTexture = false,
@@ -227,6 +238,7 @@ namespace rgat.Widgets
 
             Vector2 pos = ImGui.GetCursorScreenPos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList();
+            Debug.Assert(_outputTexture is not null);
             lock (_lock)
             {
                 IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, _outputTexture, "VisualiserBar"); //thread unsafe todo, can be disposed here
@@ -376,8 +388,9 @@ namespace rgat.Widgets
             public int firstIdx;
             public int lastIdx;
             public int modID;
-            public string name;
+            public string name = "";
         };
+
         struct MODULE_LABEL
         {
             public float startX;
@@ -536,7 +549,7 @@ namespace rgat.Widgets
                 //Draw API icon - todo above i guess as it wont get here?
                 if (blkID == -1)
                 {
-                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.blockAddr, out int moduleID, out string? module, out string? symbol);
+                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.blockAddr, out int moduleID, out string module, out string symbol);
                     if (found)
                     {
                         DrawAPIEntry(Xoffset + 2, 33, pSep, moduleID, module, symbol, ref lines);
@@ -545,7 +558,11 @@ namespace rgat.Widgets
                 else
                 {
                     //Draw Module location bits
-                    int moduleID = graph.ProcessData.FindContainingModule(graph.ProcessData.GetAddressOfBlock((int)ae.blockID));
+                    ulong blockAddr = graph.ProcessData.GetAddressOfBlock((int)ae.blockID);
+                    bool found = graph.ProcessData.FindContainingModule(blockAddr, out int? moduleID);
+                    if (!found) continue;
+                    Debug.Assert(moduleID is not null);
+
                     if (moduleAreas.Count > 0)
                     {
                         MODULE_SEGMENT lastRec = moduleAreas[^1];
@@ -560,7 +577,7 @@ namespace rgat.Widgets
                     {
                         firstIdx = backIdx,
                         lastIdx = backIdx,
-                        modID = moduleID,
+                        modID = moduleID.Value,
                         name = "todo"
                     });
 
@@ -642,7 +659,10 @@ namespace rgat.Widgets
                     case eTraceUpdateType.eAnimExecTag:
                         if ((int)ae.blockID != -1)
                         {
-                            int moduleID = graph.ProcessData.FindContainingModule(graph.ProcessData.GetAddressOfBlock((int)ae.blockID));
+                            ulong blockAddr = graph.ProcessData.GetAddressOfBlock((int)ae.blockID);
+                            bool found = graph.ProcessData.FindContainingModule(blockAddr, out int? moduleID);
+                            if (!found) continue;
+                            
                             if (modSegs.Count > 0)
                             {
                                 MODULE_SEGMENT lastRec = modSegs[^1];
@@ -657,7 +677,7 @@ namespace rgat.Widgets
                             {
                                 firstIdx = i,
                                 lastIdx = i,
-                                modID = moduleID,
+                                modID = moduleID!.Value,
                                 name = "todo"
                             });
 
@@ -725,7 +745,7 @@ namespace rgat.Widgets
             }
         }
 
-        ProtoGraph _lastGeneratedReplayGraph = null;
+        ProtoGraph? _lastGeneratedReplayGraph = null;
 
         //todo lots of opportunity for caching here
         public void GenerateReplay(ProtoGraph graph)

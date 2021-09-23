@@ -588,7 +588,7 @@ namespace rgat
                 k = 100f,
                 temperature = Math.Min(temperature, GlobalConfig.NodeSoftSpeedLimit),
                 NodesTexWidth = (uint)Math.Sqrt(graph.LayoutState.PositionsVRAM1!.SizeInBytes) / 4,//no longer used?
-                EdgeCount = (uint)graph.InternalProtoGraph.EdgeList.Count,
+                EdgeCount = (uint)graph.InternalProtoGraph.EdgeCount,
                 fixedInternalNodes = fixedNodes,
                 snappingToPreset = (uint)(graph.LayoutState.ActivatingPreset ? 1 : 0),
                 nodeCount = (uint)graph.LayoutState.PositionsVRAM1.SizeInBytes / 16

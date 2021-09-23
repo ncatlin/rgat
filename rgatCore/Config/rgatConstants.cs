@@ -89,11 +89,22 @@ namespace rgat
 
         public static class Anim_Constants
         {
-            public const ulong ASSUME_INS_PER_BLOCK = 10; //farcical but useful way to estimate how long a block spends executing
-            public const float ANIM_INACTIVE_NODE_ALPHA = 0.00f;
-            public const float ANIM_INACTIVE_EDGE_ALPHA = 0.00f;
-            public const float EXTERN_FLOAT_RATE = 0.3f;
-            public const int KEEP_BRIGHT = -1;
+            /// <summary>
+            /// farcical but useful way to estimate how long a block spends executing
+            /// </summary>
+            public const ulong ASSUME_INS_PER_BLOCK = 10;
+            //public const float ANIM_INACTIVE_NODE_ALPHA = 0.00f;
+            //public const float ANIM_INACTIVE_EDGE_ALPHA = 0.00f;
+            //public const float EXTERN_FLOAT_RATE = 0.3f;
+            /// <summary>
+            /// An enum for keeping the node/edge activated, but not implemented as an 
+            /// </summary>
+            public enum BRIGHTNESS {
+                /// <summary>
+                /// Maintain full alpha until deactivated
+                /// </summary>
+                KEEP_BRIGHT = -1 
+            };
             public const float DEFAULT_NODE_DIAMETER = 200f;
 
         }
@@ -336,32 +347,149 @@ namespace rgat
             /// Move the camera back away from the graph
             /// </summary>
             ZoomOut,
+            /// <summary>
+            /// Tilt the plot forwards on the X axis
+            /// </summary>
             PitchXFwd,
+            /// <summary>
+            /// Tilt the plot back on the X axis
+            /// </summary>
             PitchXBack,
+            /// <summary>
+            /// Turn the plot anticlockwise on the Y axis
+            /// </summary>
             YawYLeft,
+            /// <summary>
+            /// Turn the plot clockwise on the Y axis
+            /// </summary>
             YawYRight,
+            /// <summary>
+            /// Roll the graph anti clockwise on the Z axis
+            /// </summary>
             RollGraphZAnti,
+            /// <summary>
+            /// Roll the graph clockwise on the Z axis
+            /// </summary>
             RollGraphZClock,
+            /// <summary>
+            /// Center the graph so all nodes are in the frame
+            /// </summary>
             CenterFrame,
+            /// <summary>
+            /// Keep centering the graph so all nodes are in the frame
+            /// </summary>
             LockCenterFrame,
             /// <summary>
             /// Close the open dialog/menu
             /// </summary>
-            Cancel, ToggleHeatmap, ToggleConditionals, RaiseForceTemperature,
-            ToggleAllText, ToggleInsText, ToggleLiveText, QuickMenu,
-            CaptureGraphImage, CaptureGraphPreviewImage, CaptureWindowImage, ToggleVideo, PauseVideo
+            Cancel, 
+            /// <summary>
+            /// Toggle heatmap rendering on or off
+            /// </summary>
+            ToggleHeatmap,
+            /// <summary>
+            /// Toggle conditional rendering on or off
+            /// </summary>
+            ToggleConditionals, 
+            /// <summary>
+            /// Raise the force directed layout activity
+            /// </summary>
+            RaiseForceTemperature,
+            /// <summary>
+            /// Toggle the display of all text on or off
+            /// </summary>
+            ToggleAllText,
+            /// <summary>
+            /// Toggle the display of instruction text on or off
+            /// </summary>
+            ToggleInsText,
+            /// <summary>
+            /// Toggle the display of animated text on or off
+            /// </summary> 
+            ToggleLiveText, 
+            /// <summary>
+            /// Toggle the quickmenu
+            /// </summary>
+            QuickMenu,
+            /// <summary>
+            /// Write an image of the graph to disk
+            /// </summary>
+            CaptureGraphImage, 
+            /// <summary>
+            /// Write an image of the graph and previews to disk
+            /// </summary>
+            CaptureGraphPreviewImage, 
+            /// <summary>
+            /// Write an image of the window to disk
+            /// </summary>
+            CaptureWindowImage, 
+            /// <summary>
+            /// Toggle video recording
+            /// </summary>
+            ToggleVideo, 
+            /// <summary>
+            /// Pause video recording without ending the video
+            /// </summary>
+            PauseVideo
         }
 
-        public enum eSignatureType { YARA, DIE };
+        /// <summary>
+        /// Types of static binary signature
+        /// </summary>
+        public enum eSignatureType { 
+            /// <summary>
+            /// YARA
+            /// </summary>
+            YARA, 
+            /// <summary>
+            /// Detect it easy
+            /// </summary>
+            DIE 
+        };
 
+        /// <summary>
+        /// Ways of laying out nodes
+        /// </summary>
         public static class LayoutStyles
         {
 
-            public enum Style { CylinderLayout, ForceDirected3DNodes, ForceDirected3DBlocks, Circle, Invalid };
+            public enum Style { 
+                /// <summary>
+                /// Plot nodes in a spiralling cylinder
+                /// </summary>
+                CylinderLayout, 
+                /// <summary>
+                /// Plot nodes so they repel each other and attract connected nodes
+                /// </summary>
+                ForceDirected3DNodes, 
+                /// <summary>
+                /// Plot blocks so they repel each other and attract connected blocks
+                /// </summary>
+                ForceDirected3DBlocks, 
+                /// <summary>
+                /// Plot nodes in a circle
+                /// </summary>
+                Circle, 
+                /// <summary>
+                /// No
+                /// </summary>
+                Invalid 
+            };
 
             static readonly List<Style> _cacheLayouts = new List<Style>() { Style.ForceDirected3DBlocks, Style.ForceDirected3DNodes };
 
+            /// <summary>
+            /// This layout was computed and needs to be saved if it is to be restored
+            /// </summary>
+            /// <param name="layout">Layout type</param>
+            /// <returns>Requires caching</returns>
             public static bool RequiresCaching(Style layout) => _cacheLayouts.Contains(layout);
+
+            /// <summary>
+            /// True if the layout style is force directed
+            /// </summary>
+            /// <param name="layout">The layout style</param>
+            /// <returns>True if the layout style is force directed</returns>
             public static bool IsForceDirected(Style layout) => RequiresCaching(layout);
         }
 

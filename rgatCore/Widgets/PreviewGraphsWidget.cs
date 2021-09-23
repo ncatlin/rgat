@@ -14,45 +14,55 @@ using static rgat.VeldridGraphBuffers;
 
 namespace rgat
 {
+    /// <summary>
+    /// A widget for rendering small versions of each recorded graph
+    /// </summary>
     public class PreviewGraphsWidget : IDisposable
     {
         List<PlottedGraph> DrawnPreviewGraphs = new List<PlottedGraph>();
         readonly System.Timers.Timer IrregularTimer;
         bool IrregularTimerFired = false;
 
-        TraceRecord ActiveTrace = null;
+        TraceRecord? ActiveTrace = null;
 
-        public float dbg_FOV = 1.0f;//1.0f;
-        public float dbg_near = 0.5f;
-        public float dbg_far = 8000f;
-        public float dbg_camX = 0f;
-        public float dbg_camY = 5f;
-        public float dbg_camZ = 100f;
-        public float dbg_rot = 0;
-
-        public float EachGraphWidth = CONSTANTS.UI.PREVIEW_PANE_WIDTH - (2 * CONSTANTS.UI.PREVIEW_PANE_X_PADDING + 2); //-2 for border
-        public float EachGraphHeight = CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT;
+        /// <summary>
+        /// Width of each preview graph
+        /// </summary>
+        float EachGraphWidth = CONSTANTS.UI.PREVIEW_PANE_WIDTH - (2 * CONSTANTS.UI.PREVIEW_PANE_X_PADDING + 2); //-2 for border
+        /// <summary>
+        /// Height of each preview graph
+        /// </summary>
+        float EachGraphHeight = CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT;
         bool Exiting = false;
-        public uint selectedGraphTID;
-        public PlottedGraph clickedGraph { get; private set; }
+
+
+        uint selectedGraphTID;
+        /// <summary>
+        /// The graph the user clicked
+        /// </summary>
+        public PlottedGraph? clickedGraph { get; private set; }
 
         readonly ImGuiController _ImGuiController;
         readonly GraphicsDevice _gd;
         readonly ResourceFactory _factory;
         readonly rgatState _rgatState;
 
-
         ResourceLayout _coreRsrcLayout, _nodesEdgesRsrclayout;
         DeviceBuffer _paramsBuffer;
         DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer;
         DeviceBuffer _NodeVertexBuffer, _NodeIndexBuffer;
 
-        Texture _NodeCircleSprite;
         TextureView _NodeCircleSpritetview;
         Pipeline _edgesPipeline, _pointsPipeline;
-        readonly GraphLayoutEngine _layoutEngine;
-        public GraphLayoutEngine LayoutEngine => _layoutEngine;
 
+        readonly GraphLayoutEngine _layoutEngine;
+
+        /// <summary>
+        /// Create a preview graph widget
+        /// </summary>
+        /// <param name="controller">ImGui controller</param>
+        /// <param name="gdev">Graphics device for GPU access</param>
+        /// <param name="clientState">rgat state object</param>
         public PreviewGraphsWidget(ImGuiController controller, GraphicsDevice gdev, rgatState clientState)
         {
             IrregularTimer = new System.Timers.Timer(600);
@@ -67,6 +77,8 @@ namespace rgat
             SetupRenderingResources();
         }
 
+
+        //Destructor
         public void Dispose()
         {
             Exiting = true;
@@ -76,19 +88,32 @@ namespace rgat
 
         private void FireTimer(object sender, ElapsedEventArgs e) { IrregularTimerFired = true; }
 
+        /// <summary>
+        /// Set the trace of the active graph
+        /// </summary>
+        /// <param name="trace"></param>
         public void SetActiveTrace(TraceRecord trace) => ActiveTrace = trace;
 
+        /// <summary>
+        /// Set the active graph
+        /// </summary>
+        /// <param name="graph"></param>
         public void SetSelectedGraph(PlottedGraph graph)
         {
             selectedGraphTID = graph.TID;
         }
 
         private void HandleClickedGraph(PlottedGraph graph) => clickedGraph = graph;
+
+        /// <summary>
+        /// We have dealt with the graph click, clear it
+        /// </summary>
         public void ResetClickedGraph() => clickedGraph = null;
 
-
-        //we do it via Draw so events are handled by the same thread
-        public void HandleFrameTimerFired()
+        /// <summary>
+        /// do it via Draw so events are handled by the same thread
+        /// </summary>
+        void HandleFrameTimerFired()
         {
             //Console.WriteLine("Handling timer fired");
             IrregularTimerFired = false;
@@ -99,7 +124,7 @@ namespace rgat
         }
 
 
-        public void SetupRenderingResources()
+        void SetupRenderingResources()
         {
             _paramsBuffer = TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<GraphPlotWidget.GraphShaderParams>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "PreviewPlotparamsBuffer");
 
@@ -110,9 +135,6 @@ namespace rgat
                new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex)
                ));
 
-
-            _NodeCircleSprite = _ImGuiController.GetImage("VertCircle");
-            _NodeCircleSpritetview = _ImGuiController.IconTexturesView;
 
 
             _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
@@ -299,12 +321,15 @@ namespace rgat
         readonly Dictionary<TraceRecord, List<int>> _cachedSorts = new Dictionary<TraceRecord, List<int>>();
         readonly DateTime lastSort = DateTime.MinValue;
 
+        /// <summary>
+        /// Draw the preview graph widget
+        /// </summary>
         public void DrawWidget()
         {
 
             bool showToolTip = false;
             PlottedGraph? latestHoverGraph = null;
-            TraceRecord activeTrace = ActiveTrace;
+            TraceRecord? activeTrace = ActiveTrace;
             if (activeTrace == null) return;
 
             if (IrregularTimerFired) HandleFrameTimerFired();
@@ -312,7 +337,7 @@ namespace rgat
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
 
             DrawnPreviewGraphs = activeTrace.GetPlottedGraphs();
-            List<int> indexes = GetGraphOrder(trace: ActiveTrace, graphs: DrawnPreviewGraphs);
+            List<int> indexes = GetGraphOrder(trace: activeTrace, graphs: DrawnPreviewGraphs);
             uint captionBackgroundcolor = Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewTextBackground);
 
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, CONSTANTS.UI.PREVIEW_PANE_Y_SEP));
@@ -354,9 +379,9 @@ namespace rgat
             bool showedCtx = HandlePreviewGraphContextMenu();
 
             bool veryRecentPopup = showedCtx || _lastCtxMenu.AddMilliseconds(250) > DateTime.Now;
-            if (showToolTip && !veryRecentPopup)
+            if (showToolTip && !veryRecentPopup && HoveredGraph is not null)
             {
-                DrawGraphTooltip(latestHoverGraph);
+                DrawGraphTooltip(HoveredGraph);
             }
             ImGui.PopStyleVar(3);
             ImGui.PopStyleColor();
@@ -437,14 +462,22 @@ namespace rgat
                 if (graph.InternalProtoGraph.SavedAnimationData.Count > 0)
                 {
                     ulong blockaddr = graph.InternalProtoGraph.SavedAnimationData[0].blockAddr;
-                    int module = graph.InternalProtoGraph.ProcessData.FindContainingModule(blockaddr);
-                    string path = graph.InternalProtoGraph.ProcessData.GetModulePath(module);
-                    string pathSnip = Path.GetFileName(path);
-                    if (pathSnip.Length > 50)
-                        pathSnip = pathSnip.Substring(pathSnip.Length - 50, pathSnip.Length);
-                    string val = $"Start Address: {pathSnip}:0x{blockaddr:X}";
-                    _threadStartCache[graph] = val;
-                    ImGui.Text(val);
+                    bool found = graph.InternalProtoGraph.ProcessData.FindContainingModule(blockaddr, out int? module);
+                    if (found)
+                    {
+                        string path = graph.InternalProtoGraph.ProcessData.GetModulePath(module!.Value);
+                        string pathSnip = Path.GetFileName(path);
+                        if (pathSnip.Length > 50)
+                            pathSnip = pathSnip.Substring(pathSnip.Length - 50, pathSnip.Length);
+                        string val = $"Start Address: {pathSnip}:0x{blockaddr:X}";
+                        _threadStartCache[graph] = val;
+                        ImGui.Text(val);
+                    }
+                    else
+                    {
+                        ImGui.Text("[No Module?]");
+                    }
+
                 }
             }
 
@@ -486,6 +519,8 @@ namespace rgat
         DateTime _lastCtxMenu = DateTime.MinValue;
         bool HandlePreviewGraphContextMenu()
         {
+            if (ActiveTrace is null) return false;
+
             if (ImGui.BeginPopupContextItem("GraphWidgetCtxMenu", ImGuiPopupFlags.MouseButtonRight))
             {
                 _lastCtxMenu = DateTime.Now;
@@ -513,14 +548,14 @@ namespace rgat
                 }
 
 
-                PlottedGraph hoverGraph = HoveredGraph;
+                PlottedGraph? hoverGraph = HoveredGraph;
                 if (hoverGraph != null || PreviewPopupGraph != null)
                 {
                     if (hoverGraph != null)
                         PreviewPopupGraph = hoverGraph;
 
                     ImGui.Separator();
-                    ImGui.Text($"Graph {PreviewPopupGraph.TID}");
+                    ImGui.Text($"Graph {PreviewPopupGraph!.TID}");
                     if (!PreviewPopupGraph.InternalProtoGraph.Terminated && ImGui.MenuItem("Terminate"))
                     {
                         PreviewPopupGraph.InternalProtoGraph.TraceData.SendDebugCommand(PreviewPopupGraph.TID, "KILL");
@@ -545,9 +580,15 @@ namespace rgat
 
         }
 
+        /// <summary>
+        /// The last recorded preview the mouse was hovering over
+        /// </summary>
+        PlottedGraph? PreviewPopupGraph = null;
 
-        PlottedGraph PreviewPopupGraph = null;
-        public PlottedGraph HoveredGraph { get; private set; } = null;
+        /// <summary>
+        /// The preview graph the mouse is hovering over
+        /// </summary>
+        public PlottedGraph? HoveredGraph { get; private set; } = null;
 
 
         void DrawPreviewZoomEnvelope(PlottedGraph graph, Vector2 subGraphPosition)
@@ -582,6 +623,11 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Used by the preview renderer thread to compute the next round of layout
+        /// </summary>
+        /// <param name="cl">Renderer worker command list</param>
+        /// <param name="graph">Graph to compute</param>
         public void GeneratePreviewGraph(CommandList cl, PlottedGraph graph)
         {
             Logging.RecordLogEvent($"GeneratePreviewGraph Preview updating pos caches {graph.TID} start", Logging.LogFilterType.BulkDebugLogFile);
@@ -593,12 +639,17 @@ namespace rgat
 
             Logging.RecordLogEvent($"GeneratePreviewGraph starting render {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
             renderPreview(cl, graph: graph);
-
-
         }
 
-
-        public bool DrawPreviewGraph(PlottedGraph graph, float xPadding, float captionHeight, uint captionBackgroundcolor)
+        /// <summary>
+        /// Draw a preview graph texture on the preview pane
+        /// </summary>
+        /// <param name="graph">The graph being drawn</param>
+        /// <param name="xPadding">horizontal padding</param>
+        /// <param name="captionHeight">height of the caption</param>
+        /// <param name="captionBackgroundcolor">contrast background colour of the caption</param>
+        /// <returns>The graph was clicked</returns>
+        bool DrawPreviewGraph(PlottedGraph graph, float xPadding, float captionHeight, uint captionBackgroundcolor)
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             bool clicked = false;
@@ -651,7 +702,7 @@ namespace rgat
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + EachGraphWidth - 48);
 
             //live thread activity plot
-            if (!ActiveTrace.WasLoadedFromSave)
+            if (ActiveTrace is not null && !ActiveTrace.WasLoadedFromSave)
             {
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() - captionHeight);
 
@@ -800,7 +851,7 @@ namespace rgat
             var textureSize = graph.LinearIndexTextureSize();
             updateShaderParams(textureSize, graph, cl);
 
-            Position2DColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(out List<uint> nodeIndices, CONSTANTS.eRenderingMode.eStandardControlFlow);
+            Position2DColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(CONSTANTS.eRenderingMode.eStandardControlFlow, out List<uint> nodeIndices);
 
             Debug.Assert(!_NodeVertexBuffer.IsDisposed);
 

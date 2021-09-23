@@ -265,7 +265,7 @@ namespace rgat
                 return;
             }
 
-            ProtoGraph? protoGraph = trace.GetProtoGraphByID(TID);
+            ProtoGraph? protoGraph = trace.GetProtoGraphByTID(TID);
             if (protoGraph != null && !protoGraph.Terminated)
             {
                 protoGraph.SetTerminated();
@@ -809,7 +809,7 @@ namespace rgat
             while (!rgatState.rgatIsExiting && !alldone)
             {
                 var graphs = trace.GetPlottedGraphs();
-                alldone = !graphs.Any(g => g.InternalProtoGraph.TraceProcessor.Running);
+                alldone = !graphs.Any(g => g.InternalProtoGraph.TraceProcessor is not null && g.InternalProtoGraph.TraceProcessor.Running);
                 if (!alldone) Thread.Sleep(35);
             }
 

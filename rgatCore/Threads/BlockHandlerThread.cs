@@ -241,9 +241,7 @@ namespace rgat
                         trace.DisassemblyData.disassembly[insaddr] = new List<InstructionData>();
                     }
                     instruction.MutationIndex = trace.DisassemblyData.disassembly[insaddr].Count;
-
-                    instruction.DebugID = trace.DisassemblyData.disassembly.Count;
-
+                    
                     trace.DisassemblyData.disassembly[insaddr].Add(instruction);
 
 

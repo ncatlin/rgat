@@ -3,12 +3,14 @@ using System.Threading;
 
 namespace rgat.Threads
 {
+    /// <summary>
+    /// Iterates over all the instructions in a thread ranking them by execution count
+    /// </summary>
     public class HeatRankingThread : TraceProcessorWorker
     {
-        public HeatRankingThread()
-        {
-        }
-
+        /// <summary>
+        /// Begin work
+        /// </summary>
         public override void Begin()
         {
             base.Begin();
@@ -19,7 +21,7 @@ namespace rgat.Threads
 
         static void PerformEdgeHeatRanking(ProtoGraph graph)
         {
-            if (graph.EdgeList.Count < 10) return;
+            if (graph.EdgeCount < 10) return;
 
             var edgeList = graph.GetEdgeObjListCopy();
 
@@ -80,9 +82,6 @@ namespace rgat.Threads
         public void ThreadProc()
         {
             return; //temporarily disable in lieu of marking ranking complete for a thread
-
-
-
 
             while (!rgatState.rgatIsExiting)
             {
