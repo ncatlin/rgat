@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace rgat.Widgets
-{        
+{
     /// <summary>
     /// A dialog for configuring remote tracing
     /// </summary>
@@ -29,10 +29,7 @@ namespace rgat.Widgets
         public RemoteDialog()
         {
             InitSettings();
-            if (rgatState.NetworkBridge == null)
-            {
-                rgatState.NetworkBridge = new BridgeConnection(isgui: true);
-            }
+
             runner = new OperationModes.BridgedRunner();
 
             _refreshTimer.Elapsed += FireTimer;
@@ -41,8 +38,8 @@ namespace rgat.Widgets
 
             string? addr = GlobalConfig.StartOptions.ConnectModeAddress;
             if (addr != null)
-            { 
-                currentAddress = addr; 
+            {
+                currentAddress = addr;
             }
             else
             {

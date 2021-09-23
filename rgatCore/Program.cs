@@ -24,6 +24,7 @@ namespace ImGuiNET
             switch (GlobalConfig.StartOptions!.RunMode)
             {
                 case LaunchConfig.eRunMode.GUI:
+                    rgatState.NetworkBridge.GUIMode = true;
                     ImGuiRunner Ui = new ImGuiRunner(_rgatState);
                     try
                     {
@@ -36,12 +37,11 @@ namespace ImGuiNET
                     break;
 
                 case LaunchConfig.eRunMode.Bridged:
-                    BridgeConnection connection = new BridgeConnection(false);
-                    rgatState.NetworkBridge = connection;
+                    rgatState.NetworkBridge.GUIMode = false;
                     BridgedRunner bridge = new BridgedRunner();
                     try
                     {
-                        bridge.RunHeadless(connection);
+                        bridge.RunHeadless(rgatState.NetworkBridge);
                     }
                     catch (Exception e)
                     {
@@ -51,12 +51,14 @@ namespace ImGuiNET
                     break;
 
                 case LaunchConfig.eRunMode.NoGPUTraceCommand:
+                    rgatState.NetworkBridge.GUIMode = false;
                     CommandLineRunner runner = new CommandLineRunner();
                     runner.InitNoGPU();
                     runner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: false);
                     break;
 
                 case LaunchConfig.eRunMode.GPURenderCommand:
+                    rgatState.NetworkBridge.GUIMode = false;
                     Logging.RecordError("Command line media output not yet implemented");
                     return;
                     //runner = new CommandLineRunner();

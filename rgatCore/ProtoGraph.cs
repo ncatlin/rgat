@@ -1883,9 +1883,9 @@ namespace rgat
                     EdgeData edge = GetEdge(edgeTuple);
 
                     //just assume we want equals. could do a condition if anyone cares.
-                    if (edge.executionCount != requiredExecCount)
+                    if (edge.ExecutionCount != requiredExecCount)
                     {
-                        failedComparison = $"Edge {src},{targ} executed {edge.executionCount} times (!= {requiredExecCount}) ";
+                        failedComparison = $"Edge {src},{targ} executed {edge.ExecutionCount} times (!= {requiredExecCount}) ";
                         return false;
                     }
                 }

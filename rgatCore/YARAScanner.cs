@@ -10,34 +10,36 @@ using System.Threading;
 
 namespace rgat
 {
-
-    public class YARAScan
+    /// <summary>
+    /// Interface to libyara via dnYara
+    /// </summary>
+    public class YARAScanner
     {
         readonly object _scanLock = new object();
-        readonly YaraContext ctx;
 
         CompiledRules? loadedRules = null;
 
         /// <summary>
         /// State of the scanner
         /// </summary>
-        public enum eYaraScanProgress {
+        public enum eYaraScanProgress
+        {
             /// <summary>
             /// Scanning
             /// </summary>
-            eRunning, 
+            eRunning,
             /// <summary>
             /// Scan Finished
             /// </summary>
-            eComplete, 
+            eComplete,
             /// <summary>
             /// Not started
             /// </summary>
-            eNotStarted, 
+            eNotStarted,
             /// <summary>
             /// Scanner couldnt load
             /// </summary>
-            eFailed 
+            eFailed
         };
 
         readonly Dictionary<BinaryTarget, eYaraScanProgress> targetScanProgress = new Dictionary<BinaryTarget, eYaraScanProgress>();
@@ -45,12 +47,18 @@ namespace rgat
         [DllImport("libyara.dll")]
         private static extern void LibraryExistsTestMethod();
 
+        YaraContext ctx;
 
-        public YARAScan(string rulesDir)
+        /// <summary>
+        /// Create a Yara scanner
+        /// </summary>
+        /// <param name="rulesDir">Directory of YARA rules</param>
+        public YARAScanner(string rulesDir)
         {
-            if (!CheckLibraryExists()) throw new DllNotFoundException("libyara.dll not available");
-
             ctx = new YaraContext();
+            ctx.GetType(); //prevent a 'this is never read' warning. It needs to be created and stay in memory but we dont reference it
+
+            if (!CheckLibraryExists()) throw new DllNotFoundException("libyara.dll not available");
 
             RefreshRules(rulesDir);
         }
@@ -79,7 +87,10 @@ namespace rgat
             return false;
         }
 
-        ~YARAScan()
+        /// <summary>
+        /// Destructor
+        /// </summary>
+        ~YARAScanner()
         {
             try
             {
@@ -91,8 +102,15 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// A serialisable YARA hit record
+        /// </summary>
         public class YARAHit
         {
+            /// <summary>
+            /// Create a yara hit record from a dnYara scan result
+            /// </summary>
+            /// <param name="marshalledHit"></param>
             public YARAHit(dnYara.ScanResult marshalledHit)
             {
                 MatchingRule = marshalledHit.MatchingRule;
@@ -102,7 +120,7 @@ namespace rgat
                     List<YaraHitMatch> sigHits = new List<YaraHitMatch>();
                     foreach (var hit in kvp.Value)
                     {
-                        sigHits.Add(new YaraHitMatch() { Base = hit.Base, Data = hit.Data, Offset = hit.Offset });
+                        sigHits.Add(new YaraHitMatch(hit.Base, hit.Offset, hit.Data));
                     }
                     Matches.Add(kvp.Key, sigHits);
                 }
@@ -123,6 +141,19 @@ namespace rgat
             /// </summary>
             public class YaraHitMatch
             {
+                /// <summary>
+                /// create a YARA hit
+                /// </summary>
+                /// <param name="_base">base of the hit</param>
+                /// <param name="offset">offset of the hit</param>
+                /// <param name="data">data of the hit</param>
+                public YaraHitMatch(long _base, long offset, byte[] data)
+                {
+                    Base = _base;
+                    Offset = offset;
+                    Data = data;
+                }
+
                 /// <summary>
                 /// The base of the match (what is this?)
                 /// </summary>
@@ -201,17 +232,21 @@ namespace rgat
                 }
             }
 
+
             //find the last time the compiled file was modified
             DateTime thresholdDate = DateTime.MinValue;
-            try
+
+            if (compiledFile is not null)
             {
-                DateTime sigsCompileDate = File.GetLastWriteTime(compiledFile);
-                if (sigsCompileDate > thresholdDate)
-                    thresholdDate = sigsCompileDate;
-            }
-            catch
-            {
-                thresholdDate = DateTime.MinValue;
+                try
+                {
+                    DateTime sigsCompileDate = File.GetLastWriteTime(compiledFile);
+                    if (sigsCompileDate > thresholdDate)
+                        thresholdDate = sigsCompileDate;
+                }
+                catch
+                {
+                }
             }
 
             //see if any directories/.txt/.yara files were created or modified since the rules were last compiled
@@ -248,6 +283,10 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Get the array of rules
+        /// </summary>
+        /// <returns>Array of Rule objects</returns>
         public Rule[]? GetRuleData()
         {
             if (loadedRules == null) return null;
@@ -341,8 +380,17 @@ namespace rgat
         }
 
         readonly DateTime _lastCheck = DateTime.MinValue;
+        /// <summary>
+        /// The most recent file creation/modification in this YARA signatures directory
+        /// </summary>
         public DateTime NewestSignature { get; private set; } = DateTime.MinValue;
+        /// <summary>
+        /// The most recent file creation/modification in the remote machines YARA signatures directory
+        /// </summary>
         public DateTime EndpointNewestSignature = DateTime.MinValue;
+        /// <summary>
+        /// The remote machine signatures can be updated
+        /// </summary>
         public bool StaleRemoteSignatures => (EndpointNewestSignature != DateTime.MinValue && EndpointNewestSignature > NewestSignature);
 
         DateTime LatestSignatureChange(string rulesDir)
@@ -365,12 +413,23 @@ namespace rgat
             return NewestSignature;
         }
 
+
+        /// <summary>
+        /// How many YARA rules are loaded
+        /// </summary>
+        /// <returns></returns>
         public uint LoadedRuleCount()
         {
             if (loadedRules == null) return 0;
             return loadedRules.RuleCount;
         }
 
+
+        /// <summary>
+        /// Get the progress of a YARA scan
+        /// </summary>
+        /// <param name="target">The target being scanned</param>
+        /// <returns>a eYaraScanProgress value</returns>
         public eYaraScanProgress Progress(BinaryTarget target)
         {
             if (targetScanProgress.TryGetValue(target, out eYaraScanProgress result))
@@ -381,9 +440,9 @@ namespace rgat
         }
 
 
-        void YARATargetScanThread(object argslist)
+        void YARATargetScanThread(object? argslist)
         {
-            List<object> args = (List<object>)argslist;
+            List<object> args = (List<object>)argslist!;
             BinaryTarget targ = (BinaryTarget)args[0];
 
             try
@@ -422,12 +481,17 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Not implemented
+        /// </summary>
         public void CancelAllScans()
         {
-
+           
         }
 
+        /// <summary>
+        /// Send the signatures on this device to the connected device
+        /// </summary>
         public void UploadSignatures()
         {
             try
@@ -453,6 +517,11 @@ namespace rgat
 
         }
 
+
+        /// <summary>
+        /// Replace the signatures on this device with signatures from the remote device
+        /// </summary>
+        /// <param name="zipfile">bytes of a zipped signature directory</param>
         public void ReplaceSignatures(byte[] zipfile)
         {
             Console.WriteLine($"Replacing yara sigs with zip size {zipfile.Length}");

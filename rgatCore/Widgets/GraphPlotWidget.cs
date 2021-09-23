@@ -289,7 +289,7 @@ namespace rgat
         {
             if (_QuickMenu.Expanded)
             {
-                bool swallowKeypress = _QuickMenu.KeyPressed(keyModTuple, out Tuple<string, string> ActivatedShortcut);
+                bool swallowKeypress = _QuickMenu.KeyPressed(keyModTuple, out Tuple<string, string>? ActivatedShortcut);
                 if (ActivatedShortcut != null)
                 {
                     DisplayShortcutActivation(shortcut: ActivatedShortcut.Item1, action: ActivatedShortcut.Item2);

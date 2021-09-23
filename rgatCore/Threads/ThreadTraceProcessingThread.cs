@@ -291,7 +291,7 @@ namespace rgat.Threads
                     {
                         EdgeData? edge = protograph.GetEdge(n.Index, targNodeID);
                         Debug.Assert(edge is not null);
-                        Logging.RecordLogEvent($"Blockrepeat increasing execs of edge {n.Index},{targNodeID} from {edge.executionCount} to {edge.executionCount + execCount}",
+                        Logging.RecordLogEvent($"Blockrepeat increasing execs of edge {n.Index},{targNodeID} from {edge.ExecutionCount} to {edge.ExecutionCount + execCount}",
                            Logging.LogFilterType.BulkDebugLogFile);
                         edge.IncreaseExecutionCount(execCount);
                     }

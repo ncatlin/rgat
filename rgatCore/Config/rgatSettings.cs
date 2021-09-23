@@ -15,19 +15,20 @@ namespace rgat.Config
         /// <summary>
         /// Path categories for recently recorded paths
         /// </summary>
-        public enum PathType {
+        public enum PathType
+        {
             /// <summary>
             /// A tracing binary
             /// </summary>
-            Binary, 
+            Binary,
             /// <summary>
             /// A recorded trace
             /// </summary>
-            Trace, 
+            Trace,
             /// <summary>
             /// A directory
             /// </summary>
-            Directory 
+            Directory
         };
 
         /// <summary>
@@ -172,8 +173,15 @@ namespace rgat.Config
             /// </summary>
             public class SortLatestAccess : IComparer<PathRecord>
             {
-                public int Compare(PathRecord x, PathRecord y)
+                /// <summary>
+                /// Compare last open times
+                /// </summary>
+                /// <param name="x">obj 1</param>
+                /// <param name="y">obj 2</param>
+                /// <returns></returns>
+                public int Compare(PathRecord? x, PathRecord? y)
                 {
+                    Debug.Assert(x is not null && y is not null);
                     return DateTime.Compare(y.LastOpen, x.LastOpen);
                 }
             }
@@ -220,21 +228,27 @@ namespace rgat.Config
             [JsonPropertyName("RecentConnectedAddresses")]
             public List<string> _RecentConnectedAddresses { get; set; } = new List<string>();
 
+
             /// <summary>
             /// Record an address we have connected to
             /// </summary>
             /// <param name="address">network address</param>
-            public void RecordRecentConnectAddress(string address)
+            public void RecordRecentConnectAddress(string? address)
             {
-                lock (_lock)
+                if (address is not null)
                 {
-                    _RecentConnectedAddresses.Remove(address);
-                    _RecentConnectedAddresses.Insert(0, address);
-                    if (_RecentConnectedAddresses.Count > 6)
-                        _RecentConnectedAddresses.RemoveRange(5, _RecentConnectedAddresses.Count - 1);
-                    MarkDirty();
+                    lock (_lock)
+                    {
+                        _RecentConnectedAddresses.Remove(address);
+                        _RecentConnectedAddresses.Insert(0, address);
+                        if (_RecentConnectedAddresses.Count > 6)
+                            _RecentConnectedAddresses.RemoveRange(5, _RecentConnectedAddresses.Count - 1);
+                        MarkDirty();
+                    }
                 }
             }
+
+
 
             /// <summary>
             /// List of recently connected network addresses
@@ -735,10 +749,16 @@ namespace rgat.Config
             public bool DoUpdateCheck { get => _DoUpdateCheck; set { _DoUpdateCheck = value; MarkDirty(); } }
 
             DateTime _UpdateLastCheckTime = DateTime.MinValue;
+            /// <summary>
+            /// When the last check for an update was performed
+            /// </summary>
             public DateTime UpdateLastCheckTime { get => _UpdateLastCheckTime; set { lock (_lock) { _UpdateLastCheckTime = value; } MarkDirty(); } }
 
             Version _UpdateLastCheckVersion = PROGRAMVERSION.RGAT_VERSION_SEMANTIC;
 
+            /// <summary>
+            /// The most recently found rgat version
+            /// </summary>
             [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
             public Version UpdateLastCheckVersion
             {
@@ -760,7 +780,7 @@ namespace rgat.Config
                 }
             }
 
-            string _UpdateLastCheckVersionString;
+            string? _UpdateLastCheckVersionString;
             /// <summary>
             /// Latest available rgat version
             /// </summary>
@@ -785,17 +805,29 @@ namespace rgat.Config
 
 
             string _UpdateLastChanges = "";
+            /// <summary>
+            /// List of changes in the most recenly available update (from this version)
+            /// </summary>
             public string UpdateLastChanges { get => _UpdateLastChanges; set { _UpdateLastChanges = value; MarkDirty(); } }
 
 
 
             string _UpdateDownloadLink = "";
+            /// <summary>
+            /// Link to fetch the new version
+            /// </summary>
             public string UpdateDownloadLink { get => _UpdateDownloadLink; set { _UpdateDownloadLink = value; MarkDirty(); } }
 
             string _StagedDownloadPath = "";
+            /// <summary>
+            /// Path to download the new version 
+            /// </summary>
             public string StagedDownloadPath { get => _StagedDownloadPath; set { _StagedDownloadPath = value; MarkDirty(); } }
 
             string _StagedDownloadVersion = "";
+            /// <summary>
+            /// Version of rgat staged for download
+            /// </summary>
             public string StagedDownloadVersion { get => _StagedDownloadVersion; set { _StagedDownloadVersion = value; MarkDirty(); } }
         }
 

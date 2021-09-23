@@ -561,11 +561,6 @@ namespace rgat
             public void SetAssociatedTrace(TraceRecord trace) => Trace = trace;
 
             /// <summary>
-            /// How this log is handled
-            /// </summary>
-            public LogFilterType Filter;
-
-            /// <summary>
             /// The text of the log
             /// </summary>
             public string Text;

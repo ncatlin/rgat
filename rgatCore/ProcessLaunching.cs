@@ -260,7 +260,7 @@ namespace rgat
 
         }
 
-        public static void StartRemoteTrace(BinaryTarget target, int ordinal = -1, string loaderName = null, long testID = -1)
+        public static void StartRemoteTrace(BinaryTarget target, int ordinal = -1, string? loaderName = null, long testID = -1)
         {
             if (!target.RemoteAccessible)
             {

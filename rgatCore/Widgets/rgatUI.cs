@@ -134,7 +134,7 @@ namespace rgat
 
         public void InitSettingsMenu()
         {
-            _SettingsMenu = new SettingsMenu(_controller, _rgatState); //call after config init, so theme gets generated
+            _SettingsMenu = new SettingsMenu(_controller); //call after config init, so theme gets generated
         }
 
         //public delegate UpdateProgress(ref float progress)
@@ -1246,8 +1246,9 @@ namespace rgat
             return false;
         }
 
-        public bool LoadSelectedBinary(string path, bool isRemote)
+        public bool LoadSelectedBinary(string? path, bool isRemote)
         {
+            if (path is null) return false;
             try
             {
                 if (isRemote)
@@ -1359,15 +1360,15 @@ namespace rgat
         }
 
 
-        private bool LoadTraceByPath(string filepath)
+        private bool LoadTraceByPath(string? filepath)
         {
-            if (!File.Exists(filepath))
+            if (filepath is null || !File.Exists(filepath))
             {
                 Logging.RecordError($"Failed to load missing trace file: {filepath}");
                 return false;
             }
 
-            if (!_rgatState.LoadTraceByPath(filepath, out TraceRecord trace))
+            if (!_rgatState.LoadTraceByPath(filepath, out TraceRecord? trace) || trace is null)
             {
                 Logging.RecordError($"Failed to load invalid trace: {filepath}");
                 return false;

@@ -8,6 +8,9 @@ using Veldrid;
 
 namespace rgat.Widgets
 {
+    /// <summary>
+    /// An in-visualiser graph configuration menu
+    /// </summary>
     class QuickMenu
     {
         readonly ImGuiController _controller;
@@ -34,7 +37,7 @@ namespace rgat.Widgets
         public bool Expanded => _expanded;
 
         float _expandProgress = 0f;
-        string _activeMenuPopupName;
+        string? _activeMenuPopupName;
         Vector2 _popupPos = Vector2.Zero;
         Vector2 _menuBase = Vector2.Zero;
         Vector2 _iconSize = Vector2.Zero;
@@ -102,6 +105,11 @@ namespace rgat.Widgets
             ToggleMenu, ToggleVisMenu, ToggleSearchMenu, ToggleLayoutMenu
         };
 
+        /// <summary>
+        /// Create a quickmenu
+        /// </summary>
+        /// <param name="gd">GraphicsDevice to render it on</param>
+        /// <param name="controller">ImguiController</param>
         public QuickMenu(GraphicsDevice gd, ImGuiController controller)
         {
             _gd = gd;
@@ -142,10 +150,11 @@ namespace rgat.Widgets
         /// <param name="action">Function to call when opened/closed. Param is open/closed state.</param>
         public void SetStateChangeCallback(Action<bool> action) => stateChangeCallback = action;
 
-        Action<bool> stateChangeCallback = null;
+        Action<bool>? stateChangeCallback = null;
 
         void DrawVisibilityFrame()
         {
+            Debug.Assert(_currentGraph is not null);
 
             if (ImGui.BeginTable("VisTable", 6, ImGuiTableFlags.BordersInnerV))
             {
@@ -216,6 +225,7 @@ namespace rgat.Widgets
                 Logging.RecordLogEvent("Bad quickmenu action:" + actionName);
                 return false;
             }
+            Debug.Assert(_currentGraph is not null);
             keyCombo.Add(action.Shortcut);
 
             switch (actionName)
@@ -330,8 +340,8 @@ namespace rgat.Widgets
         /// Take a keypress that might be dealt with by the open quickmenu
         /// Return true if the quickmenu swallows is (ie: not to be used for other graph actions)
         /// </summary>
-        Tuple<Key, ModifierKeys> _RecentKeypress;
-        public bool KeyPressed(Tuple<Key, ModifierKeys> keyModTuple, out Tuple<string, string> ComboAction)
+        Tuple<Key, ModifierKeys>? _RecentKeypress;
+        public bool KeyPressed(Tuple<Key, ModifierKeys> keyModTuple, out Tuple<string, string>? ComboAction)
         {
             ComboAction = null;
             if (!_expanded || _activeEntry == null) return false;
@@ -370,7 +380,8 @@ namespace rgat.Widgets
                 _activeEntry.active = false;
                 _activeEntry = _activeEntry.parent;
 
-                _activeMenuPopupName = _activeEntry?.Popup;
+                if (_activeEntry is not null && _activeEntry.Popup is not null)
+                    _activeMenuPopupName = _activeEntry.Popup;
 
                 if (keyCombo.Any() && keyCombo.Last() == keyModTuple.Item1)
                     keyCombo.RemoveAt(keyCombo.Count - 1);
@@ -418,7 +429,7 @@ namespace rgat.Widgets
         }
 
 
-        PlottedGraph _currentGraph;
+        PlottedGraph? _currentGraph;
         public void Draw(Vector2 position, float scale, PlottedGraph graph)
         {
             _currentGraph = graph;
@@ -457,6 +468,8 @@ namespace rgat.Widgets
 
         void DrawExpandedMenu(Vector2 position)
         {
+            Debug.Assert(_baseMenuEntry.children is not null);
+
             const float expansionPerFrame = 0.3f;
             Vector2 padding = new Vector2(16f, 6f);
             _menuBase = new Vector2((position.X) + padding.X, ((position.Y - _iconSize.Y) - 4) - padding.Y);
@@ -534,11 +547,15 @@ namespace rgat.Widgets
         {
 
             bool isActive = entry.Popup != null && ImGui.IsPopupOpen(entry.Popup);
-            Texture btnIcon = _controller.GetImage(entry.Icon);
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon, "QuickMenuSubButton");
-            ImGui.SetCursorScreenPos(new Vector2(_menuBase.X, _menuBase.Y - Yoffset));
-            Vector4 border = isActive ? new Vector4(1f, 1f, 1f, 1f) : Vector4.Zero;
-            ImGui.Image(CPUframeBufferTextureId, _iconSize, Vector2.Zero, Vector2.One, Vector4.One, border);
+
+            if (entry.Icon is not null)
+            {
+                Texture btnIcon = _controller.GetImage(entry.Icon);
+                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon, "QuickMenuSubButton");
+                ImGui.SetCursorScreenPos(new Vector2(_menuBase.X, _menuBase.Y - Yoffset));
+                Vector4 border = isActive ? new Vector4(1f, 1f, 1f, 1f) : Vector4.Zero;
+                ImGui.Image(CPUframeBufferTextureId, _iconSize, Vector2.Zero, Vector2.One, Vector4.One, border);
+            }
 
             if (!ExpansionFinished) return;
 
@@ -661,6 +678,7 @@ private void DrawScalePopup()
 */
         void DrawGraphLayoutFrame()
         {
+            Debug.Assert(_currentGraph is not null);
             if (_currentGraph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.Circle)
             {
                 ImGui.Text("Circle Config Options");
@@ -751,7 +769,8 @@ private void DrawScalePopup()
 
         void DrawSearchHighlightFrame()
         {
-            HighlightDialogWidget.Draw(_currentGraph);
+            if (_currentGraph is not null)
+                HighlightDialogWidget.Draw(_currentGraph);
         }
     }
 }

@@ -416,7 +416,7 @@ namespace rgat.OperationModes
                 switch (sigType)
                 {
                     case "YARA":
-                        YARAScan.YARAHit? yarahit = sigObjTok.ToObject<YARAScan.YARAHit>();
+                        YARAScanner.YARAHit? yarahit = sigObjTok.ToObject<YARAScanner.YARAHit>();
                         if (yarahit is not null)
                             target.AddYaraSignatureHit(yarahit);
                         break;

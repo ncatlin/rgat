@@ -8,10 +8,17 @@ using System.Threading;
 
 namespace rgat
 {
+    /// <summary>
+    /// Interface to DiELibDotNet, the Detect It Easy signature scanning library
+    /// </summary>
     public class DetectItEasy
     {
         readonly DiELibDotNet.DieLib dielib;
 
+        /// <summary>
+        /// Create a DIE scanner
+        /// </summary>
+        /// <param name="DBPath">Path to the DIE signatures</param>
         public DetectItEasy(string DBPath)
         {
             dielib = new DiELibDotNet.DieLib(GetScriptsPath(DBPath));

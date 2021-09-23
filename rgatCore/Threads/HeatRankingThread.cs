@@ -29,7 +29,7 @@ namespace rgat.Threads
 
             var edgeList = graph.GetEdgeObjListCopy();
 
-            var allEdgeExecutions = edgeList.Select(e => e.executionCount).Distinct().ToList();
+            var allEdgeExecutions = edgeList.Select(e => e.ExecutionCount).Distinct().ToList();
             allEdgeExecutions.Sort();
 
             float decile = (float)allEdgeExecutions.Count / 10f;
@@ -43,7 +43,7 @@ namespace rgat.Threads
 
             foreach (EdgeData e in edgeList)
             {
-                ulong execCount = e.executionCount;
+                ulong execCount = e.ExecutionCount;
                 int threshold = 0;
                 while (threshold < graph._edgeHeatThresholds.Count && execCount > graph._edgeHeatThresholds[threshold])
                 {

@@ -258,7 +258,7 @@ namespace rgat
                         {
                             EdgeData? targEdge = graph.GetEdge(Index, (uint)nidx);
                             if (targEdge != null)
-                                Label += $" {nidx}:{targEdge.executionCount}, ";
+                                Label += $" {nidx}:{targEdge.ExecutionCount}, ";
                         }
                         Label += ">";
                     }

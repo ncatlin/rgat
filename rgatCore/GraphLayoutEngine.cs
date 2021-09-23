@@ -35,11 +35,11 @@ namespace rgat
         /// </summary>
         public string EngineID { get; private set; }
 
-        Pipeline _positionComputePipeline, _velocityComputePipeline, _nodeAttribComputePipeline;
-        private Shader _positionShader, _velocityShader, _nodeAttribShader;
+        Pipeline? _positionComputePipeline, _velocityComputePipeline, _nodeAttribComputePipeline;
+        private Shader? _positionShader, _velocityShader, _nodeAttribShader;
 
-        DeviceBuffer _velocityParamsBuffer, _positionParamsBuffer, _attribsParamsBuffer;
-        ResourceLayout _velocityComputeLayout, _positionComputeLayout, _nodeAttribComputeLayout;
+        DeviceBuffer? _velocityParamsBuffer, _positionParamsBuffer, _attribsParamsBuffer;
+        ResourceLayout? _velocityComputeLayout, _positionComputeLayout, _nodeAttribComputeLayout;
 
         readonly object _lock = new object();
 
@@ -440,7 +440,7 @@ namespace rgat
                 if (forceComputationActive && (layout.RenderVersion % 3) == 0)
                 {
 
-                    float highPosition = FindHighXYZ(graph.LayoutState.PositionsVRAM1, graph.ComputeBufferNodeCount, out int furthestNodeIdx);
+                    float highPosition = FindHighXYZ(graph.LayoutState.PositionsVRAM1!, graph.ComputeBufferNodeCount, out int furthestNodeIdx);
                     if (furthestNodeIdx != -1)
                     {
                         graph.SetFurthestNodeDimension(furthestNodeIdx, highPosition);
@@ -467,7 +467,7 @@ namespace rgat
             if (graph.LayoutState.ActivatingPreset && graph.LayoutState.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
             {
                 //when the nodes are near their targets, instead of bouncing around while coming to a slow, just snap them into position
-                float highest = FindHighXYZ(layout.VelocitiesVRAM1, graph.ComputeBufferNodeCount, out int highIndex);
+                float highest = FindHighXYZ(layout.VelocitiesVRAM1!, graph.ComputeBufferNodeCount, out int highIndex);
                 Console.WriteLine($"Presetspeed: {highest}");
                 if (highest < 1)
                 {

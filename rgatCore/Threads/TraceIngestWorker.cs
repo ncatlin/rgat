@@ -7,22 +7,51 @@ namespace rgat.Threads
 {
     public abstract class TraceIngestWorker : TraceProcessorWorker
     {
+        /// <summary>
+        /// This worker is stopping
+        /// </summary>
         public bool StopFlag { get; private set; }
+        /// <summary>
+        /// How many bytes of data remain to be processed
+        /// </summary>
         protected ulong PendingDataSize = 0;
+        /// <summary>
+        /// How many bytes of data have been processed
+        /// </summary>
         protected ulong ProcessedDataSize = 0;
-        protected ulong TotalProcessedData = 0;
+
+        /// <summary>
+        /// How many items of data are awaiting ingest
+        /// </summary>
         public ulong QueueSize { get; protected set; } = 0;
         long _recentMsgCount = 0;
 
 
-
+        /// <summary>
+        /// New data is ready for ingest
+        /// </summary>
         protected bool WakeupRequested { get; private set; } = false;
 
         readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
+
+        /// <summary>
+        /// Cancellation token cancelled if Terminate is called
+        /// </summary>
         public CancellationToken CancelToken => cancelTokens.Token;
+
+        /// <summary>
+        /// Data ready event
+        /// </summary>
         public ManualResetEventSlim TagDataReadyEvent = new ManualResetEventSlim(false);
+
+        /// <summary>
+        /// Announce interest in being notified when new data is available
+        /// </summary>
         public void RequestWakeupOnData() { if (!StopFlag) { WakeupRequested = true; TagDataReadyEvent.Reset(); } }
 
+        /// <summary>
+        /// Create a generic trace ingest worker
+        /// </summary>
         protected TraceIngestWorker()
         {
             _updateRates = Enumerable.Repeat(0.0f, _StatCacheSize).ToList();

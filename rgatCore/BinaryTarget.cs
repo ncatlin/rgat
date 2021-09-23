@@ -1,10 +1,12 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Humanizer;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+
 
 namespace rgat
 {
@@ -472,7 +474,7 @@ namespace rgat
         }
 
         readonly List<string> signatureHitsDIE = new List<string>();
-        readonly List<YARAScan.YARAHit> signatureHitsYARA = new List<YARAScan.YARAHit>();
+        readonly List<YARAScanner.YARAHit> signatureHitsYARA = new List<YARAScanner.YARAHit>();
         readonly Dictionary<string, string> _traceConfiguration = new Dictionary<string, string>();
 
         /// <summary>
@@ -504,7 +506,7 @@ namespace rgat
         /// </summary>
         /// <param name="hits">Array of YARAHit objects describing rule hits from the last scan</param>
         /// <returns>true if there were any hits</returns>
-        public bool GetYaraHits(out YARAScan.YARAHit[] hits)
+        public bool GetYaraHits(out YARAScanner.YARAHit[] hits)
         {
             hits = signatureHitsYARA.ToArray();
             return hits.Length > 0;
@@ -578,7 +580,7 @@ namespace rgat
         {
             lock (signaturesLock)
             {
-                YARAScan.YARAHit managedHit = new YARAScan.YARAHit(hit);
+                YARAScanner.YARAHit managedHit = new YARAScanner.YARAHit(hit);
                 signatureHitsYARA.Add(managedHit);
                 if (rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
                 {
@@ -595,7 +597,7 @@ namespace rgat
         /// Record a remote Yara signature hit for this target binary recieved from a remote session
         /// </summary>
         /// <param name="hit">The YARAHit hit data</param>
-        public void AddYaraSignatureHit(YARAScan.YARAHit hit)
+        public void AddYaraSignatureHit(YARAScanner.YARAHit hit)
         {
             lock (signaturesLock)
             {
@@ -773,14 +775,18 @@ namespace rgat
             }
         }
 
+
         /// <summary>
         /// Get a formatted file size string for display in the UI
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Humanised filesize string</returns>
         public string GetFileSizeString()
         {
-            return String.Format(new FileSizeFormatProvider(), "{0:fs}", fileSize);
+            if (_cachedFileSize is not null) return _cachedFileSize;
+            _cachedFileSize = fileSize.Bytes().ToString();
+            return _cachedFileSize;
         }
+        string? _cachedFileSize = null;
 
 
         /// <summary>

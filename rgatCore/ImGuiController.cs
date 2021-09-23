@@ -40,8 +40,16 @@ namespace ImGuiNET
         private bool _shiftDown;
         private bool _altDown;
         private bool _winKeyDown;
-        public int _windowWidth;
-        public int _windowHeight;
+
+        /// <summary>
+        /// Width of the main window
+        /// </summary>
+        public int WindowWidth;
+
+        /// <summary>
+        /// Height of the main window
+        /// </summary>
+        public int WindowHeight;
         private Vector2 _scaleFactor = Vector2.One;
 
         // Image trackers
@@ -54,24 +62,48 @@ namespace ImGuiNET
         private int _lastAssignedID = 100;
 
         //private ImFontPtr _customFont = null;
+        /// <summary>
+        /// The main loaded font
+        /// </summary>
         public ImFontPtr _unicodeFont = null;
         ImFontPtr? _splashButtonFont = null;
+        /// <summary>
+        /// The original imGui font
+        /// </summary>
         public ImFontPtr _originalFont = null;
         private bool _unicodeFontLoaded = false;
 
         int _dialogsOpen = 0;
 
+        /// <summary>
+        /// Is a dialog open
+        /// </summary>
         public bool DialogOpen => _dialogsOpen > 0;
-        public void DialogChange(bool opened)//todo this is an awful system, maybe make it an event
+
+        //todo this is an awful system, maybe make it an event
+        /// <summary>
+        /// A dialog opened or closed
+        /// </summary>
+        /// <param name="opened">true if opened, false if closed</param>
+        public void DialogChange(bool opened)
         {
 
             Debug.Assert(_dialogsOpen >= 0);
             _dialogsOpen += opened ? 1 : -1;
         }
 
+        /// <summary>
+        /// Is the demo window open
+        /// </summary>
         public bool ShowDemoWindow = false;
+
+        /// <summary>
+        /// A reference to a GPU graphics device for general use
+        /// </summary>
         public GraphicsDevice graphicsDevice => _gd;
 
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         public static readonly char FA_ICON_NETWORK = '\uf6ff';
         public static readonly char FA_ICON_LOCALCODE = '\uf5fc';
         public static readonly char FA_ICON_SAMPLE = '\ue05a';
@@ -103,12 +135,13 @@ namespace ImGuiNET
         public static readonly char FA_ICON_ADDFILE = '\uf477';
         public static readonly char FA_ICON_CLOCK = '\uf017';
         public static readonly char FA_ICON_DOWNLOAD = '\uf56d';
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
         public unsafe ImGuiController(GraphicsDevice gd, OutputDescription outputDescription, int width, int height)
         {
             _gd = gd;
-            _windowWidth = width;
-            _windowHeight = height;
+            WindowWidth = width;
+            WindowHeight = height;
 
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
@@ -355,8 +388,8 @@ namespace ImGuiNET
 
         public void WindowResized(int width, int height)
         {
-            _windowWidth = width;
-            _windowHeight = height;
+            WindowWidth = width;
+            WindowHeight = height;
         }
 
         public void DestroyDeviceObjects()
@@ -664,8 +697,8 @@ namespace ImGuiNET
         {
             ImGuiIOPtr io = ImGui.GetIO();
             io.DisplaySize = new Vector2(
-                _windowWidth / _scaleFactor.X,
-                _windowHeight / _scaleFactor.Y);
+                WindowWidth / _scaleFactor.X,
+                WindowHeight / _scaleFactor.Y);
             io.DisplayFramebufferScale = _scaleFactor;
             io.DeltaTime = deltaSeconds; // DeltaTime is in seconds.
             io.ConfigFlags |= ImGuiConfigFlags.DockingEnable; //doesnt work yet?

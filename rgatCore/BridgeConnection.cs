@@ -145,8 +145,19 @@ namespace rgat
         /// Whether this instance is the GUI.
         /// The GUI sends tracing commands and recieves trace data and associated metadata (available files to execute, signature hits, etc)
         /// It does not do the opposite. Ever.
+        /// This state must be set at startup and cannot be changed
         /// </summary>
-        public bool GUIMode { get; private set; }
+        public bool GUIMode { 
+            get => _guiMode;
+            set {
+                if (_inited) throw new InvalidOperationException("Cant change mode of the network bridge");
+                _inited = true;
+                _guiMode = value;
+            }
+        }
+
+        bool _guiMode = true;
+
         /// <summary>
         /// Is rgat running in non-GUI mode
         /// </summary>
@@ -198,14 +209,8 @@ namespace rgat
         const string connectResponseGUI = "rgat accept GUI prelude";
         const string connectResponseHeadless = "rgat accept headless prelude";
 
-        /// <summary>
-        /// An rgat connection object
-        /// </summary>
-        /// <param name="isgui">true if this process is running in GUI mode. One (and only one) party must have this flag set</param>
-        public BridgeConnection(bool isgui)
-        {
-            GUIMode = isgui;
-        }
+
+        bool _inited = false;
 
         /// <summary>
         /// Initiate a bridge connection in remote mode
@@ -774,6 +779,11 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Send a trace command to the headless tracing instance
+        /// </summary>
+        /// <param name="pipe">The remote pipe reference</param>
+        /// <param name="message">Command to send</param>
         public void SendTraceCommand(uint pipe, string message)
         {
             lock (_sendQueueLock)
@@ -784,6 +794,11 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Send a log entry to the GUI
+        /// </summary>
+        /// <param name="message">Message to send</param>
+        /// <param name="msgType">Message type</param>
         public void SendLog(string message, Logging.LogFilterType msgType)
         {
             lock (_sendQueueLock)
@@ -871,8 +886,8 @@ namespace rgat
         /// Send pre-built json objects as a command response
         /// This is usually for when the gui needs some API output, rather than neatly packaged data that we already have
         /// </summary>
-        /// <param name="command"></param>
-        /// <param name="response"></param>
+        /// <param name="commandID">ID of command being responded to</param>
+        /// <param name="response">JSON response object</param>
         public void SendResponseJSON(int commandID, JObject response)
         {
             lock (_sendQueueLock)
@@ -885,7 +900,11 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Send unexpected events to the GUI (eg signature hits)
+        /// </summary>
+        /// <param name="dataName">Type of event</param>
+        /// <param name="data">JSON event data</param>
         public void SendAsyncData(string dataName, JObject data)
         {
             lock (_sendQueueLock)

@@ -12,17 +12,19 @@ namespace rgat.Widgets
 {
     class SettingsMenu
     {
-        static bool[] optionsSelectStates;
-        static List<string> settingsNames = new List<string>();
-        static ImGuiController _controller;
-        static rgatState _rgatState;
+        bool[] optionsSelectStates = new bool[0];
+        List<string> settingsNames = new List<string>();
+        ImGuiController _controller;
 
         enum eSettingsCategory { eSignatures, eFiles, eText, eKeybinds, eUITheme, eMisc, eVideoEncode };
 
-        public SettingsMenu(ImGuiController controller, rgatState rgatstate)
+        /// <summary>
+        /// Init a settings menu
+        /// </summary>
+        /// <param name="controller">imgui controller</param>
+        public SettingsMenu(ImGuiController controller)
         {
             _controller = controller;
-            _rgatState = rgatstate;
             InitSettings();
 
             settingTips[CONSTANTS.PathKey.PinPath] = "The path to pin.exe - the Intel Pin Dynamic Instrumentation program.";
@@ -36,6 +38,7 @@ namespace rgat.Widgets
             settingTips[CONSTANTS.PathKey.YaraRulesDirectory] = "The directory containing YARA rules for file and memory scanning";
             settingTips[CONSTANTS.PathKey.MediaCapturePath] = "The directory where videos recordings and images are saved";
         }
+
 
         ~SettingsMenu()
         {
@@ -535,7 +538,7 @@ namespace rgat.Widgets
                     {
                         if (_githubSigDownloader.TaskType == "Refresh")
                         {
-                            if (SmallWidgets.DisableableButton("Cancel", size: btnSize, enabled: true)) _cancelTokens.Cancel();
+                            if (SmallWidgets.DisableableButton("Cancel", size: btnSize, enabled: true)) _cancelTokens?.Cancel();
                             SmallWidgets.MouseoverText("Cancel signature refresh");
 
                             ImGui.TableNextColumn();
@@ -555,7 +558,7 @@ namespace rgat.Widgets
 
                         if (_githubSigDownloader.TaskType == "Download")
                         {
-                            if (SmallWidgets.DisableableButton("Cancel", size: btnSize, enabled: true)) _cancelTokens.Cancel();
+                            if (SmallWidgets.DisableableButton("Cancel", size: btnSize, enabled: true)) _cancelTokens?.Cancel();
                             SmallWidgets.MouseoverText("Cancel signature download");
 
                             ImGui.TableNextColumn();
@@ -753,7 +756,7 @@ namespace rgat.Widgets
 
 
 
-        CancellationTokenSource _cancelTokens = null;
+        CancellationTokenSource? _cancelTokens = null;
         readonly GithubSignatureManager _githubSigDownloader = new GithubSignatureManager();
 
         void RefreshSelectedSignatureSources()
@@ -815,15 +818,17 @@ namespace rgat.Widgets
         DateTime _errorExpiryTime = DateTime.MinValue;
         CONSTANTS.PathKey _pendingPathSetting;
 
-        bool DrawPathMenuOption(string caption, string path, string tooltip, out bool clearFlag)
+        bool DrawPathMenuOption(string caption, string? path, string tooltip, out bool clearFlag)
         {
             bool selected = false;
             bool hovered = false;
             bool hasPath = (path?.Length > 0);
             string? pathTxt = hasPath ? path : "[Not Set]";
             string? signerror = "";
+            bool signatureTimeWarning = false;
 
-            GlobalConfig.PreviousSignatureCheckPassed(path, out signerror, out bool signatureTimeWarning);
+            if (path is not null)
+                GlobalConfig.PreviousSignatureCheckPassed(path, out signerror, out signatureTimeWarning);
 
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
@@ -1043,7 +1048,7 @@ namespace rgat.Widgets
 
                 if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
                 {
-                    if (File.Exists(picker.SelectedFile))
+                    if (picker.SelectedFile is not null && File.Exists(picker.SelectedFile))
                     {
                         ChoseSettingPath(_pendingPathSetting, picker.SelectedFile);
                     }
@@ -1074,7 +1079,7 @@ namespace rgat.Widgets
                 {
                     if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
                     {
-                        if (Directory.Exists(picker.SelectedFile))
+                        if (picker.SelectedFile is not null && Directory.Exists(picker.SelectedFile))
                         {
                             ChoseSettingPath(_pendingPathSetting, picker.SelectedFile);
                         }
@@ -1196,7 +1201,7 @@ namespace rgat.Widgets
             }
 
             ImGui.SameLine();
-            if (ImGui.Button("Save As Preset"))
+            if (ImGui.Button("Save As Preset") && activeThemeName is not null)
             {
                 saveThemeboxIsOpen = true;
                 pendingPresetName = activeThemeName;
@@ -1452,7 +1457,8 @@ namespace rgat.Widgets
                 return;
             }
 
-            Themes.DeleteTheme(oldTheme);
+            if(oldTheme is not null)
+                Themes.DeleteTheme(oldTheme);
         }
 
 
@@ -1593,7 +1599,7 @@ namespace rgat.Widgets
 
 
 
-        void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex, string tooltip = null)
+        void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex, string? tooltip = null)
         {
             uint bindFramecol = ((rowIndex % 2) == 0) ? 0xafcc3500 : 0xafdc4500;
             ImGui.PushStyleColor(ImGuiCol.FrameBg, bindFramecol);

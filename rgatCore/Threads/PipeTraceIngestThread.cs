@@ -121,7 +121,6 @@ namespace rgat
                 QueueSize -= 1;
                 PendingDataSize -= (ulong)nextMessage.Length;
                 ProcessedDataSize += (ulong)nextMessage.Length;
-                TotalProcessedData += (ulong)nextMessage.Length;
                 return nextMessage;
             }
         }
@@ -232,6 +231,10 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// Terminate the ingest worker
+        /// </summary>
         public override void Terminate()
         {
             if (!StopFlag)
@@ -311,7 +314,7 @@ namespace rgat
             RawIngestCompleteEvent.Set();
             TagDataReadyEvent.Set();
 
-            Console.WriteLine(WorkerThread.Name + " finished after ingesting " + TotalProcessedData + " bytes of trace data");
+            Console.WriteLine(WorkerThread.Name + " finished after ingesting " + ProcessedDataSize + " bytes of trace data");
 
             if (protograph != null && !protograph.Terminated)
                 protograph.SetTerminated();

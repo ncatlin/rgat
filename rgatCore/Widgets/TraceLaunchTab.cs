@@ -11,7 +11,7 @@ namespace rgat
 {
     partial class rgatUI
     {
-        private void DrawTraceTab(BinaryTarget activeTarget)
+        private void DrawTraceTab(BinaryTarget? activeTarget)
         {
             _SwitchToTraceSelectTab = false;
             _currentTab = "Start Trace";
@@ -706,16 +706,16 @@ namespace rgat
                 SmallWidgets.MouseoverText("See error in logs");
                 return;
             }
-            YARAScan.eYaraScanProgress progress = rgatState.YARALib.Progress(activeTarget);
+            YARAScanner.eYaraScanProgress progress = rgatState.YARALib.Progress(activeTarget);
             string caption;
             float progressAmount = 0;
             uint barColour = 0;
             switch (progress)
             {
-                case YARAScan.eYaraScanProgress.eNotStarted:
+                case YARAScanner.eYaraScanProgress.eNotStarted:
                     caption = "YARA: No Scan";
                     break;
-                case YARAScan.eYaraScanProgress.eComplete:
+                case YARAScanner.eYaraScanProgress.eComplete:
                     {
                         uint rulecount = rgatState.YARALib.LoadedRuleCount();
                         caption = $"YARA:{rulecount}/{rulecount}"; //wrong if reloaded?
@@ -723,12 +723,12 @@ namespace rgat
                         progressAmount = 1;
                         break;
                     }
-                case YARAScan.eYaraScanProgress.eFailed:
+                case YARAScanner.eYaraScanProgress.eFailed:
                     caption = "YARA: Error";
                     barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
                     progressAmount = 0;
                     break;
-                case YARAScan.eYaraScanProgress.eRunning:
+                case YARAScanner.eYaraScanProgress.eRunning:
                     caption = "YARA: Scanning...";
                     barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
                     progressAmount = 0.5f;
@@ -789,9 +789,9 @@ namespace rgat
                     }
                 }
 
-                if (activeTarget.GetYaraHits(out YARAScan.YARAHit[] yarahits))
+                if (activeTarget.GetYaraHits(out YARAScanner.YARAHit[] yarahits))
                 {
-                    foreach (YARAScan.YARAHit hit in yarahits)
+                    foreach (YARAScanner.YARAHit hit in yarahits)
                     {
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
@@ -837,7 +837,7 @@ namespace rgat
             }
         }
 
-        YARAScan.YARAHit _yaraPopupHit = null;
+        YARAScanner.YARAHit? _yaraPopupHit = null;
         DateTime _hitClickTime;
         bool _hitHoverOnly;
         private void DrawYaraPopup(bool tooltip)
@@ -868,6 +868,8 @@ namespace rgat
 
         void YaraTooltipContents(bool tooltip)
         {
+            if (_yaraPopupHit is null) return;
+
             Vector2 start = ImGui.GetCursorScreenPos();
             if (ImGui.BeginTable("#YaraHitTableMetaToolTip", 2, ImGuiTableFlags.Borders))
             {
@@ -918,7 +920,7 @@ namespace rgat
                 {
                     for (var matchi = 0; matchi < matchList.Value.Count; matchi++)
                     {
-                        YARAScan.YARAHit.YaraHitMatch match = matchList.Value[matchi];
+                        YARAScanner.YARAHit.YaraHitMatch match = matchList.Value[matchi];
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         ImGui.Text($"{matchList.Key}");

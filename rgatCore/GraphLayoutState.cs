@@ -518,10 +518,12 @@ namespace rgat
         }
 
 
-        public void RegeneratePresetBuffer(PlottedGraph graph)
+        /// <summary>
+        /// Prepare a preset buffer to generate a non-force directed layout
+        /// </summary>
+        /// <param name="graph"></param>
+        void RegeneratePresetBuffer(PlottedGraph graph)
         {
-
-
             if (!LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle))
             {
                 VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.PresetPositions);
@@ -670,9 +672,11 @@ namespace rgat
 
 
         /// <summary>
+        /// Takes new nodes from a graph with trace data and adds them to the compute buffers for layout
         /// Must have upgradable readlock
         /// </summary>
-        /// <param name="finalCount"></param>
+        /// <param name="finalCount">how many nodes to add</param>
+        /// <param name="graph">The graph with new nodes</param>
         public unsafe void AddNewNodesToComputeBuffers(int finalCount, PlottedGraph graph)
         {
             Logging.RecordLogEvent($"AddNewNodesToComputeBuffers <{finalCount - graph.ComputeBufferNodeCount}?  {graph.TID} start", Logging.LogFilterType.BulkDebugLogFile);
@@ -683,7 +687,7 @@ namespace rgat
 
             uint offset = (uint)graph.ComputeBufferNodeCount * 4 * sizeof(float);
             uint updateSize = 4 * sizeof(float) * (uint)newNodeCount;
-            List<DeviceBuffer> disposals = new List<DeviceBuffer>();
+            List<DeviceBuffer?> disposals = new List<DeviceBuffer?>();
             CPUBuffers RAMbufs = SavedStates[graph.LayoutState.Style];
 
             CommandList cl = _gd.ResourceFactory.CreateCommandList();
@@ -754,10 +758,14 @@ namespace rgat
 
 
         /// <summary>
+        /// Adjust the compute buffers to fit new nodes
         /// Must hold writer lock before calling
         /// </summary>
-        /// <param name="bufferSize"></param>
-        void ResizeComputeBuffers(PlottedGraph graph, uint bufferSize, CommandList cl, ref List<DeviceBuffer> disposals)
+        /// <param name="graph">The graph with new nodes</param>
+        /// <param name="bufferSize">The new buffer size</param>
+        /// <param name="cl">Veldrid CommandList to place commands on</param>
+        /// <param name="disposals">Buffers to dispose of</param>
+        void ResizeComputeBuffers(PlottedGraph graph, uint bufferSize, CommandList cl, ref List<DeviceBuffer?> disposals)
         {
 
             uint zeroFillStart = 0;
@@ -805,8 +813,11 @@ namespace rgat
 
 
 
-        //recreate node attributes with zero state
-        //useful for ending an animation sequence
+        /// <summary>
+        /// recreate node attributes with zero state
+        /// useful for ending an animation sequence
+        /// </summary>
+        /// <param name="_gd">Veldrid GraphicsDevice</param>
         public void ResetNodeAttributes(GraphicsDevice _gd)
         {
             Logging.RecordLogEvent($"ResetNodeAttributes ", Logging.LogFilterType.BulkDebugLogFile);
@@ -824,6 +835,12 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Get a previously computed set of positions
+        /// </summary>
+        /// <param name="layoutStyle">style to fetch</param>
+        /// <param name="buf">output xyzw positions floats</param>
+        /// <returns></returns>
         public bool GetSavedLayout(LayoutStyles.Style layoutStyle, out float[]? buf)
         {
             if (SavedStates.TryGetValue(layoutStyle, out CPUBuffers? saved) && saved.PositionsArray.Any())
@@ -876,7 +893,13 @@ namespace rgat
 
         }
 
-
+        /// <summary>
+        /// Add a new node to the active compute buffers
+        /// </summary>
+        /// <param name="nodeIdx">Index of nodes we are adding</param>
+        /// <param name="futureCount">Expected number of nodes after this is added</param>
+        /// <param name="bufferWidth">Width of the compute buffer</param>
+        /// <param name="edge"></param>
         public unsafe void AddNode(uint nodeIdx, uint futureCount, uint bufferWidth, EdgeData? edge = null)
         {
 
@@ -988,30 +1011,18 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Initiate the swap of layout buffers into VRAM
+        /// </summary>
+        /// <param name="newStyle"></param>
         public void TriggerLayoutChange(LayoutStyles.Style newStyle)
         {
 
             if (newStyle == _VRAMBuffers.Style) return;
             Lock.EnterWriteLock();
             Console.WriteLine("Preset start");
-            //save the old layout if it was computed
-            //if (LayoutStyles.IsForceDirected(_VRAMBuffers.Style))
-            //{
+
             DownloadStateFromVRAM();
-            //}
-
-            //graph.LayoutState.RegeneratePresetBuffer(graph);
-            //graph.LayoutState.LoadPreset(graph);
-
-            /*
-            if (LayoutStyles.IsForceDirected(newStyle) && !SavedStates.ContainsKey(newStyle))
-            {
-
-
-
-            }
-            */
 
             presetSteps = 0;
             PresetStyle = newStyle;
@@ -1161,7 +1172,10 @@ namespace rgat
             }
         }
 
-
+        /// <summary>
+        /// The layout is now in RAM. Positions are in the preset buffer. 
+        /// Start moving the existing nodes towards them
+        /// </summary>
         public void CompleteLayoutChange()
         {
             Lock.EnterWriteLock();
@@ -1179,7 +1193,7 @@ namespace rgat
                     //Debug.Assert(false, "shouldn't be snapping to nonexistent preset");
                     VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions1);
                     VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions2);
-                    VeldridGraphBuffers.CreateBufferCopyPair(_VRAMBuffers.PresetPositions, _gd, out _VRAMBuffers.Positions1, out _VRAMBuffers.Positions2, name: "PresetCopy");
+                    VeldridGraphBuffers.CreateBufferCopyPair(_VRAMBuffers.PresetPositions!, _gd, out _VRAMBuffers.Positions1, out _VRAMBuffers.Positions2, name: "PresetCopy");
 
                     RegenerateEdgeDataBuffers(GraphPlot);
                 }
@@ -1188,7 +1202,7 @@ namespace rgat
             {
                 VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions1);
                 VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions2);
-                VeldridGraphBuffers.CreateBufferCopyPair(_VRAMBuffers.PresetPositions, _gd, out _VRAMBuffers.Positions1, out _VRAMBuffers.Positions2, name: "PresetCopy");
+                VeldridGraphBuffers.CreateBufferCopyPair(_VRAMBuffers.PresetPositions!, _gd, out _VRAMBuffers.Positions1, out _VRAMBuffers.Positions2, name: "PresetCopy");
 
             }
 

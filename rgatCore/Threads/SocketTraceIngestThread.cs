@@ -7,7 +7,7 @@ namespace rgat.Threads
 {
     class SocketTraceIngestThread : TraceIngestWorker
     {
-        readonly ProtoGraph protograph = null;
+        readonly ProtoGraph protograph;
         readonly Queue<byte[]> InQueue = new Queue<byte[]>();
 
         readonly object _lock = new object(); //functionality first, performance later
@@ -68,7 +68,6 @@ namespace rgat.Threads
                 byte[] nextMessage = InQueue.Dequeue();
                 PendingDataSize -= (ulong)nextMessage.Length;
                 ProcessedDataSize += (ulong)nextMessage.Length;
-                TotalProcessedData += (ulong)nextMessage.Length;
                 QueueSize -= 1;
                 return nextMessage;
             }
@@ -84,7 +83,7 @@ namespace rgat.Threads
 
 
 
-            Console.WriteLine(WorkerThread.Name + " finished after ingesting " + TotalProcessedData + " bytes of trace data");
+            Console.WriteLine(WorkerThread.Name + " finished after ingesting " + ProcessedDataSize + " bytes of trace data");
 
             if (!protograph.Terminated)
                 protograph.SetTerminated();

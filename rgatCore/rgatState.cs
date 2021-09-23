@@ -18,6 +18,14 @@ namespace rgat
     public class rgatState
     {
         /// <summary>
+        /// Initialise the rgat state
+        /// </summary>
+        public rgatState()
+        {
+            LocalCoordinatorPipeName = Path.GetRandomFileName().Substring(0, 8).ToUpper();
+        }
+
+        /// <summary>
         /// Collection of binary targets that are loaded
         /// </summary>
         public static BinaryTargets targets = new BinaryTargets();
@@ -44,7 +52,7 @@ namespace rgat
         /// <summary>
         /// The loaded dnYara engine
         /// </summary>
-        public static YARAScan? YARALib;
+        public static YARAScanner? YARALib;
         /// <summary>
         /// A VideoEncoder object which managed FFMpeg capture
         /// </summary>
@@ -52,7 +60,7 @@ namespace rgat
         /// <summary>
         /// A BridgeConnection object which manages the remote tracing connection
         /// </summary>
-        public static BridgeConnection NetworkBridge;
+        public static BridgeConnection NetworkBridge = new BridgeConnection();
         /// <summary>
         /// Is a network connection to another rgat instance active?
         /// </summary>
@@ -60,7 +68,7 @@ namespace rgat
         /// <summary>
         /// The name of the named pipe for locally running pintools to connect to
         /// </summary>
-        public static string LocalCoordinatorPipeName;
+        public static string? LocalCoordinatorPipeName;
 
         /// <summary>
         /// Set this to cause video recording to start on the next trace connection
@@ -73,11 +81,6 @@ namespace rgat
         public static Threads.ProcessCoordinatorThread? processCoordinatorThreadObj = null;
 
 
-        public rgatState()
-        {
-            LocalCoordinatorPipeName = Path.GetRandomFileName().Substring(0, 8).ToUpper();
-        }
-
         /// <summary>
         /// Set the graphics devicefor widgets to use once it has been created 
         /// </summary>
@@ -87,12 +90,13 @@ namespace rgat
             _GraphicsDevice = _gd;
         }
 
+
         /// <summary>
         /// A task which loads binary signatures such as YARA and DIE
         /// </summary>
         /// <param name="progress">An IProgress object for the UI process bar</param>
         /// <param name="completionCallback">An action to call when the load is complete</param>
-        public static void LoadSignatures(IProgress<float> progress = null, Action completionCallback = null)
+        public static void LoadSignatures(IProgress<float>? progress = null, Action? completionCallback = null)
         {
             //todo - inner progress reporting based on signature count
             Logging.RecordLogEvent("Loading DiELib", Logging.LogFilterType.TextDebug);
@@ -122,7 +126,7 @@ namespace rgat
             {
                 try
                 {
-                    YARALib = new YARAScan(YARAscriptsDir);
+                    YARALib = new YARAScanner(YARAscriptsDir);
                 }
                 catch (Exception e)
                 {
@@ -330,7 +334,7 @@ namespace rgat
         /// <param name="saveJSON">A Newtonsoft JObject for the saved trace</param>
         /// <param name="targetResult">The created BinaryTarget object</param>
         /// <returns></returns>
-        static bool InitialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, out BinaryTarget targetResult)
+        static bool InitialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, out BinaryTarget? targetResult)
         {
             BinaryTarget? target = null;
             targetResult = null;
@@ -543,7 +547,7 @@ namespace rgat
         /// <param name="path">The fileystem path of the saved trace</param>
         /// <param name="trace">The loaded TraceRecord object</param>
         /// <returns></returns>
-        public bool LoadTraceByPath(string path, out TraceRecord trace)
+        public bool LoadTraceByPath(string path, out TraceRecord? trace)
         {
             //display_only_status_message("Loading save file...", clientState);
             //updateActivityStatus("Loading " + QString::fromStdString(traceFilePath.string()) + "...", 2000);
@@ -570,8 +574,8 @@ namespace rgat
                 }
             }
 
-            BinaryTarget target;
-            if (!InitialiseTarget(saveJSON, out target))
+            BinaryTarget? target;
+            if (!InitialiseTarget(saveJSON, out target) || target is null)
             {
                 //updateActivityStatus("Process data load failed - possibly corrupt trace file", 15000);
 
@@ -638,9 +642,11 @@ namespace rgat
                     return;
                 }
 
-                LoadTraceByPath(childFilePath, out TraceRecord childTrace);
-                trace.children.Add(childTrace);
-                childTrace.ParentTrace = trace;
+                if (LoadTraceByPath(childFilePath, out TraceRecord? childTrace) && childTrace is not null)
+                {
+                    trace.children.Add(childTrace);
+                    childTrace.ParentTrace = trace;
+                }
             }
 
         }

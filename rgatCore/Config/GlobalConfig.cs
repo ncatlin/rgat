@@ -95,9 +95,9 @@ namespace rgat
         }
 
 
-        /*
-         * Launch config derived from command line arguments/defaults
-         */
+        /// <summary>
+        /// Launch config derived from command line arguments/defaults
+        /// </summary>
         public static Config.LaunchConfig StartOptions;
 
         /* 

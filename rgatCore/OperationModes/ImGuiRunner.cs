@@ -473,7 +473,7 @@ namespace rgat.OperationModes
 
             ImGui.SetNextWindowPos(new Vector2(0, 0), ImGuiCond.Always);
 
-            ImGui.SetNextWindowSize(new Vector2(_controller._windowWidth, _controller._windowHeight), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new Vector2(_controller.WindowWidth, _controller.WindowHeight), ImGuiCond.Always);
             //ImGui.SetNextWindowSize(new Vector2(1200, 800), ImGuiCond.Appearing);
 
             Themes.ApplyThemeColours();

@@ -2,8 +2,14 @@
 
 namespace rgat
 {
+    /// <summary>
+    /// Various settings that won't need changing by the user. Probably.
+    /// </summary>
     public class CONSTANTS
     {
+        /// <summary>
+        /// The rgat version
+        /// </summary>
         public static class PROGRAMVERSION
         {
             /// <summary>

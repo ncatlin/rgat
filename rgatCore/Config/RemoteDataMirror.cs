@@ -27,6 +27,13 @@ namespace rgat.Config
         static readonly Dictionary<uint, Threads.TraceProcessorWorker> _remoteDataWorkers = new Dictionary<uint, Threads.TraceProcessorWorker>();
         static readonly Dictionary<uint, ProcessIncomingWorkerData?> _pipeInterfaces = new Dictionary<uint, ProcessIncomingWorkerData?>();
 
+
+        /// <summary>
+        /// Associate a remote named pipe with a Trace processor worker
+        /// </summary>
+        /// <param name="pipeID">Remote pipe ID</param>
+        /// <param name="worker">Trace proessor worker</param>
+        /// <param name="func">Callback function for incoming worker data</param>
         public static void RegisterRemotePipe(uint pipeID, Threads.TraceProcessorWorker worker, ProcessIncomingWorkerData? func)
         {
             lock (_lock)
@@ -36,6 +43,12 @@ namespace rgat.Config
             }
         }
 
+        /// <summary>
+        /// Get the worker for a remote pipe
+        /// </summary>
+        /// <param name="pipeID">Remote pipe ID</param>
+        /// <param name="worker">Worker</param>
+        /// <returns>Found a worker</returns>
         public static bool GetPipeWorker(uint pipeID, out Threads.TraceProcessorWorker? worker)
         {
             lock (_lock)
@@ -44,6 +57,12 @@ namespace rgat.Config
             }
         }
 
+        /// <summary>
+        /// Get the incoming data callback for a remote network tracing pipe
+        /// </summary>
+        /// <param name="pipeID">Remote pipe ID</param>
+        /// <param name="func">callback function</param>
+        /// <returns>found</returns>
         public static bool GetPipeInterface(uint pipeID, out ProcessIncomingWorkerData? func)
         {
             lock (_lock)
@@ -54,6 +73,11 @@ namespace rgat.Config
 
 
         static uint pipeCount = 0;
+        /// <summary>
+        /// Register a local pipe for linking to a remote trace data stream
+        /// </summary>
+        /// <param name="pipename">Name of the pipe</param>
+        /// <returns>The ID of the registered pipe</returns>
         public static uint RegisterPipe(string pipename)
         {
             lock (_lock)
@@ -63,6 +87,8 @@ namespace rgat.Config
                 return pipeCount;
             }
         }
+
+
 
         public static void RegisterPendingResponse(int commandID, string cmd, string recipient, ProcessResponseCallback? callback = null)
         {
@@ -138,6 +164,11 @@ namespace rgat.Config
             }
         }
 
+        /// <summary>
+        /// Store a list of recent binaries sent by the headless rgat instance
+        /// </summary>
+        /// <param name="dataTok">JToken of recent paths</param>
+        /// <returns>Successful deserialising</returns>
         public static bool HandleRecentBinariesList(JToken dataTok)
         {
             if (dataTok.Type != JTokenType.Array)
@@ -175,11 +206,13 @@ namespace rgat.Config
                     return false;
                 }
 
-                PathRecord newEntry = new PathRecord();
-                newEntry.Path = prop1!.ToString();
-                newEntry.FirstOpen = prop2!.ToObject<DateTime>();
-                newEntry.LastOpen = prop3!.ToObject<DateTime>();
-                newEntry.OpenCount = prop4!.ToObject<uint>();
+                PathRecord newEntry = new PathRecord()
+                {
+                    Path = prop1!.ToString(),
+                    FirstOpen = prop2!.ToObject<DateTime>(),
+                    LastOpen = prop3!.ToObject<DateTime>(),
+                    OpenCount = prop4!.ToObject<uint>()
+                };
                 recentbins.Add(newEntry);
             }
 

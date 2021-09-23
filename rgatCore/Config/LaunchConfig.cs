@@ -327,12 +327,11 @@ namespace rgat.Config
 
         bool ExtractJSONFileOptions(string path, out string? error)
         {
-            error = "";
-            if (File.Exists(this.ConfigPath))
+            if (File.Exists(path))
             {
                 try
                 {
-                    string filetext = File.ReadAllText(this.ConfigPath);
+                    string filetext = File.ReadAllText(path);
                     JObject jsn = JObject.Parse(filetext);
                     return ParseConfigJSON(jsn, out error);
 
@@ -340,13 +339,13 @@ namespace rgat.Config
                 catch (Exception e)
                 {
 
-                    error = $"Bad JSON file {this.ConfigPath}: {e.Message}";
+                    error = $"Bad JSON file {path}: {e.Message}";
                     return false;
                 }
             }
             else
             {
-                string currentDirConfigPath = Path.Combine(Directory.GetCurrentDirectory(), this.ConfigPath);
+                string currentDirConfigPath = Path.Combine(Directory.GetCurrentDirectory(), path);
                 if (File.Exists(currentDirConfigPath))
                 {
                     try
