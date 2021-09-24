@@ -51,6 +51,10 @@ namespace ImGuiNET
                     break;
 
                 case LaunchConfig.eRunMode.NoGPUTraceCommand:
+                    if (GlobalConfig.StartOptions.TargetPath is null)
+                    {
+                        Logging.RecordError("No target path"); return;
+                    }
                     rgatState.NetworkBridge.GUIMode = false;
                     CommandLineRunner runner = new CommandLineRunner();
                     runner.InitNoGPU();

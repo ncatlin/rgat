@@ -244,6 +244,7 @@ namespace rgat.Threads
         /// <param name="testID">Optional test ID if the trace is a test</param>
         public void StartLocalTraceThreads(TraceRecord trace, long testID = -1)
         {
+            System.Diagnostics.Debug.Assert(_clientState is not null);
             if (testID != -1)
             {
                 trace.SetTestRunID(testID);

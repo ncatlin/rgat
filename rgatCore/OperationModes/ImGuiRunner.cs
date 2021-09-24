@@ -44,21 +44,22 @@ namespace rgat.OperationModes
         public ImGuiRunner(rgatState state)
         {
             _rgatState = state;
+            _longTimer = new System.Timers.Timer(CONSTANTS.UI.UI_LONG_TIMER_INTERVAL);
+            _shortTimer = new System.Timers.Timer(CONSTANTS.UI.UI_SHORT_TIMER_INTERVAL);
         }
 
 
 
         // UI state
-        private static Vector3 _clearColor = new Vector3(0.15f, 0.15f, 0.16f);
-        private static bool _showDemoWindow = true;
+        private Vector3 _clearColor = new Vector3(0.15f, 0.15f, 0.16f);
+        private bool _showDemoWindow = true;
         static Vector2 _lastMousePos;
 
         static readonly List<Key> HeldResponsiveKeys = new List<Key>();
 
-
         //perform rare events like freeing resources which havent been used in a while
-        static System.Timers.Timer? _longTimer;
-        static bool _housekeepingTimerFired;
+        System.Timers.Timer _longTimer;
+        bool _housekeepingTimerFired;
         private void FireLongTimer(object sender, System.Timers.ElapsedEventArgs e) { _housekeepingTimerFired = true; }
 
         //perform regular events
@@ -202,12 +203,10 @@ namespace rgat.OperationModes
 
             _lastMousePos = new Vector2(0, 0);
 
-            _shortTimer = new System.Timers.Timer(CONSTANTS.UI.UI_SHORT_TIMER_INTERVAL);
             _shortTimer.Elapsed += FireShortTimer;
             _shortTimer.AutoReset = true;
             _shortTimer.Start();
 
-            _longTimer = new System.Timers.Timer(CONSTANTS.UI.UI_LONG_TIMER_INTERVAL);
             _longTimer.Elapsed += FireLongTimer;
             _longTimer.AutoReset = false;
             _longTimer.Start();

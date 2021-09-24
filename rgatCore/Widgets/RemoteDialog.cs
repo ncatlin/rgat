@@ -543,7 +543,7 @@ namespace rgat.Widgets
         }
 
 
-        void DrawIFToolTip(NetworkInterface iface)
+        static void DrawIFToolTip(NetworkInterface iface)
         {
             ImGui.BeginTooltip();
             ImGui.Text($"{iface.Name}: {iface.Description}");

@@ -965,7 +965,7 @@ namespace rgat.OperationModes
 
             Logging.RecordLogEvent($"Initialising . {GlobalConfig.StartOptions!.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
             if (GlobalConfig.StartOptions.ConnectModeAddress is null || 
-                !GetRemoteAddress(GlobalConfig.StartOptions.ConnectModeAddress, out string? address, out int port))
+                !GetRemoteAddress(GlobalConfig.StartOptions.ConnectModeAddress, out string address, out int port))
             {
                 Logging.RecordError($"Failed to parse address/port from param {GlobalConfig.StartOptions.ConnectModeAddress}");
                 return;
@@ -983,7 +983,7 @@ namespace rgat.OperationModes
         }
 
 
-        bool GetRemoteAddress(string param, out string? address, out int port)
+        bool GetRemoteAddress(string param, out string address, out int port)
         {
             address = "";
             port = -1;
@@ -1085,9 +1085,9 @@ namespace rgat.OperationModes
 
 
 
-        public void ResponseHandlerThread(object cancelToken)
+        public void ResponseHandlerThread(object? cancelToken)
         {
-            Debug.Assert(cancelToken.GetType() == typeof(CancellationToken));
+            Debug.Assert(cancelToken is not null && cancelToken.GetType() == typeof(CancellationToken));
             lock (_lock)
             {
                 _incomingData.Clear();

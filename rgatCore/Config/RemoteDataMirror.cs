@@ -260,9 +260,8 @@ namespace rgat.Config
                     return false;
                 }
 
-                PathRecord newEntry = new PathRecord()
+                PathRecord newEntry = new PathRecord(prop1!.ToString())
                 {
-                    Path = prop1!.ToString(),
                     FirstOpen = prop2!.ToObject<DateTime>(),
                     LastOpen = prop3!.ToObject<DateTime>(),
                     OpenCount = prop4!.ToObject<uint>()

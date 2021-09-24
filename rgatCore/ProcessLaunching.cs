@@ -166,10 +166,16 @@ namespace rgat
             runargs += "-- ";
 
 
+            string? binaryDir = Path.GetDirectoryName(targetBinary);
+            if (binaryDir is null) return null;
 
-            if (InitLoader(Path.GetDirectoryName(targetBinary), loadername, loaderWidth, out string? loaderPath))
+            if (InitLoader(binaryDir, loadername, loaderWidth, out string? loaderPath) && loaderPath is not null)
             {
                 runargs += $"{loaderPath} {targetBinary},{ordinal}$";
+            }
+            else
+            {
+                return null;
             }
 
             try

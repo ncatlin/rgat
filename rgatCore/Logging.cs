@@ -14,15 +14,16 @@ namespace rgat
         /// <summary>
         /// A base category of this log
         /// </summary>
-        public enum eLogFilterBaseType {
+        public enum eLogFilterBaseType
+        {
             /// <summary>
             /// An event
             /// </summary>
-            TimeLine, 
+            TimeLine,
             /// <summary>
             /// A message
             /// </summary>
-            Text 
+            Text
         }
 
         /// <summary>
@@ -72,6 +73,12 @@ namespace rgat
         public class APICALL
         {
             /// <summary>
+            /// Create an APi call
+            /// </summary>
+            /// <param name="graph">The graph of the thread that called it</param>
+            public APICALL(ProtoGraph graph) { Graph = graph; }
+
+            /// <summary>
             /// The node associated with this call
             /// </summary>
             public NodeData? Node;
@@ -90,7 +97,7 @@ namespace rgat
             /// <summary>
             /// The graph associated with the call
             /// </summary>
-            public ProtoGraph? Graph;
+            public ProtoGraph Graph;
 
             /// <summary>
             /// The actual API call ingformation
@@ -115,12 +122,22 @@ namespace rgat
             /// <param name="trace">The trace the call belongs to</param>
             /// <param name="apiObj">The resulting API object</param>
             /// <returns></returns>
-            public static bool TryDeserialise(JToken apiTok, TraceRecord trace, out APICALL apiObj)
+            public static bool TryDeserialise(JToken apiTok, TraceRecord trace, out APICALL? apiObj)
             {
-                apiObj = new APICALL();
-                if (apiTok.Type is not JTokenType.Object) return false;
-                JObject? jobj = apiTok.ToObject<JObject>();
+                JObject? jobj = null;
+                apiObj = null;
+
+                if (apiTok.Type is JTokenType.Object)
+                    jobj = apiTok.ToObject<JObject>();
+
                 if (jobj is null) return false;
+
+                if (!jobj.TryGetValue("Graph", out JToken? graphTimeTok)) return false;
+                DateTime graphTime = graphTimeTok.ToObject<DateTime>();
+                ProtoGraph? graph = trace.GetProtoGraphByTime(graphTime);
+                if (graph is null) return false;
+
+                apiObj = new APICALL(graph);
 
                 if (!jobj.TryGetValue("CallIdx", out JToken? cidxTok)) return false;
                 apiObj.Index = cidxTok.ToObject<int>();
@@ -128,11 +145,6 @@ namespace rgat
                 apiObj.Repeats = repTok.ToObject<ulong>();
                 if (!jobj.TryGetValue("uniqID", out JToken? idTok)) return false;
                 apiObj.UniqID = idTok.ToObject<ulong>();
-
-                if (!jobj.TryGetValue("Graph", out JToken? graphTimeTok)) return false;
-                DateTime graphTime = graphTimeTok.ToObject<DateTime>();
-                apiObj.Graph = trace.GetProtoGraphByTime(graphTime);
-                if (apiObj.Graph is null) return false;
 
                 if (!jobj.TryGetValue("Node", out JToken? nidxTok)) return false;
                 int nodeIdx = nidxTok.ToObject<int>();
@@ -242,23 +254,24 @@ namespace rgat
         /// <summary>
         /// Timeline event types
         /// </summary>
-        public enum eTimelineEvent {
+        public enum eTimelineEvent
+        {
             /// <summary>
             /// A process started
             /// </summary>
-            ProcessStart, 
+            ProcessStart,
             /// <summary>
             /// A process stopped
             /// </summary>
-            ProcessEnd, 
+            ProcessEnd,
             /// <summary>
             /// A thread started
             /// </summary>
-            ThreadStart, 
+            ThreadStart,
             /// <summary>
             /// A thread stopped
             /// </summary>
-            ThreadEnd, 
+            ThreadEnd,
             /// <summary>
             /// An API call was recorded
             /// </summary>
@@ -317,6 +330,8 @@ namespace rgat
             /// <param name="trace">The trace assocated with the timeline event</param>
             public TIMELINE_EVENT(JObject jobj, TraceRecord trace) : base(eLogFilterBaseType.TimeLine)
             {
+                _item = new object();
+
                 if (!jobj.TryGetValue("EvtType", out JToken? evtType) || evtType.Type != JTokenType.Integer)
                 {
                     Logging.RecordError("Bad timeline event type in saved timeline");
@@ -340,7 +355,6 @@ namespace rgat
                     case eTimelineEvent.ProcessEnd:
                         SetIDs(ID: idtok.ToObject<ulong>(), parentID: pidtok.ToObject<ulong>());
                         _item = trace.GetTraceByID(ID)!;
-                        Debug.Assert(_item != null);
                         Inited = true;
                         break;
                     case eTimelineEvent.ThreadStart:
@@ -348,7 +362,6 @@ namespace rgat
                         Debug.Assert(trace.ParentTrace == null || idtok.ToObject<ulong>() == trace.ParentTrace.PID);
                         SetIDs(ID: idtok.ToObject<ulong>());
                         _item = trace.GetProtoGraphByTID(ID)!;
-                        Debug.Assert(_item != null);
                         Inited = true;
                         break;
 
@@ -358,7 +371,7 @@ namespace rgat
                             Logging.RecordError("No APICALL data in timeline api event");
                             return;
                         }
-                        if (!APICALL.TryDeserialise(apiTok, trace, out APICALL apiObj))
+                        if (!APICALL.TryDeserialise(apiTok, trace, out APICALL? apiObj) || apiObj is null)
                         {
                             Logging.RecordError("Bad APICALL data in timeline api event");
                             return;
@@ -521,7 +534,7 @@ namespace rgat
             /// <summary>
             /// Something very common and routine happened. Log it to a file if bulk debug logging is enabled.
             /// </summary>
-            BulkDebugLogFile, 
+            BulkDebugLogFile,
             /// <summary>
             /// The number of available log types
             /// </summary>

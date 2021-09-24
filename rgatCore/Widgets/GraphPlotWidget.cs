@@ -29,32 +29,65 @@ namespace rgat
 
         public GraphLayoutEngine LayoutEngine => _layoutEngine;
         public bool Exiting = false;
-        readonly GraphicsDevice _gd;
-        readonly ResourceFactory _factory;
+        GraphicsDevice? _gd;
+        ResourceFactory? _factory;
         public Vector2 WidgetSize { get; private set; }
 
-        readonly TextureView _imageTextureView;
+        TextureView? _imageTextureView;
         readonly ReaderWriterLockSlim _graphLock = new ReaderWriterLockSlim();
+
+        Framebuffer? _outputFramebuffer1, _outputFramebuffer2, _pickingFrameBuffer;
+        bool _processingAnimatedGraph;
+
+        /// <summary>
+        /// Edges pipeline = line list or line strp
+        /// Points pipeline = visible nodes where we draw sphere/etc texture
+        /// Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
+        /// Font pipeline = triangles
+        /// </summary>
+        Pipeline? _edgesPipelineRelative, _edgesPipelineRaw, _pointsPipeline, _pickingPipeline, _fontPipeline;
+        ResourceLayout? _coreRsrcLayout, _nodesEdgesRsrclayout, _fontRsrcLayout;
+        Texture? _outputTexture1, _outputTexture2, _testPickingTexture, _pickingStagingTexture;
+
+        //vert/frag rendering buffers
+        ResourceSet? _crs_font;
+        DeviceBuffer? _EdgeVertBuffer, _EdgeIndexBuffer;
+        DeviceBuffer? _RawEdgeVertBuffer, _RawEdgeIndexBuffer;
+        DeviceBuffer? _NodeVertexBuffer, _NodePickingBuffer, _NodeIndexBuffer;
+        private DeviceBuffer? _FontVertBuffer, _FontIndexBufferAll;
+        DeviceBuffer? _paramsBuffer;
+
+
+        int latestWrittenTexture = 1;
 
         /// <summary>
         /// A widget for displaying a rendered graph plot
         /// </summary>
-        /// <param name="controller">The ImGui controller</param>
-        /// <param name="gdev">A Veldrid GraphicsDevice</param>
         /// <param name="clientState">The rgat clientstate</param>
+        /// <param name="controller">The ImGui controller</param>
         /// <param name="initialSize">The initial size of the widget</param>
-        public GraphPlotWidget(ImGuiController controller, GraphicsDevice gdev, rgatState clientState, Vector2? initialSize = null)
+        public GraphPlotWidget( rgatState clientState, ImGuiController controller, Vector2? initialSize = null)
         {
-            _controller = controller;
-            _gd = gdev;
-            _factory = _gd.ResourceFactory;
-            _QuickMenu = new QuickMenu(_gd, controller);
             _clientState = clientState;
+            _controller = controller;
+            _QuickMenu = new QuickMenu(_controller);
 
             WidgetSize = initialSize ?? new Vector2(400, 400);
+            _layoutEngine = new GraphLayoutEngine("Main", controller);
+        }
 
-            _layoutEngine = new GraphLayoutEngine(gdev, controller, "Main");
-            _imageTextureView = controller.IconTexturesView;  //todo crash if closed early in load
+
+        /// <summary>
+        /// Init the graphics device controller
+        /// </summary>
+        /// <param name="gdev">A Veldrid GraphicsDevice</param>
+        public void Init(GraphicsDevice gdev)
+        {
+            _gd = gdev;
+            _factory = _gd.ResourceFactory;
+            _layoutEngine.Init(gdev);
+            _QuickMenu.Init(_gd);
+            _imageTextureView = _controller.IconTexturesView;  //todo crash if closed early in load
             SetupRenderingResources();
         }
 
@@ -74,27 +107,6 @@ namespace rgat
         {
             Exiting = true;
         }
-
-
-        /// <summary>
-        /// Must have write lock to call
-        /// </summary>
-        private void RecreateGraphicsBuffers()
-        {
-            VeldridGraphBuffers.VRAMDispose(_EdgeVertBuffer);
-            VeldridGraphBuffers.VRAMDispose(_EdgeIndexBuffer);
-            VeldridGraphBuffers.VRAMDispose(_NodeVertexBuffer);
-            VeldridGraphBuffers.VRAMDispose(_NodePickingBuffer);
-
-
-            _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.VertexBuffer, name: _EdgeVertBuffer.Name);
-            _EdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.IndexBuffer, name: _EdgeIndexBuffer.Name);
-            _NodeVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 1, BufferUsage.VertexBuffer, name: _NodeVertexBuffer.Name);
-            _NodePickingBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 1, BufferUsage.VertexBuffer, name: _NodePickingBuffer.Name);
-        }
-
-
-
 
         public void ApplyZoom(float delta)
         {
@@ -300,7 +312,7 @@ namespace rgat
             return false;
         }
 
-        class KEYPRESS_CAPTION
+        struct KEYPRESS_CAPTION
         {
             public string message;
             public Key key;
@@ -535,7 +547,7 @@ namespace rgat
         /// </summary>
         /// <param name="graphSize">Size of the graph area being drawn</param>
         /// <param name="graph">The graph being drawn</param>
-        public void Draw(Vector2 graphSize, PlottedGraph graph)
+        public void Draw(Vector2 graphSize, PlottedGraph? graph)
         {
             _graphLock.EnterReadLock();
 
@@ -554,31 +566,8 @@ namespace rgat
             _graphLock.ExitReadLock();
         }
 
-        Framebuffer _outputFramebuffer1, _outputFramebuffer2, _pickingFrameBuffer;
-        bool _processingAnimatedGraph;
-
-        /// <summary>
-        /// Edges pipeline = line list or line strp
-        /// Points pipeline = visible nodes where we draw sphere/etc texture
-        /// Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
-        /// Font pipeline = triangles
-        /// </summary>
-        Pipeline _edgesPipelineRelative, _edgesPipelineRaw, _pointsPipeline, _pickingPipeline, _fontPipeline;
-        ResourceLayout _coreRsrcLayout, _nodesEdgesRsrclayout, _fontRsrcLayout;
-        Texture _outputTexture1, _outputTexture2, _testPickingTexture, _pickingStagingTexture;
-
-        //vert/frag rendering buffers
-        //ResourceSet _crs_core, _crs_nodesEdges, _crs_font;
-        ResourceSet _crs_font;
-        DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer;
-        DeviceBuffer _RawEdgeVertBuffer, _RawEdgeIndexBuffer;
-        DeviceBuffer _NodeVertexBuffer, _NodePickingBuffer, _NodeIndexBuffer;
-        private DeviceBuffer _FontVertBuffer;
-        private DeviceBuffer _FontIndexBufferAll;
-        DeviceBuffer _paramsBuffer;
 
 
-        int latestWrittenTexture = 1;
         /// <summary>
         /// Get a framebuffer we can safely draw to
         /// Must hold upgradable read lock
@@ -590,12 +579,12 @@ namespace rgat
             if (latestWrittenTexture == 1)
             {
                 Logging.RecordLogEvent($"GetLatestTexture setting draw target to texture 2 --->", Logging.LogFilterType.BulkDebugLogFile);
-                drawtarget = _outputFramebuffer2;
+                drawtarget = _outputFramebuffer2!;
             }
             else
             {
                 Logging.RecordLogEvent("GetLatestTexture setting draw target to texture 1 --->", Logging.LogFilterType.BulkDebugLogFile);
-                drawtarget = _outputFramebuffer1;
+                drawtarget = _outputFramebuffer1!;
             }
             _graphLock.ExitWriteLock();
         }
@@ -622,12 +611,12 @@ namespace rgat
             if (latestWrittenTexture == 1)
             {
                 Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph?.TID}  Returning latest written graph texture 1", Logging.LogFilterType.BulkDebugLogFile);
-                graphtexture = _outputTexture1;
+                graphtexture = _outputTexture1!;
             }
             else
             {
                 Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph?.TID}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
-                graphtexture = _outputTexture2;
+                graphtexture = _outputTexture2!;
             }
         }
 
@@ -637,17 +626,18 @@ namespace rgat
         /// </summary>
         unsafe void SetupRenderingResources()
         {
-
+            Debug.Assert(_gd is not null, "Init not called");
+            ResourceFactory factory = _gd.ResourceFactory;
             _paramsBuffer = TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<GraphShaderParams>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "GraphPlotparamsBuffer");
 
-            _coreRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _coreRsrcLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
                new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Vertex),
                new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment),
                new ResourceLayoutElementDescription("Positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex),
                 new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex)
                ));
 
-            _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _nodesEdgesRsrclayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
                 new ResourceLayoutElementDescription("NodeTextures", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
 
 
@@ -675,10 +665,10 @@ namespace rgat
             pipelineDescription.Outputs = _outputFramebuffer1.OutputDescription;
 
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
-            _pointsPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
+            _pointsPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
 
             pipelineDescription.ShaderSet = SPIRVShaders.CreateNodePickingShaders(_gd, out _NodePickingBuffer);
-            _pickingPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
+            _pickingPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
 
 
             /*
@@ -687,22 +677,22 @@ namespace rgat
              */
             pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRelativeShaders(_gd, out _EdgeVertBuffer, out _EdgeIndexBuffer);
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
-            _edgesPipelineRelative = _factory.CreateGraphicsPipeline(pipelineDescription);
+            _edgesPipelineRelative = factory.CreateGraphicsPipeline(pipelineDescription);
 
             pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRawShaders(_gd, out _RawEdgeVertBuffer, out _RawEdgeIndexBuffer);
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
-            _edgesPipelineRaw = _factory.CreateGraphicsPipeline(pipelineDescription);
+            _edgesPipelineRaw = factory.CreateGraphicsPipeline(pipelineDescription);
 
 
 
             //font -----------------------
 
-            _fontRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _fontRsrcLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
                 new ResourceLayoutElementDescription("FontTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)
                 ));
 
             ResourceSetDescription crs_font_rsd = new ResourceSetDescription(_fontRsrcLayout, _controller._fontTextureView);
-            _crs_font = _factory.CreateResourceSet(crs_font_rsd);
+            _crs_font = factory.CreateResourceSet(crs_font_rsd);
 
             ShaderSetDescription fontshader = SPIRVShaders.CreateFontShaders(_gd, out _FontVertBuffer, out _FontIndexBufferAll);
 
@@ -713,7 +703,7 @@ namespace rgat
                 PrimitiveTopology.TriangleList, fontshader,
                 new ResourceLayout[] { _coreRsrcLayout, _fontRsrcLayout },
                 _outputFramebuffer1.OutputDescription);
-            _fontPipeline = _factory.CreateGraphicsPipeline(fontpd);
+            _fontPipeline = factory.CreateGraphicsPipeline(fontpd);
         }
 
         /// <summary>
@@ -721,6 +711,8 @@ namespace rgat
         /// </summary>
         void RecreateOutputTextures()
         {
+            Debug.Assert(_gd is not null, "Init not called");
+            ResourceFactory factory = _gd.ResourceFactory;
 
             Logging.RecordLogEvent("RecreateOutputTextures DISPOSING ALL", Logging.LogFilterType.BulkDebugLogFile);
             _graphLock.EnterWriteLock();
@@ -732,24 +724,24 @@ namespace rgat
             VeldridGraphBuffers.DoDispose(_pickingFrameBuffer);
             VeldridGraphBuffers.DoDispose(_pickingStagingTexture);
 
-            _outputTexture1 = _factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
+            _outputTexture1 = factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
                 Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
             _outputTexture1.Name = "OutputTexture1" + DateTime.Now.ToFileTime().ToString();
-            _outputFramebuffer1 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture1));
+            _outputFramebuffer1 = factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture1));
             _outputFramebuffer1.Name = $"OPFB1_" + _outputTexture1.Name;
 
-            _outputTexture2 = _factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
+            _outputTexture2 = factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
                 Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
             _outputTexture2.Name = "OutputTexture2" + DateTime.Now.ToFileTime().ToString();
-            _outputFramebuffer2 = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture2));
+            _outputFramebuffer2 = factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture2));
             _outputFramebuffer2.Name = $"OPFB2_" + _outputTexture2.Name;
 
-            _testPickingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
+            _testPickingTexture = factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
                     Veldrid.PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
 
-            _pickingFrameBuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _testPickingTexture));
+            _pickingFrameBuffer = factory.CreateFramebuffer(new FramebufferDescription(null, _testPickingTexture));
 
-            _pickingStagingTexture = _factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
+            _pickingStagingTexture = factory.CreateTexture(TextureDescription.Texture2D((uint)WidgetSize.X, (uint)WidgetSize.Y, 1, 1,
                     Veldrid.PixelFormat.R32_G32_B32_A32_Float,
                     TextureUsage.Staging));
             _graphLock.ExitWriteLock();
@@ -842,10 +834,8 @@ namespace rgat
         /// <param name="stringVerts">Working list of glyph descriptors to add the generated fontStrucs to</param>
         /// <param name="colour">Text colour</param>
         /// <param name="yOff">Vertical offset for the glyphs</param> //todo think caching wrecks this
-        static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, ref List<fontStruc> stringVerts, uint colour, float yOff = 0)
+        static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, List<fontStruc> stringVerts, uint colour, float yOff = 0)
         {
-            if (inputString == null)
-                return;
             if (_cachedStrings.TryGetValue(inputString, out List<fontStruc>? cached))
             {
                 stringVerts.AddRange(cached);
@@ -915,6 +905,7 @@ namespace rgat
 
         class RISINGEXTTXT
         {
+            public RISINGEXTTXT(string label) { text = label; }
             public int nodeIdx;
             public float currentY;
             public string text;
@@ -925,17 +916,18 @@ namespace rgat
 
         void uploadFontVerts(List<fontStruc> stringVerts)
         {
+            Debug.Assert(_gd is not null);
             uint[] charIndexes = Enumerable.Range(0, stringVerts.Count).Select(i => (uint)i).ToArray();
 
-            if (stringVerts.Count * fontStruc.SizeInBytes > _FontVertBuffer.SizeInBytes)
+            if (stringVerts.Count * fontStruc.SizeInBytes > _FontVertBuffer!.SizeInBytes)
             {
                 VeldridGraphBuffers.VRAMDispose(_FontVertBuffer);
                 _FontVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)stringVerts.Count * fontStruc.SizeInBytes, BufferUsage.VertexBuffer, name: _FontVertBuffer.Name);
                 VeldridGraphBuffers.VRAMDispose(_FontIndexBufferAll);
-                _FontIndexBufferAll = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)charIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: _FontIndexBufferAll.Name);
+                _FontIndexBufferAll = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)charIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: _FontIndexBufferAll!.Name);
             }
 
-            CommandList cl = _factory.CreateCommandList();
+            CommandList cl = _factory!.CreateCommandList();
             cl.Begin();
             cl.UpdateBuffer(_FontVertBuffer, 0, stringVerts.ToArray());
             cl.UpdateBuffer(_FontIndexBufferAll, 0, charIndexes);
@@ -945,7 +937,9 @@ namespace rgat
             cl.Dispose();
         }
 
-        List<fontStruc> RenderHighlightedNodeText(List<Tuple<string, uint>> captions, int nodeIdx = -1)
+
+
+        List<fontStruc> RenderHighlightedNodeText(List<Tuple<string?, uint>> captions, int nodeIdx = -1)
         {
             const float fontScale = 8f;
             List<fontStruc> stringVerts = new List<fontStruc>();
@@ -953,9 +947,9 @@ namespace rgat
             if (captions.Count > nodeIdx)
             {
                 var caption = captions[nodeIdx];
-                if (caption != null)
+                if (caption != null && caption.Item1 is not null)
                 {
-                    RenderString(caption.Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, caption.Item2);
+                    RenderString(caption.Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, stringVerts: stringVerts, colour: caption.Item2);
                 }
             }
 
@@ -998,27 +992,27 @@ namespace rgat
 
                 foreach (var nodeString in newLingeringCaptions)
                 {
-                    RISINGEXTTXT newriser = new RISINGEXTTXT()
+                    RISINGEXTTXT newriser = new RISINGEXTTXT(label: nodeString.Item2)
                     {
                         currentY = 25.0f,
                         nodeIdx = (int)nodeString.Item1,
-                        text = nodeString.Item2,
                         remainingFrames = -1
                     };
                     _activeRisings.Add(newriser);
                 }
             }
 
+
             //add any new rising extern labels
             if (newRisingExterns.Count > 0)
             {
-                foreach (var f in newRisingExterns)
+                foreach (var risingLabel in newRisingExterns)
                 {
-                    RISINGEXTTXT newriser = new RISINGEXTTXT()
+                    RISINGEXTTXT newriser = new RISINGEXTTXT(label: risingLabel.Item2)
                     {
                         currentY = 25.0f,
-                        nodeIdx = (int)f.Item1,
-                        text = f.Item2,
+                        nodeIdx = (int)risingLabel.Item1,
+                        text = risingLabel.Item2,
                         remainingFrames = GlobalConfig.ExternAnimDisplayFrames
                     };
                     _activeRisings.Add(newriser);
@@ -1037,13 +1031,12 @@ namespace rgat
                     ar.remainingFrames -= 1;
                 }
                 //Console.WriteLine($"Drawing '{ar.text}' at y {ar.currentY}");
-                RenderString(ar.text, (uint)ar.nodeIdx, fontScale, _controller._unicodeFont, ref stringVerts, risingSymColour, yOff: ar.currentY);
+                RenderString(ar.text, (uint)ar.nodeIdx, fontScale, _controller._unicodeFont, stringVerts, risingSymColour, yOff: ar.currentY);
             }
         }
 
-        readonly float _fontScale = 13.0f;
 
-        List<fontStruc> renderGraphText(List<Tuple<string, uint>> captions)
+        List<fontStruc> renderGraphText(List<Tuple<string?, uint>> captions, float scale)
         {
             List<fontStruc> stringVerts = new List<fontStruc>();
             PlottedGraph? graph = ActiveGraph;
@@ -1052,8 +1045,9 @@ namespace rgat
 
             for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
             {
-                if (captions[nodeIdx] == null) continue;
-                RenderString(captions[nodeIdx].Item1, (uint)nodeIdx, _fontScale, _controller._unicodeFont, ref stringVerts, captions[nodeIdx].Item2);
+                var caption = captions[nodeIdx];
+                if (caption is not null && caption.Item1 is not null)
+                    RenderString(caption.Item1, (uint)nodeIdx, scale, _controller._unicodeFont, stringVerts, captions[nodeIdx].Item2);
             }
 
 
@@ -1062,7 +1056,7 @@ namespace rgat
 
         void MaintainCaptions(List<fontStruc> stringVerts)
         {
-            maintainRisingTexts(_fontScale, ref stringVerts);
+            maintainRisingTexts(GlobalConfig.InsTextScale, ref stringVerts);
             uploadFontVerts(stringVerts);
         }
 
@@ -1078,6 +1072,7 @@ namespace rgat
             Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
             if (drawnEdgeCount == 0 || Exiting) return;
 
+            Debug.Assert(_gd is not null);
             Logging.RecordLogEvent("rendergraph start", filter: Logging.LogFilterType.BulkDebugLogFile);
 
             //theme changed, purged cached text in case its colour changed
@@ -1095,7 +1090,7 @@ namespace rgat
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _imageTextureView);
 
             //VeldridGraphBuffers.DoDispose(_crs_nodesEdges);
-            ResourceSet crs_nodesEdges = _factory.CreateResourceSet(crs_nodesEdges_rsd);
+            ResourceSet crs_nodesEdges = _factory!.CreateResourceSet(crs_nodesEdges_rsd);
 
             //rotval += 0.01f; //autorotate
             var textureSize = graph.LinearIndexTextureSize();
@@ -1113,8 +1108,8 @@ namespace rgat
 
             //_layoutEngine.GetScreenFitOffsets(WidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 
-            if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
-                (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
+            if (_NodeVertexBuffer!.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
+                (_NodeIndexBuffer!.SizeInBytes < nodeIndices.Count * sizeof(uint)))
             {
                 VRAMDispose(_NodeVertexBuffer);
                 VRAMDispose(_NodePickingBuffer);
@@ -1130,7 +1125,7 @@ namespace rgat
             cl.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
             cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
 
-            if (((edgeVertCount * 4) > _EdgeIndexBuffer.SizeInBytes))
+            if (((edgeVertCount * 4) > _EdgeIndexBuffer!.SizeInBytes))
             {
                 VRAMDispose(_EdgeVertBuffer);
                 _EdgeVertBuffer = TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
@@ -1146,7 +1141,7 @@ namespace rgat
             List<fontStruc> stringVerts;
             if (_mouseoverNodeID == -1)
             {
-                stringVerts = renderGraphText(captions);
+                stringVerts = renderGraphText(captions, GlobalConfig.InsTextScale);
             }
             else
             {
@@ -1272,7 +1267,7 @@ namespace rgat
 
             GetLatestTexture(out Texture outputTexture);
 
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, outputTexture, "GraphMainPlot" + outputTexture.Name);
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd!.ResourceFactory, outputTexture, "GraphMainPlot" + outputTexture.Name);
 
             Debug.Assert(!outputTexture.IsDisposed);
 
@@ -1420,17 +1415,16 @@ namespace rgat
         /// </summary>
         /// <param name="widgetSize"></param>
         /// <param name="activeGraph"></param>
-        void DrawHUD(Vector2 widgetSize, PlottedGraph activeGraph)
+        void DrawHUD(Vector2 widgetSize, PlottedGraph? activeGraph)
         {
             string msg;
             Vector2 topLeft = ImGui.GetCursorScreenPos();
             Vector2 bottomLeft = new Vector2(topLeft.X, topLeft.Y + widgetSize.Y);
             Vector2 bottomRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y);
 
-            PlottedGraph? graph = ActiveGraph;
-            if (graph != null)
+            if (activeGraph != null)
             {
-                DrawLayoutSelector(graph, bottomRight, 0.25f, activeGraph.ActiveLayoutStyle);
+                DrawLayoutSelector(activeGraph, bottomRight, 0.25f, activeGraph.ActiveLayoutStyle);
             }
             else
             {
@@ -1443,10 +1437,10 @@ namespace rgat
 
             if (GlobalConfig.ShowKeystrokes) DrawKeystrokes(topLeft);
 
-            _QuickMenu.Draw(bottomLeft, 0.25f, graph);
+            _QuickMenu.Draw(bottomLeft, 0.25f, activeGraph);
 
 
-            Vector2 midRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y - widgetSize.Y / 2);
+            //Vector2 midRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y - widgetSize.Y / 2);
             //DrawDisasmPreview(graph, midRight);
         }
 
@@ -1473,14 +1467,13 @@ namespace rgat
                     break;
             }
 
-            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, iconTex, "LayoutIcon");
+            IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd!.ResourceFactory, iconTex, "LayoutIcon");
             return CPUframeBufferTextureId;
         }
 
 
         void DrawLayoutSelector(PlottedGraph graph, Vector2 position, float scale, LayoutStyles.Style layout)
         {
-
             Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
             float padding = 6f;
             Vector2 pmin = new Vector2((position.X - iconSize.X) - padding, ((position.Y - iconSize.Y) - 4) - padding);
@@ -1588,7 +1581,7 @@ namespace rgat
 
             if (_controller.DialogOpen is false)
             {
-                DoMouseNodePicking(_gd);
+                DoMouseNodePicking(_gd!);
             }
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
@@ -1681,7 +1674,7 @@ namespace rgat
 
             if (newAttribs)
             {
-                graph.LayoutState.ResetNodeAttributes(_gd);
+                graph.LayoutState.ResetNodeAttributes(_gd!);
                 //graph.HighlightsChanged = false;
             }
         }
@@ -1704,7 +1697,7 @@ namespace rgat
             if (graph == null || Exiting) return;
 
             float mouseX = (_MousePos.X - WidgetPos.X);
-            float mouseY = (WidgetPos.Y + _pickingStagingTexture.Height) - _MousePos.Y;
+            float mouseY = (WidgetPos.Y + _pickingStagingTexture!.Height) - _MousePos.Y;
 
             bool hit = false;
             //mouse is in graph widget

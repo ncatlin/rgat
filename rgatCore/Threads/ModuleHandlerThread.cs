@@ -187,7 +187,7 @@ namespace rgat
                     uint pipeID = pipeTok.ToObject<uint>();
                     lock (_lock)
                     {
-                        if (!_pendingPipeThreads.TryGetValue(ThreadRef, out graph))
+                        if (!_pendingPipeThreads.TryGetValue(ThreadRef, out graph) || graph is null)
                         {
                             Logging.RecordLogEvent($"Error: SpawnRemoteTraceProcessorThreads has no pending pipe with ref {ThreadRef}", Logging.LogFilterType.TextError);
                             return false;
@@ -202,14 +202,15 @@ namespace rgat
                     graph.TraceProcessor = new ThreadTraceProcessingThread(graph);
                     graph.TraceProcessor.Begin();
 
-
                     Config.RemoteDataMirror.RegisterRemotePipe(pipeID, reader, reader.QueueData);
 
                     graph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph: graph);
 
-                    PlottedGraph MainGraph = new PlottedGraph(graph, _clientState!._GraphicsDevice);
+                    PlottedGraph? graphPlot = null;
+                    if (_clientState!._GraphicsDevice is not null)
+                        graphPlot = new PlottedGraph(graph, _clientState._GraphicsDevice!);
 
-                    if (!trace.InsertNewThread(MainGraph.InternalProtoGraph, MainGraph))
+                    if (!trace.InsertNewThread(graph, graphPlot))
                     {
                         Logging.RecordLogEvent("ERROR: Trace rendering thread creation failed", Logging.LogFilterType.TextError);
                         return false;

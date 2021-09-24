@@ -699,7 +699,7 @@ namespace rgat.Testing
             }
 
             string? binname = binNameTok.ToObject<string>();
-            if (binname is null)
+            if (binname is null || BinaryDirectory is null)
             {
                 DeclareLoadingError($"Failed to load binary name from metadata");
                 return false;

@@ -372,7 +372,7 @@ namespace rgat
             {
                 Logging.RecordError($"Update from staged download failed: {e.Message}");
                 GlobalConfig.Settings.Updates.StagedDownloadPath = "";
-                GlobalConfig.Settings.Updates.UpdateLastCheckVersion = null;
+                GlobalConfig.Settings.Updates.UpdateLastCheckVersion = new Version("0");
             }
 
             Task.Run(() => { UpdateDownloader(_download_cancel_tokensrc.Token); });

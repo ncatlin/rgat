@@ -846,7 +846,7 @@ namespace rgat
             return instructions.Length;
         }
 
-        private static bool UnpackOpcodes(JArray mutationData, CapstoneX86Disassembler disassembler, ADDRESS_DATA addressData, out List<InstructionData> opcodeVariants)
+        private static bool UnpackOpcodes(JArray mutationData, CapstoneX86Disassembler disassembler, ADDRESS_DATA addressData, out List<InstructionData>? opcodeVariants)
         {
             opcodeVariants = new List<InstructionData>();
             foreach (JArray mutation in mutationData)
@@ -858,10 +858,13 @@ namespace rgat
                     return false;
                 }
 
+                string? mutationStr = mutation[0].ToObject<string>();
+                if (mutationStr is null) return false;
+
                 InstructionData ins = new InstructionData();
                 ins.GlobalModNum = addressData.moduleID;
                 ins.hasSymbol = addressData.hasSym;
-                ins.Opcodes = System.Convert.FromBase64String(mutation[0].ToObject<string>());
+                ins.Opcodes = System.Convert.FromBase64String(mutationStr);
                 ins.Address = addressData.address;
                 ins.BlockBoundary = addressData.blockBoundary;
 
@@ -920,7 +923,7 @@ namespace rgat
 
             JArray mutationData = (JArray)entry[3];
 
-            if (!UnpackOpcodes(mutationData, disassembler, addrData, out List<InstructionData> opcodeVariants))
+            if (!UnpackOpcodes(mutationData, disassembler, addrData, out List<InstructionData>? opcodeVariants) || opcodeVariants is null)
             {
                 Logging.RecordLogEvent("Invalid disassembly for opcodes in trace", Logging.LogFilterType.TextError);
                 return false;

@@ -528,13 +528,12 @@ namespace rgat
 
             if (APIDetails is null) return;
 
-            Logging.APICALL call = new Logging.APICALL()
+            Logging.APICALL call = new Logging.APICALL(graph)
             {
                 Index = callIndex,
                 Node = node,
                 Repeats = repeats,
                 UniqID = uniqAPICallIdx++,
-                Graph = graph,
                 APIDetails = APIDetails
             };
             lock (_logLock)

@@ -633,8 +633,10 @@ namespace rgat.Widgets
             out List<MODULE_SEGMENT> modSegs
             )
         {
-            if (_cumuls.TryGetValue(graph, out pixCumul))
+            Dictionary<int, double>? opc;
+            if (_cumuls.TryGetValue(graph, out opc) && opc is not null)
             {
+                pixCumul = opc;
                 pixAvg = _avgs[graph];
                 modSegs = _modSegs[graph];
                 return;

@@ -150,6 +150,11 @@ namespace rgat
         public static bool showRisingAnimated = true;
 
         /// <summary>
+        /// Size of standard instruction text
+        /// </summary>
+        public static float InsTextScale = 13.0f;
+
+        /// <summary>
         /// When to make ins text smaller  [todo: reimplement]
         /// </summary>
         public static float insTextCompactThreshold = 2.5f;

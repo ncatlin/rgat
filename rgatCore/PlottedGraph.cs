@@ -39,6 +39,53 @@ namespace rgat
             Ended
         };
 
+
+        readonly ReaderWriterLockSlim _renderLock = new ReaderWriterLockSlim();
+
+        /// <summary>
+        /// Framebuffers for the preview texture
+        /// </summary>
+        public Veldrid.Framebuffer? _previewFramebuffer1, _previewFramebuffer2;
+        Veldrid.Texture? _previewTexture1, _previewTexture2;
+
+
+        /// <summary>
+        /// This was used to render call/returns in the graph layout
+        /// Currently unimplemented but keeping it around
+        /// </summary>
+        protected Stack<Tuple<ulong, uint>> ThreadCallStack = new Stack<Tuple<ulong, uint>>();
+
+        /// <summary>
+        /// The main 'graph' datastore
+        /// Stores both the raw trace data for the graph and the processed connections between instructions
+        /// The data can be used to plot graphical layouts
+        /// </summary>
+        public ProtoGraph InternalProtoGraph { get; protected set; }
+
+        /// <summary>
+        /// A cache of graph geometry colours for different types of node/edge
+        /// </summary>
+        protected WritableRgbaFloat[] graphColours;
+
+        /// <summary>
+        /// The current layout format of the graph
+        /// </summary>
+        public LayoutStyles.Style ActiveLayoutStyle => LayoutState.Style;
+        /// <summary>
+        /// The actual store of graphical data for the graph layout
+        /// </summary>
+        public GraphLayoutState LayoutState;
+
+
+        readonly ReaderWriterLockSlim textureLock = new ReaderWriterLockSlim();
+
+
+        int latestWrittenTexture = 1;
+
+
+
+
+
         /// <summary>
         /// Create a plotted graph
         /// </summary>
@@ -51,6 +98,8 @@ namespace rgat
 
 
             IsAnimated = !InternalProtoGraph.Terminated;
+
+            graphColours = new WritableRgbaFloat[] { }; //squash "needs value" warning
             InitGraphColours();
 
             CameraClippingFar = 60000f;
@@ -58,7 +107,7 @@ namespace rgat
             CameraXOffset = -400;
         }
 
-        readonly ReaderWriterLockSlim _renderLock = new ReaderWriterLockSlim();
+
         /// <summary>
         /// Takes edges that have been through the trace processor worker and
         /// inserts them into the graphcis buffers for layout/drawing
@@ -1010,7 +1059,7 @@ namespace rgat
         }
 
 
-        int[] _blockRenderingMetadata;
+        int[]? _blockRenderingMetadata;
 
         /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
         public unsafe int[] GetBlockRenderingMetadata()
@@ -2100,9 +2149,9 @@ namespace rgat
                     return;
                 }
                 _previewFramebuffer1?.Dispose();
-                _previewTexture1.Dispose();
+                _previewTexture1?.Dispose();
                 _previewFramebuffer2?.Dispose();
-                _previewTexture2.Dispose();
+                _previewTexture2?.Dispose();
             }
 
             _previewTexture1 = gd.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
@@ -2694,42 +2743,6 @@ namespace rgat
         }
 
         /// <summary>
-        /// This was used to render call/returns in the graph layout
-        /// Currently unimplemented but keeping it around
-        /// </summary>
-        protected Stack<Tuple<ulong, uint>> ThreadCallStack = new Stack<Tuple<ulong, uint>>();
-
-        /// <summary>
-        /// The main 'graph' datastore
-        /// Stores both the raw trace data for the graph and the processed connections between instructions
-        /// The data can be used to plot graphical layouts
-        /// </summary>
-        public ProtoGraph InternalProtoGraph { get; protected set; }
-
-        /// <summary>
-        /// A cache of graph geometry colours for different types of node/edge
-        /// </summary>
-        protected WritableRgbaFloat[] graphColours;
-
-        /// <summary>
-        /// The current layout format of the graph
-        /// </summary>
-        public LayoutStyles.Style ActiveLayoutStyle => LayoutState.Style;
-        /// <summary>
-        /// The actual store of graphical data for the graph layout
-        /// </summary>
-        public GraphLayoutState LayoutState;
-
-
-        readonly ReaderWriterLockSlim textureLock = new ReaderWriterLockSlim();
-        Veldrid.Texture _previewTexture1, _previewTexture2;
-        /// <summary>
-        /// Framebuffers for the preview texture
-        /// </summary>
-        public Veldrid.Framebuffer? _previewFramebuffer1, _previewFramebuffer2;
-
-        int latestWrittenTexture = 1;
-        /// <summary>
         /// Get the preview framebuffer that is currently being written to for writing
         /// </summary>
         /// <param name="drawtarget">output buffer</param>
@@ -2766,11 +2779,11 @@ namespace rgat
             textureLock.EnterReadLock();
             if (latestWrittenTexture == 1)
             {
-                graphtexture = _previewTexture1;
+                graphtexture = _previewTexture1!;
             }
             else
             {
-                graphtexture = _previewTexture2;
+                graphtexture = _previewTexture2!;
             }
             textureLock.ExitReadLock();
         }

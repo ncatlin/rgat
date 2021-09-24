@@ -54,7 +54,7 @@ namespace rgat.Testing
                 while (!rgatState.rgatIsExiting && !Finished)
                 {
                     Console.WriteLine($"\tWaiting for test {_thisTest.TestID} to start...");
-                    if (_rgatState.GetTestTrace(_thisTest.TestID, out TraceRecord testTrace))
+                    if (_rgatState.GetTestTrace(_thisTest.TestID, out TraceRecord? testTrace) && testTrace is not null)
                     {
                         _thisTest.SetFirstTrace(testTrace);
                         Console.WriteLine($"\tGot first trace of test {_thisTest.TestID}");

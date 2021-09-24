@@ -587,6 +587,7 @@ namespace rgat
                 return false;
             }
 
+            Debug.Assert(_GraphicsDevice is not null);
             if (!trace.Load(saveJSON, _GraphicsDevice))
             {
                 target.DeleteTrace(trace.LaunchedTime);
@@ -728,7 +729,7 @@ namespace rgat
         /// <param name="testID">The test ID to retrieve</param>
         /// <param name="trace">The associated TraceRecord of the test</param>
         /// <returns>true if found, false otherwise</returns>
-        public bool GetTestTrace(long testID, out TraceRecord trace)
+        public bool GetTestTrace(long testID, out TraceRecord? trace)
         {
 
             lock (_testDictLock)

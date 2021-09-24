@@ -42,43 +42,51 @@ namespace rgat
         /// </summary>
         public PlottedGraph? clickedGraph { get; private set; }
 
-        readonly ImGuiController _ImGuiController;
-        readonly GraphicsDevice _gd;
-        readonly ResourceFactory _factory;
+        ImGuiController? _ImGuiController;
+        GraphicsDevice? _gd;
+        ResourceFactory? _factory;
         readonly rgatState _rgatState;
 
-        ResourceLayout _coreRsrcLayout, _nodesEdgesRsrclayout;
-        DeviceBuffer _paramsBuffer;
-        DeviceBuffer _EdgeVertBuffer, _EdgeIndexBuffer;
-        DeviceBuffer _NodeVertexBuffer, _NodeIndexBuffer;
+        ResourceLayout? _coreRsrcLayout, _nodesEdgesRsrclayout;
+        DeviceBuffer? _paramsBuffer;
+        DeviceBuffer? _EdgeVertBuffer, _EdgeIndexBuffer;
+        DeviceBuffer? _NodeVertexBuffer, _NodeIndexBuffer;
 
-        TextureView _NodeCircleSpriteview;
-        Pipeline _edgesPipeline, _pointsPipeline;
+        readonly TextureView _NodeCircleSpriteview;
+        Pipeline? _edgesPipeline, _pointsPipeline;
 
         readonly GraphLayoutEngine _layoutEngine;
+
 
         /// <summary>
         /// Create a preview graph widget
         /// </summary>
         /// <param name="controller">ImGui controller</param>
-        /// <param name="gdev">Graphics device for GPU access</param>
         /// <param name="clientState">rgat state object</param>
-        public PreviewGraphsWidget(ImGuiController controller, GraphicsDevice gdev, rgatState clientState)
+        public PreviewGraphsWidget(ImGuiController controller, rgatState clientState)
         {
             IrregularTimer = new System.Timers.Timer(600);
             IrregularTimer.Elapsed += FireTimer;
             IrregularTimer.AutoReset = true;
             IrregularTimer.Start();
-            _rgatState = clientState;
             _ImGuiController = controller;
-            _gd = gdev;
-            _factory = gdev.ResourceFactory;
-            _layoutEngine = new GraphLayoutEngine(gdev, controller, "Preview");
-            SetupRenderingResources();
-
-            _NodeCircleSpriteview = _ImGuiController.IconTexturesView;
+            _NodeCircleSpriteview = controller.IconTexturesView;
+            _rgatState = clientState;
+            _layoutEngine = new GraphLayoutEngine("Preview", controller);
         }
 
+
+        /// <summary>
+        /// Init the grapihcs device/controller
+        /// </summary>
+        /// <param name="gdev">Graphics device for GPU access</param>
+        public void Init( GraphicsDevice gdev)
+        {
+            _gd = gdev;
+            _factory = gdev.ResourceFactory;
+            _layoutEngine.Init(gdev);
+            SetupRenderingResources();
+        }
 
         /// <summary>
         /// Destructor
@@ -96,15 +104,15 @@ namespace rgat
         /// Set the trace of the active graph
         /// </summary>
         /// <param name="trace"></param>
-        public void SetActiveTrace(TraceRecord trace) => ActiveTrace = trace;
+        public void SetActiveTrace(TraceRecord? trace) => ActiveTrace = trace;
 
         /// <summary>
         /// Set the active graph
         /// </summary>
         /// <param name="graph"></param>
-        public void SetSelectedGraph(PlottedGraph graph)
+        public void SetSelectedGraph(PlottedGraph? graph)
         {
-            selectedGraphTID = graph.TID;
+            selectedGraphTID = graph is not null ? graph.TID : uint.MaxValue;
         }
 
         private void HandleClickedGraph(PlottedGraph graph) => clickedGraph = graph;
@@ -130,21 +138,19 @@ namespace rgat
 
         void SetupRenderingResources()
         {
+            Debug.Assert(_gd is not null, "Init not called");
             _paramsBuffer = TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<GraphPlotWidget.GraphShaderParams>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "PreviewPlotparamsBuffer");
 
-            _coreRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _coreRsrcLayout = _factory!.CreateResourceLayout(new ResourceLayoutDescription(
                new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Vertex),
                new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment),
                new ResourceLayoutElementDescription("Positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex),
                new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex)
                ));
 
-
-
             _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                 new ResourceLayoutElementDescription("NodeTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)
                 ));
-
 
             // Create pipelines
             GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
@@ -669,7 +675,7 @@ namespace rgat
             ImGui.SetCursorPosY(ImGui.GetCursorPosY());
             Vector2 subGraphPosition = ImGui.GetCursorScreenPos() + new Vector2(xPadding, 0);
 
-            IntPtr CPUframeBufferTextureId = _ImGuiController.GetOrCreateImGuiBinding(_gd.ResourceFactory, previewTexture, $"PreviewPlot{graph.TID}");
+            IntPtr CPUframeBufferTextureId = _ImGuiController!.GetOrCreateImGuiBinding(_gd!.ResourceFactory, previewTexture, $"PreviewPlot{graph.TID}");
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId,
                 p_min: subGraphPosition,
                 p_max: new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight),
@@ -822,7 +828,7 @@ namespace rgat
             if (graph == null || Exiting) return;
             if (graph._previewFramebuffer1 == null)
             {
-                graph.InitPreviewTexture(new Vector2(EachGraphWidth, CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT), _gd);
+                graph.InitPreviewTexture(new Vector2(EachGraphWidth, CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT), _gd!);
             }
 
 
@@ -857,42 +863,42 @@ namespace rgat
 
             Position2DColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(CONSTANTS.eRenderingMode.eStandardControlFlow, out List<uint> nodeIndices);
 
-            Debug.Assert(!_NodeVertexBuffer.IsDisposed);
+            Debug.Assert(_NodeVertexBuffer!.IsDisposed is false);
 
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
-                (_NodeIndexBuffer.SizeInBytes < nodeIndices.Count * sizeof(uint)))
+                (_NodeIndexBuffer!.SizeInBytes < nodeIndices.Count * sizeof(uint)))
             {
 
                 Logging.RecordLogEvent("disposeremake nodeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
 
                 VeldridGraphBuffers.VRAMDispose(_NodeVertexBuffer);
-                _NodeVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewNodeVertexBuffer");
+                _NodeVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd!, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewNodeVertexBuffer");
 
                 VeldridGraphBuffers.VRAMDispose(_NodeIndexBuffer);
-                _NodeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewNodeIndexBuffer");
+                _NodeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd!, (uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewNodeIndexBuffer");
             }
 
             cl.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
             cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
 
-            if (((edgeVertCount * sizeof(uint)) > _EdgeIndexBuffer.SizeInBytes))
+            if (((edgeVertCount * sizeof(uint)) > _EdgeIndexBuffer!.SizeInBytes))
             {
                 Logging.RecordLogEvent("disposeremake edgeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
 
                 VeldridGraphBuffers.VRAMDispose(_EdgeVertBuffer);
-                _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewEdgeVertexBuffer");
+                _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd!, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewEdgeVertexBuffer");
 
                 VeldridGraphBuffers.VRAMDispose(_EdgeIndexBuffer);
-                _EdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewEdgeIndexBuffer");
+                _EdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd!, (uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewEdgeIndexBuffer");
             }
 
             Logging.RecordLogEvent("render preview 3", filter: Logging.LogFilterType.BulkDebugLogFile);
             cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
             cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
 
-            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd.PointSampler,
+            ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd!.PointSampler,
                 graph.LayoutState.PositionsVRAM1, graph.LayoutState.AttributesVRAM1);
-            ResourceSet crscore = _factory.CreateResourceSet(crs_core_rsd);
+            ResourceSet crscore = _factory!.CreateResourceSet(crs_core_rsd);
 
 
             Logging.RecordLogEvent($"render preview {graph.TID} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);

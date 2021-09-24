@@ -115,12 +115,12 @@ namespace rgat
 
             Logging.RecordLogEvent("Startup: Initing graph display widgets", Logging.LogFilterType.TextDebug);
 
-            visualiserTab = new VisualiserTab(_rgatState);
+            visualiserTab = new VisualiserTab(_rgatState, _controller);
 
 
             Logging.RecordLogEvent($"Startup: Visualiser tab created in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
-            visualiserTab.Init(_gd, _controller, progress);
+            visualiserTab.Init(_gd, progress);
             visualiserTab.SetDialogStateChangeCallback((bool state) => _controller.DialogChange(opened: state));
 
             Logging.RecordLogEvent($"Startup: Visualiser tab initialised in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);

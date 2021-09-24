@@ -22,27 +22,24 @@ namespace ImGuiNET
         private bool _frameBegun;
 
         // Veldrid objects
-        private DeviceBuffer _vertexBuffer;
-        private DeviceBuffer _indexBuffer;
-        private DeviceBuffer _projMatrixBuffer;
-        private Texture _fontTexture;
+        private DeviceBuffer? _vertexBuffer, _indexBuffer, _projMatrixBuffer;
+        private Texture? _fontTexture;
         /// <summary>
         /// Shader accessible font texture
         /// </summary>
         public TextureView? _fontTextureView;
-        private Shader _vertexShader;
-        private Shader _fragmentShader;
-        private ResourceLayout _layout;
-        private ResourceLayout _textureLayout;
-        private Pipeline _pipeline;
-        private ResourceSet _mainResourceSet;
-        private ResourceSet _fontTextureResourceSet;
+        private Shader? _vertexShader, _fragmentShader;
+        private ResourceLayout? _layout, _textureLayout;
+        private Pipeline? _pipeline;
+        private ResourceSet? _mainResourceSet, _fontTextureResourceSet;
+
+        readonly Dictionary<string, Texture> _imageTextures = new Dictionary<string, Texture>();
+        readonly Dictionary<string, TextureView> _textureViews = new Dictionary<string, TextureView>();
+
+        Texture? _imagesTextureArray;
 
         private readonly IntPtr _fontAtlasID = (IntPtr)1;
-        private bool _controlDown;
-        private bool _shiftDown;
-        private bool _altDown;
-        private bool _winKeyDown;
+        private bool _controlDown, _shiftDown, _altDown, _winKeyDown;
 
         /// <summary>
         /// Width of the main window
@@ -56,11 +53,9 @@ namespace ImGuiNET
         private Vector2 _scaleFactor = Vector2.One;
 
         // Image trackers
-        private readonly Dictionary<TextureView, ResourceSetInfo> _setsByView
-            = new Dictionary<TextureView, ResourceSetInfo>();
-        private readonly Dictionary<Texture, TextureView> _autoViewsByTexture
-            = new Dictionary<Texture, TextureView>();
-        private readonly Dictionary<IntPtr, ResourceSetInfo> _viewsById = new Dictionary<IntPtr, ResourceSetInfo>();
+        private readonly Dictionary<TextureView, ResourceSetInfo> _setsByView = new();
+        private readonly Dictionary<Texture, TextureView> _autoViewsByTexture = new();
+        private readonly Dictionary<IntPtr, ResourceSetInfo> _viewsById = new();
         private readonly List<IDisposable> _ownedResources = new List<IDisposable>();
         private int _lastAssignedID = 100;
 
@@ -106,39 +101,6 @@ namespace ImGuiNET
         public GraphicsDevice graphicsDevice => _gd;
 
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-        public static readonly char FA_ICON_NETWORK = '\uf6ff';
-        public static readonly char FA_ICON_LOCALCODE = '\uf5fc';
-        public static readonly char FA_ICON_SAMPLE = '\ue05a';
-        public static readonly char FA_ICON_LOADFILE = '\uf56e';
-        public static readonly char FA_ICON_COG = '\uf013';
-        public static readonly char FA_ICON_COGS = '\uf085';
-        public static readonly char FA_ICON_SQUAREGRID = '\uf00a';
-
-        public static readonly char FA_PLAY_CIRCLE = '\uf144';
-        public static readonly char FA_VIDEO_CAMERA = '\uf03d';
-        public static readonly char FA_STILL_CAMERA = '\uf030';
-        public static readonly char FA_ICON_WARNING = '\uf071';
-        public static readonly char FA_ICON_EXCLAIM = '\uf12a';
-        public static readonly char FA_ICON_UP = '\uf062';
-        public static readonly char FA_ICON_LEFT = '\uf060';
-        public static readonly char FA_ICON_RIGHT = '\uf061';
-        public static readonly char FA_ICON_DOWN = '\uf063';
-        public static readonly char FA_ICON_DIRECTORY = '\uf07b';
-        public static readonly char FA_ICON_FILEPLAIN = '\uf15b';
-        public static readonly char FA_ICON_FILECODE = '\uf1c9';
-        public static readonly char FA_ICON_CROSS = '\uf00d';
-        public static readonly char FA_ICON_PLUS = '\uf067';
-        public static readonly char FA_ICON_UPCIRCLE = '\uf0aa';
-        public static readonly char FA_ICON_DOWNCIRCLE = '\uf0ab';
-        public static readonly char FA_ICON_LEFTCIRCLE = '\uf0a8';
-        public static readonly char FA_ICON_RIGHTCIRCLE = '\uf0a9';
-        public static readonly char FA_ICON_TRASHCAN = '\uf2ed';
-        public static readonly char FA_ICON_WRENCH = '\uf0ad';
-        public static readonly char FA_ICON_ADDFILE = '\uf477';
-        public static readonly char FA_ICON_CLOCK = '\uf017';
-        public static readonly char FA_ICON_DOWNLOAD = '\uf56d';
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
         /// <summary>
         /// A general UI management class
@@ -333,14 +295,11 @@ namespace ImGuiNET
         /// </summary>
         public ImFontPtr rgatLargeFont
         {
-            get { return _titleFont.Value; }
+            get { return _titleFont!.Value; }
             private set { _titleFont = value; }
         }
 
-        readonly Dictionary<string, Texture> _imageTextures = new Dictionary<string, Texture>();
-        readonly Dictionary<string, TextureView> _textureViews = new Dictionary<string, TextureView>();
 
-        Texture _imagesTextureArray;
         void LoadImages()
         {
             ResourceFactory factory = _gd.ResourceFactory;
@@ -861,7 +820,7 @@ namespace ImGuiNET
         private void ExpandGraphicsBuffers(ImDrawDataPtr draw_data, GraphicsDevice gd)
         {
             uint totalVBSize = (uint)(draw_data.TotalVtxCount * Unsafe.SizeOf<ImDrawVert>());
-            if (totalVBSize > _vertexBuffer.SizeInBytes)
+            if (totalVBSize > _vertexBuffer!.SizeInBytes)
             {
                 Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Vertex buffer from {_vertexBuffer.SizeInBytes} to {totalVBSize * 1.5f}", Logging.LogFilterType.TextDebug);
                 gd.DisposeWhenIdle(_vertexBuffer);
@@ -869,7 +828,7 @@ namespace ImGuiNET
             }
 
             uint totalIBSize = (uint)(draw_data.TotalIdxCount * sizeof(ushort));
-            if (totalIBSize > _indexBuffer.SizeInBytes)
+            if (totalIBSize > _indexBuffer!.SizeInBytes)
             {
                 Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Index buffer from {_indexBuffer.SizeInBytes} to {totalIBSize * 1.5f}", Logging.LogFilterType.TextDebug);
                 gd.DisposeWhenIdle(_indexBuffer);
@@ -992,18 +951,18 @@ namespace ImGuiNET
         /// </summary>
         public void Dispose()
         {
-            _vertexBuffer.Dispose();
-            _indexBuffer.Dispose();
-            _projMatrixBuffer.Dispose();
-            _fontTexture.Dispose();
+            _vertexBuffer?.Dispose();
+            _indexBuffer?.Dispose();
+            _projMatrixBuffer?.Dispose();
+            _fontTexture?.Dispose();
             _fontTextureView?.Dispose();
-            _vertexShader.Dispose();
-            _fragmentShader.Dispose();
-            _layout.Dispose();
-            _textureLayout.Dispose();
-            _pipeline.Dispose();
-            _mainResourceSet.Dispose();
-            _imagesTextureArray.Dispose();
+            _vertexShader?.Dispose();
+            _fragmentShader?.Dispose();
+            _layout?.Dispose();
+            _textureLayout?.Dispose();
+            _pipeline?.Dispose();
+            _mainResourceSet?.Dispose();
+            _imagesTextureArray?.Dispose();
 
             foreach (IDisposable resource in _ownedResources)
             {
@@ -1022,5 +981,41 @@ namespace ImGuiNET
                 ResourceSet = resourceSet;
             }
         }
+
+
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        public static readonly char FA_ICON_NETWORK = '\uf6ff';
+        public static readonly char FA_ICON_LOCALCODE = '\uf5fc';
+        public static readonly char FA_ICON_SAMPLE = '\ue05a';
+        public static readonly char FA_ICON_LOADFILE = '\uf56e';
+        public static readonly char FA_ICON_COG = '\uf013';
+        public static readonly char FA_ICON_COGS = '\uf085';
+        public static readonly char FA_ICON_SQUAREGRID = '\uf00a';
+
+        public static readonly char FA_PLAY_CIRCLE = '\uf144';
+        public static readonly char FA_VIDEO_CAMERA = '\uf03d';
+        public static readonly char FA_STILL_CAMERA = '\uf030';
+        public static readonly char FA_ICON_WARNING = '\uf071';
+        public static readonly char FA_ICON_EXCLAIM = '\uf12a';
+        public static readonly char FA_ICON_UP = '\uf062';
+        public static readonly char FA_ICON_LEFT = '\uf060';
+        public static readonly char FA_ICON_RIGHT = '\uf061';
+        public static readonly char FA_ICON_DOWN = '\uf063';
+        public static readonly char FA_ICON_DIRECTORY = '\uf07b';
+        public static readonly char FA_ICON_FILEPLAIN = '\uf15b';
+        public static readonly char FA_ICON_FILECODE = '\uf1c9';
+        public static readonly char FA_ICON_CROSS = '\uf00d';
+        public static readonly char FA_ICON_PLUS = '\uf067';
+        public static readonly char FA_ICON_UPCIRCLE = '\uf0aa';
+        public static readonly char FA_ICON_DOWNCIRCLE = '\uf0ab';
+        public static readonly char FA_ICON_LEFTCIRCLE = '\uf0a8';
+        public static readonly char FA_ICON_RIGHTCIRCLE = '\uf0a9';
+        public static readonly char FA_ICON_TRASHCAN = '\uf2ed';
+        public static readonly char FA_ICON_WRENCH = '\uf0ad';
+        public static readonly char FA_ICON_ADDFILE = '\uf477';
+        public static readonly char FA_ICON_CLOCK = '\uf017';
+        public static readonly char FA_ICON_DOWNLOAD = '\uf56d';
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
     }
 }

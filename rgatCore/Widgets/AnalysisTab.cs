@@ -27,7 +27,7 @@ namespace rgat
 
             chart!.InitChartFromTrace(activeTrace);
 
-            SandboxChart.ItemNode selectedNode = chart.GetSelectedNode;
+            SandboxChart.ItemNode? selectedNode = chart.GetSelectedNode;
             if (ImGui.BeginTable("#TaTTable", 3, ImGuiTableFlags.Resizable))
             {
                 ImGui.TableSetupColumn("#TaTTEntryList", ImGuiTableColumnFlags.None, sidePaneWidth);
@@ -115,8 +115,10 @@ namespace rgat
             ImGui.EndTabItem();
         }
 
-        void DrawEventListTable(TraceRecord trace, SandboxChart.ItemNode selectedNode)
+        void DrawEventListTable(TraceRecord trace, SandboxChart.ItemNode? selectedNode)
         {
+            if (chart is null) return;
+
             TIMELINE_EVENT[] events = trace.GetTimeLineEntries();
             if (ImGui.BeginTable("#TaTTFullList", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg))
             {
@@ -127,11 +129,11 @@ namespace rgat
                 ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.None);
                 ImGui.TableHeadersRow();
 
-                var SelectedEntity = chart!.SelectedEntity;
+                var SelectedEntity = chart.SelectedEntity;
                 var SelectedAPIEvent = chart.SelectedAPIEvent;
 
-                bool ThreadNodeSelected = selectedNode != null && Equals(selectedNode.reference.GetType(), typeof(ProtoGraph));
-                bool ProcessNodeSelected = selectedNode != null && Equals(selectedNode.reference.GetType(), typeof(TraceRecord));
+                bool ThreadNodeSelected = selectedNode is not null && Equals(selectedNode.reference.GetType(), typeof(ProtoGraph));
+                bool ProcessNodeSelected = selectedNode is not null && Equals(selectedNode.reference.GetType(), typeof(TraceRecord));
 
                 int i = 0;
                 foreach (TIMELINE_EVENT TLevent in events)

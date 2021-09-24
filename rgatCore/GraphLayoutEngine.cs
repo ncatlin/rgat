@@ -19,19 +19,27 @@ namespace rgat
         /// <summary>
         /// Runs the computation shaders on graph layout buffers 
         /// </summary>
-        /// <param name="gdev">GPU GraphicsDevice to perform computation with</param>
-        /// <param name="controller">An ImGuiController to load shader code from [todo: remove it from the controller, will need these in non-imgui runners]</param>
         /// <param name="name">A name to identify the layout engine in logfiles</param>
-        public GraphLayoutEngine(GraphicsDevice gdev, ImGuiController controller, string name)
+        /// <param name="controller">An ImGuiController to load shader code from [todo: remove it from the controller, will need these in non-imgui runners]</param>
+        public GraphLayoutEngine( string name, ImGuiController controller)
+        {
+            EngineID = name;
+            _controller = controller;
+        }
+
+
+        /// <summary>
+        /// Set the graphics device and controller once they are created
+        /// </summary>
+        /// <param name="gdev">GPU GraphicsDevice to perform computation with</param>
+        public void Init(GraphicsDevice gdev)
         {
             _gd = gdev;
             _factory = gdev.ResourceFactory;
-            _controller = controller;
-            EngineID = name;
         }
 
-        readonly GraphicsDevice _gd;
-        readonly ResourceFactory _factory;
+        GraphicsDevice? _gd;
+        ResourceFactory? _factory;
         readonly ImGuiController _controller;
 
         /// <summary>
@@ -199,12 +207,15 @@ namespace rgat
 
         unsafe void SetupComputeResources()
         {
-            if (!_gd.Features.ComputeShader) { Console.WriteLine("Error: No computeshader feature"); return; }
+            Debug.Assert(_gd is not null, "Init not called");
+            ResourceFactory factory = _gd.ResourceFactory;
 
-            byte[]? velocityShaderBytes = _controller.LoadEmbeddedShaderCode(_factory, "sim-velocity", ShaderStages.Fragment);
-            _velocityShader = _factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, velocityShaderBytes, "FS"));
+            if (_gd.Features.ComputeShader is false) { Logging.RecordError("Error: Compute shaders are unavailable"); return; }
 
-            _velocityComputeLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
+            byte[]? velocityShaderBytes = _controller.LoadEmbeddedShaderCode(factory, "sim-velocity", ShaderStages.Fragment);
+            _velocityShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, velocityShaderBytes, "FS"));
+
+            _velocityComputeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Compute),
             new ResourceLayoutElementDescription("positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("layoutPositions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
@@ -219,9 +230,9 @@ namespace rgat
 
             ComputePipelineDescription VelocityCPD = new ComputePipelineDescription(_velocityShader, _velocityComputeLayout, 16, 16, 1);
 
-            _velocityComputePipeline = _factory.CreateComputePipeline(VelocityCPD);
+            _velocityComputePipeline = factory.CreateComputePipeline(VelocityCPD);
 
-            _positionComputeLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _positionComputeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Compute),
             new ResourceLayoutElementDescription("positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("velocities", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
@@ -229,17 +240,17 @@ namespace rgat
             new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)));
 
 
-            byte[]? positionShaderBytes = _controller.LoadEmbeddedShaderCode(_factory, "sim-position", ShaderStages.Vertex);
-            _positionShader = _factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, positionShaderBytes, "FS")); //todo ... not fragment
+            byte[]? positionShaderBytes = _controller.LoadEmbeddedShaderCode(factory, "sim-position", ShaderStages.Vertex);
+            _positionShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, positionShaderBytes, "FS")); //todo ... not fragment
 
             ComputePipelineDescription PositionCPD = new ComputePipelineDescription(_positionShader, _positionComputeLayout, 16, 16, 1);
-            _positionComputePipeline = _factory.CreateComputePipeline(PositionCPD);
+            _positionComputePipeline = factory.CreateComputePipeline(PositionCPD);
             _positionParamsBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<PositionShaderParams>(), BufferUsage.UniformBuffer, name: "PositionShaderParams");
 
-            byte[]? noteattribShaderBytes = _controller.LoadEmbeddedShaderCode(_factory, "sim-nodeAttrib", ShaderStages.Vertex);
-            _nodeAttribShader = _factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, noteattribShaderBytes, "FS"));
+            byte[]? noteattribShaderBytes = _controller.LoadEmbeddedShaderCode(factory, "sim-nodeAttrib", ShaderStages.Vertex);
+            _nodeAttribShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, noteattribShaderBytes, "FS"));
 
-            _nodeAttribComputeLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _nodeAttribComputeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Compute),
             new ResourceLayoutElementDescription("nodeAttrib", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("edgeIndices", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
@@ -247,11 +258,9 @@ namespace rgat
             new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)));
             _attribsParamsBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<AttribShaderParams>(), BufferUsage.UniformBuffer, name: "AttribShaderParams");
 
-
-
             ComputePipelineDescription attribCPL = new ComputePipelineDescription(_nodeAttribShader, _nodeAttribComputeLayout, 16, 16, 1);
 
-            _nodeAttribComputePipeline = _factory.CreateComputePipeline(attribCPL);
+            _nodeAttribComputePipeline = factory.CreateComputePipeline(attribCPL);
         }
 
 
@@ -292,8 +301,8 @@ namespace rgat
         float FindHighXYZ(DeviceBuffer buf, int nodeCount, out int highIndex)
         {
             Logging.RecordLogEvent($"FindHighXYZ  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, buf);
-            MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd!, buf);
+            MappedResourceView<float> destinationReadView = _gd!.Map<float>(destinationReadback, MapMode.Read);
             float highest = 0f;
             highIndex = 0;
             for (int testNodeIndex = 0; testNodeIndex < nodeCount; testNodeIndex += 1)
@@ -416,7 +425,7 @@ namespace rgat
                 //outputAttributes = layout.AttributesVRAM1;
             }
 
-            ResourceSet velocityComputeResourceSet = _factory.CreateResourceSet(velocity_rsrc_desc);
+            ResourceSet velocityComputeResourceSet = _factory!.CreateResourceSet(velocity_rsrc_desc);
             ResourceSet posRS = _factory.CreateResourceSet(pos_rsrc_desc);
 
             cl.Begin();
@@ -463,7 +472,7 @@ namespace rgat
 
             cl.End();
 
-            _gd.SubmitCommands(cl);
+            _gd!.SubmitCommands(cl);
             _gd.WaitForIdle();
 
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM1, "Atts1", 32);
@@ -821,8 +830,8 @@ namespace rgat
         /// <param name="printCount">Max values to print</param>
         void DebugPrintOutputFloatBuffer(DeviceBuffer buf, string message, int printCount)
         {
-            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, buf);
-            MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd!, buf);
+            MappedResourceView<float> destinationReadView = _gd!.Map<float>(destinationReadback, MapMode.Read);
             float[] outputArray = new float[destinationReadView.Count];
             for (int index = 0; index < destinationReadView.Count; index++)
             {

@@ -10,11 +10,6 @@ namespace rgat.Threads
         public VisualiserBarRendererThread(VisualiserBar visualiserbar)
         {
             _visualiserBarWidget = visualiserbar;
-
-            //_IrregularActionTimer = new System.Timers.Timer(600);
-            //_IrregularActionTimer.Elapsed += FireIrregularTimer;
-            //_IrregularActionTimer.AutoReset = true;
-
         }
 
 
@@ -28,16 +23,10 @@ namespace rgat.Threads
 
         public void Dispose()
         {
-            _IrregularActionTimer?.Stop();
-            _IrregularActionTimer?.Dispose();
 
         }
 
         readonly VisualiserBar _visualiserBarWidget;
-        readonly System.Timers.Timer _IrregularActionTimer;
-        //bool _IrregularActionTimerFired;
-
-        //private void FireIrregularTimer(object sender, ElapsedEventArgs e) { _IrregularActionTimerFired = true; }
 
         void update_rendering(PlottedGraph graph)
         {

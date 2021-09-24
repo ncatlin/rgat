@@ -54,7 +54,7 @@ namespace rgat.Widgets
         }
 
 
-        TraceRecord _rootTrace = null;
+        TraceRecord? _rootTrace = null;
         int timelineItemsOnChartDraw = 0;
         public void InitChartFromTrace(TraceRecord trace)
         {
@@ -104,9 +104,10 @@ namespace rgat.Widgets
         readonly Dictionary<Tuple<ItemNode, ItemNode>, List<string>> _edgeLabels = new Dictionary<Tuple<ItemNode, ItemNode>, List<string>>();
         readonly List<Tuple<ItemNode, ItemNode>> _addedEdges = new List<Tuple<ItemNode, ItemNode>>();
 
-        ItemNode _selectedNode = null;
-        public ItemNode GetSelectedNode => _selectedNode;
-        public Logging.TIMELINE_EVENT SelectedAPIEvent { get; private set; }
+        ItemNode? _selectedNode = null;
+        public ItemNode? SelectedEntity { get; private set; }
+        public ItemNode? GetSelectedNode => _selectedNode;
+        public Logging.TIMELINE_EVENT? SelectedAPIEvent { get; private set; }
         Vector2 Point2Vec(GraphShape.Point point) => new Vector2((float)point.X, (float)point.Y);
         Vector2 chartOffset = Vector2.Zero;
 
@@ -119,9 +120,8 @@ namespace rgat.Widgets
             }
         }
 
-        public ItemNode SelectedEntity { get; private set; }
 
-        void AddThreadItems(ItemNode parentProcess, TraceRecord trace)
+        void AddThreadItems(ItemNode? parentProcess, TraceRecord trace)
         {
 
             string nodeName = $"PROCNODE_{trace.randID}";
@@ -341,7 +341,8 @@ namespace rgat.Widgets
             }
         }
 
-        void AddAPIEdge(ItemNode source, ItemNode dest, string label = null)
+
+        void AddAPIEdge(ItemNode source, ItemNode dest, string? label = "")
         {
             Edge<ItemNode> edge = new Edge<ItemNode>(source, dest);
             Tuple<ItemNode, ItemNode> edgeTuple = new Tuple<ItemNode, ItemNode>(source, dest);
@@ -351,15 +352,18 @@ namespace rgat.Widgets
                 _addedEdges.Add(edgeTuple);
             }
 
-            if (!_edgeLabels.TryGetValue(edgeTuple, out List<string>? thisEdgeLabels))
+            if (label is not null)
             {
-                _edgeLabels.Add(edgeTuple, new List<string>() { label });
-            }
-            else
-            {
-                if (!thisEdgeLabels.Contains(label))
+                if (!_edgeLabels.TryGetValue(edgeTuple, out List<string>? thisEdgeLabels))
                 {
-                    thisEdgeLabels.Add(label);
+                    _edgeLabels.Add(edgeTuple, new List<string>() { label });
+                }
+                else
+                {
+                    if (!thisEdgeLabels.Contains(label))
+                    {
+                        thisEdgeLabels.Add(label);
+                    }
                 }
             }
         }

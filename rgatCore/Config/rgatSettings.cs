@@ -154,6 +154,12 @@ namespace rgat.Config
         public class PathRecord
         {
             /// <summary>
+            /// Record a recently accessed binary/directory/trace
+            /// </summary>
+            /// <param name="path">file path</param>
+            public PathRecord(string path) { Path = path; }
+
+            /// <summary>
             /// Filesystem path of the file
             /// </summary>
             public string Path { get; set; }
@@ -535,7 +541,7 @@ namespace rgat.Config
             {
                 lock (_lock)
                 {
-                    if (Paths.TryGetValue(setting, out string? result))
+                    if (Paths!.TryGetValue(setting, out string? result))
                         return result;
                 }
                 return "";
@@ -547,7 +553,7 @@ namespace rgat.Config
                 lock (_lock)
                 {
                     //we call this when the values are the same to cause a signature check
-                    if (!Paths.TryGetValue(setting, out string? oldval) || oldval != value)
+                    if (!Paths!.TryGetValue(setting, out string? oldval) || oldval != value)
                     {
                         Paths[setting] = value;
                         MarkDirty();
@@ -559,7 +565,7 @@ namespace rgat.Config
             /// <summary>
             /// Filesystem locations containing things rgat needs (instrumentation tools, signatures, etc)
             /// </summary>
-            public Dictionary<CONSTANTS.PathKey, string> Paths { get; set; }
+            public Dictionary<CONSTANTS.PathKey, string>? Paths { get; set; }
 
             /// <summary>
             /// Errors such as bad signatures encountered while validating binaries used by rgat (pintools, etc).
@@ -595,7 +601,7 @@ namespace rgat.Config
                             else
                             {
                                 Logging.RecordError($"Binary signature validation failed for {path}: {error}");
-                                lock (_lock) { BinaryValidationErrors[path] = error; }
+                                lock (_lock) { BinaryValidationErrors[path] = error!; }
                             }
                             SetPath(setting, path);
                             break;
@@ -762,7 +768,6 @@ namespace rgat.Config
                     try
                     {
                         _UpdateLastCheckVersion = value;
-                        _UpdateLastCheckVersionString = value.ToString();
                         GlobalConfig.NewVersionAvailable = _UpdateLastCheckVersion > CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC;
                     }
                     catch (Exception e)
@@ -774,7 +779,6 @@ namespace rgat.Config
                 }
             }
 
-            string? _UpdateLastCheckVersionString;
             /// <summary>
             /// Latest available rgat version
             /// </summary>
@@ -786,7 +790,6 @@ namespace rgat.Config
                     try
                     {
                         UpdateLastCheckVersion = Version.Parse(value);
-                        _UpdateLastCheckVersionString = value;
                     }
                     catch (Exception e)
                     {
@@ -910,9 +913,8 @@ namespace rgat.Config
                     PathRecord? found = targetList.Find(x => x.Path == path);
                     if (found == null)
                     {
-                        found = new PathRecord()
+                        found = new PathRecord(path)
                         {
-                            Path = path,
                             FirstOpen = DateTime.Now,
                             LastOpen = DateTime.Now,
                             OpenCount = 1
@@ -931,7 +933,9 @@ namespace rgat.Config
                     {
                         try
                         {
-                            RecordRecentPath(PathType.Directory, Path.GetDirectoryName(path));
+                            string? dirname = Path.GetDirectoryName(path);
+                            if (dirname is not null)
+                                RecordRecentPath(PathType.Directory, dirname);
                         }
                         catch (Exception e)
                         {

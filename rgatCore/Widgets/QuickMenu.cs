@@ -41,7 +41,7 @@ namespace rgat.Widgets
         Vector2 _popupPos = Vector2.Zero;
         Vector2 _menuBase = Vector2.Zero;
         Vector2 _iconSize = Vector2.Zero;
-        readonly GraphicsDevice _gd;
+        GraphicsDevice? _gd;
         readonly HighlightDialog HighlightDialogWidget = new HighlightDialog();
         readonly MenuEntry _baseMenuEntry;
 
@@ -108,11 +108,9 @@ namespace rgat.Widgets
         /// <summary>
         /// Create a quickmenu
         /// </summary>
-        /// <param name="gd">GraphicsDevice to render it on</param>
         /// <param name="controller">ImguiController</param>
-        public QuickMenu(GraphicsDevice gd, ImGuiController controller)
+        public QuickMenu(ImGuiController controller)
         {
-            _gd = gd;
             _controller = controller;
 
             List<MenuEntry> baseEntries = new List<MenuEntry>();
@@ -143,6 +141,12 @@ namespace rgat.Widgets
 
             PopulateMenuActionsList(_baseMenuEntry);
         }
+
+        /// <summary>
+        /// Set the graphis device
+        /// </summary>
+        /// <param name="gd">GraphicsDevice to render it on</param>
+        public void Init(GraphicsDevice gd) => _gd = gd;
 
         /// <summary>
         /// Called whenever the menu is opened/closed
@@ -439,7 +443,7 @@ namespace rgat.Widgets
 
             if (_expandProgress == 0)
             {
-                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon, "QuickMenuButton");
+                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd!.ResourceFactory, btnIcon, "QuickMenuButton");
                 Vector2 padding = new Vector2(16f, 6f);
                 Vector2 mainIconPos = new Vector2((position.X) + padding.X, ((position.Y - _iconSize.Y) - 4) - padding.Y);
                 ImGui.SetCursorScreenPos(mainIconPos);
@@ -551,7 +555,7 @@ namespace rgat.Widgets
             if (entry.Icon is not null)
             {
                 Texture btnIcon = _controller.GetImage(entry.Icon);
-                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd.ResourceFactory, btnIcon, "QuickMenuSubButton");
+                IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd!.ResourceFactory, btnIcon, "QuickMenuSubButton");
                 ImGui.SetCursorScreenPos(new Vector2(_menuBase.X, _menuBase.Y - Yoffset));
                 Vector4 border = isActive ? new Vector4(1f, 1f, 1f, 1f) : Vector4.Zero;
                 ImGui.Image(CPUframeBufferTextureId, _iconSize, Vector2.Zero, Vector2.One, Vector4.One, border);

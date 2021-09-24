@@ -14,8 +14,9 @@ namespace rgat
     {
         GraphPlotWidget MainGraphWidget;
         public PreviewGraphsWidget PreviewGraphWidget { get; private set; }
-        VisualiserBar _visualiserBar;
+        VisualiserBar? _visualiserBar;
         readonly rgatState _rgatState;
+        readonly ImGuiController _controller;
 
         //threads
         Threads.VisualiserBarRendererThread? visbarRenderThreadObj = null;
@@ -23,19 +24,22 @@ namespace rgat
 
         public double UIFrameAverage = 0;
 
-        public VisualiserTab(rgatState _state)
+        public VisualiserTab(rgatState state, ImGuiController controller)
         {
-            _rgatState = _state;
+            _rgatState = state;
+            _controller = controller;
+            MainGraphWidget = new GraphPlotWidget(state, controller, new Vector2(1000, 500)); 
+            PreviewGraphWidget = new PreviewGraphsWidget(controller, state); 
         }
 
-        public void Init(GraphicsDevice gd, ImGuiController controller, IProgress<float> progress)
+        public void Init(GraphicsDevice gd, IProgress<float> progress)
         {
-            _visualiserBar = new VisualiserBar(gd, controller); //200~ ms
-            progress.Report(0.3f);
-            MainGraphWidget = new GraphPlotWidget(controller, gd, _rgatState, new Vector2(1000, 500)); //1000~ ms
+            MainGraphWidget.Init(gd);//1000~ ms
+            progress.Report(0.7f);
 
-            progress.Report(0.8f);
-            PreviewGraphWidget = new PreviewGraphsWidget(controller, gd, _rgatState); //350~ ms
+            PreviewGraphWidget.Init(gd);//350~ ms
+            progress.Report(0.9f);
+            _visualiserBar = new VisualiserBar(gd, _controller!); //200~ ms
             PreviewRendererThread.SetPreviewWidget(PreviewGraphWidget);
 
             progress.Report(0.99f);
@@ -100,7 +104,7 @@ namespace rgat
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
             if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, false, ImGuiWindowFlags.NoScrollbar))
             {
-                PreviewGraphWidget.DrawWidget();
+                PreviewGraphWidget!.DrawWidget();
                 if (PreviewGraphWidget.clickedGraph != null)
                 {
                     SetActiveGraph(PreviewGraphWidget.clickedGraph);
@@ -200,7 +204,7 @@ namespace rgat
 
             if (ImGui.BeginChild(ImGui.GetID("ReplayControlPanel"), new Vector2(width, otherControlsHeight)))
             {
-                _visualiserBar.DrawReplaySlider(width: width, height: 50, graph: activeGraph);
+                _visualiserBar!.DrawReplaySlider(width: width, height: 50, graph: activeGraph);
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
 
                 ImGui.BeginGroup();
@@ -516,7 +520,7 @@ namespace rgat
             if (ImGui.BeginChild(ImGui.GetID("LiveTraceControlPanel"), new Vector2(replayControlsSize, otherControlsHeight)))
             {
 
-                _visualiserBar.Draw(width, 50);
+                _visualiserBar!.Draw(width, 50);
                 ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
 
                 if (ImGui.BeginChild("LiveControlsPane", new Vector2(500, ImGui.GetContentRegionAvail().Y - 2)))
@@ -545,7 +549,7 @@ namespace rgat
             }
 
             _rgatState.SwitchToGraph(graph);
-            PreviewGraphWidget.SetSelectedGraph(graph);
+            PreviewGraphWidget!.SetSelectedGraph(graph);
             //MainGraphWidget.SetActiveGraph(graph);
         }
 
@@ -831,6 +835,8 @@ namespace rgat
                 {
                     _rgatState.SelectActiveTrace();
                 }
+
+                if (PreviewGraphWidget is null) return;
                 if (_rgatState.ChooseActiveGraph())
                 {
                     if (rgatState.RecordVideoOnNextTrace)
@@ -858,8 +864,8 @@ namespace rgat
                     rgatState.RecordVideoOnNextTrace = false;
                 }
 
-                PreviewGraphWidget.SetActiveTrace(_rgatState.ActiveTrace);
-                PreviewGraphWidget.SetSelectedGraph(_rgatState.ActiveGraph);
+                PreviewGraphWidget!.SetActiveTrace(_rgatState.ActiveTrace);
+                PreviewGraphWidget!.SetSelectedGraph(_rgatState.ActiveGraph);
             }
         }
 
