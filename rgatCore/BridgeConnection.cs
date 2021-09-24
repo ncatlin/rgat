@@ -547,7 +547,7 @@ namespace rgat
                 Logging.RecordLogEvent($"Exception during send: {e.Message}", Logging.LogFilterType.TextError);
                 if (write != null && write.IsCanceled)
                 {
-                    Console.WriteLine("Cancellation during send data");
+                    Logging.WriteConsole("Cancellation during send data");
                 }
                 else
                 {
@@ -592,7 +592,7 @@ namespace rgat
             }
             else
             {
-                Console.WriteLine(msg);
+                Logging.WriteConsole(msg);
             }
         }
 
@@ -676,7 +676,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Exception {e} in StartConnectOut");
+                Logging.WriteConsole($"Exception {e} in StartConnectOut");
                 Teardown();
                 return;
             }
@@ -712,7 +712,7 @@ namespace rgat
             else
             {
                 Teardown();
-                Console.WriteLine($"StartListenForConnection not connected");
+                Logging.WriteConsole($"StartListenForConnection not connected");
             }
         }
 
@@ -746,14 +746,14 @@ namespace rgat
             RemoteEndPoint = (IPEndPoint)_ActiveClient.Client.RemoteEndPoint;
             LastAddress = RemoteEndPoint.Address.ToString();
             BridgeState = eBridgeState.Connected;
-            Console.WriteLine("Invoking connected callback");
+            Logging.WriteConsole("Invoking connected callback");
             Task.Run(() => connectedCallback());
             StartConnectionDataHandlers();
         }
 
         private void StartConnectionDataHandlers()
         {
-            Console.WriteLine($"Client {_ActiveClient} authenticated, serving...");
+            Logging.WriteConsole($"Client {_ActiveClient} authenticated, serving...");
 
             Task reader = Task.Run(() => ReceiveIncomingTraffic());
             Task sender = Task.Run(() => SendOutgoingTraffic());
@@ -994,7 +994,7 @@ namespace rgat
 
         private void ReceiveIncomingTraffic()
         {
-            Console.WriteLine("ReceiveIncomingTraffic started");
+            Logging.WriteConsole("ReceiveIncomingTraffic started");
             Debug.Assert(_registeredIncomingDataCallback is not null);
             while (_ActiveClient is not null && _ActiveClient.Connected && !cancelTokens.IsCancellationRequested)
             {
@@ -1062,12 +1062,12 @@ namespace rgat
         /// <returns>Authenticated</returns>
         public bool AuthenticateOutgoingConnection(TcpClient client)
         {
-            Console.WriteLine($"AuthenticateOutgoingConnection Sending prelude '{(GUIMode ? connectPreludeGUI : connectPreludeHeadless)}'");
+            Logging.WriteConsole($"AuthenticateOutgoingConnection Sending prelude '{(GUIMode ? connectPreludeGUI : connectPreludeHeadless)}'");
 
 
             if (!RawSendData(emsgType.Meta, GUIMode ? connectPreludeGUI : connectPreludeHeadless))
             {
-                Console.WriteLine($"Failed to send prelude using {client}");
+                Logging.WriteConsole($"Failed to send prelude using {client}");
                 return false;
             }
 
@@ -1091,10 +1091,10 @@ namespace rgat
             }
             string expectedConnectResponse = GUIMode ? connectResponseHeadless : connectResponseGUI;
 
-            Console.WriteLine($"AuthenticateOutgoingConnection Comparing response '{response}' to gui:{GUIMode} expected '{expectedConnectResponse}'");
+            Logging.WriteConsole($"AuthenticateOutgoingConnection Comparing response '{response}' to gui:{GUIMode} expected '{expectedConnectResponse}'");
             if (authString == expectedConnectResponse)
             {
-                Console.WriteLine($"Auth succeeded");
+                Logging.WriteConsole($"Auth succeeded");
                 return true;
             }
             else
@@ -1147,7 +1147,7 @@ namespace rgat
             if (recvd == null || msg.msgType != emsgType.Meta || msg.data.Length == 0)
             {
                 AddNetworkDisplayLogMessage("Authentication failed - no vald data", Themes.eThemeColour.eBadStateColour);
-                Console.WriteLine($"AuthenticateIncomingConnection No prelude from {client}, ignoring");
+                Logging.WriteConsole($"AuthenticateIncomingConnection No prelude from {client}, ignoring");
                 Logging.RecordLogEvent($"No prelude from {client}, ignoring", Logging.LogFilterType.TextDebug);
                 return false;
             }
@@ -1155,7 +1155,7 @@ namespace rgat
             string connectPrelude = GUIMode ? connectPreludeHeadless : connectPreludeGUI;
             if (authString == connectPrelude && RawSendData(emsgType.Meta, GUIMode ? connectResponseGUI : connectResponseHeadless))
             {
-                Console.WriteLine($"Auth succeeded");
+                Logging.WriteConsole($"Auth succeeded");
                 return true;
             }
             else

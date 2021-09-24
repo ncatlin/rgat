@@ -340,7 +340,7 @@ namespace rgat
 
         private bool InitialiseFromRemoteDataInner(Newtonsoft.Json.Linq.JToken dataTok)
         {
-            Console.WriteLine("Initing from remote");
+            Logging.WriteConsole("Initing from remote");
             if (dataTok.Type != JTokenType.Object)
             {
                 Logging.RecordLogEvent($"Got non-obj InitialiseFromRemoteData param <{dataTok.Type}>", Logging.LogFilterType.TextError);
@@ -806,7 +806,7 @@ namespace rgat
             }
             catch
             {
-                Console.WriteLine("Error: Exception reading binary data");
+                Logging.WriteConsole("Error: Exception reading binary data");
                 _sha1hash = "Error";
                 _sha256hash = "Error";
                 HexPreview = "Error";

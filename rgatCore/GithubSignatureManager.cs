@@ -271,7 +271,7 @@ namespace rgat
 
                 Task<byte[]> repobytes = client.GetByteArrayAsync($"https://api.github.com/repos/{repo.OrgName}/{repo.RepoName}/zipball");
                 repobytes.Wait(cancellationToken: _token);
-                Console.WriteLine($"Downloaded {repobytes.Result.Length} bytes of signaturedata");
+                Logging.WriteConsole($"Downloaded {repobytes.Result.Length} bytes of signaturedata");
                 string tempname = Path.GetTempFileName();
                 using (var fs = new FileStream(tempname, FileMode.Open, FileAccess.Write, FileShare.None, 4096))
                 {

@@ -116,7 +116,6 @@ namespace rgat.Widgets
 
         private void CreateTextures(float width, float height)
         {
-            Console.WriteLine("VisBarCreateTex Start");
             _width = Math.Max(50, width);
             _height = Math.Max(50, height);
             lock (_lock)
@@ -127,7 +126,6 @@ namespace rgat.Widgets
                     PixelFormat.R32_G32_B32_A32_Float, TextureUsage.RenderTarget | TextureUsage.Sampled));
                 _outputFramebuffer = _factory.CreateFramebuffer(new FramebufferDescription(null, _outputTexture));
             }
-            Console.WriteLine("VisBarCreateTex end");
         }
 
         private void MaintainBuffers()
@@ -333,7 +331,7 @@ namespace rgat.Widgets
                 {
                     graph.SeekToAnimationPosition(sliderBarPosition);
                 }
-                Console.WriteLine($"User changed animation position to: {sliderBarPosition * 100}%");
+                Logging.WriteConsole($"User changed animation position to: {sliderBarPosition * 100}%");
             }
 
 
@@ -565,7 +563,7 @@ namespace rgat.Widgets
                     if (graph.BusiestBlockExecCount > 0)
                     {
                         //int blkct = blockTailIdx - (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1;
-                        //Console.WriteLine($"NodeID: {node.index} BlockID: {ae.blockID} BlkSz: {blkct} ThisExecCt:{ae.count} TotlExecCount: {node.executionCount} heatrank: {node.heatRank}");
+                        //Logging.WriteConsole($"NodeID: {node.index} BlockID: {ae.blockID} BlkSz: {blkct} ThisExecCt:{ae.count} TotlExecCount: {node.executionCount} heatrank: {node.heatRank}");
                         float ecountprop = 1 - (ae.count / (float)graph.BusiestBlockExecCount);
                         if (busyCountLinePoints.Count > 0)
                         {
@@ -916,7 +914,7 @@ namespace rgat.Widgets
                         Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
                         WritableRgbaFloat heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)
                             ((float)Themes.eThemeColour.eHeat0Lowest + node.heatRank));
-                        //Console.WriteLine($"x: {x}, animidx: {entryIdx} node:{node.index} rank:{node.heatRank}");
+                        //Logging.WriteConsole($"x: {x}, animidx: {entryIdx} node:{node.index} rank:{node.heatRank}");
                         lines.Add(new Position2DColour()
                         {
                             Color = heatColour,

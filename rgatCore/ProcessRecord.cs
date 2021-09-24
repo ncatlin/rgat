@@ -65,37 +65,37 @@ namespace rgat
 
             if (processDataJSON == null)
             {
-                Console.WriteLine("[rgat]ERROR: Process data load failed");
+                Logging.WriteConsole("[rgat]ERROR: Process data load failed");
                 return false;
             }
 
             if (!LoadModules((JObject)processDataJSON))
             {
-                Console.WriteLine("[rgat]ERROR: Failed to load module paths");
+                Logging.WriteConsole("[rgat]ERROR: Failed to load module paths");
                 return false;
             }
 
             if (!LoadSymbols((JObject)processDataJSON))
             {
-                Console.WriteLine("[rgat]ERROR: Failed to load symbols");
+                Logging.WriteConsole("[rgat]ERROR: Failed to load symbols");
                 return false;
             }
 
             if (!LoadDisassembly((JObject)processDataJSON))
             {
-                Console.WriteLine("[rgat]ERROR: Disassembly reconstruction failed");
+                Logging.WriteConsole("[rgat]ERROR: Disassembly reconstruction failed");
                 return false;
             }
 
             if (!LoadBlockData((JObject)processDataJSON))
             {
-                Console.WriteLine("[rgat]ERROR: Basic block reconstruction failed");
+                Logging.WriteConsole("[rgat]ERROR: Basic block reconstruction failed");
                 return false;
             }
 
             if (!loadExterns((JObject)processDataJSON))
             {
-                Console.WriteLine("[rgat]ERROR: Extern call loading failed");
+                Logging.WriteConsole("[rgat]ERROR: Extern call loading failed");
                 return false;
             }
 
@@ -137,7 +137,7 @@ namespace rgat
                     bool found = FindContainingModule(externBlockaddr, out int? moduleNo);
                     if (!found || ModuleTraceStates.Count <= moduleNo)
                     {
-                        Console.WriteLine($"Error: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
+                        Logging.WriteConsole($"Error: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
                         externBlock = null;
                         return null;
                     }
@@ -168,12 +168,12 @@ namespace rgat
 
                 if (iterations++ > 20 && (iterations % 20 == 0))
                 {
-                    Console.WriteLine($"[rgat]Warning: Long wait for disassembly of block ID {blockID}");
+                    Logging.WriteConsole($"[rgat]Warning: Long wait for disassembly of block ID {blockID}");
                 }
 
                 if (iterations++ > 200)
                 {
-                    Console.WriteLine($"[rgat]Warning: Giving up waiting for disassembly of block ID {blockID}");
+                    Logging.WriteConsole($"[rgat]Warning: Giving up waiting for disassembly of block ID {blockID}");
                     break;
                 }
             }
@@ -221,7 +221,7 @@ namespace rgat
         {
             if (localmodID > 1000)
             {
-                Console.WriteLine($"Ignoring strangely huge module id {localmodID} {path}");
+                Logging.WriteConsole($"Ignoring strangely huge module id {localmodID} {path}");
                 return;
             }
 
@@ -408,7 +408,7 @@ namespace rgat
                 bool found = FindContainingModule(address, out int? moduleNo);
                 if (!found || ModuleTraceStates.Count <= moduleNo)
                 {
-                    Console.WriteLine($"Warning: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
+                    Logging.WriteConsole($"Warning: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
                     Thread.Sleep(15);
                     continue;
                 }
@@ -416,7 +416,7 @@ namespace rgat
                 {
                     return ulong.MaxValue;
                 }
-                Console.WriteLine($"Waiting for block at 0x{address:x}");
+                Logging.WriteConsole($"Waiting for block at 0x{address:x}");
                 Thread.Sleep(15);
 
             }
@@ -457,7 +457,7 @@ namespace rgat
                 timewaited += 2;
                 if (timewaited > 2500 && (timewaited % 1000) == 0)
                 {
-                    Console.WriteLine($"Warning, long wait for block {blockID}. Currently {timewaited / 1000}s");
+                    Logging.WriteConsole($"Warning, long wait for block {blockID}. Currently {timewaited / 1000}s");
                     if (timewaited > 5000)
                     {
                         address = 0;
@@ -1128,7 +1128,7 @@ namespace rgat
         {
             if (!processJSON.TryGetValue("Externs", out JToken? jExterns) || jExterns.Type != JTokenType.Array)
             {
-                Console.WriteLine("[rgat] Failed to find valid Externs in trace");
+                Logging.WriteConsole("[rgat] Failed to find valid Externs in trace");
                 return false;
             }
             JArray ExternsArray = (JArray)jExterns;
@@ -1218,7 +1218,7 @@ namespace rgat
                     }
                     else
                     {
-                        Console.WriteLine($"Null thread verts: 0x{mutation.Address:X} => {mutation.InsText}, {mutation.GlobalModNum}[{GetModulePath(mutation.GlobalModNum)}]");
+                        Logging.WriteConsole($"Null thread verts: 0x{mutation.Address:X} => {mutation.InsText}, {mutation.GlobalModNum}[{GetModulePath(mutation.GlobalModNum)}]");
                     }
                     mutationData.Add(threadsUsingInstruction);
                     opcodesMutationsList.Add(mutationData);

@@ -745,7 +745,7 @@ namespace rgat.Widgets
                 return;
             }
 
-            Console.WriteLine("fitting cycle start");
+            Logging.WriteConsole("fitting cycle start");
             //find the most extreme node positions, relative to the edges
             Vector2 firstNodePos = Point2Vec(positions[sbgraph.Vertices.First()]) + chartOffset;
             double Xleft = firstNodePos.X, Xright = Xleft, yTop = firstNodePos.Y, yBase = yTop;
@@ -826,7 +826,7 @@ namespace rgat.Widgets
                 _fittingActive = false;
             }
 
-            Console.WriteLine("fitting cycle end");
+            Logging.WriteConsole("fitting cycle end");
             if (_fittingActive)
             {
                 fittingAttempts += 1;

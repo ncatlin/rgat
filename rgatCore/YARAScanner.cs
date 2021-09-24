@@ -561,7 +561,7 @@ namespace rgat
         /// <param name="zipfile">bytes of a zipped signature directory</param>
         public static void ReplaceSignatures(byte[] zipfile)
         {
-            Console.WriteLine($"Replacing yara sigs with zip size {zipfile.Length}");
+            Logging.WriteConsole($"Replacing yara sigs with zip size {zipfile.Length}");
             try
             {
                 rgatState.YARALib?.CancelAllScans();

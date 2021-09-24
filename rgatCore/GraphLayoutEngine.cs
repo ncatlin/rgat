@@ -239,7 +239,16 @@ namespace rgat
             new ResourceLayoutElementDescription("positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("velocities", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("blockData", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
-            new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)));
+            new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute),
+
+
+            new ResourceLayoutElementDescription("test1presetpos", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("test2edgeIndices", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("test3edgeData", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("test4edgeStre", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute)
+
+
+            ));
 
 
             byte[]? positionShaderBytes = ImGuiController.LoadEmbeddedShaderCode(factory, "sim-position", ShaderStages.Vertex);
@@ -396,9 +405,19 @@ namespace rgat
                     layout.EdgeConnectionIndexes, layout.EdgeConnections, layout.EdgeStrengths, layout.BlockMetadata,
                 layout.VelocitiesVRAM2);
 
-                pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout, _positionParamsBuffer,
-                   layout.PositionsVRAM1, layout.VelocitiesVRAM2, layout.BlockMetadata,
-                   layout.PositionsVRAM2);
+                pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout, 
+                    _positionParamsBuffer,
+                   layout.PositionsVRAM1, 
+                   layout.VelocitiesVRAM2, 
+                   layout.BlockMetadata,
+                   layout.PositionsVRAM2,
+
+                  //tests
+                  layout.PresetPositions,
+                layout.EdgeConnectionIndexes,
+                layout.EdgeConnections,
+                layout.EdgeStrengths
+                  );
 
                 attr_rsrc_desc = new ResourceSetDescription(_nodeAttribComputeLayout,
                     _attribsParamsBuffer, layout.AttributesVRAM1, layout.EdgeConnectionIndexes,
@@ -412,13 +431,28 @@ namespace rgat
             {
                 velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeLayout,
                 _velocityParamsBuffer,
-                layout.PositionsVRAM2, layout.PresetPositions, layout.VelocitiesVRAM2,
-                layout.EdgeConnectionIndexes, layout.EdgeConnections, layout.EdgeStrengths, layout.BlockMetadata,
+                layout.PositionsVRAM2, 
+                layout.PresetPositions, //
+                layout.VelocitiesVRAM2,
+                layout.EdgeConnectionIndexes, // 
+                layout.EdgeConnections, //
+                layout.EdgeStrengths, // 
+                layout.BlockMetadata,
                 layout.VelocitiesVRAM1);
 
-                pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout, _positionParamsBuffer,
-                 layout.PositionsVRAM2, layout.VelocitiesVRAM1, layout.BlockMetadata,
-                  layout.PositionsVRAM1);
+                pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout, 
+                    _positionParamsBuffer,
+                 layout.PositionsVRAM2, 
+                 layout.VelocitiesVRAM1, 
+                 layout.BlockMetadata,
+                  layout.PositionsVRAM1,
+
+                  //tests
+                  layout.PresetPositions,
+                layout.EdgeConnectionIndexes,
+                layout.EdgeConnections,
+                layout.EdgeStrengths 
+                  );
 
                 attr_rsrc_desc = new ResourceSetDescription(_nodeAttribComputeLayout,
                     _attribsParamsBuffer, layout.AttributesVRAM2, layout.EdgeConnectionIndexes,
@@ -427,17 +461,24 @@ namespace rgat
                 //outputAttributes = layout.AttributesVRAM1;
             }
 
-            ResourceSet velocityComputeResourceSet = _factory!.CreateResourceSet(velocity_rsrc_desc);
-            ResourceSet posRS = _factory.CreateResourceSet(pos_rsrc_desc);
-
+            ResourceSet? posRS = null, velocityComputeResourceSet = null;
+            //try
+            //{
+                posRS = _factory!.CreateResourceSet(pos_rsrc_desc);
+                velocityComputeResourceSet = _factory!.CreateResourceSet(velocity_rsrc_desc);
+            //}
+            //catch(Exception e)
+            //{
+            //    Logging.RecordError("Mem alloc error");
+            //}
             cl.Begin();
 
 
 
             if (forceComputationActive)
             {
-                RenderVelocity(cl, graph, velocityComputeResourceSet, delta, graph.Temperature);
-                RenderPosition(cl, graph, posRS, delta);
+                RenderVelocity(cl, graph, velocityComputeResourceSet!, delta, graph.Temperature);
+                RenderPosition(cl, graph, posRS!, delta);
                 layout.IncrementVersion();
 
                 graph.Temperature *= CONSTANTS.Layout_Constants.TemperatureStepMultiplier;
@@ -468,7 +509,7 @@ namespace rgat
 
             if (GlobalConfig.LayoutAttribsActive)
             {
-                attribComputeResourceSet = _factory.CreateResourceSet(attr_rsrc_desc);
+                attribComputeResourceSet = _factory!.CreateResourceSet(attr_rsrc_desc);
                 RenderNodeAttribs(cl, graph, inputAttributes, attribComputeResourceSet, delta, mouseoverNodeID, isAnimated);
             }
 
@@ -485,10 +526,10 @@ namespace rgat
             {
                 //when the nodes are near their targets, instead of bouncing around while coming to a slow, just snap them into position
                 float highest = FindHighXYZ(layout.VelocitiesVRAM1!, graph.ComputeBufferNodeCount, out int highIndex);
-                Console.WriteLine($"Presetspeed: {highest}");
+                Logging.WriteConsole($"Presetspeed: {highest}");
                 if (highest < 1)
                 {
-                    Console.WriteLine("Preset done");
+                    Logging.WriteConsole("Preset done");
                     graph.LayoutState.CompleteLayoutChange();
                 }
             }
@@ -502,12 +543,14 @@ namespace rgat
 
             if (velocityComputeResourceSet != null)
             {
-                _gd.DisposeWhenIdle(velocityComputeResourceSet);//velocityComputeResourceSet.Dispose();
+                _gd.DisposeWhenIdle(velocityComputeResourceSet);
+                //velocityComputeResourceSet.Dispose();
             }
 
             if (posRS != null)
             {
-                _gd.DisposeWhenIdle(posRS);//posRS.Dispose();
+                _gd.DisposeWhenIdle(posRS);
+                //posRS.Dispose();
             }
 
             newversion = layout.RenderVersion;
@@ -592,7 +635,7 @@ namespace rgat
                 activatingPreset = graph.LayoutState.ActivatingPreset
             };
 
-            //Console.WriteLine($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
+            //Logging.WriteConsole($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
 
             cl.UpdateBuffer(_positionParamsBuffer, 0, parms);
             cl.SetPipeline(_positionComputePipeline);
@@ -896,7 +939,7 @@ namespace rgat
         private static void PrintBufferArray(float[] sourceData, string premsg, int limit = 0)
         {
 
-            Console.WriteLine(premsg);
+            Logging.WriteConsole(premsg);
             for (var i = 0; i < sourceData.Length; i += 4)
             {
                 if (limit > 0 && i > limit)
@@ -906,7 +949,7 @@ namespace rgat
 
                 if (i != 0 && (i % 8 == 0))
                 {
-                    Console.WriteLine();
+                    Logging.WriteConsole();
                 }
                 //if (sourceData[i] == 0 && sourceData[i+1] == 0)
                 if ((i + 3) > sourceData.Length)
@@ -916,7 +959,7 @@ namespace rgat
 
                 Console.Write($"{i / 4}({sourceData[i]:f3},{sourceData[i + 1]:f3},{sourceData[i + 2]:f3},{sourceData[i + 3]:f3})");
             }
-            Console.WriteLine();
+            Logging.WriteConsole();
 
         }
 

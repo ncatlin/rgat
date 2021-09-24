@@ -418,9 +418,10 @@ namespace rgat
             catch (Exception e)
             {
                 Logging.RecordLogEvent("FFMpeg Record Error: " + e.Message, Logging.LogFilterType.TextError);
-                Console.WriteLine("-----------FFMPEG EXCEPTION-------------");
-                Console.WriteLine(e);
-                Console.WriteLine("-----------FFMPEG EXCEPTION-------------");
+                Logging.WriteConsole("-----------FFMPEG EXCEPTION-------------");
+                Logging.WriteConsole(e.Message);
+                Logging.WriteConsole(e.InnerException?.Message);
+                Logging.WriteConsole("-----------FFMPEG EXCEPTION-------------");
             }
 
 

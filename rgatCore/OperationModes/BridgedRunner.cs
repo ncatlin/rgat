@@ -101,7 +101,7 @@ namespace rgat.OperationModes
             if (GlobalConfig.NewVersionAvailable)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"A new version of rgat is available! ({CONSTANTS.PROGRAMVERSION.RGAT_VERSION} -> {GlobalConfig.Settings.Updates.UpdateLastCheckVersion})");
+                Logging.WriteConsole($"A new version of rgat is available! ({CONSTANTS.PROGRAMVERSION.RGAT_VERSION} -> {GlobalConfig.Settings.Updates.UpdateLastCheckVersion})");
                 Console.ForegroundColor = ConsoleColor.White;
             }
 
@@ -128,7 +128,7 @@ namespace rgat.OperationModes
 
             WaitHandle.WaitAny(new[] { rgatState.NetworkBridge.CancelToken.WaitHandle });
 
-            Console.WriteLine("Headless mode complete");
+            Logging.WriteConsole("Headless mode complete");
             rgatState.Shutdown();
         }
 
@@ -146,13 +146,13 @@ namespace rgat.OperationModes
         {
             while (!rgatState.rgatIsExiting && !connection.Connected && connection.ActiveNetworking)
             {
-                Console.WriteLine($"Waiting for connection: {connection.BridgeState}");
+                Logging.WriteConsole($"Waiting for connection: {connection.BridgeState}");
                 System.Threading.Thread.Sleep(500);
             }
             List<NETWORK_MSG> incoming = new List<NETWORK_MSG>();
             while (!rgatState.rgatIsExiting && connection.Connected)
             {
-                Console.WriteLine($"Headless bridge running while connected {connection.BridgeState}");
+                Logging.WriteConsole($"Headless bridge running while connected {connection.BridgeState}");
                 NewDataEvent.Wait();
                 lock (_lock)
                 {
@@ -166,7 +166,7 @@ namespace rgat.OperationModes
 
                 foreach (NETWORK_MSG item in incoming)
                 {
-                    //Console.WriteLine($"RunConnection Processing indata {item.msgType}: {GetString(item.data)}");
+                    //Logging.WriteConsole($"RunConnection Processing indata {item.msgType}: {GetString(item.data)}");
                     if (item.data.Length > 0)
                     {
                         try
@@ -212,7 +212,7 @@ namespace rgat.OperationModes
                         return;
                     }
 
-                    Console.WriteLine($"Unhandled meta message: {metaparam}");
+                    Logging.WriteConsole($"Unhandled meta message: {metaparam}");
                     break;
 
                 case emsgType.Command:
@@ -223,7 +223,7 @@ namespace rgat.OperationModes
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine($"Exception processing command  {item.msgType}: {e}");
+                        Logging.WriteConsole($"Exception processing command  {item.msgType}: {e}");
                         rgatState.NetworkBridge.Teardown($"Command Exception ({item.msgType})");
                     }
 
@@ -238,12 +238,12 @@ namespace rgat.OperationModes
                             rgatState.NetworkBridge.Teardown($"Bad command ({commandID}) response");
                             break;
                         }
-                        Console.WriteLine($"Delivering response {response}");
+                        Logging.WriteConsole($"Delivering response {response}");
                         RemoteDataMirror.DeliverResponse(commandID, response);
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine($"Exception processing command response {item.msgType} {GetString(item.data)}: {e}");
+                        Logging.WriteConsole($"Exception processing command response {item.msgType} {GetString(item.data)}: {e}");
                         rgatState.NetworkBridge.Teardown($"Command Reponse Exception ({GetString(item.data)})");
                     }
 
@@ -256,7 +256,7 @@ namespace rgat.OperationModes
                         rgatState.NetworkBridge.Teardown($"Bad Trace Metadata");
                         break;
                     }
-                    Console.WriteLine($"Processing trace meta {GetString(item.data)}");
+                    Logging.WriteConsole($"Processing trace meta {GetString(item.data)}");
                     if (!HandleTraceMeta(trace, items!))
                     {
                         Logging.RecordLogEvent($"Failed processing trace meta {GetString(item.data)}", Logging.LogFilterType.TextError);
@@ -267,7 +267,7 @@ namespace rgat.OperationModes
                 case emsgType.TraceData:
                     {
 
-                        //Console.WriteLine("handletracedata to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(item.data, 0, item.data.Length));
+                        //Logging.WriteConsole("handletracedata to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(item.data, 0, item.data.Length));
                         if (RemoteDataMirror.GetPipeInterface(item.destinationID, out RemoteDataMirror.ProcessIncomingWorkerData? dataFunc))
                         {
                             dataFunc!(item.data);
@@ -283,7 +283,7 @@ namespace rgat.OperationModes
 
                 case emsgType.TraceCommand:
                     {
-                        Console.WriteLine("Incoming trace command:" + GetString(item.data));
+                        Logging.WriteConsole("Incoming trace command:" + GetString(item.data));
                         if (rgatState.NetworkBridge.HeadlessMode &&
                             RemoteDataMirror.GetPipeWorker(item.destinationID, out TraceProcessorWorker? moduleHandler) &&
                             moduleHandler!.GetType() == typeof(ModuleHandlerThread))
@@ -321,12 +321,12 @@ namespace rgat.OperationModes
                                 rgatState.NetworkBridge.Teardown($"Bad async data ({name})");
                                 break;
                             }
-                            Console.WriteLine($"Delivering async {name}");
+                            Logging.WriteConsole($"Delivering async {name}");
                             ProcessAsync(name!, data!);
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine($"Exception processing command response {item.msgType} {GetString(item.data)}: {e}");
+                            Logging.WriteConsole($"Exception processing command response {item.msgType} {GetString(item.data)}: {e}");
                             rgatState.NetworkBridge.Teardown($"Command Reponse Exception ({GetString(item.data)})");
                         }
                     }
@@ -626,7 +626,7 @@ namespace rgat.OperationModes
             }
 
 
-            Console.WriteLine("Processing command " + cmd);
+            Logging.WriteConsole("Processing command " + cmd);
             switch (actualCmd)
             {
                 case "GetRecentBinaries":
@@ -859,7 +859,7 @@ namespace rgat.OperationModes
                 paramObj.TryGetValue("ref", out JToken? refTok) && tidTok.Type == JTokenType.Integer)
             {
                 string pipename = ModuleHandlerThread.GetTracePipeName(pidTok.ToObject<uint>(), ridTok.ToObject<long>(), tidTok.ToObject<ulong>());
-                Console.WriteLine("Opening pipe " + pipename);
+                Logging.WriteConsole("Opening pipe " + pipename);
                 uint pipeID = RemoteDataMirror.RegisterPipe(pipename);
                 NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
 
@@ -915,7 +915,7 @@ namespace rgat.OperationModes
             JArray files = new JArray();
             JArray dirs = new JArray();
             error = "";
-            Console.WriteLine("listing " + param);
+            Logging.WriteConsole("listing " + param);
             try
             {
                 if (Directory.Exists(param))
@@ -939,7 +939,7 @@ namespace rgat.OperationModes
             {
                 if (e.GetType() != typeof(System.UnauthorizedAccessException))
                 {
-                    Console.WriteLine($"GetDirectoryListing non-unauth exception: {e.Message}");
+                    Logging.WriteConsole($"GetDirectoryListing non-unauth exception: {e.Message}");
                 }
                 error = e.Message;
             }
@@ -1001,7 +1001,7 @@ namespace rgat.OperationModes
 
         public void GotData(NETWORK_MSG data)
         {
-            //Console.WriteLine($"BridgedRunner ({(rgatState.NetworkBridge.GUIMode ? "GUI mode" : "Headless mode")}) got new {data.Item1} data: {data.Item2}");
+            //Logging.WriteConsole($"BridgedRunner ({(rgatState.NetworkBridge.GUIMode ? "GUI mode" : "Headless mode")}) got new {data.Item1} data: {data.Item2}");
             lock (_lock)
             {
                 _incomingData.Enqueue(data);
@@ -1101,13 +1101,13 @@ namespace rgat.OperationModes
                     }
                     else
                     {
-                        Console.WriteLine($"Error: Failed to find any ipv4 or ipv6 addresses for the specified interface");
+                        Logging.WriteConsole($"Error: Failed to find any ipv4 or ipv6 addresses for the specified interface");
                         return null;
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Error: Exception '{e.Message}' trying to find any ipv4 or ipv6 addresses for the specified interface");
+                    Logging.WriteConsole($"Error: Exception '{e.Message}' trying to find any ipv4 or ipv6 addresses for the specified interface");
                 }
             }
             return result;
@@ -1119,7 +1119,7 @@ namespace rgat.OperationModes
             IPAddress? localAddr = GetLocalAddress();
             if (localAddr == null)
             {
-                Console.WriteLine("Error: no local address to connect from");
+                Logging.WriteConsole("Error: no local address to connect from");
                 return;
             }
 
@@ -1127,11 +1127,11 @@ namespace rgat.OperationModes
             if (GlobalConfig.StartOptions!.ListenPort != null && GlobalConfig.StartOptions.ListenPort.Value > 0)
             {
                 port = GlobalConfig.StartOptions.ListenPort.Value;
-                Console.WriteLine($"Starting TCP server on {localAddr}:{port}");
+                Logging.WriteConsole($"Starting TCP server on {localAddr}:{port}");
             }
             else
             {
-                Console.WriteLine($"Starting TCP server on {localAddr}:[next free port]");
+                Logging.WriteConsole($"Starting TCP server on {localAddr}:[next free port]");
                 port = 0;
             }
 

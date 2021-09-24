@@ -743,7 +743,7 @@ namespace rgat.Testing
 
             if (metaObj.TryGetValue("OS", out JToken? OSTok) && OSTok.Type == JTokenType.String)
             {
-                TestOS = bitsTok.ToObject<string>();
+                TestOS = OSTok.ToObject<string>();
             }
 
             if (TestOS is null)

@@ -70,13 +70,13 @@ namespace rgat.OperationModes
 
             if (!Setup())
             {
-                Console.WriteLine($"------------------------------------------------------------------------------------");
-                Console.WriteLine($"The rgat UI and graph layout engine is GPU based, requiring access to the Vulkan API");
-                Console.WriteLine($"If https://github.com/skeeto/vulkan-test doesn't work then neither will rgat rendering.");
-                Console.WriteLine($"If your GPU or analysis environment does does not support this then you can still perform\n" +
+                Logging.WriteConsole($"------------------------------------------------------------------------------------");
+                Logging.WriteConsole($"The rgat UI and graph layout engine is GPU based, requiring access to the Vulkan API");
+                Logging.WriteConsole($"If https://github.com/skeeto/vulkan-test doesn't work then neither will rgat rendering.");
+                Logging.WriteConsole($"If your GPU or analysis environment does does not support this then you can still perform\n" +
                     $"tracing and load the result using rgat on another machine, or perform tracing directly over a network.");
-                Console.WriteLine("Run 'rgat.exe ?' for the available options");
-                Console.WriteLine($"------------------------------------------------------------------------------------");
+                Logging.WriteConsole("Run 'rgat.exe ?' for the available options");
+                Logging.WriteConsole($"------------------------------------------------------------------------------------");
                 return;
             }
 
@@ -386,7 +386,7 @@ namespace rgat.OperationModes
             }
             else
             {
-                apiTask = Task.Run(() => Console.WriteLine("TODO: linux API loading"));
+                apiTask = Task.Run(() => Logging.WriteConsole("TODO: linux API loading"));
             }
 
             if (GlobalConfig.Settings.Updates.DoUpdateCheck)
@@ -402,7 +402,7 @@ namespace rgat.OperationModes
             Logging.RecordLogEvent($"Startup: Signatures + API info inited in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             Logging.RecordLogEvent($"Startup: Loading thread took {timerTotal.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             _rgatUI.StartupProgress = 1;
-            Console.WriteLine("Starup progress 1");
+            Logging.WriteConsole("Starup progress 1");
 
         }
 

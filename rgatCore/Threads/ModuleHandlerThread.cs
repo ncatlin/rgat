@@ -148,12 +148,12 @@ namespace rgat
         {
             string pipename = GetTracePipeName(graph.ThreadID);
 
-            Console.WriteLine("Opening pipe " + pipename);
+            Logging.WriteConsole("Opening pipe " + pipename);
             NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
 
-            Console.WriteLine("Waiting for thread connection... ");
+            Logging.WriteConsole("Waiting for thread connection... ");
             threadListener.WaitForConnection();
-            Console.WriteLine("Trace thread connected");
+            Logging.WriteConsole("Trace thread connected");
 
 
             PlottedGraph MainGraph = new PlottedGraph(graph, _clientState!._GraphicsDevice!);
@@ -163,10 +163,12 @@ namespace rgat
             graph.TraceReader.Begin();
             graph.TraceProcessor.Begin();
 
+            PreviewRendererThread.AddGraphToPreviewRenderQueue(MainGraph);
+
             graph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph: graph);
             if (!trace.InsertNewThread(graph, MainGraph))
             {
-                Console.WriteLine("[rgat]ERROR: Trace rendering thread creation failed");
+                Logging.WriteConsole("[rgat]ERROR: Trace rendering thread creation failed");
                 return;
             }
 
@@ -208,6 +210,7 @@ namespace rgat
                     if (_clientState!._GraphicsDevice is not null)
                     {
                         graphPlot = new PlottedGraph(graph, _clientState._GraphicsDevice!);
+                        PreviewRendererThread.AddGraphToPreviewRenderQueue(graphPlot);
                     }
 
                     if (!trace.InsertNewThread(graph, graphPlot))
@@ -226,7 +229,7 @@ namespace rgat
 
         private void HandleNewThread(byte[] buf)
         {
-            Console.WriteLine(System.Text.ASCIIEncoding.ASCII.GetString(buf));
+            Logging.WriteConsole(System.Text.ASCIIEncoding.ASCII.GetString(buf));
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 4);
             if (!uint.TryParse(fields[1], System.Globalization.NumberStyles.Integer, null, out uint TID))
             {
@@ -238,7 +241,7 @@ namespace rgat
                 Logging.RecordError($"Bad thread start address (ID:{TID})");
                 return;
             }
-            Console.WriteLine($"Thread {TID} started!");
+            Logging.WriteConsole($"Thread {TID} started!");
 
             switch (trace.TraceType)
             {
@@ -338,7 +341,7 @@ namespace rgat
             {
                 try
                 {
-                    Console.WriteLine($"controlPipe.BeginWrite with {cmd.Length} bytes {Encoding.ASCII.GetString(cmd)}");
+                    Logging.WriteConsole($"controlPipe.BeginWrite with {cmd.Length} bytes {Encoding.ASCII.GetString(cmd)}");
                     commandPipe.Write(cmd, 0, cmd.Length);
                 }
                 catch (Exception e)
@@ -565,7 +568,7 @@ namespace rgat
             {
                 string text = ASCIIEncoding.ASCII.GetString(buf.Take(bytesRead).ToArray());
                 Logging.RecordLogEvent($"!Log from instrumentation: '{text}'", trace: trace);
-                Console.WriteLine($"!Log from instrumentation: '{text}'");
+                Logging.WriteConsole($"!Log from instrumentation: '{text}'");
                 return;
             }
 
@@ -784,10 +787,10 @@ namespace rgat
 
                 Thread.Sleep(1000);
                 totalWaited += 1000;
-                Console.WriteLine($"ModuleHandlerThread Awaiting Pipe Connections: Command:{commandPipe.IsConnected}, Event:{eventPipe.IsConnected}, TotalTime:{totalWaited}");
+                Logging.WriteConsole($"ModuleHandlerThread Awaiting Pipe Connections: Command:{commandPipe.IsConnected}, Event:{eventPipe.IsConnected}, TotalTime:{totalWaited}");
                 if (totalWaited > 8000)
                 {
-                    Console.WriteLine($"Timeout waiting for rgat client sub-connections. ControlPipeConnected:{eventPipe.IsConnected} ");
+                    Logging.WriteConsole($"Timeout waiting for rgat client sub-connections. ControlPipeConnected:{eventPipe.IsConnected} ");
                     break;
                 }
             }

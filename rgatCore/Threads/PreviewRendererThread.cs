@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace rgat.Threads
@@ -8,23 +9,93 @@ namespace rgat.Threads
     /// </summary>
     public class PreviewRendererThread : TraceProcessorWorker
     {
-        private readonly TraceRecord RenderedTrace;
+        private readonly PreviewGraphsWidget _graphWidget;
+
+        private readonly static Queue<PlottedGraph> renderQueue = new Queue<PlottedGraph>();
+        private readonly static Queue<PlottedGraph> priorityQueue = new Queue<PlottedGraph>();
+
+        private readonly static object _lock = new();
+        private readonly static ManualResetEventSlim _waitEvent = new();
+        private readonly int _idNum;
+        private readonly bool _background;
+
 
         /// <summary>
-        /// Set by the GUI loading thread when the widget has been created
+        /// Fetch the next graph to render
+        /// It will first fetch priority graphs (ie: those in the active trace) 
+        /// unless the background flag is set
         /// </summary>
-        /// <param name="widget"></param>
-        public static void SetPreviewWidget(PreviewGraphsWidget widget) => _graphWidget = widget;
+        /// <param name="graph"></param>
+        public static void AddGraphToPreviewRenderQueue(PlottedGraph graph)
+        {
+            lock (_lock)
+            {
+                if (graph.InternalProtoGraph.TraceData == _clientState!.ActiveTrace)
+                {
+                    priorityQueue.Enqueue(graph);
+                }
+                else
+                {
+                    renderQueue.Enqueue(graph);
+                }
 
-        private static PreviewGraphsWidget? _graphWidget;
+                if (_waitEvent.IsSet is false)
+                    _waitEvent.Set();
+            }
+        }
+
+        /// <summary>
+        /// Fetch the next graph to render
+        /// </summary>
+        /// <returns></returns>
+        public static PlottedGraph? FetchRenderTask(bool background)
+        {
+            try
+            {
+                lock (_lock)
+                {
+                    if (background is false)
+                    {
+                        if (priorityQueue.Count > 0)
+                            return priorityQueue.Dequeue();
+                    }
+
+                    if (renderQueue.Count > 0)
+                    {
+                        return renderQueue.Dequeue();
+                    }
+
+                    if (background is true)
+                    {
+                        if (priorityQueue.Count > 0)
+                            return priorityQueue.Dequeue();
+                    }
+                }
+                _waitEvent.Wait(rgatState.ExitToken);
+
+                lock (_lock)
+                {
+                    if (_waitEvent.IsSet)
+                        _waitEvent.Reset();
+                }
+            }
+            catch (Exception e)
+            {
+                if (rgatState.rgatIsExiting is false)
+                    Logging.RecordError($"Preview renderer encountered error fetching new task: {e.Message}");
+            }
+            return null;
+        }
+
 
         /// <summary>
         /// Create a preview renderer
         /// </summary>
-        /// <param name="_renderedTrace">The trace with graphs to be rendered</param>
-        public PreviewRendererThread(TraceRecord _renderedTrace)
+        public PreviewRendererThread(int workerID, PreviewGraphsWidget widget, bool background)
         {
-            RenderedTrace = _renderedTrace;
+            _idNum = workerID;
+            _graphWidget = widget;
+            _background = background;
         }
 
         /// <summary>
@@ -34,8 +105,24 @@ namespace rgat.Threads
         {
             base.Begin();
             WorkerThread = new Thread(ThreadProc);
-            WorkerThread.Name = $"PreviewWrk_{RenderedTrace.PID}_{RenderedTrace.Target.TracesCount}";
+            WorkerThread.Name = $"PreviewWrk_{_idNum}_{(_background ? "BG" : "FG")}";
             WorkerThread.Start();
+        }
+
+        bool _stopFlag = false;
+
+        /// <summary>
+        /// Exit. This is a placeholder for if/when worker counts 
+        /// are changed at runtime
+        /// </summary>
+        public void Stop()
+        {
+            lock (_lock)
+            {
+                _stopFlag = true;
+                if (_waitEvent.IsSet is false)
+                    _waitEvent.Set();
+            }
         }
 
         /// <summary>
@@ -46,72 +133,29 @@ namespace rgat.Threads
             Logging.RecordLogEvent($"PreviewRenderThread ThreadProc START", Logging.LogFilterType.BulkDebugLogFile);
 
             Veldrid.CommandList cl = _clientState!._GraphicsDevice!.ResourceFactory.CreateCommandList();
-            List<PlottedGraph> graphlist;
-            int StopTimer = -1;
-            bool moreRenderingNeeded;
 
             while (!rgatState.rgatIsExiting && _graphWidget == null)
             {
                 Thread.Sleep(50);
             }
 
-            while (!rgatState.rgatIsExiting)
+            while (!rgatState.rgatIsExiting && _stopFlag is false)
             {
-                //only write we are protecting against happens while creating new threads
-                //so not important to release this quickly
-                graphlist = RenderedTrace.GetPlottedGraphs();
+                PlottedGraph? graph = FetchRenderTask(_background);
+                if (graph is null) continue;
 
-                moreRenderingNeeded = false;
-                foreach (PlottedGraph graph in graphlist)
+
+                if (graph != _clientState.ActiveGraph)
                 {
-                    if (graph == null)
-                    {
-                        continue;
-                    }
-
-                    if (graph != _clientState.ActiveGraph)
-                    {
-                        //check for trace data that hasn't been rendered yet
-                        ProtoGraph protoGraph = graph.InternalProtoGraph;
-
-                        //Console.WriteLine($"Rendering new preview verts for thread {graph.TID}");
-                        graph.RenderGraph();
-                        if (!graph.RenderingComplete)
-                        {
-                            moreRenderingNeeded = true;
-                        }
-                    }
-
-                    if (graph.DrawnEdgesCount > 0)
-                    {
-                        _graphWidget!.GeneratePreviewGraph(cl, graph);
-                    }
-
-                    if (rgatState.rgatIsExiting)
-                    {
-                        break;
-                    }
-
-                    Thread.Sleep((int)GlobalConfig.Preview_PerThreadLoopSleepMS); //sleep removed for debug
+                    graph.RenderGraph();
                 }
 
-                graphlist.Clear();
-
-                int waitForNextIt = 0;
-                while (waitForNextIt < GlobalConfig.Preview_PerProcessLoopSleepMS && !rgatState.rgatIsExiting)
+                if (graph.DrawnEdgesCount > 0)
                 {
-                    Thread.Sleep(5); //sleep removed for debug
-                    waitForNextIt += 5;
+                    _graphWidget!.GeneratePreviewGraph(cl, graph);
                 }
 
-                if (StopTimer < 0 && !moreRenderingNeeded && !RenderedTrace.IsRunning)
-                {
-                    StopTimer = 60;
-                }
-                else if (StopTimer > 0)
-                {
-                    StopTimer--;
-                }
+                AddGraphToPreviewRenderQueue(graph);
             }
             Finished();
         }

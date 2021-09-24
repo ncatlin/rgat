@@ -1260,6 +1260,13 @@
             <param name="name">Name of directory to create</param>
             <returns>Path of created directory</returns>
         </member>
+        <member name="M:rgat.GlobalConfig.BadSigners(System.Collections.Generic.List{System.Tuple{System.String,System.String}}@)">
+            <summary>
+            Failed signature checks
+            </summary>
+            <param name="errors">Signature validation errors</param>
+            <returns>Errors were found</returns>
+        </member>
         <member name="M:rgat.GlobalConfig.PreviousSignatureCheckPassed(System.String,System.String@,System.Boolean@)">
             <summary>
             Get the code signing certificate validation result for a binary
@@ -1748,7 +1755,7 @@
         </member>
         <member name="P:rgat.Config.rgatSettings.UI">
             <summary>
-            UI Settings
+            UI and rendering settings
             </summary>
         </member>
         <member name="P:rgat.Config.rgatSettings.Tracing">
@@ -1908,12 +1915,12 @@
             Max number of recent paths to store
             </summary>
         </member>
-        <member name="F:rgat.Config.rgatSettings.UISettings.ScreencapAnimation">
+        <member name="P:rgat.Config.rgatSettings.UISettings.ScreencapAnimation">
             <summary>
             Display an box around the area that was screencaptured
             </summary>
         </member>
-        <member name="F:rgat.Config.rgatSettings.UISettings.AlertAnimation">
+        <member name="P:rgat.Config.rgatSettings.UISettings.AlertAnimation">
             <summary>
             Display a ring around alerts
             </summary>
@@ -1922,6 +1929,14 @@
             <summary>
             The version of rgat this config file was created by
             Used on updating to trigger the writing of the latest tools to disk
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.PreviewWorkers">
+            <summary>
+            How many preview renderer workers to run. Each has their own layout engine to 
+            layout/render preview graphs.
+            More will make rendering lots of graphs snappier, but too many adds contention issues and 
+            getting into the dozens will exhaust the GPU allocator pool and crash us
             </summary>
         </member>
         <member name="T:rgat.Config.rgatSettings.LogSettings">
@@ -2375,6 +2390,16 @@
         <member name="F:rgat.CONSTANTS.UI.FILEPICKER_HISTORY_MAX">
             <summary>
             Maxmimum directories to store in filepicker history
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.UI.MINIMUM_PREVIEW_WORKERS">
+            <summary>
+            Minimum number of preview workers to run
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.UI.MAXIMUM_PREVIEW_WORKERS">
+            <summary>
+            Maxmimum number of preview workers to run. Going into the dozens risks exhausing the VK allocator pool
             </summary>
         </member>
         <member name="T:rgat.CONSTANTS.Anim_Constants">
@@ -3134,12 +3159,11 @@
             Has a position, velocity and attribute pipeline for laying out and animating graphs
             </summary>
         </member>
-        <member name="M:rgat.GraphLayoutEngine.#ctor(System.String,ImGuiNET.ImGuiController)">
+        <member name="M:rgat.GraphLayoutEngine.#ctor(System.String)">
             <summary>
             Runs the computation shaders on graph layout buffers 
             </summary>
             <param name="name">A name to identify the layout engine in logfiles</param>
-            <param name="controller">An ImGuiController to load shader code from [todo: remove it from the controller, will need these in non-imgui runners]</param>
         </member>
         <member name="M:rgat.GraphLayoutEngine.Init(Veldrid.GraphicsDevice)">
             <summary>
@@ -4031,6 +4055,13 @@
             </param>
             <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
             <param name="trace">Process this applies to</param>     
+        </member>
+        <member name="M:rgat.Logging.WriteConsole(System.String,System.ConsoleColor)">
+            <summary>
+            Output to console, disregarding any exceptions
+            </summary>
+            <param name="text">Text to write</param>
+            <param name="colour">Colour</param>
         </member>
         <member name="M:rgat.Logging.RecordError(System.String,rgat.ProtoGraph,rgat.TraceRecord)">
             <summary>
@@ -7363,17 +7394,16 @@
             A worker for rendering the preview graphs of all threads in a trace record
             </summary>
         </member>
-        <member name="M:rgat.Threads.PreviewRendererThread.SetPreviewWidget(rgat.PreviewGraphsWidget)">
+        <member name="M:rgat.Threads.PreviewRendererThread.FetchRenderTask">
             <summary>
-            Set by the GUI loading thread when the widget has been created
+            Fetch the next graph to render
             </summary>
-            <param name="widget"></param>
+            <returns></returns>
         </member>
-        <member name="M:rgat.Threads.PreviewRendererThread.#ctor(rgat.TraceRecord)">
+        <member name="M:rgat.Threads.PreviewRendererThread.#ctor(System.Int32,rgat.PreviewGraphsWidget)">
             <summary>
             Create a preview renderer
             </summary>
-            <param name="_renderedTrace">The trace with graphs to be rendered</param>
         </member>
         <member name="M:rgat.Threads.PreviewRendererThread.Begin">
             <summary>
@@ -8787,6 +8817,11 @@
             <param name="captionHeight">height of the caption</param>
             <param name="captionBackgroundcolor">contrast background colour of the caption</param>
             <returns>The graph was clicked</returns>
+        </member>
+        <member name="M:rgat.VisualiserTab.StartPreviewWorkers">
+            <summary>
+            Could do this at runtime instead of requiring a restart
+            </summary>
         </member>
         <member name="M:rgat.VisualiserTab.SetDialogStateChangeCallback(System.Action{System.Boolean})">
             <summary>

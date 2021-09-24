@@ -382,7 +382,7 @@ namespace rgat
         {
             if (StartupProgress < 1)
             {
-                Console.WriteLine($"Startup progress: {StartupProgress}");
+                Logging.WriteConsole($"Startup progress: {StartupProgress}");
                 return;
             }
 
@@ -659,7 +659,7 @@ namespace rgat
 
         private void ToggleLogsWindow()
         {
-            Console.WriteLine($"Logwindow toggle {_show_logs_window}");
+            Logging.WriteConsole($"Logwindow toggle {_show_logs_window}");
             _show_logs_window = !_show_logs_window;
             _controller.DialogChange(_show_logs_window);
         }

@@ -84,7 +84,7 @@ namespace rgat.Threads
 
 
 
-            Console.WriteLine(WorkerThread?.Name + " finished after ingesting " + ProcessedDataSize + " bytes of trace data");
+            Logging.WriteConsole(WorkerThread?.Name + " finished after ingesting " + ProcessedDataSize + " bytes of trace data");
 
             if (!protograph.Terminated)
             {

@@ -30,7 +30,7 @@ namespace rgat.Threads
         {
             get
             {
-                return !stopped && WorkerThread != null && WorkerThread.IsAlive;
+                return !stopped;
             }
         }
         /// <summary>

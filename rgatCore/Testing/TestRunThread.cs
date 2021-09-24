@@ -42,8 +42,8 @@ namespace rgat.Testing
             }
             Running = true;
             _testCase.RecordRunning();
-            Console.WriteLine($"Started test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
-            Console.WriteLine($"Starting test process {_testCase.BinaryPath} test id {_thisTest.TestID}");
+            Logging.WriteConsole($"Started test Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}");
+            Logging.WriteConsole($"Starting test process {_testCase.BinaryPath} test id {_thisTest.TestID}");
 
             string pintool = _testCase.TestBits == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
@@ -53,11 +53,11 @@ namespace rgat.Testing
                 //GetTestTrace
                 while (!rgatState.rgatIsExiting && !Finished)
                 {
-                    Console.WriteLine($"\tWaiting for test {_thisTest.TestID} to start...");
+                    Logging.WriteConsole($"\tWaiting for test {_thisTest.TestID} to start...");
                     if (_rgatState.GetTestTrace(_thisTest.TestID, out TraceRecord? testTrace) && testTrace is not null)
                     {
                         _thisTest.SetFirstTrace(testTrace);
-                        Console.WriteLine($"\tGot first trace of test {_thisTest.TestID}");
+                        Logging.WriteConsole($"\tGot first trace of test {_thisTest.TestID}");
 
                         while (!rgatState.rgatIsExiting && !Finished)
                         {
@@ -73,7 +73,7 @@ namespace rgat.Testing
             }
 
 
-            Console.WriteLine($"Finished test [Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}]");
+            Logging.WriteConsole($"Finished test [Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}]");
 
             Running = false;
 

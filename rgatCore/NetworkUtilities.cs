@@ -13,11 +13,11 @@ namespace rgat
 
             if (PrintInvalid)
             {
-                Console.WriteLine($"Listing {interfaces.Length} known network interfaces");
+                Logging.WriteConsole($"Listing {interfaces.Length} known network interfaces");
             }
             else
             {
-                Console.WriteLine($"Listing {interfaces.Length} valid network interfaces. You can specify an interface using its name, ID, MAC or address"); //or index, but not a good idea
+                Logging.WriteConsole($"Listing {interfaces.Length} valid network interfaces. You can specify an interface using its name, ID, MAC or address"); //or index, but not a good idea
             }
 
 
@@ -27,11 +27,11 @@ namespace rgat
                 if (available)
                 {
                     //I don't know if this would ever happen and am totally guessing about what might cause it
-                    Console.WriteLine("\tA network connection is available but no network interfaces could be found. Try running rgat with higher privilege");
+                    Logging.WriteConsole("\tA network connection is available but no network interfaces could be found. Try running rgat with higher privilege");
                 }
                 else
                 {
-                    Console.WriteLine("\tNo network connection is available and no network interfaces could be detected.");
+                    Logging.WriteConsole("\tNo network connection is available and no network interfaces could be detected.");
                 }
                 return;
             }
@@ -62,35 +62,35 @@ namespace rgat
         {
             if (index != -1)
             {
-                Console.WriteLine($"\t{index}: \"{iface.Name}\" <Description: {iface.Description} [{iface.OperationalStatus}]>");
+                Logging.WriteConsole($"\t{index}: \"{iface.Name}\" <Description: {iface.Description} [{iface.OperationalStatus}]>");
             }
             else
             {
-                Console.WriteLine($"\t\"{iface.Name}\" <Description: {iface.Description} [{iface.OperationalStatus}]>");
+                Logging.WriteConsole($"\t\"{iface.Name}\" <Description: {iface.Description} [{iface.OperationalStatus}]>");
             }
 
             var addresses = iface.GetIPProperties().UnicastAddresses;
             if (addresses.Count > 0)
             {
-                Console.WriteLine($"\t\tAddresses:");
+                Logging.WriteConsole($"\t\tAddresses:");
                 foreach (var addr in addresses.Reverse())
                 {
-                    Console.WriteLine($"\t\t\t{addr.Address}");
+                    Logging.WriteConsole($"\t\t\t{addr.Address}");
                 }
             }
             else
             {
-                Console.WriteLine("\t\tInterface has no addresses");
+                Logging.WriteConsole("\t\tInterface has no addresses");
             }
             string MAC = NetworkUtilities.hexMAC(iface.GetPhysicalAddress());
             if (MAC.Length > 0)
             {
-                Console.WriteLine($"\t\tMAC: {MAC}");
+                Logging.WriteConsole($"\t\tMAC: {MAC}");
             }
 
-            Console.WriteLine($"\t\tType: {iface.NetworkInterfaceType}");
-            Console.WriteLine($"\t\tID: {iface.Id}");
-            Console.WriteLine("");
+            Logging.WriteConsole($"\t\tType: {iface.NetworkInterfaceType}");
+            Logging.WriteConsole($"\t\tID: {iface.Id}");
+            Logging.WriteConsole("");
         }
 
         public static NetworkInterface[] GetInterfaces(bool IncludeInvalid = false)

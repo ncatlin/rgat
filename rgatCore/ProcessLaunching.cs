@@ -309,29 +309,10 @@ namespace rgat
         {
 
             TraceProcessorWorkers processThreads = new TraceProcessorWorkers();
-
-            PreviewRendererThread previewThread = new PreviewRendererThread(runRecord);
-            processThreads.Register(previewThread);
-            previewThread.Begin();
-
-            //Thread.Sleep(200);
-            //processThreads.conditionalThread = new ConditionalRendererThread(runRecord, clientState);
-            //Thread t2 = new Thread(processThreads.conditionalThread.ThreadProc);
-            //processThreads.threads.Add(t2);
-
             runRecord.ProcessThreads = processThreads;
         }
 
 
-        public static void launch_new_visualiser_threads(TraceRecord runRecord, rgatState clientState)
-        {
-            Logging.RecordLogEvent($"launch_new_visualiser_threads START", Logging.LogFilterType.BulkDebugLogFile);
-            //non-graphical
-            //if (!clientState.openGLWorking()) return;
-            PreviewRendererThread previewThread = new PreviewRendererThread(runRecord);
-            runRecord.ProcessThreads.Register(previewThread);
-            previewThread.Begin();
-            Thread.Sleep(200);
-        }
+
     }
 }

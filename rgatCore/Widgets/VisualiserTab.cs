@@ -33,6 +33,9 @@ namespace rgat
             PreviewGraphWidget = new PreviewGraphsWidget(controller, state);
         }
 
+
+        List<PreviewRendererThread> previewRenderers = new();
+
         public void Init(GraphicsDevice gd, IProgress<float> progress)
         {
             MainGraphWidget.Init(gd);//1000~ ms
@@ -41,7 +44,8 @@ namespace rgat
             PreviewGraphWidget.Init(gd);//350~ ms
             progress.Report(0.9f);
             _visualiserBar = new VisualiserBar(gd, _controller!); //200~ ms
-            PreviewRendererThread.SetPreviewWidget(PreviewGraphWidget);
+
+            StartPreviewWorkers();
 
             progress.Report(0.99f);
 
@@ -52,6 +56,43 @@ namespace rgat
             visbarRenderThreadObj.Begin();
             progress.Report(1f);
         }
+
+
+        /// <summary>
+        /// Could do this at runtime instead of requiring a restart
+        /// </summary>
+        private void StartPreviewWorkers()
+        {
+            int count = Math.Max(GlobalConfig.Settings.UI.PreviewWorkers, CONSTANTS.UI.MINIMUM_PREVIEW_WORKERS);
+            count = Math.Min(count, CONSTANTS.UI.MAXIMUM_PREVIEW_WORKERS);
+
+            if (count == GlobalConfig.Settings.UI.PreviewWorkers)
+            {
+                Logging.RecordLogEvent($"Starting {count} preview workers", Logging.LogFilterType.TextDebug);
+            }
+            else
+            {
+                Logging.RecordLogEvent($"Starting {count} preview workers because the requested [{GlobalConfig.Settings.UI.PreviewWorkers}] was outside the limits");
+            }
+
+
+            /*
+             * Always create a background worker that prioritises low priority threads so
+             * traces that are not selected in the visualiser are not starved of rendering
+             */
+            PreviewRendererThread prev = new PreviewRendererThread(0, PreviewGraphWidget, background: true);
+            previewRenderers.Add(prev);
+            prev.Begin();
+
+            for (var i = 1; i < count; i++)
+            {
+                prev = new PreviewRendererThread(i, PreviewGraphWidget, background: false);
+                previewRenderers.Add(prev);
+                prev.Begin();
+            }
+        }
+
+
 
         /// <summary>
         /// Called whenever the widget opens/closes an inner dialog
@@ -381,7 +422,7 @@ namespace rgat
 
                     if (ImGui.Button("Kill All"))
                     {
-                        Console.WriteLine("Kill All clicked");
+                        Logging.WriteConsole("Kill All clicked");
                     }
 
                     ImGui.EndGroup();
@@ -591,7 +632,7 @@ namespace rgat
         {
             if (_rgatState.ActiveGraph is not null && graph.PID != _rgatState.ActiveGraph.PID)
             {
-                Console.WriteLine("Warning: Graph selected in inactive trace");
+                Logging.WriteConsole("Warning: Graph selected in inactive trace");
                 return;
             }
 

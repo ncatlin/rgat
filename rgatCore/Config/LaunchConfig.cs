@@ -296,13 +296,13 @@ namespace rgat.Config
                                         FFmpegPath = valuestring;
                                         break;
                                     default:
-                                        Console.WriteLine($"\tWarning: Ignoring unknown config option '{kvp.Key}':'{kvp.Value}'");
+                                        Logging.WriteConsole($"\tWarning: Ignoring unknown config option '{kvp.Key}':'{kvp.Value}'");
                                         break;
                                 }
                             }
                             else
                             {
-                                Console.WriteLine($"Warning: Ignoring config item '{kvp.Key}' with unexpected key or invalid value '{kvp.Value}' type [{kvp.Value.Type}]");
+                                Logging.WriteConsole($"Warning: Ignoring config item '{kvp.Key}' with unexpected key or invalid value '{kvp.Value}' type [{kvp.Value.Type}]");
                             }
                             break;
                         }

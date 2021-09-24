@@ -314,7 +314,7 @@ namespace rgat
         /// <param name="zipfile">A zipfile of signatures</param>
         public static void ReplaceSignatures(byte[] zipfile)
         {
-            Console.WriteLine($"Replacing die sigs with zip size {zipfile.Length}");
+            Logging.WriteConsole($"Replacing die sigs with zip size {zipfile.Length}");
             try
             {
                 string tempfile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());

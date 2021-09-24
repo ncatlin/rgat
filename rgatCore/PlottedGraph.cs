@@ -131,7 +131,7 @@ namespace rgat
 
             int NewPosition = (int)(position * InternalProtoGraph.SavedAnimationData.Count);
             _userSelectedAnimPosition = NewPosition;
-            Console.WriteLine($"Animation set index: {NewPosition}, last: {_lastReplayedIndex}");
+            Logging.WriteConsole($"Animation set index: {NewPosition}, last: {_lastReplayedIndex}");
 
         }
 
@@ -242,18 +242,18 @@ namespace rgat
                 case REPLAY_STATE.Stopped: //start it from beginning
                     ReplayState = REPLAY_STATE.Playing;
                     SetAnimated(true);
-                    Console.WriteLine("Animation state Stopped -> Playing");
+                    Logging.WriteConsole("Animation state Stopped -> Playing");
                     break;
 
                 case REPLAY_STATE.Playing: //pause it
                     ReplayState = REPLAY_STATE.Paused;
-                    Console.WriteLine("Animation state Playing -> Paused");
+                    Logging.WriteConsole("Animation state Playing -> Paused");
                     break;
 
                 case REPLAY_STATE.Paused: //unpause it
                     ReplayState = REPLAY_STATE.Playing;
                     SetAnimated(true);
-                    Console.WriteLine("Animation state Paused -> Playing");
+                    Logging.WriteConsole("Animation state Paused -> Playing");
                     break;
 
             }
@@ -386,7 +386,7 @@ namespace rgat
                     force = 2f;
                     break;
                 default:
-                    Console.WriteLine($"Unhandled edgetype {edge.edgeClass} with edge {edge.EdgeListIndex}");
+                    Logging.WriteConsole($"Unhandled edgetype {edge.edgeClass} with edge {edge.EdgeListIndex}");
                     force = 1f;
                     break;
             }
@@ -408,7 +408,7 @@ namespace rgat
             switch (style)
             {
                 case LayoutStyles.Style.CylinderLayout:
-                    Console.WriteLine("Generating cylinder presets");
+                    Logging.WriteConsole("Generating cylinder presets");
                     return GenerateCylinderLayout();
 
                 case LayoutStyles.Style.Circle:
@@ -419,18 +419,18 @@ namespace rgat
                     {
                         if (!LayoutState.GetSavedLayout(style, out float[]? layout))
                         {
-                            Console.WriteLine("Generating forcedir presets");
+                            Logging.WriteConsole("Generating forcedir presets");
                             return CreateRandomPresetLayout();
                         }
                         else
                         {
-                            Console.WriteLine("Returning old forcedir presets");
+                            Logging.WriteConsole("Returning old forcedir presets");
                             return layout;
                         }
                     }
                     else
                     {
-                        Console.WriteLine("Error: Tried to layout invalid preset style: " + ActiveLayoutStyle.ToString());
+                        Logging.WriteConsole("Error: Tried to layout invalid preset style: " + ActiveLayoutStyle.ToString());
                         return null;
                     }
             }
@@ -857,7 +857,7 @@ namespace rgat
 
             if (InternalProtoGraph.EdgeCount > RenderedEdgeCount)
             {
-                Console.WriteLine($"Drawing preset {InternalProtoGraph.EdgeCount }  > {RenderedEdgeCount}  edges with {nodeCount} nodes tex size {textureSize}");
+                Logging.WriteConsole($"Drawing preset {InternalProtoGraph.EdgeCount }  > {RenderedEdgeCount}  edges with {nodeCount} nodes tex size {textureSize}");
             }
             float increase = ((float)Math.PI * 2.0f) / _graphStructureLinear.Count;
             float angle = 0;
@@ -1104,7 +1104,7 @@ namespace rgat
                 // fill unused RGBA slots with -1
                 sourceData[i] = -1;
             }
-            //Console.WriteLine($"GetEdgeIndicesInts Returning indexes with {targetArray.Count} filled and {sourceData.Length - targetArray.Count} empty");
+            //Logging.WriteConsole($"GetEdgeIndicesInts Returning indexes with {targetArray.Count} filled and {sourceData.Length - targetArray.Count} empty");
             return sourceData;
         }
 
@@ -1778,7 +1778,7 @@ namespace rgat
                     {
                         if (externBlock.Value.ThreadCallers == null)
                         {
-                            Console.WriteLine($"Error: Extern block thread_callers was null [block 0x{blockAddr:x}]");
+                            Logging.WriteConsole($"Error: Extern block thread_callers was null [block 0x{blockAddr:x}]");
                         }
                         else
                         {
@@ -1796,7 +1796,7 @@ namespace rgat
                         newnodelist = null;
                         return false;
                     }
-                    Console.WriteLine($"[rgat]get_block_nodelist() Fail to find edge for thread {TID} calling extern 0x{blockAddr:x}");
+                    Logging.WriteConsole($"[rgat]get_block_nodelist() Fail to find edge for thread {TID} calling extern 0x{blockAddr:x}");
                 }
 
 
@@ -1977,7 +1977,7 @@ namespace rgat
             /*
             if (entry.entryType == eTraceUpdateType.eAnimLoopLast)
             {
-                Console.WriteLine("Live update: eAnimLoopLast");
+                Logging.WriteConsole("Live update: eAnimLoopLast");
                 ++updateProcessingIndex;
                 return true;
             }*/
@@ -2047,7 +2047,7 @@ namespace rgat
         {
             if (InternalProtoGraph.SavedAnimationData.Count == 0)
             {
-                Console.WriteLine("Ending animation immediately - no animation data");
+                Logging.WriteConsole("Ending animation immediately - no animation data");
                 ReplayState = REPLAY_STATE.Ended;
                 return;
             }
@@ -2070,7 +2070,7 @@ namespace rgat
 
             for (; AnimationIndex < targetAnimIndex; AnimationIndex += stepSize)
             {
-                Console.WriteLine($"Anim Step {AnimationIndex}");
+                Logging.WriteConsole($"Anim Step {AnimationIndex}");
                 int actualIndex = (int)Math.Floor(AnimationIndex);
 
 
@@ -2112,7 +2112,7 @@ namespace rgat
                 {
                     if (verbose)
                     {
-                        Console.WriteLine($"\tLast entry was block exec - brighten edge to block address 0x{entry.blockAddr:x} ");
+                        Logging.WriteConsole($"\tLast entry was block exec - brighten edge to block address 0x{entry.blockAddr:x} ");
                     }
 
                     brighten_next_block_edge(entry.blockID, entry.blockAddr);
@@ -2135,7 +2135,7 @@ namespace rgat
 
                 if (verbose)
                 {
-                    Console.WriteLine($"\tUpdate eAnimUnchainedResults block 0x{entry.blockAddr:x} ");
+                    Logging.WriteConsole($"\tUpdate eAnimUnchainedResults block 0x{entry.blockAddr:x} ");
                 }
 
                 remove_unchained_from_animation();
@@ -2149,7 +2149,7 @@ namespace rgat
             {
                 if (verbose)
                 {
-                    Console.WriteLine($"\tUpdate eAnimReinstrument");
+                    Logging.WriteConsole($"\tUpdate eAnimReinstrument");
                 }
                 //if (unchainedWaitFrames-- > 1) return;
 
@@ -2164,7 +2164,7 @@ namespace rgat
             {
                 if (verbose)
                 {
-                    Console.WriteLine($"\tUpdate Replay eAnimUnchained/buildingloop");
+                    Logging.WriteConsole($"\tUpdate Replay eAnimUnchained/buildingloop");
                 }
 
                 brightTime = (int)Anim_Constants.BRIGHTNESS.KEEP_BRIGHT;
@@ -2183,7 +2183,7 @@ namespace rgat
                 while (!get_block_nodelist(entry.blockAddr, entry.blockID, out nodeIDList))
                 {
                     Thread.Sleep(15);
-                    Console.WriteLine($"[rgat] process_replay_update waiting for block 0x{entry.blockAddr:x}");
+                    Logging.WriteConsole($"[rgat] process_replay_update waiting for block 0x{entry.blockAddr:x}");
                     if (rgatState.rgatIsExiting)
                     {
                         return;
@@ -2193,7 +2193,7 @@ namespace rgat
 
             if (nodeIDList is not null)
             {
-                Console.WriteLine($"Trace type {entry.entryType} brightening nodes {string.Join(",", nodeIDList!.Select(x => x.ToString()))} for time {brightTime}");
+                Logging.WriteConsole($"Trace type {entry.entryType} brightening nodes {string.Join(",", nodeIDList!.Select(x => x.ToString()))} for time {brightTime}");
                 //add all the nodes+edges in the block to the brightening list
                 brighten_node_list(entry, brightTime, nodeIDList);
             }
@@ -2203,7 +2203,7 @@ namespace rgat
             {
                 if (verbose)
                 {
-                    Console.WriteLine($"\tUpdate eAnimUnchained");
+                    Logging.WriteConsole($"\tUpdate eAnimUnchained");
                 }
 
                 brighten_next_block_edge(entry.targetID, entry.targetAddr);
@@ -2409,7 +2409,7 @@ namespace rgat
                         AllHighlightedNodes.AddRange(newnodeidxs.Where(n => !AllHighlightedNodes.Contains(n)));
                         break;
                     default:
-                        Console.WriteLine($"Error: Unknown highlight type: {highlightType}");
+                        Logging.WriteConsole($"Error: Unknown highlight type: {highlightType}");
                         break;
                 }
 

@@ -258,7 +258,7 @@ namespace rgat
                 NodeData n = new NodeData();//can't this be done at start?
                 if (!n.Deserialise(nodeItem, processinfo))
                 {
-                    Console.WriteLine("Failed to deserialise node");
+                    Logging.WriteConsole("Failed to deserialise node");
                     return false;
                 }
 
@@ -355,7 +355,7 @@ namespace rgat
                 if (entry.Count != 3 || entry[0].Type != JTokenType.Integer ||
                     entry[1].Type != JTokenType.Integer || entry[2].Type != JTokenType.Array)
                 {
-                    Console.WriteLine("Error: Bad entry in LoadCallData");
+                    Logging.WriteConsole("Error: Bad entry in LoadCallData");
                     return false;
                 }
 
@@ -386,7 +386,7 @@ namespace rgat
             //ReadLock(piddata->disassemblyRWLock);
             lock (TraceData.DisassemblyData.InstructionsLock) //todo this can be a read lock
             {
-                //Console.WriteLine($"Checking if instruction 0x{instruction.address:X}, dbgid {instruction.DebugID} mut {instruction.mutationIndex} executed");
+                //Logging.WriteConsole($"Checking if instruction 0x{instruction.address:X}, dbgid {instruction.DebugID} mut {instruction.mutationIndex} executed");
                 if (instruction.GetThreadVert(ThreadID, out uint targetID))
                 {
                     targVertID = targetID;
@@ -404,7 +404,7 @@ namespace rgat
         {
             Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
 
-            //Console.WriteLine($"\tAddEdge_LastToTargetVert {ProtoLastVertID} -> {targVertID} repeats {repeats}");
+            //Logging.WriteConsole($"\tAddEdge_LastToTargetVert {ProtoLastVertID} -> {targVertID} repeats {repeats}");
 
             if (EdgeExists(edgeIDPair, out EdgeData? edgeObj))
             {
@@ -463,7 +463,7 @@ namespace rgat
                     }
                 }
 
-                //Console.WriteLine($"Creating edge src{sourcenode.index} -> targvid{targVertID}");
+                //Logging.WriteConsole($"Creating edge src{sourcenode.index} -> targvid{targVertID}");
                 NodeData? targNode = GetNode(targVertID);
                 Debug.Assert(targNode is not null);
                 AddEdge(newEdge, sourcenode, targNode);
@@ -526,11 +526,11 @@ namespace rgat
                 Debug.Assert(false);
                 if (foundExtern != null)
                 {
-                    Console.WriteLine($"[rgat]Warning - faulting block was in uninstrumented code at 0x{tag.blockaddr}");
+                    Logging.WriteConsole($"[rgat]Warning - faulting block was in uninstrumented code at 0x{tag.blockaddr}");
                 }
                 else
                 {
-                    Console.WriteLine($"[rgat]Warning - failed to get disassembly for faulting block at 0x{tag.blockaddr}");
+                    Logging.WriteConsole($"[rgat]Warning - failed to get disassembly for faulting block at 0x{tag.blockaddr}");
                 }
 
                 return;
@@ -542,7 +542,7 @@ namespace rgat
 
                 if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD && !node_exists(ProtoLastVertID))
                 {
-                    Console.WriteLine("\t\t[rgat]ERROR: RunBB- Last vert {lastVertID} not found");
+                    Logging.WriteConsole("\t\t[rgat]ERROR: RunBB- Last vert {lastVertID} not found");
                     Debug.Assert(false);
                 }
 
@@ -603,7 +603,7 @@ namespace rgat
             if (!found)
             {
                 //this happens in test binary: -mems-
-                Console.WriteLine("Warning: Code executed which is not in image or an external module. Possibly a buffer.");
+                Logging.WriteConsole("Warning: Code executed which is not in image or an external module. Possibly a buffer.");
                 resultPair = null;
                 return false;
             }
@@ -801,7 +801,7 @@ namespace rgat
                 //every edge that has this extern as a target
                 if (!lookup_extern_func_calls(arg.calledAddress, out List<Tuple<uint, uint>>? threadCalls) || threadCalls is null)
                 {
-                    Console.WriteLine($"\tProcessIncomingCallArguments - Failed to find *any* callers of 0x{arg.calledAddress:X} in current thread. Leaving until it appears.");
+                    Logging.WriteConsole($"\tProcessIncomingCallArguments - Failed to find *any* callers of 0x{arg.calledAddress:X} in current thread. Leaving until it appears.");
                     RemoveProcessedArgsFromCache(completecount);
                     return;
                 }
@@ -825,7 +825,7 @@ namespace rgat
                     if (functionNode.callRecordsIndexs.Count >= GlobalConfig.Settings.Tracing.ArgStorageMax)
                     {
                         //todo: blacklist this callee from future processing
-                        Console.WriteLine($"Warning, dropping args to extern 0x{currentTarget:X} because the storage limit is {GlobalConfig.Settings.Tracing.ArgStorageMax}");
+                        Logging.WriteConsole($"Warning, dropping args to extern 0x{currentTarget:X} because the storage limit is {GlobalConfig.Settings.Tracing.ArgStorageMax}");
                     }
                     else
                     {
@@ -857,7 +857,7 @@ namespace rgat
                     NodeData? targnode = GetNode(threadCalls[0].Item2);
                     Debug.Assert(targnode is not null);
                     ProcessData.GetSymbol(targnode.GlobalModuleID, arg.calledAddress, out string? sym);
-                    Console.WriteLine($"\tProcessIncomingCallArguments - Failed to find *specific* caller of 0x{arg.calledAddress:X} [{sym}] in current thread. Leaving until it appears.");
+                    Logging.WriteConsole($"\tProcessIncomingCallArguments - Failed to find *specific* caller of 0x{arg.calledAddress:X} [{sym}] in current thread. Leaving until it appears.");
                     break;
                 }
 
@@ -882,7 +882,7 @@ namespace rgat
             //int  moduleEnum = ProcessData.ModuleAPIReferences[node.GlobalModuleID];
 
             ProcessData.GetSymbol(node.GlobalModuleID, node.address, out string? symbol);
-            Console.WriteLine($"Node {node.Index} is system interaction {node.IsExternal}");
+            Logging.WriteConsole($"Node {node.Index} is system interaction {node.IsExternal}");
 
         }
 
@@ -924,7 +924,7 @@ namespace rgat
 
         private bool lookup_extern_func_calls(ulong called_function_address, out List<Tuple<uint, uint>>? callEdges)
         {
-            Console.WriteLine($"lookup_extern_func_calls looking for 0x{called_function_address:x}");
+            Logging.WriteConsole($"lookup_extern_func_calls looking for 0x{called_function_address:x}");
             lock (ProcessData.ExternCallerLock)
             {
                 if (TraceData.DisassemblyData.externdict.TryGetValue(called_function_address, out ROUTINE_STRUCT rtn))
@@ -1134,7 +1134,7 @@ namespace rgat
         public void AddEdge(EdgeData e, NodeData source, NodeData target)
         {
             Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.Index, target.Index);
-            //Console.WriteLine($"\t\tAddEdge {source.index} -> {target.index}");
+            //Logging.WriteConsole($"\t\tAddEdge {source.index} -> {target.index}");
 
 
             if (!source.OutgoingNeighboursSet.Contains(edgePair.Item2))
@@ -1200,16 +1200,16 @@ namespace rgat
                 }
 
                 //find caller,external vertids if old + add node to graph if new
-                Console.WriteLine("[rgat]WARNING: Exception handler in uninstrumented module reached\n." +
+                Logging.WriteConsole("[rgat]WARNING: Exception handler in uninstrumented module reached\n." +
                     "I have no idea if this code will handle it; Let me know when you reach the other side...");
                 if (!RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint>? resultPair))
                 {
-                    Console.WriteLine($"\tSecondary error - couldn't deal with extern address 0x{thistag.blockaddr:X}");
+                    Logging.WriteConsole($"\tSecondary error - couldn't deal with extern address 0x{thistag.blockaddr:X}");
                 }
             }
             else
             {
-                Console.WriteLine("[rgat]Error: Bad jump tag while handling exception");
+                Logging.WriteConsole("[rgat]Error: Bad jump tag while handling exception");
                 Debug.Assert(false);
             }
         }
@@ -1224,7 +1224,7 @@ namespace rgat
         {
             if (thistag.InstrumentationState == eCodeInstrumentation.eInstrumentedCode)
             {
-                //Console.WriteLine($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} [BLOCKID: {thistag.blockID}] inscount {thistag.insCount}");
+                //Logging.WriteConsole($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} [BLOCKID: {thistag.blockID}] inscount {thistag.insCount}");
 
                 addBlockToGraph(thistag.blockID, 1, !skipFirstEdge);
             }
@@ -1241,7 +1241,7 @@ namespace rgat
             }
             else
             {
-                Console.WriteLine($"[rgat]WARNING: Handle_tag dead code assert at block 0x{thistag.blockaddr:X}");
+                Logging.WriteConsole($"[rgat]WARNING: Handle_tag dead code assert at block 0x{thistag.blockaddr:X}");
                 Debug.Assert(false);
             }
 
@@ -1375,18 +1375,18 @@ namespace rgat
             TotalInstructions += ((ulong)numInstructions * repeats);
 
             uint firstVert = 0;
-            //Console.WriteLine($"addBlockLineToGraph adding block addr 0x{block[0].address:X} with {block.Count} instructions");
+            //Logging.WriteConsole($"addBlockLineToGraph adding block addr 0x{block[0].address:X} with {block.Count} instructions");
             for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
             {
                 InstructionData instruction = block[instructionIndex];
-                //Console.WriteLine($"\t{blockID}:InsIdx{instructionIndex} -> '{instruction.ins_text}'");
+                //Logging.WriteConsole($"\t{blockID}:InsIdx{instructionIndex} -> '{instruction.ins_text}'");
                 //start possible #ifdef DEBUG  candidate
                 if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD)
                 {
                     if (!node_exists(ProtoLastVertID))
                     {
                         //had an odd error here where it returned false with idx 0 and node list size 1. can only assume race condition?
-                        Console.WriteLine($"\t\t[rgat]ERROR: RunBB- Last vert {ProtoLastVertID} not found. Node list size is: {NodeList.Count}");
+                        Logging.WriteConsole($"\t\t[rgat]ERROR: RunBB- Last vert {ProtoLastVertID} not found. Node list size is: {NodeList.Count}");
                         Debug.Assert(false);
                     }
                 }
@@ -1398,11 +1398,11 @@ namespace rgat
                 if (!alreadyExecuted)
                 {
                     targVertID = handle_new_instruction(instruction, blockID, repeats);
-                    // Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
+                    // Logging.WriteConsole($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
                 }
                 else
                 {
-                    // Console.WriteLine($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} exists [targVID => {targVertID}], handling as existing");
+                    // Logging.WriteConsole($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} exists [targVID => {targVertID}], handling as existing");
                     handle_previous_instruction(targVertID, repeats);
                 }
 
@@ -1437,7 +1437,7 @@ namespace rgat
                 {
                     ProtoLastLastVertID = ProtoLastVertID;
                     ProtoLastVertID = targVertID;
-                    // Console.WriteLine($"\t\t\t New LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
+                    // Logging.WriteConsole($"\t\t\t New LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
                 }
             }
 
@@ -1455,7 +1455,7 @@ namespace rgat
                 }
             }
 
-            //Console.WriteLine($"Thread {ThreadID} draw block from nidx {firstVert} -to- {lastVertID}");
+            //Logging.WriteConsole($"Thread {ThreadID} draw block from nidx {firstVert} -to- {lastVertID}");
         }
 
         /*
@@ -1532,7 +1532,7 @@ namespace rgat
         /// <param name="entry">The ANIMATIONENTRY value</param>
         public void PushAnimUpdate(ANIMATIONENTRY entry)
         {
-            //Console.WriteLine($"Pushed anim update with block addr {entry.blockAddr} id {entry.blockID}");
+            //Logging.WriteConsole($"Pushed anim update with block addr {entry.blockAddr} id {entry.blockID}");
             lock (AnimDataLock)
             {
                 SavedAnimationData.Add(entry);
@@ -1696,32 +1696,32 @@ namespace rgat
         {
             if (!graphData.TryGetValue("Nodes", out JToken? jNodes) || jNodes.Type != JTokenType.Array)
             {
-                Console.WriteLine("[rgat] Failed to find valid Nodes in trace");
+                Logging.WriteConsole("[rgat] Failed to find valid Nodes in trace");
                 return false;
             }
             JArray NodesArray = (JArray)jNodes;
             if (!LoadNodes(NodesArray, processinfo))
             {
-                Console.WriteLine("[rgat]ERROR: Failed to load nodes");
+                Logging.WriteConsole("[rgat]ERROR: Failed to load nodes");
                 return false;
             }
 
             if (!graphData.TryGetValue("Edges", out JToken? jEdges) || jEdges.Type != JTokenType.Array)
             {
-                Console.WriteLine("[rgat] Failed to find valid Edges in trace");
+                Logging.WriteConsole("[rgat] Failed to find valid Edges in trace");
                 return false;
             }
 
             JArray EdgeArray = (JArray)jEdges;
             if (!LoadEdges(EdgeArray))
             {
-                Console.WriteLine("[rgat]ERROR: Failed to load edges");
+                Logging.WriteConsole("[rgat]ERROR: Failed to load edges");
                 return false;
             }
 
             if (!graphData.TryGetValue("BlockBounds", out JToken? blockbounds) || blockbounds.Type != JTokenType.Array)
             {
-                Console.WriteLine("[rgat] Failed to find valid BlockBounds array in trace");
+                Logging.WriteConsole("[rgat] Failed to find valid BlockBounds array in trace");
                 return false;
             }
 
@@ -1737,37 +1737,37 @@ namespace rgat
 
             if (!graphData.TryGetValue("Exceptions", out JToken? jExcepts) || jEdges.Type != JTokenType.Array)
             {
-                Console.WriteLine("[rgat] Failed to find valid Exceptions in trace");
+                Logging.WriteConsole("[rgat] Failed to find valid Exceptions in trace");
                 return false;
             }
             JArray ExceptionArray = (JArray)jExcepts;
             if (!LoadExceptions(ExceptionArray))
             {
-                Console.WriteLine("[rgat]ERROR: Failed to load Exceptions");
+                Logging.WriteConsole("[rgat]ERROR: Failed to load Exceptions");
                 return false;
             }
 
             if (!graphData.TryGetValue("ExternCalls", out JToken? jExternCalls) || jExternCalls.Type != JTokenType.Array)
             {
-                Console.WriteLine("[rgat] Failed to find valid ExternCalls in trace");
+                Logging.WriteConsole("[rgat] Failed to find valid ExternCalls in trace");
                 return false;
             }
             JArray ExternCallsArray = (JArray)jExternCalls;
             if (!LoadCallData(ExternCallsArray))
             {
-                Console.WriteLine("[rgat]ERROR: Failed to load ExternCalls");
+                Logging.WriteConsole("[rgat]ERROR: Failed to load ExternCalls");
                 return false;
             }
 
             if (!graphData.TryGetValue("ReplayData", out JToken? jReplayData) || jExternCalls.Type != JTokenType.Array)
             {
-                Console.WriteLine("[rgat] Failed to find valid ReplayData in trace");
+                Logging.WriteConsole("[rgat] Failed to find valid ReplayData in trace");
                 return false;
             }
             JArray ReplayDataArray = (JArray)jReplayData;
             if (!LoadAnimationData(ReplayDataArray))
             {
-                Console.WriteLine("[rgat]ERROR: Failed to load ReplayData");
+                Logging.WriteConsole("[rgat]ERROR: Failed to load ReplayData");
                 return false;
             }
 

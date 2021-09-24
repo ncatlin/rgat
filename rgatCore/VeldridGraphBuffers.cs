@@ -341,10 +341,10 @@ namespace rgat
                 }
 
                 outputArray[index] = destinationReadView[index];
-                //Console.WriteLine($"{index}:{outputArray[index]}");
+                //Logging.WriteConsole($"{index}:{outputArray[index]}");
                 if (float.IsNaN(outputArray[index]))
                 {
-                    Console.WriteLine($"{index}:{outputArray[index]}");
+                    Logging.WriteConsole($"{index}:{outputArray[index]}");
                     return true;
                 }
             }

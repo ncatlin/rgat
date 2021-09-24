@@ -86,7 +86,7 @@ namespace rgat.Config
         /// </summary>
         public PathSettings ToolPaths { get; set; } = new PathSettings();
         /// <summary>
-        /// UI Settings
+        /// UI and rendering settings
         /// </summary>
         public UISettings UI { get; set; } = new UISettings();
         /// <summary>
@@ -285,26 +285,40 @@ namespace rgat.Config
         /// </summary>
         public class UISettings
         {
-            private int _MaxStoredRecentPaths = 10;
             /// <summary>
             /// Max number of recent paths to store
             /// </summary>
             public int MaxStoredRecentPaths { get => _MaxStoredRecentPaths; set { _MaxStoredRecentPaths = value; MarkDirty(); } }
 
+            private int _MaxStoredRecentPaths = 10;
+
             /// <summary>
             /// Display an box around the area that was screencaptured
             /// </summary>
-            public bool ScreencapAnimation = true;
+            public bool ScreencapAnimation { get => _ScreencapAnimation; set { _ScreencapAnimation = value; MarkDirty(); } }
+            private bool _ScreencapAnimation = true;
+
             /// <summary>
             /// Display a ring around alerts
             /// </summary>
-            public bool AlertAnimation = true;
-            private string _InstalledVersion = "None";
+            public bool AlertAnimation { get => _AlertAnimation; set { _AlertAnimation = value; MarkDirty(); } }
+            private bool _AlertAnimation = true;
+
             /// <summary>
             /// The version of rgat this config file was created by
             /// Used on updating to trigger the writing of the latest tools to disk
             /// </summary>
             public string InstalledVersion { get => _InstalledVersion; set { _InstalledVersion = value; MarkDirty(); } }
+            private string _InstalledVersion = "None";
+
+            /// <summary>
+            /// How many preview renderer workers to run. Each has their own layout engine to 
+            /// layout/render preview graphs.
+            /// More will make rendering lots of graphs snappier, but too many adds contention issues and 
+            /// getting into the dozens will exhaust the GPU allocator pool and crash us
+            /// </summary>
+            public int PreviewWorkers { get => _PreviewWorkers; set { _PreviewWorkers = value; MarkDirty(); } }
+            private int _PreviewWorkers = 4;
         }
 
         /// <summary>

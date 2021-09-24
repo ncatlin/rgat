@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using rgat.Testing;
+using rgat.Threads;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -287,7 +288,7 @@ namespace rgat
                 {
                     if (ProtoGraphs.ContainsKey(mainplot.TID))
                     {
-                        Console.WriteLine("Warning - thread with duplicate ID detected. This should never happen. Undefined behaviour ahoy.");
+                        Logging.WriteConsole("Warning - thread with duplicate ID detected. This should never happen. Undefined behaviour ahoy.");
                         return false;
                     }
 
@@ -298,7 +299,7 @@ namespace rgat
 
                 //runtimeline.notify_new_thread(getPID(), randID, TID);
             }
-            Console.WriteLine("Todo implement runtimeline");
+            Logging.WriteConsole("Todo implement runtimeline");
             return true;
         }
 
@@ -404,7 +405,7 @@ namespace rgat
                 if (!LoadTimeline(saveJSON))
 
                 {
-                    Console.WriteLine("[rgat]Timeline load failed");
+                    Logging.WriteConsole("[rgat]Timeline load failed");
                     return false;
                 }
 
@@ -640,7 +641,7 @@ namespace rgat
             // Todo: the issue here is either code that hasn't been disasembled (full trace buffers?) or code executing in a buffer 
 
             localmodID = -1;
-            Console.WriteLine($"Warning: Unknown module in traceRecord::FindContainingModule for address 0x{address:X}");
+            Logging.WriteConsole($"Warning: Unknown module in traceRecord::FindContainingModule for address 0x{address:X}");
             int attempts = 1;
             while (attempts-- != 0)
             {
@@ -649,7 +650,7 @@ namespace rgat
                 if (found)
                 {
                     localmodID = outID!.Value;
-                    Console.WriteLine("FindContainingModule found!");
+                    Logging.WriteConsole("FindContainingModule found!");
                     break;
                 }
             }
@@ -926,6 +927,7 @@ namespace rgat
 
             lock (GraphListLock)
             {
+                PreviewRendererThread.AddGraphToPreviewRenderQueue(standardRenderedGraph);
                 PlottedGraphs.Add(GraphThreadID, standardRenderedGraph);
             }
 
@@ -1291,7 +1293,7 @@ namespace rgat
             resultsobj.traceResults = results;
             foreach (TestRequirement req in ptreq.ProcessRequirements)
             {
-                Console.WriteLine($"Evaluating process requirement {req.Name} {req.Condition} [val] ");
+                Logging.WriteConsole($"Evaluating process requirement {req.Name} {req.Condition} [val] ");
                 bool passed = false;
                 string? error = "";
                 string compareValueString = "";

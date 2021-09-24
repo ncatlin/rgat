@@ -852,7 +852,7 @@ namespace rgat
                     ActiveGraph!.InternalProtoGraph.HeatSolvingComplete = false; //todo - temporary for dev
                     break;
                 default:
-                    Console.WriteLine("unknown rendering mode");
+                    Logging.WriteConsole("unknown rendering mode");
                     break;
             }
             _renderingMode = newMode;
@@ -1067,7 +1067,7 @@ namespace rgat
                     ar.currentY += GlobalConfig.ExternAnimRisePerFrame;
                     ar.remainingFrames -= 1;
                 }
-                //Console.WriteLine($"Drawing '{ar.text}' at y {ar.currentY}");
+                //Logging.WriteConsole($"Drawing '{ar.text}' at y {ar.currentY}");
                 RenderString(ar.text, (uint)ar.nodeIdx, fontScale, _controller._unicodeFont, stringVerts, risingSymColour, yOff: ar.currentY);
             }
         }
@@ -1532,7 +1532,7 @@ namespace rgat
                     iconTex = _controller.GetImage("Cylinder");
                     break;
                 default:
-                    Console.WriteLine($"ERROR: no icond for layout {layout}");
+                    Logging.WriteConsole($"ERROR: no icond for layout {layout}");
                     iconTex = _controller.GetImage("Force3D");
                     break;
             }
@@ -1671,14 +1671,14 @@ namespace rgat
                 }
                 if (done && _centeringInFrame != 2)
                 {
-                    Console.WriteLine($"Centering done after {_centeringSteps} steps");
+                    Logging.WriteConsole($"Centering done after {_centeringSteps} steps");
                     _centeringInFrame = 0;
                 }
                 else
                 {
                     if (_centeringInFrame == 1 && _centeringSteps > 1000)
                     {
-                        Console.WriteLine($"Warning: centering has taken {_centeringSteps} steps so far, abandoning");
+                        Logging.WriteConsole($"Warning: centering has taken {_centeringSteps} steps so far, abandoning");
                         _centeringInFrame = 0;
                     }
                 }
@@ -1789,7 +1789,7 @@ namespace rgat
                         if (f.R != _mouseoverNodeID && f.R < graph.InternalProtoGraph.NodeList.Count) //mouse is over a different node
                         {
                             NodeData n = graph.InternalProtoGraph.NodeList[(int)f.R];
-                            Console.WriteLine($"Mouse: {mouseX},{mouseY} on node {f.R} -> 0x{n.address:X}. Out:{n.OutgoingNeighboursSet.Count} In:{n.IncomingNeighboursSet.Count}");
+                            Logging.WriteConsole($"Mouse: {mouseX},{mouseY} on node {f.R} -> 0x{n.address:X}. Out:{n.OutgoingNeighboursSet.Count} In:{n.IncomingNeighboursSet.Count}");
                             _mouseoverNodeID = (int)f.R;
                         }
                         hit = true;

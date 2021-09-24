@@ -444,7 +444,7 @@ namespace rgat.Widgets
 
             if (keyModTuple.Item1 == _activeEntry.Shortcut)
             {
-                Console.WriteLine($"Closing menu {_activeEntry.Action} because it is the active entry");
+                Logging.WriteConsole($"Closing menu {_activeEntry.Action} because it is the active entry");
                 _activeEntry.active = false;
                 _activeEntry = _activeEntry.parent;
 
@@ -592,7 +592,7 @@ namespace rgat.Widgets
                     break;
                 }
             }
-            //Console.WriteLine(_expanded);
+            //Logging.WriteConsole(_expanded);
             if (_expanded && !ExpansionFinished)
             {
                 _expandProgress += expansionPerFrame;
@@ -753,7 +753,7 @@ private void DrawScalePopup()
         if (ImGui.DragFloat("Horizontal Stretch", ref _rgatstate._currentGraph.scalefactors.pix_per_A, 0.5f, 0.05f, 400f, "%f%%"))
         {
             InitGraphReplot();
-            Console.WriteLine($"Needreplot { _rgatstate._currentGraph.scalefactors.pix_per_A}");
+            Logging.WriteConsole($"Needreplot { _rgatstate._currentGraph.scalefactors.pix_per_A}");
         };
         if (ImGui.DragFloat("Vertical Stretch", ref _rgatstate._currentGraph.scalefactors.pix_per_B, 0.5f, 0.1f, 400f, "%f%%"))
         {

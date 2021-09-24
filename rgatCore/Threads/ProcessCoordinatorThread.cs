@@ -292,11 +292,6 @@ namespace rgat.Threads
             BlockHandlerThread blockHandler = new BlockHandlerThread(trace.Target, trace);
             trace.ProcessThreads.Register(blockHandler);
             blockHandler.Begin();
-
-            if (rgatUI.Exists)
-            {
-                ProcessLaunching.launch_new_visualiser_threads(trace, _clientState);
-            }
         }
     }
 }

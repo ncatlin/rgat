@@ -211,7 +211,7 @@ namespace rgat
 
                 if (!processinfo.disassembly.TryGetValue(address, out List<InstructionData>? addrInstructions))
                 {
-                    Console.WriteLine("[rgat] Error. Failed to find address " + address + " in disassembly for node " + jsnArrIdx);
+                    Logging.WriteConsole("[rgat] Error. Failed to find address " + address + " in disassembly for node " + jsnArrIdx);
                     return ErrorAtIndex(jsnArrIdx);
                 }
                 ins = addrInstructions[mutationIndex];
@@ -231,7 +231,7 @@ namespace rgat
 
         private static bool ErrorAtIndex(int index)
         {
-            Console.WriteLine("Error deserialising node at index " + index);
+            Logging.WriteConsole("Error deserialising node at index " + index);
             return false;
         }
 
@@ -278,7 +278,7 @@ namespace rgat
                     _nodeType = eEdgeNodeType.eNodeCall;
                     break;
                 default:
-                    Console.WriteLine("[rgat]Error: render_node unknown itype " + ins.itype);
+                    Logging.WriteConsole("[rgat]Error: render_node unknown itype " + ins.itype);
                     System.Diagnostics.Debug.Assert(false);
                     break;
             }

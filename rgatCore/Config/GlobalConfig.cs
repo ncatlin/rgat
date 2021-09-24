@@ -706,7 +706,7 @@ namespace rgat
                     }
                 }
             }
-            Console.WriteLine($"Loading config from {settingsPath} {File.Exists(settingsPath)}");
+            Logging.WriteConsole($"Loading config from {settingsPath} {File.Exists(settingsPath)}");
 
             string settingsContents = File.ReadAllText(settingsPath);
             System.Text.Json.JsonSerializerOptions settingParserOptions = new System.Text.Json.JsonSerializerOptions() { AllowTrailingCommas = true };
@@ -728,7 +728,7 @@ namespace rgat
             rgatSettings.SetChangeCallback(MarkDirty);
             Settings.EnsureValidity();
 
-            Console.WriteLine("initial config load done after" + timer.ElapsedMilliseconds);
+            Logging.WriteConsole("initial config load done after" + timer.ElapsedMilliseconds);
             if (Settings.UI.InstalledVersion != CONSTANTS.PROGRAMVERSION.RGAT_VERSION)
             {
                 InstallNewTools();

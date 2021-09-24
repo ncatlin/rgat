@@ -122,7 +122,7 @@ namespace rgat
         /// </summary>
         private void HandleFrameTimerFired()
         {
-            //Console.WriteLine("Handling timer fired");
+            //Logging.WriteConsole("Handling timer fired");
             IrregularTimerFired = false;
             foreach (PlottedGraph graph in _centeringRequired.Keys.ToList())
             {
@@ -930,21 +930,22 @@ namespace rgat
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
                 (_NodeIndexBuffer!.SizeInBytes < nodeIndices.Count * sizeof(uint)))
             {
-
-                Logging.RecordLogEvent("disposeremake nodeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
-
                 VeldridGraphBuffers.VRAMDispose(_NodeVertexBuffer);
                 _NodeVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd!, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewNodeVertexBuffer");
 
                 VeldridGraphBuffers.VRAMDispose(_NodeIndexBuffer);
                 _NodeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd!, (uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewNodeIndexBuffer");
             }
+            Debug.Assert((_NodeVertexBuffer.SizeInBytes >= NodeVerts.Length * Position2DColour.SizeInBytes) &&
+                (_NodeIndexBuffer!.SizeInBytes >= nodeIndices.Count * sizeof(uint)));
 
             cl.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
             cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
 
             if (((edgeVertCount * sizeof(uint)) > _EdgeIndexBuffer!.SizeInBytes))
             {
+                Logging.WriteConsole($"Resizing EVX from {_EdgeVertBuffer!.SizeInBytes} to { EdgeLineVerts.Length * Position2DColour.SizeInBytes}");
+                Logging.WriteConsole($"Resizing EVIDX from {_EdgeIndexBuffer!.SizeInBytes} to {edgeDrawIndexes.Count * sizeof(uint)}");
                 Logging.RecordLogEvent("disposeremake edgeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
 
                 VeldridGraphBuffers.VRAMDispose(_EdgeVertBuffer);
@@ -961,7 +962,7 @@ namespace rgat
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gd!.PointSampler,
                 graph.LayoutState.PositionsVRAM1, graph.LayoutState.AttributesVRAM1);
             ResourceSet crscore = _factory!.CreateResourceSet(crs_core_rsd);
-
+            
 
             Logging.RecordLogEvent($"render preview {graph.TID} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _NodeCircleSpriteview);

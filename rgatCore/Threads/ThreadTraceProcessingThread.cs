@@ -298,7 +298,7 @@ namespace rgat.Threads
                             }
                             else
                             {
-                                Console.WriteLine($"No callers for node 0x{n.address:X}");
+                                Logging.WriteConsole($"No callers for node 0x{n.address:X}");
                                 needWait = true;
                                 break;
                             }
@@ -313,7 +313,7 @@ namespace rgat.Threads
                             }
                             else
                             {
-                                Console.WriteLine($"No callers for node 0x{altIns?.Address:X}");
+                                Logging.WriteConsole($"No callers for node 0x{altIns?.Address:X}");
                                 needWait = true;
                                 break;
                             }
@@ -405,7 +405,7 @@ namespace rgat.Threads
             while (thistag.blockID >= protograph.ProcessData.BasicBlocksList.Count)
             {
                 Thread.Sleep(50);
-                Console.WriteLine("Waiting for disas");
+                Logging.WriteConsole("Waiting for disas");
             }
             Debug.Assert(thistag.blockID < protograph.ProcessData.BasicBlocksList.Count, "ProcessTraceTag tried to process block that hasn't been disassembled");
 
@@ -538,7 +538,7 @@ namespace rgat.Threads
             }
             else
             {
-                Console.WriteLine($"AddSingleStepUpdate Error: Entries had length {entries.Length}: {entry}");
+                Logging.WriteConsole($"AddSingleStepUpdate Error: Entries had length {entries.Length}: {entry}");
             }
         }
 
@@ -600,7 +600,7 @@ namespace rgat.Threads
             char moreArgsFlag = entries[4][0];
             string argstring = entries[5];
 
-            Console.WriteLine($"Handling arg index {argIdx} of symbol address 0x{funcpc:x} from source block {sourceBlockID} :'{argstring}'");
+            Logging.WriteConsole($"Handling arg index {argIdx} of symbol address 0x{funcpc:x} from source block {sourceBlockID} :'{argstring}'");
 
             protograph.CacheIncomingCallArgument(funcpc, sourceBlockID, argpos: argIdx, contents: argstring, isLastArgInCall: moreArgsFlag == 'E');
 
@@ -654,10 +654,10 @@ namespace rgat.Threads
                     if (thunkInfo.callerNodes.TryGetValue((int)protograph.ProtoLastVertID, out int callervert))
                     {
 
-                        Console.WriteLine("dxde");
+                        Logging.WriteConsole("dxde");
                     }
 
-                    Console.WriteLine("xde");
+                    Logging.WriteConsole("xde");
                     return;
                 }*/
                 //Debug.Assert(false, $"Block {animUpdate.blockID} has null entry but is not a thunk");
@@ -728,7 +728,7 @@ namespace rgat.Threads
 
             protograph.ProtoLastVertID = blockNodes.Item2;
 
-            //Console.WriteLine($"Processing AddUnchainedUpdate source 0x{animUpdate.blockAddr:X} targaddr 0x{animUpdate.targetAddr:X}");
+            //Logging.WriteConsole($"Processing AddUnchainedUpdate source 0x{animUpdate.blockAddr:X} targaddr 0x{animUpdate.targetAddr:X}");
         }
 
         private void AddExecCountUpdate(byte[] entry)
@@ -825,7 +825,7 @@ namespace rgat.Threads
             ulong flags = ulong.Parse(entries[3], NumberStyles.HexNumber);
 
 
-            Console.WriteLine($"[rgat]Exception detected in PID{protograph.TraceData.PID} TID: {protograph.ThreadID} [code 0x{code:X} flags: 0x{flags:X}] at address 0x{address:X}");
+            Logging.WriteConsole($"[rgat]Exception detected in PID{protograph.TraceData.PID} TID: {protograph.ThreadID} [code 0x{code:X} flags: 0x{flags:X}] at address 0x{address:X}");
             List<InstructionData>? faultingBlock;
             bool gotDisas = false;
             lock (protograph.ProcessData.InstructionsLock) //read lock
@@ -843,7 +843,7 @@ namespace rgat.Threads
                 {
                     if (!protograph.ProcessData.disassembly.TryGetValue(address, out faultingBlock))
                     {
-                        Console.WriteLine($"[rgat]Exception address 0x{address:X} not found in disassembly");
+                        Logging.WriteConsole($"[rgat]Exception address 0x{address:X} not found in disassembly");
                         return;
                     }
                 }
@@ -925,7 +925,7 @@ namespace rgat.Threads
 
 
 
-                //if (msg[0] != 'A') Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                //if (msg[0] != 'A') Logging.WriteConsole("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                 //Logging.RecordLogEvent("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length), filter: Logging.LogFilterType.BulkDebugLogFile);
 
                 lock (debug_tag_lock) //todo dont forget to remove this
@@ -966,8 +966,8 @@ namespace rgat.Threads
                             Logging.RecordLogEvent($"Bad trace tag {(char)msg[0]}", filter: Logging.LogFilterType.BulkDebugLogFile);
 
                             Logging.RecordLogEvent($"Bad trace tag: {msg[0]} - likely a corrupt trace", Logging.LogFilterType.TextError);
-                            Console.WriteLine($"Handle unknown tag {(char)msg[0]}");
-                            Console.WriteLine("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                            Logging.WriteConsole($"Handle unknown tag {(char)msg[0]}");
+                            Logging.WriteConsole("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                             protograph.TraceReader.Terminate();
                             break;
                     }
@@ -985,7 +985,7 @@ namespace rgat.Threads
             PerformIrregularActions();
 
 
-            Console.WriteLine($"{WorkerThread?.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
+            Logging.WriteConsole($"{WorkerThread?.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
             Debug.Assert(blockRepeatQueue.Count == 0 || protograph.TraceReader.StopFlag);
 
             Finished();

@@ -102,17 +102,17 @@ namespace rgat
             try
             {
                 blockPipe!.EndWaitForConnection(ar);
-                Console.WriteLine("Block pipe connected for PID " + trace.PID);
+                Logging.WriteConsole("Block pipe connected for PID " + trace.PID);
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Exception while trying to connect block pipe for PID {trace.PID}: {e.Message}");
+                Logging.WriteConsole($"Exception while trying to connect block pipe for PID {trace.PID}: {e.Message}");
             }
         }
 
         private void MirrorMessageToUI(byte[] buf, int bytesRead)
         {
-            //Console.WriteLine($"Mirrormsg len {bytesRead}/{buf.Length} to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(buf, 0, bytesRead));
+            //Logging.WriteConsole($"Mirrormsg len {bytesRead}/{buf.Length} to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(buf, 0, bytesRead));
             Debug.Assert(_remotePipeID is not null);
             rgatState.NetworkBridge.SendRawTraceData(_remotePipeID.Value, buf, bytesRead);
         }
@@ -165,18 +165,18 @@ namespace rgat
 
             uint blockID = BitConverter.ToUInt32(buf, bufPos); bufPos += 4;
 
-            //Console.WriteLine($"Processing block {blockID} address 0x{BlockAddress:X} module {globalModNum}");
+            //Logging.WriteConsole($"Processing block {blockID} address 0x{BlockAddress:X} module {globalModNum}");
 
             if (!instrumented) //should no longer happen
             {
-                Console.WriteLine($"[rgat] Error: Uninstrumented block at address 0x{BlockAddress:X} module {trace.DisassemblyData.LoadedModulePaths[globalModNum]} has been... instrumented?");
+                Logging.WriteConsole($"[rgat] Error: Uninstrumented block at address 0x{BlockAddress:X} module {trace.DisassemblyData.LoadedModulePaths[globalModNum]} has been... instrumented?");
                 return;
             }
 
             List<InstructionData> blockInstructions = new List<InstructionData>();
             ulong insaddr = BlockAddress;
 
-            //Console.WriteLine($"Ingesting block ID {blockID} address 0x{insaddr:X}");
+            //Logging.WriteConsole($"Ingesting block ID {blockID} address 0x{insaddr:X}");
 
             int dbginscount = -1;
             while (bufPos < buf.Length && buf[bufPos] == '@') //er here
@@ -197,7 +197,7 @@ namespace rgat
                     if (trace.DisassemblyData.disassembly.TryGetValue(insaddr, out foundList))
                     {
 
-                        //Console.WriteLine($"\t Block {blockID} existing ins {dbginscount}-0x{insaddr:X}: {foundList[0].ins_text}");
+                        //Logging.WriteConsole($"\t Block {blockID} existing ins {dbginscount}-0x{insaddr:X}: {foundList[0].ins_text}");
 
                         InstructionData possibleInstruction = foundList[^1];
                         //if address has been seen but opcodes are not same as most recent, disassemble again
@@ -210,7 +210,7 @@ namespace rgat
                             continue;
                         }
                     }
-                    //Console.WriteLine($"Blockaddrhandler, Ins 0x{insaddr:X} not previously disassembled");
+                    //Logging.WriteConsole($"Blockaddrhandler, Ins 0x{insaddr:X} not previously disassembled");
 
                     InstructionData instruction = new InstructionData();
                     instruction.Address = insaddr;
@@ -238,7 +238,7 @@ namespace rgat
                         return;
                     }
 
-                    // Console.WriteLine($"[rgatBlkHandler]\t Block {blockID} new      ins {dbginscount}-0x{insaddr:X}: {instruction.ins_text}");
+                    // Logging.WriteConsole($"[rgatBlkHandler]\t Block {blockID} new      ins {dbginscount}-0x{insaddr:X}: {instruction.ins_text}");
 
                     if (foundList == null)
                     {
@@ -255,7 +255,7 @@ namespace rgat
                 }
             }
             Debug.Assert(blockInstructions.Count != 0);
-            //Console.WriteLine($"Block ID {blockID} ({BlockAddress:X}) had {blockInstructions.Count} instructions");
+            //Logging.WriteConsole($"Block ID {blockID} ({BlockAddress:X}) had {blockInstructions.Count} instructions");
             trace.DisassemblyData.AddDisassembledBlock(blockID, BlockAddress, blockInstructions);
         }
 
@@ -355,10 +355,10 @@ namespace rgat
             {
                 Thread.Sleep(1000);
                 totalWaited += 1000;
-                Console.WriteLine($"BlockPipeThread Waiting BlockPipeConnected:{blockPipe.IsConnected} TotalTime:{totalWaited}");
+                Logging.WriteConsole($"BlockPipeThread Waiting BlockPipeConnected:{blockPipe.IsConnected} TotalTime:{totalWaited}");
                 if (totalWaited > 8000)
                 {
-                    Console.WriteLine($"Timeout waiting for rgat client sub-connections. BlockPipeConnected:{blockPipe.IsConnected} ");
+                    Logging.WriteConsole($"Timeout waiting for rgat client sub-connections. BlockPipeConnected:{blockPipe.IsConnected} ");
                     break;
                 }
             }
@@ -419,7 +419,7 @@ namespace rgat
 
             blockPipe.Dispose();
             Finished();
-            Console.WriteLine($"BlockHandler Listener thread exited for PID {trace.PID}");
+            Logging.WriteConsole($"BlockHandler Listener thread exited for PID {trace.PID}");
         }
 
     }

@@ -100,6 +100,19 @@ namespace rgat
             /// Maxmimum directories to store in filepicker history
             /// </summary>
             public const int FILEPICKER_HISTORY_MAX = 10;
+
+            /// <summary>
+            /// Minimum number of preview workers to run
+            /// If this is less than 2 then active trace previews
+            /// won't be rendered if there are multiple traces
+            /// </summary>
+            public const int MINIMUM_PREVIEW_WORKERS = 2;
+
+            /// <summary>
+            /// Maxmimum number of preview workers to run. 
+            /// Going into the dozens risks exhausing the VK allocator pool
+            /// </summary>
+            public const int MAXIMUM_PREVIEW_WORKERS = 16;
         }
 
         /// <summary>

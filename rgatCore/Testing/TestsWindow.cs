@@ -245,11 +245,6 @@ namespace rgat.Widgets
         {
             if (ImGui.TreeNodeEx($"{testcase.CategoryName}:{testcase.TestName} - [Not run]"))
             {
-                if (testcase.Comment?.Length > 0)
-                {
-                    SmallWidgets.MouseoverText($"Description: {testcase.Comment}");
-                }
-
                 var wholeTestReqs = testcase.TestRunRequirements();
 
                 if (ImGui.TreeNodeEx($"{wholeTestReqs.Length} Whole Test Requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
@@ -266,7 +261,7 @@ namespace rgat.Widgets
                 DrawTraceSpecExplainTreeNodes(traceRequirements);
 
 
-                ImGui.TreePop();
+                ImGui.TreePop(); 
             }
             if (testcase.Comment?.Length > 0)
             {
@@ -280,17 +275,19 @@ namespace rgat.Widgets
             var threadRequirements = traceRequirements.ThreadRequirements;
             var childReqsList = traceRequirements.ChildProcessRequirements;
 
-            if (ImGui.TreeNodeEx($"{processRequirements.Count} Process Requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
+            if (processRequirements.Count is not 0 &&
+                ImGui.TreeNodeEx($"{processRequirements.Count} Process Requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
             {
                 foreach (var req in processRequirements)
                 {
-                    ImGui.Text($"Process Requirement: {req.Name} {req.Condition} {req.ExpectedValueString}");
+                    ImGui.Text($"Process Requirement: {req.Name} [Actual] {req.Condition} {req.ExpectedValueString} [Expected]");
                     SmallWidgets.MouseoverText(req.Comment);
                 }
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx($"{threadRequirements.Count} sets of Thread Requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
+            if (threadRequirements.Count is not 0 &&
+                ImGui.TreeNodeEx($"{threadRequirements.Count} sets of Thread Requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
             {
                 foreach (var threadsReqList in threadRequirements)
                 {
@@ -298,7 +295,7 @@ namespace rgat.Widgets
                     {
                         foreach (var req in threadsReqList.value)
                         {
-                            ImGui.Text($"Thread Requirement: {req.Name} {req.Condition} {req.ExpectedValueString}");
+                            ImGui.Text($"Thread Requirement: {req.Name} [Actual] {req.Condition} {req.ExpectedValueString} [Expected]");
                             SmallWidgets.MouseoverText(req.Comment);
                         }
 
@@ -308,7 +305,8 @@ namespace rgat.Widgets
                 ImGui.TreePop();
             }
 
-            if (ImGui.TreeNodeEx($"{childReqsList.Count} child trace requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
+            if (childReqsList.Count is not 0 &&
+                ImGui.TreeNodeEx($"{childReqsList.Count} child trace requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
             {
                 foreach (var childTraceReqs in childReqsList)
                 {
@@ -402,7 +400,7 @@ namespace rgat.Widgets
                         }
 
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Test run Requirement: {wholeTestReq.Name} [{results.comparedValueString}] {wholeTestReq.Condition} {wholeTestReq.ExpectedValueString}");
+                        ImGui.Text($"Test run Requirement: {wholeTestReq.Name} [Result: {results.comparedValueString}] {wholeTestReq.Condition} [Expected: {wholeTestReq.ExpectedValueString}]");
                         SmallWidgets.MouseoverText(wholeTestReq.Comment);
                     }
 
@@ -471,13 +469,13 @@ namespace rgat.Widgets
                     ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, (successThreads > 0) ? passHighlight : failHighlight);
                     ImGui.TableNextColumn();
 
-                    if (ImGui.TreeNodeEx($"Set-{setID}: {threadsReqList.value.Count} conditions [met by {successThreads} threads]", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
+                    if (ImGui.TreeNodeEx($"Requirement Set {setID}: {threadsReqList.value.Count} conditions [met by {successThreads} threads]", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
                     {
                         foreach (ProtoGraph graph in commentsDict.Keys)
                         {
                             REQUIREMENT_TEST_RESULTS graphScores = commentsDict[graph];
                             ImGui.TableNextRow();
-                            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, (graphScores.Failed.Count == 0) ? passHighlight : failHighlight);
+                            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, (graphScores.Failed.Count is 0) ? passHighlight : failHighlight);
                             ImGui.TableNextColumn();
                             bool hasFailed = graphScores.Failed.Any();
                             ImGuiTreeNodeFlags flags = hasFailed ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None;
@@ -506,7 +504,7 @@ namespace rgat.Widgets
                                     ImGui.TableNextColumn();
                                     TestRequirement req = comm.requirement;
                                     string testtext = $"Thread Requirement: {req.Name} ({comm.comparedValueString})";
-                                    if (req.ExpectedValueString != null)
+                                    if (req.ExpectedValueString is not null)
                                     {
                                         testtext += $" {req.Condition} {req.ExpectedValueString}";
                                     }
@@ -527,7 +525,7 @@ namespace rgat.Widgets
             ImGui.TableNextRow();
             ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, 0);
             ImGui.TableNextColumn();
-            if (ImGui.TreeNodeEx($"{childReqsList.Count} child trace requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
+            if ( childReqsList.Count is not 0 && ImGui.TreeNodeEx($"{childReqsList.Count} child trace requirements", ImGuiTreeNodeFlags.DefaultOpen)) //toto plural/singular
             {
                 foreach (var childTraceReqs in childReqsList)
                 {
@@ -870,9 +868,14 @@ namespace rgat.Widgets
 
             ImGui.Text($"Has {testcase.TestRunRequirements().Length} general test requirements");
             TraceRequirements proReq = testcase.TraceRequirements();
-            ImGui.Text($"Has requirements for {proReq.ProcessRequirements.Count} initial processes");
-            ImGui.Text($"Has requirements for {proReq.ThreadRequirements.Count} initial threads");
-            ImGui.Text($"Has requirements for {proReq.ChildProcessRequirements.Count} second level child processes");
+            if (proReq.ProcessRequirements.Count is not 0)
+                ImGui.Text($"Has requirements for {proReq.ProcessRequirements.Count} initial processes");
+
+            if (proReq.ThreadRequirements.Count is not 0) 
+                ImGui.Text($"Has requirements for {proReq.ThreadRequirements.Count} initial threads");
+
+            if (proReq.ChildProcessRequirements.Count is not 0) 
+                ImGui.Text($"Has requirements for {proReq.ChildProcessRequirements.Count} second level child processes");
 
             ImGui.EndTooltip();
         }
@@ -919,7 +922,7 @@ namespace rgat.Widgets
             {
                 if (ImGui.Combo("", ref _selectedFilter, filters, filters.Length))
                 {
-                    Console.WriteLine("Apply tests tree filter " + filters[_selectedFilter]);
+                    Logging.WriteConsole("Apply tests tree filter " + filters[_selectedFilter]);
                 }
                 ImGui.InvisibleButton("#MoveDownTree1", new Vector2(treeWidth, 4));
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff222222);

@@ -66,7 +66,7 @@ namespace rgat.Widgets
             set => _pendingKeybind.active = value;
         }
 
-        public void AssignPendingKeybind(Tuple<Key, ModifierKeys> keybind)
+        public void AssignPendingKeybind(Tuple<Veldrid.Key, Veldrid.ModifierKeys> keybind)
         {
             GlobalConfig.Settings.Keybinds.SetKeybind(_pendingKeybind.action, _pendingKeybind.bindIndex, keybind.Item1, keybind.Item2, true);
             _pendingKeybind.active = false;
@@ -194,7 +194,7 @@ namespace rgat.Widgets
                     CreateOptionsPane_Miscellaneous();
                     break;
                 default:
-                    Console.WriteLine($"Warning: Bad option category '{settingCategoryName}' selected");
+                    Logging.WriteConsole($"Warning: Bad option category '{settingCategoryName}' selected");
                     break;
             }
         }
@@ -1273,7 +1273,7 @@ namespace rgat.Widgets
 
         private void ApplyUIJSON()
         {
-            Console.WriteLine("Apply UI JSON");
+            Logging.WriteConsole("Apply UI JSON");
         }
 
         private string _theme_UI_JSON = "fffffffffff";
@@ -1467,6 +1467,15 @@ namespace rgat.Widgets
                 GlobalConfig.Settings.Updates.DoUpdateCheck = alertAnim;
             }
             SmallWidgets.MouseoverText("Check for new rgat releases");
+
+            int previewWorkers = GlobalConfig.Settings.UI.PreviewWorkers;
+            ImGui.SetNextItemWidth(60);
+            if (ImGui.InputInt("Preview Workers", ref previewWorkers, 1, 1))
+            {
+                if (previewWorkers > 0 && previewWorkers < 32)
+                    GlobalConfig.Settings.UI.PreviewWorkers = previewWorkers;
+            }
+            SmallWidgets.MouseoverText("How many preview workers to run. Increasing this makes rendering many previews snappier, but too may cause contention issues.");
 
         }
 
@@ -1718,7 +1727,7 @@ namespace rgat.Widgets
             //apply it to the config lists/arrays
             if (!Themes.ActivateThemeObject(_theme_UI_JSON_Text, out string? error))
             {
-                Console.WriteLine("Failed to load json");
+                Logging.WriteConsole("Failed to load json");
                 return;
             }
 

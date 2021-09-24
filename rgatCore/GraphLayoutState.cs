@@ -1031,7 +1031,7 @@ namespace rgat
             }
 
             Lock.EnterWriteLock();
-            Console.WriteLine("Preset start");
+            Logging.WriteConsole("Preset start");
 
             DownloadStateFromVRAM();
 

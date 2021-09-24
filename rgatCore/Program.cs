@@ -92,7 +92,7 @@ namespace ImGuiNET
                {
                    if (!cmdlineOpts.ExtractJSONOptions(out string? error))
                    {
-                       Console.WriteLine($"Error: Bad JSON configuration blob - {error}");
+                       Logging.WriteConsole($"Error: Bad JSON configuration blob - {error}");
                    }
                    else
                    {
@@ -101,7 +101,7 @@ namespace ImGuiNET
                        GlobalConfig.StartOptions = cmdlineOpts;
                        if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.Invalid)
                        {
-                           Console.WriteLine($"Error: With GUI disabled and no valid network configuration or target to trace, I could not work out what to do. Quitting.");
+                           Logging.WriteConsole($"Error: With GUI disabled and no valid network configuration or target to trace, I could not work out what to do. Quitting.");
                        }
 
                    }
@@ -174,7 +174,7 @@ namespace ImGuiNET
                             startOpts.ActiveNetworkInterface = NetworkUtilities.ValidateNetworkInterface(interfaceOption);
                             if (startOpts.ActiveNetworkInterface == null)
                             {
-                                Console.WriteLine($"Error: Specified network interface '{interfaceOption}' could not be matched to a valid network interface\n");
+                                Logging.WriteConsole($"Error: Specified network interface '{interfaceOption}' could not be matched to a valid network interface\n");
                                 NetworkUtilities.PrintInterfaces();
                                 exit = true;
                             }
@@ -192,11 +192,11 @@ namespace ImGuiNET
 
                 if (System.IO.File.Exists(fpmpath))
                 {
-                    Console.WriteLine($"The FFmpeg encoder is configured: '{fpmpath}'");
+                    Logging.WriteConsole($"The FFmpeg encoder is configured: '{fpmpath}'");
                 }
                 else
                 {
-                    Console.WriteLine($"The FFmpeg encoder is not correctly configured. Path: '{fpmpath}'");
+                    Logging.WriteConsole($"The FFmpeg encoder is not correctly configured. Path: '{fpmpath}'");
                 }
 
                 exit = true;
@@ -206,11 +206,11 @@ namespace ImGuiNET
                 if (System.IO.File.Exists(ffmpegopt))
                 {
                     GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.FFmpegPath, ffmpegopt);
-                    Console.WriteLine($"The FFmpeg encoder is now set to ('{ffmpegopt}')");
+                    Logging.WriteConsole($"The FFmpeg encoder is now set to ('{ffmpegopt}')");
                 }
                 else
                 {
-                    Console.WriteLine($"The FFmpeg encoder file supplied cannot be found: {ffmpegopt}");
+                    Logging.WriteConsole($"The FFmpeg encoder file supplied cannot be found: {ffmpegopt}");
                 }
             }
         }

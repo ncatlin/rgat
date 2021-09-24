@@ -68,7 +68,7 @@ namespace rgat.OperationModes
             }
             else
             {
-                apiTask = Task.Run(() => Console.WriteLine("TODO: linux API loading"));
+                apiTask = Task.Run(() => Logging.WriteConsole("TODO: linux API loading"));
             }
 
             /*
@@ -87,7 +87,7 @@ namespace rgat.OperationModes
 
 
             timer.Stop();
-            Console.WriteLine("Startup done");
+            Logging.WriteConsole("Startup done");
 
         }
 
@@ -108,7 +108,7 @@ namespace rgat.OperationModes
         public static void TraceBinary(string targetPath, string? saveDirectory = null, bool recordVideo = false)
         {
 
-            Console.WriteLine($"Command line mode tracing binary {targetPath}");
+            Logging.WriteConsole($"Command line mode tracing binary {targetPath}");
 
             BinaryTarget target = new BinaryTarget(targetPath);
             string pintoolpath = target.BitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
@@ -133,10 +133,10 @@ namespace rgat.OperationModes
                         }
                     }
                 }
-                Console.WriteLine($"{running}/{traces} traces running accross {targets.Count} targets");
+                Logging.WriteConsole($"{running}/{traces} traces running accross {targets.Count} targets");
                 if (traces > 0 && running == 0) //also wait for keypress
                 {
-                    Console.WriteLine("All traces done. Saving and exiting.");
+                    Logging.WriteConsole("All traces done. Saving and exiting.");
                     rgatState.SaveAllTargets();
                     rgatState.Shutdown();
                     break;

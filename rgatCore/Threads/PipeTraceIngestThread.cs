@@ -151,14 +151,14 @@ namespace rgat
                 }
             }
 
-            Console.WriteLine("Trace Buffer maxed out, waiting for reader to catch up");
+            Logging.WriteConsole("Trace Buffer maxed out, waiting for reader to catch up");
             do
             {
                 Thread.Sleep(1000);
-                Console.WriteLine($"Trace queue has {WritingQueue.Count}/{GlobalConfig.Settings.Tracing.TraceBufferSize} items");
+                Logging.WriteConsole($"Trace queue has {WritingQueue.Count}/{GlobalConfig.Settings.Tracing.TraceBufferSize} items");
                 if (WritingQueue.Count < (GlobalConfig.Settings.Tracing.TraceBufferSize / 2))
                 {
-                    Console.WriteLine("Resuming ingest...");
+                    Logging.WriteConsole("Resuming ingest...");
                     break;
                 }
             } while (!StopFlag && !rgatState.rgatIsExiting);
@@ -169,7 +169,7 @@ namespace rgat
                 QueueSize += 1;
                 PendingDataSize += (ulong)datamsg.Length;
             }
-            Console.WriteLine($"Now {PendingDataSize} bytes of pending data");
+            Logging.WriteConsole($"Now {PendingDataSize} bytes of pending data");
 
             if (WakeupRequested)
             {
@@ -208,13 +208,13 @@ namespace rgat
                 int bytesread = buf_sz.Item2;
 
                 buf[bytesread] = 0;
-                //Console.WriteLine("Splitting: " + Encoding.ASCII.GetString(buf, 0, buf.Length));
+                //Logging.WriteConsole("Splitting: " + Encoding.ASCII.GetString(buf, 0, buf.Length));
                 int msgstart = 0;
                 for (int tokenpos = 0; tokenpos < bytesread; tokenpos++)
                 {
                     if (buf[tokenpos] == '\x00')
                     {
-                        Console.WriteLine($"Null break at {tokenpos}");
+                        Logging.WriteConsole($"Null break at {tokenpos}");
                         break;
                     }
 
@@ -223,12 +223,12 @@ namespace rgat
                         int msgsize = tokenpos - msgstart;
                         if (msgsize == 0)
                         {
-                            Console.WriteLine($"msg size 0 break");
+                            Logging.WriteConsole($"msg size 0 break");
                             break;
                         }
                         byte[] msg = new byte[msgsize];
                         Buffer.BlockCopy(buf, msgstart, msg, 0, msgsize);
-                        //Console.WriteLine($"\tQueued [{msgstart}]: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+                        //Logging.WriteConsole($"\tQueued [{msgstart}]: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                         AddData(msg);
                         IncreaseMessageCount();
                         msgstart = tokenpos + 1;
@@ -324,7 +324,7 @@ namespace rgat
             RawIngestCompleteEvent.Set();
             TagDataReadyEvent.Set();
 
-            Console.WriteLine(WorkerThread?.Name + " finished after ingesting " + ProcessedDataSize + " bytes of trace data");
+            Logging.WriteConsole(WorkerThread?.Name + " finished after ingesting " + ProcessedDataSize + " bytes of trace data");
 
             if (protograph != null && !protograph.Terminated)
             {

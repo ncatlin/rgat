@@ -549,7 +549,7 @@ namespace rgat
                 jPID!.Type != JTokenType.Integer ||
                 jID!.Type != JTokenType.Integer)
             {
-                Console.WriteLine("[rgat]Warning: Bad trace metadata. Load failed.");
+                Logging.WriteConsole("[rgat]Warning: Bad trace metadata. Load failed.");
                 traceResult = null;
                 return false;
             }
@@ -563,7 +563,7 @@ namespace rgat
             }
             else
             {
-                Console.WriteLine("BAD DATETIME");
+                Logging.WriteConsole("BAD DATETIME");
                 traceResult = null;
                 return false;
             }
@@ -573,7 +573,7 @@ namespace rgat
             if (!newTrace)
             {
                 //updateActivityStatus("Trace already loaded", 15000);
-                Console.WriteLine("[rgat] Trace already loaded");
+                Logging.WriteConsole("[rgat] Trace already loaded");
                 return false;
             }
 
@@ -607,13 +607,13 @@ namespace rgat
                 }
                 catch (Newtonsoft.Json.JsonReaderException e)
                 {
-                    Console.WriteLine("Failed to parse trace file - invalid JSON.");
-                    Console.WriteLine("\t->\t" + e.Message);
+                    Logging.WriteConsole("Failed to parse trace file - invalid JSON.");
+                    Logging.WriteConsole("\t->\t" + e.Message);
                     return false;
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("Failed to parse trace file: " + e.Message);
+                    Logging.WriteConsole("Failed to parse trace file: " + e.Message);
                     return false;
                 }
             }
@@ -687,7 +687,7 @@ namespace rgat
 
                 if (!File.Exists(childFilePath))
                 {
-                    Console.WriteLine("[rgat] Warning: Unable to find child save file " + childFilePath);
+                    Logging.WriteConsole("[rgat] Warning: Unable to find child save file " + childFilePath);
                     return;
                 }
 
@@ -713,7 +713,7 @@ namespace rgat
             }
 
             Logging.RecordLogEvent($"Finished saving {savedCount} trace{((savedCount is not 1) ? 's' : "")}", Logging.LogFilterType.TextAlert);
-            Console.WriteLine($"Finished saving {targslist.Count} targets");
+            Logging.WriteConsole($"Finished saving {targslist.Count} targets");
         }
 
         /// <summary>

@@ -738,10 +738,29 @@ namespace rgat
             //todo remove after debug done
             if (filter == LogFilterType.TextError)
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine(text);
-                Console.ForegroundColor = ConsoleColor.White;
+                WriteConsole(text, ConsoleColor.Yellow);
             }
+        }
+
+
+        /// <summary>
+        /// Output to console, disregarding any exceptions
+        /// </summary>
+        /// <param name="text">Text to write</param>
+        /// <param name="colour">Colour</param>
+        public static void WriteConsole(string? text = "", ConsoleColor colour = ConsoleColor.White)
+        {
+            if (text is null) return;
+            try
+            {
+                lock (_messagesLock) //Console is threadsafe but the colour is not
+                {
+                    Console.ForegroundColor = colour;
+                    Console.WriteLine(text);
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+            }
+            catch { }
         }
 
 
