@@ -104,10 +104,9 @@ namespace rgat
             return null;
         }
 
-
-        static readonly Dictionary<string, int> _configuredModules = new Dictionary<string, int>();
-        static readonly Dictionary<int, string> _defaultFilters = new Dictionary<int, string>();
-        static readonly Dictionary<int, Dictionary<string, API_ENTRY>> _configuredSymbols = new Dictionary<int, Dictionary<string, API_ENTRY>>();
+        private static readonly Dictionary<string, int> _configuredModules = new Dictionary<string, int>();
+        private static readonly Dictionary<int, string> _defaultFilters = new Dictionary<int, string>();
+        private static readonly Dictionary<int, Dictionary<string, API_ENTRY>> _configuredSymbols = new Dictionary<int, Dictionary<string, API_ENTRY>>();
 
         /// <summary>
         /// A base class for API interaction effects
@@ -177,8 +176,7 @@ namespace rgat
             public int ReferenceIndex { get; private set; }
         }
 
-
-        static void LoadJSON(Newtonsoft.Json.Linq.JArray JItems, IProgress<float>? progress = null)
+        private static void LoadJSON(Newtonsoft.Json.Linq.JArray JItems, IProgress<float>? progress = null)
         {
             float moduleCount = JItems.Count;
 
@@ -297,8 +295,7 @@ namespace rgat
             }
         }
 
-
-        static List<API_PARAM_ENTRY>? ExtractParameters(JArray callParams, string libname, string apiname)
+        private static List<API_PARAM_ENTRY>? ExtractParameters(JArray callParams, string libname, string apiname)
         {
             List<API_PARAM_ENTRY> result = new List<API_PARAM_ENTRY>();
             int paramsOffset = -1;
@@ -382,8 +379,7 @@ namespace rgat
             return result;
         }
 
-
-        static List<InteractionEffect> ExtractEffects(JArray effectToks, string libname, string apiname, List<API_PARAM_ENTRY> callparams)
+        private static List<InteractionEffect> ExtractEffects(JArray effectToks, string libname, string apiname, List<API_PARAM_ENTRY> callparams)
         {
             List<InteractionEffect> result = new List<InteractionEffect>();
 

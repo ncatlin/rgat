@@ -15,9 +15,8 @@ namespace rgat
     /// </summary>
     public class YARAScanner
     {
-        readonly object _scanLock = new object();
-
-        CompiledRules? loadedRules = null;
+        private readonly object _scanLock = new object();
+        private CompiledRules? loadedRules = null;
 
         /// <summary>
         /// State of the scanner
@@ -42,12 +41,12 @@ namespace rgat
             eFailed
         };
 
-        readonly Dictionary<BinaryTarget, eYaraScanProgress> targetScanProgress = new Dictionary<BinaryTarget, eYaraScanProgress>();
+        private readonly Dictionary<BinaryTarget, eYaraScanProgress> targetScanProgress = new Dictionary<BinaryTarget, eYaraScanProgress>();
 
         [DllImport("libyara.dll")]
         private static extern void LibraryExistsTestMethod();
 
-        readonly YaraContext ctx;
+        private readonly YaraContext ctx;
 
         /// <summary>
         /// Create a Yara scanner
@@ -68,7 +67,7 @@ namespace rgat
 
         // have to check libyara exists before attempting to use dnYara
         // otherwise the destructor will crash us when it fails
-        bool CheckLibraryExists()
+        private bool CheckLibraryExists()
         {
             try
             {
@@ -316,7 +315,7 @@ namespace rgat
         /// </summary>
         /// <param name="rulesDir">Directory containing directories full of yara rules</param>
         /// <returns>Paths to the sucessfully created rules files</returns>
-        string[] RecompileRules(string rulesDir)
+        private string[] RecompileRules(string rulesDir)
         {
             List<string> savedrules = new List<string>();
             EnumerationOptions opts = new EnumerationOptions()
@@ -401,7 +400,7 @@ namespace rgat
             return savedrules.ToArray();
         }
 
-        readonly DateTime _lastCheck = DateTime.MinValue;
+        private readonly DateTime _lastCheck = DateTime.MinValue;
         /// <summary>
         /// The most recent file creation/modification in this YARA signatures directory
         /// </summary>
@@ -415,7 +414,7 @@ namespace rgat
         /// </summary>
         public bool StaleRemoteSignatures => (EndpointNewestSignature != DateTime.MinValue && EndpointNewestSignature > NewestSignature);
 
-        DateTime LatestSignatureChange(string rulesDir)
+        private DateTime LatestSignatureChange(string rulesDir)
         {
             if ((DateTime.Now - _lastCheck).TotalSeconds < 20)
             {
@@ -468,8 +467,7 @@ namespace rgat
             return eYaraScanProgress.eNotStarted;
         }
 
-
-        void YARATargetScanThread(object? argslist)
+        private void YARATargetScanThread(object? argslist)
         {
             List<object> args = (List<object>)argslist!;
             BinaryTarget targ = (BinaryTarget)args[0];

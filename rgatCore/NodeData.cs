@@ -229,8 +229,7 @@ namespace rgat
             return true;
         }
 
-
-        static bool ErrorAtIndex(int index)
+        private static bool ErrorAtIndex(int index)
         {
             Console.WriteLine("Error deserialising node at index " + index);
             return false;
@@ -286,8 +285,7 @@ namespace rgat
             return _nodeType;
         }
 
-
-        bool LabelVisible(PlottedGraph plot)
+        private bool LabelVisible(PlottedGraph plot)
         {
             if (!plot.Opt_TextEnabled)
             {
@@ -591,8 +589,7 @@ namespace rgat
         /// The node calls an API thunk
         /// </summary>
         public bool ThunkCaller = false;
-
-        bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
+        private bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
 
         /// <summary>
         /// The module the node belongs to
@@ -680,9 +677,8 @@ namespace rgat
         /// The node has a symbol associated with it
         /// </summary>
         public bool HasSymbol;
-        eEdgeNodeType _nodeType = eEdgeNodeType.eENLAST;
-
-        string? _label;
+        private eEdgeNodeType _nodeType = eEdgeNodeType.eENLAST;
+        private string? _label;
         /// <summary>
         /// Get the node label text
         /// </summary>

@@ -386,8 +386,7 @@ namespace rgat
             return "";
         }
 
-
-        static void InitPaths()
+        private static void InitPaths()
         {
 
             //directories
@@ -532,10 +531,10 @@ namespace rgat
             return true;
         }
 
+        private static bool _dirtyConfig = false;
+        private static readonly System.Timers.Timer _saveTimer = new System.Timers.Timer(800);
 
-        static bool _dirtyConfig = false;
-        static readonly System.Timers.Timer _saveTimer = new System.Timers.Timer(800);
-        static void SaveConfigTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
+        private static void SaveConfigTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             lock (_settingsLock)
             {
@@ -547,8 +546,7 @@ namespace rgat
             }
         }
 
-
-        static void SaveConfig()
+        private static void SaveConfig()
         {
             try
             {
@@ -566,8 +564,7 @@ namespace rgat
             }
         }
 
-
-        static void MarkDirty()
+        private static void MarkDirty()
         {
             lock (_settingsLock)
             {
@@ -619,7 +616,7 @@ namespace rgat
         /// <summary>
         /// UI/App related config
         /// </summary>
-        static readonly object _settingsLock = new object();
+        private static readonly object _settingsLock = new object();
 
         /// <summary>
         /// These keys trigger actions that need to be reacted to repeatedly and immediately (mainly graphical actions like rotation)
@@ -758,8 +755,7 @@ namespace rgat
             progress?.Report(1f);
         }
 
-
-        static void InstallNewTools()
+        private static void InstallNewTools()
         {
             string toolsDirectory = GetStorageDirectoryPath(BaseDirectory, "tools");
             if (!Directory.Exists(toolsDirectory))

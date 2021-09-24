@@ -61,7 +61,7 @@ namespace rgat
 
 
         //data for the most recent layout retrieved from VRAM, for serialisation and caching to disk to free up VRAM
-        readonly Dictionary<LayoutStyles.Style, CPUBuffers> SavedStates = new Dictionary<LayoutStyles.Style, CPUBuffers>();
+        private readonly Dictionary<LayoutStyles.Style, CPUBuffers> SavedStates = new Dictionary<LayoutStyles.Style, CPUBuffers>();
 
         /// <summary>
         /// Active graph layout in VRAM
@@ -186,7 +186,7 @@ namespace rgat
         /// </summary>
         public LayoutStyles.Style PresetStyle { get; private set; }
 
-        int presetSteps = 0;
+        private int presetSteps = 0;
         /// <summary>
         /// Increment and return the preset counter
         /// </summary>
@@ -197,7 +197,7 @@ namespace rgat
         /// </summary>
         public void IncrementVersion() => _VRAMBuffers.RenderVersion++;
 
-        readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
         /// <summary>
         /// Get the VRAM buffer lock
         /// </summary>
@@ -284,8 +284,7 @@ namespace rgat
             public int[] BlockMetadata;
         }
 
-
-        void LockedUploadStateToVRAM(LayoutStyles.Style style)
+        private void LockedUploadStateToVRAM(LayoutStyles.Style style)
         {
             Logging.RecordLogEvent($"UploadGraphDataToVRAMA Start {GraphPlot.TID} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
             if (!SavedStates.TryGetValue(style, out CPUBuffers? sourceBuffers))
@@ -301,7 +300,7 @@ namespace rgat
         /// Refreshes VRAM layout buffers from cached RAM data
         /// </summary>
         /// <param name="sourceBuffers">CPUBuffers stored graph layout data to upload</param>
-        void LockedUploadStateToVRAM(CPUBuffers sourceBuffers)
+        private void LockedUploadStateToVRAM(CPUBuffers sourceBuffers)
         {
             Logging.RecordLogEvent($"UploadGraphDataToVRAMB Start {GraphPlot.TID} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
 
@@ -329,7 +328,7 @@ namespace rgat
         }
 
         //todo we dont actually want to immediately purge, we want to purge oldest if we are over VRAM limit
-        void PurgeVRAMBuffers()
+        private void PurgeVRAMBuffers()
         {
             _VRAMBuffers.Initialised = false;
             _VRAMBuffers.RenderVersion = 0;
@@ -443,7 +442,7 @@ namespace rgat
             }
         }
 
-        void Download_NodePositions_VRAM_to_Graph(CPUBuffers destbuffers)
+        private void Download_NodePositions_VRAM_to_Graph(CPUBuffers destbuffers)
         {
             Debug.Assert(PositionsVRAM1 is not null);
             Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph fetching {GraphPlot.TID} posbufs {PositionsVRAM1.Name}", Logging.LogFilterType.BulkDebugLogFile);
@@ -477,8 +476,7 @@ namespace rgat
             }
         }
 
-
-        void Download_NodeVelocity_VRAM_to_Graph(CPUBuffers destbuffers)
+        private void Download_NodeVelocity_VRAM_to_Graph(CPUBuffers destbuffers)
         {
 
             Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph {GraphPlot.TID} layout", Logging.LogFilterType.BulkDebugLogFile);
@@ -522,7 +520,7 @@ namespace rgat
         /// Prepare a preset buffer to generate a non-force directed layout
         /// </summary>
         /// <param name="graph"></param>
-        void RegeneratePresetBuffer(PlottedGraph graph)
+        private void RegeneratePresetBuffer(PlottedGraph graph)
         {
             if (!LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle))
             {
@@ -571,7 +569,7 @@ namespace rgat
         /// </summary>
         /// <param name="graph"></param>
         /// <returns></returns>
-        unsafe bool CreateEdgeDataBuffers(PlottedGraph graph)
+        private unsafe bool CreateEdgeDataBuffers(PlottedGraph graph)
         {
             Logging.RecordLogEvent($"CreateEdgeDataBuffers  {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnections);
@@ -630,7 +628,7 @@ namespace rgat
 
 
         /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
-        unsafe void CreateBlockMetadataBuffer(PlottedGraph graph)
+        private unsafe void CreateBlockMetadataBuffer(PlottedGraph graph)
         {
 
             Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
@@ -773,7 +771,7 @@ namespace rgat
         /// <param name="bufferSize">The new buffer size</param>
         /// <param name="cl">Veldrid CommandList to place commands on</param>
         /// <param name="disposals">Buffers to dispose of</param>
-        void ResizeComputeBuffers(PlottedGraph graph, uint bufferSize, CommandList cl, ref List<DeviceBuffer?> disposals)
+        private void ResizeComputeBuffers(PlottedGraph graph, uint bufferSize, CommandList cl, ref List<DeviceBuffer?> disposals)
         {
 
             uint zeroFillStart = 0;
@@ -980,8 +978,7 @@ namespace rgat
 
         }
 
-
-        void EnlargeRAMDataBuffers(uint size, CPUBuffers bufs)
+        private void EnlargeRAMDataBuffers(uint size, CPUBuffers bufs)
         {
             float[] newVelocityArr1 = new float[size];
             float[] newPositionsArr1 = new float[size];
@@ -1103,7 +1100,7 @@ namespace rgat
         /// and then into arrangement
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
-        void ExplodePositions(CPUBuffers layoutRAMBuffers)
+        private void ExplodePositions(CPUBuffers layoutRAMBuffers)
         {
             Random rnd = new Random();
 
@@ -1130,7 +1127,7 @@ namespace rgat
         /// Attraction dominates the intial stages of layout
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
-        void ImplodePositions(CPUBuffers layoutRAMBuffers)
+        private void ImplodePositions(CPUBuffers layoutRAMBuffers)
         {
             Random rnd = new Random();
 
@@ -1150,7 +1147,7 @@ namespace rgat
         }
 
         //https://karthikkaranth.me/blog/generating-random-points-in-a-sphere/
-        void getPoint(Random rnd, float radius, out float x, out float y, out float z)
+        private void getPoint(Random rnd, float radius, out float x, out float y, out float z)
         {
             var u = rnd.NextDouble();
             var v = rnd.NextDouble();
@@ -1171,7 +1168,7 @@ namespace rgat
         /// Balance of attraction and repulsion will move them into position
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
-        void ScatterPositions(CPUBuffers layoutRAMBuffers)
+        private void ScatterPositions(CPUBuffers layoutRAMBuffers)
         {
             Random rnd = new Random();
             int MaxDimension = (layoutRAMBuffers.VelocityArray.Length / 4) * 3;

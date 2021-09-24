@@ -15,9 +15,8 @@ namespace rgat
     /// </summary>
     public class GithubSignatureManager
     {
-        System.Collections.Concurrent.BlockingCollection<GlobalConfig.SignatureSource> _repos = new System.Collections.Concurrent.BlockingCollection<GlobalConfig.SignatureSource>();
-
-        CancellationToken _token;
+        private System.Collections.Concurrent.BlockingCollection<GlobalConfig.SignatureSource> _repos = new System.Collections.Concurrent.BlockingCollection<GlobalConfig.SignatureSource>();
+        private CancellationToken _token;
         /// <summary>
         /// Is a download/update in progress
         /// </summary>
@@ -36,11 +35,10 @@ namespace rgat
         /// </summary>
         public int CompletedTaskCount { get; private set; }
 
-        int _activeWorkers = 0;
-        readonly object _lock = new object();
-        readonly List<string> _currentRepos = new List<string>();
-
-        Action<GlobalConfig.SignatureSource>? activeTaskAction;
+        private int _activeWorkers = 0;
+        private readonly object _lock = new object();
+        private readonly List<string> _currentRepos = new List<string>();
+        private Action<GlobalConfig.SignatureSource>? activeTaskAction;
 
         /// <summary>
         /// Get the list of signaturesources
@@ -82,7 +80,7 @@ namespace rgat
             StartWorkers(repos, workerCount, cancelToken);
         }
 
-        void StartWorkers(List<GlobalConfig.SignatureSource> repos, int workerCount, CancellationToken cancelToken)
+        private void StartWorkers(List<GlobalConfig.SignatureSource> repos, int workerCount, CancellationToken cancelToken)
         {
             _repos = new System.Collections.Concurrent.BlockingCollection<GlobalConfig.SignatureSource>();
             repos.ForEach(x => _repos.Add(x));
@@ -99,7 +97,7 @@ namespace rgat
             }
         }
 
-        void StartWork()
+        private void StartWork()
         {
             System.Diagnostics.Debug.Assert(activeTaskAction is not null);
 
@@ -127,7 +125,7 @@ namespace rgat
             }
         }
 
-        void GetRepoLastUpdated(GlobalConfig.SignatureSource repo)
+        private void GetRepoLastUpdated(GlobalConfig.SignatureSource repo)
         {
             System.Net.Http.HttpClient client = new HttpClient();
             client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC.ToString()));
@@ -182,8 +180,7 @@ namespace rgat
             }
         }
 
-
-        string? GetRepoDirectory(ref GlobalConfig.SignatureSource repo, string sigsdir)
+        private string? GetRepoDirectory(ref GlobalConfig.SignatureSource repo, string sigsdir)
         {
 
             try
@@ -221,7 +218,7 @@ namespace rgat
             }
         }
 
-        bool PurgeDirectory(string repoDirectory)
+        private bool PurgeDirectory(string repoDirectory)
         {
             Logging.RecordLogEvent($"Deleting existing contents of directory {repoDirectory}", filter: Logging.LogFilterType.TextDebug);
             try
@@ -248,8 +245,7 @@ namespace rgat
             return true;
         }
 
-
-        void DownloadRepo(GlobalConfig.SignatureSource repo)
+        private void DownloadRepo(GlobalConfig.SignatureSource repo)
         {
             System.Net.Http.HttpClient client = new HttpClient();
             string rgatVersion = CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC.ToString();

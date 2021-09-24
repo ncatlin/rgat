@@ -2,7 +2,7 @@
 
 namespace rgat
 {
-    class TextUtils
+    internal class TextUtils
     {
         public static string IllustrateASCIIBytes(byte[] input, int len)
         {

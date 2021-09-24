@@ -10,13 +10,13 @@ using static rgat.CONSTANTS;
 
 namespace rgat.Widgets
 {
-    class SettingsMenu
+    internal class SettingsMenu
     {
-        bool[] optionsSelectStates = new bool[0];
-        List<string> settingsNames = new List<string>();
-        readonly ImGuiController _controller;
+        private bool[] optionsSelectStates = new bool[0];
+        private List<string> settingsNames = new List<string>();
+        private readonly ImGuiController _controller;
 
-        enum eSettingsCategory { eSignatures, eFiles, eText, eKeybinds, eUITheme, eMisc, eVideoEncode };
+        private enum eSettingsCategory { eSignatures, eFiles, eText, eKeybinds, eUITheme, eMisc, eVideoEncode };
 
         /// <summary>
         /// Init a settings menu
@@ -48,8 +48,7 @@ namespace rgat.Widgets
             }
         }
 
-
-        class PendingKeybind
+        private class PendingKeybind
         {
             public PendingKeybind() { }
             public bool active;
@@ -60,7 +59,7 @@ namespace rgat.Widgets
             public bool IsResponsive;
         }
 
-        readonly PendingKeybind _pendingKeybind = new PendingKeybind();
+        private readonly PendingKeybind _pendingKeybind = new PendingKeybind();
         public bool HasPendingKeybind
         {
             get => _pendingKeybind.active;
@@ -141,7 +140,7 @@ namespace rgat.Widgets
             }
         }
 
-        void InitSettings()
+        private void InitSettings()
         {
             RegenerateUIThemeJSON();
 
@@ -163,13 +162,13 @@ namespace rgat.Widgets
             optionsSelectStates[(int)eSettingsCategory.eMisc] = false;
         }
 
-        void DeclareError(string msg, long MSDuration = 5500)
+        private void DeclareError(string msg, long MSDuration = 5500)
         {
             _errorExpiryTime = DateTime.Now.AddMilliseconds(MSDuration);
             _errorBanner = msg;
         }
 
-        void CreateSettingsContentPane(string settingCategoryName)
+        private void CreateSettingsContentPane(string settingCategoryName)
         {
             switch (settingCategoryName)
             {
@@ -200,8 +199,9 @@ namespace rgat.Widgets
             }
         }
 
-        static List<string> _selectedRepos = new List<string>();
-        void CreateOptionsPane_Signatures()
+        private static List<string> _selectedRepos = new List<string>();
+
+        private void CreateOptionsPane_Signatures()
         {
             if (rgatState.YARALib == null || rgatState.DIELib == null)
             {
@@ -789,13 +789,15 @@ namespace rgat.Widgets
             }
         }
 
-        bool alsoEraseFiles = false;
-        string currentRepoTextEntry = "";
-        readonly List<GlobalConfig.SignatureSource> _validInputRepos = new List<GlobalConfig.SignatureSource>();
-        enum eRepoChangeState { Inactive, Delete, Add };
-        eRepoChangeState _repoChangeState = eRepoChangeState.Inactive;
+        private bool alsoEraseFiles = false;
+        private string currentRepoTextEntry = "";
+        private readonly List<GlobalConfig.SignatureSource> _validInputRepos = new List<GlobalConfig.SignatureSource>();
 
-        void DeleteSources(List<string> sources, bool eraseFiles)
+        private enum eRepoChangeState { Inactive, Delete, Add };
+
+        private eRepoChangeState _repoChangeState = eRepoChangeState.Inactive;
+
+        private void DeleteSources(List<string> sources, bool eraseFiles)
         {
             foreach (string path in sources)
             {
@@ -817,8 +819,7 @@ namespace rgat.Widgets
             }
         }
 
-
-        void AddInputSources(List<GlobalConfig.SignatureSource> repoPaths)
+        private void AddInputSources(List<GlobalConfig.SignatureSource> repoPaths)
         {
             for (var i = 0; i < repoPaths.Count; i++)
             {
@@ -827,12 +828,10 @@ namespace rgat.Widgets
             }
         }
 
+        private CancellationTokenSource? _cancelTokens = null;
+        private readonly GithubSignatureManager _githubSigDownloader = new GithubSignatureManager();
 
-
-        CancellationTokenSource? _cancelTokens = null;
-        readonly GithubSignatureManager _githubSigDownloader = new GithubSignatureManager();
-
-        void RefreshSelectedSignatureSources()
+        private void RefreshSelectedSignatureSources()
         {
             if (_githubSigDownloader.Running)
             {
@@ -845,7 +844,7 @@ namespace rgat.Widgets
             _githubSigDownloader.StartRefresh(repos, 3, _cancelTokens.Token);
         }
 
-        void DownloadSelectedSignatureSources()
+        private void DownloadSelectedSignatureSources()
         {
             if (_githubSigDownloader.Running)
             {
@@ -858,8 +857,7 @@ namespace rgat.Widgets
             _githubSigDownloader.StartDownloads(repos, 3, _cancelTokens.Token);
         }
 
-
-        void CreateOptionsPane_Text()
+        private void CreateOptionsPane_Text()
         {
 
             ImGuiIOPtr io = ImGui.GetIO();
@@ -895,11 +893,11 @@ namespace rgat.Widgets
 
         }
 
-        string _errorBanner = "";
-        DateTime _errorExpiryTime = DateTime.MinValue;
-        CONSTANTS.PathKey _pendingPathSetting;
+        private string _errorBanner = "";
+        private DateTime _errorExpiryTime = DateTime.MinValue;
+        private CONSTANTS.PathKey _pendingPathSetting;
 
-        bool DrawPathMenuOption(string caption, string? path, string tooltip, out bool clearFlag)
+        private bool DrawPathMenuOption(string caption, string? path, string tooltip, out bool clearFlag)
         {
             bool selected = false;
             bool hovered = false;
@@ -989,9 +987,9 @@ namespace rgat.Widgets
             return clearFlag || selected;
         }
 
-        readonly Dictionary<CONSTANTS.PathKey, string> settingTips = new Dictionary<CONSTANTS.PathKey, string>();
+        private readonly Dictionary<CONSTANTS.PathKey, string> settingTips = new Dictionary<CONSTANTS.PathKey, string>();
 
-        void CreateOptionsPane_Files()
+        private void CreateOptionsPane_Files()
         {
             CONSTANTS.PathKey? choosePath = null;
             bool isFolder = false;
@@ -1093,8 +1091,7 @@ namespace rgat.Widgets
             DrawFileSelectBox();
         }
 
-
-        void ChoseSettingPath(CONSTANTS.PathKey setting, string path)
+        private void ChoseSettingPath(CONSTANTS.PathKey setting, string path)
         {
             switch (setting)
             {
@@ -1128,15 +1125,14 @@ namespace rgat.Widgets
             }
         }
 
-
-        void LaunchFileSelectBox(CONSTANTS.PathKey setting, string popupID)
+        private void LaunchFileSelectBox(CONSTANTS.PathKey setting, string popupID)
         {
             ImGui.SetNextWindowSize(new Vector2(800, 820), ImGuiCond.Appearing);
             ImGui.OpenPopup(popupID);
             _pendingPathSetting = setting;
         }
 
-        bool _popupActive = true;
+        private bool _popupActive = true;
         private void DrawFileSelectBox()
         {
             if (ImGui.BeginPopupModal("##FilesDLG", ref _popupActive))
@@ -1165,8 +1161,8 @@ namespace rgat.Widgets
 
         }
 
-        readonly object _filePickHandle = new object();
-        readonly object _dirPickHandle = new object();
+        private readonly object _filePickHandle = new object();
+        private readonly object _dirPickHandle = new object();
         private void DrawFolderSelectBox()
         {
             if (ImGui.BeginPopupModal("##FoldersDLG", ref _popupActive))
@@ -1194,7 +1190,7 @@ namespace rgat.Widgets
 
         }
 
-        void CreateOptionsPane_Keybinds()
+        private void CreateOptionsPane_Keybinds()
         {
             if (_pendingKeybind.active)
             {
@@ -1275,20 +1271,18 @@ namespace rgat.Widgets
 
         }
 
-
-        void ApplyUIJSON()
+        private void ApplyUIJSON()
         {
             Console.WriteLine("Apply UI JSON");
         }
 
+        private string _theme_UI_JSON = "fffffffffff";
+        private string _theme_UI_JSON_Text = "fffffffffff";
+        private bool _UI_JSON_edited = false;
+        private bool _expanded_theme_json = false;
+        private string pendingPresetName = "";
 
-
-        string _theme_UI_JSON = "fffffffffff";
-        string _theme_UI_JSON_Text = "fffffffffff";
-        bool _UI_JSON_edited = false;
-        bool _expanded_theme_json = false;
-        string pendingPresetName = "";
-        unsafe void CreateOptionsPane_UITheme()
+        private unsafe void CreateOptionsPane_UITheme()
         {
             Themes.GetMetadataValue("Name", out string? activeThemeName);
             if (Themes.UnsavedTheme)
@@ -1389,11 +1383,10 @@ namespace rgat.Widgets
 
         }
 
+        private bool doSetThemeDefaultOnSave = true;
+        private bool saveThemeboxIsOpen = false;
 
-
-        bool doSetThemeDefaultOnSave = true;
-        bool saveThemeboxIsOpen = false;
-        void DrawSavePresetPopUp()
+        private void DrawSavePresetPopUp()
         {
             if (ImGui.BeginPopupModal("##SavePreset", ref saveThemeboxIsOpen))
             {
@@ -1433,14 +1426,12 @@ namespace rgat.Widgets
 
         }
 
-
-        void CreateOptionsPane_VideoEncode()
+        private void CreateOptionsPane_VideoEncode()
         {
             rgatState.VideoRecorder?.DrawSettingsPane();
         }
 
-
-        void CreateOptionsPane_Miscellaneous()
+        private void CreateOptionsPane_Miscellaneous()
         {
             bool debglog = GlobalConfig.Settings.Logs.BulkLogging;
             if (ImGui.Checkbox("Bulk Debug Logging", ref debglog))
@@ -1478,9 +1469,7 @@ namespace rgat.Widgets
 
         }
 
-
-
-        void CreateJSONEditor()
+        private void CreateJSONEditor()
         {
             //This widget doesn't have wrapping https://github.com/ocornut/imgui/issues/952
             //the json generator makes nice newline pretty printed text so not worth implementing a custom fix
@@ -1585,7 +1574,7 @@ namespace rgat.Widgets
             ImGui.EndGroup();
         }
 
-        void DeleteCurrentTheme()
+        private void DeleteCurrentTheme()
         {
             Themes.GetMetadataValue("Name", out string? oldTheme);
             //todo load default theme
@@ -1605,8 +1594,7 @@ namespace rgat.Widgets
             }
         }
 
-
-        void CreateThemeTester()
+        private void CreateThemeTester()
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.WindowBg));
             if (ImGui.BeginChild(ImGui.GetID("ThemeTestContainer2"), new Vector2(ImGui.GetContentRegionMax().X, 250), false, ImGuiWindowFlags.AlwaysAutoResize))
@@ -1619,9 +1607,10 @@ namespace rgat.Widgets
             ImGui.PopStyleColor();
         }
 
-        bool testCheck = true;
-        float testSlider = 25f;
-        void DrawThemeTestFrame()
+        private bool testCheck = true;
+        private float testSlider = 25f;
+
+        private void DrawThemeTestFrame()
         {
             float padding = 10;
             ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(padding, padding));
@@ -1697,7 +1686,7 @@ namespace rgat.Widgets
             }
         }
 
-        unsafe void CreateThemeSelectors()
+        private unsafe void CreateThemeSelectors()
         {
             bool changed = Themes.DrawColourSelectors();
             if (changed)
@@ -1707,15 +1696,14 @@ namespace rgat.Widgets
             }
         }
 
-        void RegenerateUIThemeJSON()
+        private void RegenerateUIThemeJSON()
         {
             _theme_UI_JSON = Themes.RegenerateUIThemeJSON();
             _theme_UI_JSON_Text = _theme_UI_JSON;
             _UI_JSON_edited = false;
         }
 
-
-        void ApplyNewThemeJSONToUI()
+        private void ApplyNewThemeJSONToUI()
         {
             // read this into json
             //_theme_UI_JSON_Text
@@ -1732,18 +1720,12 @@ namespace rgat.Widgets
             _UI_JSON_edited = (_theme_UI_JSON != _theme_UI_JSON_Text);
         }
 
-
-        void ActivateUIThemePreset(string name)
+        private void ActivateUIThemePreset(string name)
         {
             Themes.LoadTheme(name);
         }
 
-
-
-
-
-
-        void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex, string? tooltip = null)
+        private void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex, string? tooltip = null)
         {
             uint bindFramecol = ((rowIndex % 2) == 0) ? 0xafcc3500 : 0xafdc4500;
             ImGui.PushStyleColor(ImGuiCol.FrameBg, bindFramecol);
@@ -1821,8 +1803,7 @@ namespace rgat.Widgets
             ImGui.PopStyleColor();
         }
 
-
-        void DoClickToSetKeybind(string caption, eKeybind action, int bindIndex)
+        private void DoClickToSetKeybind(string caption, eKeybind action, int bindIndex)
         {
             _pendingKeybind.active = true;
             _pendingKeybind.actionText = caption;

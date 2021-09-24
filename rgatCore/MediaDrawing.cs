@@ -4,7 +4,7 @@ using Veldrid;
 
 namespace rgat
 {
-    class MediaDrawing
+    internal class MediaDrawing
     {
         /*
          * 
@@ -23,10 +23,9 @@ namespace rgat
 
         public static void Cleanup() => _commandList?.Dispose();
 
-
-        static Texture? _recordingStager;
-        static ImGuiNET.ImGuiController? _controller;
-        static CommandList? _commandList;
+        private static Texture? _recordingStager;
+        private static ImGuiNET.ImGuiController? _controller;
+        private static CommandList? _commandList;
 
         public static unsafe Bitmap CreateRecordingFrame(Framebuffer fbuf, float startX, float startY, float drawWidth, float drawHeight)
         {

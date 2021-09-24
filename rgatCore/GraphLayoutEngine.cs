@@ -38,22 +38,20 @@ namespace rgat
             _factory = gdev.ResourceFactory;
         }
 
-        GraphicsDevice? _gd;
-        ResourceFactory? _factory;
-        readonly ImGuiController _controller;
+        private GraphicsDevice? _gd;
+        private ResourceFactory? _factory;
+        private readonly ImGuiController _controller;
 
         /// <summary>
         /// The unique name of the layout engine
         /// </summary>
         public string EngineID { get; private set; }
 
-        Pipeline? _positionComputePipeline, _velocityComputePipeline, _nodeAttribComputePipeline;
+        private Pipeline? _positionComputePipeline, _velocityComputePipeline, _nodeAttribComputePipeline;
         private Shader? _positionShader, _velocityShader, _nodeAttribShader;
-
-        DeviceBuffer? _velocityParamsBuffer, _positionParamsBuffer, _attribsParamsBuffer;
-        ResourceLayout? _velocityComputeLayout, _positionComputeLayout, _nodeAttribComputeLayout;
-
-        readonly object _lock = new object();
+        private DeviceBuffer? _velocityParamsBuffer, _positionParamsBuffer, _attribsParamsBuffer;
+        private ResourceLayout? _velocityComputeLayout, _positionComputeLayout, _nodeAttribComputeLayout;
+        private readonly object _lock = new object();
 
 
         /// <summary>
@@ -212,8 +210,7 @@ namespace rgat
             return result;
         }
 
-
-        unsafe void SetupComputeResources()
+        private unsafe void SetupComputeResources()
         {
             Debug.Assert(_gd is not null, "Init not called");
             ResourceFactory factory = _gd.ResourceFactory;
@@ -282,7 +279,7 @@ namespace rgat
          * 
          */
         [StructLayout(LayoutKind.Sequential)]
-        struct VelocityShaderParams
+        private struct VelocityShaderParams
         {
             public float delta;
             public float k;
@@ -306,7 +303,7 @@ namespace rgat
         /// <param name="nodeCount">Number of nodes to iterate over</param>
         /// <param name="highIndex">set to the index of the highest node</param>
         /// <returns></returns>
-        float FindHighXYZ(DeviceBuffer buf, int nodeCount, out int highIndex)
+        private float FindHighXYZ(DeviceBuffer buf, int nodeCount, out int highIndex)
         {
             Logging.RecordLogEvent($"FindHighXYZ  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd!, buf);
@@ -548,7 +545,7 @@ namespace rgat
          * 
          */
         [StructLayout(LayoutKind.Sequential)]
-        struct PositionShaderParams
+        private struct PositionShaderParams
         {
             public float delta;
             public uint NodesTexWidth;
@@ -570,7 +567,7 @@ namespace rgat
         /// <param name="graph">PlottedGraph to compute</param>
         /// <param name="resources">Position shader resource set</param>
         /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
-        unsafe void RenderPosition(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta)
+        private unsafe void RenderPosition(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta)
         {
 
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, positions));
@@ -616,7 +613,7 @@ namespace rgat
         /// <param name="resources">Velocity shader resource set</param>
         /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         /// <param name="temperature">The activity level of the layout state. Higher balues => bigger movements</param>
-        unsafe void RenderVelocity(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
+        private unsafe void RenderVelocity(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
         {
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             uint fixedNodes = 0;
@@ -654,7 +651,7 @@ namespace rgat
          * 
          */
         [StructLayout(LayoutKind.Sequential)]
-        struct AttribShaderParams
+        private struct AttribShaderParams
         {
             public float delta;            // requestAnimationFrame delta
             public int selectedNode;     // selectedNode
@@ -679,7 +676,7 @@ namespace rgat
         /// <param name="delta">Time-delta from the last update</param>
         /// <param name="mouseoverNodeID">Index of the node the mouse is over</param>
         /// <param name="useAnimAttribs">Flag to specify the graph is in animated-alpha mode</param>
-        unsafe void RenderNodeAttribs(CommandList cl, PlottedGraph graph, DeviceBuffer inputAttributes,
+        private unsafe void RenderNodeAttribs(CommandList cl, PlottedGraph graph, DeviceBuffer inputAttributes,
             ResourceSet resources, float delta, int mouseoverNodeID, bool useAnimAttribs)
         {
             Logging.RecordLogEvent($"RenderNodeAttribs  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
@@ -871,7 +868,8 @@ namespace rgat
         /// Average computed over GlobalConfig.StatisticsTimeAvgWindow frames
         /// </summary>
         public double AverageComputeTime { get; private set; } = 0;
-        List<long> _lastComputeMS = new List<long>() { 0 };
+
+        private List<long> _lastComputeMS = new List<long>() { 0 };
 
         /// <summary>
         /// Read out some values from a DeviceBuffer and print them to the console. Just for debugging.
@@ -879,7 +877,7 @@ namespace rgat
         /// <param name="buf">GPU DeviceBuffer to read</param>
         /// <param name="message">Caption for the printout</param>
         /// <param name="printCount">Max values to print</param>
-        void DebugPrintOutputFloatBuffer(DeviceBuffer buf, string message, int printCount)
+        private void DebugPrintOutputFloatBuffer(DeviceBuffer buf, string message, int printCount)
         {
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd!, buf);
             MappedResourceView<float> destinationReadView = _gd!.Map<float>(destinationReadback, MapMode.Read);
@@ -898,8 +896,7 @@ namespace rgat
             VeldridGraphBuffers.VRAMDispose(destinationReadback);
         }
 
-
-        static void PrintBufferArray(float[] sourceData, string premsg, int limit = 0)
+        private static void PrintBufferArray(float[] sourceData, string premsg, int limit = 0)
         {
 
             Console.WriteLine(premsg);

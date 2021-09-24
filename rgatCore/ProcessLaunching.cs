@@ -14,7 +14,7 @@ namespace rgat
     public class TraceProcessorWorkers
     {
         //could probably just put them in a map instead
-        readonly List<TraceProcessorWorker> workers = new List<TraceProcessorWorker>();
+        private readonly List<TraceProcessorWorker> workers = new List<TraceProcessorWorker>();
         /// <summary>
         /// Module handler worker for this trace
         /// </summary>
@@ -32,7 +32,7 @@ namespace rgat
 
         //public HeatRankingThread heatmapThread;
         //public ConditionalRendererThread conditionalThread;
-        readonly object _lock = new object();
+        private readonly object _lock = new object();
 
         /// <summary>
         /// Register a worker for this trace
@@ -83,10 +83,11 @@ namespace rgat
         }
     };
 
-    enum BinaryType { EXE, DLL };
-    enum BitWidth { Arch32, Arch64 };
+    internal enum BinaryType { EXE, DLL };
 
-    class ProcessLaunching
+    internal enum BitWidth { Arch32, Arch64 };
+
+    internal class ProcessLaunching
     {
 
         public static System.Diagnostics.Process? StartLocalTrace(string pintool, string targetBinary, PeNet.PeFile? targetPE = null,
@@ -153,7 +154,7 @@ namespace rgat
             return null;
         }
 
-        static System.Diagnostics.Process? StartLocalDLLTrace(string pintool, string targetBinary, string loadername, BitWidth loaderWidth, int ordinal = 0, long testID = -1)
+        private static System.Diagnostics.Process? StartLocalDLLTrace(string pintool, string targetBinary, string loadername, BitWidth loaderWidth, int ordinal = 0, long testID = -1)
         {
 
             System.Diagnostics.Process? result = null;
@@ -198,7 +199,7 @@ namespace rgat
             return result;
         }
 
-        static void DeleteLoader(string loader)
+        private static void DeleteLoader(string loader)
         {
             try
             {
@@ -210,7 +211,7 @@ namespace rgat
             }
         }
 
-        static bool InitLoader(string directory, string name, BitWidth loaderWidth, out string? loaderPath)
+        private static bool InitLoader(string directory, string name, BitWidth loaderWidth, out string? loaderPath)
         {
             loaderPath = Path.Combine(directory, name);
 
@@ -247,8 +248,7 @@ namespace rgat
             return true;
         }
 
-
-        static System.Diagnostics.Process? StartLocalEXETrace(string pintool, string targetBinary, long testID = -1)
+        private static System.Diagnostics.Process? StartLocalEXETrace(string pintool, string targetBinary, long testID = -1)
         {
             System.Diagnostics.Process? result = null;
 

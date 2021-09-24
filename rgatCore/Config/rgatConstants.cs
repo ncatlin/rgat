@@ -587,7 +587,7 @@ namespace rgat
                 Invalid
             };
 
-            static readonly List<Style> _cacheLayouts = new List<Style>() { Style.ForceDirected3DBlocks, Style.ForceDirected3DNodes };
+            private static readonly List<Style> _cacheLayouts = new List<Style>() { Style.ForceDirected3DBlocks, Style.ForceDirected3DNodes };
 
             /// <summary>
             /// This layout was computed and needs to be saved if it is to be restored

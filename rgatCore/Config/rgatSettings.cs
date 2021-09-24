@@ -39,15 +39,14 @@ namespace rgat.Config
         /// </summary>
         public string? FilePath { get; set; }
 
-
-        static Action? MarkDirtyCallback = null;
+        private static Action? MarkDirtyCallback = null;
         /// <summary>
         /// Set the action to perform when a setting is changed
         /// </summary>
         /// <param name="_updateAction">callback</param>
         public static void SetChangeCallback(Action _updateAction) => MarkDirtyCallback = _updateAction;
 
-        static void MarkDirty()
+        private static void MarkDirty()
         {
             if (MarkDirtyCallback != null)
             {
@@ -59,7 +58,7 @@ namespace rgat.Config
         /// A flag used to prevent saving of the settings during the loading process
         /// </summary>
         public bool Inited = false;
-        readonly static object _lock = new object();
+        private static readonly object _lock = new object();
 
         /// <summary>
         /// Perform some checks on the loaded config to try and make sure it won't crash the program
@@ -122,14 +121,13 @@ namespace rgat.Config
         /// </summary>
         public class ThemeSettings
         {
-
-            string _DefaultTheme = "";
+            private string _DefaultTheme = "";
             /// <summary>
             /// The theme that will be loaded on rgat start
             /// </summary>
             public string DefaultTheme { get => _DefaultTheme; set { _DefaultTheme = value; MarkDirty(); } }
 
-            Dictionary<string, string> _CustomThemes = new Dictionary<string, string>();
+            private Dictionary<string, string> _CustomThemes = new Dictionary<string, string>();
             /// <summary>
             /// User themes (as opposed to built in)
             /// </summary>
@@ -203,31 +201,31 @@ namespace rgat.Config
         /// </summary>
         public class NetworkSettings
         {
-            string _DefaultConnectAddress = "";
+            private string _DefaultConnectAddress = "";
             /// <summary>
             /// Default address to connect to
             /// </summary>
             public string DefaultConnectAddress { get => _DefaultConnectAddress; set { _DefaultConnectAddress = value; MarkDirty(); } }
 
-            int _DefaultListenPort = -1;
+            private int _DefaultListenPort = -1;
             /// <summary>
             /// Default port to listen on
             /// </summary>
             public int DefaultListenPort { get => _DefaultListenPort; set { _DefaultListenPort = value; MarkDirty(); } }
 
-            string _DefaultNetworkKey = "";
+            private string _DefaultNetworkKey = "";
             /// <summary>
             /// Saved network key
             /// </summary>
             public string DefaultNetworkKey { get => _DefaultNetworkKey; set { _DefaultNetworkKey = value; MarkDirty(); } }
 
-            string _DefaultListenModeIF = "";
+            private string _DefaultListenModeIF = "";
             /// <summary>
             /// Default network interface to listen on
             /// </summary>
             public string DefaultListenModeIF { get => _DefaultListenModeIF; set { _DefaultListenModeIF = value; MarkDirty(); } }
 
-            string _DefaultConnectModeIF = "";
+            private string _DefaultConnectModeIF = "";
             /// <summary>
             /// Default network interface for outgoing connections
             /// </summary>
@@ -285,7 +283,7 @@ namespace rgat.Config
         /// </summary>
         public class UISettings
         {
-            int _MaxStoredRecentPaths = 10;
+            private int _MaxStoredRecentPaths = 10;
             /// <summary>
             /// Max number of recent paths to store
             /// </summary>
@@ -299,8 +297,7 @@ namespace rgat.Config
             /// Display a ring around alerts
             /// </summary>
             public bool AlertAnimation = true;
-
-            string _InstalledVersion = "None";
+            private string _InstalledVersion = "None";
             /// <summary>
             /// The version of rgat this config file was created by
             /// Used on updating to trigger the writing of the latest tools to disk
@@ -313,13 +310,13 @@ namespace rgat.Config
         /// </summary>
         public class LogSettings
         {
-            bool _BulkLogging = false;
+            private bool _BulkLogging = false;
             /// <summary>
             /// Highly verbose logging to a file in the trace directory used for debugging.
             /// </summary>
             public bool BulkLogging { get => _BulkLogging; set { _BulkLogging = value; MarkDirty(); } }
 
-            bool _StoreSavedTracesAsRecent = true;
+            private bool _StoreSavedTracesAsRecent = true;
             /// <summary>
             /// true => traces we save will be added to recent traces list. false => only ones we load will
             /// </summary>
@@ -557,8 +554,7 @@ namespace rgat.Config
                 return "";
             }
 
-
-            void SetPath(CONSTANTS.PathKey setting, string value)
+            private void SetPath(CONSTANTS.PathKey setting, string value)
             {
                 lock (_lock)
                 {
@@ -736,19 +732,19 @@ namespace rgat.Config
         /// </summary>
         public class TracingSettings
         {
-            uint _TraceBufferSize = 400000;
+            private uint _TraceBufferSize = 400000;
             /// <summary>
             /// How big the tracebuffer can get before we pause instrumentation
             /// </summary>
             public uint TraceBufferSize { get => _TraceBufferSize; set { _TraceBufferSize = value; MarkDirty(); } }
 
-            ulong _SymbolSearchDistance = 4096;
+            private ulong _SymbolSearchDistance = 4096;
             /// <summary>
             /// How far back from an address to search for a symbol
             /// </summary>
             public ulong SymbolSearchDistance { get => _SymbolSearchDistance; set { _SymbolSearchDistance = value; MarkDirty(); } }
 
-            int _ArgStorageMax = 100;
+            private int _ArgStorageMax = 100;
             /// <summary>
             /// Maximum number of arguments to store for an API, to prevent excess memory usage
             /// </summary>
@@ -761,19 +757,19 @@ namespace rgat.Config
         /// </summary>
         public class UpdateSettings
         {
-            bool _DoUpdateCheck = true;
+            private bool _DoUpdateCheck = true;
             /// <summary>
             /// Checking the rgat repo for updates is enabled
             /// </summary>
             public bool DoUpdateCheck { get => _DoUpdateCheck; set { _DoUpdateCheck = value; MarkDirty(); } }
 
-            DateTime _UpdateLastCheckTime = DateTime.MinValue;
+            private DateTime _UpdateLastCheckTime = DateTime.MinValue;
             /// <summary>
             /// When the last check for an update was performed
             /// </summary>
             public DateTime UpdateLastCheckTime { get => _UpdateLastCheckTime; set { lock (_lock) { _UpdateLastCheckTime = value; } MarkDirty(); } }
 
-            Version _UpdateLastCheckVersion = PROGRAMVERSION.RGAT_VERSION_SEMANTIC;
+            private Version _UpdateLastCheckVersion = PROGRAMVERSION.RGAT_VERSION_SEMANTIC;
 
             /// <summary>
             /// The most recently found rgat version
@@ -819,28 +815,25 @@ namespace rgat.Config
                 }
             }
 
-
-            string _UpdateLastChanges = "";
+            private string _UpdateLastChanges = "";
             /// <summary>
             /// List of changes in the most recenly available update (from this version)
             /// </summary>
             public string UpdateLastChanges { get => _UpdateLastChanges; set { _UpdateLastChanges = value; MarkDirty(); } }
 
-
-
-            string _UpdateDownloadLink = "";
+            private string _UpdateDownloadLink = "";
             /// <summary>
             /// Link to fetch the new version
             /// </summary>
             public string UpdateDownloadLink { get => _UpdateDownloadLink; set { _UpdateDownloadLink = value; MarkDirty(); } }
 
-            string _StagedDownloadPath = "";
+            private string _StagedDownloadPath = "";
             /// <summary>
             /// Path to download the new version 
             /// </summary>
             public string StagedDownloadPath { get => _StagedDownloadPath; set { _StagedDownloadPath = value; MarkDirty(); } }
 
-            string _StagedDownloadVersion = "";
+            private string _StagedDownloadVersion = "";
             /// <summary>
             /// Version of rgat staged for download
             /// </summary>
@@ -854,37 +847,37 @@ namespace rgat.Config
         /// </summary>
         public class MediaCaptureSettings
         {
-            string _FFmpegPath = "";
+            private string _FFmpegPath = "";
             /// <summary>
             /// Path to ffmpeg.exe
             /// </summary>
             public string FFmpegPath { get => _FFmpegPath; set { _FFmpegPath = value; MarkDirty(); } }
 
-            string _VideoCodec_Speed = "Medium";
+            private string _VideoCodec_Speed = "Medium";
             /// <summary>
             /// FFMpeg speed setting
             /// </summary>
             public string VideoCodec_Speed { get => _VideoCodec_Speed; set { _VideoCodec_Speed = value; MarkDirty(); } }
 
-            int _VideoCodec_Quality = 6;
+            private int _VideoCodec_Quality = 6;
             /// <summary>
             /// FFMpeg quality setting
             /// </summary>
             public int VideoCodec_Quality { get => _VideoCodec_Quality; set { _VideoCodec_Quality = value; MarkDirty(); } }
 
-            double _VideoCodec_FPS = 30;
+            private double _VideoCodec_FPS = 30;
             /// <summary>
             /// FFMpeg framerate setting
             /// </summary>
             public double VideoCodec_FPS { get => _VideoCodec_FPS; set { _VideoCodec_FPS = value; MarkDirty(); } }
 
-            string _VideoCodec_Content = "Graph";
+            private string _VideoCodec_Content = "Graph";
             /// <summary>
             /// Which content to capture
             /// </summary>
             public string VideoCodec_Content { get => _VideoCodec_Content; set { _VideoCodec_Content = value; MarkDirty(); } }
 
-            string _ImageCapture_Format = "PNG";
+            private string _ImageCapture_Format = "PNG";
             /// <summary>
             /// The format for image capture files
             /// </summary>
@@ -991,9 +984,8 @@ namespace rgat.Config
         /// </summary>
         public class SignatureSettings
         {
-            bool inited = false;
-
-            Dictionary<string, SignatureSource>? _signatureSources;
+            private bool inited = false;
+            private Dictionary<string, SignatureSource>? _signatureSources;
 
             /// <summary>
             /// github signature repos with the url as key

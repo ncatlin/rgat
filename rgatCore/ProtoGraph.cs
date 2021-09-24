@@ -717,12 +717,12 @@ namespace rgat
             return true;
         }
 
-
-        readonly object argsLock = new object();
+        private readonly object argsLock = new object();
 
         //call arguments are recieved out-of-order from trace tags due to tag caching. they are stored here until they can be associated with the correct node
         private readonly List<INCOMING_CALL_ARGUMENT> _unprocessedCallArguments = new List<INCOMING_CALL_ARGUMENT>();
-        struct INCOMING_CALL_ARGUMENT
+
+        private struct INCOMING_CALL_ARGUMENT
         {
             public ulong sourceBlock;
             public ulong callerAddress;
@@ -733,8 +733,7 @@ namespace rgat
             public bool isReturnVal;
         }
 
-
-        void RemoveProcessedArgsFromCache(uint completeCount)
+        private void RemoveProcessedArgsFromCache(uint completeCount)
         {
             lock (argsLock)
             {
@@ -877,7 +876,7 @@ namespace rgat
             RemoveProcessedArgsFromCache(completecount);
         }
 
-        void RecordSystemInteraction(NodeData node, APICALLDATA APIcall)
+        private void RecordSystemInteraction(NodeData node, APICALLDATA APIcall)
         {
             Debug.Assert(node.IsExternal && node.HasSymbol);
             //int  moduleEnum = ProcessData.ModuleAPIReferences[node.GlobalModuleID];
@@ -938,8 +937,7 @@ namespace rgat
             return false;
         }
 
-
-        void InsertNode(uint targVertID, NodeData node)
+        private void InsertNode(uint targVertID, NodeData node)
         {
             lock (nodeLock)
             {
@@ -1258,12 +1256,12 @@ namespace rgat
         private readonly object edgeLock = new object();
 
         //node id pairs to edge data
-        readonly Dictionary<Tuple<uint, uint>, EdgeData> _edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
+        private readonly Dictionary<Tuple<uint, uint>, EdgeData> _edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
 
         /// <summary>
         /// Ordered list of executing edges
         /// </summary>
-        readonly List<Tuple<uint, uint>> EdgeList = new List<Tuple<uint, uint>>();
+        private readonly List<Tuple<uint, uint>> EdgeList = new List<Tuple<uint, uint>>();
         /// <summary>
         /// How many edges have been recorded
         /// </summary>
@@ -1282,9 +1280,7 @@ namespace rgat
 
 
         private readonly object highlightsLock = new object();
-
-
-        readonly object nodeLock = new object();
+        private readonly object nodeLock = new object();
 
         /// <summary>
         /// List of all graph nodes. The node Index is an index into this
@@ -1471,7 +1467,7 @@ namespace rgat
 		*/
 
         //list of all external nodes
-        readonly List<uint> externalNodeList = new List<uint>();
+        private readonly List<uint> externalNodeList = new List<uint>();
         /// <summary>
         /// Number of external nodes
         /// </summary>
@@ -1489,7 +1485,7 @@ namespace rgat
         }
 
         //list of all internal nodes with symbols. Unused.
-        readonly List<uint> internalNodeList = new List<uint>();
+        private readonly List<uint> internalNodeList = new List<uint>();
 
         /// <summary>
         /// Get a NodeData object by index
@@ -1508,7 +1504,7 @@ namespace rgat
 
         }
 
-        bool LoadEdges(JArray EdgeArray)
+        private bool LoadEdges(JArray EdgeArray)
         {
             foreach (JArray entry in EdgeArray.Children())
             {
@@ -1554,14 +1550,14 @@ namespace rgat
         /// A list of trace entries which can be replayed
         /// </summary>
         public List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
-        readonly List<uint> ExceptionNodeIndexes = new List<uint>();
+        private readonly List<uint> ExceptionNodeIndexes = new List<uint>();
 
         /// <summary>
         /// The module the thread was located in, usually the argument passed to CreateThread (or the linux equivalent)
         /// </summary>
         public string StartModuleName { get; private set; } = "";
 
-        void AssignModulePath()
+        private void AssignModulePath()
         {
             bool found = ProcessData.FindContainingModule(StartAddress, out int? exeModuleID);
             if (!found || exeModuleID >= ProcessData.LoadedModulePaths.Count)
@@ -1830,7 +1826,7 @@ namespace rgat
 
 
         //important state variables!
-        uint targVertID = 0; //new vert we are creating
+        private uint targVertID = 0; //new vert we are creating
 
         //temp debug setup for breakpointing
         /*
@@ -1844,7 +1840,7 @@ namespace rgat
             }
         }*/
 
-        uint _pplvid = 0;
+        private uint _pplvid = 0;
 
         /// <summary>
         /// The index of the last added node
@@ -1862,20 +1858,19 @@ namespace rgat
         /// The index of the node before the last added node
         /// </summary>
         public uint ProtoLastLastVertID = 0;
-
-        eEdgeNodeType lastNodeType = eEdgeNodeType.eFIRST_IN_THREAD;
+        private eEdgeNodeType lastNodeType = eEdgeNodeType.eFIRST_IN_THREAD;
 
         /// <summary>
         /// Exec count of the busiest block in the graph
         /// </summary>
         public ulong BusiestBlockExecCount = 0;
-        readonly List<string> loggedCalls = new List<string>();
+        private readonly List<string> loggedCalls = new List<string>();
 
         /// <summary>
         /// number of times an external function has been called. used to Dictionary arguments to calls
         /// </summary>
         public Dictionary<uint, ulong> externFuncCallCounter = new Dictionary<uint, ulong>();
-        readonly List<uint> exceptionSet = new List<uint>();
+        private readonly List<uint> exceptionSet = new List<uint>();
 
         /// <summary>
         /// Get all exception event nodes
@@ -1969,7 +1964,7 @@ namespace rgat
             return results;
         }
 
-        bool ValidateEdgeTestList(JArray testedges, out string failedComparison)
+        private bool ValidateEdgeTestList(JArray testedges, out string failedComparison)
         {
             foreach (JToken testedge in testedges)
             {
@@ -2026,7 +2021,7 @@ namespace rgat
             return true;
         }
 
-        bool GetTestEdgeCount(JObject edgeObj, out ulong count)
+        private bool GetTestEdgeCount(JObject edgeObj, out ulong count)
         {
             if (edgeObj.TryGetValue("Count", out JToken? countTok))
             {

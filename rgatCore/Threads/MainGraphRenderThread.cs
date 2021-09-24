@@ -2,7 +2,7 @@
 
 namespace rgat.Threads
 {
-    class MainGraphRenderThread : TraceProcessorWorker
+    internal class MainGraphRenderThread : TraceProcessorWorker
     {
         public MainGraphRenderThread(GraphPlotWidget maingraphwidget)
         {
@@ -22,12 +22,11 @@ namespace rgat.Threads
         {
         }
 
-        readonly GraphPlotWidget _graphWidget;
-        int _nextReplayStep = 0;
-        readonly int _FramesBetweenAnimationUpdates = 2;
+        private readonly GraphPlotWidget _graphWidget;
+        private int _nextReplayStep = 0;
+        private readonly int _FramesBetweenAnimationUpdates = 2;
 
-
-        void update_rendering(PlottedGraph graph)
+        private void update_rendering(PlottedGraph graph)
         {
             ProtoGraph protoGraph = graph.InternalProtoGraph;
             if (protoGraph == null || protoGraph.EdgeCount == 0)

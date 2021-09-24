@@ -26,7 +26,7 @@ namespace rgatFilePicker
         /// Create a file selection dialog
         /// </summary>
         /// <param name="remoteMirror">Optional remote host this dialog is associated with</param>
-        FilePicker(BridgeConnection? remoteMirror = null)
+        private FilePicker(BridgeConnection? remoteMirror = null)
         {
             _remoteMirror = remoteMirror;
             Created = DateTime.Now;
@@ -42,16 +42,16 @@ namespace rgatFilePicker
 
         }
 
-        readonly System.Timers.Timer _refreshTimer;
-        bool _refreshTimerFired = false;
-        readonly BridgeConnection? _remoteMirror;
+        private readonly System.Timers.Timer _refreshTimer;
+        private bool _refreshTimerFired = false;
+        private readonly BridgeConnection? _remoteMirror;
         private const int RefreshThresholdSeconds = 2;
         /// <summary>
         /// When the picker was created
         /// </summary>
         public DateTime Created { get; private set; }
 
-        readonly string myID;
+        private readonly string myID;
 
         private class FileMetadata
         {
@@ -460,9 +460,9 @@ namespace rgatFilePicker
             eFalse
         };
 
-        static readonly Dictionary<object, FilePicker> _filePickers = new Dictionary<object, FilePicker>();
-        static readonly Dictionary<object, FILEPICKER_DATA> _filePickerData = new Dictionary<object, FILEPICKER_DATA>();
-        readonly FILEPICKER_DATA Data = new FILEPICKER_DATA();
+        private static readonly Dictionary<object, FilePicker> _filePickers = new Dictionary<object, FilePicker>();
+        private static readonly Dictionary<object, FILEPICKER_DATA> _filePickerData = new Dictionary<object, FILEPICKER_DATA>();
+        private readonly FILEPICKER_DATA Data = new FILEPICKER_DATA();
         /// <summary>
         /// When the drivelist was list refreshed
         /// </summary>
@@ -491,10 +491,9 @@ namespace rgatFilePicker
         /// Multiple files can be selected
         /// </summary>
         public bool AllowMultiSelect;
-        readonly object _lock = new object();
+        private readonly object _lock = new object();
 
-
-        class FILEPICKER_DATA
+        private class FILEPICKER_DATA
         {
             public List<Tuple<string, string>> AvailableDriveStrings = new List<Tuple<string, string>>();
             /// <summary>
@@ -692,7 +691,7 @@ namespace rgatFilePicker
         /// </summary>
         /// <param name="responseTok">JToken containing information about the current directory</param>
         /// <returns>true if the data was valid</returns>
-        bool InitCurrentDirInfo(JToken responseTok)
+        private bool InitCurrentDirInfo(JToken responseTok)
         {
             if (responseTok.Type != JTokenType.Object)
             {
@@ -768,8 +767,7 @@ namespace rgatFilePicker
             return true;
         }
 
-
-        bool ParseRemoteDirectoryContents(string dirpath, JObject remoteData, out DirectoryContents contents)
+        private bool ParseRemoteDirectoryContents(string dirpath, JObject remoteData, out DirectoryContents contents)
         {
             contents = new DirectoryContents(dirpath);
             if (!remoteData.TryGetValue("Files", out JToken? filesTok) || filesTok.Type != JTokenType.Array
@@ -826,7 +824,7 @@ namespace rgatFilePicker
             return true;
         }
 
-        bool HandleRemoteDirInfoCallback(JToken response)
+        private bool HandleRemoteDirInfoCallback(JToken response)
         {
             lock (_lock)
             {
@@ -854,7 +852,7 @@ namespace rgatFilePicker
             }
         }
 
-        int pendingCmdCount = 0;
+        private int pendingCmdCount = 0;
 
         /// <summary>
         /// Draw the file picker window
@@ -939,7 +937,7 @@ namespace rgatFilePicker
             return result;
         }
 
-        void DrawPickerControlsBar()
+        private void DrawPickerControlsBar()
         {
             string? root = Path.GetPathRoot(Data.CurrentDirectory);
             bool enabled = _directoryHistoryPosition < (_directoryHistory.Count - 1);
@@ -1037,7 +1035,7 @@ namespace rgatFilePicker
             }
         }
 
-        PickerResult DrawFilesContents(object objKey)
+        private PickerResult DrawFilesContents(object objKey)
         {
             const int LEFTCOLWIDTH = 150;
 
@@ -1064,7 +1062,7 @@ namespace rgatFilePicker
             return result;
         }
 
-        void ShowDirectoryHistory()
+        private void ShowDirectoryHistory()
         {
             ImGui.BeginTooltip();
             ImGui.Text($"Directory History");
@@ -1082,9 +1080,7 @@ namespace rgatFilePicker
             ImGui.EndTooltip();
         }
 
-
-
-        PickerResult DrawButtons(float btnHeight)
+        private PickerResult DrawButtons(float btnHeight)
         {
             ImGui.BeginGroup();
             {
@@ -1145,10 +1141,10 @@ namespace rgatFilePicker
             return PickerResult.eNoAction;
         }
 
-        readonly List<string> _directoryHistory = new List<string>();
-        int _directoryHistoryPosition = 0;
+        private readonly List<string> _directoryHistory = new List<string>();
+        private int _directoryHistoryPosition = 0;
 
-        void SetActiveDirectory(string dir, bool modifyHistory = true)
+        private void SetActiveDirectory(string dir, bool modifyHistory = true)
         {
             if (_remoteMirror == null)
             {
@@ -1194,10 +1190,10 @@ namespace rgatFilePicker
             SetFileSystemEntries(thisdir.FullName, GetFileSystemEntries());
         }
 
+        private List<KeyValuePair<string, FileMetadata>>? _sortedDirs;
+        private List<KeyValuePair<string, FileMetadata>>? _sortedFiles;
 
-        List<KeyValuePair<string, FileMetadata>>? _sortedDirs;
-        List<KeyValuePair<string, FileMetadata>>? _sortedFiles;
-        PickerResult DrawFilesList(float height, object objKey)
+        private PickerResult DrawFilesList(float height, object objKey)
         {
             PickerResult result = PickerResult.eNoAction;
             bool currentBadDir = !Data.CurrentDirectoryExists;
@@ -1295,7 +1291,7 @@ namespace rgatFilePicker
             return result;
         }
 
-        void SortDisplayFiles(ImGuiTableColumnSortSpecsPtr sortSpecs)
+        private void SortDisplayFiles(ImGuiTableColumnSortSpecsPtr sortSpecs)
         {
             Debug.Assert(Data.Contents is not null);
 
@@ -1374,8 +1370,7 @@ namespace rgatFilePicker
 
         }
 
-
-        PickerResult DrawDirsFilesList()
+        private PickerResult DrawDirsFilesList()
         {
             if (_sortedDirs is null || _sortedFiles is null)
             {
@@ -1455,8 +1450,7 @@ namespace rgatFilePicker
             return result;
         }
 
-
-        void DrawRecentDirsList(Vector2 framesize)
+        private void DrawRecentDirsList(Vector2 framesize)
         {
             if (ImGui.BeginChildFrame(ImGui.GetID("#RecentDirListFrm"), framesize, ImGuiWindowFlags.AlwaysAutoResize))
             {
@@ -1503,7 +1497,7 @@ namespace rgatFilePicker
         }
         */
 
-        List<Tuple<string, bool>> GetFileSystemEntries()
+        private List<Tuple<string, bool>> GetFileSystemEntries()
         {
             Debug.Assert(Data.CurrentDirectory is not null);
             List<Tuple<string, bool>> newFileListing = new List<Tuple<string, bool>>();
@@ -1531,7 +1525,7 @@ namespace rgatFilePicker
             return newFileListing;
         }
 
-        DirectoryContents SetFileSystemEntries(string fullName, List<Tuple<string, bool>> newFileListing, DirectoryContents? newDirContentsObj = null)
+        private DirectoryContents SetFileSystemEntries(string fullName, List<Tuple<string, bool>> newFileListing, DirectoryContents? newDirContentsObj = null)
         {
             if (newDirContentsObj == null)
             {
@@ -1593,7 +1587,7 @@ namespace rgatFilePicker
             }
         }
 
-        bool InitRemoteDriveStringsCallback(JToken remoteResponse)
+        private bool InitRemoteDriveStringsCallback(JToken remoteResponse)
         {
             if (remoteResponse.Type != JTokenType.Array)
             {
@@ -1632,7 +1626,7 @@ namespace rgatFilePicker
             return true;
         }
 
-        void InitLocalDriveStrings()
+        private void InitLocalDriveStrings()
         {
             Data.AvailableDriveStrings = GetLocalDriveStrings();
             LastDriveListRefresh = DateTime.Now;
@@ -1668,7 +1662,7 @@ namespace rgatFilePicker
             return result;
         }
 
-        void DrawDrivesList(Vector2 framesize, object objKey)
+        private void DrawDrivesList(Vector2 framesize, object objKey)
         {
             if (ImGui.BeginChildFrame(ImGui.GetID("#DrvListFrm"), framesize, ImGuiWindowFlags.AlwaysAutoResize))
             {

@@ -11,9 +11,7 @@ namespace rgat.OperationModes
     /// </summary>
     public class CommandLineRunner
     {
-
-
-        ProcessCoordinatorThread? coordThread;
+        private ProcessCoordinatorThread? coordThread;
 
         /// <summary>
         /// Create a commandline runner
@@ -32,7 +30,7 @@ namespace rgat.OperationModes
         }
 
         //todo - make Exit wait until this returns
-        void LoadingThreadCommandLine()
+        private void LoadingThreadCommandLine()
         {
 
             Logging.RecordLogEvent("Initing/Loading Config", Logging.LogFilterType.TextDebug);

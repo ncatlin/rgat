@@ -8,7 +8,7 @@ namespace rgat.Threads
     /// </summary>
     public class PreviewRendererThread : TraceProcessorWorker
     {
-        readonly TraceRecord RenderedTrace;
+        private readonly TraceRecord RenderedTrace;
 
         /// <summary>
         /// Set by the GUI loading thread when the widget has been created
@@ -16,7 +16,7 @@ namespace rgat.Threads
         /// <param name="widget"></param>
         public static void SetPreviewWidget(PreviewGraphsWidget widget) => _graphWidget = widget;
 
-        static PreviewGraphsWidget? _graphWidget;
+        private static PreviewGraphsWidget? _graphWidget;
 
         /// <summary>
         /// Create a preview renderer

@@ -16,14 +16,13 @@ namespace rgat
     /// </summary>
     public class ModuleHandlerThread : TraceProcessorWorker
     {
-        readonly BinaryTarget target;
-        readonly TraceRecord trace;
-        NamedPipeServerStream? commandPipe = null;
-        NamedPipeServerStream? eventPipe = null;
-        readonly uint? _remoteEventPipeID;
-        uint? _remoteCommandPipeID = null;
-
-        System.Threading.Tasks.Task? _headlessCommandListener;
+        private readonly BinaryTarget target;
+        private readonly TraceRecord trace;
+        private NamedPipeServerStream? commandPipe = null;
+        private NamedPipeServerStream? eventPipe = null;
+        private readonly uint? _remoteEventPipeID;
+        private uint? _remoteCommandPipeID = null;
+        private System.Threading.Tasks.Task? _headlessCommandListener;
 
         /// <summary>
         /// The pipe ID of the command pipe connected to a remote tracing instance
@@ -122,9 +121,7 @@ namespace rgat
             return "TR" + PID.ToString() + randID.ToString() + TID.ToString();
         }
 
-
-
-        void HandleSymbol(byte[] buf)
+        private void HandleSymbol(byte[] buf)
         {
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 5);
 
@@ -135,8 +132,7 @@ namespace rgat
             trace.DisassemblyData.AddSymbol(modnum, offset, name);
         }
 
-
-        void HandleModule(byte[] buf)
+        private void HandleModule(byte[] buf)
         {
             //todo - these are valid in filenames. b64 encode in client? length field would be better with path at end
             //do same for symbol
@@ -148,8 +144,7 @@ namespace rgat
             trace.DisassemblyData.AddModule(localmodnum, path, start, end, fields[5][0]);
         }
 
-
-        void SpawnPipeTraceProcessorThreads(ProtoGraph graph)
+        private void SpawnPipeTraceProcessorThreads(ProtoGraph graph)
         {
             string pipename = GetTracePipeName(graph.ThreadID);
 
@@ -177,8 +172,7 @@ namespace rgat
 
         }
 
-
-        bool SpawnRemoteTraceProcessorThreads(JToken paramsTok)
+        private bool SpawnRemoteTraceProcessorThreads(JToken paramsTok)
         {
             if (paramsTok.Type == JTokenType.Object)
             {
@@ -227,10 +221,10 @@ namespace rgat
             return false;
         }
 
-        ulong spawnedThreadCount = 0;
-        readonly Dictionary<ulong, ProtoGraph> _pendingPipeThreads = new Dictionary<ulong, ProtoGraph>();
+        private ulong spawnedThreadCount = 0;
+        private readonly Dictionary<ulong, ProtoGraph> _pendingPipeThreads = new Dictionary<ulong, ProtoGraph>();
 
-        void HandleNewThread(byte[] buf)
+        private void HandleNewThread(byte[] buf)
         {
             Console.WriteLine(System.Text.ASCIIEncoding.ASCII.GetString(buf));
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 4);
@@ -286,8 +280,7 @@ namespace rgat
 
         }
 
-
-        void HandleTerminatedThread(byte[] buf)
+        private void HandleTerminatedThread(byte[] buf)
         {
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
             if (!uint.TryParse(fields[1], System.Globalization.NumberStyles.Integer, null, out uint TID))
@@ -312,7 +305,7 @@ namespace rgat
             Logging.RecordLogEvent($"Thread {TID} terminated (no plotted graph)");
         }
 
-        void HandleTerminatedProcess(byte[] buf)
+        private void HandleTerminatedProcess(byte[] buf)
         {
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
             if (!uint.TryParse(fields[1], System.Globalization.NumberStyles.Integer, null, out uint PID))
@@ -359,7 +352,7 @@ namespace rgat
             return false;
         }
 
-        bool CommandWrite(string msg)
+        private bool CommandWrite(string msg)
         {
             if (_remoteCommandPipeID != null)
             {
@@ -383,7 +376,7 @@ namespace rgat
             return true;
         }
 
-        void SendIncludeLists()
+        private void SendIncludeLists()
         {
 
             if (!CommandWrite($"INCLUDELISTS\n\x00\x00\x00"))
@@ -449,7 +442,7 @@ namespace rgat
             CommandWrite($"@XX@0@@\n\x00");
         }
 
-        void SendConfiguration()
+        private void SendConfiguration()
         {
             Dictionary<string, string> config = target.GetCurrentTraceConfiguration();
 
@@ -466,16 +459,13 @@ namespace rgat
             }
         }
 
-
-        void SendTraceSettings()
+        private void SendTraceSettings()
         {
             SendIncludeLists();
             SendConfiguration();
         }
 
-
-
-        void ConnectCallback(IAsyncResult ar)
+        private void ConnectCallback(IAsyncResult ar)
         {
             string? pipeType = (string?)ar.AsyncState;
             try
@@ -496,13 +486,12 @@ namespace rgat
             }
         }
 
-
-        void MirrorMessageToUI(byte[] buf, int bytesRead)
+        private void MirrorMessageToUI(byte[] buf, int bytesRead)
         {
             rgatState.NetworkBridge.SendRawTraceData(_remoteEventPipeID!.Value, buf, bytesRead);
         }
 
-        void ProcessMessageLocal(byte[] buf, int bytesRead)
+        private void ProcessMessageLocal(byte[] buf, int bytesRead)
         {
 
             if (bytesRead < 3) //probably pipe ended
@@ -609,7 +598,7 @@ namespace rgat
             return "CR" + PID.ToString() + randID.ToString();
         }
 
-        readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
+        private readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
 
         /// <summary>
         /// Cause the worker to stop processing and disconnect its pipes
@@ -662,16 +651,16 @@ namespace rgat
             }
         }
 
-        readonly Queue<byte[]> _incomingRemoteEvents = new Queue<byte[]>();
-        readonly Queue<string> _incomingTraceCommands = new Queue<string>();
-        readonly ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
-        readonly object _lock = new object();
+        private readonly Queue<byte[]> _incomingRemoteEvents = new Queue<byte[]>();
+        private readonly Queue<string> _incomingTraceCommands = new Queue<string>();
+        private readonly ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
+        private readonly object _lock = new object();
 
         /// <summary>
         /// This runs in headless mode, taking commands from the UI and passing them to the instrumentation tool
         /// in the target process
         /// </summary>
-        void RemoteCommandListener()
+        private void RemoteCommandListener()
         {
             CancellationToken cancelToken = rgatState.NetworkBridge.CancelToken;
             while (!cancelToken.IsCancellationRequested && (commandPipe == null || commandPipe.IsConnected == false))
@@ -719,7 +708,7 @@ namespace rgat
         /// This is run by the UI in remote mode, passing trace events to the trace processor
         /// </summary>
         /// <param name="ProcessMessageobj"></param>
-        void RemoteEventListener(object? ProcessMessageobj)
+        private void RemoteEventListener(object? ProcessMessageobj)
         {
             ProcessPipeMessageAction ProcessMessage = (ProcessPipeMessageAction)ProcessMessageobj!;
 
@@ -764,11 +753,7 @@ namespace rgat
             }
         }
 
-
-
-
-
-        async void PipeEventListener(object? ProcessMessageobj)
+        private async void PipeEventListener(object? ProcessMessageobj)
         {
             ProcessPipeMessageAction ProcessMessage = (ProcessPipeMessageAction)ProcessMessageobj!;
             string cmdPipeName = GetCommandPipeName(trace.PID, trace.randID);

@@ -39,7 +39,7 @@ namespace rgat
         /// <summary>
         /// Binaries in these directories will be traced in default ignore mode
         /// </summary>
-        readonly HashSet<string> traceDirs = new HashSet<string>();
+        private readonly HashSet<string> traceDirs = new HashSet<string>();
 
         /// <summary>
         /// The number of directories listed for instrumentation
@@ -49,7 +49,7 @@ namespace rgat
         /// <summary>
         /// These binaries will be instrumentated in default ignore mode
         /// </summary>
-        readonly HashSet<string> traceFiles = new HashSet<string>();
+        private readonly HashSet<string> traceFiles = new HashSet<string>();
 
         /// <summary>
         /// The number of modules that are listed for tracing
@@ -57,7 +57,7 @@ namespace rgat
         public int TraceFilesCount => traceFiles.Count;
 
         //Binaries in these directories will be ignored in default trace mode
-        readonly HashSet<string> ignoreDirs = new HashSet<string>();
+        private readonly HashSet<string> ignoreDirs = new HashSet<string>();
 
         /// <summary>
         /// The number of directories which are explicitly ignored in default trace mode
@@ -65,14 +65,14 @@ namespace rgat
         public int IgnoreDirsCount => ignoreDirs.Count;
 
         //These binaries will be ignored in default trace mode
-        readonly HashSet<string> ignoreFiles = new HashSet<string>();
+        private readonly HashSet<string> ignoreFiles = new HashSet<string>();
 
         /// <summary>
         /// The number of files which are explicitly ignored in default trace mode
         /// </summary>
         public int ignoreFilesCount => ignoreFiles.Count;
 
-        readonly object _lock = new();
+        private readonly object _lock = new();
 
         /// <summary>
         /// Get the list of directories which contain modules which should not be instrumented
@@ -240,7 +240,7 @@ namespace rgat
         /// </summary>
         public string ASCIIPreview { get; private set; } = "";
 
-        string _hexTooltip = "";
+        private string _hexTooltip = "";
 
         /// <summary>
         /// This file is a DLL
@@ -338,8 +338,7 @@ namespace rgat
             return result;
         }
 
-
-        bool InitialiseFromRemoteDataInner(Newtonsoft.Json.Linq.JToken dataTok)
+        private bool InitialiseFromRemoteDataInner(Newtonsoft.Json.Linq.JToken dataTok)
         {
             Console.WriteLine("Initing from remote");
             if (dataTok.Type != JTokenType.Object)
@@ -502,9 +501,9 @@ namespace rgat
             return _hexTooltip;
         }
 
-        readonly List<string> signatureHitsDIE = new List<string>();
-        readonly List<YARAScanner.YARAHit> signatureHitsYARA = new List<YARAScanner.YARAHit>();
-        readonly Dictionary<string, string> _traceConfiguration = new Dictionary<string, string>();
+        private readonly List<string> signatureHitsDIE = new List<string>();
+        private readonly List<YARAScanner.YARAHit> signatureHitsYARA = new List<YARAScanner.YARAHit>();
+        private readonly Dictionary<string, string> _traceConfiguration = new Dictionary<string, string>();
 
         /// <summary>
         /// Get the tracing configuration settings as a dictrionary of keyvaluepair strings
@@ -814,7 +813,7 @@ namespace rgat
             }
         }
 
-        void InitPreviews()
+        private void InitPreviews()
         {
             if (fileSize == 0 || StartBytes is null)
             {
@@ -844,7 +843,8 @@ namespace rgat
             _cachedFileSize = fileSize.Bytes().ToString();
             return _cachedFileSize;
         }
-        string? _cachedFileSize = null;
+
+        private string? _cachedFileSize = null;
 
 
         /// <summary>

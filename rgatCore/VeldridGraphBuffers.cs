@@ -124,7 +124,7 @@ namespace rgat
             //if (rs != null && rs.IsDisposed == false) rs.Dispose();
         }
 
-        static long total_1 = 0;
+        private static long total_1 = 0;
         /// <summary>
         /// Dispose of a VRAM devide buffer and track the deallocation
         /// </summary>
@@ -143,8 +143,8 @@ namespace rgat
             }
         }
 
-        readonly static object b_lock = new object();
-        static readonly List<string> _allocatedBufs = new List<string>();
+        private static readonly object b_lock = new object();
+        private static readonly List<string> _allocatedBufs = new List<string>();
 
         /// <summary>
         /// Allocate tracked VRAM memory

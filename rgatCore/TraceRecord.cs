@@ -80,7 +80,7 @@ namespace rgat
         /// Address of the instruction after this if there is no flow control
         /// </summary>
         public ulong condDropAddress;
-        readonly List<Tuple<uint, uint>> _threadVertIndexes = new List<Tuple<uint, uint>>(); //was an unordered dictionary in the C++ version
+        private readonly List<Tuple<uint, uint>> _threadVertIndexes = new List<Tuple<uint, uint>>(); //was an unordered dictionary in the C++ version
         /// <summary>
         /// The module this instruction is located in
         /// </summary>
@@ -234,13 +234,13 @@ namespace rgat
         /// <param name="val">The ID</param>
         public void SetTestRunID(long val) => TestRunID = val;
 
-        bool _loadedFromSave = false;
+        private bool _loadedFromSave = false;
         /// <summary>
         /// Was this recorded in this session or loaded from a save
         /// </summary>
         public bool WasLoadedFromSave => _loadedFromSave;
 
-        string getModpathID() { return PID.ToString() + randID.ToString(); }
+        private string getModpathID() { return PID.ToString() + randID.ToString(); }
 
         /// <summary>
         /// Set the trace state
@@ -419,19 +419,20 @@ namespace rgat
             }
         }
 
+        private void killTraceProcess() { if (IsRunning) { killed = true; } }
 
-        void killTraceProcess() { if (IsRunning) { killed = true; } }
-        bool should_die() { return killed; }
+        private bool should_die() { return killed; }
 
         //void killTree();
 
         // Process start, process end, thread start, thread end
-        readonly object _logLock = new object();
-        List<Logging.TIMELINE_EVENT> _timeline = new List<Logging.TIMELINE_EVENT>();
+        private readonly object _logLock = new object();
+        private List<Logging.TIMELINE_EVENT> _timeline = new List<Logging.TIMELINE_EVENT>();
+
         //Dictionary<Logging.LogFilterType, int> _tlFilterCounts = new Dictionary<Logging.LogFilterType, int>();
 
-        int runningProcesses = 0;
-        int runningThreads = 0;
+        private int runningProcesses = 0;
+        private int runningThreads = 0;
 
         /// <summary>
         /// Record a process/thread stop/start
@@ -526,7 +527,7 @@ namespace rgat
 
         }
 
-        ulong uniqAPICallIdx = 0;
+        private ulong uniqAPICallIdx = 0;
 
         /// <summary>
         /// Record an APi call
@@ -658,7 +659,7 @@ namespace rgat
         }
 
         private readonly object GraphListLock = new object();
-        readonly Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
+        private readonly Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
 
         /// <summary>
         /// get a copy of the protographs list
@@ -854,8 +855,7 @@ namespace rgat
             return GraphCount;
         }
 
-
-        bool LoadProcessGraphs(JObject processJSON, Veldrid.GraphicsDevice device)
+        private bool LoadProcessGraphs(JObject processJSON, Veldrid.GraphicsDevice device)
         {
             if (!processJSON.TryGetValue("Threads", out JToken? jThreads) || jThreads.Type != JTokenType.Array)
             {
@@ -880,7 +880,7 @@ namespace rgat
 
         }
 
-        bool LoadGraph(JObject jThreadObj, Veldrid.GraphicsDevice device)
+        private bool LoadGraph(JObject jThreadObj, Veldrid.GraphicsDevice device)
         {
             if (!jThreadObj.TryGetValue("ThreadID", out JToken? tTID) || tTID.Type != JTokenType.Integer)
             {
@@ -993,7 +993,7 @@ namespace rgat
             return true;
         }
 
-        JArray SerialiseGraphs()
+        private JArray SerialiseGraphs()
         {
             JArray graphsList = new JArray();
 
@@ -1009,8 +1009,7 @@ namespace rgat
             return graphsList;
         }
 
-
-        JArray SerialiseTimeline()
+        private JArray SerialiseTimeline()
         {
 
             JArray timeline = new JArray();
@@ -1024,8 +1023,7 @@ namespace rgat
             return timeline;
         }
 
-
-        JsonTextWriter? CreateSaveFile(DateTime startedTime, out string? path)
+        private JsonTextWriter? CreateSaveFile(DateTime startedTime, out string? path)
         {
             string saveFilename = $"{Target.FileName}-{PID}-{startedTime.ToString("MMM-dd__HH-mm-ss")}.rgat";
             string saveDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);

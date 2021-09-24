@@ -1,9 +1,10 @@
 ﻿namespace rgat
 {
-    class FileTriageInfo
+    internal class FileTriageInfo
     {
         public string? OriginalPath { get; private set; } = null;
-        FileTriageInfo(string path)
+
+        private FileTriageInfo(string path)
         {
             OriginalPath = path;
         }

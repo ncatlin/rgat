@@ -11,7 +11,7 @@ namespace rgat.Config
     /// </summary>
     public class RemoteDataMirror
     {
-        static readonly object _lock = new object();
+        private static readonly object _lock = new object();
 
         /// <summary>
         /// Status of a command
@@ -43,13 +43,10 @@ namespace rgat.Config
         /// <returns></returns>
         public delegate bool ProcessResponseCallback(JToken response);
 
-        static readonly Dictionary<int, ProcessResponseCallback> _pendingCommandCallbacks = new Dictionary<int, ProcessResponseCallback>();
-
-
-        static readonly Dictionary<string, int> _pendingEvents = new Dictionary<string, int>();
-        static readonly Dictionary<int, string> _pendingEventsReverse = new Dictionary<int, string>();
-
-        static readonly Dictionary<string, uint> _pipeIDDictionary = new Dictionary<string, uint>();
+        private static readonly Dictionary<int, ProcessResponseCallback> _pendingCommandCallbacks = new Dictionary<int, ProcessResponseCallback>();
+        private static readonly Dictionary<string, int> _pendingEvents = new Dictionary<string, int>();
+        private static readonly Dictionary<int, string> _pendingEventsReverse = new Dictionary<int, string>();
+        private static readonly Dictionary<string, uint> _pipeIDDictionary = new Dictionary<string, uint>();
 
         /// <summary>
         /// Callback to process incoming trace data
@@ -57,8 +54,8 @@ namespace rgat.Config
         /// <param name="arg">trace data</param>
         public delegate void ProcessIncomingWorkerData(byte[] arg);
 
-        static readonly Dictionary<uint, Threads.TraceProcessorWorker> _remoteDataWorkers = new Dictionary<uint, Threads.TraceProcessorWorker>();
-        static readonly Dictionary<uint, ProcessIncomingWorkerData?> _pipeInterfaces = new Dictionary<uint, ProcessIncomingWorkerData?>();
+        private static readonly Dictionary<uint, Threads.TraceProcessorWorker> _remoteDataWorkers = new Dictionary<uint, Threads.TraceProcessorWorker>();
+        private static readonly Dictionary<uint, ProcessIncomingWorkerData?> _pipeInterfaces = new Dictionary<uint, ProcessIncomingWorkerData?>();
 
 
         /// <summary>
@@ -104,8 +101,7 @@ namespace rgat.Config
             }
         }
 
-
-        static uint pipeCount = 0;
+        private static uint pipeCount = 0;
         /// <summary>
         /// Register a local pipe for linking to a remote trace data stream
         /// </summary>
@@ -214,7 +210,7 @@ namespace rgat.Config
 
         // file info
 
-        static List<PathRecord> _cachedRecentBins = new List<PathRecord>();
+        private static List<PathRecord> _cachedRecentBins = new List<PathRecord>();
         /// <summary>
         /// Record recent path data from the remote host
         /// </summary>

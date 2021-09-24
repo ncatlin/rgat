@@ -3,7 +3,7 @@ using System.Numerics;
 
 namespace rgat
 {
-    class GraphicsMaths
+    internal class GraphicsMaths
     {
 
 
@@ -46,8 +46,7 @@ namespace rgat
             return ((-1.401298E-45f <= num) && (num <= float.Epsilon));
         }
 
-
-        static Vector2 ScreenToNDCPos(Vector2 screenPos, Vector2 graphWidgetSize)
+        private static Vector2 ScreenToNDCPos(Vector2 screenPos, Vector2 graphWidgetSize)
         {
             Vector2 temp = Vector2.Multiply(Vector2.Divide(screenPos, graphWidgetSize), 2.0f);
             Vector2 NDCPos = new Vector2(temp.X - 1f, temp.Y - 1f);

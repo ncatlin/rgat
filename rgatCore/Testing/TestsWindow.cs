@@ -9,8 +9,7 @@ using System.Numerics;
 
 namespace rgat.Widgets
 {
-
-    class TestCategory
+    internal class TestCategory
     {
         public List<TestCase> Tests = new List<TestCase>();
         public string? Path;
@@ -19,7 +18,7 @@ namespace rgat.Widgets
         public string? ID;
     }
 
-    class TestsWindow
+    internal class TestsWindow
     {
         public TestsWindow(rgatState clientState, ImGuiController controller)
         {
@@ -30,23 +29,24 @@ namespace rgat.Widgets
 
         }
 
-        readonly TestHarnessThread _testingThread;
-        readonly ImGuiController _controller;
-        readonly Dictionary<string, TestCategory> _testDirectories = new Dictionary<string, TestCategory>();
-        readonly Dictionary<string, TestCategory> _testCategories = new Dictionary<string, TestCategory>();
-        List<string> _orderedTestDirs = new List<string>();
-        bool _testsRunning = false;
-        enum eCatFilter { All = 0, Remaining = 1, Complete = 2, Passing = 3, Failed = 4, StarredTest = 5, StarredCat = 6 }
-        int _selectedFilter = (int)eCatFilter.All;
-        readonly string[] filters = new string[] { "Show All Tests", "Show Remaining Tests","Show Complete Tests",
+        private readonly TestHarnessThread _testingThread;
+        private readonly ImGuiController _controller;
+        private readonly Dictionary<string, TestCategory> _testDirectories = new Dictionary<string, TestCategory>();
+        private readonly Dictionary<string, TestCategory> _testCategories = new Dictionary<string, TestCategory>();
+        private List<string> _orderedTestDirs = new List<string>();
+        private bool _testsRunning = false;
+
+        private enum eCatFilter { All = 0, Remaining = 1, Complete = 2, Passing = 3, Failed = 4, StarredTest = 5, StarredCat = 6 }
+
+        private int _selectedFilter = (int)eCatFilter.All;
+        private readonly string[] filters = new string[] { "Show All Tests", "Show Remaining Tests","Show Complete Tests",
             "Show Passing Tests","Show Failed Tests",
             "Show Starred Tests", "Show Starred Categories"};
-        readonly int treeWidth = 400;
-        readonly List<TestCase> _queuedTests = new List<TestCase>();
-        readonly List<TestCase> _allTests = new List<TestCase>();
-        Dictionary<string, float> _sessionStats = new Dictionary<string, float>();
-
-        readonly object _TestsLock = new object();
+        private readonly int treeWidth = 400;
+        private readonly List<TestCase> _queuedTests = new List<TestCase>();
+        private readonly List<TestCase> _allTests = new List<TestCase>();
+        private Dictionary<string, float> _sessionStats = new Dictionary<string, float>();
+        private readonly object _TestsLock = new object();
 
 
         public void InitTestingSession()
@@ -120,8 +120,7 @@ namespace rgat.Widgets
 
         }
 
-
-        List<TestCase> FindTests(string dirpath, string category)
+        private List<TestCase> FindTests(string dirpath, string category)
         {
             List<TestCase> results = new List<TestCase>();
             string[] tests = Directory.GetFiles(dirpath).Where(x => x.EndsWith(CONSTANTS.TESTS.testextension)).ToArray();
@@ -142,8 +141,7 @@ namespace rgat.Widgets
             return results;
         }
 
-
-        int _currentSession = 0;
+        private int _currentSession = 0;
         public void Draw(ref bool openFlag)
         {
             UpdateStats();
@@ -243,8 +241,7 @@ namespace rgat.Widgets
             }
         }
 
-
-        void DrawTestSpecExplainTree(TestCase testcase)
+        private void DrawTestSpecExplainTree(TestCase testcase)
         {
             if (ImGui.TreeNodeEx($"{testcase.CategoryName}:{testcase.TestName} - [Not run]"))
             {
@@ -277,7 +274,7 @@ namespace rgat.Widgets
             }
         }
 
-        void DrawTraceSpecExplainTreeNodes(TraceRequirements traceRequirements)
+        private void DrawTraceSpecExplainTreeNodes(TraceRequirements traceRequirements)
         {
             var processRequirements = traceRequirements.ProcessRequirements;
             var threadRequirements = traceRequirements.ThreadRequirements;
@@ -321,11 +318,7 @@ namespace rgat.Widgets
             }
         }
 
-
-
-
-
-        void DrawTestResultsExplainTree(TestCaseRun testcaserun)
+        private void DrawTestResultsExplainTree(TestCaseRun testcaserun)
         {
 
             //todo - list of test results, not latest
@@ -424,7 +417,7 @@ namespace rgat.Widgets
             }
         }
 
-        void DrawTraceResultsExplainTreeNodes(TraceRequirements traceRequirements, TraceTestResultCommentary commentary, int depth)
+        private void DrawTraceResultsExplainTreeNodes(TraceRequirements traceRequirements, TraceTestResultCommentary commentary, int depth)
         {
             var processRequirements = traceRequirements.ProcessRequirements;
             var threadRequirements = traceRequirements.ThreadRequirements;
@@ -544,15 +537,7 @@ namespace rgat.Widgets
             }
         }
 
-
-
-
-
-
-
-
-
-        void UpdateStats()
+        private void UpdateStats()
         {
             lock (_TestsLock)
             {
@@ -563,7 +548,7 @@ namespace rgat.Widgets
             }
         }
 
-        void DrawStatusBanner()
+        private void DrawStatusBanner()
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
             if (ImGui.BeginChild("#TestsStatusBar", new Vector2(ImGui.GetContentRegionAvail().X, 28)))
@@ -603,12 +588,13 @@ namespace rgat.Widgets
             ImGui.PopStyleColor();
         }
 
-        static bool testSpecsShowUntested = true;
-        static bool testSpecsShowFailed = true;
-        static bool testSpecsShowPassed = true;
-        static bool autoRequeue = false;
-        static bool autoStopOnFailure = false;
-        void DrawQueueControls(float height)
+        private static bool testSpecsShowUntested = true;
+        private static bool testSpecsShowFailed = true;
+        private static bool testSpecsShowPassed = true;
+        private static bool autoRequeue = false;
+        private static bool autoStopOnFailure = false;
+
+        private void DrawQueueControls(float height)
         {
             if (ImGui.BeginChild("#TestsControls", new Vector2(ImGui.GetContentRegionAvail().X, height)))
             {
@@ -763,8 +749,7 @@ namespace rgat.Widgets
             //ImGui.PopStyleColor();
         }
 
-
-        void StartTests()
+        private void StartTests()
         {
             if (_testsRunning)
             {
@@ -774,8 +759,7 @@ namespace rgat.Widgets
             _testsRunning = true;
         }
 
-
-        void StopTests()
+        private void StopTests()
         {
             if (!_testsRunning)
             {
@@ -785,16 +769,14 @@ namespace rgat.Widgets
             _testsRunning = false;
         }
 
-
-        void ResetSession()
+        private void ResetSession()
         {
             StopTests();
             EmptyQueue();
             InitTestingSession();
         }
 
-
-        void EmptyQueue()
+        private void EmptyQueue()
         {
             lock (_TestsLock)
             {
@@ -802,7 +784,7 @@ namespace rgat.Widgets
             }
         }
 
-        void AddTestToQueue(TestCase test)
+        private void AddTestToQueue(TestCase test)
         {
             lock (_TestsLock)
             {
@@ -810,7 +792,7 @@ namespace rgat.Widgets
             }
         }
 
-        void AddTestsToQueue(eCatFilter filter)
+        private void AddTestsToQueue(eCatFilter filter)
         {
             lock (_TestsLock)
             {
@@ -865,7 +847,7 @@ namespace rgat.Widgets
             }
         }
 
-        void DrawValidTestcaseTooltip(TestCase testcase)
+        private void DrawValidTestcaseTooltip(TestCase testcase)
         {
             ImGui.BeginTooltip();
 
@@ -894,8 +876,7 @@ namespace rgat.Widgets
             ImGui.EndTooltip();
         }
 
-
-        void DrawFailedTestTooltip(TestCase testcase)
+        private void DrawFailedTestTooltip(TestCase testcase)
         {
             ImGui.BeginTooltip();
 
@@ -916,8 +897,7 @@ namespace rgat.Widgets
             ImGui.EndTooltip();
         }
 
-
-        void DrawInvalidTestcaseTooltip(TestCase testcase)
+        private void DrawInvalidTestcaseTooltip(TestCase testcase)
         {
             ImGui.BeginTooltip();
             ImGui.Text("Failed to load " + testcase.JSONPath);
@@ -929,8 +909,7 @@ namespace rgat.Widgets
             ImGui.EndTooltip();
         }
 
-
-        void DrawTestsTree()
+        private void DrawTestsTree()
         {
             ImGui.SetNextItemWidth(treeWidth);
             if (ImGui.BeginChild("##TestsTreeFrame", new Vector2(treeWidth, ImGui.GetContentRegionAvail().Y), false, ImGuiWindowFlags.NoScrollbar))

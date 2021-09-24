@@ -14,24 +14,24 @@ using static rgat.Logging;
 
 namespace rgat
 {
-    partial class rgatUI
+    internal partial class rgatUI
     {
         //all-modes state
-        readonly rgatState _rgatState;
+        private readonly rgatState _rgatState;
 
         //hardware resources
-        readonly ImGuiController _controller;
-        readonly GraphicsDevice _gd;
+        private readonly ImGuiController _controller;
+        private readonly GraphicsDevice _gd;
 
         //widgets
-        SandboxChart? chart;
-        VisualiserTab? visualiserTab;
+        private SandboxChart? chart;
+        private VisualiserTab? visualiserTab;
 
         //dialogs
-        RemoteDialog? _RemoteDialog;
-        TestsWindow? _testHarness;
-        SettingsMenu? _SettingsMenu;
-        readonly LogsWindow? _logsWindow;
+        private RemoteDialog? _RemoteDialog;
+        private TestsWindow? _testHarness;
+        private SettingsMenu? _SettingsMenu;
+        private readonly LogsWindow? _logsWindow;
 
         /// <summary>
         /// Causes the UI to fall out of the update loop and initiate rgat shutdown
@@ -46,8 +46,7 @@ namespace rgat
         private bool _show_test_harness = false;
         private bool _show_logs_window = false;
         private bool _show_remote_dialog = false;
-
-        double _StartupProgress = 0;
+        private double _StartupProgress = 0;
         public double StartupProgress
         {
             get => _StartupProgress; set
@@ -61,17 +60,18 @@ namespace rgat
 
 
         public static double UIDrawFPS = 0;
-        List<double> _lastFrameTimeMS = new List<double>();
+        private List<double> _lastFrameTimeMS = new List<double>();
         private int _selectedInstrumentationLevel = 0;
-        readonly List<Tuple<Key, ModifierKeys>> _keyPresses = new List<Tuple<Key, ModifierKeys>>();
-        float _mouseWheelDelta = 0;
-        Vector2 _mouseDragDelta = new Vector2(0, 0);
+        private readonly List<Tuple<Key, ModifierKeys>> _keyPresses = new List<Tuple<Key, ModifierKeys>>();
+        private float _mouseWheelDelta = 0;
+        private Vector2 _mouseDragDelta = new Vector2(0, 0);
 
-        bool DialogOpen => _controller.DialogOpen;
+        private bool DialogOpen => _controller.DialogOpen;
         public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover ||
             _logsWindow!.RecentAlert() || DialogOpen || (DateTime.Now - _lastNotification).TotalMilliseconds < 500);
-        bool _splashHeaderHover = false;
-        DateTime _lastNotification = DateTime.MinValue;
+
+        private bool _splashHeaderHover = false;
+        private DateTime _lastNotification = DateTime.MinValue;
 
         public static bool ResponsiveKeyHeld = false;
 
@@ -79,13 +79,15 @@ namespace rgat
         /// Tells the UI that something is happening on the menu bar so it should be displayed
         /// Currently its always displayed except on the splash screen
         /// </summary>
-        void ActivateNotification() => _lastNotification = DateTime.Now;
-        bool _scheduleMissingPathCheck = true;
+        private void ActivateNotification() => _lastNotification = DateTime.Now;
+
+        private bool _scheduleMissingPathCheck = true;
 
         public VideoEncoder.CaptureContent PendingScreenshot { get; private set; } = VideoEncoder.CaptureContent.Invalid;
-        VideoEncoder.CaptureContent _lastScreenShot = VideoEncoder.CaptureContent.Invalid;
-        string _lastScreenShotPath = "";
-        DateTime _screenShotTime;
+
+        private VideoEncoder.CaptureContent _lastScreenShot = VideoEncoder.CaptureContent.Invalid;
+        private string _lastScreenShotPath = "";
+        private DateTime _screenShotTime;
 
 
         private readonly object _inputLock = new object();
@@ -185,7 +187,7 @@ namespace rgat
         }
 
         // keep checking the files in the loading panes so we can highlight if they are deleted (or appear)
-        void CheckMissingPaths()
+        private void CheckMissingPaths()
         {
 
             rgatSettings.PathRecord[] recentBins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Binary);
@@ -353,10 +355,7 @@ namespace rgat
             }
         }
 
-
-
-
-        void DrawWindowContent()
+        private void DrawWindowContent()
         {
             if (ImGui.BeginChild("MainWindow", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoScrollbar))
             {
@@ -605,8 +604,7 @@ namespace rgat
             }
         }
 
-
-        void ToggleTestHarness()
+        private void ToggleTestHarness()
         {
             if (_show_test_harness == false)
             {
@@ -619,7 +617,7 @@ namespace rgat
             _controller.DialogChange(_show_test_harness);
         }
 
-        void ToggleRemoteDialog()
+        private void ToggleRemoteDialog()
         {
             if (_show_remote_dialog == false)
             {
@@ -632,42 +630,38 @@ namespace rgat
             _controller.DialogChange(_show_remote_dialog);
         }
 
-
-        void ToggleLoadTraceWindow()
+        private void ToggleLoadTraceWindow()
         {
             _show_load_trace_window = !_show_load_trace_window;
             _controller.DialogChange(_show_load_trace_window);
         }
 
-        void ToggleLoadExeWindow()
+        private void ToggleLoadExeWindow()
         {
             _show_select_exe_window = !_show_select_exe_window;
             _controller.DialogChange(_show_select_exe_window);
         }
 
-        void ToggleTraceListSelectionWindow()
+        private void ToggleTraceListSelectionWindow()
         {
             _show_tracelist_selection_window = !_show_tracelist_selection_window;
             _controller.DialogChange(_show_tracelist_selection_window);
         }
 
-
-        void ToggleSettingsWindow()
+        private void ToggleSettingsWindow()
         {
             _show_settings_window = !_show_settings_window;
             _controller.DialogChange(_show_settings_window);
         }
 
-        void ToggleLogsWindow()
+        private void ToggleLogsWindow()
         {
             Console.WriteLine($"Logwindow toggle {_show_logs_window}");
             _show_logs_window = !_show_logs_window;
             _controller.DialogChange(_show_logs_window);
         }
 
-
-
-        bool DrawRecentPathEntry(rgatSettings.PathRecord pathdata, bool menu)
+        private bool DrawRecentPathEntry(rgatSettings.PathRecord pathdata, bool menu)
         {
 
             string pathshort = pathdata.Path;
@@ -766,8 +760,7 @@ namespace rgat
             DrawAlerts(new Vector2(logMenuX, 18));
         }
 
-
-        void DrawOuterLeftMenuItems()
+        private void DrawOuterLeftMenuItems()
         {
             if (ImGui.BeginMenu("Target"))
             {
@@ -829,8 +822,7 @@ namespace rgat
             }
         }
 
-
-        void DrawInnerLeftMenuItems()
+        private void DrawInnerLeftMenuItems()
         {
             float quarter = ImGui.GetContentRegionMax().X / 4f;
             ImGui.SetCursorPosX(quarter);
@@ -861,7 +853,7 @@ namespace rgat
         /// <summary>
         /// Display media actions like recording and screen capture
         /// </summary>
-        void DrawInnerRightMenuItems()
+        private void DrawInnerRightMenuItems()
         {
             float iconsStart = 3 * (ImGui.GetContentRegionMax().X / 5f) - 50;
 
@@ -893,7 +885,7 @@ namespace rgat
         /// UI.SCREENSHOT_ICON_LINGER_TIME controls how long the icon is displayed
         /// UI.SCREENSHOT_ANIMATION_RECT_SPEED controls how fast the rectangle travels/disappears
         /// </summary>
-        void DisplayScreenshotNotification()
+        private void DisplayScreenshotNotification()
         {
             const double displaySeconds = UI.SCREENSHOT_ICON_LINGER_TIME;
 
@@ -962,7 +954,7 @@ namespace rgat
         /// Displays the video camera icon on the menu bar
         /// 
         /// </summary>
-        void DisplayVideoRecordingNotification()
+        private void DisplayVideoRecordingNotification()
         {
             double MSago = rgatState.VideoRecorder.RecordingStateChangeTimeAgo;
             const double StateChangeLingerTime = 1000;
@@ -1020,8 +1012,7 @@ namespace rgat
             }
         }
 
-
-        void OpenDirectoryInFileBrowser(string? path, string label)
+        private void OpenDirectoryInFileBrowser(string? path, string label)
         {
             try
             {
@@ -1052,7 +1043,7 @@ namespace rgat
         /// Displays less-used utilities like logs, tests 
         /// </summary>
         /// <param name="logMenuX">Set to the center X position of the log menu button, for alert animations</param>
-        void DrawOuterRightMenuItems(out float logMenuX)
+        private void DrawOuterRightMenuItems(out float logMenuX)
         {
             //draw right to left
             float X = ImGui.GetContentRegionMax().X - (ImGui.CalcTextSize("Demo ").X + 15);
@@ -1085,8 +1076,7 @@ namespace rgat
             }
         }
 
-
-        void DrawLogMouseover()
+        private void DrawLogMouseover()
         {
 
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
@@ -1149,9 +1139,7 @@ namespace rgat
             }
         }
 
-
-
-        bool DrawAlerts(Vector2 logMenuPosition)
+        private bool DrawAlerts(Vector2 logMenuPosition)
         {
 
             const double lingerTime = UI.ALERT_TEXT_LINGER_TIME;
@@ -1306,10 +1294,10 @@ namespace rgat
         }
 
         // these are gross
-        bool _SwitchToTraceSelectTab = false;
-        bool _SwitchToVisualiserTab = false;
-        int _OldTraceCount = -1;
-        string _currentTab = "";
+        private bool _SwitchToTraceSelectTab = false;
+        private bool _SwitchToVisualiserTab = false;
+        private int _OldTraceCount = -1;
+        private string _currentTab = "";
 
         private unsafe void DrawTabs()
         {
@@ -1456,8 +1444,7 @@ namespace rgat
             return true;
         }
 
-
-        bool LoadRemoteBinary(string path)
+        private bool LoadRemoteBinary(string path)
         {
             if (!rgatState.ConnectedToRemote)
             {
@@ -1545,8 +1532,7 @@ namespace rgat
             return true;
         }
 
-
-        void StartTraceDisplayWorkers(TraceRecord trace, rgatState clientState)
+        private void StartTraceDisplayWorkers(TraceRecord trace, rgatState clientState)
         {
             ProcessLaunching.launch_saved_process_threads(trace, clientState);
 

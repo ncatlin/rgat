@@ -18,26 +18,25 @@ namespace rgat
     /// <summary>
     /// A widget for displaying a rendered graph plot
     /// </summary>
-    class GraphPlotWidget : IDisposable
+    internal class GraphPlotWidget : IDisposable
     {
         public PlottedGraph? ActiveGraph { get; private set; }
 
-        readonly QuickMenu _QuickMenu;
-        readonly ImGuiController _controller;
-        readonly GraphLayoutEngine _layoutEngine;
-        readonly rgatState _clientState;
+        private readonly QuickMenu _QuickMenu;
+        private readonly ImGuiController _controller;
+        private readonly GraphLayoutEngine _layoutEngine;
+        private readonly rgatState _clientState;
 
         public GraphLayoutEngine LayoutEngine => _layoutEngine;
         public bool Exiting = false;
-        GraphicsDevice? _gd;
-        ResourceFactory? _factory;
+        private GraphicsDevice? _gd;
+        private ResourceFactory? _factory;
         public Vector2 WidgetSize { get; private set; }
 
-        TextureView? _imageTextureView;
-        readonly ReaderWriterLockSlim _graphLock = new ReaderWriterLockSlim();
-
-        Framebuffer? _outputFramebuffer1, _outputFramebuffer2, _pickingFrameBuffer;
-        bool _processingAnimatedGraph;
+        private TextureView? _imageTextureView;
+        private readonly ReaderWriterLockSlim _graphLock = new ReaderWriterLockSlim();
+        private Framebuffer? _outputFramebuffer1, _outputFramebuffer2, _pickingFrameBuffer;
+        private bool _processingAnimatedGraph;
 
         /// <summary>
         /// Edges pipeline = line list or line strp
@@ -45,20 +44,18 @@ namespace rgat
         /// Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
         /// Font pipeline = triangles
         /// </summary>
-        Pipeline? _edgesPipelineRelative, _edgesPipelineRaw, _pointsPipeline, _pickingPipeline, _fontPipeline;
-        ResourceLayout? _coreRsrcLayout, _nodesEdgesRsrclayout, _fontRsrcLayout;
-        Texture? _outputTexture1, _outputTexture2, _testPickingTexture, _pickingStagingTexture;
+        private Pipeline? _edgesPipelineRelative, _edgesPipelineRaw, _pointsPipeline, _pickingPipeline, _fontPipeline;
+        private ResourceLayout? _coreRsrcLayout, _nodesEdgesRsrclayout, _fontRsrcLayout;
+        private Texture? _outputTexture1, _outputTexture2, _testPickingTexture, _pickingStagingTexture;
 
         //vert/frag rendering buffers
-        ResourceSet? _crs_font;
-        DeviceBuffer? _EdgeVertBuffer, _EdgeIndexBuffer;
-        DeviceBuffer? _RawEdgeVertBuffer, _RawEdgeIndexBuffer;
-        DeviceBuffer? _NodeVertexBuffer, _NodePickingBuffer, _NodeIndexBuffer;
+        private ResourceSet? _crs_font;
+        private DeviceBuffer? _EdgeVertBuffer, _EdgeIndexBuffer;
+        private DeviceBuffer? _RawEdgeVertBuffer, _RawEdgeIndexBuffer;
+        private DeviceBuffer? _NodeVertexBuffer, _NodePickingBuffer, _NodeIndexBuffer;
         private DeviceBuffer? _FontVertBuffer, _FontIndexBufferAll;
-        DeviceBuffer? _paramsBuffer;
-
-
-        int latestWrittenTexture = 1;
+        private DeviceBuffer? _paramsBuffer;
+        private int latestWrittenTexture = 1;
 
         /// <summary>
         /// A widget for displaying a rendered graph plot
@@ -101,7 +98,8 @@ namespace rgat
             _dialogStateChangeCallback = action;
             _QuickMenu.SetStateChangeCallback(action);
         }
-        Action<bool>? _dialogStateChangeCallback = null;
+
+        private Action<bool>? _dialogStateChangeCallback = null;
 
         public void Dispose()
         {
@@ -113,7 +111,7 @@ namespace rgat
             ActiveGraph?.ApplyMouseWheelDelta(delta);
         }
 
-        bool _isInputTarget = false;
+        private bool _isInputTarget = false;
         public void ApplyMouseDrag(Vector2 delta)
         {
             if (_isInputTarget)
@@ -147,8 +145,8 @@ namespace rgat
             return false;
         }
 
-        int _centeringInFrame = 0;
-        int _centeringSteps = 0;
+        private int _centeringInFrame = 0;
+        private int _centeringSteps = 0;
 
         public void StartCenterGraphInFrameStepping(bool locked)
         {
@@ -160,7 +158,7 @@ namespace rgat
         /// Adjust the camera offset and zoom so that every node of the graph is in the frame
         /// Must have read lock to call
         /// </summary>
-        bool CenterGraphInFrameStep(Matrix4x4 worldView, out float MaxRemaining)
+        private bool CenterGraphInFrameStep(Matrix4x4 worldView, out float MaxRemaining)
         {
             PlottedGraph? graph = ActiveGraph;
             if (graph == null)
@@ -346,7 +344,7 @@ namespace rgat
             return false;
         }
 
-        struct KEYPRESS_CAPTION
+        private struct KEYPRESS_CAPTION
         {
             public string message;
             public Key key;
@@ -356,9 +354,9 @@ namespace rgat
             public string MenuShortut;
         }
 
-        List<KEYPRESS_CAPTION> _keypressCaptions = new List<KEYPRESS_CAPTION>();
+        private List<KEYPRESS_CAPTION> _keypressCaptions = new List<KEYPRESS_CAPTION>();
 
-        void DisplayShortcutActivation(string shortcut, string action)
+        private void DisplayShortcutActivation(string shortcut, string action)
         {
             //replace the keypress that activated the menu with the shortcut
             if (_keypressCaptions.Any() && (_keypressCaptions[^1].key.ToString()[0] == shortcut[0]))
@@ -374,8 +372,7 @@ namespace rgat
             });
         }
 
-
-        void DisplayKeyPress(Tuple<Key, ModifierKeys> keyPressed, string messageCaption)
+        private void DisplayKeyPress(Tuple<Key, ModifierKeys> keyPressed, string messageCaption)
         {
             if (_keypressCaptions.Count > 0 && _keypressCaptions[^1].message == messageCaption)
             {
@@ -553,7 +550,7 @@ namespace rgat
         /// <param name="proj"></param>
         /// <param name="view"></param>
         /// <param name="world"></param>
-        void UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world)
+        private void UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world)
         {
             PlottedGraph? graph = ActiveGraph;
             if (graph == null)
@@ -615,7 +612,7 @@ namespace rgat
         /// Must hold upgradable read lock
         /// </summary>
         /// <param name="drawtarget"></param>
-        void GetOutputFramebuffer(out Framebuffer drawtarget)
+        private void GetOutputFramebuffer(out Framebuffer drawtarget)
         {
             _graphLock.EnterWriteLock();
             if (latestWrittenTexture == 1)
@@ -635,7 +632,7 @@ namespace rgat
         /// Drawing is complete. Release the write lock so it can be displayed on the screen
         /// The other framebuffer will become locked for writing
         /// </summary>
-        void ReleaseOutputFramebuffer()
+        private void ReleaseOutputFramebuffer()
         {
             _graphLock.EnterWriteLock();
             latestWrittenTexture = (latestWrittenTexture == 1) ? 2 : 1;
@@ -648,7 +645,7 @@ namespace rgat
         /// Get the most recently drawn framebuffer for displaying to the user
         /// </summary>
         /// <param name="graphtexture">Texture of the framebuffer contents</param>
-        void GetLatestTexture(out Texture graphtexture)
+        private void GetLatestTexture(out Texture graphtexture)
         {
             if (latestWrittenTexture == 1)
             {
@@ -666,7 +663,7 @@ namespace rgat
         /// <summary>
         /// Initialise graphics resources
         /// </summary>
-        unsafe void SetupRenderingResources()
+        private unsafe void SetupRenderingResources()
         {
             Debug.Assert(_gd is not null, "Init not called");
             ResourceFactory factory = _gd.ResourceFactory;
@@ -751,7 +748,7 @@ namespace rgat
         /// <summary>
         /// Re-initialise graphics resources, for use when the size of the widget has changed
         /// </summary>
-        void RecreateOutputTextures()
+        private void RecreateOutputTextures()
         {
             Debug.Assert(_gd is not null, "Init not called");
             ResourceFactory factory = _gd.ResourceFactory;
@@ -792,7 +789,7 @@ namespace rgat
 
 
         [StructLayout(LayoutKind.Sequential)]
-        struct fontStruc
+        private struct fontStruc
         {
             public uint nodeIdx;
             public Vector3 screenCoord;
@@ -820,8 +817,7 @@ namespace rgat
             private readonly bool _padding3c;
         }
 
-
-        eRenderingMode _renderingMode = eRenderingMode.eStandardControlFlow;
+        private eRenderingMode _renderingMode = eRenderingMode.eStandardControlFlow;
 
         /// <summary>
         ///  Sets rendering mode to the specified mode
@@ -844,7 +840,7 @@ namespace rgat
         /// Set the rendering mode to the specified mode
         /// </summary>
         /// <param name="newMode">Mode to activate</param>
-        void SetRenderingMode(eRenderingMode newMode)
+        private void SetRenderingMode(eRenderingMode newMode)
         {
             switch (newMode)
             {
@@ -862,8 +858,7 @@ namespace rgat
             _renderingMode = newMode;
         }
 
-
-        static readonly Dictionary<string, List<fontStruc>> _cachedStrings = new Dictionary<string, List<fontStruc>>();
+        private static readonly Dictionary<string, List<fontStruc>> _cachedStrings = new Dictionary<string, List<fontStruc>>();
 
         /// <summary>
         /// Convert a string to a List of fontStrucs describing the font glyphs to display the string
@@ -876,7 +871,7 @@ namespace rgat
         /// <param name="stringVerts">Working list of glyph descriptors to add the generated fontStrucs to</param>
         /// <param name="colour">Text colour</param>
         /// <param name="yOff">Vertical offset for the glyphs</param> //todo think caching wrecks this
-        static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, List<fontStruc> stringVerts, uint colour, float yOff = 0)
+        private static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, List<fontStruc> stringVerts, uint colour, float yOff = 0)
         {
             if (_cachedStrings.TryGetValue(inputString, out List<fontStruc>? cached))
             {
@@ -923,7 +918,7 @@ namespace rgat
         /// <param name="world"></param>
         /// <param name="cl"></param>
         /// <returns></returns>
-        GraphShaderParams updateShaderParams(PlottedGraph graph, uint textureSize, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, CommandList cl)
+        private GraphShaderParams updateShaderParams(PlottedGraph graph, uint textureSize, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, CommandList cl)
         {
             GraphShaderParams shaderParams = new GraphShaderParams
             {
@@ -944,8 +939,7 @@ namespace rgat
             return shaderParams;
         }
 
-
-        class RISINGEXTTXT
+        private class RISINGEXTTXT
         {
             public RISINGEXTTXT(string label) { text = label; }
             public int nodeIdx;
@@ -954,9 +948,9 @@ namespace rgat
             public int remainingFrames;
         }
 
-        readonly List<RISINGEXTTXT> _activeRisings = new List<RISINGEXTTXT>();
+        private readonly List<RISINGEXTTXT> _activeRisings = new List<RISINGEXTTXT>();
 
-        void uploadFontVerts(List<fontStruc> stringVerts)
+        private void uploadFontVerts(List<fontStruc> stringVerts)
         {
             Debug.Assert(_gd is not null);
             uint[] charIndexes = Enumerable.Range(0, stringVerts.Count).Select(i => (uint)i).ToArray();
@@ -979,9 +973,7 @@ namespace rgat
             cl.Dispose();
         }
 
-
-
-        List<fontStruc> RenderHighlightedNodeText(List<Tuple<string?, uint>> captions, int nodeIdx = -1)
+        private List<fontStruc> RenderHighlightedNodeText(List<Tuple<string?, uint>> captions, int nodeIdx = -1)
         {
             const float fontScale = 8f;
             List<fontStruc> stringVerts = new List<fontStruc>();
@@ -1001,7 +993,7 @@ namespace rgat
             return stringVerts;
         }
 
-        void maintainRisingTexts(float fontScale, ref List<fontStruc> stringVerts)
+        private void maintainRisingTexts(float fontScale, ref List<fontStruc> stringVerts)
         {
             _activeRisings.RemoveAll(x => x.remainingFrames == 0);
             PlottedGraph? graph = ActiveGraph;
@@ -1080,8 +1072,7 @@ namespace rgat
             }
         }
 
-
-        List<fontStruc> renderGraphText(List<Tuple<string?, uint>> captions, float scale)
+        private List<fontStruc> renderGraphText(List<Tuple<string?, uint>> captions, float scale)
         {
             List<fontStruc> stringVerts = new List<fontStruc>();
             PlottedGraph? graph = ActiveGraph;
@@ -1108,13 +1099,13 @@ namespace rgat
             return stringVerts;
         }
 
-        void MaintainCaptions(List<fontStruc> stringVerts)
+        private void MaintainCaptions(List<fontStruc> stringVerts)
         {
             maintainRisingTexts(GlobalConfig.InsTextScale, ref stringVerts);
             uploadFontVerts(stringVerts);
         }
 
-        ulong _lastThemeVersion = 0;
+        private ulong _lastThemeVersion = 0;
 
         /// <summary>
         /// Draws the various nodes, edges, captions and illustrations to the framebuffer for display
@@ -1344,14 +1335,14 @@ namespace rgat
         /// Wrapper for the memory unsafe ImGui API 
         /// </summary>
         /// <returns>A Vector4 describing the current text colour</returns>
-        unsafe Vector4 GetTextColour() => *ImGui.GetStyleColorVec4(ImGuiCol.Text);
+        private unsafe Vector4 GetTextColour() => *ImGui.GetStyleColorVec4(ImGuiCol.Text);
 
 
         /// <summary>
         /// Draw the latest keyboard shortcut activations to the screen
         /// </summary>
         /// <param name="topLeft">Location on the screen to draw to</param>
-        void DrawKeystrokes(Vector2 topLeft)
+        private void DrawKeystrokes(Vector2 topLeft)
         {
             long timeNowMS = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             long removeLimit = timeNowMS - GlobalConfig.KeystrokeDisplayMS;
@@ -1491,7 +1482,7 @@ namespace rgat
         /// </summary>
         /// <param name="widgetSize"></param>
         /// <param name="activeGraph"></param>
-        void DrawHUD(Vector2 widgetSize, PlottedGraph? activeGraph)
+        private void DrawHUD(Vector2 widgetSize, PlottedGraph? activeGraph)
         {
             string msg;
             Vector2 topLeft = ImGui.GetCursorScreenPos();
@@ -1523,9 +1514,9 @@ namespace rgat
             //DrawDisasmPreview(graph, midRight);
         }
 
+        private bool _showLayoutSelectorPopup;
 
-        bool _showLayoutSelectorPopup;
-        IntPtr getLayoutIcon(LayoutStyles.Style layout)
+        private IntPtr getLayoutIcon(LayoutStyles.Style layout)
         {
             Texture? iconTex = null;
             switch (layout)
@@ -1550,8 +1541,7 @@ namespace rgat
             return CPUframeBufferTextureId;
         }
 
-
-        void DrawLayoutSelector(PlottedGraph graph, Vector2 position, float scale, LayoutStyles.Style layout)
+        private void DrawLayoutSelector(PlottedGraph graph, Vector2 position, float scale, LayoutStyles.Style layout)
         {
             Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
             float padding = 6f;
@@ -1602,9 +1592,7 @@ namespace rgat
             if (snappingToPreset) { ImGui.PopStyleColor(); }
         }
 
-
-
-        void DrawLayoutSelectorIcons(Vector2 iconSize, bool snappingToPreset)
+        private void DrawLayoutSelectorIcons(Vector2 iconSize, bool snappingToPreset)
         {
             PlottedGraph? graph = ActiveGraph;
             if (graph == null)
@@ -1639,8 +1627,7 @@ namespace rgat
             }
         }
 
-
-        Vector2? _newGraphSize = null;
+        private Vector2? _newGraphSize = null;
 
 
 
@@ -1709,10 +1696,8 @@ namespace rgat
             _graphLock.ExitUpgradeableReadLock();
         }
 
-
-
-        readonly object _lock = new object();
-        readonly Queue<System.Drawing.Bitmap> frames = new Queue<System.Drawing.Bitmap>();
+        private readonly object _lock = new object();
+        private readonly Queue<System.Drawing.Bitmap> frames = new Queue<System.Drawing.Bitmap>();
         public List<System.Drawing.Bitmap> GetLatestFrames()
         {
             lock (_lock)
@@ -1727,7 +1712,7 @@ namespace rgat
         /// <summary>
         /// must hold upgradable reader lock
         /// </summary>
-        void HandleGraphUpdates()
+        private void HandleGraphUpdates()
         {
             PlottedGraph? graph = ActiveGraph;
             if (graph == null || Exiting)
@@ -1769,16 +1754,17 @@ namespace rgat
 
 
         public Vector2 WidgetPos { get; private set; }
-        Vector2 _MousePos;
 
-        int _mouseoverNodeID = -1;
+        private Vector2 _MousePos;
+        private int _mouseoverNodeID = -1;
+
         /// <summary>
         /// Must hold read lock
         /// Check if the mouse position corresponds to a node ID in the picking texture
         /// If so - the mouse is over that nod
         /// </summary>
         /// <param name="_gd"></param>
-        void DoMouseNodePicking(GraphicsDevice _gd)
+        private void DoMouseNodePicking(GraphicsDevice _gd)
         {
             PlottedGraph? graph = ActiveGraph;
             if (graph == null || Exiting)

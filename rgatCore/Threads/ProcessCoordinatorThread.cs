@@ -11,8 +11,8 @@ namespace rgat.Threads
     /// </summary>
     public class ProcessCoordinatorThread : TraceProcessorWorker
     {
-        readonly byte[] buf = new byte[1024];
-        NamedPipeServerStream? coordPipe = null;
+        private readonly byte[] buf = new byte[1024];
+        private NamedPipeServerStream? coordPipe = null;
 
         /// <summary>
         /// Start work
@@ -25,7 +25,7 @@ namespace rgat.Threads
             WorkerThread.Start();
         }
 
-        void GotMessage(IAsyncResult ir)
+        private void GotMessage(IAsyncResult ir)
         {
 
             int bytesRead = coordPipe!.EndRead(ir);
@@ -106,7 +106,7 @@ namespace rgat.Threads
             }
         }
 
-        void ConnectCallback(IAsyncResult ar)
+        private void ConnectCallback(IAsyncResult ar)
         {
             NamedPipeServerStream? nps = (NamedPipeServerStream?)ar.AsyncState;
 

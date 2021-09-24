@@ -70,7 +70,7 @@ namespace rgat.Testing
 
     }
 
-    class TestCommentaryObj
+    internal class TestCommentaryObj
     {
         public List<Tuple<TestRequirement, TestResultCommentary>> generalTests = new List<Tuple<TestRequirement, TestResultCommentary>>();
 
@@ -124,15 +124,14 @@ namespace rgat.Testing
         /// <param name="trace"></param>
         public void SetFirstTrace(TraceRecord trace) => FirstTrace = trace;
 
-        readonly TestCase _test;
+        private readonly TestCase _test;
         /// <summary>
         /// Get the testcase for this test run
         /// </summary>
         public TestCase GetTestCase => _test;
 
-        readonly List<TestResult> results = new List<TestResult>();
-
-        readonly object _lock = new object();
+        private readonly List<TestResult> results = new List<TestResult>();
+        private readonly object _lock = new object();
 
         /// <summary>
         /// Mark the run as complete
@@ -143,9 +142,9 @@ namespace rgat.Testing
             Complete = true;
         }
 
-        readonly Dictionary<TestRequirement, string?> FailedTestRequirements = new Dictionary<TestRequirement, string?>();
+        private readonly Dictionary<TestRequirement, string?> FailedTestRequirements = new Dictionary<TestRequirement, string?>();
 
-        void EvaluateResults()
+        private void EvaluateResults()
         {
             if (FirstTrace == null)
             {
@@ -172,8 +171,7 @@ namespace rgat.Testing
             }
         }
 
-
-        void EvaluateGeneralTestResults()
+        private void EvaluateGeneralTestResults()
         {
             //evaluate requirements that apply to the entire trace tree
             foreach (TestRequirement req in _test.TestRunRequirements())
@@ -223,8 +221,7 @@ namespace rgat.Testing
             }
         }
 
-
-        bool EvaluateProcessTestResults(TraceRequirements requirements, TRACE_TEST_RESULTS results, int depth)
+        private bool EvaluateProcessTestResults(TraceRequirements requirements, TRACE_TEST_RESULTS results, int depth)
         {
             //need to ensure each set of thread requirements can be satisfied by at least one unique thread
 
@@ -265,7 +262,7 @@ namespace rgat.Testing
 
         }
 
-        bool VerifyAllThreadRequirements(Dictionary<REQUIREMENTS_LIST, List<ProtoGraph>> reqSatisfyGraphs, out string? error)
+        private bool VerifyAllThreadRequirements(Dictionary<REQUIREMENTS_LIST, List<ProtoGraph>> reqSatisfyGraphs, out string? error)
         {
             error = "";
             int reqListCount = reqSatisfyGraphs.Count;
@@ -347,7 +344,7 @@ namespace rgat.Testing
             return false;
         }
 
-        static IEnumerable<IEnumerable<T>> GetPermutationsWithRept<T>(IEnumerable<T> list, int length)
+        private static IEnumerable<IEnumerable<T>> GetPermutationsWithRept<T>(IEnumerable<T> list, int length)
         {
             if (length < 2)
             {

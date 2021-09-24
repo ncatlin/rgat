@@ -38,8 +38,9 @@ namespace MurmurHash
         {
             return Hash(data, 0xc58f1a7a);
         }
-        const uint m = 0x5bd1e995;
-        const int r = 24;
+
+        private const uint m = 0x5bd1e995;
+        private const int r = 24;
 
         public static uint Hash(byte[] data, uint seed)
         {

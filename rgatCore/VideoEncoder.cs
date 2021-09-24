@@ -35,7 +35,7 @@ namespace rgat
         /// </summary>
         public string? Error { get; private set; }
 
-        readonly System.Drawing.Imaging.ImageCodecInfo[] _imageCodecs;
+        private readonly System.Drawing.Imaging.ImageCodecInfo[] _imageCodecs;
 
         /// <summary>
         /// Create a video encoder object
@@ -58,7 +58,7 @@ namespace rgat
         /// Filepath of the video being recorded
         /// </summary>
         public string CurrentRecordingFile = "";
-        ulong _recordedFrameCount = 0;
+        private ulong _recordedFrameCount = 0;
 
         /// <summary>
         /// Video recording is active, though it may still be paused
@@ -69,15 +69,14 @@ namespace rgat
         /// Recording new frames to video is suspended
         /// </summary>
         public bool CapturePaused = false;
-
-        bool _recording = false;
-        readonly ConcurrentQueue<Bitmap> _bmpQueue = new ConcurrentQueue<Bitmap>();
+        private bool _recording = false;
+        private readonly ConcurrentQueue<Bitmap> _bmpQueue = new ConcurrentQueue<Bitmap>();
         /// <summary>
         /// Number of frames awaiting recording
         /// </summary>
         public int FrameQueueSize => _bmpQueue.Count;
 
-        CaptureContent _capturedContent = CaptureContent.Invalid;
+        private CaptureContent _capturedContent = CaptureContent.Invalid;
 
         /// <summary>
         /// Types of content that can be recorded
@@ -145,8 +144,7 @@ namespace rgat
             }
         }
 
-
-        DateTime _recordingStateChanged = DateTime.MinValue;
+        private DateTime _recordingStateChanged = DateTime.MinValue;
         /// <summary>
         /// Begin capture of the selected content to the video file
         /// </summary>
@@ -172,7 +170,7 @@ namespace rgat
         /// </summary>
         public double RecordingStateChangeTimeAgo => (DateTime.Now - _recordingStateChanged).TotalMilliseconds;
 
-        IEnumerable<IVideoFrame> GetNextFrame()
+        private IEnumerable<IVideoFrame> GetNextFrame()
         {
             while (_recording || _bmpQueue.Count > 0)
             {
@@ -348,8 +346,7 @@ namespace rgat
             return targetfile;
         }
 
-
-        Speed GetVideoSpeed()
+        private Speed GetVideoSpeed()
         {
             Speed result;
             try
@@ -484,9 +481,9 @@ namespace rgat
             }
         }
 
+        private DateTime _lastCheck = DateTime.MinValue;
 
-        DateTime _lastCheck = DateTime.MinValue;
-        bool DetectFFmpeg(out string? path)
+        private bool DetectFFmpeg(out string? path)
         {
             path = "";
             if (DateTime.Now < _lastCheck.AddSeconds(5))
@@ -516,8 +513,7 @@ namespace rgat
             return false;
         }
 
-
-        void DrawNoLibSettingsPane()
+        private void DrawNoLibSettingsPane()
         {
 
             ImGui.Text("Use of video capture requires the FFmpeg.exe executable, which has to be downloaded seperately");
@@ -533,8 +529,7 @@ namespace rgat
             //todo downloader
         }
 
-
-        void DrawHaveLibSettingsPane()
+        private void DrawHaveLibSettingsPane()
         {
 
             if (Error is not null && Error.Length > 0)

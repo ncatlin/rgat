@@ -19,44 +19,38 @@ namespace rgat
     /// </summary>
     public class PreviewGraphsWidget : IDisposable
     {
-        List<PlottedGraph> DrawnPreviewGraphs = new List<PlottedGraph>();
-        readonly System.Timers.Timer IrregularTimer;
-        bool IrregularTimerFired = false;
-
-        TraceRecord? ActiveTrace = null;
+        private List<PlottedGraph> DrawnPreviewGraphs = new List<PlottedGraph>();
+        private readonly System.Timers.Timer IrregularTimer;
+        private bool IrregularTimerFired = false;
+        private TraceRecord? ActiveTrace = null;
 
         /// <summary>
         /// Width of each preview graph
         /// </summary>
-        readonly float EachGraphWidth = CONSTANTS.UI.PREVIEW_PANE_WIDTH - (2 * CONSTANTS.UI.PREVIEW_PANE_X_PADDING + 2); //-2 for border
+        private readonly float EachGraphWidth = CONSTANTS.UI.PREVIEW_PANE_WIDTH - (2 * CONSTANTS.UI.PREVIEW_PANE_X_PADDING + 2); //-2 for border
 
         /// <summary>
         /// Height of each preview graph
         /// </summary>
-        readonly float EachGraphHeight = CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT;
-        bool Exiting = false;
-
-
-        uint selectedGraphTID;
+        private readonly float EachGraphHeight = CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT;
+        private bool Exiting = false;
+        private uint selectedGraphTID;
         /// <summary>
         /// The graph the user clicked
         /// </summary>
         public PlottedGraph? clickedGraph { get; private set; }
 
-        readonly ImGuiController? _ImGuiController;
-        GraphicsDevice? _gd;
-        ResourceFactory? _factory;
-        readonly rgatState _rgatState;
-
-        ResourceLayout? _coreRsrcLayout, _nodesEdgesRsrclayout;
-        DeviceBuffer? _paramsBuffer;
-        DeviceBuffer? _EdgeVertBuffer, _EdgeIndexBuffer;
-        DeviceBuffer? _NodeVertexBuffer, _NodeIndexBuffer;
-
-        readonly TextureView _NodeCircleSpriteview;
-        Pipeline? _edgesPipeline, _pointsPipeline;
-
-        readonly GraphLayoutEngine _layoutEngine;
+        private readonly ImGuiController? _ImGuiController;
+        private GraphicsDevice? _gd;
+        private ResourceFactory? _factory;
+        private readonly rgatState _rgatState;
+        private ResourceLayout? _coreRsrcLayout, _nodesEdgesRsrclayout;
+        private DeviceBuffer? _paramsBuffer;
+        private DeviceBuffer? _EdgeVertBuffer, _EdgeIndexBuffer;
+        private DeviceBuffer? _NodeVertexBuffer, _NodeIndexBuffer;
+        private readonly TextureView _NodeCircleSpriteview;
+        private Pipeline? _edgesPipeline, _pointsPipeline;
+        private readonly GraphLayoutEngine _layoutEngine;
 
 
         /// <summary>
@@ -126,7 +120,7 @@ namespace rgat
         /// <summary>
         /// do it via Draw so events are handled by the same thread
         /// </summary>
-        void HandleFrameTimerFired()
+        private void HandleFrameTimerFired()
         {
             //Console.WriteLine("Handling timer fired");
             IrregularTimerFired = false;
@@ -136,8 +130,7 @@ namespace rgat
             }
         }
 
-
-        void SetupRenderingResources()
+        private void SetupRenderingResources()
         {
             Debug.Assert(_gd is not null, "Init not called");
             _paramsBuffer = TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<GraphPlotWidget.GraphShaderParams>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "PreviewPlotparamsBuffer");
@@ -195,7 +188,7 @@ namespace rgat
         /// <summary>
         /// Adjust the camera offset and zoom so that every node of the graph is in the frame
         /// </summary>
-        bool CenterGraphInFrameStep(out float MaxRemaining, PlottedGraph graph)
+        private bool CenterGraphInFrameStep(out float MaxRemaining, PlottedGraph graph)
         {
             Vector2 size = new Vector2(EachGraphWidth, EachGraphHeight);
             if (!_layoutEngine.GetPreviewFitOffsets(size, graph, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets))
@@ -355,12 +348,11 @@ namespace rgat
             return Math.Abs(xdelta) < 10 && Math.Abs(ydelta) < 10 && Math.Abs(zdelta) < 10;
         }
 
+        private enum PreviewSortMethod { StartOrder, InstructionCount, ThreadID, LastUpdated }
 
-
-        enum PreviewSortMethod { StartOrder, InstructionCount, ThreadID, LastUpdated }
-        PreviewSortMethod _activeSortMethod = PreviewSortMethod.StartOrder;
-        readonly Dictionary<TraceRecord, List<int>> _cachedSorts = new Dictionary<TraceRecord, List<int>>();
-        readonly DateTime lastSort = DateTime.MinValue;
+        private PreviewSortMethod _activeSortMethod = PreviewSortMethod.StartOrder;
+        private readonly Dictionary<TraceRecord, List<int>> _cachedSorts = new Dictionary<TraceRecord, List<int>>();
+        private readonly DateTime lastSort = DateTime.MinValue;
 
         /// <summary>
         /// Draw the preview graph widget
@@ -439,7 +431,7 @@ namespace rgat
 
         }
 
-        List<int> GetGraphOrder(TraceRecord trace, List<PlottedGraph> graphs)
+        private List<int> GetGraphOrder(TraceRecord trace, List<PlottedGraph> graphs)
         {
             int SORT_UPDATE_RATE_MS = 750;
             List<int>? indexes;
@@ -454,7 +446,7 @@ namespace rgat
             return indexes;
         }
 
-        List<int> SortGraphs(List<PlottedGraph> graphs, PreviewSortMethod order)
+        private List<int> SortGraphs(List<PlottedGraph> graphs, PreviewSortMethod order)
         {
             List<int> result = new List<int>();
 
@@ -480,8 +472,7 @@ namespace rgat
             return result;
         }
 
-
-        void DrawGraphTooltip(PlottedGraph graph)
+        private void DrawGraphTooltip(PlottedGraph graph)
         {
             ImGui.SetNextWindowPos(ImGui.GetMousePos() + new Vector2(0, 20));
 
@@ -552,7 +543,7 @@ namespace rgat
 
         }
 
-        readonly Dictionary<PlottedGraph, string> _threadStartCache = new Dictionary<PlottedGraph, string>();
+        private readonly Dictionary<PlottedGraph, string> _threadStartCache = new Dictionary<PlottedGraph, string>();
 
 
 
@@ -560,18 +551,18 @@ namespace rgat
          * No working PIN api for this, have to do from rgat
          */
         [DllImport("kernel32.dll")]
-        static extern IntPtr OpenThread(ulong dwDesiredAccess, bool bInheritHandle, uint dwThreadId);
+        private static extern IntPtr OpenThread(ulong dwDesiredAccess, bool bInheritHandle, uint dwThreadId);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool CloseHandle(IntPtr hObject);
+        private static extern bool CloseHandle(IntPtr hObject);
 
         [DllImport("kernel32.dll")]
-        static extern bool TerminateThread(IntPtr hThread, uint dwExitCode);
+        private static extern bool TerminateThread(IntPtr hThread, uint dwExitCode);
 
+        private DateTime _lastCtxMenu = DateTime.MinValue;
 
-        DateTime _lastCtxMenu = DateTime.MinValue;
-        bool HandlePreviewGraphContextMenu()
+        private bool HandlePreviewGraphContextMenu()
         {
             if (ActiveTrace is null)
             {
@@ -642,15 +633,14 @@ namespace rgat
         /// <summary>
         /// The last recorded preview the mouse was hovering over
         /// </summary>
-        PlottedGraph? PreviewPopupGraph = null;
+        private PlottedGraph? PreviewPopupGraph = null;
 
         /// <summary>
         /// The preview graph the mouse is hovering over
         /// </summary>
         public PlottedGraph? HoveredGraph { get; private set; } = null;
 
-
-        void DrawPreviewZoomEnvelope(PlottedGraph graph, Vector2 subGraphPosition)
+        private void DrawPreviewZoomEnvelope(PlottedGraph graph, Vector2 subGraphPosition)
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList();
             float previewBaseY = subGraphPosition.Y + EachGraphHeight;
@@ -712,7 +702,7 @@ namespace rgat
         /// <param name="captionHeight">height of the caption</param>
         /// <param name="captionBackgroundcolor">contrast background colour of the caption</param>
         /// <returns>The graph was clicked</returns>
-        bool DrawPreviewGraph(PlottedGraph graph, float xPadding, float captionHeight, uint captionBackgroundcolor)
+        private bool DrawPreviewGraph(PlottedGraph graph, float xPadding, float captionHeight, uint captionBackgroundcolor)
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             bool clicked = false;
@@ -821,12 +811,9 @@ namespace rgat
 
         }
 
+        private Matrix4x4 PreviewProjection => Matrix4x4.CreatePerspectiveFieldOfView(1.0f, EachGraphWidth / EachGraphHeight, 1, 50000);
 
-
-        Matrix4x4 PreviewProjection => Matrix4x4.CreatePerspectiveFieldOfView(1.0f, EachGraphWidth / EachGraphHeight, 1, 50000);
-
-
-        GraphPlotWidget.GraphShaderParams updateShaderParams(uint textureSize, PlottedGraph graph, CommandList cl)
+        private GraphPlotWidget.GraphShaderParams updateShaderParams(uint textureSize, PlottedGraph graph, CommandList cl)
         {
             GraphPlotWidget.GraphShaderParams shaderParams = new GraphPlotWidget.GraphShaderParams
             {
@@ -849,9 +836,9 @@ namespace rgat
             return shaderParams;
         }
 
-        readonly Dictionary<PlottedGraph, bool> _centeringRequired = new Dictionary<PlottedGraph, bool>();
+        private readonly Dictionary<PlottedGraph, bool> _centeringRequired = new Dictionary<PlottedGraph, bool>();
 
-        WritableRgbaFloat GetGraphBackgroundColour(PlottedGraph graph)
+        private WritableRgbaFloat GetGraphBackgroundColour(PlottedGraph graph)
         {
             if (graph.InternalProtoGraph.Terminated)
             {
@@ -871,7 +858,7 @@ namespace rgat
             }
         }
 
-        uint GetGraphBorderColour(PlottedGraph graph)
+        private uint GetGraphBorderColour(PlottedGraph graph)
         {
             if (graph.InternalProtoGraph.Terminated)
             {
@@ -891,8 +878,7 @@ namespace rgat
             }
         }
 
-
-        void renderPreview(CommandList cl, PlottedGraph graph)
+        private void renderPreview(CommandList cl, PlottedGraph graph)
         {
             if (graph == null || Exiting)
             {

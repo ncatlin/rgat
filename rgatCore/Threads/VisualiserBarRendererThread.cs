@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace rgat.Threads
 {
-    class VisualiserBarRendererThread : TraceProcessorWorker
+    internal class VisualiserBarRendererThread : TraceProcessorWorker
     {
         public VisualiserBarRendererThread(VisualiserBar visualiserbar)
         {
@@ -25,9 +25,9 @@ namespace rgat.Threads
 
         }
 
-        readonly VisualiserBar _visualiserBarWidget;
+        private readonly VisualiserBar _visualiserBarWidget;
 
-        void update_rendering(PlottedGraph graph)
+        private void update_rendering(PlottedGraph graph)
         {
 
 

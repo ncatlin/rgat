@@ -23,7 +23,7 @@ namespace rgat.Threads
 
         }
 
-        static void PerformEdgeHeatRanking(ProtoGraph graph)
+        private static void PerformEdgeHeatRanking(ProtoGraph graph)
         {
             if (graph.EdgeCount < 10)
             {
@@ -60,7 +60,7 @@ namespace rgat.Threads
 
         }
 
-        static void PerformNodeHeatRanking(ProtoGraph graph)
+        private static void PerformNodeHeatRanking(ProtoGraph graph)
         {
             if (graph.NodeList.Count < 10)
             {

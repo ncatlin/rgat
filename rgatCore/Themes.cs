@@ -235,11 +235,11 @@ namespace rgat
             COUNT
         }
 
-        static readonly Dictionary<ImGuiCol, uint> ThemeColoursStandard = new Dictionary<ImGuiCol, uint>();
-        static readonly Dictionary<eThemeColour, uint> ThemeColoursCustom = new Dictionary<eThemeColour, uint>();
-        static readonly Dictionary<eThemeSize, float> ThemeSizesCustom = new Dictionary<eThemeSize, float>();
-        static readonly Dictionary<eThemeSize, Vector2> ThemeSizeLimits = new Dictionary<eThemeSize, Vector2>();
-        static readonly Dictionary<string, string> ThemeMetadata = new Dictionary<string, string>();
+        private static readonly Dictionary<ImGuiCol, uint> ThemeColoursStandard = new Dictionary<ImGuiCol, uint>();
+        private static readonly Dictionary<eThemeColour, uint> ThemeColoursCustom = new Dictionary<eThemeColour, uint>();
+        private static readonly Dictionary<eThemeSize, float> ThemeSizesCustom = new Dictionary<eThemeSize, float>();
+        private static readonly Dictionary<eThemeSize, Vector2> ThemeSizeLimits = new Dictionary<eThemeSize, Vector2>();
+        private static readonly Dictionary<string, string> ThemeMetadata = new Dictionary<string, string>();
 
         /// <summary>
         /// Theme is bundled with rgat
@@ -249,9 +249,8 @@ namespace rgat
         /// Theme has changes which have not been written to the config file
         /// </summary>
         public static bool UnsavedTheme = false;
-        static readonly object _lock = new object();
-
-        static int _appliedThemeCount = 0;
+        private static readonly object _lock = new object();
+        private static int _appliedThemeCount = 0;
         /// <summary>
         /// Activate the themes ImGui colours
         /// </summary>
@@ -282,7 +281,7 @@ namespace rgat
         /// <summary>
         /// Set any missing theme settings
         /// </summary>
-        static void InitUnsetCustomColours()
+        private static void InitUnsetCustomColours()
         {
             Dictionary<eThemeColour, uint> DefaultCustomColours = new Dictionary<eThemeColour, uint>();
 
@@ -403,8 +402,7 @@ namespace rgat
             }
         }
 
-
-        static unsafe void InitDefaultImGuiColours()
+        private static unsafe void InitDefaultImGuiColours()
         {
             lock (_lock)
             {
@@ -626,11 +624,10 @@ namespace rgat
             }
         }
 
-
-        static readonly List<string> badFields = new List<string>();
+        private static readonly List<string> badFields = new List<string>();
 
         //this is terrible
-        static unsafe int TextCheckValid(ImGuiInputTextCallbackData* p)
+        private static unsafe int TextCheckValid(ImGuiInputTextCallbackData* p)
         {
             ImGuiInputTextCallbackData cb = *p;
             byte[] currentValue = new byte[cb.BufTextLen];
@@ -675,7 +672,7 @@ namespace rgat
     * This will load valid but incomplete theme data into the existing theme, but not if there
     * is any invalid data
     */
-        static bool ActivateThemeObject(JObject theme)
+        private static bool ActivateThemeObject(JObject theme)
         {
             lock (_lock)
             {
@@ -922,8 +919,7 @@ namespace rgat
             }
         }
 
-
-        static JObject? currentThemeJSON;
+        private static JObject? currentThemeJSON;
         /// <summary>
         /// Controls can compare this value with a cached value to see if the theme has changed
         /// </summary>
@@ -1020,8 +1016,7 @@ namespace rgat
             return false;
         }
 
-
-        static bool LoadMetadataStrings(JObject themeObj, out Dictionary<string, string> result, out string error)
+        private static bool LoadMetadataStrings(JObject themeObj, out Dictionary<string, string> result, out string error)
         {
             result = new Dictionary<string, string>();
 
@@ -1135,9 +1130,7 @@ namespace rgat
             }
         }
 
-
-
-        static void WriteCustomThemesToConfig()
+        private static void WriteCustomThemesToConfig()
         {
             Dictionary<string, string> savedata = new Dictionary<string, string>();
 

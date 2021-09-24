@@ -7,10 +7,9 @@ using System.Numerics;
 
 namespace rgat
 {
-    partial class rgatUI
+    internal partial class rgatUI
     {
-
-        void DrawStartSplash()
+        private void DrawStartSplash()
         {
 
             var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Trace);
@@ -27,7 +26,7 @@ namespace rgat
             }
         }
 
-        void DrawSplash(rgatSettings.PathRecord[] recentBins, rgatSettings.PathRecord[] recentTraces)
+        private void DrawSplash(rgatSettings.PathRecord[] recentBins, rgatSettings.PathRecord[] recentTraces)
         {
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
@@ -303,7 +302,7 @@ namespace rgat
             }
         }
 
-        readonly List<string> _missingPaths = new List<string>();
-        readonly List<string> _badPaths = new List<string>();
+        private readonly List<string> _missingPaths = new List<string>();
+        private readonly List<string> _badPaths = new List<string>();
     }
 }

@@ -15,28 +15,29 @@ namespace rgat
     /// </summary>
     public class PipeTraceIngestThread : TraceIngestWorker
     {
-        readonly uint TraceBufSize = GlobalConfig.Settings.Tracing.TraceBufferSize;
-        readonly ProtoGraph? protograph;
-        readonly NamedPipeServerStream threadpipe;
-        readonly Thread splittingThread;
-        readonly bool PipeBroke = false;
+        private readonly uint TraceBufSize = GlobalConfig.Settings.Tracing.TraceBufferSize;
+        private readonly ProtoGraph? protograph;
+        private readonly NamedPipeServerStream threadpipe;
+        private readonly Thread splittingThread;
+        private readonly bool PipeBroke = false;
 
         /// <summary>
         /// Set when there is no more data to ingest (eg: pipe broke)
         /// </summary>
         public ManualResetEventSlim RawIngestCompleteEvent = new ManualResetEventSlim(false);
-        delegate void QueueIngestedData(byte[] data);
+
+        private delegate void QueueIngestedData(byte[] data);
 
         private readonly object QueueSwitchLock = new object();
-        int readIndex = 0;
-        readonly List<byte[]> FirstQueue = new List<byte[]>();
-        readonly List<byte[]> SecondQueue = new List<byte[]>();
-        List<byte[]> ReadingQueue;
-        List<byte[]> WritingQueue;
-        readonly ConcurrentQueue<Tuple<byte[], int>> RawQueue = new ConcurrentQueue<Tuple<byte[], int>>();
-        readonly uint _threadID;
-        readonly uint? _remotePipe;
-        byte[]? pendingBuf;
+        private int readIndex = 0;
+        private readonly List<byte[]> FirstQueue = new List<byte[]>();
+        private readonly List<byte[]> SecondQueue = new List<byte[]>();
+        private List<byte[]> ReadingQueue;
+        private List<byte[]> WritingQueue;
+        private readonly ConcurrentQueue<Tuple<byte[], int>> RawQueue = new ConcurrentQueue<Tuple<byte[], int>>();
+        private readonly uint _threadID;
+        private readonly uint? _remotePipe;
+        private byte[]? pendingBuf;
 
         /// <summary>
         /// Create a pipe ingest worker
@@ -84,8 +85,7 @@ namespace rgat
             splittingThread.Start(queueFunction);
         }
 
-
-        void MirrorMessageToUI(byte[] buf)
+        private void MirrorMessageToUI(byte[] buf)
         {
             rgatState.NetworkBridge.SendRawTraceData(_remotePipe!.Value, buf, buf.Length);
         }
@@ -133,9 +133,7 @@ namespace rgat
             }
         }
 
-
-
-        void EnqueueData(byte[] datamsg)
+        private void EnqueueData(byte[] datamsg)
         {
             lock (QueueSwitchLock)
             {
@@ -187,7 +185,7 @@ namespace rgat
          * Could possibly have the ingest thread deal with this but then the full buffers 
          * are in the main queues
          */
-        void MessageSplitterThread(object? queueFunc)
+        private void MessageSplitterThread(object? queueFunc)
         {
             QueueIngestedData AddData = (QueueIngestedData)queueFunc!;
             while (!rgatState.rgatIsExiting && (threadpipe.IsConnected || RawQueue.Count > 0))
@@ -259,7 +257,7 @@ namespace rgat
 
 
         //thread handler to build graph for a thread
-        async void Reader()
+        private async void Reader()
         {
             if (!threadpipe.IsConnected)
             {

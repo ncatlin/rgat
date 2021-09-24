@@ -13,15 +13,15 @@ namespace rgat.Widgets
     /// <summary>
     /// A dialog for configuring remote tracing
     /// </summary>
-    class RemoteDialog
+    internal class RemoteDialog
     {
         public bool ListenMode = false;
-        readonly List<NetworkInterface> _netIFList = new();
-        string _listenIFID = "";
-        string _connectIFID = "";
-        readonly System.Timers.Timer _refreshTimer = new System.Timers.Timer(CONSTANTS.NETWORK.InterfaceRefreshIntervalMS);
-        bool _refreshTimerFired = false;
-        readonly OperationModes.BridgedRunner runner;
+        private readonly List<NetworkInterface> _netIFList = new();
+        private string _listenIFID = "";
+        private string _connectIFID = "";
+        private readonly System.Timers.Timer _refreshTimer = new System.Timers.Timer(CONSTANTS.NETWORK.InterfaceRefreshIntervalMS);
+        private bool _refreshTimerFired = false;
+        private readonly OperationModes.BridgedRunner runner;
 
         /// <summary>
         /// Create a dialog for configuring remote tracing
@@ -52,7 +52,7 @@ namespace rgat.Widgets
 
         }
 
-        void InitSettings()
+        private void InitSettings()
         {
             if (GlobalConfig.StartOptions.NetworkKey == null || GlobalConfig.StartOptions.NetworkKey.Length == 0)
             {
@@ -129,7 +129,7 @@ namespace rgat.Widgets
             _refreshTimerFired = true;
         }
 
-        void RefreshInterfaces()
+        private void RefreshInterfaces()
         {
             var latestInterfaces = NetworkUtilities.GetInterfaces();
             //remove interfaces that are no longer around
@@ -139,7 +139,7 @@ namespace rgat.Widgets
             _netIFList.AddRange(newInterfaces);
         }
 
-        void RegenerateKey()
+        private void RegenerateKey()
         {
             Regex matchSimilar = new Regex(@"[\.1IO0]");
             string newkey = "";
@@ -194,8 +194,7 @@ namespace rgat.Widgets
             ImGui.PopStyleVar();
         }
 
-
-        void DrawStatusBanner()
+        private void DrawStatusBanner()
         {
             if (ImGui.BeginChild("#ConStatFrame1", new Vector2(ImGui.GetContentRegionAvail().X, 35)))
             {
@@ -226,9 +225,9 @@ namespace rgat.Widgets
             }
         }
 
-        static bool KeyIsSet => GlobalConfig.StartOptions.NetworkKey != null && GlobalConfig.StartOptions.NetworkKey.Length > 0;
+        private static bool KeyIsSet => GlobalConfig.StartOptions.NetworkKey != null && GlobalConfig.StartOptions.NetworkKey.Length > 0;
 
-        void DrawActivationToggle(float itemsWidth)
+        private void DrawActivationToggle(float itemsWidth)
         {
             Vector2 togStart = ImGui.GetCursorScreenPos();
 
@@ -394,7 +393,7 @@ namespace rgat.Widgets
             }
         }
 
-        void DrawOptionsFrame(float itemsWidth)
+        private void DrawOptionsFrame(float itemsWidth)
         {
             bool showTabTooltip = false;
             if (ImGui.IsMouseHoveringRect(ImGui.GetCursorScreenPos(), ImGui.GetCursorScreenPos() + new Vector2(ImGui.GetContentRegionAvail().X, 25)))
@@ -470,7 +469,7 @@ namespace rgat.Widgets
             }
         }
 
-        void DrawBothModeOptions()
+        private void DrawBothModeOptions()
         {
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
@@ -497,8 +496,7 @@ namespace rgat.Widgets
             SmallWidgets.MouseoverText("Generate new key");
         }
 
-
-        void DrawListenOptsFrame()
+        private void DrawListenOptsFrame()
         {
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
@@ -523,7 +521,7 @@ namespace rgat.Widgets
 
         }
 
-        void DrawInterfaceSelector()
+        private void DrawInterfaceSelector()
         {
             if (_refreshTimerFired)
             {
@@ -587,8 +585,7 @@ namespace rgat.Widgets
             }
         }
 
-
-        static void DrawIFToolTip(NetworkInterface iface)
+        private static void DrawIFToolTip(NetworkInterface iface)
         {
             ImGui.BeginTooltip();
             ImGui.Text($"{iface.Name}: {iface.Description}");
@@ -617,10 +614,10 @@ namespace rgat.Widgets
 
         }
 
+        private string currentAddress = "";
+        private bool _remoteDropdownOpen = false;
 
-        string currentAddress = "";
-        bool _remoteDropdownOpen = false;
-        void DrawConnectOptsFrame()
+        private void DrawConnectOptsFrame()
         {
             //////////
             ImGui.TableNextRow();
@@ -706,14 +703,13 @@ namespace rgat.Widgets
             }
         }
 
-        void SelectRemoteAddress(string address)
+        private void SelectRemoteAddress(string address)
         {
             GlobalConfig.StartOptions.ConnectModeAddress = address;
             GlobalConfig.Settings.Network.DefaultConnectAddress = address;
         }
 
-
-        void DrawMessagesList(float itemsWidth)
+        private void DrawMessagesList(float itemsWidth)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
             if (ImGui.BeginChild("##MsgsFrame1", new Vector2(itemsWidth, ImGui.GetContentRegionAvail().Y - 30), false, ImGuiWindowFlags.HorizontalScrollbar))
@@ -742,7 +738,7 @@ namespace rgat.Widgets
             ImGui.PopStyleColor();
         }
 
-        void DrawSignatureBox()
+        private void DrawSignatureBox()
         {
             if (!rgatState.ConnectedToRemote || rgatState.DIELib == null || rgatState.YARALib == null)
             {
@@ -774,13 +770,14 @@ namespace rgat.Widgets
             }
         }
 
-        void WaitFinishSync()
+        private void WaitFinishSync()
         {
 
         }
 
-        bool _syncingSigs = false;
-        void SyncSignatures()
+        private bool _syncingSigs = false;
+
+        private void SyncSignatures()
         {
             _syncingSigs = true;
             try

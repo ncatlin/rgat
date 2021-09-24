@@ -7,10 +7,11 @@ using System.Text;
 
 namespace UpdateFinaliser
 {
-    class Program
+    internal class Program
     {
-        static readonly string[] validSigners = new string[] { "Nia Catlin", "Open Source Developer, Nia CATLIN" };
-        static void Main(string[] args)
+        private static readonly string[] validSigners = new string[] { "Nia Catlin", "Open Source Developer, Nia CATLIN" };
+
+        private static void Main(string[] args)
         {
             string logf = Path.Combine(Path.GetDirectoryName(args[1]), "rgatupdatelog.txt");
             using FileStream log = File.OpenWrite(logf);

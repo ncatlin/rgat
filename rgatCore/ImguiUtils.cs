@@ -10,7 +10,7 @@ using System.Numerics;
 
 namespace rgat
 {
-    class ImguiUtils
+    internal class ImguiUtils
     {
         public static void DrawHorizCenteredText(string msg)
         {

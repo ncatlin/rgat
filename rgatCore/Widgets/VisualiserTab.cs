@@ -10,17 +10,18 @@ using static rgat.CONSTANTS;
 
 namespace rgat
 {
-    class VisualiserTab
+    internal class VisualiserTab
     {
-        readonly GraphPlotWidget MainGraphWidget;
+        private readonly GraphPlotWidget MainGraphWidget;
         public PreviewGraphsWidget PreviewGraphWidget { get; private set; }
-        VisualiserBar? _visualiserBar;
-        readonly rgatState _rgatState;
-        readonly ImGuiController _controller;
+
+        private VisualiserBar? _visualiserBar;
+        private readonly rgatState _rgatState;
+        private readonly ImGuiController _controller;
 
         //threads
-        Threads.VisualiserBarRendererThread? visbarRenderThreadObj = null;
-        Threads.MainGraphRenderThread? mainRenderThreadObj = null;
+        private Threads.VisualiserBarRendererThread? visbarRenderThreadObj = null;
+        private Threads.MainGraphRenderThread? mainRenderThreadObj = null;
 
         public double UIFrameAverage = 0;
 
@@ -61,7 +62,8 @@ namespace rgat
             _dialogStateChangeCallback = callback;
             MainGraphWidget.SetStateChangeCallback(callback);
         }
-        Action<bool>? _dialogStateChangeCallback = null;
+
+        private Action<bool>? _dialogStateChangeCallback = null;
 
 
         public void Draw()
@@ -238,7 +240,7 @@ namespace rgat
             ImGui.PopStyleColor();
         }
 
-        void DrawReplayControlsPanel(PlottedGraph graph)
+        private void DrawReplayControlsPanel(PlottedGraph graph)
         {
             string indexPos = "";
             if (graph.AnimationIndex > 0)
@@ -359,7 +361,7 @@ namespace rgat
             }
         }
 
-        void DrawActiveTraceControlPanel(PlottedGraph graph)
+        private void DrawActiveTraceControlPanel(PlottedGraph graph)
         {
             if (ImGui.BeginChild("LiveTraceCtrls", new Vector2(160, 110), true))
             {
@@ -426,8 +428,7 @@ namespace rgat
             }
         }
 
-
-        void DrawRenderControlPanel(PlottedGraph graph)
+        private void DrawRenderControlPanel(PlottedGraph graph)
         {
             if (ImGui.BeginChild("GraphRenderControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
             {
@@ -448,9 +449,7 @@ namespace rgat
             }
         }
 
-
-
-        void DrawVideoControlPanel(PlottedGraph graph)
+        private void DrawVideoControlPanel(PlottedGraph graph)
         {
             if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
             {
@@ -489,12 +488,7 @@ namespace rgat
             }
         }
 
-
-
-
-
-
-        void DrawDiasmPreviewBox(ProtoGraph graph, int lastAnimIdx)
+        private void DrawDiasmPreviewBox(ProtoGraph graph, int lastAnimIdx)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
             if (ImGui.BeginChildFrame(ImGui.GetID("##DisasmPreview"), ImGui.GetContentRegionAvail()))
@@ -853,8 +847,9 @@ namespace rgat
                 DrawGraphStatsDialog(ref _show_stats_dialog);
             }
         }
-        bool _stats_click_hover = false;
-        bool _show_stats_dialog = false;
+
+        private bool _stats_click_hover = false;
+        private bool _show_stats_dialog = false;
 
         private unsafe void DrawVisualiserControls(float controlsHeight)
         {
@@ -902,9 +897,7 @@ namespace rgat
 
         }
 
-
-
-        void ManageActiveGraph()
+        private void ManageActiveGraph()
         {
             if (_rgatState.ActiveGraph == null)
             {

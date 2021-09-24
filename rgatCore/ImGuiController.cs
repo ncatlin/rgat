@@ -32,11 +32,9 @@ namespace ImGuiNET
         private ResourceLayout? _layout, _textureLayout;
         private Pipeline? _pipeline;
         private ResourceSet? _mainResourceSet, _fontTextureResourceSet;
-
-        readonly Dictionary<string, Texture> _imageTextures = new Dictionary<string, Texture>();
-        readonly Dictionary<string, TextureView> _textureViews = new Dictionary<string, TextureView>();
-
-        Texture? _imagesTextureArray;
+        private readonly Dictionary<string, Texture> _imageTextures = new Dictionary<string, Texture>();
+        private readonly Dictionary<string, TextureView> _textureViews = new Dictionary<string, TextureView>();
+        private Texture? _imagesTextureArray;
 
         private readonly IntPtr _fontAtlasID = (IntPtr)1;
         private bool _controlDown, _shiftDown, _altDown, _winKeyDown;
@@ -64,14 +62,13 @@ namespace ImGuiNET
         /// The main loaded font
         /// </summary>
         public ImFontPtr _unicodeFont = null;
-        ImFontPtr? _splashButtonFont = null;
+        private ImFontPtr? _splashButtonFont = null;
         /// <summary>
         /// The original imGui font
         /// </summary>
         public ImFontPtr _originalFont = null;
         private bool _unicodeFontLoaded = false;
-
-        int _dialogsOpen = 0;
+        private int _dialogsOpen = 0;
 
         /// <summary>
         /// Is a dialog open
@@ -267,9 +264,9 @@ namespace ImGuiNET
         /// Size of large splash screen icons
         /// </summary>
         public readonly Vector2 LargeIconSize = new Vector2(65, 65);
-        ImFontPtr _fafontSolid;
-        ImFontPtr _fafontRegular;
-        ImFontPtr _iconsLargeFont;
+        private ImFontPtr _fafontSolid;
+        private ImFontPtr _fafontRegular;
+        private ImFontPtr _iconsLargeFont;
 
 
         /// <summary>
@@ -292,7 +289,7 @@ namespace ImGuiNET
             private set { _splashButtonFont = value; }
         }
 
-        ImFontPtr? _titleFont;
+        private ImFontPtr? _titleFont;
         /// <summary>
         /// Larger font for the splash screen title
         /// </summary>
@@ -302,8 +299,7 @@ namespace ImGuiNET
             private set { _titleFont = value; }
         }
 
-
-        void LoadImages()
+        private void LoadImages()
         {
             ResourceFactory factory = _gd.ResourceFactory;
             string imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\forceDirected.png";
@@ -534,7 +530,7 @@ namespace ImGuiNET
             return tvi.ResourceSet;
         }
 
-        readonly List<Tuple<IDisposable, DateTime>> expiredResources = new List<Tuple<IDisposable, DateTime>>();
+        private readonly List<Tuple<IDisposable, DateTime>> expiredResources = new List<Tuple<IDisposable, DateTime>>();
 
         /// <summary>
         /// Occasionally dispose of expired resources

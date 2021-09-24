@@ -5,7 +5,7 @@ using Veldrid;
 
 namespace rgat.Widgets
 {
-    class SmallWidgets
+    internal class SmallWidgets
     {
         public static void ProgressBar(string id, string caption, float progress, Vector2 barSize, uint barColour, uint BGColour = 0, uint textColour = 0xffffffff)
         {
@@ -28,10 +28,10 @@ namespace rgat.Widgets
             ImGui.GetWindowDrawList().AddText(textpos, textColour, caption);
         }
 
+        private static uint _lastActiveID;
+        private static DateTime _LastActiveIdTimer;
 
-        static uint _lastActiveID;
-        static DateTime _LastActiveIdTimer;
-        static float ImSaturate(float f) { return (f < 0.0f) ? 0.0f : (f > 1.0f) ? 1.0f : f; }
+        private static float ImSaturate(float f) { return (f < 0.0f) ? 0.0f : (f > 1.0f) ? 1.0f : f; }
 
         //adapted from code somewhere from imgui internal
         public static bool ToggleButton(string str_id, bool isToggled, string? tooltip, bool isEnabled = true)
@@ -143,9 +143,7 @@ namespace rgat.Widgets
             return clicked;
         }
 
-
-
-        static Vector2 ImRotate(Vector2 v, float cos_a, float sin_a)
+        private static Vector2 ImRotate(Vector2 v, float cos_a, float sin_a)
         {
             return new Vector2(v.X * cos_a - v.Y * sin_a, v.X * sin_a + v.Y * cos_a);
         }

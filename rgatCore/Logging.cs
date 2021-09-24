@@ -50,8 +50,8 @@ namespace rgat
             /// </summary>
             public eLogFilterBaseType LogType => _type;
 
-            readonly long _eventTimeMS;
-            readonly eLogFilterBaseType _type;
+            private readonly long _eventTimeMS;
+            private readonly eLogFilterBaseType _type;
             /// <summary>
             /// How this log is handled
             /// </summary>
@@ -202,7 +202,7 @@ namespace rgat
             /// <param name="deTok">JToken of the APICALL details</param>
             /// <param name="apiObj">APICALL being deserialised</param>
             /// <returns>success</returns>
-            static bool DeserialiseEffects(JToken deTok, APICALL apiObj)
+            private static bool DeserialiseEffects(JToken deTok, APICALL apiObj)
             {
                 try
                 {
@@ -466,9 +466,8 @@ namespace rgat
                 return obj;
             }
 
-
-            List<Tuple<string, WritableRgbaFloat>>? _cachedLabel = null;
-            ulong _cachedLabelTheme = 0;
+            private List<Tuple<string, WritableRgbaFloat>>? _cachedLabel = null;
+            private ulong _cachedLabelTheme = 0;
             /// <summary>
             /// Get the label of the timeline event
             /// </summary>
@@ -563,10 +562,10 @@ namespace rgat
             /// </summary>
             public bool Inited { get; private set; }
 
-            readonly eTimelineEvent _eventType;
-            ulong _ID;
-            ulong _parentID;
-            readonly object _item;
+            private readonly eTimelineEvent _eventType;
+            private ulong _ID;
+            private ulong _parentID;
+            private readonly object _item;
         }
 
 
@@ -600,11 +599,11 @@ namespace rgat
             /// </summary>
             COUNT
         };
-        static readonly int[] MessageCounts = new int[(int)LogFilterType.COUNT];
 
-        static readonly List<LOG_EVENT> _logMessages = new List<LOG_EVENT>();
-        static readonly List<LOG_EVENT> _alertNotifications = new List<LOG_EVENT>();
-        readonly static object _messagesLock = new object();
+        private static readonly int[] MessageCounts = new int[(int)LogFilterType.COUNT];
+        private static readonly List<LOG_EVENT> _logMessages = new List<LOG_EVENT>();
+        private static readonly List<LOG_EVENT> _alertNotifications = new List<LOG_EVENT>();
+        private static readonly object _messagesLock = new object();
 
 
         /// <summary>
@@ -757,9 +756,9 @@ namespace rgat
             RecordLogEvent(text: text, graph: graph, trace: trace, filter: LogFilterType.TextError);
         }
 
+        private static System.IO.StreamWriter? _logFile = null;
 
-        static System.IO.StreamWriter? _logFile = null;
-        static void WriteToDebugFile(TEXT_LOG_EVENT log)
+        private static void WriteToDebugFile(TEXT_LOG_EVENT log)
         {
             if (System.Threading.Thread.CurrentThread.Name != null && System.Threading.Thread.CurrentThread.Name.Contains("TracePro"))
             {
@@ -825,7 +824,7 @@ namespace rgat
         /// </summary>
         public static int UnseenAlerts { get; set; } = 0;
 
-        static DateTime _lastAlert = DateTime.MinValue;
+        private static DateTime _lastAlert = DateTime.MinValue;
         /// <summary>
         /// How fresh the latest alert is
         /// </summary>

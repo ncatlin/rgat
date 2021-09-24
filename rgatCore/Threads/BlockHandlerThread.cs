@@ -15,16 +15,16 @@ namespace rgat
     /// </summary>
     public class BlockHandlerThread : TraceProcessorWorker
     {
-        enum eBlkInstrumentation { eUninstrumentedCode = 0, eInstrumentedCode = 1, eCodeInDataArea = 2 };
+        private enum eBlkInstrumentation { eUninstrumentedCode = 0, eInstrumentedCode = 1, eCodeInDataArea = 2 };
 
-        readonly BinaryTarget target;
-        readonly TraceRecord trace;
-        NamedPipeServerStream? blockPipe = null;
-        readonly int bitWidth;
-        readonly CapstoneX86Disassembler disassembler;
-        readonly uint? _remotePipeID;
+        private readonly BinaryTarget target;
+        private readonly TraceRecord trace;
+        private NamedPipeServerStream? blockPipe = null;
+        private readonly int bitWidth;
+        private readonly CapstoneX86Disassembler disassembler;
+        private readonly uint? _remotePipeID;
 
-        delegate void ProcessPipeMessageAction(byte[] buf, int bytesRead);
+        private delegate void ProcessPipeMessageAction(byte[] buf, int bytesRead);
 
 
         /// <summary>
@@ -97,7 +97,7 @@ namespace rgat
             WorkerThread.Start(param);
         }
 
-        void ConnectCallback(IAsyncResult ar)
+        private void ConnectCallback(IAsyncResult ar)
         {
             try
             {
@@ -110,16 +110,14 @@ namespace rgat
             }
         }
 
-
-        void MirrorMessageToUI(byte[] buf, int bytesRead)
+        private void MirrorMessageToUI(byte[] buf, int bytesRead)
         {
             //Console.WriteLine($"Mirrormsg len {bytesRead}/{buf.Length} to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(buf, 0, bytesRead));
             Debug.Assert(_remotePipeID is not null);
             rgatState.NetworkBridge.SendRawTraceData(_remotePipeID.Value, buf, bytesRead);
         }
 
-
-        void IngestBlockLocal(byte[] buf, int bytesRead)
+        private void IngestBlockLocal(byte[] buf, int bytesRead)
         {
             //buf[bytesRead] = 0;
             if (buf[0] != 'B')
@@ -261,7 +259,7 @@ namespace rgat
             trace.DisassemblyData.AddDisassembledBlock(blockID, BlockAddress, blockInstructions);
         }
 
-        readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
+        private readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
 
         /// <summary>
         /// Cause the worker to stop and disconnect its pipe
@@ -292,12 +290,11 @@ namespace rgat
             }
         }
 
-        readonly Queue<byte[]> _incomingRemoteBlockData = new Queue<byte[]>();
-        readonly ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
-        readonly object _lock = new object();
+        private readonly Queue<byte[]> _incomingRemoteBlockData = new Queue<byte[]>();
+        private readonly ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
+        private readonly object _lock = new object();
 
-
-        void RemoteListener(object? ProcessMessageobj)
+        private void RemoteListener(object? ProcessMessageobj)
         {
             byte[][] newItems;
             while (!rgatState.rgatIsExiting)
@@ -340,8 +337,7 @@ namespace rgat
             base.Finished();
         }
 
-
-        async void LocalListener(object? ProcessMessageobj)
+        private async void LocalListener(object? ProcessMessageobj)
         {
             if (ProcessMessageobj is null)
             {

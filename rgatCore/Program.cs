@@ -6,12 +6,11 @@ using System;
 
 namespace ImGuiNET
 {
-    class Program
+    internal class Program
     {
+        private static readonly rgatState _rgatState = new rgatState();
 
-        static readonly rgatState _rgatState = new rgatState();
-
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             // Bad arguments given or an info argument that is supposed to exit immediately
             if (!InitOptions(args) || HandleImmediateExitOptions())
@@ -77,7 +76,7 @@ namespace ImGuiNET
             }
         }
 
-        static bool InitOptions(string[] cmdlineParams)
+        private static bool InitOptions(string[] cmdlineParams)
         {
 
             var parser = new Parser(with =>
@@ -113,8 +112,7 @@ namespace ImGuiNET
             return GlobalConfig.StartOptions != null;
         }
 
-
-        static bool HandleImmediateExitOptions()
+        private static bool HandleImmediateExitOptions()
         {
             bool exit = false;
             //list valid network interfaces if the -i param was provided with a list arg or invalid interface
@@ -132,8 +130,7 @@ namespace ImGuiNET
             return exit;
         }
 
-
-        static void HandleInterfaceParam(string interfaceOption, ref bool exit)
+        private static void HandleInterfaceParam(string interfaceOption, ref bool exit)
         {
             LaunchConfig startOpts = GlobalConfig.StartOptions!;
             switch (interfaceOption)
@@ -187,8 +184,7 @@ namespace ImGuiNET
             }
         }
 
-
-        static void HandleFFmpegParam(string ffmpegopt, ref bool exit)
+        private static void HandleFFmpegParam(string ffmpegopt, ref bool exit)
         {
             if (ffmpegopt == "")
             {
@@ -222,7 +218,7 @@ namespace ImGuiNET
 
 
         //initialise things that are used in all types of tracing (ui, bridged, commandline)
-        static void InitialSetup()
+        private static void InitialSetup()
         {
 
             AppDomain currentDomain = AppDomain.CurrentDomain;
@@ -231,7 +227,7 @@ namespace ImGuiNET
             rgat.Threads.TraceProcessorWorker.SetRgatState(_rgatState);
         }
 
-        static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs args)
+        private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs args)
         {
             Exception e = (Exception)args.ExceptionObject;
             Logging.RecordError($"Unhandled Exception: {e.Source}:{e.Message}");

@@ -13,11 +13,11 @@ namespace rgat.Threads
     /// </summary>
     public class ThreadTraceProcessingThread : TraceProcessorWorker
     {
-        readonly ProtoGraph protograph;
-        bool IrregularTimerFired = false;
-        System.Timers.Timer? IrregularActionTimer = null;
+        private readonly ProtoGraph protograph;
+        private bool IrregularTimerFired = false;
+        private System.Timers.Timer? IrregularActionTimer = null;
 
-        struct BLOCKREPEAT
+        private struct BLOCKREPEAT
         {
             //public ulong blockaddr;
             public uint blockID;
@@ -27,7 +27,7 @@ namespace rgat.Threads
             public List<InstructionData>? blockInslist;
         };
 
-        readonly List<BLOCKREPEAT> blockRepeatQueue = new List<BLOCKREPEAT>();
+        private readonly List<BLOCKREPEAT> blockRepeatQueue = new List<BLOCKREPEAT>();
         /// <summary>
         /// How many blockrepeats are waiting go be assigned
         /// </summary>
@@ -37,7 +37,7 @@ namespace rgat.Threads
         /// </summary>
         public double LastBlockRepeatsTime = 0;
 
-        struct NEW_EDGE_BLOCKDATA
+        private struct NEW_EDGE_BLOCKDATA
         {
             public ulong sourceAddr;
             public uint sourceID;
@@ -45,15 +45,14 @@ namespace rgat.Threads
             public uint targID;
         };
 
-        readonly List<NEW_EDGE_BLOCKDATA> PendingEdges = new List<NEW_EDGE_BLOCKDATA>();
+        private readonly List<NEW_EDGE_BLOCKDATA> PendingEdges = new List<NEW_EDGE_BLOCKDATA>();
 
-
-        class APITHUNK
+        private class APITHUNK
         {
             public Dictionary<int, int> callerNodes = new Dictionary<int, int>();
         }
 
-        readonly Dictionary<int, APITHUNK> ApiThunks = new Dictionary<int, APITHUNK>();
+        private readonly Dictionary<int, APITHUNK> ApiThunks = new Dictionary<int, APITHUNK>();
 
         /// <summary>
         /// Worker for processing trace data
@@ -87,8 +86,7 @@ namespace rgat.Threads
             IrregularActionTimer.Start();
         }
 
-
-        void PerformIrregularActions()
+        private void PerformIrregularActions()
         {
             if (rgatState.rgatIsExiting)
             {
@@ -111,7 +109,7 @@ namespace rgat.Threads
         //peforms non-sequence-critical graph updates
         //update nodes with cached execution counts and new edges from unchained runs
         //also updates graph with delayed edge notifications
-        void AssignBlockRepeats()
+        private void AssignBlockRepeats()
         {
             Stopwatch ABRtime = new System.Diagnostics.Stopwatch();
             ABRtime.Start();
@@ -375,17 +373,15 @@ namespace rgat.Threads
             LastBlockRepeatsTime = ABRtime.Elapsed.TotalMilliseconds;
         }
 
-
-        struct ExtraEdge
+        private struct ExtraEdge
         {
             public uint source;
             public uint target;
             public ulong count;
         };
 
-
-        bool _ignore_next_tag = false;
-        uint _ignored_tag_blockID = 0;
+        private bool _ignore_next_tag = false;
+        private uint _ignored_tag_blockID = 0;
 
         /// <summary>
         /// Handle execution of a basic block
@@ -525,7 +521,7 @@ namespace rgat.Threads
             }
         }
 
-        void AddSingleStepUpdate(byte[] entry)
+        private void AddSingleStepUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 1, entry.Length - 1);
             string[] entries = msg.Split(',', 3);
@@ -548,7 +544,7 @@ namespace rgat.Threads
 
 
         //show a REP prefixed instruction has executed at least once (ie: with ecx > 0)
-        void AddRepExecUpdate(byte[] entry)
+        private void AddRepExecUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 2);
@@ -560,8 +556,7 @@ namespace rgat.Threads
             Logging.RecordLogEvent($"A REP instruction (blkid {animUpdate.blockID}) has executed at least once. Need to action this as per trello 160");
         }
 
-
-        void ProcessExtern(ulong externAddr, uint callerBlock)
+        private void ProcessExtern(ulong externAddr, uint callerBlock)
         {
             //modType could be known unknown here
             //in case of unknown, this waits until we know. hopefully rare.
@@ -592,7 +587,7 @@ namespace rgat.Threads
 
 
         //decodes argument and places in processing queue, processes if all decoded for that call
-        void HandleArg(byte[] entry)
+        private void HandleArg(byte[] entry)
         {
 
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
@@ -611,7 +606,7 @@ namespace rgat.Threads
 
         }
 
-        void HandleRetVal(byte[] entry)
+        private void HandleRetVal(byte[] entry)
         {
 
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
@@ -624,9 +619,7 @@ namespace rgat.Threads
 
         }
 
-
-
-        void AddReinstrumentedUpdate(byte[] entry)
+        private void AddReinstrumentedUpdate(byte[] entry)
         {
             dontcountnextedge = true; // the edge from deinstrumented -> instrumented is already recorded
             protograph.PerformingUnchainedExecution = false;
@@ -672,9 +665,9 @@ namespace rgat.Threads
             currentUnchainedBlocks.Clear(); //todo dont need this
         }
 
-        readonly List<uint> currentUnchainedBlocks = new List<uint>();
+        private readonly List<uint> currentUnchainedBlocks = new List<uint>();
 
-        void AddUnchainedUpdate(byte[] entry)
+        private void AddUnchainedUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 2);
@@ -738,9 +731,7 @@ namespace rgat.Threads
             //Console.WriteLine($"Processing AddUnchainedUpdate source 0x{animUpdate.blockAddr:X} targaddr 0x{animUpdate.targetAddr:X}");
         }
 
-
-
-        void AddExecCountUpdate(byte[] entry)
+        private void AddExecCountUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 3);
@@ -811,10 +802,7 @@ namespace rgat.Threads
             }
         }
 
-
-
-
-        void AddSatisfyUpdate(byte[] entry)
+        private void AddSatisfyUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 5);
@@ -827,9 +815,7 @@ namespace rgat.Threads
             PendingEdges.Add(edgeNotification);
         }
 
-
-
-        void AddExceptionUpdate(byte[] entry)
+        private void AddExceptionUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 4);
@@ -903,11 +889,12 @@ namespace rgat.Threads
             protograph.PushAnimUpdate(animUpdate);
         }
 
-        bool dontcountnextedge = false;
+        private bool dontcountnextedge = false;
 
 
         private readonly object debug_tag_lock = new object();
-        void Processor()
+
+        private void Processor()
         {
             if (protograph.TraceReader is null)
             {

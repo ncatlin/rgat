@@ -2,7 +2,7 @@
 
 namespace rgat
 {
-    class OSHelpers
+    internal class OSHelpers
     {
         public static class OperatingSystem
         {

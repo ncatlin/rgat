@@ -16,7 +16,7 @@ namespace rgat.Widgets
     /// <summary>
     /// Create an animation progress control bar which doubles as an extra visualiser
     /// </summary>
-    class VisualiserBar
+    internal class VisualiserBar
     {
         /// <summary>
         /// Create a visualiser bar for the specified device and controller
@@ -31,22 +31,22 @@ namespace rgat.Widgets
             InitGraphics();
         }
 
-        readonly ImGuiController _controller;
-        readonly GraphicsDevice _gd;
-        readonly ResourceFactory _factory;
-        Pipeline? _lineListPipeline, _pointPipeline, _triPipeline;
-        ResourceLayout? _rsrcLayout;
-        DeviceBuffer? _pointsVertexBuffer, _pointsIndexBuffer;
-        DeviceBuffer? _linesVertexBuffer, _linesIndexBuffer;
-        DeviceBuffer? _trisVertexBuffer, _trisIndexBuffer;
-        Texture? _outputTexture;
-        Framebuffer? _outputFramebuffer;
-        DeviceBuffer? _paramsBuffer;
-        ResourceSet? _rsrcs;
-        TextureView? _iconsTextureView;
-        Position2DColour[]? _pointVerts;
-        Position2DColour[]? _lineVerts;
-        Position2DColour[]? _triangleVerts;
+        private readonly ImGuiController _controller;
+        private readonly GraphicsDevice _gd;
+        private readonly ResourceFactory _factory;
+        private Pipeline? _lineListPipeline, _pointPipeline, _triPipeline;
+        private ResourceLayout? _rsrcLayout;
+        private DeviceBuffer? _pointsVertexBuffer, _pointsIndexBuffer;
+        private DeviceBuffer? _linesVertexBuffer, _linesIndexBuffer;
+        private DeviceBuffer? _trisVertexBuffer, _trisIndexBuffer;
+        private Texture? _outputTexture;
+        private Framebuffer? _outputFramebuffer;
+        private DeviceBuffer? _paramsBuffer;
+        private ResourceSet? _rsrcs;
+        private TextureView? _iconsTextureView;
+        private Position2DColour[]? _pointVerts;
+        private Position2DColour[]? _lineVerts;
+        private Position2DColour[]? _triangleVerts;
 
         public void InitGraphics()
         {
@@ -110,11 +110,11 @@ namespace rgat.Widgets
             public float height;
         }
 
-        float _width;
-        float _height;
-        float _newWidth = 400, _newHeight = 80;
+        private float _width;
+        private float _height;
+        private float _newWidth = 400, _newHeight = 80;
 
-        void CreateTextures(float width, float height)
+        private void CreateTextures(float width, float height)
         {
             Console.WriteLine("VisBarCreateTex Start");
             _width = Math.Max(50, width);
@@ -130,7 +130,7 @@ namespace rgat.Widgets
             Console.WriteLine("VisBarCreateTex end");
         }
 
-        void MaintainBuffers()
+        private void MaintainBuffers()
         {
             if (_pointVerts is null || _lineVerts is null || _triangleVerts is null)
             {
@@ -269,8 +269,7 @@ namespace rgat.Widgets
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + _height);
         }
 
-
-        float _sliderPosX = -1;
+        private float _sliderPosX = -1;
         /// <summary>
         /// Draw a replay graph visualiser bar with animation sliders 
         /// </summary>
@@ -353,7 +352,7 @@ namespace rgat.Widgets
          * Creates a white symbol with a size depending on instruction count. Handles 1 - 194ish instructions length blocks.
          * Any higher will just be the max size symbol.
          */
-        static void CreateExecTagSymbol(float Xoffset, uint insCount, ref List<Position2DColour> lines)
+        private static void CreateExecTagSymbol(float Xoffset, uint insCount, ref List<Position2DColour> lines)
         {
             float remaining = insCount;
             float xMid = Xoffset + 1;
@@ -393,7 +392,7 @@ namespace rgat.Widgets
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid + 2, yStart + 2 + len) });
         }
 
-        void CreateRect(WritableRgbaFloat colour, float leftX, float topY, float width, float height, ref List<Position2DColour> triangles)
+        private void CreateRect(WritableRgbaFloat colour, float leftX, float topY, float width, float height, ref List<Position2DColour> triangles)
         {
             triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX, topY) });
             triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX, topY + height) });
@@ -403,7 +402,7 @@ namespace rgat.Widgets
             triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX + width, topY + height) });
         }
 
-        void DrawAPIEntry(float Xoffset, float Yoffset, float width, int moduleID, string module, string symbol, ref List<Position2DColour> lines)
+        private void DrawAPIEntry(float Xoffset, float Yoffset, float width, int moduleID, string module, string symbol, ref List<Position2DColour> lines)
         {
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset, Yoffset) });
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset + width, Yoffset + 8) });
@@ -411,8 +410,7 @@ namespace rgat.Widgets
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset, Yoffset + 8) });
         }
 
-
-        class MODULE_SEGMENT
+        private class MODULE_SEGMENT
         {
             public int firstIdx;
             public int lastIdx;
@@ -420,7 +418,7 @@ namespace rgat.Widgets
             public string name = "";
         };
 
-        struct MODULE_LABEL
+        private struct MODULE_LABEL
         {
             public float startX;
             public float endX;
@@ -428,10 +426,10 @@ namespace rgat.Widgets
             public string name;
         };
 
-        int lastDrawnTagIdx = 0;
-        float barScrollingPos = 0;
-        readonly List<MODULE_LABEL> _moduleTexts = new List<MODULE_LABEL>();
-        readonly object _lock = new object();
+        private int lastDrawnTagIdx = 0;
+        private float barScrollingPos = 0;
+        private readonly List<MODULE_LABEL> _moduleTexts = new List<MODULE_LABEL>();
+        private readonly object _lock = new object();
 
 
         //todo lots of opportunity for caching here
@@ -669,11 +667,11 @@ namespace rgat.Widgets
             _triangleVerts = triangles.ToArray();
         }
 
-        readonly Dictionary<ProtoGraph, Dictionary<int, double>> _cumuls = new Dictionary<ProtoGraph, Dictionary<int, double>>();
-        readonly Dictionary<ProtoGraph, Dictionary<int, double>> _avgs = new Dictionary<ProtoGraph, Dictionary<int, double>>();
-        readonly Dictionary<ProtoGraph, List<MODULE_SEGMENT>> _modSegs = new Dictionary<ProtoGraph, List<MODULE_SEGMENT>>();
+        private readonly Dictionary<ProtoGraph, Dictionary<int, double>> _cumuls = new Dictionary<ProtoGraph, Dictionary<int, double>>();
+        private readonly Dictionary<ProtoGraph, Dictionary<int, double>> _avgs = new Dictionary<ProtoGraph, Dictionary<int, double>>();
+        private readonly Dictionary<ProtoGraph, List<MODULE_SEGMENT>> _modSegs = new Dictionary<ProtoGraph, List<MODULE_SEGMENT>>();
 
-        void MaxBlockWorkCount(ProtoGraph graph, float barWidth,
+        private void MaxBlockWorkCount(ProtoGraph graph, float barWidth,
             out Dictionary<int, double> pixCumul,
             out Dictionary<int, double> pixAvg,
             out List<MODULE_SEGMENT> modSegs
@@ -812,7 +810,7 @@ namespace rgat.Widgets
             }
         }
 
-        ProtoGraph? _lastGeneratedReplayGraph = null;
+        private ProtoGraph? _lastGeneratedReplayGraph = null;
 
         //todo lots of opportunity for caching here
         public void GenerateReplay(ProtoGraph graph)

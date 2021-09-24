@@ -26,18 +26,18 @@ namespace rgat.Testing
         public string? text;
     }
 
-    class TestHarnessThread
+    internal class TestHarnessThread
     {
-        readonly object _lock = new object();
-        readonly rgatState _rgatState;
-        readonly Dictionary<int, TestSession> _testSessions = new Dictionary<int, TestSession>();
-        readonly Dictionary<long, TestCaseRun> _testRuns = new Dictionary<long, TestCaseRun>();
-        long _currentTestID = -1;
-        readonly Dictionary<long, TestRunThread> _runningTests = new Dictionary<long, TestRunThread>();
-        readonly int _maxRunningTests = 5;
+        private readonly object _lock = new object();
+        private readonly rgatState _rgatState;
+        private readonly Dictionary<int, TestSession> _testSessions = new Dictionary<int, TestSession>();
+        private readonly Dictionary<long, TestCaseRun> _testRuns = new Dictionary<long, TestCaseRun>();
+        private long _currentTestID = -1;
+        private readonly Dictionary<long, TestRunThread> _runningTests = new Dictionary<long, TestRunThread>();
+        private readonly int _maxRunningTests = 5;
         public int FreeTestSlots => _maxRunningTests - _runningTests.Count;
 
-        readonly Queue<long> _testsQueue = new Queue<long>();
+        private readonly Queue<long> _testsQueue = new Queue<long>();
 
         public TestHarnessThread(rgatState clientState)
         {

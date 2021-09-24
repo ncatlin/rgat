@@ -128,18 +128,18 @@ namespace rgat
                 _bridgeState = value;
             }
         }
-        eBridgeState _bridgeState = eBridgeState.Inactive;
+
+        private eBridgeState _bridgeState = eBridgeState.Inactive;
 
         //nacl.core doesn't mention thread safety anywhere so have one for each direction
-        NetworkStream? _networkStream;
-        NaCl.Core.ChaCha20Poly1305? _encryptor;
-        BinaryWriter? _writer;
-        NaCl.Core.ChaCha20Poly1305? _decryptor;
-        BinaryReader? _reader;
-        BigInteger _sendIV;
-
-        readonly object _messagesLock = new object();
-        List<Tuple<string, Themes.eThemeColour?>> _displayLogMessages = new List<Tuple<string, Themes.eThemeColour?>>();
+        private NetworkStream? _networkStream;
+        private NaCl.Core.ChaCha20Poly1305? _encryptor;
+        private BinaryWriter? _writer;
+        private NaCl.Core.ChaCha20Poly1305? _decryptor;
+        private BinaryReader? _reader;
+        private BigInteger _sendIV;
+        private readonly object _messagesLock = new object();
+        private List<Tuple<string, Themes.eThemeColour?>> _displayLogMessages = new List<Tuple<string, Themes.eThemeColour?>>();
 
         /// <summary>
         /// Whether this instance is the GUI.
@@ -162,7 +162,7 @@ namespace rgat
             }
         }
 
-        bool _guiMode = true;
+        private bool _guiMode = true;
 
         /// <summary>
         /// Is rgat running in non-GUI mode
@@ -188,35 +188,29 @@ namespace rgat
             public byte[] data;
         }
 
-        readonly Queue<NETWORK_MSG> _OutDataQueue = new Queue<NETWORK_MSG>();
-        readonly ManualResetEventSlim NewOutDataEvent = new ManualResetEventSlim(false);
-
-        CancellationTokenSource cancelTokens = new CancellationTokenSource();
+        private readonly Queue<NETWORK_MSG> _OutDataQueue = new Queue<NETWORK_MSG>();
+        private readonly ManualResetEventSlim NewOutDataEvent = new ManualResetEventSlim(false);
+        private CancellationTokenSource cancelTokens = new CancellationTokenSource();
 
         /// <summary>
         /// Get a cancellation token. This will be cancelled if the connection is torn down
         /// All blocking operations should respect it
         /// </summary>
         public CancellationToken CancelToken => cancelTokens.Token;
-        readonly object _sendQueueLock = new object();
 
-        TcpClient? _ActiveClient;
-        TcpListener? _ActiveListener;
-
-        OnGotDataCallback? _registeredIncomingDataCallback;
+        private readonly object _sendQueueLock = new object();
+        private TcpClient? _ActiveClient;
+        private TcpListener? _ActiveListener;
+        private OnGotDataCallback? _registeredIncomingDataCallback;
         /// <summary>
         /// An IPEndPoint for the host we are connected to
         /// </summary>
         public IPEndPoint? RemoteEndPoint;
-
-
-        const string connectPreludeGUI = "rgat connect GUI prelude";
-        const string connectPreludeHeadless = "rgat connect headless prelude";
-        const string connectResponseGUI = "rgat accept GUI prelude";
-        const string connectResponseHeadless = "rgat accept headless prelude";
-
-
-        bool _inited = false;
+        private const string connectPreludeGUI = "rgat connect GUI prelude";
+        private const string connectPreludeHeadless = "rgat connect headless prelude";
+        private const string connectResponseGUI = "rgat accept GUI prelude";
+        private const string connectResponseHeadless = "rgat accept headless prelude";
+        private bool _inited = false;
 
         /// <summary>
         /// Initiate a bridge connection in remote mode
@@ -245,7 +239,7 @@ namespace rgat
         /// <param name="remoteConnectAddress">Host address of the remote party</param>
         /// <param name="remoteConnectPort">Port the remote party is listening on</param>
         /// <param name="connectCallback">The main connection handler which will serve the connection</param>
-        void StartConnectOut(TcpClient client, string remoteConnectAddress, int remoteConnectPort, BridgeConnection.OnConnectSuccessCallback connectCallback)
+        private void StartConnectOut(TcpClient client, string remoteConnectAddress, int remoteConnectPort, BridgeConnection.OnConnectSuccessCallback connectCallback)
         {
             Task connect;
             try
@@ -331,7 +325,7 @@ namespace rgat
         /// </summary>
         /// <param name="isServer">true if the other party initiated the connection, false if we did</param>
         /// <returns>true if the handshake succeeded and both parties have the same key</returns>
-        bool AuthenticateConnectionTask(bool isServer)
+        private bool AuthenticateConnectionTask(bool isServer)
         {
             try
             {
@@ -389,7 +383,7 @@ namespace rgat
         /// <param name="client">The TcpClient for the connection</param>
         /// <param name="isServer">true if the other party initiated the connection, false if we did</param>
         /// <returns></returns>
-        bool TryCreateCryptoStream(TcpClient client, bool isServer)
+        private bool TryCreateCryptoStream(TcpClient client, bool isServer)
         {
 
             try
@@ -409,15 +403,15 @@ namespace rgat
             return false;
         }
 
-        readonly byte[] _readIV = new byte[12];
-        readonly byte[] _readTag = new byte[16];
+        private readonly byte[] _readIV = new byte[12];
+        private readonly byte[] _readTag = new byte[16];
 
         /// <summary>
         /// Read the next message from the conencted party
         /// </summary>
         /// <param name="data">A NETWORK_MSG object</param>
         /// <returns>If successful</returns>
-        bool ReadData(out NETWORK_MSG? data)
+        private bool ReadData(out NETWORK_MSG? data)
         {
             try
             {
@@ -504,7 +498,7 @@ namespace rgat
         /// <param name="msgtype">Message Type</param>
         /// <param name="textdata">Message string</param>
         /// <returns>If successful</returns>
-        bool RawSendData(emsgType msgtype, string textdata)
+        private bool RawSendData(emsgType msgtype, string textdata)
         {
             return RawSendData(new NETWORK_MSG() { msgType = msgtype, destinationID = 0, data = Encoding.ASCII.GetBytes(textdata) });
         }
@@ -515,7 +509,7 @@ namespace rgat
         /// </summary>
         /// <param name="msg">A NETWORK_MSG object containing the message</param>
         /// <returns>If successful</returns>
-        bool RawSendData(NETWORK_MSG msg)
+        private bool RawSendData(NETWORK_MSG msg)
         {
             Task? write = null;
             try
@@ -576,7 +570,7 @@ namespace rgat
             return false;
         }
 
-        readonly byte[] _sendTag = new byte[16];
+        private readonly byte[] _sendTag = new byte[16];
 
         /// <summary>
         /// Add a message to the remote tracing dialog log panel
@@ -658,7 +652,7 @@ namespace rgat
             }
         }
 
-        void StartListenForConnection(TcpListener listener, OnConnectSuccessCallback connectCallback)
+        private void StartListenForConnection(TcpListener listener, OnConnectSuccessCallback connectCallback)
         {
             if (BridgeState != eBridgeState.Listening)
             {
@@ -741,8 +735,7 @@ namespace rgat
             _ActiveClient = null;
         }
 
-
-        void ServeAuthenticatedConnection(OnConnectSuccessCallback connectedCallback)
+        private void ServeAuthenticatedConnection(OnConnectSuccessCallback connectedCallback)
         {
             if (_ActiveClient is null || _ActiveClient.Client.RemoteEndPoint is null)
             {
@@ -758,7 +751,7 @@ namespace rgat
             StartConnectionDataHandlers();
         }
 
-        void StartConnectionDataHandlers()
+        private void StartConnectionDataHandlers()
         {
             Console.WriteLine($"Client {_ActiveClient} authenticated, serving...");
 
@@ -766,9 +759,7 @@ namespace rgat
             Task sender = Task.Run(() => SendOutgoingTraffic());
         }
 
-
-
-        static int commandCount = 0;
+        private static int commandCount = 0;
         /// <summary>
         /// Send a command to the remote instance of rgat (which is in commandline tracing mode)
         /// The handling of the response (a JToken) depends on the arguments
@@ -884,7 +875,7 @@ namespace rgat
 
 
         //https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca2328
-        readonly Newtonsoft.Json.JsonSerializer serialiserOut = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
+        private readonly Newtonsoft.Json.JsonSerializer serialiserOut = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings()
         {
             TypeNameHandling = TypeNameHandling.None,
         });
@@ -1001,9 +992,7 @@ namespace rgat
             }
         }
 
-
-
-        void ReceiveIncomingTraffic()
+        private void ReceiveIncomingTraffic()
         {
             Console.WriteLine("ReceiveIncomingTraffic started");
             Debug.Assert(_registeredIncomingDataCallback is not null);
@@ -1026,7 +1015,7 @@ namespace rgat
             Teardown("ReceiveIncomingTraffic dropout");
         }
 
-        void SendOutgoingTraffic()
+        private void SendOutgoingTraffic()
         {
             while (_ActiveClient is not null && _ActiveClient.Connected && !cancelTokens.IsCancellationRequested)
             {
@@ -1199,7 +1188,7 @@ namespace rgat
 
         }
 
-        readonly object _lock = new object();
+        private readonly object _lock = new object();
 
 
     }

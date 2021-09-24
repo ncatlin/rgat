@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace rgat.Widgets
 {
-    class SandboxChart
+    internal class SandboxChart
     {
         public class ItemNode
         {
@@ -26,14 +26,13 @@ namespace rgat.Widgets
         }
 
         //todo lock access to this
-        readonly QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>> sbgraph = new BidirectionalGraph<ItemNode, Edge<ItemNode>>();
-        readonly GraphShape.Algorithms.Layout.KKLayoutAlgorithm<ItemNode, Edge<ItemNode>, QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>>> layout;
-
-        Vector2 chartSize;
-        readonly float padding = 15;
-        double _scaleX = 1;
-        readonly float nodeSize = 8;
-        readonly ImFontPtr _fontptr;
+        private readonly QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>> sbgraph = new BidirectionalGraph<ItemNode, Edge<ItemNode>>();
+        private readonly GraphShape.Algorithms.Layout.KKLayoutAlgorithm<ItemNode, Edge<ItemNode>, QuikGraph.BidirectionalGraph<ItemNode, Edge<ItemNode>>> layout;
+        private Vector2 chartSize;
+        private readonly float padding = 15;
+        private double _scaleX = 1;
+        private readonly float nodeSize = 8;
+        private readonly ImFontPtr _fontptr;
 
         public SandboxChart(ImFontPtr font)
         {
@@ -53,9 +52,8 @@ namespace rgat.Widgets
             layout.Compute();
         }
 
-
-        TraceRecord? _rootTrace = null;
-        int timelineItemsOnChartDraw = 0;
+        private TraceRecord? _rootTrace = null;
+        private int timelineItemsOnChartDraw = 0;
         public void InitChartFromTrace(TraceRecord trace)
         {
             lock (_lock)
@@ -94,22 +92,23 @@ namespace rgat.Widgets
             }
         }
 
-        readonly Dictionary<string, ItemNode> addedNodes = new Dictionary<string, ItemNode>();
-        readonly object _lock = new object();
-        readonly Dictionary<APIDetailsWin.InteractionEntityType, Dictionary<string, ItemNode>> _interactionEntities = new Dictionary<APIDetailsWin.InteractionEntityType, Dictionary<string, ItemNode>>();
-        readonly Dictionary<APIDetailsWin.InteractionRawType, Dictionary<string, ItemNode>> _interactionEntityReferences = new Dictionary<APIDetailsWin.InteractionRawType, Dictionary<string, ItemNode>>();
-        readonly Dictionary<Logging.TIMELINE_EVENT, ItemNode> _timelineEventEntities = new Dictionary<Logging.TIMELINE_EVENT, ItemNode>();
+        private readonly Dictionary<string, ItemNode> addedNodes = new Dictionary<string, ItemNode>();
+        private readonly object _lock = new object();
+        private readonly Dictionary<APIDetailsWin.InteractionEntityType, Dictionary<string, ItemNode>> _interactionEntities = new Dictionary<APIDetailsWin.InteractionEntityType, Dictionary<string, ItemNode>>();
+        private readonly Dictionary<APIDetailsWin.InteractionRawType, Dictionary<string, ItemNode>> _interactionEntityReferences = new Dictionary<APIDetailsWin.InteractionRawType, Dictionary<string, ItemNode>>();
+        private readonly Dictionary<Logging.TIMELINE_EVENT, ItemNode> _timelineEventEntities = new Dictionary<Logging.TIMELINE_EVENT, ItemNode>();
 
         //set of action labels associateed with each edge. todo add as a property to edge/make new edge object?
-        readonly Dictionary<Tuple<ItemNode, ItemNode>, List<string>> _edgeLabels = new Dictionary<Tuple<ItemNode, ItemNode>, List<string>>();
-        readonly List<Tuple<ItemNode, ItemNode>> _addedEdges = new List<Tuple<ItemNode, ItemNode>>();
-
-        ItemNode? _selectedNode = null;
+        private readonly Dictionary<Tuple<ItemNode, ItemNode>, List<string>> _edgeLabels = new Dictionary<Tuple<ItemNode, ItemNode>, List<string>>();
+        private readonly List<Tuple<ItemNode, ItemNode>> _addedEdges = new List<Tuple<ItemNode, ItemNode>>();
+        private ItemNode? _selectedNode = null;
         public ItemNode? SelectedEntity { get; private set; }
         public ItemNode? GetSelectedNode => _selectedNode;
         public Logging.TIMELINE_EVENT? SelectedAPIEvent { get; private set; }
-        Vector2 Point2Vec(GraphShape.Point point) => new Vector2((float)point.X, (float)point.Y);
-        Vector2 chartOffset = Vector2.Zero;
+
+        private Vector2 Point2Vec(GraphShape.Point point) => new Vector2((float)point.X, (float)point.Y);
+
+        private Vector2 chartOffset = Vector2.Zero;
 
 
         public ItemNode GetInteractedEntity(Logging.TIMELINE_EVENT evt)
@@ -120,8 +119,7 @@ namespace rgat.Widgets
             }
         }
 
-
-        void AddThreadItems(ItemNode? parentProcess, TraceRecord trace)
+        private void AddThreadItems(ItemNode? parentProcess, TraceRecord trace)
         {
 
             string nodeName = $"PROCNODE_{trace.randID}";
@@ -353,8 +351,7 @@ namespace rgat.Widgets
             }
         }
 
-
-        void AddAPIEdge(ItemNode source, ItemNode dest, string? label = "")
+        private void AddAPIEdge(ItemNode source, ItemNode dest, string? label = "")
         {
             Edge<ItemNode> edge = new Edge<ItemNode>(source, dest);
             Tuple<ItemNode, ItemNode> edgeTuple = new Tuple<ItemNode, ItemNode>(source, dest);
@@ -380,8 +377,8 @@ namespace rgat.Widgets
             }
         }
 
-        bool _layoutActive = false;
-        bool _computeRequired = false;
+        private bool _layoutActive = false;
+        private bool _computeRequired = false;
 
         public void Draw()
         {
@@ -470,8 +467,7 @@ namespace rgat.Widgets
             ImGui.PopStyleColor();
         }
 
-
-        void DrawNode(ItemNode node, Vector2 position)
+        private void DrawNode(ItemNode node, Vector2 position)
         {
             Vector2 cursor = ImGui.GetCursorScreenPos();
             if (!InFrame(position - cursor))
@@ -606,8 +602,7 @@ namespace rgat.Widgets
             ImGui.SetCursorScreenPos(cursor);
         }
 
-
-        bool InFrame(Vector2 ScreenPosition)
+        private bool InFrame(Vector2 ScreenPosition)
         {
             return (ScreenPosition.X > 5 &&
                 ScreenPosition.X < (chartSize.X + nodeSize) &&
@@ -675,8 +670,7 @@ namespace rgat.Widgets
             }
         }
 
-
-        void HandleMouseInput()
+        private void HandleMouseInput()
         {
             /*
             Vector2 pos = ImGui.GetCursorScreenPos() + chartOffset;
@@ -694,8 +688,7 @@ namespace rgat.Widgets
             }
         }
 
-
-        void StopLayout()
+        private void StopLayout()
         {
             if (layout.State == QuikGraph.Algorithms.ComputationState.Running)
             {
@@ -727,8 +720,8 @@ namespace rgat.Widgets
             }
         }
 
-        bool _fittingActive = false;
-        int fittingAttempts = 0;
+        private bool _fittingActive = false;
+        private int fittingAttempts = 0;
         public void FitNodesToChart()
         {
             fittingAttempts = 0;
@@ -738,8 +731,7 @@ namespace rgat.Widgets
             }
         }
 
-
-        void DoLayoutFittingCycle()
+        private void DoLayoutFittingCycle()
         {
 
             if (LayoutRunning || !_fittingActive)
@@ -846,10 +838,10 @@ namespace rgat.Widgets
             }
         }
 
-        bool LayoutRunning => layout.State == QuikGraph.Algorithms.ComputationState.Running ||
+        private bool LayoutRunning => layout.State == QuikGraph.Algorithms.ComputationState.Running ||
                 layout.State == QuikGraph.Algorithms.ComputationState.PendingAbortion;
 
-        bool MouseOverWidget = false;
+        private bool MouseOverWidget = false;
         public void ApplyMouseDrag(Vector2 delta)
         {
             if (MouseOverWidget)

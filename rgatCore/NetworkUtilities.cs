@@ -5,7 +5,7 @@ using System.Net.NetworkInformation;
 
 namespace rgat
 {
-    class NetworkUtilities
+    internal class NetworkUtilities
     {
         public static void PrintInterfaces(bool PrintInvalid = false)
         {

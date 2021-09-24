@@ -16,7 +16,7 @@ namespace rgat.OperationModes
     /// Creates and manages a Veldrid/ImGui based rgat GUI
     /// This requires access to a GPU (with Vulkan drivers)
     /// </summary>
-    class ImGuiRunner
+    internal class ImGuiRunner
     {
 
         //rgat ui state
@@ -25,17 +25,14 @@ namespace rgat.OperationModes
 
         //rgat program state
         private readonly rgatState _rgatState;
-
-        Threads.HeatRankingThread? heatRankThreadObj = null;
-
-        rgatUI? _rgatUI;
+        private Threads.HeatRankingThread? heatRankThreadObj = null;
+        private rgatUI? _rgatUI;
 
         private Sdl2Window? _window;
         private GraphicsDevice? _gd;
         private CommandList? _cl;
-
-        Vector2 WindowStartPos = new Vector2(100f, 100f);
-        Vector2 WindowOffset = new Vector2(0, 0);
+        private Vector2 WindowStartPos = new Vector2(100f, 100f);
+        private Vector2 WindowOffset = new Vector2(0, 0);
 
         /// <summary>
         /// Create an ImGui GUI rgat session
@@ -53,18 +50,17 @@ namespace rgat.OperationModes
         // UI state
         private Vector3 _clearColor = new Vector3(0.15f, 0.15f, 0.16f);
         private bool _showDemoWindow = true;
-        static Vector2 _lastMousePos;
-
-        static readonly List<Key> HeldResponsiveKeys = new List<Key>();
+        private static Vector2 _lastMousePos;
+        private static readonly List<Key> HeldResponsiveKeys = new List<Key>();
 
         //perform rare events like freeing resources which havent been used in a while
-        readonly System.Timers.Timer _longTimer;
-        bool _housekeepingTimerFired;
+        private readonly System.Timers.Timer _longTimer;
+        private bool _housekeepingTimerFired;
         private void FireLongTimer(object sender, System.Timers.ElapsedEventArgs e) { _housekeepingTimerFired = true; }
 
         //perform regular events
-        readonly System.Timers.Timer _shortTimer;
-        bool _shortTimerFired = false;
+        private readonly System.Timers.Timer _shortTimer;
+        private bool _shortTimerFired = false;
         private void FireShortTimer(object sender, System.Timers.ElapsedEventArgs e) { _shortTimerFired = true; }
 
         /// <summary>
@@ -171,7 +167,7 @@ namespace rgat.OperationModes
         /// <summary>
         /// Should be called after config is loaded to benefit from keybind config
         /// </summary>
-        void InitEventHandlers()
+        private void InitEventHandlers()
         {
             Debug.Assert(_controller is not null);
             _window!.Resized += () =>
@@ -321,7 +317,7 @@ namespace rgat.OperationModes
 
 
         //todo - make Exit wait until this returns
-        async void LoadingThread()
+        private async void LoadingThread()
         {
 
             Logging.RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug);
@@ -466,8 +462,7 @@ namespace rgat.OperationModes
             _lastMousePos = mm.MousePosition;
         }
 
-
-        bool _UIStopped = false;
+        private bool _UIStopped = false;
         public bool DrawUI()
         {
             if (rgatState.rgatIsExiting)

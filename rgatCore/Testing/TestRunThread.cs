@@ -5,16 +5,16 @@ using System.Threading;
 
 namespace rgat.Testing
 {
-    class TestRunThread
+    internal class TestRunThread
     {
-        readonly TestCase _testCase;
-        readonly TestCaseRun _thisTest;
-        Thread? thisThread;
-        readonly rgatState _rgatState;
+        private readonly TestCase _testCase;
+        private readonly TestCaseRun _thisTest;
+        private Thread? thisThread;
+        private readonly rgatState _rgatState;
         public bool Running { get; private set; } = false;
         public bool Finished { get; private set; } = false;
 
-        readonly TestHarnessThread _harness;
+        private readonly TestHarnessThread _harness;
 
         public TestRunThread(TestCaseRun testrun, rgatState rgatState, TestHarnessThread harness)
         {
@@ -32,7 +32,7 @@ namespace rgat.Testing
             thisThread.Start(null);
         }
 
-        void TestMain(object? _)
+        private void TestMain(object? _)
         {
             if (!File.Exists(_testCase.BinaryPath))
             {

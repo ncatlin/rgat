@@ -21,15 +21,15 @@ namespace rgat.OperationModes
     /// Runs rgat as a headless proxy which allows an rgat instance on a remote machine to control tracing and receive raw trace data
     /// This does not require access to a GPU
     /// </summary>
-    class BridgedRunner
+    internal class BridgedRunner
     {
         public BridgedRunner()
         {
         }
 
-        readonly Queue<NETWORK_MSG> _incomingData = new Queue<NETWORK_MSG>();
-        readonly object _lock = new object();
-        readonly ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
+        private readonly Queue<NETWORK_MSG> _incomingData = new Queue<NETWORK_MSG>();
+        private readonly object _lock = new object();
+        private readonly ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
 
 
         public void StartGUIConnect(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback onConnected)
@@ -132,7 +132,7 @@ namespace rgat.OperationModes
             rgatState.Shutdown();
         }
 
-        void InitStartOptions()
+        private void InitStartOptions()
         {
             string defaultKey = GlobalConfig.Settings.Network.DefaultNetworkKey;
             if (defaultKey?.Length > 0)
@@ -142,8 +142,7 @@ namespace rgat.OperationModes
 
         }
 
-
-        void RunConnection(BridgeConnection connection)
+        private void RunConnection(BridgeConnection connection)
         {
             while (!rgatState.rgatIsExiting && !connection.Connected && connection.ActiveNetworking)
             {
@@ -192,8 +191,7 @@ namespace rgat.OperationModes
 
         }
 
-
-        void ProcessData(NETWORK_MSG item)
+        private void ProcessData(NETWORK_MSG item)
         {
 
             switch (item.msgType)
@@ -342,8 +340,7 @@ namespace rgat.OperationModes
             }
         }
 
-
-        bool ParseAsync(string injson, out string? name, out JToken? data)
+        private bool ParseAsync(string injson, out string? name, out JToken? data)
         {
             name = null; data = null;
             try
@@ -399,8 +396,7 @@ namespace rgat.OperationModes
 
         }
 
-
-        bool ProcessSignatureTimes(JToken data)
+        private bool ProcessSignatureTimes(JToken data)
         {
             if (data.Type is not JTokenType.Object)
             {
@@ -429,7 +425,7 @@ namespace rgat.OperationModes
             return true;
         }
 
-        bool ProcessSignatureHit(JToken data)
+        private bool ProcessSignatureHit(JToken data)
         {
             if (data.Type is not JTokenType.Object)
             {
@@ -487,7 +483,7 @@ namespace rgat.OperationModes
         /// <param name="trace">The trace the metadata applies to</param>
         /// <param name="metaparams">The metadata string items produced</param>
         /// <returns>If parsing succeeded</returns>
-        bool ParseTraceMeta(byte[] infoBytes, out TraceRecord? trace, out string[]? metaparams)
+        private bool ParseTraceMeta(byte[] infoBytes, out TraceRecord? trace, out string[]? metaparams)
         {
             trace = null;
             metaparams = null;
@@ -543,8 +539,7 @@ namespace rgat.OperationModes
             return metaparams is not null;
         }
 
-
-        bool HandleTraceMeta(TraceRecord? trace, string[] inparams)
+        private bool HandleTraceMeta(TraceRecord? trace, string[] inparams)
         {
             Debug.Assert(trace != null);
 
@@ -584,11 +579,7 @@ namespace rgat.OperationModes
 
         }
 
-
-
-
-
-        bool ParseCommandFields(JObject cmd, out string? actualCmd, out int cmdID, out JToken? paramTok)
+        private bool ParseCommandFields(JObject cmd, out string? actualCmd, out int cmdID, out JToken? paramTok)
         {
             actualCmd = "";
             paramTok = null;
@@ -617,7 +608,7 @@ namespace rgat.OperationModes
         }
 
         //todo un-badify this
-        void ProcessCommand(JObject cmd)
+        private void ProcessCommand(JObject cmd)
         {
             if (rgatState.NetworkBridge.GUIMode)
             {
@@ -681,7 +672,7 @@ namespace rgat.OperationModes
 
         }
 
-        void HandleSignatureUpload(JToken? paramfield)
+        private void HandleSignatureUpload(JToken? paramfield)
         {
             if (rgatState.NetworkBridge.GUIMode)
             {
@@ -725,7 +716,7 @@ namespace rgat.OperationModes
 
         }
 
-        void HandleSigScanCommand(JToken? paramfield)
+        private void HandleSigScanCommand(JToken? paramfield)
         {
             if (paramfield is null || paramfield.Type is not JTokenType.Object)
             {
@@ -769,8 +760,7 @@ namespace rgat.OperationModes
             }
         }
 
-
-        void StartHeadlessTrace(JToken? paramfield)
+        private void StartHeadlessTrace(JToken? paramfield)
         {
             if (paramfield is null || paramfield.Type is not JTokenType.Object)
             {
@@ -849,9 +839,7 @@ namespace rgat.OperationModes
             }
         }
 
-
-
-        bool StartThreadIngestWorker(int cmdID, JToken? paramfield)
+        private bool StartThreadIngestWorker(int cmdID, JToken? paramfield)
         {
             if (paramfield is null || paramfield.Type is not JTokenType.Object)
             {
@@ -892,11 +880,9 @@ namespace rgat.OperationModes
             return false;
         }
 
-        readonly JsonLoadSettings _JSONLoadSettings = new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error };
+        private readonly JsonLoadSettings _JSONLoadSettings = new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error };
 
-
-
-        JObject GetDirectoryInfo(JToken? dirObj)
+        private JObject GetDirectoryInfo(JToken? dirObj)
         {
 
             JObject data = new JObject();
@@ -920,8 +906,7 @@ namespace rgat.OperationModes
             return data;
         }
 
-
-        JObject GetDirectoryListing(string param, out string? error)
+        private JObject GetDirectoryListing(string param, out string? error)
         {
             JArray files = new JArray();
             JArray dirs = new JArray();
@@ -961,8 +946,7 @@ namespace rgat.OperationModes
             return result;
         }
 
-
-        JToken GatherTargetInitData(JToken? pathTok)
+        private JToken GatherTargetInitData(JToken? pathTok)
         {
             if (pathTok != null && pathTok.Type == JTokenType.String)
             {
@@ -980,9 +964,7 @@ namespace rgat.OperationModes
             return result;
         }
 
-
-
-        bool ParseResponse(string messageJson, out int commandID, out JToken? responseData)
+        private bool ParseResponse(string messageJson, out int commandID, out JToken? responseData)
         {
             commandID = -1; responseData = null;
             try
@@ -1021,8 +1003,7 @@ namespace rgat.OperationModes
             }
         }
 
-
-        void ConnectToListener(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback onConnected)
+        private void ConnectToListener(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback onConnected)
         {
 
             IPAddress? localBinding = GetLocalAddress();
@@ -1051,8 +1032,7 @@ namespace rgat.OperationModes
             rgatState.NetworkBridge.SendCommand("GetRecentBinaries", recipientID: "GUI", callback: RemoteDataMirror.HandleRecentBinariesList);
         }
 
-
-        bool GetRemoteAddress(string param, out string address, out int port)
+        private bool GetRemoteAddress(string param, out string address, out int port)
         {
             address = "";
             port = -1;
@@ -1076,8 +1056,7 @@ namespace rgat.OperationModes
             return false;
         }
 
-
-        IPAddress? GetLocalAddress()
+        private IPAddress? GetLocalAddress()
         {
             IPAddress? result = null;
             if (GlobalConfig.StartOptions!.ActiveNetworkInterface == null && GlobalConfig.StartOptions.Interface != null)
@@ -1128,8 +1107,7 @@ namespace rgat.OperationModes
             return result;
         }
 
-
-        void StartListenerMode(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback connectCallback)
+        private void StartListenerMode(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback connectCallback)
         {
 
             IPAddress? localAddr = GetLocalAddress();
@@ -1208,7 +1186,7 @@ namespace rgat.OperationModes
             }
         }
 
-        static string GetString(byte[] bytes)
+        private static string GetString(byte[] bytes)
         {
             try
             {

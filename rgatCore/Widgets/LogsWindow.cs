@@ -9,7 +9,7 @@ using static rgat.Logging;
 
 namespace rgat
 {
-    partial class LogsWindow
+    internal partial class LogsWindow
     {
         public LogsWindow(rgatState _state)
         {
@@ -25,17 +25,15 @@ namespace rgat
             _refreshTimer.Start();
         }
 
-        readonly rgatState _rgatState;
-        static bool[] _LogFilters = new bool[(int)LogFilterType.COUNT];
-        static readonly bool[] rowLastSelected = new bool[3];
-        static byte[] textFilterValue = new byte[500];
-        readonly System.Timers.Timer _refreshTimer;
-
-        bool _refreshTimerFired = false;
+        private readonly rgatState _rgatState;
+        private static bool[] _LogFilters = new bool[(int)LogFilterType.COUNT];
+        private static readonly bool[] rowLastSelected = new bool[3];
+        private static byte[] textFilterValue = new byte[500];
+        private readonly System.Timers.Timer _refreshTimer;
+        private bool _refreshTimerFired = false;
         private void FireTimer(object sender, System.Timers.ElapsedEventArgs e) { _refreshTimerFired = true; }
 
-
-        List<LOG_EVENT> _sortedMsgs = new List<LOG_EVENT>();
+        private List<LOG_EVENT> _sortedMsgs = new List<LOG_EVENT>();
 
 
 
@@ -114,9 +112,7 @@ namespace rgat
             }
         }
 
-
-
-        void WriteLogContentTable()
+        private void WriteLogContentTable()
         {
             Logging.LOG_EVENT[] msgs = Logging.GetLogMessages(null, _LogFilters);
             int activeCount = _LogFilters.Where(x => x == true).Count();
@@ -205,8 +201,7 @@ namespace rgat
             }
         }
 
-
-        void RegenerateRows(List<LOG_EVENT> shownMsgs)
+        private void RegenerateRows(List<LOG_EVENT> shownMsgs)
         {
             _sortedMsgs.Clear();
             if (_LogFilters.Any(f => f == true))

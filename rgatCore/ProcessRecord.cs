@@ -776,7 +776,7 @@ namespace rgat
             return true;
         }
 
-        struct ADDRESS_DATA
+        private struct ADDRESS_DATA
         {
             public ulong address;
             public int moduleID;
@@ -935,7 +935,7 @@ namespace rgat
             return true;
         }
 
-        bool UnpackAddress(JArray entry, CapstoneX86Disassembler disassembler)
+        private bool UnpackAddress(JArray entry, CapstoneX86Disassembler disassembler)
         {
             if (entry.Type != JTokenType.Array || entry.Count != 4 ||
                        entry[0].Type != JTokenType.Integer ||
@@ -970,7 +970,7 @@ namespace rgat
             return true;
         }
 
-        bool LoadDisassembly(JObject processJSON)
+        private bool LoadDisassembly(JObject processJSON)
         {
             if (!processJSON.TryGetValue("BitWidth", out JToken? tBitWidth) || tBitWidth.Type != JTokenType.Integer)
             {
@@ -1069,8 +1069,7 @@ namespace rgat
             return true;
         }
 
-
-        bool UnpackExtern(JObject externEntry)
+        private bool UnpackExtern(JObject externEntry)
         {
             if (!externEntry.TryGetValue("A", out JToken? Addr) || Addr.Type != JTokenType.Integer)
             {
@@ -1125,8 +1124,7 @@ namespace rgat
             return true;
         }
 
-
-        bool loadExterns(JObject processJSON)
+        private bool loadExterns(JObject processJSON)
         {
             if (!processJSON.TryGetValue("Externs", out JToken? jExterns) || jExterns.Type != JTokenType.Array)
             {

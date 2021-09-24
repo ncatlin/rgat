@@ -67,7 +67,7 @@ namespace rgat
             /// <summary>
             /// Where to fetch the download to
             /// </summary>
-            string? _fetchPath = null;
+            private string? _fetchPath = null;
 
             /// <summary>
             /// The github path for the repo

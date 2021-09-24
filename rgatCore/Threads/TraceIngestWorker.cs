@@ -27,7 +27,8 @@ namespace rgat.Threads
         /// How many items of data are awaiting ingest
         /// </summary>
         public ulong QueueSize { get; protected set; } = 0;
-        long _recentMsgCount = 0;
+
+        private long _recentMsgCount = 0;
 
 
         /// <summary>
@@ -35,7 +36,7 @@ namespace rgat.Threads
         /// </summary>
         protected bool WakeupRequested { get; private set; } = false;
 
-        readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
+        private readonly CancellationTokenSource cancelTokens = new CancellationTokenSource();
 
         /// <summary>
         /// Cancellation token cancelled if Terminate is called
@@ -95,10 +96,10 @@ namespace rgat.Threads
         public virtual bool HasPendingData => PendingDataSize != 0;
 
         private readonly object _statsLock = new object();
-        readonly System.Timers.Timer StatsTimer;
-        DateTime _lastStatsUpdate = DateTime.Now;
+        private readonly System.Timers.Timer StatsTimer;
+        private DateTime _lastStatsUpdate = DateTime.Now;
         private readonly List<float> _updateRates = new List<float>();
-        readonly int _StatCacheSize = (int)Math.Floor(GlobalConfig.IngestStatWindow * GlobalConfig.IngestStatsPerSecond);
+        private readonly int _StatCacheSize = (int)Math.Floor(GlobalConfig.IngestStatWindow * GlobalConfig.IngestStatsPerSecond);
 
         /// <summary>
         /// Get recnt messages/second ingest rates

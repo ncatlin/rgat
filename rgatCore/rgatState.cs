@@ -154,7 +154,7 @@ namespace rgat
         /// Cancellation tokens to be used by all rgat tasks to signal that rgat is shutting down
         /// Nothing should block in a way that will ignore this for more than a few hundred milliseconds
         /// </summary>
-        static readonly CancellationTokenSource _exitTokenSource = new CancellationTokenSource();
+        private static readonly CancellationTokenSource _exitTokenSource = new CancellationTokenSource();
         /// <summary>
         /// rgat is shutting down
         /// </summary>
@@ -344,7 +344,7 @@ namespace rgat
         /// <param name="saveJSON">A Newtonsoft JObject for the saved trace</param>
         /// <param name="targetResult">The created BinaryTarget object</param>
         /// <returns></returns>
-        static bool InitialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, out BinaryTarget? targetResult)
+        private static bool InitialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, out BinaryTarget? targetResult)
         {
             BinaryTarget? target = null;
             targetResult = null;
@@ -372,8 +372,8 @@ namespace rgat
 
         }
 
-        readonly Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
-        readonly Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
+        private readonly Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
+        private readonly Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
 
         /// <summary>
         /// Causes the UI to switch to displaying a different thread graph
@@ -443,7 +443,7 @@ namespace rgat
         /// Activate a graph in the active trace
         /// Selects the last one that was active in this trace, or the first seen
         /// </summary>
-        void SelectGraphInActiveTrace()
+        private void SelectGraphInActiveTrace()
         {
             TraceRecord? selectedTrace = ActiveTrace;
             if (selectedTrace == null)
@@ -538,7 +538,7 @@ namespace rgat
         /// <param name="target">The binarytarget associated with the trace</param>
         /// <param name="traceResult">The output reconstructed TraceRecord</param>
         /// <returns>true if a new trace was created, false if failed or duplicated</returns>
-        static bool LoadTraceRecord(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTarget target, out TraceRecord? traceResult)
+        private static bool LoadTraceRecord(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTarget target, out TraceRecord? traceResult)
         {
             bool valid = true;
             valid &= saveJSON.TryGetValue("PID", out JToken? jPID) && jPID is not null;
@@ -653,7 +653,7 @@ namespace rgat
         /// </summary>
         /// <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
         /// <param name="childrenFiles">A list of relative filesystem paths of child traces</param>
-        void ExtractChildTraceFilenames(JObject saveJSON, out List<string> childrenFiles)
+        private void ExtractChildTraceFilenames(JObject saveJSON, out List<string> childrenFiles)
         {
             childrenFiles = new List<string>();
             if (saveJSON.TryGetValue("Children", out JToken? jChildren) && jChildren.Type == JTokenType.Array)
@@ -671,7 +671,7 @@ namespace rgat
         /// </summary>
         /// <param name="childrenFiles">A list of relative filesystem paths of traces</param>
         /// <param name="trace">The parent TraceRecord of the child traces</param>
-        void LoadChildTraces(List<string> childrenFiles, TraceRecord trace)
+        private void LoadChildTraces(List<string> childrenFiles, TraceRecord trace)
         {
 
             string saveDir = "C:\\";//config.saveDir; //should be same dir as loaded trace?
@@ -753,9 +753,8 @@ namespace rgat
             trace.ExportPajek(TID);
         }
 
-
-        readonly object _testDictLock = new object();
-        readonly Dictionary<long, TraceRecord> _testConnections = new Dictionary<long, TraceRecord>();
+        private readonly object _testDictLock = new object();
+        private readonly Dictionary<long, TraceRecord> _testConnections = new Dictionary<long, TraceRecord>();
         /// <summary>
         /// Store a reference to an incoming rgat test trace
         /// </summary>

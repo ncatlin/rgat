@@ -39,14 +39,13 @@ namespace rgat
             Ended
         };
 
-
-        readonly ReaderWriterLockSlim _renderLock = new ReaderWriterLockSlim();
+        private readonly ReaderWriterLockSlim _renderLock = new ReaderWriterLockSlim();
 
         /// <summary>
         /// Framebuffers for the preview texture
         /// </summary>
         public Veldrid.Framebuffer? _previewFramebuffer1, _previewFramebuffer2;
-        Veldrid.Texture? _previewTexture1, _previewTexture2;
+        private Veldrid.Texture? _previewTexture1, _previewTexture2;
 
 
         /// <summary>
@@ -75,12 +74,8 @@ namespace rgat
         /// The actual store of graphical data for the graph layout
         /// </summary>
         public GraphLayoutState LayoutState;
-
-
-        readonly ReaderWriterLockSlim textureLock = new ReaderWriterLockSlim();
-
-
-        int latestWrittenTexture = 1;
+        private readonly ReaderWriterLockSlim textureLock = new ReaderWriterLockSlim();
+        private int latestWrittenTexture = 1;
 
 
 
@@ -330,8 +325,7 @@ namespace rgat
             }
         }
 
-
-        float GetAttractionForce(EdgeData edge)
+        private float GetAttractionForce(EdgeData edge)
         {
             //don't attract node to other nodes with lots of connections.
             //todo: do this at edge creation time, add a flag to the edgedata class
@@ -442,8 +436,7 @@ namespace rgat
             }
         }
 
-
-        float[] GenerateCylinderLayout()
+        private float[] GenerateCylinderLayout()
         {
 
             int nodeCount = _graphStructureLinear.Count;
@@ -590,10 +583,11 @@ namespace rgat
             return textureArray;
         }
 
-        readonly float CYLINDER_RADIUS = 5000f;
-        readonly float CYLINDER_PIXELS_PER_B = 30f;
-        readonly float CYLINDER_PIXELS_PER_A = 60f;
-        void GenerateCylinderWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
+        private readonly float CYLINDER_RADIUS = 5000f;
+        private readonly float CYLINDER_PIXELS_PER_B = 30f;
+        private readonly float CYLINDER_PIXELS_PER_A = 60f;
+
+        private void GenerateCylinderWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
             int CYLINDER_PIXELS_PER_ROW = 500;
             float WF_POINTSPERLINE = 50f;
@@ -625,9 +619,7 @@ namespace rgat
             }
         }
 
-
-
-        void GenerateRotationWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
+        private void GenerateRotationWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
             float WF_POINTSPERLINE = 50f;
             float radius = _furthestNodeDimension;
@@ -693,7 +685,7 @@ namespace rgat
 
         }
 
-        float _lowestWireframeLoop;
+        private float _lowestWireframeLoop;
         //todo cache
 
 
@@ -740,7 +732,7 @@ namespace rgat
             return resultList.ToArray();
         }
 
-        void CreateHighlightEdges(List<uint> edgeIndices, List<GeomPositionColour> resultList)
+        private void CreateHighlightEdges(List<uint> edgeIndices, List<GeomPositionColour> resultList)
         {
             List<uint> highlightNodes;
 
@@ -788,7 +780,7 @@ namespace rgat
             }
         }
 
-        void CreateLiveNodeEdge(List<uint> edgeIndices, List<GeomPositionColour> resultList)
+        private void CreateLiveNodeEdge(List<uint> edgeIndices, List<GeomPositionColour> resultList)
         {
             uint node = LastAnimatedVert;
             if (InternalProtoGraph.HasRecentStep)
@@ -857,7 +849,7 @@ namespace rgat
 
 
         //Adapted from analytics textureGenerator.js 
-        float[] GenerateCircleLayout()
+        private float[] GenerateCircleLayout()
         {
 
             int nodeCount = _graphStructureLinear.Count;
@@ -923,8 +915,7 @@ namespace rgat
             Temperature = temp;
         }
 
-
-        unsafe void AddNode(uint nodeIdx, EdgeData? edge = null)
+        private unsafe void AddNode(uint nodeIdx, EdgeData? edge = null)
         {
 
             textureLock.EnterReadLock();
@@ -1117,8 +1108,7 @@ namespace rgat
             return sourceData;
         }
 
-
-        int[]? _blockRenderingMetadata;
+        private int[]? _blockRenderingMetadata;
 
         /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
         public unsafe int[] GetBlockRenderingMetadata()
@@ -1141,7 +1131,7 @@ namespace rgat
         /// </summary>
         /// <param name="nodecount">Number of nodes to add. This isn't just taken from nodelist because
         /// it may be intended for a texture of a certain size</param>
-        int[] CreateBlockMetadataBuf(int nodecount)
+        private int[] CreateBlockMetadataBuf(int nodecount)
         {
 
             int[] blockDataInts = new int[nodecount * 4];
@@ -1256,7 +1246,7 @@ namespace rgat
         /// </summary>
         public int DrawnEdgesCount = 0;
 
-        void UpdateNodeLinks(int srcNodeIdx, int destNodeIdx)
+        private void UpdateNodeLinks(int srcNodeIdx, int destNodeIdx)
         {
             Debug.Assert(srcNodeIdx >= 0 && destNodeIdx >= 0);
             Debug.Assert(srcNodeIdx < _graphStructureLinear.Count && destNodeIdx < _graphStructureLinear.Count);
@@ -1303,7 +1293,7 @@ namespace rgat
             return presetPositionsArray;
         }
 
-        float[] CreateRandomPresetLayout()
+        private float[] CreateRandomPresetLayout()
         {
 
             var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
@@ -1491,8 +1481,7 @@ namespace rgat
             }
         }
 
-
-        Tuple<string?, uint> CreateNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
+        private Tuple<string?, uint> CreateNodeLabel(int index, eRenderingMode renderingMode, bool forceNew = false)
         {
             NodeData n = InternalProtoGraph.NodeList[index];
             if (n.Label == null || n.Dirty || forceNew)
@@ -1514,16 +1503,16 @@ namespace rgat
             }
         }
 
-        void RegenerateLabels() => _newLabels = true;
-        bool _newLabels;
+        private void RegenerateLabels() => _newLabels = true;
 
-        eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
+        private bool _newLabels;
+        private eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
         /// <summary>
         /// Get the currently selected rendering mode of the graph (heatmap, etc)
         /// </summary>
         public eRenderingMode RenderingMode => lastRenderingMode;
 
-        ulong lastThemeVersion = 0;
+        private ulong lastThemeVersion = 0;
 
         //important todo - cacheing!  once the result is good
         /// <summary>
@@ -1608,7 +1597,7 @@ namespace rgat
             return nodeVerts;
         }
 
-        void InitGraphColours()
+        private void InitGraphColours()
         {
             lock (textureLock)
             {
@@ -1727,13 +1716,12 @@ namespace rgat
         /// </summary>
         /// <param name="num">Node count</param>
         /// <returns>Texture size</returns>
-        static uint dataTextureSize(int num)
+        private static uint dataTextureSize(int num)
         {
             return indexTextureSize((int)Math.Ceiling(num / 4.0));
         }
 
-
-        static uint indexTextureSize(int nodesEdgesLength)
+        private static uint indexTextureSize(int nodesEdgesLength)
         {
             var power = 1;
             while (power * power < nodesEdgesLength)
@@ -1745,7 +1733,7 @@ namespace rgat
 
 
         //todo: linq
-        static int countDataArrayItems(List<List<int>> dataArray)
+        private static int countDataArrayItems(List<List<int>> dataArray)
         {
             int nodeCount = dataArray.Count;
             int counter = 0;
@@ -1768,7 +1756,7 @@ namespace rgat
 
 
         //node+edge col+pos
-        bool get_block_nodelist(ulong blockAddr, long blockID, out List<uint>? newnodelist)
+        private bool get_block_nodelist(ulong blockAddr, long blockID, out List<uint>? newnodelist)
         {
             ProcessRecord piddata = InternalProtoGraph.ProcessData;
             ROUTINE_STRUCT? externBlock = new ROUTINE_STRUCT();
@@ -1851,8 +1839,7 @@ namespace rgat
             return true;
         }
 
-
-        void brighten_next_block_edge(uint blockID, ulong blockAddress)
+        private void brighten_next_block_edge(uint blockID, ulong blockAddress)
         {
             ROUTINE_STRUCT? externStr = null;
             List<InstructionData>? nextBlock = InternalProtoGraph.ProcessData.GetDisassemblyBlock(blockID, ref externStr, blockAddress);
@@ -1903,7 +1890,7 @@ namespace rgat
 
         }
 
-        void brighten_node_list(ANIMATIONENTRY entry, int brightTime, List<uint> nodeIDList)
+        private void brighten_node_list(ANIMATIONENTRY entry, int brightTime, List<uint> nodeIDList)
         {
             ulong listOffset = 0;
 
@@ -1943,8 +1930,7 @@ namespace rgat
             }
         }
 
-
-        void end_unchained(ANIMATIONENTRY entry)
+        private void end_unchained(ANIMATIONENTRY entry)
         {
 
             remove_unchained_from_animation();
@@ -1976,7 +1962,7 @@ namespace rgat
 
 
         //return false if we need more trace data to do further updates
-        bool process_live_update()
+        private bool process_live_update()
         {
             if (InternalProtoGraph.HasRecentStep)
             {
@@ -2057,8 +2043,7 @@ namespace rgat
             return true;
         }
 
-
-        void process_replay_animation_updates(double optionalStepSize = 0)
+        private void process_replay_animation_updates(double optionalStepSize = 0)
         {
             if (InternalProtoGraph.SavedAnimationData.Count == 0)
             {
@@ -2105,10 +2090,9 @@ namespace rgat
             }
         }
 
-        int _lastReplayedIndex = -1;
+        private int _lastReplayedIndex = -1;
 
-
-        void process_replay_update(int replayUpdateIndex)
+        private void process_replay_update(int replayUpdateIndex)
         {
             bool verbose = true;
             ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[replayUpdateIndex];
@@ -2232,7 +2216,7 @@ namespace rgat
          Nodes that are continuously lit up due to being blocked or in a busy (unchained) loop
          These pulse
          */
-        ulong calculate_wait_frames(ulong executions)
+        private ulong calculate_wait_frames(ulong executions)
         {
             //assume 10 instructions per step/frame
             ulong stepSize = (ulong)AnimationRate;
@@ -2366,8 +2350,7 @@ namespace rgat
         /// Signals that the user has changed the highlighted nodes
         /// </summary>
         public bool HighlightsChanged;
-
-        readonly Dictionary<int, Vector4> _customHighlightColours = new Dictionary<int, Vector4>();
+        private readonly Dictionary<int, Vector4> _customHighlightColours = new Dictionary<int, Vector4>();
         /// <summary>
         /// Get the highlight colour of the node
         /// </summary>
@@ -2445,8 +2428,7 @@ namespace rgat
         /// When the last compute cycle was done on this graph
         /// </summary>
         public long LastComputeTime;
-
-        int _computeBufferNodeCount;
+        private int _computeBufferNodeCount;
         /// <summary>
         /// Number of nodes added to the compute buffer
         /// </summary>
@@ -2576,9 +2558,8 @@ namespace rgat
             }
         }
 
-
-        int _furthestNodeIdx = -1;
-        float _furthestNodeDimension = 0;
+        private int _furthestNodeIdx = -1;
+        private float _furthestNodeDimension = 0;
         /// <summary>
         /// Sets the coordinate of the furthest node from the origin
         /// Used for drawing the force directed layout wireframe, where the distance of this node from the origin is used as the radius
@@ -2591,8 +2572,7 @@ namespace rgat
             _furthestNodeDimension = farDimension;
         }
 
-
-        void AddRisingSymbol(uint nodeIdx, int callIndex, int lingerFrames)
+        private void AddRisingSymbol(uint nodeIdx, int callIndex, int lingerFrames)
         {
             NodeData? n = InternalProtoGraph.GetNode(nodeIdx);
             Debug.Assert(n is not null);
@@ -2619,7 +2599,7 @@ namespace rgat
 
 
         //this node was executed once, make it pulse on the animation
-        void AddPulseActiveNode(uint nodeIdx)
+        private void AddPulseActiveNode(uint nodeIdx)
         {
             lock (animationLock)
             {
@@ -2635,7 +2615,7 @@ namespace rgat
         /// this node is active in a loop or blocking, keep it lit up until deactivated
         /// </summary>
         /// <param name="nodeIdx">node index</param>
-        void AddContinuousActiveNode(uint nodeIdx)
+        private void AddContinuousActiveNode(uint nodeIdx)
         {
             lock (animationLock)
             {
@@ -2646,7 +2626,7 @@ namespace rgat
             }
         }
 
-        void RemoveContinuousActiveNode(uint nodeIdx)
+        private void RemoveContinuousActiveNode(uint nodeIdx)
         {
             lock (animationLock)
             {
@@ -2654,7 +2634,7 @@ namespace rgat
             }
         }
 
-        void remove_unchained_from_animation()
+        private void remove_unchained_from_animation()
         {
             lock (animationLock)
             {
@@ -2664,7 +2644,7 @@ namespace rgat
             }
         }
 
-        void ResetAllActiveAnimatedAlphas()
+        private void ResetAllActiveAnimatedAlphas()
         {
             lock (animationLock)
             {
@@ -2719,8 +2699,7 @@ namespace rgat
         /// Indexes of nodes which need highlight adding by the layout engine
         /// </summary>
         public List<uint> NewHighlights = new List<uint>();
-
-        bool animBuildingLoop = false;
+        private bool animBuildingLoop = false;
 
         /// <summary>
         /// The graph is in an animated (running or replay) state
@@ -2735,7 +2714,7 @@ namespace rgat
         /// </summary>
         public bool Opt_EdgesVisible { get; set; } = true;
 
-        bool _textEnabled = true;
+        private bool _textEnabled = true;
         /// <summary>
         /// Text is being drawn
         /// </summary>
@@ -2752,7 +2731,7 @@ namespace rgat
             }
         }
 
-        bool _textEnabledIns = true;
+        private bool _textEnabledIns = true;
         /// <summary>
         /// Instruction text is being drawn
         /// </summary>
@@ -2766,7 +2745,7 @@ namespace rgat
             }
         }
 
-        bool _textEnabledSym = true;
+        private bool _textEnabledSym = true;
         /// <summary>
         /// Symbol text is being drawn
         /// </summary>
@@ -2780,7 +2759,7 @@ namespace rgat
             }
         }
 
-        bool _showNodeAdresses = true;
+        private bool _showNodeAdresses = true;
         /// <summary>
         /// The addresses of nodes are added to their label
         /// </summary>
@@ -2794,7 +2773,7 @@ namespace rgat
             }
         }
 
-        bool _showNodeIndexes = true;
+        private bool _showNodeIndexes = true;
         /// <summary>
         /// Whether node labels will include the internal index of the node
         /// </summary>
@@ -2808,7 +2787,7 @@ namespace rgat
             }
         }
 
-        bool _showSymbolModules = true;
+        private bool _showSymbolModules = true;
         /// <summary>
         /// Whether symbols will show the modules they reside in
         /// </summary>
@@ -2822,7 +2801,7 @@ namespace rgat
             }
         }
 
-        bool _showSymbolModulePaths = true;
+        private bool _showSymbolModulePaths = true;
         /// <summary>
         /// Whether symbol labels include the full path of the module
         /// </summary>
@@ -2848,7 +2827,7 @@ namespace rgat
         /// <summary>
         /// Estimated world space coordinates for the top left and right of the screen
         /// </summary>
-        Vector3 _unprojWorldCoordTL, _unprojWorldCoordBR;
+        private Vector3 _unprojWorldCoordTL, _unprojWorldCoordBR;
 
 
         /// <summary>
@@ -3059,19 +3038,19 @@ namespace rgat
         /// <summary>
         /// This used to add some delay for unchained areas. Unused at the moment but keeping it around
         /// </summary>
-        ulong unchainedWaitFrames = 0;
-        readonly uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays
+        private ulong unchainedWaitFrames = 0;
+        private readonly uint maxWaitFrames = 20; //limit how long we spend 'executing' busy code in replays
 
         /// <summary>
         /// Which trace record item the animation is running in
         /// </summary>
         public double AnimationIndex { get; private set; }
 
-        readonly List<uint> _PulseActiveNodes = new List<uint>();
-        readonly List<uint> _LingeringActiveNodes = new List<uint>();
-        readonly List<Tuple<uint, string>> _RisingSymbols = new List<Tuple<uint, string>>();
-        readonly List<Tuple<uint, string>> _RisingSymbolsLingering = new List<Tuple<uint, string>>();
-        readonly List<uint> _DeactivatedNodes = new List<uint>();// Array.Empty<uint>();
+        private readonly List<uint> _PulseActiveNodes = new List<uint>();
+        private readonly List<uint> _LingeringActiveNodes = new List<uint>();
+        private readonly List<Tuple<uint, string>> _RisingSymbols = new List<Tuple<uint, string>>();
+        private readonly List<Tuple<uint, string>> _RisingSymbolsLingering = new List<Tuple<uint, string>>();
+        private readonly List<uint> _DeactivatedNodes = new List<uint>();// Array.Empty<uint>();
         private readonly object animationLock = new object();
 
         /// <summary>
@@ -3083,7 +3062,7 @@ namespace rgat
         /// Animation replay state
         /// </summary>
         public REPLAY_STATE ReplayState = REPLAY_STATE.Ended;
-        int updateProcessingIndex = 0;
+        private int updateProcessingIndex = 0;
 
         /// <summary>
         /// main lock for access to this objects data
@@ -3110,13 +3089,13 @@ namespace rgat
         /// This is used for the attraction velocity computation
         /// </summary>
         ///        
-        readonly List<List<int>> _graphStructureBalanced = new List<List<int>>();
+        private readonly List<List<int>> _graphStructureBalanced = new List<List<int>>();
 
         /// <summary>
         /// The raw list of nodes with a one way edge they connect to
         /// This is used for drawing nodes and edges
         /// </summary>
-        readonly List<List<int>> _graphStructureLinear = new List<List<int>>();
+        private readonly List<List<int>> _graphStructureLinear = new List<List<int>>();
 
         /// <summary>
         /// Force-directed layout activity of this graph

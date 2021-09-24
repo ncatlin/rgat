@@ -557,8 +557,7 @@ namespace rgat.Testing
             }
         }
 
-
-        bool _loadingError = false;
+        private bool _loadingError = false;
 
         /// <summary>
         /// Errors encountered loading the test case from JSON
@@ -624,13 +623,13 @@ namespace rgat.Testing
         /// </summary>
         public int Running { get; private set; }
 
-        readonly Dictionary<int, int> _passed = new Dictionary<int, int>();
-        readonly Dictionary<int, int> _failed = new Dictionary<int, int>();
+        private readonly Dictionary<int, int> _passed = new Dictionary<int, int>();
+        private readonly Dictionary<int, int> _failed = new Dictionary<int, int>();
 
         /// <summary>
         /// A list of conditions met by the entire test itself
         /// </summary>
-        readonly List<TestRequirement> _TestRunRequirements = new List<TestRequirement>();
+        private readonly List<TestRequirement> _TestRunRequirements = new List<TestRequirement>();
 
         /// <summary>
         /// A nested list of requirements for each thread
@@ -639,10 +638,9 @@ namespace rgat.Testing
         ///     One process must meet condtion C6 has threads meeting condition C1, the other meeting condition C3. 
         ///     Ditto for the other process needing to meet condtion C1 with threads meeting conditions 7, 12
         /// </summary>
-        TraceRequirements _TraceRequirements = new TraceRequirements();
+        private TraceRequirements _TraceRequirements = new TraceRequirements();
 
-
-        bool ParseTestSpec(string jsonpath, out Newtonsoft.Json.Linq.JObject? jsnobj)
+        private bool ParseTestSpec(string jsonpath, out Newtonsoft.Json.Linq.JObject? jsnobj)
         {
             jsnobj = null;
             string jsnfile;
@@ -674,8 +672,7 @@ namespace rgat.Testing
             return false;
         }
 
-
-        bool LoadTestCase(JObject testSpec)
+        private bool LoadTestCase(JObject testSpec)
         {
             //mandatory for test cases to have metadata
             if (!testSpec.TryGetValue("Meta", out JToken? metaTok) ||
@@ -706,8 +703,7 @@ namespace rgat.Testing
             return _loadingError == false;
         }
 
-
-        bool LoadSpecMetadata(JObject metaObj)
+        private bool LoadSpecMetadata(JObject metaObj)
         {
             //mandatory fields
 
@@ -770,7 +766,7 @@ namespace rgat.Testing
         /// </summary>
         /// <param name="reqsObj">JObject of the unserialised conditions</param>
         /// <returns>Whether loading succeeded</returns>
-        bool LoadFinalRequirements(JObject reqsObj)
+        private bool LoadFinalRequirements(JObject reqsObj)
         {
 
             // Optional requirements that the entire test must satisfy at completion (eg: time it took to run, total processes spawned)
@@ -827,7 +823,7 @@ namespace rgat.Testing
         /// <param name="tok">JToken containing requirement</param>
         /// <param name="testRequirement">Result requirement object</param>
         /// <returns>true if it loaded without error</returns>
-        bool LoadTestRequirement(string name, JToken tok, out TestRequirement? testRequirement)
+        private bool LoadTestRequirement(string name, JToken tok, out TestRequirement? testRequirement)
         {
             testRequirement = null;
             if (tok.Type != JTokenType.Object)
@@ -869,8 +865,7 @@ namespace rgat.Testing
             return true;
         }
 
-
-        bool LoadProcessRequirements(JToken procObj, out TraceRequirements ptr)
+        private bool LoadProcessRequirements(JToken procObj, out TraceRequirements ptr)
         {
             ptr = new TraceRequirements();
             if (procObj is null || procObj.Type != JTokenType.Object)
@@ -994,8 +989,7 @@ namespace rgat.Testing
             return true;
         }
 
-
-        bool LoadGraphRequirementsObject(JToken threadReqsObj, out REQUIREMENTS_LIST graphRequirements)
+        private bool LoadGraphRequirementsObject(JToken threadReqsObj, out REQUIREMENTS_LIST graphRequirements)
         {
             graphRequirements = new REQUIREMENTS_LIST()
             {
@@ -1033,7 +1027,7 @@ namespace rgat.Testing
             return true;
         }
 
-        void DeclareLoadingError(string error)
+        private void DeclareLoadingError(string error)
         {
             string log = $"Failed Loading TestCase '{JSONPath}': {error}";
             Logging.RecordLogEvent(log);
@@ -1067,7 +1061,7 @@ namespace rgat.Testing
             }
         }
 
-        readonly object _lock = new object();
+        private readonly object _lock = new object();
 
         /// <summary>
         /// Increase the count of running tests

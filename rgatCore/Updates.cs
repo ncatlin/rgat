@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace rgat
 {
-    class Updates
+    internal class Updates
     {
 
         public static string? PendingInstallPath = null;
@@ -137,7 +137,7 @@ namespace rgat
         /// </summary>
         /// <param name="b64ChangelogMDContent">base64 encoded changelog.md file</param>
         /// <returns>plaintext formatted list of change types and changes</returns>
-        static string ParseChangelogChanges(string b64ChangelogMDContent)
+        private static string ParseChangelogChanges(string b64ChangelogMDContent)
         {
             Version currentVersion = CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC;
             string raw = ASCIIEncoding.ASCII.GetString(Convert.FromBase64String(b64ChangelogMDContent));
@@ -243,8 +243,8 @@ namespace rgat
             }
         }
 
-        static int TotalChanges = -1;
-        static int NewVersions = -1;
+        private static int TotalChanges = -1;
+        private static int NewVersions = -1;
 
         public static void DrawChangesDialog()
         {
@@ -363,13 +363,13 @@ namespace rgat
             }
         }
 
-        static bool _update_in_progress;
-        static string _update_style = "";
-        static float _download_progress = -1;
-        static bool _download_complete;
-        static readonly CancellationTokenSource _download_cancel_tokensrc = new CancellationTokenSource();
+        private static bool _update_in_progress;
+        private static string _update_style = "";
+        private static float _download_progress = -1;
+        private static bool _download_complete;
+        private static readonly CancellationTokenSource _download_cancel_tokensrc = new CancellationTokenSource();
 
-        static void StartUpdater(bool delayed_install = false)
+        private static void StartUpdater(bool delayed_install = false)
         {
             _update_in_progress = true;
 
@@ -420,7 +420,7 @@ namespace rgat
             _download_progress = e.BytesReceived / (float)e.TotalBytesToReceive;
         }
 
-        async static void UpdateDownloader(CancellationToken cancelToken)
+        private static async void UpdateDownloader(CancellationToken cancelToken)
         {
             try
             {
@@ -478,8 +478,7 @@ namespace rgat
             }
         }
 
-
-        static void InitiateFileSwap(string new_rgatPath)
+        private static void InitiateFileSwap(string new_rgatPath)
         {
             Logging.RecordLogEvent($"Initialising update called with new rgat version {new_rgatPath}", filter: Logging.LogFilterType.TextDebug);
             bool failed = false;
@@ -561,12 +560,7 @@ namespace rgat
             rgatUI.RequestExit();
         }
 
-
-
-
-
-
-        static void GetChangeIcon(string changeType, out char icon, out WritableRgbaFloat colour)
+        private static void GetChangeIcon(string changeType, out char icon, out WritableRgbaFloat colour)
         {
             switch (changeType)
             {

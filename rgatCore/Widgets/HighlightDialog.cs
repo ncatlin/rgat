@@ -7,7 +7,7 @@ using System.Numerics;
 
 namespace rgat.Widgets
 {
-    class HighlightDialog
+    internal class HighlightDialog
     {
         public HighlightDialog(Vector2 initialSize)
         {
@@ -19,7 +19,7 @@ namespace rgat.Widgets
             _initialSize = new Vector2(600, 300);
         }
 
-        struct symbolInfo
+        private struct symbolInfo
         {
             public string name;
             public List<uint> threadNodes;
@@ -29,13 +29,13 @@ namespace rgat.Widgets
             public int moduleID;
         };
 
-        struct moduleEntry
+        private struct moduleEntry
         {
             public string path;
             public Dictionary<ulong, symbolInfo> symbols;
         };
 
-        class ThreadHighlightSettings
+        private class ThreadHighlightSettings
         {
             public Dictionary<int, moduleEntry> displayedModules = new Dictionary<int, moduleEntry>();
             public int LastExternNodeCount = 0;
@@ -49,10 +49,10 @@ namespace rgat.Widgets
             public List<uint> SelectedExceptionNodes = new List<uint>();
         }
 
-        readonly Dictionary<PlottedGraph, ThreadHighlightSettings> graphSettings = new Dictionary<PlottedGraph, ThreadHighlightSettings>();
-        PlottedGraph? _ActiveGraph = null;
-        ThreadHighlightSettings _activeHighlights = new ThreadHighlightSettings();
-        Vector2 _initialSize = new Vector2(600, 300);
+        private readonly Dictionary<PlottedGraph, ThreadHighlightSettings> graphSettings = new Dictionary<PlottedGraph, ThreadHighlightSettings>();
+        private PlottedGraph? _ActiveGraph = null;
+        private ThreadHighlightSettings _activeHighlights = new ThreadHighlightSettings();
+        private Vector2 _initialSize = new Vector2(600, 300);
 
         private void RefreshExternHighlightData(uint[] externNodes)
         {
@@ -145,7 +145,7 @@ namespace rgat.Widgets
 
         }
 
-        Vector4 _activeColorPick1 = new WritableRgbaFloat(Color.Cyan).ToVec4();
+        private Vector4 _activeColorPick1 = new WritableRgbaFloat(Color.Cyan).ToVec4();
 
         private void DrawModSymTreeNodes(PlottedGraph graph)
         {
@@ -353,7 +353,7 @@ namespace rgat.Widgets
             }
         }
 
-        static int selitem = 0;
+        private static int selitem = 0;
         public void DrawAddressSelectBox(float height, PlottedGraph graph)
         {
             if (ImGui.ListBox("##AddrListbox", ref selitem,

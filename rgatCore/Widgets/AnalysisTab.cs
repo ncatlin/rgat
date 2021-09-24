@@ -6,7 +6,7 @@ using static rgat.Logging;
 
 namespace rgat
 {
-    partial class rgatUI
+    internal partial class rgatUI
     {
 
         private void DrawAnalysisTab(TraceRecord? activeTrace)
@@ -119,7 +119,7 @@ namespace rgat
             ImGui.EndTabItem();
         }
 
-        void DrawEventListTable(TraceRecord trace, SandboxChart.ItemNode? selectedNode)
+        private void DrawEventListTable(TraceRecord trace, SandboxChart.ItemNode? selectedNode)
         {
             if (chart is null)
             {
@@ -240,7 +240,7 @@ namespace rgat
             }
         }
 
-        void DrawProcessNodeTable(TraceRecord trace)
+        private void DrawProcessNodeTable(TraceRecord trace)
         {
             if (ImGui.BeginTable("#ProcSelTl", 2))
             {
@@ -274,8 +274,7 @@ namespace rgat
             }
         }
 
-
-        void DrawThreadNodeTable(ProtoGraph thread)
+        private void DrawThreadNodeTable(ProtoGraph thread)
         {
             if (ImGui.BeginTable("#ThreadSelTl", 2))
             {

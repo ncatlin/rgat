@@ -13,7 +13,7 @@ namespace rgat
     /// </summary>
     public class DetectItEasy
     {
-        readonly DiELibDotNet.DieLib dielib;
+        private readonly DiELibDotNet.DieLib dielib;
 
         /// <summary>
         /// Create a DIE scanner
@@ -28,7 +28,7 @@ namespace rgat
         //takes a directory path. if it contains a db/_init path - returns db folder
         //otherwise if it contains a db.zip file - returns that
         //this allows a bit of flexibiilty if the user wants to cut down on files 
-        string GetScriptsPath(string sigsDiEPath)
+        private string GetScriptsPath(string sigsDiEPath)
         {
             if (Path.GetDirectoryName(sigsDiEPath) == "db")
             {
@@ -105,8 +105,8 @@ namespace rgat
             DIEThread.Start(args);
         }
 
-        readonly object scansLock = new object();
-        readonly Dictionary<BinaryTarget, ulong> DIEScanHandles = new Dictionary<BinaryTarget, ulong>();
+        private readonly object scansLock = new object();
+        private readonly Dictionary<BinaryTarget, ulong> DIEScanHandles = new Dictionary<BinaryTarget, ulong>();
 
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace rgat
         /// A DIE scan thread
         /// </summary>
         /// <param name="argslist">scanner, target args object</param> 
-        static void DetectItScanThread(object? argslist)
+        private static void DetectItScanThread(object? argslist)
         {
             if (argslist is null)
             {
@@ -242,8 +242,7 @@ namespace rgat
             }
         }
 
-
-        readonly DateTime _lastCheck = DateTime.MinValue;
+        private readonly DateTime _lastCheck = DateTime.MinValue;
         /// <summary>
         /// Date of the newest signature in the DetectItEasy signatures directory of this machine
         /// </summary>
@@ -257,7 +256,7 @@ namespace rgat
         /// </summary>
         public bool StaleRemoteSignatures => (EndpointNewestSignature != DateTime.MinValue && EndpointNewestSignature > NewestSignature);
 
-        DateTime LatestSignatureChange(string rulesDir)
+        private DateTime LatestSignatureChange(string rulesDir)
         {
             if ((DateTime.Now - _lastCheck).TotalSeconds < 20)
             {

@@ -4,12 +4,11 @@ using System.Threading;
 
 namespace rgat.Threads
 {
-    class SocketTraceIngestThread : TraceIngestWorker
+    internal class SocketTraceIngestThread : TraceIngestWorker
     {
-        readonly ProtoGraph protograph;
-        readonly Queue<byte[]> InQueue = new Queue<byte[]>();
-
-        readonly object _lock = new object(); //functionality first, performance later
+        private readonly ProtoGraph protograph;
+        private readonly Queue<byte[]> InQueue = new Queue<byte[]>();
+        private readonly object _lock = new object(); //functionality first, performance later
 
         public SocketTraceIngestThread(ProtoGraph newProtoGraph)
         {
@@ -76,8 +75,7 @@ namespace rgat.Threads
             }
         }
 
-
-        void Reader()
+        private void Reader()
         {
             while (!StopFlag && !rgatState.NetworkBridge.CancelToken.IsCancellationRequested)
             {

@@ -22,7 +22,7 @@ namespace rgat.Threads
             _clientState = state_;
         }
 
-        bool stopped = true;
+        private bool stopped = true;
         /// <summary>
         /// The worker is running
         /// </summary>

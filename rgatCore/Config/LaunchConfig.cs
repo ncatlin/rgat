@@ -183,7 +183,7 @@ namespace rgat.Config
         /// Allows us to react to arguments with no value provided (eg: thing with no path -> do the thing but use a default path)
         /// </summary>
         /// <param name="originalParams"></param>
-        void DeNullifyArgumentless(string[] originalParams)
+        private void DeNullifyArgumentless(string[] originalParams)
         {
             if (Interface == null && (originalParams.Contains("-i") || originalParams.Contains("-interface") || originalParams.Contains("--interface")))
             {
@@ -199,7 +199,7 @@ namespace rgat.Config
         /// <summary>
         /// Work out what the user wants to do based on the arguments
         /// </summary>
-        void SetRunMode()
+        private void SetRunMode()
         {
 
             if (ListenPort != null || ConnectModeAddress != null)
@@ -224,7 +224,7 @@ namespace rgat.Config
             RunMode = eRunMode.GUI;
         }
 
-        bool ParseConfigJSON(JObject jsn, out string? error)
+        private bool ParseConfigJSON(JObject jsn, out string? error)
         {
 
             foreach (var kvp in jsn)
@@ -331,8 +331,7 @@ namespace rgat.Config
             return true;
         }
 
-
-        bool ExtractJSONFileOptions(string path, out string? error)
+        private bool ExtractJSONFileOptions(string path, out string? error)
         {
             if (File.Exists(path))
             {
@@ -377,7 +376,7 @@ namespace rgat.Config
             }
         }
 
-        bool TryGetBool(JToken jtok, out bool result)
+        private bool TryGetBool(JToken jtok, out bool result)
         {
             if (jtok.Type == JTokenType.Boolean)
             {

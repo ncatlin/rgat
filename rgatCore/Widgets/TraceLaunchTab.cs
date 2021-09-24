@@ -9,7 +9,7 @@ using System.Text;
 
 namespace rgat
 {
-    partial class rgatUI
+    internal partial class rgatUI
     {
         private void DrawTraceTab(BinaryTarget? activeTarget)
         {
@@ -140,8 +140,8 @@ namespace rgat
             }
         }
 
-        float _tooltipScroll = 0;
-        bool _tooltipScrollingActive;
+        private float _tooltipScroll = 0;
+        private bool _tooltipScrollingActive;
         private void ShowHexPreviewTooltip(BinaryTarget target)
         {
             string hexline = target.HexTooltip();
@@ -218,8 +218,7 @@ namespace rgat
             }
         }
 
-
-        void DrawDLLTraceSettings(BinaryTarget activeTarget)
+        private void DrawDLLTraceSettings(BinaryTarget activeTarget)
         {
             ImGui.Indent(8);
             if (ImGui.BeginTable("#DLLSettingsTable", 2))
@@ -248,7 +247,7 @@ namespace rgat
             ImGui.Indent(-8);
         }
 
-        void DrawExportPickerCombo(BinaryTarget activeTarget)
+        private void DrawExportPickerCombo(BinaryTarget activeTarget)
         {
 
             string preview = "";
@@ -302,8 +301,7 @@ namespace rgat
 
         }
 
-
-        void DrawModuleFilterControls(BinaryTarget activeTarget, float height)
+        private void DrawModuleFilterControls(BinaryTarget activeTarget, float height)
         {
             ImGui.Indent(8);
             ImGui.BeginGroup();
@@ -470,11 +468,10 @@ namespace rgat
             ImGui.Indent(-8);
         }
 
-
-        bool _checkStartPausedState;
-        bool _recordVideoOnStart;
-        bool _diagnosticMode;
-        bool _activeTargetRunnable;
+        private bool _checkStartPausedState;
+        private bool _recordVideoOnStart;
+        private bool _diagnosticMode;
+        private bool _activeTargetRunnable;
         private void DrawTraceTab_ExecutionSettings(BinaryTarget activeTarget, float width)
         {
             ImGui.BeginGroup();
@@ -871,9 +868,9 @@ namespace rgat
             }
         }
 
-        YARAScanner.YARAHit? _yaraPopupHit = null;
-        DateTime _hitClickTime;
-        bool _hitHoverOnly;
+        private YARAScanner.YARAHit? _yaraPopupHit = null;
+        private DateTime _hitClickTime;
+        private bool _hitHoverOnly;
         private void DrawYaraPopup(bool tooltip)
         {
             if (tooltip)
@@ -899,8 +896,7 @@ namespace rgat
             }
         }
 
-
-        void YaraTooltipContents(bool tooltip)
+        private void YaraTooltipContents(bool tooltip)
         {
             if (_yaraPopupHit is null)
             {

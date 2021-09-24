@@ -11,12 +11,13 @@ namespace rgat.Widgets
     /// <summary>
     /// An in-visualiser graph configuration menu
     /// </summary>
-    class QuickMenu
+    internal class QuickMenu
     {
-        readonly ImGuiController _controller;
+        private readonly ImGuiController _controller;
+
         //true if menu is expanded or in the process of expanding.
 
-        bool _expanded
+        private bool _expanded
         {
             get
             {
@@ -31,21 +32,22 @@ namespace rgat.Widgets
                 _baseMenuEntry.active = value;
             }
         }
-        bool _stayExpanded; //otherwise only expanded on mouse hover of button or child menus
 
-        bool ExpansionFinished => Math.Floor(_expandProgress) == _baseMenuEntry.children!.Count;
+        private bool _stayExpanded; //otherwise only expanded on mouse hover of button or child menus
+
+        private bool ExpansionFinished => Math.Floor(_expandProgress) == _baseMenuEntry.children!.Count;
         public bool Expanded => _expanded;
 
-        float _expandProgress = 0f;
-        string? _activeMenuPopupName;
-        Vector2 _popupPos = Vector2.Zero;
-        Vector2 _menuBase = Vector2.Zero;
-        Vector2 _iconSize = Vector2.Zero;
-        GraphicsDevice? _gd;
-        readonly HighlightDialog HighlightDialogWidget = new HighlightDialog();
-        readonly MenuEntry _baseMenuEntry;
+        private float _expandProgress = 0f;
+        private string? _activeMenuPopupName;
+        private Vector2 _popupPos = Vector2.Zero;
+        private Vector2 _menuBase = Vector2.Zero;
+        private Vector2 _iconSize = Vector2.Zero;
+        private GraphicsDevice? _gd;
+        private readonly HighlightDialog HighlightDialogWidget = new HighlightDialog();
+        private readonly MenuEntry _baseMenuEntry;
 
-        class MenuEntry
+        private class MenuEntry
         {
             /// <summary>
             /// Icon name for the menu button
@@ -71,7 +73,7 @@ namespace rgat.Widgets
             public Key Shortcut;
             public List<MenuEntry>? children;
             public MenuEntry? parent;
-            bool _isActive;
+            private bool _isActive;
             public bool active
             {
                 get => _isActive;
@@ -103,9 +105,9 @@ namespace rgat.Widgets
             }
         }
 
-        readonly Dictionary<ActionName, MenuEntry> menuActions = new Dictionary<ActionName, MenuEntry>();
+        private readonly Dictionary<ActionName, MenuEntry> menuActions = new Dictionary<ActionName, MenuEntry>();
 
-        enum ActionName
+        private enum ActionName
         {
             ToggleEdges, ToggleNodes, ToggleTextAll, ToggleTextInstructions, ToggleTextSymbols, ToggleTextSymbolsLive, ToggleNodeAddresses,
             ToggleNodeIndexes, ToggleSymbolModules, ToggleSymbolFullPaths, ToggleNodeTooltips, ToggleActiveHighlight,
@@ -161,9 +163,9 @@ namespace rgat.Widgets
         /// <param name="action">Function to call when opened/closed. Param is open/closed state.</param>
         public void SetStateChangeCallback(Action<bool> action) => stateChangeCallback = action;
 
-        Action<bool>? stateChangeCallback = null;
+        private Action<bool>? stateChangeCallback = null;
 
-        void DrawVisibilityFrame()
+        private void DrawVisibilityFrame()
         {
             Debug.Assert(_currentGraph is not null);
 
@@ -252,7 +254,7 @@ namespace rgat.Widgets
 
         }
 
-        bool ShowTooltipToggle(int column, ActionName action, bool value)
+        private bool ShowTooltipToggle(int column, ActionName action, bool value)
         {
             MenuEntry menuitem = menuActions[action];
             ImGui.TableSetColumnIndex(column);
@@ -278,7 +280,7 @@ namespace rgat.Widgets
         /// <param name="hotKey">true if a keyboard shortcut, false if clicked</param>
         /// <param name="resultText">something to describe what happened on the key combo display</param>
         /// <returns>Whether the action was a non-menu 'action' which will trigger display of the keyboard combo used</returns>
-        bool ActivateAction(ActionName actionName, bool hotKey, out string? resultText)
+        private bool ActivateAction(ActionName actionName, bool hotKey, out string? resultText)
         {
             resultText = null;
             if (!menuActions.TryGetValue(actionName, out MenuEntry? action))
@@ -364,13 +366,12 @@ namespace rgat.Widgets
             return false;
         }
 
-        bool ActivateAction(ActionName actionName, bool hotKey)
+        private bool ActivateAction(ActionName actionName, bool hotKey)
         {
             return ActivateAction(actionName, hotKey, out string? ignored);
         }
 
-
-        void PopulateMenuActionsList(MenuEntry entry)
+        private void PopulateMenuActionsList(MenuEntry entry)
         {
             Debug.Assert(entry.Action is not null);
             menuActions[entry.Action.Value] = entry;
@@ -401,7 +402,7 @@ namespace rgat.Widgets
         /// Take a keypress that might be dealt with by the open quickmenu
         /// Return true if the quickmenu swallows is (ie: not to be used for other graph actions)
         /// </summary>
-        Tuple<Key, ModifierKeys>? _RecentKeypress;
+        private Tuple<Key, ModifierKeys>? _RecentKeypress;
         public bool KeyPressed(Tuple<Key, ModifierKeys> keyModTuple, out Tuple<string, string>? ComboAction)
         {
             ComboAction = null;
@@ -475,7 +476,7 @@ namespace rgat.Widgets
             }
         }
 
-        readonly List<Key> keyCombo = new List<Key>();
+        private readonly List<Key> keyCombo = new List<Key>();
 
         public void Expand(bool persistent = false)
         {
@@ -505,8 +506,7 @@ namespace rgat.Widgets
 
         }
 
-
-        PlottedGraph? _currentGraph;
+        private PlottedGraph? _currentGraph;
         public void Draw(Vector2 position, float scale, PlottedGraph graph)
         {
             _currentGraph = graph;
@@ -541,9 +541,9 @@ namespace rgat.Widgets
 
         }
 
-        readonly float _menuYPad = 8;
+        private readonly float _menuYPad = 8;
 
-        void DrawExpandedMenu(Vector2 position)
+        private void DrawExpandedMenu(Vector2 position)
         {
             Debug.Assert(_baseMenuEntry.children is not null);
 
@@ -607,9 +607,9 @@ namespace rgat.Widgets
             _expandProgress = Math.Max(_expandProgress, 0);
         }
 
+        private MenuEntry? __activeEntry_; //todo wtf
 
-        MenuEntry? __activeEntry_; //todo wtf
-        MenuEntry? _activeEntry
+        private MenuEntry? _activeEntry
         {
             get { return __activeEntry_; }
             set
@@ -629,10 +629,7 @@ namespace rgat.Widgets
             }
         }
 
-
-
-
-        void DrawMenuButton(MenuEntry entry, float Yoffset)
+        private void DrawMenuButton(MenuEntry entry, float Yoffset)
         {
 
             bool isActive = entry.Popup != null && ImGui.IsPopupOpen(entry.Popup);
@@ -695,7 +692,7 @@ namespace rgat.Widgets
 
         }
 
-        void DrawPopups()
+        private void DrawPopups()
         {
             ImGui.SetNextWindowPos(_popupPos, ImGuiCond.Appearing);
 
@@ -771,7 +768,7 @@ private void DrawScalePopup()
     }
 }
 */
-        void DrawGraphLayoutFrame()
+        private void DrawGraphLayoutFrame()
         {
             Debug.Assert(_currentGraph is not null);
             if (_currentGraph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.Circle)
@@ -861,8 +858,7 @@ private void DrawScalePopup()
 
         }
 
-
-        void DrawSearchHighlightFrame()
+        private void DrawSearchHighlightFrame()
         {
             if (_currentGraph is not null)
             {
