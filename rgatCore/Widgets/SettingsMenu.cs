@@ -1472,10 +1472,13 @@ namespace rgat.Widgets
             ImGui.SetNextItemWidth(60);
             if (ImGui.InputInt("Preview Workers", ref previewWorkers, 1, 1))
             {
-                if (previewWorkers > 0 && previewWorkers < 32)
-                    GlobalConfig.Settings.UI.PreviewWorkers = previewWorkers;
+                int count = Math.Max(GlobalConfig.Settings.UI.PreviewWorkers, CONSTANTS.UI.MINIMUM_PREVIEW_WORKERS);
+                count = Math.Min(count, CONSTANTS.UI.MAXIMUM_PREVIEW_WORKERS);
+                    GlobalConfig.Settings.UI.PreviewWorkers = count;
             }
-            SmallWidgets.MouseoverText("How many preview workers to run. Increasing this makes rendering many previews snappier, but too may cause contention issues.");
+            SmallWidgets.MouseoverText("How many preview workers to run. Increasing this makes " +
+                "rendering many previews snappier, but too may cause contention issues." +
+                $"[Valid range: {UI.MINIMUM_PREVIEW_WORKERS}-{UI.MAXIMUM_PREVIEW_WORKERS}]");
 
         }
 
