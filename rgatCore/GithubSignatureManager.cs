@@ -120,7 +120,10 @@ namespace rgat
             lock (_lock)
             {
                 _activeWorkers -= 1;
-                if (_activeWorkers == 0) Running = false;
+                if (_activeWorkers == 0)
+                {
+                    Running = false;
+                }
             }
         }
 
@@ -360,9 +363,13 @@ namespace rgat
             try
             {
                 if (repoDirectory is null)
+                {
                     Logging.RecordError($"Failed to derive repo directory for signatures folder of {repo.RepoName}");
+                }
                 else
+                {
                     PurgeDirectory(repoDirectory);
+                }
             }
             catch (Exception e)
             {

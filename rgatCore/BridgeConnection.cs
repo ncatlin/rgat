@@ -147,10 +147,16 @@ namespace rgat
         /// It does not do the opposite. Ever.
         /// This state must be set at startup and cannot be changed
         /// </summary>
-        public bool GUIMode { 
+        public bool GUIMode
+        {
             get => _guiMode;
-            set {
-                if (_inited) throw new InvalidOperationException("Cant change mode of the network bridge");
+            set
+            {
+                if (_inited)
+                {
+                    throw new InvalidOperationException("Cant change mode of the network bridge");
+                }
+
                 _inited = true;
                 _guiMode = value;
             }
@@ -330,7 +336,7 @@ namespace rgat
             try
             {
                 Random rnd = new Random();
-                Byte[] IV = new Byte[12];
+                byte[] IV = new byte[12];
                 rnd.NextBytes(IV);
                 _sendIV = new BigInteger(IV);
 
@@ -392,7 +398,7 @@ namespace rgat
                 _reader = new BinaryReader(_networkStream);
                 _writer = new BinaryWriter(_networkStream);
                 Task<bool> authenticate = Task<bool>.Run(() => AuthenticateConnectionTask(isServer));
-                Task.WaitAny(new Task[] { authenticate }, (int)2500, CancelToken); //wait on delay because a bad size field will hang the read() operation
+                Task.WaitAny(new Task[] { authenticate }, 2500, CancelToken); //wait on delay because a bad size field will hang the read() operation
                 return authenticate.IsCompleted && authenticate.Result is true;
             }
             catch (Exception e)
@@ -447,10 +453,18 @@ namespace rgat
             catch (System.IO.IOException IOExcep)
             {
                 data = null;
-                if (cancelTokens.IsCancellationRequested) return false;
+                if (cancelTokens.IsCancellationRequested)
+                {
+                    return false;
+                }
+
                 if (IOExcep.InnerException != null && IOExcep.InnerException.GetType() == typeof(SocketException))
                 {
-                    if (cancelTokens.IsCancellationRequested) return false;
+                    if (cancelTokens.IsCancellationRequested)
+                    {
+                        return false;
+                    }
+
                     SocketException innerE = (SocketException)IOExcep.InnerException;
                     switch (innerE.SocketErrorCode)
                     {
@@ -471,7 +485,11 @@ namespace rgat
             catch (Exception e)
             {
                 data = null;
-                if (cancelTokens.IsCancellationRequested) return false;
+                if (cancelTokens.IsCancellationRequested)
+                {
+                    return false;
+                }
+
                 Logging.RecordError($"ReadData Exception: {e.Message}");
             }
             Teardown("Read failed");
@@ -642,7 +660,11 @@ namespace rgat
 
         void StartListenForConnection(TcpListener listener, OnConnectSuccessCallback connectCallback)
         {
-            if (BridgeState != eBridgeState.Listening) return;
+            if (BridgeState != eBridgeState.Listening)
+            {
+                return;
+            }
+
             IPEndPoint listenerEndpoint = (IPEndPoint)listener.LocalEndpoint;
             AddNetworkDisplayLogMessage($"Listening on {listenerEndpoint.Address}:{listenerEndpoint.Port}", null);
             try
@@ -767,7 +789,9 @@ namespace rgat
                 item.Add("Name", command);
                 item.Add("CmdID", commandCount);
                 if (param != null)
+                {
                     item.Add("Paramfield", param);
+                }
 
                 if (callback != null)
                 {
@@ -943,20 +967,36 @@ namespace rgat
                             AddNetworkDisplayLogMessage($"Disconnected{(reason.Length > 0 ? $": {reason}" : "")}", Themes.eThemeColour.eWarnStateColour);
                         }
                         else
+                        {
                             AddNetworkDisplayLogMessage($"Connection Disabled{(reason.Length > 0 ? $": {reason}" : "")}", null);
+                        }
 
                         Thread.Sleep(250); //give the UI a chance to close the connection gracefully so the right error message appears first. 
                         BridgeState = eBridgeState.Teardown;
-                        if (_reader != null) _reader.Dispose();
-                        if (_writer != null) _writer.Dispose();
+                        if (_reader != null)
+                        {
+                            _reader.Dispose();
+                        }
+
+                        if (_writer != null)
+                        {
+                            _writer.Dispose();
+                        }
                     }
                     catch (Exception e)
                     {
                         AddNetworkDisplayLogMessage($"Teardown warning: {e.Message}", Themes.eThemeColour.eWarnStateColour);
                     }
                     cancelTokens.Cancel();
-                    if (_ActiveClient != null && _ActiveClient.Connected) _ActiveClient.Close();
-                    if (_ActiveListener != null) _ActiveListener.Stop();
+                    if (_ActiveClient != null && _ActiveClient.Connected)
+                    {
+                        _ActiveClient.Close();
+                    }
+
+                    if (_ActiveListener != null)
+                    {
+                        _ActiveListener.Stop();
+                    }
                 }
             }
         }
@@ -973,7 +1013,10 @@ namespace rgat
                 if (!success || newdata == null)
                 {
                     if (!cancelTokens.IsCancellationRequested)
+                    {
                         AddNetworkDisplayLogMessage("Connection terminated unexpectedly", Themes.eThemeColour.eWarnStateColour);
+                    }
+
                     break;
                 }
                 _registeredIncomingDataCallback(newdata.Value);
@@ -1031,7 +1074,7 @@ namespace rgat
         public bool AuthenticateOutgoingConnection(TcpClient client)
         {
             Console.WriteLine($"AuthenticateOutgoingConnection Sending prelude '{(GUIMode ? connectPreludeGUI : connectPreludeHeadless)}'");
-            
+
 
             if (!RawSendData(emsgType.Meta, GUIMode ? connectPreludeGUI : connectPreludeHeadless))
             {
@@ -1041,7 +1084,11 @@ namespace rgat
 
 
             bool success = ReadData(out NETWORK_MSG? response) && response != null;
-            if (!success || response!.Value.data == null || response.Value.msgType != emsgType.Meta) return false;
+            if (!success || response!.Value.data == null || response.Value.msgType != emsgType.Meta)
+            {
+                return false;
+            }
+
             string authString;
 
             try
@@ -1066,9 +1113,14 @@ namespace rgat
                 if (authString == (GUIMode ? connectResponseGUI : connectResponseHeadless) || authString == "Bad Mode")
                 {
                     if (GUIMode)
+                    {
                         AddNetworkDisplayLogMessage("GUI<->GUI Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
+                    }
                     else
+                    {
                         AddNetworkDisplayLogMessage("Cmdline<->Cmdline Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
+                    }
+
                     Logging.RecordLogEvent($"Bad prelude response. Connection can only be made between rgat in GUI and command-line modes", Logging.LogFilterType.TextError);
                 }
                 else
@@ -1095,7 +1147,11 @@ namespace rgat
         {
             NETWORK_MSG? recvd;
 
-            if (!ReadData(out recvd) || recvd == null) return false;
+            if (!ReadData(out recvd) || recvd == null)
+            {
+                return false;
+            }
+
             NETWORK_MSG msg = recvd.Value;
             string authString = ASCIIEncoding.ASCII.GetString(recvd.Value.data);
 
@@ -1118,9 +1174,14 @@ namespace rgat
                 if (authString == (GUIMode ? connectPreludeGUI : connectPreludeHeadless))
                 {
                     if (GUIMode)
+                    {
                         AddNetworkDisplayLogMessage("GUI<->GUI Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
+                    }
                     else
+                    {
                         AddNetworkDisplayLogMessage("Cmdline<->Cmdline Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
+                    }
+
                     Logging.RecordLogEvent($"Connection refused - Connection can only be made between rgat in GUI and command-line modes", Logging.LogFilterType.TextError);
                     RawSendData(emsgType.Meta, "Bad Mode");
                 }

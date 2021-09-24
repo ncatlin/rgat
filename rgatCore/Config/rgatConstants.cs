@@ -117,11 +117,12 @@ namespace rgat
             /// <summary>
             /// An enum for keeping the node/edge activated, but not implemented as an 
             /// </summary>
-            public enum BRIGHTNESS {
+            public enum BRIGHTNESS
+            {
                 /// <summary>
                 /// Maintain full alpha until deactivated
                 /// </summary>
-                KEEP_BRIGHT = -1 
+                KEEP_BRIGHT = -1
             };
 
             /// <summary>
@@ -155,7 +156,7 @@ namespace rgat
             /// Length of auto-generate network keys
             /// </summary>
             public const int DefaultKeyLength = 9;
-            
+
             /// <summary>
             /// number of times a host can try to connect with the wrong key
             /// ! this is not used - we just turn networking off on the first bad attempt
@@ -226,7 +227,8 @@ namespace rgat
         /// <summary>
         /// Node control flow type
         /// </summary>
-        public enum eNodeType {
+        public enum eNodeType
+        {
             /// <summary>
             /// Unknown or no control flow
             /// </summary>
@@ -238,11 +240,11 @@ namespace rgat
             /// <summary>
             /// Performs a return
             /// </summary>
-            eInsReturn, 
+            eInsReturn,
             /// <summary>
             /// Performs a call
             /// </summary>
-            eInsCall 
+            eInsCall
         };
 
         /// <summary>
@@ -253,19 +255,19 @@ namespace rgat
             /// <summary>
             /// Edge to a call instruction
             /// </summary>
-            eEdgeCall = 0, 
+            eEdgeCall = 0,
             /// <summary>
             /// Edge to an instruction that has already been visited from another instruction
             /// </summary>
-            eEdgeOld, 
+            eEdgeOld,
             /// <summary>
             /// Edge from a return instruction
             /// </summary>
-            eEdgeReturn, 
+            eEdgeReturn,
             /// <summary>
             /// Edge of an API call
             /// </summary>
-            eEdgeLib, 
+            eEdgeLib,
             /// <summary>
             /// Edge to an instruction that has not been executed before
             /// </summary>
@@ -273,7 +275,7 @@ namespace rgat
             /// <summary>
             /// Edge to an exception node
             /// </summary>
-            eEdgeException, 
+            eEdgeException,
             /// <summary>
             /// Edge to another instruction in the same basic block
             /// </summary>
@@ -285,23 +287,23 @@ namespace rgat
             /// <summary>
             /// A call instruction
             /// </summary>
-            eNodeCall, 
+            eNodeCall,
             /// <summary>
             /// A return instruction
             /// </summary>
-            eNodeReturn, 
+            eNodeReturn,
             /// <summary>
             /// An API call
             /// </summary>
-            eNodeExternal, 
+            eNodeExternal,
             /// <summary>
             /// An exception source
             /// </summary>
-            eNodeException, 
+            eNodeException,
             /// <summary>
             /// Invalid
             /// </summary>
-            eENLAST, 
+            eENLAST,
             /// <summary>
             /// The first instruction in a thread
             /// </summary>
@@ -311,15 +313,16 @@ namespace rgat
         /// <summary>
         /// Supported graph colourations
         /// </summary>
-        public enum eRenderingMode {
+        public enum eRenderingMode
+        {
             /// <summary>
             /// Control flow type of nodes/edges
             /// </summary>
-            eStandardControlFlow, 
+            eStandardControlFlow,
             /// <summary>
             /// How busy nodes/edges are
             /// </summary>
-            eHeatmap, 
+            eHeatmap,
             /// <summary>
             /// Conditional jump state
             /// </summary>
@@ -327,26 +330,28 @@ namespace rgat
             /// <summary>
             /// How connected nodes are
             /// </summary>
-            eDegree 
+            eDegree
         }
 
 
         /// <summary>
         /// Category of filter used to highlight nodes
         /// </summary>
-        public enum HighlightType { 
+        public enum HighlightType
+        {
             /// <summary>
             /// An external API call
             /// </summary>
-            Externals, 
+            Externals,
             /// <summary>
             /// A memory address
             /// </summary>
-            Addresses, 
+            Addresses,
             /// <summary>
             /// An exception
             /// </summary>
-            Exceptions };
+            Exceptions
+        };
 
 
         /// <summary>
@@ -357,15 +362,15 @@ namespace rgat
             /// <summary>
             /// Path of Intel pin.exe
             /// </summary>
-            PinPath, 
+            PinPath,
             /// <summary>
             /// Path of the 32 bit rgat pintool
             /// </summary>
-            PinToolPath32, 
+            PinToolPath32,
             /// <summary>
             /// Path of the 64 bit rgat pintool
             /// </summary>
-            PinToolPath64, 
+            PinToolPath64,
             /// <summary>
             /// Path of ffmpeg.exe for video recording
             /// </summary>
@@ -373,19 +378,19 @@ namespace rgat
             /// <summary>
             /// Directory to save traces to
             /// </summary>
-            TraceSaveDirectory, 
+            TraceSaveDirectory,
             /// <summary>
             /// Directory where rgat tests are stored
             /// </summary>
-            TestsDirectory, 
+            TestsDirectory,
             /// <summary>
             /// Directory where Detect It easy signatures are stored
             /// </summary>
-            DiESigsDirectory, 
+            DiESigsDirectory,
             /// <summary>
             /// Directory where Yara rules are stored
             /// </summary>
-            YaraRulesDirectory, 
+            YaraRulesDirectory,
             /// <summary>
             /// Directory to save screenshots/videos to
             /// </summary>
@@ -484,7 +489,7 @@ namespace rgat
             /// <summary>
             /// Close the open dialog/menu
             /// </summary>
-            Cancel, 
+            Cancel,
             /// <summary>
             /// Toggle heatmap rendering on or off
             /// </summary>
@@ -492,7 +497,7 @@ namespace rgat
             /// <summary>
             /// Toggle conditional rendering on or off
             /// </summary>
-            ToggleConditionals, 
+            ToggleConditionals,
             /// <summary>
             /// Raise the force directed layout activity
             /// </summary>
@@ -508,7 +513,7 @@ namespace rgat
             /// <summary>
             /// Toggle the display of animated text on or off
             /// </summary> 
-            ToggleLiveText, 
+            ToggleLiveText,
             /// <summary>
             /// Toggle the quickmenu
             /// </summary>
@@ -516,19 +521,19 @@ namespace rgat
             /// <summary>
             /// Write an image of the graph to disk
             /// </summary>
-            CaptureGraphImage, 
+            CaptureGraphImage,
             /// <summary>
             /// Write an image of the graph and previews to disk
             /// </summary>
-            CaptureGraphPreviewImage, 
+            CaptureGraphPreviewImage,
             /// <summary>
             /// Write an image of the window to disk
             /// </summary>
-            CaptureWindowImage, 
+            CaptureWindowImage,
             /// <summary>
             /// Toggle video recording
             /// </summary>
-            ToggleVideo, 
+            ToggleVideo,
             /// <summary>
             /// Pause video recording without ending the video
             /// </summary>
@@ -538,15 +543,16 @@ namespace rgat
         /// <summary>
         /// Types of static binary signature
         /// </summary>
-        public enum eSignatureType { 
+        public enum eSignatureType
+        {
             /// <summary>
             /// YARA
             /// </summary>
-            YARA, 
+            YARA,
             /// <summary>
             /// Detect it easy
             /// </summary>
-            DIE 
+            DIE
         };
 
         /// <summary>
@@ -557,27 +563,28 @@ namespace rgat
             /// <summary>
             /// Available layout styles
             /// </summary>
-            public enum Style { 
+            public enum Style
+            {
                 /// <summary>
                 /// Plot nodes in a spiralling cylinder
                 /// </summary>
-                CylinderLayout, 
+                CylinderLayout,
                 /// <summary>
                 /// Plot nodes so they repel each other and attract connected nodes
                 /// </summary>
-                ForceDirected3DNodes, 
+                ForceDirected3DNodes,
                 /// <summary>
                 /// Plot blocks so they repel each other and attract connected blocks
                 /// </summary>
-                ForceDirected3DBlocks, 
+                ForceDirected3DBlocks,
                 /// <summary>
                 /// Plot nodes in a circle
                 /// </summary>
-                Circle, 
+                Circle,
                 /// <summary>
                 /// No
                 /// </summary>
-                Invalid 
+                Invalid
             };
 
             static readonly List<Style> _cacheLayouts = new List<Style>() { Style.ForceDirected3DBlocks, Style.ForceDirected3DNodes };

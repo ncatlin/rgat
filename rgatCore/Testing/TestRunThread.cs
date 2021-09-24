@@ -32,7 +32,7 @@ namespace rgat.Testing
             thisThread.Start(null);
         }
 
-        void TestMain(Object? _)
+        void TestMain(object? _)
         {
             if (!File.Exists(_testCase.BinaryPath))
             {
@@ -63,7 +63,9 @@ namespace rgat.Testing
                         {
                             Thread.Sleep(100);
                             if (!testTrace.IsRunning && !testTrace.ProcessingRemaining)
+                            {
                                 Finished = true;
+                            }
                         }
                     }
                     else { Thread.Sleep(100); }

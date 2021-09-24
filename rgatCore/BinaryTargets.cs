@@ -24,8 +24,8 @@ namespace rgat
         public List<string> GetTargetPaths()
         {
             lock (targetslock)
-            { 
-                return new List<string>(targets.Keys); 
+            {
+                return new List<string>(targets.Keys);
             }
         }
 

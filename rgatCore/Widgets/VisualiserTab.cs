@@ -12,7 +12,7 @@ namespace rgat
 {
     class VisualiserTab
     {
-        GraphPlotWidget MainGraphWidget;
+        readonly GraphPlotWidget MainGraphWidget;
         public PreviewGraphsWidget PreviewGraphWidget { get; private set; }
         VisualiserBar? _visualiserBar;
         readonly rgatState _rgatState;
@@ -28,8 +28,8 @@ namespace rgat
         {
             _rgatState = state;
             _controller = controller;
-            MainGraphWidget = new GraphPlotWidget(state, controller, new Vector2(1000, 500)); 
-            PreviewGraphWidget = new PreviewGraphsWidget(controller, state); 
+            MainGraphWidget = new GraphPlotWidget(state, controller, new Vector2(1000, 500));
+            PreviewGraphWidget = new PreviewGraphsWidget(controller, state);
         }
 
         public void Init(GraphicsDevice gd, IProgress<float> progress)
@@ -169,7 +169,10 @@ namespace rgat
         private void DrawCameraPopup()
         {
             PlottedGraph? ActiveGraph = _rgatState.ActiveGraph;
-            if (ActiveGraph == null) return;
+            if (ActiveGraph == null)
+            {
+                return;
+            }
 
             if (ImGui.BeginChild(ImGui.GetID("CameraControlsb"), new Vector2(235, 200)))
             {
@@ -239,7 +242,10 @@ namespace rgat
         {
             string indexPos = "";
             if (graph.AnimationIndex > 0)
+            {
                 indexPos = $" ({graph.AnimationIndex:F2}/{graph.InternalProtoGraph.SavedAnimationData.Count})";
+            }
+
             switch (graph.ReplayState)
             {
                 case PlottedGraph.REPLAY_STATE.Paused:
@@ -295,16 +301,56 @@ namespace rgat
                 ImGui.SetNextItemWidth(65f);
                 if (ImGui.BeginCombo("##Replay Speed", $" {graph.AnimationRate:F2}", ImGuiComboFlags.HeightLargest))
                 {
-                    if (ImGui.Selectable("x1/10")) graph.AnimationRate = 0.1f;
-                    if (ImGui.Selectable("x1/4")) graph.AnimationRate = 0.25f;
-                    if (ImGui.Selectable("x1/2")) graph.AnimationRate = 0.5f;
-                    if (ImGui.Selectable("x1")) graph.AnimationRate = 1;
-                    if (ImGui.Selectable("x2")) graph.AnimationRate = 2;
-                    if (ImGui.Selectable("x5")) graph.AnimationRate = 5;
-                    if (ImGui.Selectable("x10")) graph.AnimationRate = 10;
-                    if (ImGui.Selectable("x25")) graph.AnimationRate = 25;
-                    if (ImGui.Selectable("x50")) graph.AnimationRate = 50;
-                    if (ImGui.Selectable("x100")) graph.AnimationRate = 100;
+                    if (ImGui.Selectable("x1/10"))
+                    {
+                        graph.AnimationRate = 0.1f;
+                    }
+
+                    if (ImGui.Selectable("x1/4"))
+                    {
+                        graph.AnimationRate = 0.25f;
+                    }
+
+                    if (ImGui.Selectable("x1/2"))
+                    {
+                        graph.AnimationRate = 0.5f;
+                    }
+
+                    if (ImGui.Selectable("x1"))
+                    {
+                        graph.AnimationRate = 1;
+                    }
+
+                    if (ImGui.Selectable("x2"))
+                    {
+                        graph.AnimationRate = 2;
+                    }
+
+                    if (ImGui.Selectable("x5"))
+                    {
+                        graph.AnimationRate = 5;
+                    }
+
+                    if (ImGui.Selectable("x10"))
+                    {
+                        graph.AnimationRate = 10;
+                    }
+
+                    if (ImGui.Selectable("x25"))
+                    {
+                        graph.AnimationRate = 25;
+                    }
+
+                    if (ImGui.Selectable("x50"))
+                    {
+                        graph.AnimationRate = 50;
+                    }
+
+                    if (ImGui.Selectable("x100"))
+                    {
+                        graph.AnimationRate = 100;
+                    }
+
                     ImGui.EndCombo();
                 }
                 SmallWidgets.MouseoverText("The number of trace updates to replay per frame");
@@ -331,7 +377,11 @@ namespace rgat
                     }
                     SmallWidgets.MouseoverText("Terminate the process running the current thread");
 
-                    if (ImGui.Button("Kill All")) Console.WriteLine("Kill All clicked");
+                    if (ImGui.Button("Kill All"))
+                    {
+                        Console.WriteLine("Kill All clicked");
+                    }
+
                     ImGui.EndGroup();
                 }
 
@@ -482,7 +532,10 @@ namespace rgat
                                 for (var i = lastAnimIdx; i > 0; i--)
                                 {
                                     if (graph.SavedAnimationData[i].entryType != eTraceUpdateType.eAnimUnchained)
+                                    {
                                         break;
+                                    }
+
                                     ucBlkCount++;
                                 }
                                 ImGui.Text($"Busy area of {ucBlkCount} blocks");
@@ -558,7 +611,7 @@ namespace rgat
         {
             foreach (TraceRecord child in tr.children)
             {
-                string tabs = new String("  ");
+                string tabs = new string("  ");
                 if (ImGui.Selectable(tabs + "PID " + child.PID, _rgatState.ActiveGraph?.PID == child.PID))
                 {
                     _rgatState.SelectActiveTrace(child);
@@ -670,9 +723,13 @@ namespace rgat
 
                 ImGui.SameLine();
                 if (graph.Terminated)
+                {
                     ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Red), "(Terminated)");
+                }
                 else
+                {
                     ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.LimeGreen), $"(Active)");
+                }
 
                 float metricsHeight = ImGui.GetContentRegionAvail().Y - 4;
                 ImGui.Columns(3, "smushes");
@@ -694,15 +751,23 @@ namespace rgat
 
                 ImGui.NextColumn();
 
-                if (_stats_click_hover) ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff313142);
+                if (_stats_click_hover)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff313142);
+                }
+
                 if (ImGui.BeginChild("OtherMetrics", new Vector2(200, metricsHeight)))
                 {
                     if (graph.TraceReader != null)
                     {
                         if (graph.TraceReader.QueueSize > 0)
+                        {
                             ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.TraceReader.QueueSize}");
+                        }
                         else
+                        {
                             ImGui.Text($"Backlog: {graph.TraceReader.QueueSize}");
+                        }
                     }
 
                     if (graph.PerformingUnchainedExecution)
@@ -735,11 +800,17 @@ namespace rgat
                     {
                         uint fpscol;
                         if (fps >= 40)
+                        {
                             fpscol = Themes.GetThemeColourImGui(ImGuiCol.Text);
+                        }
                         else if (fps < 40 && fps >= 10)
+                        {
                             fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
+                        }
                         else
+                        {
                             fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                        }
 
                         ImGui.PushStyleColor(ImGuiCol.Text, fpscol);
                         ImGui.Text($"UI FPS: {fps:0.#}");
@@ -763,7 +834,10 @@ namespace rgat
                         _show_stats_dialog = !_show_stats_dialog;
                     }
                 }
-                if (_stats_click_hover) ImGui.PopStyleColor();
+                if (_stats_click_hover)
+                {
+                    ImGui.PopStyleColor();
+                }
 
                 _stats_click_hover = ImGui.IsItemHovered();
                 ImGui.PopStyleColor();
@@ -774,7 +848,10 @@ namespace rgat
             }
             ImGui.PopStyleColor();
 
-            if (_show_stats_dialog) DrawGraphStatsDialog(ref _show_stats_dialog);
+            if (_show_stats_dialog)
+            {
+                DrawGraphStatsDialog(ref _show_stats_dialog);
+            }
         }
         bool _stats_click_hover = false;
         bool _show_stats_dialog = false;
@@ -836,7 +913,11 @@ namespace rgat
                     _rgatState.SelectActiveTrace();
                 }
 
-                if (PreviewGraphWidget is null) return;
+                if (PreviewGraphWidget is null)
+                {
+                    return;
+                }
+
                 if (_rgatState.ChooseActiveGraph())
                 {
                     if (rgatState.RecordVideoOnNextTrace)
@@ -873,7 +954,11 @@ namespace rgat
 
         public void DrawGraphStatsDialog(ref bool hideme)
         {
-            if (_rgatState.ActiveGraph == null) return;
+            if (_rgatState.ActiveGraph == null)
+            {
+                return;
+            }
+
             PlottedGraph graphplot = _rgatState.ActiveGraph;
             ProtoGraph graph = graphplot.InternalProtoGraph;
 
@@ -896,9 +981,13 @@ namespace rgat
                     if (graph.TraceReader != null)
                     {
                         if (graph.TraceReader.QueueSize > 0)
+                        {
                             ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"{graph.TraceReader.QueueSize}");
+                        }
                         else
+                        {
                             ImGui.Text($"{graph.TraceReader.QueueSize}");
+                        }
                     }
 
                     ImGui.TableNextColumn();
@@ -957,11 +1046,17 @@ namespace rgat
                     {
                         uint fpscol;
                         if (fps >= 40)
+                        {
                             fpscol = Themes.GetThemeColourImGui(ImGuiCol.Text);
+                        }
                         else if (fps < 40 && fps >= 10)
+                        {
                             fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
+                        }
                         else
+                        {
                             fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                        }
 
                         ImGui.PushStyleColor(ImGuiCol.Text, fpscol);
                         ImGui.Text($"{fps:0.#}");

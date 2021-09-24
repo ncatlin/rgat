@@ -11,7 +11,11 @@ namespace rgat
 
         private void DrawAnalysisTab(TraceRecord? activeTrace)
         {
-            if (activeTrace == null || !ImGui.BeginTabItem("Timeline")) return;
+            if (activeTrace == null || !ImGui.BeginTabItem("Timeline"))
+            {
+                return;
+            }
+
             _currentTab = "Timeline";
 
             float height = ImGui.GetContentRegionAvail().Y;
@@ -117,7 +121,10 @@ namespace rgat
 
         void DrawEventListTable(TraceRecord trace, SandboxChart.ItemNode? selectedNode)
         {
-            if (chart is null) return;
+            if (chart is null)
+            {
+                return;
+            }
 
             TIMELINE_EVENT[] events = trace.GetTimeLineEntries();
             if (ImGui.BeginTable("#TaTTFullList", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg))
@@ -222,7 +229,9 @@ namespace rgat
                         var component = labelComponents[labeli];
                         ImGui.TextColored(component.Item2.ToVec4(), component.Item1);
                         if (labeli < labelComponents.Count - 1)
+                        {
                             ImGui.SameLine();
+                        }
                     }
                     ImGui.PopStyleVar();
                 }
@@ -332,11 +341,15 @@ namespace rgat
                 else
                 {
                     if (call.Graph.TraceData.DisassemblyData.GetSymbol(call.Node.GlobalModuleID, call.Node.address, out string? symbol))
+                    {
                         ImGui.TextWrapped(symbol);
+                    }
                     else
                     {
                         if (call.Node.Label is not null)
+                        {
                             ImGui.TextWrapped($"{call.Node.Label.Split(' ')[^1]}");
+                        }
                     }
                 }
                 ImGui.TableNextColumn();

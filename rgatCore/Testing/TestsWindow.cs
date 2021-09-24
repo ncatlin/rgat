@@ -66,7 +66,11 @@ namespace rgat.Widgets
                 _queuedTests.Clear();
 
                 string testspath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TestsDirectory);
-                if (!Directory.Exists(testspath)) return;
+                if (!Directory.Exists(testspath))
+                {
+                    return;
+                }
+
                 string[] dirs = Directory.GetDirectories(testspath)
                     .Select(x => Path.GetFileName(x))
                     .Where(x => x.Contains("_"))
@@ -76,7 +80,11 @@ namespace rgat.Widgets
                 foreach (string testdir in dirs)
                 {
                     string[] splitted = testdir.Split("_");
-                    if (splitted.Length < 2) continue;
+                    if (splitted.Length < 2)
+                    {
+                        continue;
+                    }
+
                     try
                     {
                         if (uint.TryParse(splitted[0], out uint num))
@@ -167,7 +175,11 @@ namespace rgat.Widgets
                     {
                         foreach (var testcaserun in session.tests)
                         {
-                            if (!testcaserun.Complete) continue;
+                            if (!testcaserun.Complete)
+                            {
+                                continue;
+                            }
+
                             if (testcaserun.ResultCommentary.Verdict == eTestState.Passed)
                             {
                                 if (testSpecsShowPassed)
@@ -237,7 +249,9 @@ namespace rgat.Widgets
             if (ImGui.TreeNodeEx($"{testcase.CategoryName}:{testcase.TestName} - [Not run]"))
             {
                 if (testcase.Comment?.Length > 0)
+                {
                     SmallWidgets.MouseoverText($"Description: {testcase.Comment}");
+                }
 
                 var wholeTestReqs = testcase.TestRunRequirements();
 
@@ -258,7 +272,9 @@ namespace rgat.Widgets
                 ImGui.TreePop();
             }
             if (testcase.Comment?.Length > 0)
+            {
                 SmallWidgets.MouseoverText($"Description: {testcase.Comment}");
+            }
         }
 
         void DrawTraceSpecExplainTreeNodes(TraceRequirements traceRequirements)
@@ -359,9 +375,13 @@ namespace rgat.Widgets
 
             ImGui.TableNextRow();
             if (resultsCommentary.Verdict == eTestState.Passed)
+            {
                 ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, passHighlight);
+            }
             else
+            {
                 ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, failHighlight);
+            }
 
             ImGui.TableNextColumn();
 
@@ -380,9 +400,14 @@ namespace rgat.Widgets
 
                         ImGui.TableNextRow();
                         if (results.result == eTestState.Passed)
+                        {
                             ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, passHighlight);
+                        }
                         else
+                        {
                             ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, failHighlight);
+                        }
+
                         ImGui.TableNextColumn();
                         ImGui.Text($"Test run Requirement: {wholeTestReq.Name} [{results.comparedValueString}] {wholeTestReq.Condition} {wholeTestReq.ExpectedValueString}");
                         SmallWidgets.MouseoverText(wholeTestReq.Comment);
@@ -569,7 +594,10 @@ namespace rgat.Widgets
                     ResetSession();
                 }
                 if (ImGui.IsItemHovered())
+                {
                     ImGui.SetTooltip("Clear test results and reload tests from test directory.");
+                }
+
                 ImGui.EndChild();
             }
             ImGui.PopStyleColor();
@@ -601,12 +629,21 @@ namespace rgat.Widgets
                         AddTestsToQueue(eCatFilter.All);
                     }
                     if (ImGui.IsItemHovered())
+                    {
                         ImGui.SetTooltip("Add every unqueued test to the queue");
+                    }
 
                     ImGui.SameLine();
-                    if (ImGui.Button("+Remaining")) AddTestsToQueue(eCatFilter.Remaining);
+                    if (ImGui.Button("+Remaining"))
+                    {
+                        AddTestsToQueue(eCatFilter.Remaining);
+                    }
+
                     if (ImGui.IsItemHovered())
+                    {
                         ImGui.SetTooltip("Add all tests to the queue which have not yet been executed in this session");
+                    }
+
                     ImGui.SameLine();
                     if (ImGui.Button("+Starred"))
                     {
@@ -614,22 +651,40 @@ namespace rgat.Widgets
                         AddTestsToQueue(eCatFilter.StarredCat);
                     }
                     if (ImGui.IsItemHovered())
+                    {
                         ImGui.SetTooltip("Add starred tests to the queue and tests from starred categories");
+                    }
+
                     ImGui.SameLine();
-                    if (ImGui.Button("+Failed")) AddTestsToQueue(eCatFilter.Failed);
+                    if (ImGui.Button("+Failed"))
+                    {
+                        AddTestsToQueue(eCatFilter.Failed);
+                    }
+
                     if (ImGui.IsItemHovered())
+                    {
                         ImGui.SetTooltip("Add failed tests to the queue");
+                    }
+
                     ImGui.SameLine();
                     if (!_queuedTests.Any())
+                    {
                         ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
+                    }
                     else
+                    {
                         ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                    }
+
                     if (ImGui.Button("-All"))
                     {
                         EmptyQueue();
                     }
                     if (ImGui.IsItemHovered())
+                    {
                         ImGui.SetTooltip("Empty the test queue");
+                    }
+
                     ImGui.PopStyleColor();
                     ImGui.EndChild();
                 }
@@ -659,7 +714,9 @@ namespace rgat.Widgets
                     }
                     ImGui.PopStyleColor();
                     if (ImGui.IsItemHovered())
+                    {
                         ImGui.SetTooltip("Stop execution of tests from the queue. Any active test will be cancelled and remain in the queue.");
+                    }
                 }
                 else
                 {
@@ -674,9 +731,14 @@ namespace rgat.Widgets
                     else
                     {
                         if (!_queuedTests.Any())
+                        {
                             ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
+                        }
                         else
+                        {
                             ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour));
+                        }
+
                         if (ImGui.Button("Start Testing", new Vector2(80, buttonSize)))
                         {
                             StartTests();
@@ -704,14 +766,22 @@ namespace rgat.Widgets
 
         void StartTests()
         {
-            if (_testsRunning) return;
+            if (_testsRunning)
+            {
+                return;
+            }
+
             _testsRunning = true;
         }
 
 
         void StopTests()
         {
-            if (!_testsRunning) return;
+            if (!_testsRunning)
+            {
+                return;
+            }
+
             _testsRunning = false;
         }
 
@@ -753,19 +823,39 @@ namespace rgat.Widgets
                             AddTestToQueue(test);
                             break;
                         case eCatFilter.Failed:
-                            if (test.LatestResultState == eTestState.Failed) AddTestToQueue(test);
+                            if (test.LatestResultState == eTestState.Failed)
+                            {
+                                AddTestToQueue(test);
+                            }
+
                             break;
                         case eCatFilter.Passing:
-                            if (test.LatestResultState == eTestState.Passed) AddTestToQueue(test);
+                            if (test.LatestResultState == eTestState.Passed)
+                            {
+                                AddTestToQueue(test);
+                            }
+
                             break;
                         case eCatFilter.Remaining:
-                            if (test.LatestResultState == eTestState.NotRun) AddTestToQueue(test);
+                            if (test.LatestResultState == eTestState.NotRun)
+                            {
+                                AddTestToQueue(test);
+                            }
+
                             break;
                         case eCatFilter.StarredTest:
-                            if (test.Starred) AddTestToQueue(test);
+                            if (test.Starred)
+                            {
+                                AddTestToQueue(test);
+                            }
+
                             break;
                         case eCatFilter.StarredCat:
-                            if (_testCategories[test.CategoryName].Starred) AddTestToQueue(test);
+                            if (_testCategories[test.CategoryName].Starred)
+                            {
+                                AddTestToQueue(test);
+                            }
+
                             break;
                         default:
                             Logging.RecordLogEvent("AddTestsToQueue has no handler for filter " + filter.ToString(), Logging.LogFilterType.TextError);
@@ -787,9 +877,13 @@ namespace rgat.Widgets
             ImGui.Text("Bits: " + testcase.TestBits.ToString());
 
             if (testcase.Comment != null)
+            {
                 ImGui.Text("Description: " + testcase.Comment);
+            }
             else
+            {
                 ImGui.Text("No Description");
+            }
 
             ImGui.Text($"Has {testcase.TestRunRequirements().Length} general test requirements");
             TraceRequirements proReq = testcase.TraceRequirements();
@@ -860,8 +954,15 @@ namespace rgat.Widgets
                         foreach (string testDir in _orderedTestDirs)
                         {
 
-                            if (!_testDirectories.TryGetValue(testDir, out TestCategory? category) || !category.Tests.Any()) continue;
-                            if (((eCatFilter)_selectedFilter) == eCatFilter.StarredCat && !category.Starred) continue;
+                            if (!_testDirectories.TryGetValue(testDir, out TestCategory? category) || !category.Tests.Any())
+                            {
+                                continue;
+                            }
+
+                            if (((eCatFilter)_selectedFilter) == eCatFilter.StarredCat && !category.Starred)
+                            {
+                                continue;
+                            }
 
                             List<TestCase> shownTests = new List<TestCase>();
 
@@ -871,27 +972,52 @@ namespace rgat.Widgets
                                 switch ((eCatFilter)_selectedFilter)
                                 {
                                     case eCatFilter.StarredTest:
-                                        if (!testcase.Starred) failFilter = true;
+                                        if (!testcase.Starred)
+                                        {
+                                            failFilter = true;
+                                        }
+
                                         break;
                                     case eCatFilter.Passing:
-                                        if (testcase.LatestResultState != eTestState.Passed) failFilter = true;
+                                        if (testcase.LatestResultState != eTestState.Passed)
+                                        {
+                                            failFilter = true;
+                                        }
+
                                         break;
                                     case eCatFilter.Failed:
-                                        if (testcase.LatestResultState != eTestState.Failed) failFilter = true;
+                                        if (testcase.LatestResultState != eTestState.Failed)
+                                        {
+                                            failFilter = true;
+                                        }
+
                                         break;
                                     case eCatFilter.Remaining:
-                                        if (testcase.LatestResultState != eTestState.NotRun) failFilter = true;
+                                        if (testcase.LatestResultState != eTestState.NotRun)
+                                        {
+                                            failFilter = true;
+                                        }
+
                                         break;
                                     case eCatFilter.Complete:
-                                        if (testcase.LatestResultState == eTestState.NotRun) failFilter = true;
+                                        if (testcase.LatestResultState == eTestState.NotRun)
+                                        {
+                                            failFilter = true;
+                                        }
+
                                         break;
 
                                 }
-                                if (!failFilter) shownTests.Add(testcase);
+                                if (!failFilter)
+                                {
+                                    shownTests.Add(testcase);
+                                }
                             }
 
-                            if (!shownTests.Any()) continue;
-
+                            if (!shownTests.Any())
+                            {
+                                continue;
+                            }
 
                             Veldrid.ResourceFactory rf = _controller.graphicsDevice.ResourceFactory;
                             IntPtr starFullIcon = _controller.GetOrCreateImGuiBinding(rf, _controller.GetImage("StarFull"), "TestStarFull");
@@ -961,7 +1087,10 @@ namespace rgat.Widgets
                                         if (!starredCategory)
                                         {
                                             if (ImGui.ImageButton(starTexture, new Vector2(23, 23), Vector2.Zero, Vector2.One, 0)) //todo valign
+                                            {
                                                 testcase.Starred = !testcase.Starred;
+                                            }
+
                                             if (ImGui.IsItemHovered())
                                             {
                                                 ImGui.SetTooltip($"Click to {((testcase.Starred) ? "unstar" : "star")} this test");
@@ -1016,7 +1145,10 @@ namespace rgat.Widgets
                                         ImGui.TableNextColumn();
                                         ImGui.PushID($"BtnAdd{testi}");
                                         if (ImGui.ImageButton(addIcon, new Vector2(23, 23)))
+                                        {
                                             AddTestToQueue(testcase);
+                                        }
+
                                         ImGui.PopID();
 
                                         /*

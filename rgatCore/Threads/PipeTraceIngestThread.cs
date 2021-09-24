@@ -18,7 +18,7 @@ namespace rgat
         readonly uint TraceBufSize = GlobalConfig.Settings.Tracing.TraceBufferSize;
         readonly ProtoGraph? protograph;
         readonly NamedPipeServerStream threadpipe;
-        Thread splittingThread;
+        readonly Thread splittingThread;
         readonly bool PipeBroke = false;
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace rgat
         /// <param name="threadID">The ID of the graph being read</param>
         /// <param name="newProtoGraph">The graph to ingest. Can be null if a remote trace</param>
         /// <param name="remotePipe">ID of the remote pipe, or null if a local trace</param>
-        public PipeTraceIngestThread( NamedPipeServerStream _threadpipe, uint threadID, ProtoGraph? newProtoGraph, uint? remotePipe = null)
+        public PipeTraceIngestThread(NamedPipeServerStream _threadpipe, uint threadID, ProtoGraph? newProtoGraph, uint? remotePipe = null)
         {
             Debug.Assert(newProtoGraph == null || newProtoGraph.ThreadID == threadID);
             _threadID = threadID;
@@ -73,9 +73,13 @@ namespace rgat
             QueueIngestedData queueFunction;
 
             if (_remotePipe.HasValue)
+            {
                 queueFunction = MirrorMessageToUI;
+            }
             else
+            {
                 queueFunction = EnqueueData;
+            }
 
             splittingThread.Start(queueFunction);
         }
@@ -83,7 +87,7 @@ namespace rgat
 
         void MirrorMessageToUI(byte[] buf)
         {
-           rgatState.NetworkBridge.SendRawTraceData(_remotePipe!.Value, buf, buf.Length);
+            rgatState.NetworkBridge.SendRawTraceData(_remotePipe!.Value, buf, buf.Length);
         }
 
 
@@ -96,7 +100,11 @@ namespace rgat
             byte[] nextMessage;
             lock (QueueSwitchLock)
             {
-                if (ReadingQueue == null) return null;
+                if (ReadingQueue == null)
+                {
+                    return null;
+                }
+
                 if (ReadingQueue.Count == 0 || readIndex >= ReadingQueue.Count)
                 {
 
@@ -306,7 +314,11 @@ namespace rgat
             //wait for the queue to be empty before destroying self
             while ((RawQueue.Count > 0 || FirstQueue.Count > 0 || SecondQueue.Count > 0) && !StopFlag)
             {
-                if (WakeupRequested) TagDataReadyEvent.Set();
+                if (WakeupRequested)
+                {
+                    TagDataReadyEvent.Set();
+                }
+
                 Thread.Sleep(25);
             }
             Terminate();
@@ -317,7 +329,10 @@ namespace rgat
             Console.WriteLine(WorkerThread?.Name + " finished after ingesting " + ProcessedDataSize + " bytes of trace data");
 
             if (protograph != null && !protograph.Terminated)
+            {
                 protograph.SetTerminated();
+            }
+
             Finished();
         }
 

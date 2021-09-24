@@ -134,7 +134,7 @@ namespace rgat
                 SetAnimated(true);
             }
 
-            int NewPosition = (int)(position * (float)InternalProtoGraph.SavedAnimationData.Count);
+            int NewPosition = (int)(position * InternalProtoGraph.SavedAnimationData.Count);
             _userSelectedAnimPosition = NewPosition;
             Console.WriteLine($"Animation set index: {NewPosition}, last: {_lastReplayedIndex}");
 
@@ -155,7 +155,9 @@ namespace rgat
             process_replay_animation_updates();
 
             if (_userSelectedAnimPosition != -1)
+            {
                 _userSelectedAnimPosition = -1;
+            }
         }
 
 
@@ -194,8 +196,12 @@ namespace rgat
         /// <returns>Progress as a float from 0-1</returns>
         public float GetAnimationProgress()
         {
-            if (InternalProtoGraph.SavedAnimationData.Count == 0) return 0;
-            return (float)((float)AnimationIndex / (float)InternalProtoGraph.SavedAnimationData.Count);
+            if (InternalProtoGraph.SavedAnimationData.Count == 0)
+            {
+                return 0;
+            }
+
+            return (float)((float)AnimationIndex / InternalProtoGraph.SavedAnimationData.Count);
         }
 
 
@@ -280,11 +286,17 @@ namespace rgat
         protected void render_new_blocks()
         {
             int endIndex = InternalProtoGraph.EdgeCount;
-            int drawCount = endIndex - (int)DrawnEdgesCount;
-            if (drawCount <= 0) return;
-            int dbglimit = 9999;
-            if (DrawnEdgesCount > dbglimit) return;
+            int drawCount = endIndex - DrawnEdgesCount;
+            if (drawCount <= 0)
+            {
+                return;
+            }
 
+            int dbglimit = 9999;
+            if (DrawnEdgesCount > dbglimit)
+            {
+                return;
+            }
 
             for (int edgeIdx = DrawnEdgesCount; edgeIdx < endIndex; edgeIdx++)
             {
@@ -306,9 +318,15 @@ namespace rgat
                 UpdateNodeLinks((int)edgeNodes.Item1, (int)edgeNodes.Item2);
                 DrawnEdgesCount++;
 
-                if (rgatState.rgatIsExiting) break;
+                if (rgatState.rgatIsExiting)
+                {
+                    break;
+                }
 
-                if (DrawnEdgesCount > dbglimit) return;
+                if (DrawnEdgesCount > dbglimit)
+                {
+                    return;
+                }
             }
         }
 
@@ -321,10 +339,25 @@ namespace rgat
             if (GlobalConfig.NodeClumpLimit > 0)
             {
                 InternalProtoGraph.GetEdgeNodes(edge.EdgeListIndex, out NodeData source, out NodeData target);
-                if (source.OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
-                if (target.IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
-                if (source.IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
-                if (target.OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit) return GlobalConfig.NodeClumpForce;
+                if (source.OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                {
+                    return GlobalConfig.NodeClumpForce;
+                }
+
+                if (target.IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                {
+                    return GlobalConfig.NodeClumpForce;
+                }
+
+                if (source.IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                {
+                    return GlobalConfig.NodeClumpForce;
+                }
+
+                if (target.OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                {
+                    return GlobalConfig.NodeClumpForce;
+                }
             }
 
             //return 5000;
@@ -334,9 +367,14 @@ namespace rgat
             {
                 case eEdgeNodeType.eEdgeNew:
                     if (edge.sourceNodeType == eEdgeNodeType.eNodeJump)
+                    {
                         force = 0.4f;
+                    }
                     else
+                    {
                         force = 1f;
+                    }
+
                     break;
                 case eEdgeNodeType.eEdgeLib:
                     force = 1f;
@@ -472,7 +510,11 @@ namespace rgat
 
                         case eEdgeNodeType.eNodeCall:
                             a += CALLA;
-                            if (b < callCeiling) b = callCeiling;
+                            if (b < callCeiling)
+                            {
+                                b = callCeiling;
+                            }
+
                             b += CALLB;
                             break;
 
@@ -521,7 +563,10 @@ namespace rgat
                 }
 
                 //used to work out how far down to draw the wireframe
-                if (b > _lowestWireframeLoop) _lowestWireframeLoop = b;
+                if (b > _lowestWireframeLoop)
+                {
+                    _lowestWireframeLoop = b;
+                }
 
                 double aPix = -1 * a * CYLINDER_PIXELS_PER_A;
                 float x = (float)(radius * Math.Cos((aPix * Math.PI) / radius));
@@ -564,13 +609,15 @@ namespace rgat
                     float angle = (2f * (float)Math.PI * circlePoint) / WF_POINTSPERLINE;
 
                     if (circlePoint > 1)
+                    {
                         edgeIndices.Add((uint)verts.Count - 1);
+                    }
 
                     edgeIndices.Add((uint)verts.Count);
                     GeomPositionColour gpc = new GeomPositionColour
                     {
                         Color = wireframeColour,
-                        Position = new Vector4(radius * (float)Math.Cos(angle), (float)rowYcoord, radius * (float)Math.Sin(angle), 0)
+                        Position = new Vector4(radius * (float)Math.Cos(angle), rowYcoord, radius * (float)Math.Sin(angle), 0)
                     };
                     verts.Add(gpc);
                 }
@@ -594,7 +641,9 @@ namespace rgat
                 float angle = (2f * (float)Math.PI * circlePoint) / WF_POINTSPERLINE;
 
                 if (circlePoint > 1)
+                {
                     edgeIndices.Add((uint)verts.Count - 1);
+                }
 
                 edgeIndices.Add((uint)verts.Count);
                 GeomPositionColour gpc = new GeomPositionColour
@@ -610,7 +659,9 @@ namespace rgat
                 float angle = (2f * (float)Math.PI * circlePoint) / WF_POINTSPERLINE;
 
                 if (circlePoint > 1)
+                {
                     edgeIndices.Add((uint)verts.Count - 1);
+                }
 
                 edgeIndices.Add((uint)verts.Count);
                 GeomPositionColour gpc = new GeomPositionColour
@@ -626,7 +677,9 @@ namespace rgat
                 float angle = (2f * (float)Math.PI * circlePoint) / WF_POINTSPERLINE;
 
                 if (circlePoint > 1)
+                {
                     edgeIndices.Add((uint)verts.Count - 1);
+                }
 
                 edgeIndices.Add((uint)verts.Count);
                 GeomPositionColour gpc = new GeomPositionColour
@@ -704,9 +757,13 @@ namespace rgat
                 {
                     Vector4? customColour = GetCustomHighlightColour((int)node);
                     if (customColour != null)
+                    {
                         edgeColour = new WritableRgbaFloat(customColour.Value);
+                    }
                     else
+                    {
                         edgeColour = defaultColour;
+                    }
                 }
                 else
                 {
@@ -738,7 +795,9 @@ namespace rgat
             {
                 var addrnodes = InternalProtoGraph.ProcessData.GetNodesAtAddress(InternalProtoGraph.RecentStepAddr, InternalProtoGraph.ThreadID);
                 if (addrnodes.Count > 0)
+                {
                     node = addrnodes[^1];
+                }
             }
 
             //point the active node indicator line to a random busy-region instruction
@@ -808,7 +867,7 @@ namespace rgat
             {
                 Console.WriteLine($"Drawing preset {InternalProtoGraph.EdgeCount }  > {RenderedEdgeCount}  edges with {nodeCount} nodes tex size {textureSize}");
             }
-            float increase = ((float)Math.PI * 2.0f) / (float)_graphStructureLinear.Count;
+            float increase = ((float)Math.PI * 2.0f) / _graphStructureLinear.Count;
             float angle = 0;
             float radius = nodeCount * 4f * 2f;
 
@@ -897,7 +956,7 @@ namespace rgat
         {
             //var textureSize = indexTextureSize(_graphStructureLinear.Count);
             List<List<int>> targetArray = _graphStructureBalanced;
-            var textureSize = (int)countDataArrayItems(targetArray) * 2; //A->B + B->A
+            var textureSize = countDataArrayItems(targetArray) * 2; //A->B + B->A
 
 
             if (textureSize == 0)
@@ -1093,7 +1152,10 @@ namespace rgat
             for (int blockIdx = 0; blockIdx < InternalProtoGraph.BlocksFirstLastNodeList.Count; blockIdx++)
             {
                 var firstIdx_LastIdx = InternalProtoGraph.BlocksFirstLastNodeList[blockIdx];
-                if (firstIdx_LastIdx == null) continue;
+                if (firstIdx_LastIdx == null)
+                {
+                    continue;
+                }
 
                 if (firstIdx_LastIdx.Item1 == firstIdx_LastIdx.Item2)
                 {
@@ -1130,14 +1192,24 @@ namespace rgat
                 Tuple<uint, uint>? FirstLastIdx;
                 if (!n.IsExternal)
                 {
-                    if (n.BlockID >= InternalProtoGraph.BlocksFirstLastNodeList.Count) continue;
+                    if (n.BlockID >= InternalProtoGraph.BlocksFirstLastNodeList.Count)
+                    {
+                        continue;
+                    }
+
                     FirstLastIdx = InternalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID]; //bug: this can happen before bflnl is filled
-                    if (FirstLastIdx == null) continue;
+                    if (FirstLastIdx == null)
+                    {
+                        continue;
+                    }
 
                     blockSize = (FirstLastIdx.Item2 - FirstLastIdx.Item1) + 1;
                     blockID = (int)n.BlockID;
                     if (!blockMiddles.ContainsKey(blockID))
+                    {
                         continue;
+                    }
+
                     blockMid = blockMiddles[blockID];
                 }
                 else
@@ -1337,17 +1409,25 @@ namespace rgat
                 case eRenderingMode.eConditionals:
                     {
                         if (n.IsConditional is false)
-                        { 
-                            return new WritableRgbaFloat(0, 0, 0, 0.7f); 
+                        {
+                            return new WritableRgbaFloat(0, 0, 0, 0.7f);
                         }
                         else
                         {
                             if (n.conditional == ConditionalType.CONDCOMPLETE)
+                            {
                                 return new WritableRgbaFloat(1, 1, 1, .7f);
+                            }
+
                             if (((int)n.conditional & (int)ConditionalType.CONDTAKEN) != 0)
+                            {
                                 return new WritableRgbaFloat(0, 1, 0, 0.7f);
+                            }
+
                             if (((int)n.conditional & (int)ConditionalType.CONDFELLTHROUGH) != 0)
+                            {
                                 return new WritableRgbaFloat(1, 0, 0, 0.7f);
+                            }
                         }
                         return new WritableRgbaFloat(Color.Yellow);
                     }
@@ -1386,16 +1466,24 @@ namespace rgat
 
                 case eRenderingMode.eDegree:
                     if (InternalProtoGraph.NodeList[(int)edge.Item1].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                    {
                         return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
+                    }
 
                     if (InternalProtoGraph.NodeList[(int)edge.Item1].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                    {
                         return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
+                    }
 
                     if (InternalProtoGraph.NodeList[(int)edge.Item2].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                    {
                         return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
+                    }
 
                     if (InternalProtoGraph.NodeList[(int)edge.Item2].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                    {
                         return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
+                    }
 
                     return Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour);
                 default:
@@ -1413,11 +1501,17 @@ namespace rgat
             }
 
             if (n.IsExternal)
+            {
                 return new Tuple<string?, uint>(n.Label!, Themes.GetThemeColourUINT(Themes.eThemeColour.SymbolText));
+            }
             else if (n.HasSymbol)
+            {
                 return new Tuple<string?, uint>(n.Label!, Themes.GetThemeColourUINT(Themes.eThemeColour.InternalSymbol));
+            }
             else
+            {
                 return new Tuple<string?, uint>(n.Label!, Themes.GetThemeColourUINT(Themes.eThemeColour.InstructionText));
+            }
         }
 
         void RegenerateLabels() => _newLabels = true;
@@ -1482,7 +1576,10 @@ namespace rgat
                 float y = index / textureSize;
                 Vector2 texturePosition = new Vector2(x, y);
 
-                if (index >= nodeCount || index >= InternalProtoGraph.NodeCount) return nodeVerts;
+                if (index >= nodeCount || index >= InternalProtoGraph.NodeCount)
+                {
+                    return nodeVerts;
+                }
 
                 nodeIndices.Add(index);
 
@@ -1559,7 +1656,10 @@ namespace rgat
                 for (uint x = 0; x < textureSize; x++)
                 {
                     var index = y * textureSize + x;
-                    if (index >= nodeCount) return NodeVerts;
+                    if (index >= nodeCount)
+                    {
+                        return NodeVerts;
+                    }
 
                     nodeIndices.Add(index);
 
@@ -1629,7 +1729,7 @@ namespace rgat
         /// <returns>Texture size</returns>
         static uint dataTextureSize(int num)
         {
-            return indexTextureSize((int)Math.Ceiling((double)num / 4.0));
+            return indexTextureSize((int)Math.Ceiling(num / 4.0));
         }
 
 
@@ -1697,7 +1797,11 @@ namespace rgat
                             found = externBlock.Value.ThreadCallers.TryGetValue(TID, out calls);
                         }
                     }
-                    if (found) break;
+                    if (found)
+                    {
+                        break;
+                    }
+
                     Thread.Sleep(200);
                     if (rgatState.ExitToken.IsCancellationRequested)
                     {
@@ -1726,13 +1830,20 @@ namespace rgat
 
 
             newnodelist = new List<uint>();
-            if (block is null) return false;
+            if (block is null)
+            {
+                return false;
+            }
 
             lock (InternalProtoGraph.TraceData.DisassemblyData.InstructionsLock)
             {
                 foreach (InstructionData ins in block)
                 {
-                    if (!ins.GetThreadVert(TID, out uint val)) return false;
+                    if (!ins.GetThreadVert(TID, out uint val))
+                    {
+                        return false;
+                    }
+
                     newnodelist.Add(val);
                 }
             }
@@ -1745,14 +1856,20 @@ namespace rgat
         {
             ROUTINE_STRUCT? externStr = null;
             List<InstructionData>? nextBlock = InternalProtoGraph.ProcessData.GetDisassemblyBlock(blockID, ref externStr, blockAddress);
-            if (nextBlock is null) return;
+            if (nextBlock is null)
+            {
+                return;
+            }
 
             Tuple<uint, uint>? LinkingPair = null;
             if (externStr != null)
             {
                 var callers = externStr.Value.ThreadCallers[InternalProtoGraph.ThreadID];
                 var caller = callers.Find(n => n.Item2 == LastAnimatedVert);
-                if (caller == null) return;
+                if (caller == null)
+                {
+                    return;
+                }
 
                 uint callerIdx = caller.Item2;
                 LinkingPair = new Tuple<uint, uint>(LastAnimatedVert, callerIdx);
@@ -1767,7 +1884,10 @@ namespace rgat
                 {
                     LinkingPair = new Tuple<uint, uint>(LastAnimatedVert, caller);
                 }
-                else return;
+                else
+                {
+                    return;
+                }
             }
 
             /*
@@ -1816,8 +1936,10 @@ namespace rgat
                 LastAnimatedVert = nodeIdx;
 
                 ++listOffset;
-                if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (listOffset == (entry.count + 1))) break;
-
+                if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (listOffset == (entry.count + 1)))
+                {
+                    break;
+                }
             }
         }
 
@@ -1844,7 +1966,10 @@ namespace rgat
             int updateLimit = GlobalConfig.LiveAnimationUpdatesPerFrame;
             while (updateProcessingIndex < InternalProtoGraph.SavedAnimationData.Count && (updateLimit-- > 0))
             {
-                if (!process_live_update()) break;
+                if (!process_live_update())
+                {
+                    break;
+                }
             }
 
         }
@@ -1853,7 +1978,10 @@ namespace rgat
         //return false if we need more trace data to do further updates
         bool process_live_update()
         {
-            if (InternalProtoGraph.HasRecentStep) return false;
+            if (InternalProtoGraph.HasRecentStep)
+            {
+                return false;
+            }
 
             //todo: eliminate need for competing with the trace handler for the lock using spsc ringbuffer
             //internalProtoGraph.animationListsRWLOCK_.lock_shared();
@@ -1890,21 +2018,29 @@ namespace rgat
                 string s = "";
                 if (get_block_nodelist(0, entry.blockID, out List<uint>? nodeIDListUC) && nodeIDListUC is not null)
                 {
-                    foreach (int x in nodeIDListUC) s += $"{x},";
+                    foreach (int x in nodeIDListUC)
+                    {
+                        s += $"{x},";
+                    }
                 }
 
                 Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.blockID}: " + s, Logging.LogFilterType.BulkDebugLogFile);
                 brightTime = (int)Anim_Constants.BRIGHTNESS.KEEP_BRIGHT;
             }
             else
+            {
                 brightTime = GlobalConfig.ExternAnimDisplayFrames;
+            }
 
             //break if block not rendered yet
             if (!get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint>? nodeIDList) || nodeIDList is null)
             {
                 //expect to get an incomplete block with exception or animation attempt before static rendering
                 if ((entry.entryType == eTraceUpdateType.eAnimExecException))// && (nodeIDList.Count > (int)entry.count))
+                {
                     return true;
+                }
+
                 return false;
             }
 
@@ -1913,7 +2049,9 @@ namespace rgat
 
             //also add brighten edge to next unchained block
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
+            {
                 brighten_next_block_edge(entry.blockID, entry.blockAddr);
+            }
 
             ++updateProcessingIndex;
             return true;
@@ -1941,7 +2079,9 @@ namespace rgat
 
             double targetAnimIndex = AnimationIndex + stepSize;
             if (targetAnimIndex >= InternalProtoGraph.SavedAnimationData.Count)
+            {
                 targetAnimIndex = InternalProtoGraph.SavedAnimationData.Count - 1;
+            }
 
             for (; AnimationIndex < targetAnimIndex; AnimationIndex += stepSize)
             {
@@ -1974,7 +2114,10 @@ namespace rgat
             ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[replayUpdateIndex];
 
             double stepSize = AnimationRate;
-            if (stepSize < 1) stepSize = 1;
+            if (stepSize < 1)
+            {
+                stepSize = 1;
+            }
 
             //brighten edge between last block and this
             //todo - probably other situations we want to do this apart from a parent exec tag
@@ -1983,7 +2126,11 @@ namespace rgat
                 ANIMATIONENTRY lastentry = InternalProtoGraph.SavedAnimationData[replayUpdateIndex - 1];
                 if (lastentry.entryType == eTraceUpdateType.eAnimExecTag)
                 {
-                    if (verbose) Console.WriteLine($"\tLast entry was block exec - brighten edge to block address 0x{entry.blockAddr:x} ");
+                    if (verbose)
+                    {
+                        Console.WriteLine($"\tLast entry was block exec - brighten edge to block address 0x{entry.blockAddr:x} ");
+                    }
+
                     brighten_next_block_edge(entry.blockID, entry.blockAddr);
                 }
             }
@@ -1996,12 +2143,16 @@ namespace rgat
                 Debug.Assert(block is not null);
                 unchainedWaitFrames += calculate_wait_frames(entry.count * (ulong)block.Count);
 
-                uint maxWait = (uint)Math.Floor((double)maxWaitFrames / stepSize); //todo test
+                uint maxWait = (uint)Math.Floor(maxWaitFrames / stepSize); //todo test
                 if (unchainedWaitFrames > maxWait)
+                {
                     unchainedWaitFrames = maxWait;
+                }
 
-                if (verbose) Console.WriteLine($"\tUpdate eAnimUnchainedResults block 0x{entry.blockAddr:x} ");
-
+                if (verbose)
+                {
+                    Console.WriteLine($"\tUpdate eAnimUnchainedResults block 0x{entry.blockAddr:x} ");
+                }
 
                 remove_unchained_from_animation();
 
@@ -2012,7 +2163,10 @@ namespace rgat
             //all consecutive unchained areas finished, wait until animation paused appropriate frames
             if (entry.entryType == eTraceUpdateType.eAnimReinstrument)
             {
-                if (verbose) Console.WriteLine($"\tUpdate eAnimReinstrument");
+                if (verbose)
+                {
+                    Console.WriteLine($"\tUpdate eAnimReinstrument");
+                }
                 //if (unchainedWaitFrames-- > 1) return;
 
                 remove_unchained_from_animation();
@@ -2024,7 +2178,11 @@ namespace rgat
             int brightTime;
             if (entry.entryType == eTraceUpdateType.eAnimUnchained || animBuildingLoop)
             {
-                if (verbose) Console.WriteLine($"\tUpdate Replay eAnimUnchained/buildingloop");
+                if (verbose)
+                {
+                    Console.WriteLine($"\tUpdate Replay eAnimUnchained/buildingloop");
+                }
+
                 brightTime = (int)Anim_Constants.BRIGHTNESS.KEEP_BRIGHT;
             }
             else
@@ -2034,21 +2192,24 @@ namespace rgat
 
 
 
-            if (!get_block_nodelist(entry.blockAddr, (long)entry.blockID, out List<uint>? nodeIDList) &&
+            if (!get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint>? nodeIDList) &&
                 entry.entryType != eTraceUpdateType.eAnimExecException)
             {
                 Thread.Sleep(5);
-                while (!get_block_nodelist(entry.blockAddr, (long)entry.blockID, out nodeIDList))
+                while (!get_block_nodelist(entry.blockAddr, entry.blockID, out nodeIDList))
                 {
                     Thread.Sleep(15);
                     Console.WriteLine($"[rgat] process_replay_update waiting for block 0x{entry.blockAddr:x}");
-                    if (rgatState.rgatIsExiting) return;
+                    if (rgatState.rgatIsExiting)
+                    {
+                        return;
+                    }
                 }
             }
 
             if (nodeIDList is not null)
             {
-                Console.WriteLine($"Trace type {entry.entryType} brightening nodes {String.Join(",", nodeIDList!.Select(x => x.ToString()))} for time {brightTime}");
+                Console.WriteLine($"Trace type {entry.entryType} brightening nodes {string.Join(",", nodeIDList!.Select(x => x.ToString()))} for time {brightTime}");
                 //add all the nodes+edges in the block to the brightening list
                 brighten_node_list(entry, brightTime, nodeIDList);
             }
@@ -2056,7 +2217,11 @@ namespace rgat
             //brighten edge to next unchained block
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
             {
-                if (verbose) Console.WriteLine($"\tUpdate eAnimUnchained");
+                if (verbose)
+                {
+                    Console.WriteLine($"\tUpdate eAnimUnchained");
+                }
+
                 brighten_next_block_edge(entry.targetID, entry.targetAddr);
             }
 
@@ -2071,7 +2236,11 @@ namespace rgat
         {
             //assume 10 instructions per step/frame
             ulong stepSize = (ulong)AnimationRate;
-            if (stepSize == 0) stepSize = 1;
+            if (stepSize == 0)
+            {
+                stepSize = 1;
+            }
+
             ulong frames = (InternalProtoGraph.TotalInstructions / Anim_Constants.ASSUME_INS_PER_BLOCK) / stepSize;
 
             float proportion = (float)executions / InternalProtoGraph.TotalInstructions;
@@ -2208,7 +2377,11 @@ namespace rgat
         {
             lock (textLock)
             {
-                if (_customHighlightColours.TryGetValue(nodeIdx, out Vector4 col)) return col;
+                if (_customHighlightColours.TryGetValue(nodeIdx, out Vector4 col))
+                {
+                    return col;
+                }
+
                 return null;
             }
         }
@@ -2273,7 +2446,7 @@ namespace rgat
         /// </summary>
         public long LastComputeTime;
 
-        int _computeBufferNodeCount; 
+        int _computeBufferNodeCount;
         /// <summary>
         /// Number of nodes added to the compute buffer
         /// </summary>
@@ -2426,7 +2599,10 @@ namespace rgat
             if (n.Label is null)
             {
                 n.CreateLabel(this, callIndex);
-                if (n.Label is null) return;
+                if (n.Label is null)
+                {
+                    return;
+                }
             }
             lock (animationLock)
             {
@@ -2448,7 +2624,9 @@ namespace rgat
             lock (animationLock)
             {
                 if (!_PulseActiveNodes.Contains(nodeIdx))
+                {
                     _PulseActiveNodes.Add(nodeIdx);
+                }
             }
         }
 
@@ -2504,7 +2682,11 @@ namespace rgat
         /// <returns></returns>
         public bool SetLayout(LayoutStyles.Style newStyle)
         {
-            if (newStyle == ActiveLayoutStyle) return false;
+            if (newStyle == ActiveLayoutStyle)
+            {
+                return false;
+            }
+
             LayoutState.TriggerLayoutChange(newStyle);
             return true;
         }
@@ -2563,7 +2745,10 @@ namespace rgat
             set
             {
                 _textEnabled = value;
-                if (_textEnabled) RegenerateLabels();
+                if (_textEnabled)
+                {
+                    RegenerateLabels();
+                }
             }
         }
 
@@ -2673,7 +2858,7 @@ namespace rgat
         public void UpdatePreviewVisibleRegion(Vector2 graphWidgetSize)
         {
 
-            Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, (float)graphWidgetSize.X / graphWidgetSize.Y, CameraClippingNear, CameraClippingFar);
+            Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, graphWidgetSize.X / graphWidgetSize.Y, CameraClippingNear, CameraClippingFar);
             Matrix4x4 world = RotationMatrix;
             Matrix4x4 view = Matrix4x4.CreateTranslation(new Vector3(CameraXOffset, CameraYOffset, CameraZoom));
 
@@ -2903,7 +3088,7 @@ namespace rgat
         /// <summary>
         /// main lock for access to this objects data
         /// </summary>
-        protected readonly Object textLock = new Object();
+        protected readonly object textLock = new object();
 
         /// <summary>
         /// Number of nodes recorded in this threads trace

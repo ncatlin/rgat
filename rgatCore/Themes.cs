@@ -25,11 +25,11 @@ namespace rgat
             /// <summary>
             /// Labels on preview graphs
             /// </summary>
-            ePreviewText, 
+            ePreviewText,
             /// <summary>
             /// The background of text on preview graphs to provide contrast
             /// </summary>
-            ePreviewTextBackground, 
+            ePreviewTextBackground,
             /// <summary>
             /// The border of the preview pane
             /// </summary>
@@ -41,7 +41,7 @@ namespace rgat
             /// <summary>
             /// The box used to show the camera location in the preview pane
             /// </summary>
-            ePreviewZoomEnvelope, 
+            ePreviewZoomEnvelope,
             /// <summary>
             /// The background of running thread preview graphs
             /// </summary>
@@ -57,7 +57,7 @@ namespace rgat
             /// <summary>
             /// Emphasised text style 1
             /// </summary>
-            eTextEmphasis1, 
+            eTextEmphasis1,
             /// <summary>
             /// Emphasised text style 2
             /// </summary>
@@ -65,7 +65,7 @@ namespace rgat
             /// <summary>
             /// Subtle text style 1
             /// </summary>
-            eTextDull1, 
+            eTextDull1,
             /// <summary>
             /// Subtle text style 2
             /// </summary>
@@ -77,7 +77,7 @@ namespace rgat
             /// <summary>
             /// 10-19% most active instructions
             /// </summary>
-            eHeat1, 
+            eHeat1,
             /// <summary>
             /// 20-29% most active instructions
             /// </summary>
@@ -113,15 +113,15 @@ namespace rgat
             /// <summary>
             /// The instruction count plot line on the visualisation bar
             /// </summary>
-            eVisBarPlotLine, 
+            eVisBarPlotLine,
             /// <summary>
             /// The background of the visualiser bar
             /// </summary>
-            eVisBarBg, 
+            eVisBarBg,
             /// <summary>
             /// The background of the alert box
             /// </summary>
-            eAlertWindowBg, 
+            eAlertWindowBg,
             /// <summary>
             /// The border of the alert box
             /// </summary>
@@ -133,11 +133,11 @@ namespace rgat
             /// <summary>
             /// Colour for warnings
             /// </summary>
-            eWarnStateColour, 
+            eWarnStateColour,
             /// <summary>
             /// Colour for successful events
             /// </summary>
-            eGoodStateColour, 
+            eGoodStateColour,
             /// <summary>
             /// Background of the analysis chart
             /// </summary>
@@ -149,7 +149,7 @@ namespace rgat
             /// <summary>
             /// Colour of call edges
             /// </summary>
-            edgeCall, 
+            edgeCall,
             /// <summary>
             /// Colour of edges to existing instructions
             /// </summary>
@@ -205,7 +205,7 @@ namespace rgat
             /// <summary>
             /// Colour of internal symbol labels
             /// </summary>
-            InternalSymbol, 
+            InternalSymbol,
             /// <summary>
             /// Colour of instruction text labels
             /// </summary>
@@ -412,7 +412,10 @@ namespace rgat
                 {
                     ImGuiCol col = (ImGuiCol)colI;
                     Vector4 ced4vec = *ImGui.GetStyleColorVec4(col);
-                    if (ced4vec.W < 0.3) ced4vec.W = 0.7f;
+                    if (ced4vec.W < 0.3)
+                    {
+                        ced4vec.W = 0.7f;
+                    }
 
                     ThemeColoursStandard[col] = new WritableRgbaFloat(ced4vec).ToUint();
                 }
@@ -431,7 +434,11 @@ namespace rgat
         {
             lock (_lock)
             {
-                if (!ThemeColoursCustom.ContainsKey(item) || ((uint)item >= ThemeColoursCustom.Count)) return 0xff000000;
+                if (!ThemeColoursCustom.ContainsKey(item) || ((uint)item >= ThemeColoursCustom.Count))
+                {
+                    return 0xff000000;
+                }
+
                 return ThemeColoursCustom[item];
             }
         }
@@ -446,7 +453,10 @@ namespace rgat
             lock (_lock)
             {
                 if (!ThemeColoursCustom.ContainsKey(item) || ((uint)item >= ThemeColoursCustom.Count))
+                {
                     return new WritableRgbaFloat(0xffffffff);
+                }
+
                 return new WritableRgbaFloat(ThemeColoursCustom[item]);
             }
         }
@@ -535,7 +545,7 @@ namespace rgat
                 }
 
                 ImGui.TableSetColumnIndex(1);
-                for (int colI = 0; colI < (int)(Themes.ThemeColoursCustom.Count); colI++)
+                for (int colI = 0; colI < Themes.ThemeColoursCustom.Count; colI++)
                 {
                     Themes.eThemeColour customCol = (Themes.eThemeColour)colI;
                     Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourUINT(customCol)).ToVec4();
@@ -551,7 +561,7 @@ namespace rgat
 
             if (ImGui.TreeNode("Dimensions"))
             {
-                for (int dimI = 0; dimI < (int)(Themes.ThemeSizesCustom.Count); dimI++)
+                for (int dimI = 0; dimI < Themes.ThemeSizesCustom.Count; dimI++)
                 {
                     Themes.eThemeSize sizeEnum = (Themes.eThemeSize)dimI;
                     int size = (int)Themes.GetThemeSize(sizeEnum);
@@ -559,7 +569,7 @@ namespace rgat
                     if (ImGui.SliderInt(Enum.GetName(typeof(Themes.eThemeColour), dimI), ref size, (int)sizelimit.X, (int)sizelimit.Y))
                     {
                         changed = true;
-                        Themes.ThemeSizesCustom[sizeEnum] = (float)size;
+                        Themes.ThemeSizesCustom[sizeEnum] = size;
                     }
 
                 }
@@ -575,7 +585,9 @@ namespace rgat
                     string value = kvp.Value;
                     bool validValue = true;
                     if (badFields.Contains(kvp.Key))
+                    {
                         validValue = false;
+                    }
 
                     if (!validValue)
                     {
@@ -583,7 +595,7 @@ namespace rgat
                     }
                     IntPtr p = Marshal.StringToHGlobalUni(kvp.Key);
                     ImGuiInputTextFlags flags = ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackEdit;
-                    ImGui.InputText(kvp.Key, ref value, 1024, flags, (ImGuiInputTextCallback)TextCheckValid, p);
+                    ImGui.InputText(kvp.Key, ref value, 1024, flags, TextCheckValid, p);
 
                     if (!validValue)
                     {
@@ -630,8 +642,15 @@ namespace rgat
             {
                 bool validValue = true;
 
-                if (keyname == "Name" && Themes.BuiltinThemes.ContainsKey(actualCurrentValue)) validValue = false;
-                if (actualCurrentValue.Contains('"')) validValue = true;
+                if (keyname == "Name" && Themes.BuiltinThemes.ContainsKey(actualCurrentValue))
+                {
+                    validValue = false;
+                }
+
+                if (actualCurrentValue.Contains('"'))
+                {
+                    validValue = true;
+                }
 
                 if (badFields.Contains(keyname) && validValue)
                 {
@@ -800,11 +819,30 @@ namespace rgat
                 }
 
                 //all loaded and validated, load them into the UI
-                foreach (var kvp in pendingMetadata) ThemeMetadata[kvp.Key] = kvp.Value;
-                foreach (var kvp in pendingColsCustom) ThemeColoursCustom[kvp.Key] = kvp.Value;
-                foreach (var kvp in pendingColsStd) ThemeColoursStandard[kvp.Key] = kvp.Value;
-                foreach (var kvp in pendingLimits) ThemeSizeLimits[kvp.Key] = kvp.Value;
-                foreach (var kvp in pendingSizes) ThemeSizesCustom[kvp.Key] = kvp.Value;
+                foreach (var kvp in pendingMetadata)
+                {
+                    ThemeMetadata[kvp.Key] = kvp.Value;
+                }
+
+                foreach (var kvp in pendingColsCustom)
+                {
+                    ThemeColoursCustom[kvp.Key] = kvp.Value;
+                }
+
+                foreach (var kvp in pendingColsStd)
+                {
+                    ThemeColoursStandard[kvp.Key] = kvp.Value;
+                }
+
+                foreach (var kvp in pendingLimits)
+                {
+                    ThemeSizeLimits[kvp.Key] = kvp.Value;
+                }
+
+                foreach (var kvp in pendingSizes)
+                {
+                    ThemeSizesCustom[kvp.Key] = kvp.Value;
+                }
 
                 IsBuiltinTheme = BuiltinThemes.ContainsKey(ThemeMetadata["Name"]);
 
@@ -822,8 +860,8 @@ namespace rgat
         public static void SaveMetadataChange(string key, string value)
         {
             ThemeMetadata[key] = value;
-            if (currentThemeJSON is not null && 
-                currentThemeJSON.TryGetValue("MetaData", out JToken? mdTok) && 
+            if (currentThemeJSON is not null &&
+                currentThemeJSON.TryGetValue("MetaData", out JToken? mdTok) &&
                 mdTok.Type is JTokenType.Object)
             {
                 mdTok.ToObject<JObject>()![key] = value;
@@ -841,8 +879,16 @@ namespace rgat
         {
             if (ThemeMetadata["Name"] != name && !BuiltinThemes.ContainsKey(name))
             {
-                if (ThemesMetadataCatalogue.ContainsKey(name)) ThemesMetadataCatalogue.Remove(name);
-                if (CustomThemes.ContainsKey(name)) CustomThemes.Remove(name);
+                if (ThemesMetadataCatalogue.ContainsKey(name))
+                {
+                    ThemesMetadataCatalogue.Remove(name);
+                }
+
+                if (CustomThemes.ContainsKey(name))
+                {
+                    CustomThemes.Remove(name);
+                }
+
                 WriteCustomThemesToConfig();
             }
         }
@@ -855,7 +901,10 @@ namespace rgat
         /// <param name="setAsDefault">if true, this theme will be loaded on rgat start</param>
         public static void SavePresetTheme(string name, bool setAsDefault)
         {
-            if (name.Length == 0 || BuiltinThemes.ContainsKey(name)) return;
+            if (name.Length == 0 || BuiltinThemes.ContainsKey(name))
+            {
+                return;
+            }
 
             if (name != ThemeMetadata["Name"])
             {
@@ -868,8 +917,9 @@ namespace rgat
             WriteCustomThemesToConfig();
 
             if (setAsDefault)
+            {
                 GlobalConfig.Settings.Themes.DefaultTheme = ThemeMetadata["Name"];
-
+            }
         }
 
 
@@ -891,19 +941,35 @@ namespace rgat
                 JObject themeJsnObj = new JObject();
 
                 JObject themeCustom = new JObject();
-                foreach (var kvp in ThemeColoursCustom) themeCustom.Add(kvp.Key.ToString(), kvp.Value);
+                foreach (var kvp in ThemeColoursCustom)
+                {
+                    themeCustom.Add(kvp.Key.ToString(), kvp.Value);
+                }
+
                 themeJsnObj.Add("CustomColours", themeCustom);
 
                 JObject themeImgui = new JObject();
-                foreach (var kvp in ThemeColoursStandard) themeImgui.Add(kvp.Key.ToString(), kvp.Value);
+                foreach (var kvp in ThemeColoursStandard)
+                {
+                    themeImgui.Add(kvp.Key.ToString(), kvp.Value);
+                }
+
                 themeJsnObj.Add("StandardColours", themeImgui);
 
                 JObject sizesObj = new JObject();
-                foreach (var kvp in ThemeSizesCustom) sizesObj.Add(kvp.Key.ToString(), kvp.Value);
+                foreach (var kvp in ThemeSizesCustom)
+                {
+                    sizesObj.Add(kvp.Key.ToString(), kvp.Value);
+                }
+
                 themeJsnObj.Add("Sizes", sizesObj);
 
                 JObject sizeLimitsObj = new JObject();
-                foreach (var kvp in ThemeSizeLimits) sizeLimitsObj.Add(kvp.Key.ToString(), new JArray(new List<float>() { kvp.Value.X, kvp.Value.Y }));
+                foreach (var kvp in ThemeSizeLimits)
+                {
+                    sizeLimitsObj.Add(kvp.Key.ToString(), new JArray(new List<float>() { kvp.Value.X, kvp.Value.Y }));
+                }
+
                 themeJsnObj.Add("SizeLimits", sizeLimitsObj);
 
                 JObject metadObj = new JObject();
@@ -973,7 +1039,11 @@ namespace rgat
 
             foreach (var item in metadataObj)
             {
-                if (item.Value is null) continue;
+                if (item.Value is null)
+                {
+                    continue;
+                }
+
                 if (item.Key.Length > 255)
                 {
                     error = $"Theme has metadata key with excessive length {item.Key.Length}"; return false;

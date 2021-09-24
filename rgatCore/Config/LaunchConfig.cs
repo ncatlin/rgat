@@ -229,7 +229,11 @@ namespace rgat.Config
 
             foreach (var kvp in jsn)
             {
-                if (kvp.Value is null) continue;
+                if (kvp.Value is null)
+                {
+                    continue;
+                }
+
                 string keyname = kvp.Key.ToLower();
 
                 switch (keyname)
@@ -237,7 +241,10 @@ namespace rgat.Config
                     case "nofollow":
                         if (TryGetBool(kvp.Value, out bool boolitem))
                         {
-                            if (keyname == "nofollow") NoFollowDescendants = boolitem;
+                            if (keyname == "nofollow")
+                            {
+                                NoFollowDescendants = boolitem;
+                            }
                         }
                         else
                         {

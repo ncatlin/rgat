@@ -273,7 +273,11 @@ namespace rgat
         {
             foreach (JToken entry in exceptionsArray)
             {
-                if (entry.Type != JTokenType.Integer) return false;
+                if (entry.Type != JTokenType.Integer)
+                {
+                    return false;
+                }
+
                 ExceptionNodeIndexes.Add(entry.ToObject<uint>());
             }
             return true;
@@ -289,7 +293,9 @@ namespace rgat
             exeModuleID = jModID.ToObject<int>();
 
             if (exeModuleID < 0 || exeModuleID >= TraceData.DisassemblyData.LoadedModuleBounds.Count)
+            {
                 return false;
+            }
 
             if (!graphData.TryGetValue("TotalInstructions", out JToken? jTotal) || jTotal.Type != JTokenType.Integer)
             {
@@ -311,7 +317,11 @@ namespace rgat
             Logging.RecordLogEvent($"LoadAnimationData Loading {animationArray.Count} trace entries for graph {ThreadID}");
             foreach (JArray animFields in animationArray)
             {
-                if (animFields.Count != 7) return false;
+                if (animFields.Count != 7)
+                {
+                    return false;
+                }
+
                 ANIMATIONENTRY entry = new ANIMATIONENTRY();
                 entry.entryType = (eTraceUpdateType)animFields[0].ToObject<uint>();
                 entry.blockAddr = animFields[1].ToObject<ulong>();
@@ -355,7 +365,9 @@ namespace rgat
                 foreach (JArray argEntry in (JArray)entry[2])
                 {
                     if (argEntry.Count != 2 || argEntry[0].Type != JTokenType.Integer || argEntry[1].Type != JTokenType.String)
+                    {
                         return false;
+                    }
 
                     Tuple<int, string> argData = new Tuple<int, string>(argEntry[0].ToObject<int>(), argEntry[1].ToString());
                     CallArgList.Add(argData);
@@ -401,13 +413,17 @@ namespace rgat
                 return;
             }
 
-            if (lastNodeType == eEdgeNodeType.eFIRST_IN_THREAD) return;
-
-
+            if (lastNodeType == eEdgeNodeType.eFIRST_IN_THREAD)
+            {
+                return;
+            }
 
             NodeData? sourcenode = GetNode(ProtoLastVertID);
             Debug.Assert(sourcenode is not null);
-            if (sourcenode.ThunkCaller) return;
+            if (sourcenode.ThunkCaller)
+            {
+                return;
+            }
 
             //make API calls leaf nodes, rather than part of the chain
             //if (sourcenode.IsExternal)
@@ -418,12 +434,17 @@ namespace rgat
                 EdgeData newEdge = new EdgeData(index: EdgeList.Count, sourceType: lastNodeType, execCount: repeats);
 
                 if (instructionIndex > 0)
+                {
                     newEdge.edgeClass = alreadyExecuted ? eEdgeNodeType.eEdgeOld : eEdgeNodeType.eEdgeNew;
+                }
                 else
                 {
                     if (alreadyExecuted)
+                    {
                         newEdge.edgeClass = eEdgeNodeType.eEdgeOld;
+                    }
                     else
+                    {
                         switch (lastNodeType)
                         {
                             case eEdgeNodeType.eNodeReturn:
@@ -439,6 +460,7 @@ namespace rgat
                                 newEdge.edgeClass = eEdgeNodeType.eEdgeNew;
                                 break;
                         }
+                    }
                 }
 
                 //Console.WriteLine($"Creating edge src{sourcenode.index} -> targvid{targVertID}");
@@ -503,9 +525,13 @@ namespace rgat
                 Logging.RecordLogEvent($"Faulting Block {tag.blockID} 0x{tag.blockaddr:X} not recorded in disassembly");
                 Debug.Assert(false);
                 if (foundExtern != null)
+                {
                     Console.WriteLine($"[rgat]Warning - faulting block was in uninstrumented code at 0x{tag.blockaddr}");
+                }
                 else
+                {
                     Console.WriteLine($"[rgat]Warning - failed to get disassembly for faulting block at 0x{tag.blockaddr}");
+                }
 
                 return;
             }
@@ -523,9 +549,14 @@ namespace rgat
                 //target vert already on this threads graph?
                 bool alreadyExecuted = set_target_instruction(instruction);
                 if (!alreadyExecuted)
+                {
                     targVertID = handle_new_instruction(instruction, tag.blockID, 1);
+                }
                 else
+                {
                     GetNode(targVertID)?.IncreaseExecutionCount(1);
+                }
+
                 AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, 1);
 
                 //BB_addExceptionEdge(alreadyExecuted, instructionIndex, 1);
@@ -540,7 +571,10 @@ namespace rgat
                     lastNodeType = eEdgeNodeType.eNodeException;
                     lock (highlightsLock)
                     {
-                        if (!exceptionSet.Contains(targVertID)) exceptionSet.Add(targVertID);
+                        if (!exceptionSet.Contains(targVertID))
+                        {
+                            exceptionSet.Add(targVertID);
+                        }
                     }
                 }
 
@@ -585,7 +619,10 @@ namespace rgat
                 //piddata->getExternCallerReadLock();
                 foreach (var caller in callers)
                 {
-                    if (caller.Item1 != ProtoLastVertID) continue;
+                    if (caller.Item1 != ProtoLastVertID)
+                    {
+                        continue;
+                    }
 
                     //piddata->dropExternCallerReadLock();
 
@@ -639,7 +676,9 @@ namespace rgat
                     thisbb.ThreadCallers.Add(ThreadID, callervec);
                 }
                 else
+                {
                     callers.Add(resultPair);
+                }
             }
 
             int module = thisbb.Module;
@@ -710,11 +749,17 @@ namespace rgat
         /// </summary>
         public void ProcessIncomingCallArguments()
         {
-            if (_unprocessedCallArguments.Count == 0) return;
+            if (_unprocessedCallArguments.Count == 0)
+            {
+                return;
+            }
 
             ulong currentSourceBlock = _unprocessedCallArguments[0].sourceBlock;
             if ((int)currentSourceBlock == -1)
+            {
                 return; //API called before instrumented code was reached
+            }
+
             ulong currentTarget = _unprocessedCallArguments[0].calledAddress;
 
             uint completecount = 0;
@@ -735,15 +780,22 @@ namespace rgat
                 Debug.Assert(arg.sourceBlock == currentSourceBlock, "ProcessIncomingCallArguments() unexpected change of source");
                 Debug.Assert(arg.argIndex > currentIndex || arg.isReturnVal, "ProcessIncomingCallArguments() unexpected change of source");
                 if (BlocksFirstLastNodeList.Count <= (int)currentSourceBlock)
+                {
                     break;
-
+                }
 
                 Tuple<uint, uint>? blockIndexes = BlocksFirstLastNodeList[(int)currentSourceBlock];
-                if (blockIndexes == null) break;
+                if (blockIndexes == null)
+                {
+                    break;
+                }
 
                 uint callerNodeIdx = blockIndexes.Item2;
                 currentIndex = arg.argIndex; //uh
-                if (!arg.finalEntry) continue;
+                if (!arg.finalEntry)
+                {
+                    continue;
+                }
 
 
                 //each API call target can have multiple nodes in a thread, so we have to get the list of 
@@ -762,7 +814,11 @@ namespace rgat
                 {
                     //ulong callerAddress = callerNode.ins.address;
 
-                    if (threadCalls[i].Item1 != callerNodeIdx) continue;
+                    if (threadCalls[i].Item1 != callerNodeIdx)
+                    {
+                        continue;
+                    }
+
                     NodeData? functionNode = GetNode(threadCalls[i].Item2);
                     Debug.Assert(functionNode is not null);
 
@@ -807,7 +863,10 @@ namespace rgat
                 }
 
                 //setup for next sequence of args
-                if (_unprocessedCallArguments.Count <= (cacheI + 1)) break;
+                if (_unprocessedCallArguments.Count <= (cacheI + 1))
+                {
+                    break;
+                }
 
                 currentTarget = _unprocessedCallArguments[cacheI + 1].calledAddress;
                 currentSourceBlock = _unprocessedCallArguments[cacheI + 1].sourceBlock;
@@ -858,7 +917,9 @@ namespace rgat
             }
 
             if (isLastArgInCall)
+            {
                 ProcessIncomingCallArguments();
+            }
         }
 
 
@@ -1008,7 +1069,7 @@ namespace rgat
         {
             lock (edgeLock)
             {
-                Tuple<uint,uint> nodes = EdgeList[EdgeIndex];
+                Tuple<uint, uint> nodes = EdgeList[EdgeIndex];
                 source = NodeList[(int)nodes.Item1];
                 targ = NodeList[(int)nodes.Item2];
             }
@@ -1050,11 +1111,17 @@ namespace rgat
                 newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
             }
             else if (sourceNode.ins!.itype == eNodeType.eInsCall)
+            {
                 newEdge.edgeClass = eEdgeNodeType.eEdgeCall;
+            }
             else if (sourceNode.ins.itype == eNodeType.eInsReturn)
+            {
                 newEdge.edgeClass = eEdgeNodeType.eEdgeReturn;
+            }
             else
+            {
                 newEdge.edgeClass = eEdgeNodeType.eEdgeOld;
+            }
 
             AddEdge(newEdge, sourceNode, targNode);
         }
@@ -1129,7 +1196,10 @@ namespace rgat
 
             else if (thistag.InstrumentationState == eCodeInstrumentation.eUninstrumentedCode) //call to (uninstrumented) external library
             {
-                if (ProtoLastVertID == 0) return;
+                if (ProtoLastVertID == 0)
+                {
+                    return;
+                }
 
                 //find caller,external vertids if old + add node to graph if new
                 Console.WriteLine("[rgat]WARNING: Exception handler in uninstrumented module reached\n." +
@@ -1193,7 +1263,7 @@ namespace rgat
         /// <summary>
         /// Ordered list of executing edges
         /// </summary>
-        List<Tuple<uint, uint>> EdgeList = new List<Tuple<uint, uint>>();
+        readonly List<Tuple<uint, uint>> EdgeList = new List<Tuple<uint, uint>>();
         /// <summary>
         /// How many edges have been recorded
         /// </summary>
@@ -1204,7 +1274,7 @@ namespace rgat
         /// </summary>
 
         public List<EdgeData> edgeObjList = new List<EdgeData>();
-        
+
         /// <summary>
         /// light-touch list of blocks for filling in edges without locking disassembly data
         /// </summary>
@@ -1340,9 +1410,12 @@ namespace rgat
                     handle_previous_instruction(targVertID, repeats);
                 }
 
-                if (instructionIndex == 0) firstVert = targVertID;
+                if (instructionIndex == 0)
+                {
+                    firstVert = targVertID;
+                }
 
-                AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, (ulong)((recordEdge || instructionIndex > 0) ? repeats : 0));
+                AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, (recordEdge || instructionIndex > 0) ? repeats : 0);
 
                 //setup conditions for next instruction
                 switch (instruction.itype)
@@ -1426,7 +1499,9 @@ namespace rgat
         public NodeData? GetNode(uint index)
         {
             if (index >= NodeList.Count)
+            {
                 return null;
+            }
 
             NodeData n = NodeList[(int)index];
             return n;
@@ -1442,7 +1517,11 @@ namespace rgat
                 NodeData? srcNode = GetNode(source);
                 NodeData? targNode = GetNode(target);
 
-                if (srcNode is null || targNode is null) return false;
+                if (srcNode is null || targNode is null)
+                {
+                    return false;
+                }
+
                 EdgeData edge = new EdgeData(serialised: entry, index: EdgeList.Count, sourceType: srcNode.VertType());
                 //todo: edge count?
                 AddEdge(edge, srcNode, targNode);
@@ -1485,12 +1564,17 @@ namespace rgat
         void AssignModulePath()
         {
             bool found = ProcessData.FindContainingModule(StartAddress, out int? exeModuleID);
-            if (!found || exeModuleID >= ProcessData.LoadedModulePaths.Count) return;
+            if (!found || exeModuleID >= ProcessData.LoadedModulePaths.Count)
+            {
+                return;
+            }
 
             StartModuleName = System.IO.Path.GetFileName(ProcessData.LoadedModulePaths[exeModuleID!.Value]);
 
             if (StartModuleName.Length > UI.MAX_MODULE_PATH_LENGTH)
+            {
                 StartModuleName = ".." + StartModuleName.Substring(StartModuleName.Length - UI.MAX_MODULE_PATH_LENGTH, UI.MAX_MODULE_PATH_LENGTH);
+            }
         }
 
 

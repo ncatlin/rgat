@@ -38,7 +38,7 @@ namespace rgat
             /// when the repo itself was last updated
             /// </summary>
             public DateTime LastUpdate { get; set; }
-            
+
             /// <summary>
             /// when rgat last downloaded the repo
             /// </summary>
@@ -77,7 +77,11 @@ namespace rgat
             {
                 get
                 {
-                    if (_fetchPath == null) _fetchPath = RepoComponentsToPath(OrgName, RepoName, SubDir);
+                    if (_fetchPath == null)
+                    {
+                        _fetchPath = RepoComponentsToPath(OrgName, RepoName, SubDir);
+                    }
+
                     return _fetchPath;
                 }
             }
@@ -91,7 +95,11 @@ namespace rgat
             /// <returns></returns>
             public static string RepoComponentsToPath(string org, string repo, string directory = "")
             {
-                if (org.Length == 0 || repo.Length == 0) return "";
+                if (org.Length == 0 || repo.Length == 0)
+                {
+                    return "";
+                }
+
                 string result = $"https://github.com/{org}/{repo}";
                 if (directory.Any())
                 {

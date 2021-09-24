@@ -152,12 +152,16 @@ namespace rgat
 
             bool instrumented, dataExecution = false;
             if (instrumentedStatusByte == eBlkInstrumentation.eUninstrumentedCode)
+            {
                 instrumented = false;
+            }
             else
             {
                 instrumented = true;
                 if (instrumentedStatusByte == eBlkInstrumentation.eCodeInDataArea)
+                {
                     dataExecution = true;
+                }
             }
             Debug.Assert(instrumented);
 
@@ -224,7 +228,9 @@ namespace rgat
                         instruction.BlockBoundary = true;
                     }
                     else
+                    {
                         instruction.BlockBoundary = false;
+                    }
 
 
                     //need to move this out of the lock
@@ -241,7 +247,7 @@ namespace rgat
                         trace.DisassemblyData.disassembly[insaddr] = new List<InstructionData>();
                     }
                     instruction.MutationIndex = trace.DisassemblyData.disassembly[insaddr].Count;
-                    
+
                     trace.DisassemblyData.disassembly[insaddr].Add(instruction);
 
 
@@ -266,7 +272,9 @@ namespace rgat
             {
                 cancelTokens.Cancel();
                 if (blockPipe != null && blockPipe.IsConnected)
+                {
                     blockPipe.Disconnect();
+                }
             }
             catch { return; }
         }
@@ -335,7 +343,10 @@ namespace rgat
 
         async void LocalListener(object? ProcessMessageobj)
         {
-            if (ProcessMessageobj is null) return;
+            if (ProcessMessageobj is null)
+            {
+                return;
+            }
 
             string name = GetBlockPipeName(trace.PID, trace.randID);
             ProcessPipeMessageAction ProcessMessage = (ProcessPipeMessageAction)ProcessMessageobj;

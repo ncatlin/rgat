@@ -16,7 +16,8 @@ namespace rgat.Config
         /// <summary>
         /// Status of a command
         /// </summary>
-        public enum ResponseStatus { 
+        public enum ResponseStatus
+        {
             /// <summary>
             /// No record of it
             /// </summary>
@@ -157,8 +158,16 @@ namespace rgat.Config
             string addressedCmd = command + recipient;
             lock (_lock)
             {
-                if (!_pendingEvents.TryGetValue(addressedCmd, out int cmdID)) return ResponseStatus.eNoRecord;
-                if (_pendingCommandCallbacks.ContainsKey(cmdID)) return ResponseStatus.eWaiting;
+                if (!_pendingEvents.TryGetValue(addressedCmd, out int cmdID))
+                {
+                    return ResponseStatus.eNoRecord;
+                }
+
+                if (_pendingCommandCallbacks.ContainsKey(cmdID))
+                {
+                    return ResponseStatus.eWaiting;
+                }
+
                 return ResponseStatus.eError;
             }
         }

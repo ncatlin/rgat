@@ -12,7 +12,7 @@ namespace rgat
 {
     class ImguiUtils
     {
-        public static void DrawHorizCenteredText(String msg)
+        public static void DrawHorizCenteredText(string msg)
         {
             Vector2 textSize = ImGui.CalcTextSize(msg);
 
@@ -20,7 +20,7 @@ namespace rgat
             ImGui.Text(msg);
         }
 
-        public static void DrawRegionCenteredText(String msg)
+        public static void DrawRegionCenteredText(string msg)
         {
             ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - ImGui.CalcTextSize(msg).X / 2);
             ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - ImGui.CalcTextSize(msg).Y / 2);
@@ -55,7 +55,7 @@ namespace rgat
 
         public static float ImSaturate(float f) { return (f < 0.0f) ? 0.0f : (f > 1.0f) ? 1.0f : f; }
         public static int IM_F32_TO_INT8_SAT(float _VAL) { return ((int)(ImSaturate(_VAL) * 255.0f + 0.5f)); }
-        public static uint v4_to_uint(Vector4 _VAL) { return (uint)((uint)_VAL.W << 24) | ((uint)_VAL.X << 16) | ((uint)_VAL.Y << 8) | (uint)_VAL.Z; }
+        public static uint v4_to_uint(Vector4 _VAL) { return (uint)_VAL.W << 24 | ((uint)_VAL.X << 16) | ((uint)_VAL.Y << 8) | (uint)_VAL.Z; }
 
         public static unsafe void RenderArrowPointingAt(ImDrawListPtr draw_list, Vector2 pos, Vector2 half_sz, ImGuiDir direction, Vector4 col)
         {

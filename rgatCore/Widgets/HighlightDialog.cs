@@ -59,7 +59,10 @@ namespace rgat.Widgets
             ProtoGraph? graph = _ActiveGraph?.InternalProtoGraph;
             ProcessRecord? processrec = graph?.ProcessData;
 
-            if (processrec == null || graph is null) return;
+            if (processrec == null || graph is null)
+            {
+                return;
+            }
 
             foreach (uint nodeIdx in externNodes)
             {
@@ -85,7 +88,7 @@ namespace rgat.Widgets
                         symentry.name = foundName;
                     }
                     else
-                    { 
+                    {
                         symentry.name = "[No Symbol Name]";
                     }
                     symentry.threadNodes = new List<uint>() { n.Index };
@@ -94,7 +97,10 @@ namespace rgat.Widgets
                 }
                 else
                 {
-                    if (!symentry.threadNodes.Contains(n.Index)) symentry.threadNodes.Add(n.Index);
+                    if (!symentry.threadNodes.Contains(n.Index))
+                    {
+                        symentry.threadNodes.Add(n.Index);
+                    }
                 }
 
             }
@@ -257,7 +263,11 @@ namespace rgat.Widgets
         private void DrawSymbolsSelectBox(float reserveSize)
         {
             PlottedGraph? graph = _ActiveGraph;
-            if (graph == null) return;
+            if (graph == null)
+            {
+                return;
+            }
+
             if (_activeHighlights.LastExternNodeCount < graph.InternalProtoGraph.ExternalNodesCount)
             {
                 RefreshExternHighlightData(graph.InternalProtoGraph.copyExternalNodeList());
@@ -321,7 +331,7 @@ namespace rgat.Widgets
                         }
 
                         graph.LayoutState.Lock.EnterUpgradeableReadLock();
-                        graph.RemoveHighlightedNodes(graph.HighlightedSymbolNodes,  CONSTANTS.HighlightType.Externals);
+                        graph.RemoveHighlightedNodes(graph.HighlightedSymbolNodes, CONSTANTS.HighlightType.Externals);
                         graph.LayoutState.Lock.ExitUpgradeableReadLock();
 
                         _activeHighlights.SelectedSymbols.Clear();
@@ -373,12 +383,19 @@ namespace rgat.Widgets
                 ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.KeyPadEnter)))
             {
                 string addrstring = _activeHighlights.AddrEntryText;
-                addrstring = new string(addrstring.ToCharArray().Where(c => !System.Char.IsWhiteSpace(c)).ToArray());
+                addrstring = new string(addrstring.ToCharArray().Where(c => !char.IsWhiteSpace(c)).ToArray());
 
-                if (addrstring.ToLower().StartsWith("0x")) addrstring = addrstring.Substring(2);
+                if (addrstring.ToLower().StartsWith("0x"))
+                {
+                    addrstring = addrstring.Substring(2);
+                }
+
                 bool success = ulong.TryParse(addrstring, NumberStyles.AllowHexSpecifier, CultureInfo.CurrentCulture, out ulong hexAddr);
                 if (!success)
+                {
                     success = ulong.TryParse(addrstring, NumberStyles.Integer, CultureInfo.CurrentCulture, out hexAddr);
+                }
+
                 if (success)
                 {
                     _activeHighlights.AddrEntryText = "";
@@ -437,7 +454,11 @@ namespace rgat.Widgets
 
         public void Draw(PlottedGraph LatestActiveGraph)
         {
-            if (LatestActiveGraph == null) return;
+            if (LatestActiveGraph == null)
+            {
+                return;
+            }
+
             if (_ActiveGraph != LatestActiveGraph)
             {
                 _ActiveGraph = LatestActiveGraph;

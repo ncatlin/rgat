@@ -1,7 +1,6 @@
 ﻿using rgat.Widgets;
 
 using System.Threading;
-using System.Timers;
 
 namespace rgat.Threads
 {

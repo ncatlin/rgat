@@ -231,7 +231,9 @@ namespace rgat.Widgets
                                                 //link this entity to the reference the api all created (eg associate a file path with the file handle that 'CreateFile' created)
                                                 string referenceString = APICallRecord.argList[referenceParamLoggedIndex].Item2;
                                                 if (referenceParamRecord.NoCase)
+                                                {
                                                     referenceString = referenceString.ToLower();
+                                                }
 
                                                 if (!_interactionEntityReferences.ContainsKey(referenceParamRecord.RawType))
                                                 {
@@ -260,7 +262,9 @@ namespace rgat.Widgets
 
                                                 string referenceString = APICallRecord.argList[referenceParamLoggedIndex].Item2;
                                                 if (referenceParamRecord.NoCase)
+                                                {
                                                     referenceString = referenceString.ToLower();
+                                                }
 
                                                 bool resolvedReference = false;
                                                 if (_interactionEntityReferences.TryGetValue(referenceParamRecord.RawType, out Dictionary<string, ItemNode>? typeEntityList))
@@ -269,7 +273,10 @@ namespace rgat.Widgets
                                                     {
                                                         resolvedReference = true;
                                                         if (!_timelineEventEntities.ContainsKey(timelineEvent))
+                                                        {
                                                             _timelineEventEntities.Add(timelineEvent, entityNode);
+                                                        }
+
                                                         AddAPIEdge(threadNode, entityNode, apiinfo.Label);
                                                     }
                                                 }
@@ -296,7 +303,9 @@ namespace rgat.Widgets
 
                                                 string referenceString = APICallRecord.argList[referenceParamLoggedIndex].Item2;
                                                 if (referenceParamRecord.NoCase)
+                                                {
                                                     referenceString = referenceString.ToLower();
+                                                }
 
                                                 bool resolvedReference = false;
                                                 if (_interactionEntityReferences.TryGetValue(referenceParamRecord.RawType, out Dictionary<string, ItemNode>? typeEntityList))
@@ -305,7 +314,10 @@ namespace rgat.Widgets
                                                     {
                                                         resolvedReference = true;
                                                         if (!_timelineEventEntities.ContainsKey(timelineEvent))
+                                                        {
                                                             _timelineEventEntities.Add(timelineEvent, entityNode);
+                                                        }
+
                                                         AddAPIEdge(threadNode, entityNode, apiinfo.Label);
                                                         typeEntityList.Remove(referenceString);
                                                     }
@@ -419,13 +431,17 @@ namespace rgat.Widgets
                         Vector2 sourcePos = chartPos + Point2Vec(srcPoint);
                         Vector2 targPos = chartPos + Point2Vec(targPoint);
                         Tuple<ItemNode, ItemNode> edgeTuple = new Tuple<ItemNode, ItemNode>(edge.Source, edge.Target);
-                        if (drawnEdges.Contains(edgeTuple)) continue;
+                        if (drawnEdges.Contains(edgeTuple))
+                        {
+                            continue;
+                        }
+
                         drawnEdges.Add(edgeTuple);
 
                         ImGui.GetWindowDrawList().AddLine(sourcePos, targPos, 0xffff00ff);
                         if (_edgeLabels.TryGetValue(edgeTuple, out List<string>? edgeLabels))
                         {
-                            ImGui.GetWindowDrawList().AddText(Vector2.Lerp(sourcePos, targPos, 0.5f), 0xff000000, String.Join(",", edgeLabels));
+                            ImGui.GetWindowDrawList().AddText(Vector2.Lerp(sourcePos, targPos, 0.5f), 0xff000000, string.Join(",", edgeLabels));
                         }
                     }
                 }
@@ -458,7 +474,10 @@ namespace rgat.Widgets
         void DrawNode(ItemNode node, Vector2 position)
         {
             Vector2 cursor = ImGui.GetCursorScreenPos();
-            if (!InFrame(position - cursor)) return;
+            if (!InFrame(position - cursor))
+            {
+                return;
+            }
 
             var DrawList = ImGui.GetWindowDrawList();
 
@@ -528,27 +547,27 @@ namespace rgat.Widgets
                         case "File":
                             DrawList.AddText(_fontptr, 20, position - new Vector2(10f, 10f), 0xff000000, $"{ImGuiController.FA_ICON_FILECODE}");
                             DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "File Interaction");
-                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, (string)node.label);
+                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, node.label);
                             break;
                         case "Registry":
                             DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_SQUAREGRID}");
                             DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "Registry Interaction");
-                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, (string)node.label);
+                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, node.label);
                             break;
                         case "Process":
                             DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_COGS}");
                             DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "Process Interaction");
-                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, (string)node.label);
+                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, node.label);
                             break;
                         case "Network":
                             DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_NETWORK}");
                             DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "Network Interaction");
-                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, (string)node.label);
+                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, node.label);
                             break;
                         default:
                             DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_UP}");
                             DrawList.AddText(position + new Vector2(20, -15), 0xff000000, details.FilterType);
-                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, (string)node.label);
+                            DrawList.AddText(position + new Vector2(20, 5), 0xff000000, node.label);
                             break;
                     }
                     break;
@@ -603,14 +622,21 @@ namespace rgat.Widgets
             SelectedEntity = null;
             _selectedNode = null;
 
-            if (_rootTrace == null) return;
+            if (_rootTrace == null)
+            {
+                return;
+            }
 
             switch (evt.TimelineEventType)
             {
                 case Logging.eTimelineEvent.ProcessStart:
                 case Logging.eTimelineEvent.ProcessEnd:
                     TraceRecord? trace = _rootTrace.GetTraceByID(evt.ID);
-                    if (trace == null) return;
+                    if (trace == null)
+                    {
+                        return;
+                    }
+
                     foreach (var node in sbgraph.Vertices)
                     {
                         if (node.reference == trace)
@@ -622,7 +648,11 @@ namespace rgat.Widgets
                 case Logging.eTimelineEvent.ThreadStart:
                 case Logging.eTimelineEvent.ThreadEnd:
                     ProtoGraph? graph = _rootTrace.GetProtoGraphByTID(evt.ID);
-                    if (graph == null) return;
+                    if (graph == null)
+                    {
+                        return;
+                    }
+
                     foreach (var node in sbgraph.Vertices)
                     {
                         if (node.reference == graph)
@@ -680,7 +710,11 @@ namespace rgat.Widgets
 
         public void ApplyZoom(float delta)
         {
-            if (!MouseOverWidget) return;
+            if (!MouseOverWidget)
+            {
+                return;
+            }
+
             double newScaleX = _scaleX + (delta / 25);
 
             if (newScaleX != _scaleX && newScaleX > 0)
@@ -698,17 +732,26 @@ namespace rgat.Widgets
         public void FitNodesToChart()
         {
             fittingAttempts = 0;
-            if (!_fittingActive) _fittingActive = true;
+            if (!_fittingActive)
+            {
+                _fittingActive = true;
+            }
         }
 
 
         void DoLayoutFittingCycle()
         {
 
-            if (LayoutRunning || !_fittingActive) return;
+            if (LayoutRunning || !_fittingActive)
+            {
+                return;
+            }
 
             var positions = layout.VerticesPositions;
-            if (positions.Count == 0 || layout.Parameters.Width == 0 || layout.Parameters.Height == 0) return;
+            if (positions.Count == 0 || layout.Parameters.Width == 0 || layout.Parameters.Height == 0)
+            {
+                return;
+            }
 
             Console.WriteLine("fitting cycle start");
             //find the most extreme node positions, relative to the edges
@@ -717,10 +760,25 @@ namespace rgat.Widgets
             foreach (var node in positions)
             {
                 Vector2 nCenter = Point2Vec(node.Value) + chartOffset;
-                if (nCenter.X < Xleft) Xleft = nCenter.X;
-                if (nCenter.X > Xright) Xright = nCenter.X;
-                if (nCenter.Y < yTop) yTop = nCenter.Y;
-                if (nCenter.Y > yBase) yBase = nCenter.Y;
+                if (nCenter.X < Xleft)
+                {
+                    Xleft = nCenter.X;
+                }
+
+                if (nCenter.X > Xright)
+                {
+                    Xright = nCenter.X;
+                }
+
+                if (nCenter.Y < yTop)
+                {
+                    yTop = nCenter.Y;
+                }
+
+                if (nCenter.Y > yBase)
+                {
+                    yBase = nCenter.Y;
+                }
             }
 
             //find how far we need to move them to fit - ideal is to make these all zero
@@ -757,7 +815,10 @@ namespace rgat.Widgets
                 //zoom out by shrinking edges
                 _scaleX = _scaleX - ((Math.Abs(zoomSizeRatio) > 0.1) ? 0.2 : 0.02);
                 if (_scaleX < 0)
+                {
                     _scaleX = 0.01;
+                }
+
                 layout.Parameters.LengthFactor = _scaleX;
                 _computeRequired = true;
             }
@@ -792,7 +853,9 @@ namespace rgat.Widgets
         public void ApplyMouseDrag(Vector2 delta)
         {
             if (MouseOverWidget)
+            {
                 chartOffset -= delta;
+            }
         }
 
 

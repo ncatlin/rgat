@@ -162,33 +162,35 @@ namespace rgat
         /// <summary>
         /// The type of tracing done
         /// </summary>
-        public enum eTracePurpose { 
+        public enum eTracePurpose
+        {
             /// <summary>
             /// Gather trace data of the process executing normally to visualise it
             /// </summary>
-            eVisualiser, 
+            eVisualiser,
             /// <summary>
             /// Not implemented
             /// </summary>
-            eFuzzer 
+            eFuzzer
         };
 
         /// <summary>
         /// The state of the process being traced
         /// </summary>
-        public enum eTraceState { 
+        public enum eTraceState
+        {
             /// <summary>
             /// The process is running
             /// </summary>
-            eRunning, 
+            eRunning,
             /// <summary>
             /// The process is suspended by rgat
             /// </summary>
-            eSuspended, 
+            eSuspended,
             /// <summary>
             /// The process is terminated
             /// </summary>
-            eTerminated 
+            eTerminated
         };
 
 
@@ -247,7 +249,11 @@ namespace rgat
         public void SetTraceState(eTraceState newState)
         {
             Logging.RecordLogEvent($"Set trace state {newState}", Logging.LogFilterType.TextDebug);
-            if (TraceState == newState) return;
+            if (TraceState == newState)
+            {
+                return;
+            }
+
             Logging.RecordLogEvent("\tactioning it", Logging.LogFilterType.TextDebug);
             if (newState != eTraceState.eSuspended)
             {
@@ -306,7 +312,10 @@ namespace rgat
         /// <returns>A PlottedGraph with nodes or null if none</returns>
         public PlottedGraph? GetFirstGraph()
         {
-            if (PlottedGraphs.Count == 0) return null;
+            if (PlottedGraphs.Count == 0)
+            {
+                return null;
+            }
 
             //if (graphListLock.trylock())
             var MainPlottedGraphs = GetPlottedGraphs();
@@ -337,7 +346,10 @@ namespace rgat
         /// <returns>The latest PlottedGraph with nodes</returns>
         public PlottedGraph? GetLatestGraph()
         {
-            if (PlottedGraphs.Count == 0) return null;
+            if (PlottedGraphs.Count == 0)
+            {
+                return null;
+            }
 
             //if (graphListLock.trylock())
             var MainPlottedGraphs = GetPlottedGraphs();
@@ -498,7 +510,10 @@ namespace rgat
                         {
                             _timeline.Add(new Logging.TIMELINE_EVENT(type, graph));
                             runningThreads -= 1;
-                            if (runningProcesses == 0 && runningThreads == 0) SetTraceState(eTraceState.eTerminated);
+                            if (runningProcesses == 0 && runningThreads == 0)
+                            {
+                                SetTraceState(eTraceState.eTerminated);
+                            }
                             //  _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
                             //_tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
                         }
@@ -526,7 +541,10 @@ namespace rgat
 
             APIDetailsWin.API_ENTRY? APIDetails = DisassemblyData.GetAPIEntry(node.GlobalModuleID, ModuleReference, node.address);
 
-            if (APIDetails is null) return;
+            if (APIDetails is null)
+            {
+                return;
+            }
 
             Logging.APICALL call = new Logging.APICALL(graph)
             {
@@ -558,14 +576,21 @@ namespace rgat
         /// <returns>And array of TIMELINE_EVENT objects</returns>
         public Logging.TIMELINE_EVENT[] GetTimeLineEntries(long oldest = 0, int max = -1)
         {
-            if (max == -1) max = _timeline.Count;
+            if (max == -1)
+            {
+                max = _timeline.Count;
+            }
+
             List<Logging.TIMELINE_EVENT> results = new List<Logging.TIMELINE_EVENT>();
             lock (_logLock)
             {
                 var last = _timeline.Count - 1;
                 for (; last >= 0 && last >= _timeline.Count - max; last--)
                 {
-                    if (_timeline[last].EventTimeMS < oldest) break;
+                    if (_timeline[last].EventTimeMS < oldest)
+                    {
+                        break;
+                    }
                 }
                 for (var i = last + 1; i < _timeline.Count; i++)
                 {
@@ -687,7 +712,7 @@ namespace rgat
         /// </summary>
         public List<TraceRecord> children = new List<TraceRecord>();
 
-        
+
         /// <summary>
         /// returns a copy of the child trace list
         /// </summary>
@@ -738,14 +763,20 @@ namespace rgat
         /// <returns>TraceRecord or null if not found</returns>
         public TraceRecord? GetTraceByID(ulong traceID)
         {
-            if (PID == traceID) return this;
+            if (PID == traceID)
+            {
+                return this;
+            }
 
             lock (GraphListLock)
             {
                 foreach (var child in children)
                 {
                     TraceRecord? rec = child.GetTraceByID(traceID);
-                    if (rec != null) return rec;
+                    if (rec != null)
+                    {
+                        return rec;
+                    }
                 }
             }
             return null;
@@ -763,12 +794,18 @@ namespace rgat
             {
                 foreach (ProtoGraph graph in ProtoGraphs.Values)
                 {
-                    if (graph.ThreadID == graphID) return graph;
+                    if (graph.ThreadID == graphID)
+                    {
+                        return graph;
+                    }
                 }
                 foreach (var child in children)
                 {
                     ProtoGraph? graph = child.GetProtoGraphByTID(graphID);
-                    if (graph != null) return graph;
+                    if (graph != null)
+                    {
+                        return graph;
+                    }
                 }
             }
             return null;
@@ -785,12 +822,18 @@ namespace rgat
             {
                 foreach (ProtoGraph graph in ProtoGraphs.Values)
                 {
-                    if (graph.ConstructedTime == time) return graph;
+                    if (graph.ConstructedTime == time)
+                    {
+                        return graph;
+                    }
                 }
                 foreach (var child in children)
                 {
                     ProtoGraph? graph = child.GetProtoGraphByTime(time);
-                    if (graph != null) return graph;
+                    if (graph != null)
+                    {
+                        return graph;
+                    }
                 }
             }
             return null;
@@ -931,7 +974,10 @@ namespace rgat
                 if (trace.Save(trace.LaunchedTime, out string? childpath) && childpath is not null)
                 {
                     if (childpath.Length > 0)
+                    {
                         childPathsArray.Add(childpath);
+                    }
+
                     saveCount += 1;
                 }
             }
@@ -1017,7 +1063,11 @@ namespace rgat
             }
             _timeline = new List<TIMELINE_EVENT>();
             JArray? arr = arrTok.ToObject<JArray>();
-            if (arr is null) return false;
+            if (arr is null)
+            {
+                return false;
+            }
+
             foreach (JToken tlTok in arr)
             {
                 if (tlTok.Type != JTokenType.Object)
@@ -1111,7 +1161,11 @@ namespace rgat
         {
             ProtoGraph pgraph = this.ProtoGraphs[TID];
             string saveDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);
-            if (!Directory.Exists(saveDir)) return;
+            if (!Directory.Exists(saveDir))
+            {
+                return;
+            }
+
             FileStream outfile = File.OpenWrite(Path.Combine(saveDir, "pajeksave" + TID.ToString() + ".net"));
             outfile.Write(Encoding.ASCII.GetBytes("%*Colnames \"Disassembly\"\n"));
             outfile.Write(Encoding.ASCII.GetBytes("*Vertices " + pgraph.NodeList.Count + "\n"));
@@ -1140,11 +1194,17 @@ namespace rgat
         /// <param name="graph">The graph of the thread to step over</param>
         public void SendDebugStepOver(ProtoGraph graph)
         {
-            if (!graph.HasRecentStep) return;
+            if (!graph.HasRecentStep)
+            {
+                return;
+            }
 
             ulong stepAddr = graph.RecentStepAddr;
             List<uint> nodes = DisassemblyData.GetNodesAtAddress(stepAddr, graph.ThreadID);
-            if (nodes.Count == 0) return;
+            if (nodes.Count == 0)
+            {
+                return;
+            }
 
             NodeData? n = graph.GetNode(nodes[^1]);
             Debug.Assert(n is not null);

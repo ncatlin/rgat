@@ -49,7 +49,10 @@ namespace rgat.Config
 
         static void MarkDirty()
         {
-            if (MarkDirtyCallback != null) MarkDirtyCallback();
+            if (MarkDirtyCallback != null)
+            {
+                MarkDirtyCallback();
+            }
         }
 
         /// <summary>
@@ -250,7 +253,10 @@ namespace rgat.Config
                         _RecentConnectedAddresses.Remove(address);
                         _RecentConnectedAddresses.Insert(0, address);
                         if (_RecentConnectedAddresses.Count > 6)
+                        {
                             _RecentConnectedAddresses.RemoveRange(5, _RecentConnectedAddresses.Count - 1);
+                        }
+
                         MarkDirty();
                     }
                 }
@@ -461,7 +467,9 @@ namespace rgat.Config
                 {
                     //reserved actions cant have modifier keys
                     if (ResponsiveHeldActions != null && ResponsiveHeldActions.Contains(action))
+                    {
                         mod = ModifierKeys.None;
+                    }
 
                     Tuple<Key, ModifierKeys> keymod = new Tuple<Key, ModifierKeys>(k, mod);
 
@@ -542,7 +550,9 @@ namespace rgat.Config
                 lock (_lock)
                 {
                     if (Paths!.TryGetValue(setting, out string? result))
+                    {
                         return result;
+                    }
                 }
                 return "";
             }
@@ -595,7 +605,10 @@ namespace rgat.Config
                             if (VerifyCertificate(path, SIGNERS.PIN_SIGNERS, out string? error, out string? warning))
                             {
                                 if (warning != null)
+                                {
                                     Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
+                                }
+
                                 validSignature = true;
                             }
                             else
@@ -612,7 +625,10 @@ namespace rgat.Config
                             if (VerifyCertificate(path, SIGNERS.RGAT_SIGNERS, out string? error, out string? warning))
                             {
                                 if (warning != null)
+                                {
                                     Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
+                                }
+
                                 validSignature = true;
                             }
                             else
@@ -632,7 +648,10 @@ namespace rgat.Config
                             if (VerifyCertificate(path, SIGNERS.RGAT_SIGNERS, out string? error, out string? warning))
                             {
                                 if (warning != null)
+                                {
                                     Logging.RecordLogEvent($"Binary signature validation warning for {path}: {warning}");
+                                }
+
                                 validSignature = true;
                             }
                             else
@@ -892,7 +911,10 @@ namespace rgat.Config
             {
                 lock (_lock)
                 {
-                    if (RecentPaths.ContainsKey(pathType)) return RecentPaths[pathType].ToArray();
+                    if (RecentPaths.ContainsKey(pathType))
+                    {
+                        return RecentPaths[pathType].ToArray();
+                    }
                 }
                 return new PathRecord[] { };
             }
@@ -935,7 +957,9 @@ namespace rgat.Config
                         {
                             string? dirname = Path.GetDirectoryName(path);
                             if (dirname is not null)
+                            {
                                 RecordRecentPath(PathType.Directory, dirname);
+                            }
                         }
                         catch (Exception e)
                         {
@@ -969,7 +993,7 @@ namespace rgat.Config
         {
             bool inited = false;
 
-            Dictionary<string, SignatureSource>? _signatureSources ;
+            Dictionary<string, SignatureSource>? _signatureSources;
 
             /// <summary>
             /// github signature repos with the url as key

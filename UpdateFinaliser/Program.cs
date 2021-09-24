@@ -14,19 +14,38 @@ namespace UpdateFinaliser
         {
             string logf = Path.Combine(Path.GetDirectoryName(args[1]), "rgatupdatelog.txt");
             using FileStream log = File.OpenWrite(logf);
-            log.Write(Encoding.ASCII.GetBytes($"Started with args len {args.Length} {String.Join(",", args)}\n"));
+            log.Write(Encoding.ASCII.GetBytes($"Started with args len {args.Length} {string.Join(",", args)}\n"));
 
-            if (args.Length != 4) return;
+            if (args.Length != 4)
+            {
+                return;
+            }
+
             log.Write(Encoding.ASCII.GetBytes("Parsing Parent PID\n"));
-            if (!int.TryParse(args[0], out int PID)) return;
+            if (!int.TryParse(args[0], out int PID))
+            {
+                return;
+            }
+
             log.Write(Encoding.ASCII.GetBytes("Checking original rgat exists\n"));
             string originalrgat = args[1];
-            if (!File.Exists(originalrgat)) return;
+            if (!File.Exists(originalrgat))
+            {
+                return;
+            }
+
             log.Write(Encoding.ASCII.GetBytes("Checkign updated rgat exists\n"));
             string newrgat = args[2];
-            if (!File.Exists(newrgat)) return;
+            if (!File.Exists(newrgat))
+            {
+                return;
+            }
+
             log.Write(Encoding.ASCII.GetBytes("Parsing relaunch option\n"));
-            if (!bool.TryParse(args[3], out bool reLaunch)) return;
+            if (!bool.TryParse(args[3], out bool reLaunch))
+            {
+                return;
+            }
 
             log.Write(Encoding.ASCII.GetBytes("Waiting for parent to terminate\n"));
             try

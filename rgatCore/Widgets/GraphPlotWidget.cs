@@ -66,7 +66,7 @@ namespace rgat
         /// <param name="clientState">The rgat clientstate</param>
         /// <param name="controller">The ImGui controller</param>
         /// <param name="initialSize">The initial size of the widget</param>
-        public GraphPlotWidget( rgatState clientState, ImGuiController controller, Vector2? initialSize = null)
+        public GraphPlotWidget(rgatState clientState, ImGuiController controller, Vector2? initialSize = null)
         {
             _clientState = clientState;
             _controller = controller;
@@ -168,8 +168,10 @@ namespace rgat
                 MaxRemaining = 0;
                 return false;
             }
-            if (_centeringInFrame == 1) _centeringSteps += 1;
-
+            if (_centeringInFrame == 1)
+            {
+                _centeringSteps += 1;
+            }
 
             _layoutEngine.GetScreenFitOffsets(graph, worldView, WidgetSize,
                 out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
@@ -193,9 +195,13 @@ namespace rgat
             if ((xoffsets.X < targXpadding && xoffsets.Y < targXpadding) || (yoffsets.X < targYpadding && yoffsets.Y < targYpadding))
             {
                 if (xoffsets.X < targXpadding)
+                {
                     delta = Math.Min(targXpadding / 2, (targXpadding - xoffsets.X) / 3f);
+                }
                 else
+                {
                     delta = Math.Min(targYpadding / 2, (targYpadding - yoffsets.Y) / 1.3f);
+                }
 
                 if (delta > 50)
                 {
@@ -204,14 +210,18 @@ namespace rgat
                     return false;
                 }
                 else
+                {
                     zdelta = -1 * delta;
+                }
             }
 
             //too zoomed out, zoom in
             if ((xoffsets.X > targXpadding && xoffsets.Y > targXpadding) && (yoffsets.X > targYpadding && yoffsets.Y > targYpadding))
             {
                 if (zoffsets.X > graphDepth)
+                {
                     zdelta += Math.Max((zoffsets.X - graphDepth) / 8, 50);
+                }
             }
 
             //too far left, move right
@@ -238,9 +248,13 @@ namespace rgat
             {
                 delta = Math.Max(Math.Abs(XDiff / 2), 15);
                 if (XDiff > 0)
+                {
                     xdelta -= delta;
+                }
                 else
+                {
                     xdelta += delta;
+                }
             }
 
 
@@ -264,29 +278,49 @@ namespace rgat
             if (Math.Abs(YDiff) > 40)
             {
                 delta = Math.Max(Math.Abs(YDiff / 2), 15);
-                if (YDiff > 0) ydelta -= delta;
-                else ydelta += delta;
+                if (YDiff > 0)
+                {
+                    ydelta -= delta;
+                }
+                else
+                {
+                    ydelta += delta;
+                }
             }
 
 
             float actualXdelta = Math.Min(Math.Abs(xdelta), 150);
             if (xdelta > 0)
+            {
                 graph.CameraXOffset += actualXdelta;
+            }
             else
+            {
                 graph.CameraXOffset -= actualXdelta;
+            }
 
             float actualYdelta = Math.Min(Math.Abs(ydelta), 150);
             if (ydelta > 0)
+            {
                 graph.CameraYOffset += actualYdelta;
+            }
             else
+            {
                 graph.CameraYOffset -= actualYdelta;
+            }
 
             float actualZdelta = Math.Min(Math.Abs(zdelta), 300);
             if (zdelta > 0)
+            {
                 graph.CameraZoom += actualZdelta;
+            }
             else
             {
-                if (zdelta < 0) actualZdelta *= 10;
+                if (zdelta < 0)
+                {
+                    actualZdelta *= 10;
+                }
+
                 graph.CameraZoom -= actualZdelta;
             }
 
@@ -497,7 +531,11 @@ namespace rgat
             if (GlobalConfig.ShowKeystrokes)
             {
                 string caption = boundAction.ToString();
-                if (resultText != null) caption += $": {resultText}";
+                if (resultText != null)
+                {
+                    caption += $": {resultText}";
+                }
+
                 DisplayKeyPress(keyPressed, caption);
             }
 
@@ -526,8 +564,12 @@ namespace rgat
                 return;
             }
 
-            if (graph.CameraClippingFar <= graph.CameraClippingNear) graph.CameraClippingFar = graph.CameraClippingNear + 1;
-            proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, (float)WidgetSize.X / WidgetSize.Y, graph.CameraClippingNear, graph.CameraClippingFar);
+            if (graph.CameraClippingFar <= graph.CameraClippingNear)
+            {
+                graph.CameraClippingFar = graph.CameraClippingNear + 1;
+            }
+
+            proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, WidgetSize.X / WidgetSize.Y, graph.CameraClippingNear, graph.CameraClippingFar);
 
             Matrix4x4 pitch = Matrix4x4.CreateFromAxisAngle(Vector3.UnitX, _pitchDelta);
             Matrix4x4 yaw = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, _yawDelta);
@@ -963,7 +1005,10 @@ namespace rgat
         {
             _activeRisings.RemoveAll(x => x.remainingFrames == 0);
             PlottedGraph? graph = ActiveGraph;
-            if (graph == null) return;
+            if (graph == null)
+            {
+                return;
+            }
 
             graph.GetActiveExternRisings(out List<Tuple<uint, string>> newRisingExterns,
                 out List<Tuple<uint, string>> currentLingeringExternLabels);
@@ -1040,14 +1085,23 @@ namespace rgat
         {
             List<fontStruc> stringVerts = new List<fontStruc>();
             PlottedGraph? graph = ActiveGraph;
-            if (graph == null) return stringVerts;
-            if (!graph.Opt_TextEnabled) return stringVerts;
+            if (graph == null)
+            {
+                return stringVerts;
+            }
+
+            if (!graph.Opt_TextEnabled)
+            {
+                return stringVerts;
+            }
 
             for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
             {
                 var caption = captions[nodeIdx];
                 if (caption is not null && caption.Item1 is not null)
+                {
                     RenderString(caption.Item1, (uint)nodeIdx, scale, _controller._unicodeFont, stringVerts, captions[nodeIdx].Item2);
+                }
             }
 
 
@@ -1070,7 +1124,10 @@ namespace rgat
         public void DrawGraph(CommandList cl, PlottedGraph graph)
         {
             Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
-            if (drawnEdgeCount == 0 || Exiting) return;
+            if (drawnEdgeCount == 0 || Exiting)
+            {
+                return;
+            }
 
             Debug.Assert(_gd is not null);
             Logging.RecordLogEvent("rendergraph start", filter: Logging.LogFilterType.BulkDebugLogFile);
@@ -1258,7 +1315,9 @@ namespace rgat
             if (currentRegionSize != WidgetSize)
             {
                 if (_newGraphSize == null || _newGraphSize != currentRegionSize)
+                {
                     _newGraphSize = currentRegionSize;
+                }
             }
 
             WidgetPos = ImGui.GetCursorScreenPos();
@@ -1321,19 +1380,33 @@ namespace rgat
                 else
                 {
                     keystroke = keycaption.key.ToString();
-                    if (keycaption.modifiers.HasFlag(ModifierKeys.Control)) keystroke = "Ctrl+" + keystroke;
-                    if (keycaption.modifiers.HasFlag(ModifierKeys.Alt)) keystroke = "Alt+" + keystroke;
-                    if (keycaption.modifiers.HasFlag(ModifierKeys.Shift)) keystroke = "Shift+" + keystroke;
+                    if (keycaption.modifiers.HasFlag(ModifierKeys.Control))
+                    {
+                        keystroke = "Ctrl+" + keystroke;
+                    }
+
+                    if (keycaption.modifiers.HasFlag(ModifierKeys.Alt))
+                    {
+                        keystroke = "Alt+" + keystroke;
+                    }
+
+                    if (keycaption.modifiers.HasFlag(ModifierKeys.Shift))
+                    {
+                        keystroke = "Shift+" + keystroke;
+                    }
                 }
 
                 string msg = $"[{keystroke}] -> {keycaption.message}";
-                if (keycaption.repeats > 1) msg += $" x{keycaption.repeats}";
+                if (keycaption.repeats > 1)
+                {
+                    msg += $" x{keycaption.repeats}";
+                }
 
                 float alpha = i == (_keypressCaptions.Count - 1) ? 255 : 220;
                 if (keycaption.startedMS < fadeLimit)
                 {
                     double fadetime = fadeLimit - keycaption.startedMS;
-                    alpha *= (float)(1 - (fadetime / (double)fadeWindow));
+                    alpha *= (float)(1 - (fadetime / fadeWindow));
                 }
 
                 ImGui.PushStyleColor(ImGuiCol.Text, new WritableRgbaFloat(textCol).ToUint((uint)alpha));
@@ -1351,7 +1424,10 @@ namespace rgat
         public void DisplayEventMessages(Vector2 pos)
         {
             PlottedGraph? graph = ActiveGraph;
-            if (graph == null) return;
+            if (graph == null)
+            {
+                return;
+            }
 
             long timenow = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             float depth = 20;//todo based on count 
@@ -1374,7 +1450,7 @@ namespace rgat
                 if (displayTimeRemaining <= GlobalConfig.VisMessageFadeStartTime)
                 {
                     double fadetime = GlobalConfig.VisMessageFadeStartTime - displayTimeRemaining;
-                    alpha *= 1.0 - (fadetime / (double)GlobalConfig.VisMessageFadeStartTime);
+                    alpha *= 1.0 - (fadetime / GlobalConfig.VisMessageFadeStartTime);
                 }
 
                 System.Drawing.Color textCol;
@@ -1435,7 +1511,10 @@ namespace rgat
                 return;
             }
 
-            if (GlobalConfig.ShowKeystrokes) DrawKeystrokes(topLeft);
+            if (GlobalConfig.ShowKeystrokes)
+            {
+                DrawKeystrokes(topLeft);
+            }
 
             _QuickMenu.Draw(bottomLeft, 0.25f, activeGraph);
 
@@ -1528,7 +1607,11 @@ namespace rgat
         void DrawLayoutSelectorIcons(Vector2 iconSize, bool snappingToPreset)
         {
             PlottedGraph? graph = ActiveGraph;
-            if (graph == null) return;
+            if (graph == null)
+            {
+                return;
+            }
+
             float buttonWidth = 150f;
 
             if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.ForceDirected3DNodes),
@@ -1647,7 +1730,11 @@ namespace rgat
         void HandleGraphUpdates()
         {
             PlottedGraph? graph = ActiveGraph;
-            if (graph == null || Exiting) return;
+            if (graph == null || Exiting)
+            {
+                return;
+            }
+
             if (_newGraphSize != null)
             {
                 Logging.RecordLogEvent($"Remaking textures as newgraphsize {_newGraphSize.Value} != current size {WidgetSize}");
@@ -1694,7 +1781,10 @@ namespace rgat
         void DoMouseNodePicking(GraphicsDevice _gd)
         {
             PlottedGraph? graph = ActiveGraph;
-            if (graph == null || Exiting) return;
+            if (graph == null || Exiting)
+            {
+                return;
+            }
 
             float mouseX = (_MousePos.X - WidgetPos.X);
             float mouseY = (WidgetPos.Y + _pickingStagingTexture!.Height) - _MousePos.Y;

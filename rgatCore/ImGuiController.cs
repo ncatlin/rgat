@@ -149,7 +149,10 @@ namespace ImGuiNET
         /// </summary>
         public unsafe void BuildFonts()
         {
-            if (_unicodeFontLoaded) return;
+            if (_unicodeFontLoaded)
+            {
+                return;
+            }
 
             Logging.RecordLogEvent($"Loading Unicode fonts", Logging.LogFilterType.TextDebug);
             ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());

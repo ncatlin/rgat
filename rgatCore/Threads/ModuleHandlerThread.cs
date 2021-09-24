@@ -34,9 +34,13 @@ namespace rgat
             set
             {
                 if (!_remoteCommandPipeID.HasValue)
+                {
                     _remoteCommandPipeID = value;
+                }
                 else
+                {
                     throw new InvalidOperationException("Remote command pipe ID has already been set");
+                }
             }
         }
 
@@ -98,7 +102,7 @@ namespace rgat
                 WorkerThread.Name = $"TraceModuleHandler_{trace.PID}_{trace.randID}";
                 param = ProcessMessageLocal;
             }
-            WorkerThread.Start((object)param);
+            WorkerThread.Start(param);
         }
 
         private string GetTracePipeName(ulong TID)
@@ -208,7 +212,9 @@ namespace rgat
 
                     PlottedGraph? graphPlot = null;
                     if (_clientState!._GraphicsDevice is not null)
+                    {
                         graphPlot = new PlottedGraph(graph, _clientState._GraphicsDevice!);
+                    }
 
                     if (!trace.InsertNewThread(graph, graphPlot))
                     {
@@ -245,7 +251,9 @@ namespace rgat
                 case eTracePurpose.eVisualiser:
                     ProtoGraph newProtoGraph = new ProtoGraph(trace, TID, startAddr);
                     if (!rgatState.ConnectedToRemote)
+                    {
                         SpawnPipeTraceProcessorThreads(newProtoGraph);
+                    }
                     else
                     {
                         ulong traceRef;
@@ -378,7 +386,10 @@ namespace rgat
         void SendIncludeLists()
         {
 
-            if (!CommandWrite($"INCLUDELISTS\n\x00\x00\x00")) return;
+            if (!CommandWrite($"INCLUDELISTS\n\x00\x00\x00"))
+            {
+                return;
+            }
 
             byte[] buf;
             if (target.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
@@ -395,13 +406,19 @@ namespace rgat
                 {
                     Logging.RecordLogEvent($"Sending traced directory {name}", Logging.LogFilterType.TextDebug);
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
-                    if (!CommandWrite($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
+                    if (!CommandWrite($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00"))
+                    {
+                        return;
+                    }
                 }
                 foreach (string name in tracedFiles)
                 {
                     Logging.RecordLogEvent($"Sending traced file {name}", Logging.LogFilterType.TextDebug);
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
-                    if (!CommandWrite($"@TF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
+                    if (!CommandWrite($"@TF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00"))
+                    {
+                        return;
+                    }
                 }
             }
             else
@@ -413,13 +430,19 @@ namespace rgat
                 {
                     Logging.RecordLogEvent($"Sending ignored dir {name}", Logging.LogFilterType.TextDebug);
                     buf = Encoding.ASCII.GetBytes(name);
-                    if (!CommandWrite($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
+                    if (!CommandWrite($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00"))
+                    {
+                        return;
+                    }
                 }
                 foreach (string name in ignoredFiles)
                 {
                     Logging.RecordLogEvent($"Sending ignored file {name}", Logging.LogFilterType.TextDebug);
                     buf = Encoding.ASCII.GetBytes(name);
-                    if (!CommandWrite($"@IF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00")) return;
+                    if (!CommandWrite($"@IF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00"))
+                    {
+                        return;
+                    }
                 }
             }
 
@@ -430,7 +453,11 @@ namespace rgat
         {
             Dictionary<string, string> config = target.GetCurrentTraceConfiguration();
 
-            if (!CommandWrite($"CONFIGKEYS@{config.Count}")) return;
+            if (!CommandWrite($"CONFIGKEYS@{config.Count}"))
+            {
+                return;
+            }
+
             foreach (KeyValuePair<string, string> kvp in config)
             {
                 string cmdc = $"@CK@{kvp.Key}@{kvp.Value}@\n\x00\x00\x00";
@@ -498,7 +525,10 @@ namespace rgat
 
                 if (buf[1] == 'Z')
                 {
-                    if (!rgatState.rgatIsExiting) HandleTerminatedThread(buf);
+                    if (!rgatState.rgatIsExiting)
+                    {
+                        HandleTerminatedThread(buf);
+                    }
 
                     return;
                 }
@@ -590,9 +620,14 @@ namespace rgat
             {
                 cancelTokens.Cancel();
                 if (commandPipe != null && commandPipe.IsConnected)
+                {
                     commandPipe.Disconnect();
+                }
+
                 if (eventPipe != null && eventPipe.IsConnected)
+                {
                     eventPipe.Disconnect();
+                }
             }
             catch { return; }
 
@@ -757,7 +792,11 @@ namespace rgat
             int totalWaited = 0;
             while (!rgatState.rgatIsExiting)
             {
-                if (eventPipe.IsConnected & commandPipe.IsConnected) break;
+                if (eventPipe.IsConnected & commandPipe.IsConnected)
+                {
+                    break;
+                }
+
                 Thread.Sleep(1000);
                 totalWaited += 1000;
                 Console.WriteLine($"ModuleHandlerThread Awaiting Pipe Connections: Command:{commandPipe.IsConnected}, Event:{eventPipe.IsConnected}, TotalTime:{totalWaited}");
@@ -832,7 +871,10 @@ namespace rgat
             {
                 var graphs = trace.GetPlottedGraphs();
                 alldone = !graphs.Any(g => g.InternalProtoGraph.TraceProcessor is not null && g.InternalProtoGraph.TraceProcessor.Running);
-                if (!alldone) Thread.Sleep(35);
+                if (!alldone)
+                {
+                    Thread.Sleep(35);
+                }
             }
 
             Logging.RecordLogEvent($"ControlHandler Listener thread exited for PID {trace.PID}", trace: trace);

@@ -1,12 +1,7 @@
-﻿using ImGuiNET;
-using rgat.Shaders.SPIR_V;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Veldrid;
-using Veldrid.SPIRV;
 
 namespace rgat
 {
@@ -50,7 +45,7 @@ namespace rgat
             /// Item colour
             /// </summary>
             public WritableRgbaFloat Color;
-            
+
             /// <summary>
             /// Size of this structure
             /// </summary>
@@ -95,7 +90,10 @@ namespace rgat
         public static void DoDispose(Texture? tx)
         {
             // if (tx != null && tx.IsDisposed == false) tx.Dispose();
-            if (tx != null) tx.Dispose();
+            if (tx != null)
+            {
+                tx.Dispose();
+            }
         }
 
 
@@ -106,7 +104,10 @@ namespace rgat
         public static void DoDispose(Framebuffer? fb)
         {
             // if (fb != null && fb.IsDisposed == false) fb.Dispose();
-            if (fb != null) fb.Dispose();
+            if (fb != null)
+            {
+                fb.Dispose();
+            }
         }
 
 
@@ -116,7 +117,10 @@ namespace rgat
         /// <param name="rs">Resource set to dispose</param>
         public static void DoDispose(ResourceSet? rs)
         {
-            if (rs != null) rs.Dispose();
+            if (rs != null)
+            {
+                rs.Dispose();
+            }
             //if (rs != null && rs.IsDisposed == false) rs.Dispose();
         }
 
@@ -331,7 +335,11 @@ namespace rgat
             float[] outputArray = new float[destinationReadView.Count];
             for (int index = 0; index < destinationReadView.Count; index++)
             {
-                if (index >= destinationReadView.Count) break;
+                if (index >= destinationReadView.Count)
+                {
+                    break;
+                }
+
                 outputArray[index] = destinationReadView[index];
                 //Console.WriteLine($"{index}:{outputArray[index]}");
                 if (float.IsNaN(outputArray[index]))

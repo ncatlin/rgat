@@ -60,14 +60,22 @@ namespace rgat
                     bool newVersion = false;
                     foreach (JToken releaseTok in responseArr)
                     {
-                        if (releaseTok.Type != JTokenType.Object) continue;
+                        if (releaseTok.Type != JTokenType.Object)
+                        {
+                            continue;
+                        }
+
                         if (((JObject)releaseTok).TryGetValue("tag_name", out JToken? releaseTagTok)
                             &&
                             ((JObject)releaseTok).TryGetValue("zipball_url", out JToken? zipUrlTok)
                             )
                         {
                             string tagString = releaseTagTok.ToString();
-                            if (tagString.StartsWith('v')) tagString = tagString.Substring(1);
+                            if (tagString.StartsWith('v'))
+                            {
+                                tagString = tagString.Substring(1);
+                            }
+
                             if (tagString.Count(x => x == '.') >= 2)
                             {
                                 Version releaseVersion = new Version(tagString);
@@ -148,18 +156,33 @@ namespace rgat
             for (var verSectionI = 1; verSectionI < versionSections.Length; verSectionI++)
             {
                 string[] versionSectionLines = versionSections[verSectionI].Split("\n### ");
-                if (versionSectionLines.Length < 2) continue;
+                if (versionSectionLines.Length < 2)
+                {
+                    continue;
+                }
+
                 string line = versionSectionLines[0].Trim();
                 string versionString = line.Substring(1, line.IndexOf(']') - 1);
-                if (!System.Version.TryParse(versionString, out Version? newChangeVersion)) continue; //'Unreleased'
-                if (newChangeVersion <= currentVersion) break;
+                if (!System.Version.TryParse(versionString, out Version? newChangeVersion))
+                {
+                    continue; //'Unreleased'
+                }
+
+                if (newChangeVersion <= currentVersion)
+                {
+                    break;
+                }
 
                 totalNewVersionCount += 1;
 
                 for (var changeTypeI = 1; changeTypeI < versionSectionLines.Length; changeTypeI++)
                 {
                     string[] changeItems = versionSectionLines[changeTypeI].Split("\n- ");
-                    if (changeItems.Length < 2) continue;
+                    if (changeItems.Length < 2)
+                    {
+                        continue;
+                    }
+
                     string changeType = changeItems[0].Trim();
                     if (!changesDict.ContainsKey(changeType))
                     {
@@ -180,7 +203,11 @@ namespace rgat
                 if (changesDict.TryGetValue(expectedChangeType, out List<string>? changes))
                 {
                     result += $"####{expectedChangeType}\n";
-                    foreach (string change in changes) result += change + "\n";
+                    foreach (string change in changes)
+                    {
+                        result += change + "\n";
+                    }
+
                     totalChangeCount += changes.Count;
                 }
             }
@@ -238,7 +265,11 @@ namespace rgat
                     if (item.StartsWith("####"))
                     {
                         string category = item.Substring(4, item.Length - 4);
-                        if (category.StartsWith("CHANGES")) continue;
+                        if (category.StartsWith("CHANGES"))
+                        {
+                            continue;
+                        }
+
                         GetChangeIcon(category, out char icon, out WritableRgbaFloat colour);
                         ImGui.PushStyleColor(ImGuiCol.Tab, colour.ToUint(customAlpha: 150));
                         ImGui.PushStyleColor(ImGuiCol.TabHovered, colour.ToUint(customAlpha: 190));
@@ -264,7 +295,9 @@ namespace rgat
 
                                     i += 1;
                                     if (i < (changes.Length - 1) && changes[i + 1].StartsWith("####"))
+                                    {
                                         break;
+                                    }
                                 }
                                 ImGui.EndTable();
                             }
@@ -341,9 +374,13 @@ namespace rgat
             _update_in_progress = true;
 
             if (delayed_install)
+            {
                 _update_style = "ONEXIT";
+            }
             else
+            {
                 _update_style = "ONDOWNLOAD";
+            }
 
             try
             {
@@ -380,7 +417,7 @@ namespace rgat
 
         private static void DownloadProgressCallback4(object sender, DownloadProgressChangedEventArgs e)
         {
-            _download_progress = (float)e.BytesReceived / (float)e.TotalBytesToReceive;
+            _download_progress = e.BytesReceived / (float)e.TotalBytesToReceive;
         }
 
         async static void UpdateDownloader(CancellationToken cancelToken)

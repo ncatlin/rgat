@@ -28,11 +28,12 @@ namespace rgat
         /// <summary>
         /// Width of each preview graph
         /// </summary>
-        float EachGraphWidth = CONSTANTS.UI.PREVIEW_PANE_WIDTH - (2 * CONSTANTS.UI.PREVIEW_PANE_X_PADDING + 2); //-2 for border
+        readonly float EachGraphWidth = CONSTANTS.UI.PREVIEW_PANE_WIDTH - (2 * CONSTANTS.UI.PREVIEW_PANE_X_PADDING + 2); //-2 for border
+
         /// <summary>
         /// Height of each preview graph
         /// </summary>
-        float EachGraphHeight = CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT;
+        readonly float EachGraphHeight = CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT;
         bool Exiting = false;
 
 
@@ -42,7 +43,7 @@ namespace rgat
         /// </summary>
         public PlottedGraph? clickedGraph { get; private set; }
 
-        ImGuiController? _ImGuiController;
+        readonly ImGuiController? _ImGuiController;
         GraphicsDevice? _gd;
         ResourceFactory? _factory;
         readonly rgatState _rgatState;
@@ -80,7 +81,7 @@ namespace rgat
         /// Init the grapihcs device/controller
         /// </summary>
         /// <param name="gdev">Graphics device for GPU access</param>
-        public void Init( GraphicsDevice gdev)
+        public void Init(GraphicsDevice gdev)
         {
             _gd = gdev;
             _factory = gdev.ResourceFactory;
@@ -223,9 +224,13 @@ namespace rgat
             if ((xoffsets.X < targXpadding && xoffsets.Y < targXpadding) || (yoffsets.X < targYpadding && yoffsets.Y < targYpadding))
             {
                 if (xoffsets.X < targXpadding)
+                {
                     delta = Math.Min(targXpadding / 2, (targXpadding - xoffsets.X) / 3f);
+                }
                 else
+                {
                     delta = Math.Min(targYpadding / 2, (targYpadding - yoffsets.Y) / 1.3f);
+                }
 
                 if (delta > 50)
                 {
@@ -234,14 +239,18 @@ namespace rgat
                     return false;
                 }
                 else
+                {
                     zdelta = -1 * delta;
+                }
             }
 
             //too zoomed out, zoom in
             if ((xoffsets.X > targXpadding && xoffsets.Y > targXpadding) && (yoffsets.X > targYpadding && yoffsets.Y > targYpadding))
             {
                 if (zoffsets.X > graphDepth)
+                {
                     zdelta += Math.Max((zoffsets.X - graphDepth) / 8, 50);
+                }
             }
 
             //too far left, move right
@@ -268,9 +277,13 @@ namespace rgat
             {
                 delta = Math.Max(Math.Abs(XDiff / 2), 15);
                 if (XDiff > 0)
+                {
                     xdelta -= delta;
+                }
                 else
+                {
                     xdelta += delta;
+                }
             }
 
 
@@ -294,28 +307,46 @@ namespace rgat
             if (Math.Abs(YDiff) > 40)
             {
                 delta = Math.Max(Math.Abs(YDiff / 2), 15);
-                if (YDiff > 0) ydelta -= delta;
-                else ydelta += delta;
+                if (YDiff > 0)
+                {
+                    ydelta -= delta;
+                }
+                else
+                {
+                    ydelta += delta;
+                }
             }
 
 
             float actualXdelta = Math.Min(Math.Abs(xdelta), 150);
             if (xdelta > 0)
+            {
                 graph.PreviewCameraXOffset += actualXdelta;
+            }
             else
+            {
                 graph.PreviewCameraXOffset -= actualXdelta;
+            }
 
             float actualYdelta = Math.Min(Math.Abs(ydelta), 150);
             if (ydelta > 0)
+            {
                 graph.PreviewCameraYOffset += actualYdelta;
+            }
             else
+            {
                 graph.PreviewCameraYOffset -= actualYdelta;
+            }
 
             float actualZdelta = Math.Min(Math.Abs(zdelta), 300);
             if (zdelta > 0)
+            {
                 graph.PreviewCameraZoom += actualZdelta;
+            }
             else
+            {
                 graph.PreviewCameraZoom -= actualZdelta;
+            }
 
             //weight the offsets higher
             MaxRemaining = Math.Max(Math.Max(Math.Abs(xdelta) * 4, Math.Abs(ydelta) * 4), Math.Abs(zdelta));
@@ -340,9 +371,15 @@ namespace rgat
             bool showToolTip = false;
             PlottedGraph? latestHoverGraph = null;
             TraceRecord? activeTrace = ActiveTrace;
-            if (activeTrace == null) return;
+            if (activeTrace == null)
+            {
+                return;
+            }
 
-            if (IrregularTimerFired) HandleFrameTimerFired();
+            if (IrregularTimerFired)
+            {
+                HandleFrameTimerFired();
+            }
 
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
 
@@ -359,7 +396,11 @@ namespace rgat
                 {
                     PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
                     float xPadding = CONSTANTS.UI.PREVIEW_PANE_X_PADDING;
-                    if (graph == null || graph.GraphNodeCount() == 0) continue;
+                    if (graph == null || graph.GraphNodeCount() == 0)
+                    {
+                        continue;
+                    }
+
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
 
@@ -478,7 +519,10 @@ namespace rgat
                         string path = graph.InternalProtoGraph.ProcessData.GetModulePath(module!.Value);
                         string pathSnip = Path.GetFileName(path);
                         if (pathSnip.Length > 50)
+                        {
                             pathSnip = pathSnip.Substring(pathSnip.Length - 50, pathSnip.Length);
+                        }
+
                         string val = $"Start Address: {pathSnip}:0x{blockaddr:X}";
                         _threadStartCache[graph] = val;
                         ImGui.Text(val);
@@ -529,7 +573,10 @@ namespace rgat
         DateTime _lastCtxMenu = DateTime.MinValue;
         bool HandlePreviewGraphContextMenu()
         {
-            if (ActiveTrace is null) return false;
+            if (ActiveTrace is null)
+            {
+                return false;
+            }
 
             if (ImGui.BeginPopupContextItem("GraphWidgetCtxMenu", ImGuiPopupFlags.MouseButtonRight))
             {
@@ -562,7 +609,9 @@ namespace rgat
                 if (hoverGraph != null || PreviewPopupGraph != null)
                 {
                     if (hoverGraph != null)
+                    {
                         PreviewPopupGraph = hoverGraph;
+                    }
 
                     ImGui.Separator();
                     ImGui.Text($"Graph {PreviewPopupGraph!.TID}");
@@ -619,10 +668,14 @@ namespace rgat
             C2Y = Math.Max(subGraphPosition.Y, C2Y);
 
             if (C1Y > subGraphPosition.Y && C1Y < previewBaseY)
+            {
                 imdp.AddLine(new Vector2(C1X, C1Y), new Vector2(C2X, C1Y), colour);
+            }
 
             if (C2Y > subGraphPosition.Y && C2Y < previewBaseY)
+            {
                 imdp.AddLine(new Vector2(C2X, C2Y), new Vector2(C1X, C2Y), colour);
+            }
 
             if (C2Y < previewBaseY && C1Y > subGraphPosition.Y)
             {
@@ -663,11 +716,23 @@ namespace rgat
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             bool clicked = false;
-            if (graph == null) return clicked;
+            if (graph == null)
+            {
+                return clicked;
+            }
+
             int graphNodeCount = graph.GraphNodeCount();
-            if (graphNodeCount == 0) return clicked;
+            if (graphNodeCount == 0)
+            {
+                return clicked;
+            }
+
             graph.GetLatestTexture(out Texture previewTexture);
-            if (previewTexture == null) return clicked;
+            if (previewTexture == null)
+            {
+                return clicked;
+            }
+
             bool isSelected = graph.TID == selectedGraphTID;
 
 
@@ -789,7 +854,9 @@ namespace rgat
         WritableRgbaFloat GetGraphBackgroundColour(PlottedGraph graph)
         {
             if (graph.InternalProtoGraph.Terminated)
+            {
                 return Themes.GetThemeColourWRF(Themes.eThemeColour.PreviewBGTerminated);
+            }
 
             switch (graph.InternalProtoGraph.TraceData.TraceState)
             {
@@ -807,7 +874,9 @@ namespace rgat
         uint GetGraphBorderColour(PlottedGraph graph)
         {
             if (graph.InternalProtoGraph.Terminated)
+            {
                 return 0xff0000ff;
+            }
 
             switch (graph.InternalProtoGraph.TraceData.TraceState)
             {
@@ -825,7 +894,11 @@ namespace rgat
 
         void renderPreview(CommandList cl, PlottedGraph graph)
         {
-            if (graph == null || Exiting) return;
+            if (graph == null || Exiting)
+            {
+                return;
+            }
+
             if (graph._previewFramebuffer1 == null)
             {
                 graph.InitPreviewTexture(new Vector2(EachGraphWidth, CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT), _gd!);
@@ -853,7 +926,10 @@ namespace rgat
                 out List<uint> edgeDrawIndexes,
                 out int edgeVertCount,
                 out int drawnEdgeCount);
-            if (drawnEdgeCount == 0 || !graph.LayoutState.Initialised) return;
+            if (drawnEdgeCount == 0 || !graph.LayoutState.Initialised)
+            {
+                return;
+            }
 
             //Logging.RecordLogEvent("render preview 2", filter: Logging.LogFilterType.BulkDebugLogFile);
             cl.Begin();

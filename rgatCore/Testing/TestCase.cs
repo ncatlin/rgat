@@ -172,7 +172,11 @@ namespace rgat.Testing
                     JArray? items = ExpectedValue.ToObject<JArray>();
                     for (int i = 0; items is not null && i < items.Count; i++)
                     {
-                        if (i > 0) ExpectedValueString += ",";
+                        if (i > 0)
+                        {
+                            ExpectedValueString += ",";
+                        }
+
                         JToken arrayItem = items[i];
                         switch (arrayItem.Type)
                         {
@@ -286,7 +290,10 @@ namespace rgat.Testing
                 {
                     foreach (JToken arrayItem in expectedArr)
                     {
-                        if (arrayItem.Type == JTokenType.Integer && arrayItem.ToObject<int>() == value) return true;
+                        if (arrayItem.Type == JTokenType.Integer && arrayItem.ToObject<int>() == value)
+                        {
+                            return true;
+                        }
                     }
                 }
                 error = $"No member was equal to {value}";
@@ -349,7 +356,10 @@ namespace rgat.Testing
                 {
                     foreach (JToken arrayItem in expectedArr)
                     {
-                        if (arrayItem.Type == JTokenType.Integer && arrayItem.ToObject<long>() == value) return true;
+                        if (arrayItem.Type == JTokenType.Integer && arrayItem.ToObject<long>() == value)
+                        {
+                            return true;
+                        }
                     }
                 }
                 return false;
@@ -407,7 +417,10 @@ namespace rgat.Testing
                 {
                     foreach (JToken? arrayItem in expectedArr)
                     {
-                        if (arrayItem.Type == JTokenType.Integer && arrayItem.ToObject<ulong>() == value) return true;
+                        if (arrayItem.Type == JTokenType.Integer && arrayItem.ToObject<ulong>() == value)
+                        {
+                            return true;
+                        }
                     }
                 }
                 return false;
@@ -522,7 +535,10 @@ namespace rgat.Testing
                 JObject? jsonObj;
                 try
                 {
-                    if (!ParseTestSpec(jsonpath, out jsonObj) || jsonObj is null) return;
+                    if (!ParseTestSpec(jsonpath, out jsonObj) || jsonObj is null)
+                    {
+                        return;
+                    }
                 }
                 catch (Exception e)
                 {
@@ -671,7 +687,10 @@ namespace rgat.Testing
             }
 
             JObject? metadata = metaTok.ToObject<JObject>();
-            if (metadata is null || !LoadSpecMetadata(metadata)) return false;
+            if (metadata is null || !LoadSpecMetadata(metadata))
+            {
+                return false;
+            }
 
             //optional: requirements for the trace state when the test execution has finished
             if (testSpec.TryGetValue("FinalRequirements", out JToken? finalReqTok) && finalReqTok.Type == JTokenType.Object)
@@ -765,7 +784,11 @@ namespace rgat.Testing
                 }
                 foreach (var req in items)
                 {
-                    if (req.Key == "Comment" || req.Value is null) continue;
+                    if (req.Key == "Comment" || req.Value is null)
+                    {
+                        continue;
+                    }
+
                     if (LoadTestRequirement(req.Key, req.Value, out TestRequirement? requirement) && requirement is not null)
                     {
                         _TestRunRequirements.Add(requirement);
@@ -807,7 +830,11 @@ namespace rgat.Testing
         bool LoadTestRequirement(string name, JToken tok, out TestRequirement? testRequirement)
         {
             testRequirement = null;
-            if (tok.Type != JTokenType.Object) return false;
+            if (tok.Type != JTokenType.Object)
+            {
+                return false;
+            }
+
             JObject? requirement = tok.ToObject<JObject>();
             if (requirement is null ||
                 !requirement.TryGetValue("Value", out JToken? resultValue) ||
@@ -822,7 +849,10 @@ namespace rgat.Testing
 
             string? conditionText = condTok.ToObject<string>();
             if (conditionText is not null)
+            {
                 testRequirement = new TestRequirement(name, resultValue, conditionText);
+            }
+
             if (testRequirement is null || testRequirement.Condition == RequirementCondition.INVALID)
             {
                 DeclareLoadingError($"Invalid condition {conditionText} in requirement {name}");
@@ -859,7 +889,11 @@ namespace rgat.Testing
 
             foreach (var processTok in processReqsObj)
             {
-                if (processTok.Value is null) continue;
+                if (processTok.Value is null)
+                {
+                    continue;
+                }
+
                 switch (processTok.Key)
                 {
                     case "Comment":
@@ -981,7 +1015,10 @@ namespace rgat.Testing
 
             foreach (var reqKVP in threadGraphReqs)
             {
-                if (reqKVP.Key == "Comment" || reqKVP.Value is null) continue;
+                if (reqKVP.Key == "Comment" || reqKVP.Value is null)
+                {
+                    continue;
+                }
 
                 if (LoadTestRequirement(reqKVP.Key, reqKVP.Value, out TestRequirement? graphReq) && graphReq is not null)
                 {

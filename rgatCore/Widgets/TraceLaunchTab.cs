@@ -38,9 +38,13 @@ namespace rgat
             if (activeTarget.RemoteHost != null && !activeTarget.RemoteInitialised)
             {
                 if (rgatState.ConnectedToRemote)
+                {
                     ImguiUtils.DrawRegionCenteredText("Initialising from remote host");
+                }
                 else
+                {
                     ImguiUtils.DrawRegionCenteredText("Disconnected from remote host before metadata could be retrieved");
+                }
 
                 ImGui.EndChildFrame();
                 return;
@@ -57,7 +61,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("Filename (Size)");
                     ImGui.TableNextColumn();
-                    string fileStr = String.Format("{0} ({1})", activeTarget.FileName, activeTarget.GetFileSizeString());
+                    string fileStr = string.Format("{0} ({1})", activeTarget.FileName, activeTarget.GetFileSizeString());
                     byte[] _dataInput = Encoding.UTF8.GetBytes(fileStr);
                     ImGui.InputText("##filenameinp", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
 
@@ -130,7 +134,10 @@ namespace rgat
             ImGui.EndGroup();
             ImGui.EndChildFrame();
 
-            if (_yaraPopupHit != null && !_hitHoverOnly) DrawYaraPopup(false);
+            if (_yaraPopupHit != null && !_hitHoverOnly)
+            {
+                DrawYaraPopup(false);
+            }
         }
 
         float _tooltipScroll = 0;
@@ -151,7 +158,9 @@ namespace rgat
                 float BoxSize = Math.Max(ImGui.GetContentRegionAvail().Y, (hexline.Length / 4608f) * 845f);
                 ImGui.InputTextMultiline("##inplin1", ref hexline, (uint)hexline.Length, new Vector2(530, BoxSize), flags);
                 if (_tooltipScroll > ImGui.GetScrollMaxY())
+                {
                     _tooltipScroll = ImGui.GetScrollMaxY();
+                }
 
                 ImGui.EndTooltip();
             }
@@ -328,13 +337,16 @@ namespace rgat
                     ImGui.EndChild();
                 }
 
-                void DrawClickablePaths(List<string> paths, Action<String> clicked)
+                void DrawClickablePaths(List<string> paths, Action<string> clicked)
                 {
                     ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToUint(160));
                     foreach (string fstr in paths)
                     {
                         ImGui.Selectable(fstr);
-                        if (ImGui.IsItemClicked()) activeTarget.TraceChoices.RemoveIgnoredDirectory(fstr);
+                        if (ImGui.IsItemClicked())
+                        {
+                            activeTarget.TraceChoices.RemoveIgnoredDirectory(fstr);
+                        }
                     }
                     ImGui.PopStyleColor();
                 }
@@ -346,7 +358,7 @@ namespace rgat
                     if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
                     {
                         ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
-                        if ((eModuleTracingMode)activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultTrace)
+                        if (activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultTrace)
                         {
                             int ignoredDirCount = activeTarget.TraceChoices.IgnoreDirsCount;
                             ImGui.SetNextItemOpen(true, ImGuiCond.Once);
@@ -358,7 +370,11 @@ namespace rgat
                             if (ignoredDirCount > 0 && ImGui.BeginPopupContextItem("IgnoreDirsClear", ImGuiPopupFlags.MouseButtonRight))
                             {
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                                if (ImGui.Selectable("Clear all ignored directories")) activeTarget.TraceChoices.ClearIgnoredDirs();
+                                if (ImGui.Selectable("Clear all ignored directories"))
+                                {
+                                    activeTarget.TraceChoices.ClearIgnoredDirs();
+                                }
+
                                 ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
@@ -373,7 +389,11 @@ namespace rgat
                             if (ignoredFileCount > 0 && ImGui.BeginPopupContextItem("IgnoreFilesClear", ImGuiPopupFlags.MouseButtonRight))
                             {
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                                if (ImGui.Selectable("Clear all ignored files")) activeTarget.TraceChoices.ClearIgnoredFiles();
+                                if (ImGui.Selectable("Clear all ignored files"))
+                                {
+                                    activeTarget.TraceChoices.ClearIgnoredFiles();
+                                }
+
                                 ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
@@ -387,7 +407,7 @@ namespace rgat
                             ImGui.PopStyleVar();
                             SmallWidgets.MouseoverText("Add files/directories to this filter");
                         }
-                        else if ((eModuleTracingMode)activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+                        else if (activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
                         {
                             ImGui.SetNextItemOpen(true, ImGuiCond.Once);
                             if (ImGui.TreeNode($"Traced Directories ({activeTarget.TraceChoices.TraceDirCount})"))
@@ -398,7 +418,11 @@ namespace rgat
                             if (ImGui.BeginPopupContextItem("TraceDirsClear", ImGuiPopupFlags.MouseButtonRight))
                             {
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                                if (ImGui.Selectable("Clear all traced directories")) activeTarget.TraceChoices.ClearTracedDirs();
+                                if (ImGui.Selectable("Clear all traced directories"))
+                                {
+                                    activeTarget.TraceChoices.ClearTracedDirs();
+                                }
+
                                 ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
@@ -412,7 +436,11 @@ namespace rgat
                             if (ImGui.BeginPopupContextItem("TraceDirsClear", ImGuiPopupFlags.MouseButtonRight))
                             {
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                                if (ImGui.Selectable("Clear all traced files")) activeTarget.TraceChoices.ClearTracedFiles();
+                                if (ImGui.Selectable("Clear all traced files"))
+                                {
+                                    activeTarget.TraceChoices.ClearTracedFiles();
+                                }
+
                                 ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
@@ -559,7 +587,11 @@ namespace rgat
                         ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF454545);
                         ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0xFF454545);
                         _recordVideoOnStart = false;
-                        if (ImGui.Checkbox("Capture Video", ref _recordVideoOnStart)) rgatState.RecordVideoOnNextTrace = _recordVideoOnStart;
+                        if (ImGui.Checkbox("Capture Video", ref _recordVideoOnStart))
+                        {
+                            rgatState.RecordVideoOnNextTrace = _recordVideoOnStart;
+                        }
+
                         ImGui.PopStyleColor(3);
                         SmallWidgets.MouseoverText("Requires FFmpeg - configure in settings");
                     }
@@ -604,7 +636,7 @@ namespace rgat
                 }
                 else if (DEProgress.errored)
                 {
-                    float dieProgress = DEProgress.scriptCount == 0 ? 0f : (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    float dieProgress = DEProgress.scriptCount == 0 ? 0f : DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     string caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
                     uint errorColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, errorColour, 0xff111111, textColour);
@@ -615,20 +647,20 @@ namespace rgat
                 }
                 else if (DEProgress.running)
                 {
-                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    float dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     string caption = $"DiE:{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
                 }
                 else if (DEProgress.StopRequestFlag)
                 {
-                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    float dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     string caption = $"Cancelled ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
                     uint cancelColor = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, cancelColor, 0xff111111, 0xff000000);
                 }
                 else
                 {
-                    float dieProgress = (float)DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    float dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     string caption = $"DIE:({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
                     SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111, textColour);
                 }
@@ -827,7 +859,9 @@ namespace rgat
                         else
                         {
                             if (_hitHoverOnly == true)
+                            {
                                 _yaraPopupHit = null;
+                            }
                         }
 
                     }
@@ -868,7 +902,10 @@ namespace rgat
 
         void YaraTooltipContents(bool tooltip)
         {
-            if (_yaraPopupHit is null) return;
+            if (_yaraPopupHit is null)
+            {
+                return;
+            }
 
             Vector2 start = ImGui.GetCursorScreenPos();
             if (ImGui.BeginTable("#YaraHitTableMetaToolTip", 2, ImGuiTableFlags.Borders))
@@ -889,7 +926,10 @@ namespace rgat
                 ImGui.TableNextColumn();
                 string tags = "";
                 foreach (string tag in _yaraPopupHit.MatchingRule.Tags)
+                {
                     tags += $" [{tag}]";
+                }
+
                 ImGui.Text(tags);
 
                 foreach (var kvp in _yaraPopupHit.MatchingRule.Metas)
@@ -938,15 +978,20 @@ namespace rgat
                         string strillus = "";
                         strillus += TextUtils.IllustrateASCIIBytesCompact(match.Data, previewLen);
                         if (previewLen < maxlen)
+                        {
                             strillus += "...";
+                        }
+
                         strillus += "  {";
                         strillus += BitConverter.ToString(match.Data, 0, previewLen).Replace("-", " ");
                         strillus += "}";
 
                         ImGui.Text($"{strillus}");
                         displayCount += 1;
-                        if (tooltip && displayCount > 15) break;
-
+                        if (tooltip && displayCount > 15)
+                        {
+                            break;
+                        }
 
                         if (tooltip && matchi > 3 && matchList.Value.Count > 4)
                         {
@@ -972,7 +1017,9 @@ namespace rgat
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsMouseHoveringRect(start, start + ImGui.GetContentRegionMax()))
             {
                 if (DateTime.Now > _hitClickTime.AddMilliseconds(600))
+                {
                     _yaraPopupHit = null;
+                }
             }
 
         }

@@ -65,10 +65,10 @@ namespace ImGuiNET
                     rgatState.NetworkBridge.GUIMode = false;
                     Logging.RecordError("Command line media output not yet implemented");
                     return;
-                    //runner = new CommandLineRunner();
-                    //runner.InitGPU();
-                    //runner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: GlobalConfig.StartOptions.RecordVideoLive);
-                    //break;
+                //runner = new CommandLineRunner();
+                //runner.InitGPU();
+                //runner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: GlobalConfig.StartOptions.RecordVideoLive);
+                //break;
 
 
                 default:
@@ -165,7 +165,10 @@ namespace ImGuiNET
 
                 default:
                     {
-                        if (startOpts.RunMode != LaunchConfig.eRunMode.Bridged) return;
+                        if (startOpts.RunMode != LaunchConfig.eRunMode.Bridged)
+                        {
+                            return;
+                        }
 
                         if (!System.Net.IPAddress.TryParse(startOpts.Interface, out System.Net.IPAddress? address) ||
                             int.TryParse(startOpts.Interface, out int ipInt) && ipInt > 0 && ipInt < 128)

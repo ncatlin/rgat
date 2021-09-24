@@ -229,7 +229,7 @@ namespace rgat
         /// <summary>
         /// work in progress 
         /// </summary>
-        public static float NodeClumpForce =0.1f;
+        public static float NodeClumpForce = 0.1f;
 
         /// <summary>
         /// The initial graph layout used for new traces
@@ -364,13 +364,19 @@ namespace rgat
                     {
                         continue;
                     }
-                    if (!Directory.Exists(dir)) continue;
+                    if (!Directory.Exists(dir))
+                    {
+                        continue;
+                    }
                 }
                 string candidate = Path.Combine(dir, name);
                 try
                 {
                     Directory.CreateDirectory(candidate);
-                    if (Directory.Exists(candidate)) return candidate;
+                    if (Directory.Exists(candidate))
+                    {
+                        return candidate;
+                    }
                 }
                 catch
                 {
@@ -451,7 +457,9 @@ namespace rgat
                     if (File.Exists(candidate))
                     {
                         if (Settings.ToolPaths.SetBinaryPath(CONSTANTS.PathKey.PinPath, candidate))
+                        {
                             break;
+                        }
                     }
                 }
             }
@@ -563,7 +571,11 @@ namespace rgat
         {
             lock (_settingsLock)
             {
-                if (!Settings.Inited) return;
+                if (!Settings.Inited)
+                {
+                    return;
+                }
+
                 if (!_dirtyConfig)
                 {
                     _dirtyConfig = true;
@@ -767,13 +779,21 @@ namespace rgat
             {
                 string tool32Path = Path.Combine(BaseDirectory, "tools", "pintool32.dll");
                 byte[]? tool32bytes = rgatState.ReadBinaryResource("PinTool32");
-                if (tool32bytes is null) throw new EndOfStreamException("No PinTool32 resource available");
+                if (tool32bytes is null)
+                {
+                    throw new EndOfStreamException("No PinTool32 resource available");
+                }
+
                 File.WriteAllBytes(tool32Path, tool32bytes);
                 SetBinaryPath(CONSTANTS.PathKey.PinToolPath32, tool32Path);
 
                 string tool64Path = Path.Combine(BaseDirectory, "tools", "pintool64.dll");
                 byte[]? tool64bytes = rgatState.ReadBinaryResource("PinTool64");
-                if (tool64bytes is null) throw new EndOfStreamException("No PinTool64 resource available");
+                if (tool64bytes is null)
+                {
+                    throw new EndOfStreamException("No PinTool64 resource available");
+                }
+
                 File.WriteAllBytes(tool64Path, tool64bytes);
                 SetBinaryPath(CONSTANTS.PathKey.PinToolPath64, tool64Path);
             }

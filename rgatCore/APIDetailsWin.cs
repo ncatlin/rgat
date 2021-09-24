@@ -76,16 +76,25 @@ namespace rgat
             try
             {
                 string candidate = System.IO.Path.Combine(GlobalConfig.BaseDirectory, "APIDataWin.json");
-                if (File.Exists(candidate)) return candidate;
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
 
                 candidate = System.IO.Path.Combine(AppContext.BaseDirectory, "APIDataWin.json");
-                if (File.Exists(candidate)) return candidate;
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
 
                 byte[]? apiFileBytes = rgatState.ReadBinaryResource("APIDataWin");
                 if (apiFileBytes != null)
                 {
                     File.WriteAllBytes(candidate, apiFileBytes);
-                    if (File.Exists(candidate)) return candidate;
+                    if (File.Exists(candidate))
+                    {
+                        return candidate;
+                    }
                 }
             }
             catch (Exception e)
@@ -148,7 +157,7 @@ namespace rgat
             /// <summary>
             /// The parameter index of the entity reference that is interacted with (-1 = return val, 0 = first param)
             /// </summary>
-            public int ReferenceIndex { get; private set; } 
+            public int ReferenceIndex { get; private set; }
         }
 
 
@@ -219,7 +228,11 @@ namespace rgat
                     Dictionary<string, API_ENTRY> moduleSyms = new Dictionary<string, API_ENTRY>();
 
                     JObject? APIs = ifTok.ToObject<JObject>();
-                    if (APIs is null) continue;
+                    if (APIs is null)
+                    {
+                        continue;
+                    }
+
                     foreach (var API in APIs)
                     {
                         if (API.Value is null || API.Value.Type != JTokenType.Object)
@@ -228,7 +241,11 @@ namespace rgat
                             continue;
                         }
                         JObject? APIJsn = API.Value.ToObject<JObject>();
-                        if (APIJsn is null) continue;
+                        if (APIJsn is null)
+                        {
+                            continue;
+                        }
+
                         string apiname = API.Key;
 
                         API_ENTRY APIItem = new API_ENTRY();
@@ -276,7 +293,7 @@ namespace rgat
                     _configuredSymbols.Add(moduleReference, moduleSyms);
                 }
 
-                progress?.Report(moduleCount / (float)moduleI);
+                progress?.Report(moduleCount / moduleI);
             }
         }
 
@@ -595,7 +612,10 @@ namespace rgat
         {
             string fname = System.IO.Path.GetFileName(path).ToLower();
             if (_configuredModules.TryGetValue(fname, out int moduleEnum))
+            {
                 return moduleEnum;
+            }
+
             return -1;
         }
 
@@ -617,7 +637,11 @@ namespace rgat
         /// <returns>API_ENTRY struct for the symbol if we have metadata for it, otherwise null</returns>
         public static API_ENTRY? GetAPIInfo(int moduleReference, string symbolname)
         {
-            if (_configuredSymbols.ContainsKey(moduleReference) && _configuredSymbols[moduleReference].TryGetValue(symbolname, out API_ENTRY value)) return value;
+            if (_configuredSymbols.ContainsKey(moduleReference) && _configuredSymbols[moduleReference].TryGetValue(symbolname, out API_ENTRY value))
+            {
+                return value;
+            }
+
             return null;
         }
     }

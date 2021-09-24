@@ -110,7 +110,11 @@ namespace rgat
             /// <returns>The name of the category</returns>
             public string APIType()
             {
-                if (APIDetails == null) return "Other";
+                if (APIDetails == null)
+                {
+                    return "Other";
+                }
+
                 return APIDetails.Value.FilterType;
             }
 
@@ -128,32 +132,65 @@ namespace rgat
                 apiObj = null;
 
                 if (apiTok.Type is JTokenType.Object)
+                {
                     jobj = apiTok.ToObject<JObject>();
+                }
 
-                if (jobj is null) return false;
+                if (jobj is null)
+                {
+                    return false;
+                }
 
-                if (!jobj.TryGetValue("Graph", out JToken? graphTimeTok)) return false;
+                if (!jobj.TryGetValue("Graph", out JToken? graphTimeTok))
+                {
+                    return false;
+                }
+
                 DateTime graphTime = graphTimeTok.ToObject<DateTime>();
                 ProtoGraph? graph = trace.GetProtoGraphByTime(graphTime);
-                if (graph is null) return false;
+                if (graph is null)
+                {
+                    return false;
+                }
 
                 apiObj = new APICALL(graph);
 
-                if (!jobj.TryGetValue("CallIdx", out JToken? cidxTok)) return false;
+                if (!jobj.TryGetValue("CallIdx", out JToken? cidxTok))
+                {
+                    return false;
+                }
+
                 apiObj.Index = cidxTok.ToObject<int>();
-                if (!jobj.TryGetValue("Repeats", out JToken? repTok)) return false;
+                if (!jobj.TryGetValue("Repeats", out JToken? repTok))
+                {
+                    return false;
+                }
+
                 apiObj.Repeats = repTok.ToObject<ulong>();
-                if (!jobj.TryGetValue("uniqID", out JToken? idTok)) return false;
+                if (!jobj.TryGetValue("uniqID", out JToken? idTok))
+                {
+                    return false;
+                }
+
                 apiObj.UniqID = idTok.ToObject<ulong>();
 
-                if (!jobj.TryGetValue("Node", out JToken? nidxTok)) return false;
+                if (!jobj.TryGetValue("Node", out JToken? nidxTok))
+                {
+                    return false;
+                }
+
                 int nodeIdx = nidxTok.ToObject<int>();
                 if (nodeIdx < apiObj.Graph.NodeList.Count)
+                {
                     apiObj.Node = apiObj.Graph.NodeList[nodeIdx];
+                }
 
                 if (jobj.TryGetValue("Details", out JToken? deTok))
                 {
-                    if (!DeserialiseEffects(deTok, apiObj)) return false;
+                    if (!DeserialiseEffects(deTok, apiObj))
+                    {
+                        return false;
+                    }
                 }
                 return true;
             }
@@ -170,7 +207,10 @@ namespace rgat
                 try
                 {
                     JObject? deJObj = deTok.ToObject<JObject>();
-                    if (deJObj is null) return false;
+                    if (deJObj is null)
+                    {
+                        return false;
+                    }
 
                     apiObj.APIDetails = deTok.ToObject<APIDetailsWin.API_ENTRY>();
                     if (apiObj.APIDetails is not null &&
@@ -183,7 +223,11 @@ namespace rgat
                         {
                             JToken effItem = effArray[effecti];
                             JObject? effectObj = effItem.ToObject<JObject>();
-                            if (effectObj is null) return false;
+                            if (effectObj is null)
+                            {
+                                return false;
+                            }
+
                             if (effectObj.TryGetValue("TypeName", out JToken? nameTok) && nameTok is not null)
                             {
                                 switch (nameTok.ToString())
@@ -192,7 +236,11 @@ namespace rgat
                                         {
                                             JToken? entityIdx = effectObj["entityIndex"];
                                             JToken? refIdx = effectObj["referenceIndex"];
-                                            if (entityIdx is null || refIdx is null) return false;
+                                            if (entityIdx is null || refIdx is null)
+                                            {
+                                                return false;
+                                            }
+
                                             int entityIndex = entityIdx.ToObject<int>();
                                             int referenceIndex = refIdx.ToObject<int>();
                                             APIDetailsWin.LinkReferenceEffect linkEff = new APIDetailsWin.LinkReferenceEffect(entityIndex, referenceIndex);
@@ -203,14 +251,22 @@ namespace rgat
                                     case "Use":
                                         {
                                             JToken? refIdx = effectObj["referenceIndex"];
-                                            if (refIdx is null) return false;
+                                            if (refIdx is null)
+                                            {
+                                                return false;
+                                            }
+
                                             apiObj.APIDetails.Value.Effects[effecti] = new APIDetailsWin.UseReferenceEffect(refIdx.ToObject<int>());
                                             break;
                                         }
                                     case "Destroy":
                                         {
                                             JToken? refIdx = effectObj["referenceIndex"];
-                                            if (refIdx is null) return false;
+                                            if (refIdx is null)
+                                            {
+                                                return false;
+                                            }
+
                                             apiObj.APIDetails.Value.Effects[effecti] = new APIDetailsWin.DestroyReferenceEffect(refIdx.ToObject<int>());
                                             break;
                                         }
@@ -419,7 +475,11 @@ namespace rgat
             /// <returns>The list of strings and colours which need to be joined to make a label</returns>
             public List<Tuple<string, WritableRgbaFloat>> Label()
             {
-                if (_cachedLabel != null && _cachedLabelTheme == Themes.ThemeVariant) return _cachedLabel;
+                if (_cachedLabel != null && _cachedLabelTheme == Themes.ThemeVariant)
+                {
+                    return _cachedLabel;
+                }
+
                 _cachedLabel = new List<Tuple<string, WritableRgbaFloat>>();
                 _cachedLabelTheme = Themes.ThemeVariant;
 
@@ -506,7 +566,7 @@ namespace rgat
             readonly eTimelineEvent _eventType;
             ulong _ID;
             ulong _parentID;
-            object _item;
+            readonly object _item;
         }
 
 
@@ -701,7 +761,10 @@ namespace rgat
         static System.IO.StreamWriter? _logFile = null;
         static void WriteToDebugFile(TEXT_LOG_EVENT log)
         {
-            if (System.Threading.Thread.CurrentThread.Name != null && System.Threading.Thread.CurrentThread.Name.Contains("TracePro")) return;
+            if (System.Threading.Thread.CurrentThread.Name != null && System.Threading.Thread.CurrentThread.Name.Contains("TracePro"))
+            {
+                return;
+            }
 
             if (_logFile == null)
             {
@@ -746,7 +809,10 @@ namespace rgat
             lock (_messagesLock)
             {
                 UnseenAlerts = 0;
-                if (trace == null) return _logMessages.Where(x => filters[(int)x.Filter] == true).ToArray();
+                if (trace == null)
+                {
+                    return _logMessages.Where(x => filters[(int)x.Filter] == true).ToArray();
+                }
                 else
                 {
                     return _logMessages.Where(x => x.Trace == trace).Where(x => filters[(int)x.Filter] == true).ToArray();

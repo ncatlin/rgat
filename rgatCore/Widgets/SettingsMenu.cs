@@ -14,7 +14,7 @@ namespace rgat.Widgets
     {
         bool[] optionsSelectStates = new bool[0];
         List<string> settingsNames = new List<string>();
-        ImGuiController _controller;
+        readonly ImGuiController _controller;
 
         enum eSettingsCategory { eSignatures, eFiles, eText, eKeybinds, eUITheme, eMisc, eVideoEncode };
 
@@ -42,7 +42,10 @@ namespace rgat.Widgets
 
         ~SettingsMenu()
         {
-            if (_cancelTokens != null && !_cancelTokens.IsCancellationRequested) _cancelTokens.Cancel();
+            if (_cancelTokens != null && !_cancelTokens.IsCancellationRequested)
+            {
+                _cancelTokens.Cancel();
+            }
         }
 
 
@@ -200,7 +203,10 @@ namespace rgat.Widgets
         static List<string> _selectedRepos = new List<string>();
         void CreateOptionsPane_Signatures()
         {
-            if (rgatState.YARALib == null || rgatState.DIELib == null) return; //loading
+            if (rgatState.YARALib == null || rgatState.DIELib == null)
+            {
+                return; //loading
+            }
 
             //available/enabled/loaded signatures pane
             //scanning controls
@@ -249,7 +255,7 @@ namespace rgat.Widgets
                                         }
                                         if (rule.Tags.Any())
                                         {
-                                            ImGui.TextWrapped($"Tags: {String.Join(", ", rule.Tags)}");
+                                            ImGui.TextWrapped($"Tags: {string.Join(", ", rule.Tags)}");
                                         }
                                     }
                                 }
@@ -325,9 +331,14 @@ namespace rgat.Widgets
                                         if (ImGui.Checkbox("##checkall", ref allSigsSelected))
                                         {
                                             if (allSigsSelected)
+                                            {
                                                 _selectedRepos = sources.Select(x => x.FetchPath).ToList();
+                                            }
                                             else
+                                            {
                                                 _selectedRepos.Clear();
+                                            }
+
                                             selectedStates = Enumerable.Repeat(allSigsSelected, selectedStates.Length).ToArray();
                                         }
                                         ImGui.PopStyleVar();
@@ -349,9 +360,14 @@ namespace rgat.Widgets
                                     if (ImGui.Checkbox("##SigChkSrc" + seti, ref isSelected))
                                     {
                                         if (isSelected)
+                                        {
                                             _selectedRepos.Add(sigset.FetchPath);
+                                        }
                                         else
+                                        {
                                             _selectedRepos.RemoveAll(x => x == sigset.FetchPath);
+                                        }
+
                                         selectedStates[seti] = isSelected;
                                     }
                                     ImGui.TableNextColumn();
@@ -380,7 +396,9 @@ namespace rgat.Widgets
                                                 SmallWidgets.MouseoverText("Error checking for update: " + refreshError);
                                             }
                                             else
+                                            {
                                                 ImguiUtils.DrawHorizCenteredText(refreshError);
+                                            }
                                         }
                                         else
                                         {
@@ -392,17 +410,25 @@ namespace rgat.Widgets
                                                 Humanizer.TimeSpanHumanizeExtensions.Humanize(DateTime.Now - sigset.LastUpdate) + " ago");
                                             string mouseoverText = "";
                                             if (sigset.LastUpdate == DateTime.MinValue)
+                                            {
                                                 mouseoverText += "Select this source and press \"Refresh\" to check for signature updates\n";
+                                            }
                                             else
                                             {
 
                                                 if (sigset.LastCheck != DateTime.MinValue)
+                                                {
                                                     mouseoverText += $"Last checked: {sigset.LastCheck}\n";
+                                                }
+
                                                 mouseoverText += $"Last updated: {sigset.LastUpdate}\n";
                                             }
 
                                             if (newAvailable)
+                                            {
                                                 mouseoverText += "Updates are available for these signatures";
+                                            }
+
                                             SmallWidgets.MouseoverText(mouseoverText);
                                         }
 
@@ -421,7 +447,9 @@ namespace rgat.Widgets
                                             SmallWidgets.MouseoverText("Error downloading signatures: " + downloadError);
                                         }
                                         else
+                                        {
                                             ImguiUtils.DrawHorizCenteredText(downloadError);
+                                        }
                                     }
                                     else
                                     {
@@ -437,7 +465,9 @@ namespace rgat.Widgets
                                                 Humanizer.TimeSpanHumanizeExtensions.Humanize(DateTime.Now - sigset.LastFetch) + " ago");
 
                                             if (sigset.LastFetch != DateTime.MinValue)
+                                            {
                                                 SmallWidgets.MouseoverText($"Last Successful Download: {sigset.LastFetch.ToString()}");
+                                            }
                                         }
                                     }
 
@@ -452,13 +482,20 @@ namespace rgat.Widgets
                                 }
                                 ImGui.SameLine();
                                 bool someSelected = _selectedRepos.Any();
-                                if (someSelected) ImGui.PushStyleColor(ImGuiCol.Button, 0xff000040);
+                                if (someSelected)
+                                {
+                                    ImGui.PushStyleColor(ImGuiCol.Button, 0xff000040);
+                                }
+
                                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - btnSizes.X);
                                 if (SmallWidgets.DisableableButton("Delete Selected", enabled: someSelected, size: btnSizes))
                                 {
                                     _repoChangeState = _repoChangeState == eRepoChangeState.Delete ? eRepoChangeState.Inactive : eRepoChangeState.Delete;
                                 }
-                                if (someSelected) ImGui.PopStyleColor();
+                                if (someSelected)
+                                {
+                                    ImGui.PopStyleColor();
+                                }
                             }
                             ImGui.EndChild();
                         }
@@ -516,7 +553,7 @@ namespace rgat.Widgets
                     float progress = 0;
                     if (_githubSigDownloader.Running)
                     {
-                        progress = (float)_githubSigDownloader.CompletedTaskCount / (float)_githubSigDownloader.InitialTaskCount;
+                        progress = _githubSigDownloader.CompletedTaskCount / (float)_githubSigDownloader.InitialTaskCount;
                         progress = Math.Max(0, progress);
                     }
 
@@ -524,12 +561,20 @@ namespace rgat.Widgets
                     Vector2 btnSize = new Vector2(80, 25);
                     if (_githubSigDownloader == null || !_githubSigDownloader.Running)
                     {
-                        if (SmallWidgets.DisableableButton("Refresh", size: btnSize, enabled: _selectedRepos.Any())) RefreshSelectedSignatureSources();
+                        if (SmallWidgets.DisableableButton("Refresh", size: btnSize, enabled: _selectedRepos.Any()))
+                        {
+                            RefreshSelectedSignatureSources();
+                        }
+
                         SmallWidgets.MouseoverText("Check for new updates to the selected signature repositories");
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        if (SmallWidgets.DisableableButton("Download", size: btnSize, enabled: _selectedRepos.Any())) DownloadSelectedSignatureSources();
+                        if (SmallWidgets.DisableableButton("Download", size: btnSize, enabled: _selectedRepos.Any()))
+                        {
+                            DownloadSelectedSignatureSources();
+                        }
+
                         SmallWidgets.MouseoverText("Download signatures from the selected signature repositories");
                         ImGui.TableNextColumn();
                         ImGui.TableNextColumn();
@@ -538,7 +583,11 @@ namespace rgat.Widgets
                     {
                         if (_githubSigDownloader.TaskType == "Refresh")
                         {
-                            if (SmallWidgets.DisableableButton("Cancel", size: btnSize, enabled: true)) _cancelTokens?.Cancel();
+                            if (SmallWidgets.DisableableButton("Cancel", size: btnSize, enabled: true))
+                            {
+                                _cancelTokens?.Cancel();
+                            }
+
                             SmallWidgets.MouseoverText("Cancel signature refresh");
 
                             ImGui.TableNextColumn();
@@ -558,7 +607,11 @@ namespace rgat.Widgets
 
                         if (_githubSigDownloader.TaskType == "Download")
                         {
-                            if (SmallWidgets.DisableableButton("Cancel", size: btnSize, enabled: true)) _cancelTokens?.Cancel();
+                            if (SmallWidgets.DisableableButton("Cancel", size: btnSize, enabled: true))
+                            {
+                                _cancelTokens?.Cancel();
+                            }
+
                             SmallWidgets.MouseoverText("Cancel signature download");
 
                             ImGui.TableNextColumn();
@@ -624,9 +677,21 @@ namespace rgat.Widgets
                             if (slashSplit.Length > 0)
                             {
                                 int slashIndex = 0;
-                                if (slashSplit[slashIndex] == "http:" || slashSplit[slashIndex] == "https:") slashIndex += 1;
-                                while (slashIndex < slashSplit.Length && slashSplit[slashIndex].Length == 0) slashIndex += 1;
-                                if (slashIndex < slashSplit.Length && slashSplit[slashIndex] == "github.com") slashIndex += 1;
+                                if (slashSplit[slashIndex] == "http:" || slashSplit[slashIndex] == "https:")
+                                {
+                                    slashIndex += 1;
+                                }
+
+                                while (slashIndex < slashSplit.Length && slashSplit[slashIndex].Length == 0)
+                                {
+                                    slashIndex += 1;
+                                }
+
+                                if (slashIndex < slashSplit.Length && slashSplit[slashIndex] == "github.com")
+                                {
+                                    slashIndex += 1;
+                                }
+
                                 if (slashIndex < slashSplit.Length && slashSplit[slashIndex].Length > 0)
                                 {
                                     currentOrg = slashSplit[slashIndex];
@@ -688,7 +753,11 @@ namespace rgat.Widgets
                         {
                             ImGui.Text(_validInputRepos[i].FetchPath);
                         }
-                        if (printCount < _validInputRepos.Count) ImGui.Text($"...And {(_validInputRepos.Count - printCount)} more sources");
+                        if (printCount < _validInputRepos.Count)
+                        {
+                            ImGui.Text($"...And {(_validInputRepos.Count - printCount)} more sources");
+                        }
+
                         ImGui.EndTooltip();
                     }
                     ImGui.EndChild();
@@ -731,7 +800,11 @@ namespace rgat.Widgets
             foreach (string path in sources)
             {
                 GlobalConfig.SignatureSource? source = GlobalConfig.Settings.Signatures.GetSignatureRepo(path);
-                if (source == null) continue;
+                if (source == null)
+                {
+                    continue;
+                }
+
                 if (source.SignatureType == eSignatureType.DIE)
                 {
                     Logging.RecordError("The DetectItEasy repo cannot be deleted from the UI because there is no way of re-adding it from the UI");
@@ -761,7 +834,11 @@ namespace rgat.Widgets
 
         void RefreshSelectedSignatureSources()
         {
-            if (_githubSigDownloader.Running) return;
+            if (_githubSigDownloader.Running)
+            {
+                return;
+            }
+
             _cancelTokens = new CancellationTokenSource();
             var allSources = GlobalConfig.Settings.Signatures.GetSignatureSources();
             var repos = allSources.Where(x => _selectedRepos.Contains(x.FetchPath)).ToList();
@@ -770,7 +847,11 @@ namespace rgat.Widgets
 
         void DownloadSelectedSignatureSources()
         {
-            if (_githubSigDownloader.Running) return;
+            if (_githubSigDownloader.Running)
+            {
+                return;
+            }
+
             _cancelTokens = new CancellationTokenSource();
             var allSources = GlobalConfig.Settings.Signatures.GetSignatureSources();
             var repos = allSources.Where(x => _selectedRepos.Contains(x.FetchPath)).ToList();
@@ -809,7 +890,7 @@ namespace rgat.Widgets
 
             Vector4 tint_col = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
             Vector4 border_col = new Vector4(1.0f, 1.0f, 1.0f, 0.5f);
-            ImGui.Image(atlas.TexID, new Vector2((float)atlas.TexWidth, (float)atlas.TexHeight), new Vector2(0.0f, 0.0f), new Vector2(1.0f, 1.0f), tint_col, border_col);
+            ImGui.Image(atlas.TexID, new Vector2(atlas.TexWidth, atlas.TexHeight), new Vector2(0.0f, 0.0f), new Vector2(1.0f, 1.0f), tint_col, border_col);
 
 
         }
@@ -828,7 +909,9 @@ namespace rgat.Widgets
             bool signatureTimeWarning = false;
 
             if (path is not null)
+            {
                 GlobalConfig.PreviousSignatureCheckPassed(path, out signerror, out signatureTimeWarning);
+            }
 
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
@@ -882,7 +965,11 @@ namespace rgat.Widgets
             {
                 ImGui.BeginTooltip();
                 ImGui.Text(tooltip);
-                if (hasPath) ImGui.Text(path);
+                if (hasPath)
+                {
+                    ImGui.Text(path);
+                }
+
                 if (signatureError)
                 {
                     if (signatureTimeWarning)
@@ -931,7 +1018,10 @@ namespace rgat.Widgets
                 if (DrawPathMenuOption("FFmpeg Executable", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath), settingTips[CONSTANTS.PathKey.FFmpegPath], out clearFlag))
                 { choosePath = CONSTANTS.PathKey.FFmpegPath; doClear |= clearFlag; }
 
-                if (choosePath == null) isFolder = true;
+                if (choosePath == null)
+                {
+                    isFolder = true;
+                }
 
                 if (DrawPathMenuOption("Saved Traces", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory), settingTips[CONSTANTS.PathKey.TraceSaveDirectory], out clearFlag))
                 { choosePath = CONSTANTS.PathKey.TraceSaveDirectory; doClear |= clearFlag; }
@@ -975,16 +1065,24 @@ namespace rgat.Widgets
                 if (doClear)
                 {
                     if (isFolder)
+                    {
                         GlobalConfig.SetDirectoryPath(choosePath.Value, "");
+                    }
                     else
+                    {
                         GlobalConfig.SetBinaryPath(choosePath.Value, "");
+                    }
                 }
                 else
                 {
                     if (isFolder)
+                    {
                         LaunchFileSelectBox(choosePath.Value, "##FoldersDLG");
+                    }
                     else
+                    {
                         LaunchFileSelectBox(choosePath.Value, "##FilesDLG");
+                    }
                 }
             }
 
@@ -1099,7 +1197,9 @@ namespace rgat.Widgets
         void CreateOptionsPane_Keybinds()
         {
             if (_pendingKeybind.active)
+            {
                 ImGui.OpenPopup("Activate New Keybind");
+            }
 
             if (ImGui.BeginPopupModal("Activate New Keybind", ref _pendingKeybind.active, ImGuiWindowFlags.AlwaysAutoResize))
             {
@@ -1210,14 +1310,19 @@ namespace rgat.Widgets
             }
             else
             {
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Store the currently applied theme so it can be reloaded from the above dropdown.");
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip("Store the currently applied theme so it can be reloaded from the above dropdown.");
+                }
             }
 
             DrawSavePresetPopUp();
 
             string defaultTheme = GlobalConfig.Settings.Themes.DefaultTheme;
             if (defaultTheme == activeThemeName)
+            {
                 activeThemeName += " [Default]";
+            }
 
             if (ImGui.BeginCombo("Preset Themes", activeThemeName))
             {
@@ -1225,15 +1330,32 @@ namespace rgat.Widgets
                 {
                     string themeLabel = themeName;
                     if (defaultTheme == themeName)
+                    {
                         themeLabel += "  [Default]";
+                    }
+
                     if (ImGui.Selectable(themeName, true))
+                    {
                         ActivateUIThemePreset(themeName);
+                    }
+
                     if (ImGui.IsItemHovered())
                     {
                         string tipDescription = $"Name: {themeName}\r\n";
-                        if (Themes.GetMetadataValue("Description", out string? themeDescription)) tipDescription += $"Description: {themeDescription}\r\n";
-                        if (Themes.GetMetadataValue("Author", out string? auth1)) tipDescription += $"Source: {auth1}";
-                        if (Themes.GetMetadataValue("Author2", out string? auth2)) tipDescription += $" ({auth2})";
+                        if (Themes.GetMetadataValue("Description", out string? themeDescription))
+                        {
+                            tipDescription += $"Description: {themeDescription}\r\n";
+                        }
+
+                        if (Themes.GetMetadataValue("Author", out string? auth1))
+                        {
+                            tipDescription += $"Source: {auth1}";
+                        }
+
+                        if (Themes.GetMetadataValue("Author2", out string? auth2))
+                        {
+                            tipDescription += $" ({auth2})";
+                        }
 
                         ImGui.SetTooltip(tipDescription);
                     }
@@ -1379,16 +1501,25 @@ namespace rgat.Widgets
             {
                 if (ImGui.Button("Apply Imported Theme"))
                 {
-                    if (_UI_JSON_edited) ApplyNewThemeJSONToUI();
+                    if (_UI_JSON_edited)
+                    {
+                        ApplyNewThemeJSONToUI();
+                    }
                 }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Apply the theme from the JSON editor to the UI. Any settings not specified will be unchanged.");
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip("Apply the theme from the JSON editor to the UI. Any settings not specified will be unchanged.");
+                }
 
                 ImGui.SameLine();
                 if (ImGui.Button("Cancel"))
                 {
                     RegenerateUIThemeJSON();
                 }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Restore export text from the currently applied theme. The changes will be lost.");
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip("Restore export text from the currently applied theme. The changes will be lost.");
+                }
 
                 if (disableRestore) { ImGui.PopStyleColor(3); }
 
@@ -1399,8 +1530,13 @@ namespace rgat.Widgets
                     ImGui.LogToClipboard();
                     int blockSize = 255; //LogText won't copy more than this at once
                     for (var written = 0; written < _theme_UI_JSON_Text.Length; written += blockSize)
+                    {
                         if (written < _theme_UI_JSON_Text.Length)
+                        {
                             ImGui.LogText(_theme_UI_JSON_Text.Substring(written, Math.Min(blockSize, _theme_UI_JSON_Text.Length - written)));
+                        }
+                    }
+
                     ImGui.LogFinish();
                 }
                 ImGui.SameLine();
@@ -1410,7 +1546,10 @@ namespace rgat.Widgets
                 {
                     _expanded_theme_json = !_expanded_theme_json;
                 }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip(expandBtnTip);
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip(expandBtnTip);
+                }
 
                 Themes.GetMetadataValue("Name", out string? activeThemeName);
                 if (activeThemeName is not null &&
@@ -1421,7 +1560,10 @@ namespace rgat.Widgets
                     {
                         GlobalConfig.Settings.Themes.DefaultTheme = activeThemeName;
                     }
-                    if (ImGui.IsItemHovered()) ImGui.SetTooltip("Cause this theme to be activated when rgat is launched");
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("Cause this theme to be activated when rgat is launched");
+                    }
                 }
 
                 if (!Themes.IsBuiltinTheme)
@@ -1457,8 +1599,10 @@ namespace rgat.Widgets
                 return;
             }
 
-            if(oldTheme is not null)
+            if (oldTheme is not null)
+            {
                 Themes.DeleteTheme(oldTheme);
+            }
         }
 
 
@@ -1625,7 +1769,10 @@ namespace rgat.Widgets
                     ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button));
                     ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                     if (kmval.Item2 != ModifierKeys.None)
+                    {
                         kstring += kmval.Item2.ToString() + "+";
+                    }
+
                     kstring += kmval.Item1;
                 }
                 else
@@ -1635,7 +1782,10 @@ namespace rgat.Widgets
                     kstring = $"[Click To Set]##{rowIndex}1";
                 }
                 if (ImGui.Button($"[{kstring}]"))
+                {
                     DoClickToSetKeybind(caption, action: keyAction, 1);
+                }
+
                 ImGui.PopStyleColor(2);
             }
 
@@ -1648,7 +1798,10 @@ namespace rgat.Widgets
                     ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button));
                     ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                     if (kmval.Item2 != ModifierKeys.None)
+                    {
                         kstring += kmval.Item2.ToString() + "+";
+                    }
+
                     kstring += kmval.Item1;
                 }
                 else
@@ -1658,7 +1811,9 @@ namespace rgat.Widgets
                     kstring = $"[Click To Set]##{rowIndex}2";
                 }
                 if (ImGui.Button($"[{kstring}]"))
+                {
                     DoClickToSetKeybind(caption, action: keyAction, 2);
+                }
 
                 ImGui.PopStyleColor(2);
             }
@@ -1680,7 +1835,10 @@ namespace rgat.Widgets
             if (GlobalConfig.Settings.Keybinds.PrimaryKeybinds.TryGetValue(action, out var kmval))
             {
                 if (kmval.Item2 != ModifierKeys.None)
+                {
                     _pendingKeybind.currentKey += kmval.Item2.ToString() + "+";
+                }
+
                 _pendingKeybind.currentKey += kmval.Item1;
             }
 

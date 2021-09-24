@@ -45,7 +45,9 @@ namespace rgat.Widgets
             {
                 List<string> recentAddrs = GlobalConfig.Settings.Network.RecentConnectedAddresses();
                 if (recentAddrs.Any())
+                {
                     currentAddress = recentAddrs[0];
+                }
             }
 
         }
@@ -145,7 +147,11 @@ namespace rgat.Widgets
             {
                 newkey = System.IO.Path.GetRandomFileName().ToUpper();
                 newkey = matchSimilar.Replace(newkey, "");
-                if (newkey.Length < CONSTANTS.NETWORK.DefaultKeyLength) continue;
+                if (newkey.Length < CONSTANTS.NETWORK.DefaultKeyLength)
+                {
+                    continue;
+                }
+
                 newkey = newkey.Substring(0, CONSTANTS.NETWORK.DefaultKeyLength);
                 break;
             }
@@ -242,9 +248,13 @@ namespace rgat.Widgets
                     else
                     {
                         if (rgatState.ConnectedToRemote)
+                        {
                             ImGui.TextDisabled("Disconnect");
+                        }
                         else
+                        {
                             ImGui.TextDisabled("Disable");
+                        }
                     }
                 }
                 ImGui.SameLine();
@@ -321,9 +331,13 @@ namespace rgat.Widgets
                 {
                     ImGui.Text(Inactive);
                     if (ListenMode)
+                    {
                         ImGui.TextDisabled(ListenInactive);
+                    }
                     else
+                    {
                         ImGui.TextDisabled(ConnectInactive);
+                    }
                 }
                 else
                 {
@@ -331,32 +345,48 @@ namespace rgat.Widgets
                     if (ListenMode)
                     {
                         if (rgatState.ConnectedToRemote)
+                        {
                             ImGui.TextDisabled(ListenInactivateConnected);
+                        }
                         else
+                        {
                             ImGui.TextDisabled(ListenInactivate);
+                        }
                     }
                     else
                     {
                         if (rgatState.ConnectedToRemote)
+                        {
                             ImGui.TextDisabled(ConnectInactivateConnected);
+                        }
                         else
+                        {
                             ImGui.TextDisabled(ConnectInactivate);
+                        }
                     }
 
                     //current enabled state
                     if (ListenMode)
                     {
                         if (rgatState.ConnectedToRemote)
+                        {
                             ImGui.Text(ListenActiveConnected);
+                        }
                         else
+                        {
                             ImGui.Text(ListenActive);
+                        }
                     }
                     else
                     {
                         if (rgatState.ConnectedToRemote)
+                        {
                             ImGui.Text(ConnectActiveConnected);
+                        }
                         else
+                        {
                             ImGui.Text(ConnectActive);
+                        }
                     }
                 }
 
@@ -368,13 +398,18 @@ namespace rgat.Widgets
         {
             bool showTabTooltip = false;
             if (ImGui.IsMouseHoveringRect(ImGui.GetCursorScreenPos(), ImGui.GetCursorScreenPos() + new Vector2(ImGui.GetContentRegionAvail().X, 25)))
+            {
                 showTabTooltip = true;
+            }
 
             if (ImGui.BeginTabBar("#NetModeTabs")) // ImGui.GetID("NetworkContent"), new Vector2(itemsWidth, 180), flags: ImGuiWindowFlags.NoScrollbar))
             {
                 if (ImGui.BeginTabItem("Listen Mode"))
                 {
-                    if (!ListenMode) ListenMode = true;
+                    if (!ListenMode)
+                    {
+                        ListenMode = true;
+                    }
 
                     if (ImGui.BeginTable("#LoptsTab", 2))
                     {
@@ -390,7 +425,10 @@ namespace rgat.Widgets
 
                 if (ImGui.BeginTabItem("Connect Mode"))
                 {
-                    if (ListenMode) ListenMode = false;
+                    if (ListenMode)
+                    {
+                        ListenMode = false;
+                    }
 
                     if (ImGui.BeginTable("#ConoptsTab", 2))
                     {
@@ -404,7 +442,11 @@ namespace rgat.Widgets
                     ImGui.EndTabItem();
 
                 }
-                if (ImGui.IsItemClicked() && ListenMode) ListenMode = false;
+                if (ImGui.IsItemClicked() && ListenMode)
+                {
+                    ListenMode = false;
+                }
+
                 ImGui.EndTabBar();
 
                 if (showTabTooltip)
@@ -500,7 +542,10 @@ namespace rgat.Widgets
                     ImGui.TableNextColumn();
                     bool previousSelectionState = (ListenMode && iface.Id == _listenIFID) || (!ListenMode && iface.Id == _connectIFID);
                     bool selectionChanged = ImGui.Selectable(iface.Name + "##" + iface.Id + i.ToString(), previousSelectionState);
-                    if (ImGui.IsItemHovered()) DrawIFToolTip(iface);
+                    if (ImGui.IsItemHovered())
+                    {
+                        DrawIFToolTip(iface);
+                    }
 
                     if (selectionChanged)
                     {
@@ -552,7 +597,9 @@ namespace rgat.Widgets
             {
                 ImGui.Text($"\t\tAddresses:");
                 foreach (var addr in addresses.Reverse())
+                {
                     ImGui.Text($"\t\t\t{addr.Address}");
+                }
             }
             else
             {
@@ -560,7 +607,10 @@ namespace rgat.Widgets
             }
             string MAC = NetworkUtilities.hexMAC(iface.GetPhysicalAddress());
             if (MAC.Length > 0)
+            {
                 ImGui.Text($"\t\tMAC: {MAC}");
+            }
+
             ImGui.Text($"\t\tType: {iface.NetworkInterfaceType}");
             ImGui.Text($"\t\tID: {iface.Id}");
             ImGui.EndTooltip();
@@ -641,7 +691,11 @@ namespace rgat.Widgets
                 }
 
                 ImGui.PopAllowKeyboardFocus();
-                if (!_remoteDropdownOpen) ImGui.CloseCurrentPopup();
+                if (!_remoteDropdownOpen)
+                {
+                    ImGui.CloseCurrentPopup();
+                }
+
                 ImGui.EndPopup();
             }
 
@@ -690,7 +744,10 @@ namespace rgat.Widgets
 
         void DrawSignatureBox()
         {
-            if (!rgatState.ConnectedToRemote || rgatState.DIELib == null || rgatState.YARALib == null) return;
+            if (!rgatState.ConnectedToRemote || rgatState.DIELib == null || rgatState.YARALib == null)
+            {
+                return;
+            }
 
             if (_syncingSigs)
             {
@@ -730,10 +787,20 @@ namespace rgat.Widgets
             {
                 rgatState.NetworkBridge.AddNetworkDisplayLogMessage($"Uploading signatures to {rgatState.NetworkBridge.RemoteEndPoint}", null);
                 List<Task> tasks = new List<Task>();
-                if (rgatState.YARALib is not null) tasks.Add(Task.Run(() => rgatState.YARALib.UploadSignatures()));
-                if (rgatState.DIELib is not null) tasks.Add(Task.Run(() => rgatState.DIELib.UploadSignatures()));
+                if (rgatState.YARALib is not null)
+                {
+                    tasks.Add(Task.Run(() => rgatState.YARALib.UploadSignatures()));
+                }
+
+                if (rgatState.DIELib is not null)
+                {
+                    tasks.Add(Task.Run(() => rgatState.DIELib.UploadSignatures()));
+                }
+
                 if (tasks.Any())
+                {
                     Task.WaitAll(tasks.ToArray(), rgatState.ExitToken);
+                }
             }
             catch (Exception e)
             {

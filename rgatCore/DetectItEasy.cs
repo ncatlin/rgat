@@ -34,7 +34,9 @@ namespace rgat
             {
                 string? parent = Directory.GetParent(sigsDiEPath)?.FullName;
                 if (parent is not null && Directory.Exists(parent))
+                {
                     sigsDiEPath = parent;
+                }
             }
 
             //Don't trust arbitrary scripts passed to jint, so only use original repo
@@ -71,8 +73,15 @@ namespace rgat
                 return;
             }
 
-            if (!dielib.DatabaseLoaded) return;
-            if (!File.Exists(targ.FilePath)) return;
+            if (!dielib.DatabaseLoaded)
+            {
+                return;
+            }
+
+            if (!File.Exists(targ.FilePath))
+            {
+                return;
+            }
 
             ulong handle = 0;
             lock (scansLock)
@@ -80,9 +89,13 @@ namespace rgat
                 handle = dielib.CreateScanHandle();
 
                 if (DIEScanHandles.ContainsKey(targ))
+                {
                     DIEScanHandles[targ] = handle;
+                }
                 else
+                {
                     DIEScanHandles.Add(targ, handle);
+                }
             }
 
             List<object> args = new List<object>() { dielib, targ, handle };
@@ -142,7 +155,10 @@ namespace rgat
         /// <param name="argslist">scanner, target args object</param> 
         static void DetectItScanThread(object? argslist)
         {
-            if (argslist is null) return;
+            if (argslist is null)
+            {
+                return;
+            }
 
             List<object> args = (List<object>)argslist;
             DiELibDotNet.DieLib scanner = (DiELibDotNet.DieLib)args[0];
@@ -243,7 +259,10 @@ namespace rgat
 
         DateTime LatestSignatureChange(string rulesDir)
         {
-            if ((DateTime.Now - _lastCheck).TotalSeconds < 20) return NewestSignature;
+            if ((DateTime.Now - _lastCheck).TotalSeconds < 20)
+            {
+                return NewestSignature;
+            }
 
             var sigDirs = Directory.GetDirectories(rulesDir, "*", SearchOption.AllDirectories)
                 .SelectMany(x => new List<DateTime>() { Directory.GetCreationTime(x), Directory.GetLastWriteTime(x) });

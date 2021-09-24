@@ -76,9 +76,14 @@ namespace rgat.Widgets
             if (isEnabled)
             {
                 if (ImGui.IsItemHovered())
+                {
                     col_bg = isToggled ? TOGGLE_ON_HOVER_COL : TOGGLE_OFF_HOVER_COL;
+                }
                 else
+                {
                     col_bg = isToggled ? TOGGLE_ON_NOHOVER_COL : TOGGLE_OFF_NOHOVER_COL;
+                }
+
                 col_btn = 0xffffffff;
             }
             else
@@ -98,7 +103,9 @@ namespace rgat.Widgets
 
             bool isMouseHover = ImGui.IsMouseHoveringRect(ImGui.GetCursorScreenPos(), ImGui.GetCursorScreenPos() + new Vector2(width, iconsize.Y));
             if (isSelected)
+            {
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x45d5d5d5);
+            }
             else
             {
                 if (isMouseHover)
@@ -247,7 +254,10 @@ namespace rgat.Widgets
 
             activated = (size.HasValue) ? ImGui.Button(text, size.Value) : ImGui.Button(text);
 
-            if (!enabled) ImGui.PopStyleColor(3);
+            if (!enabled)
+            {
+                ImGui.PopStyleColor(3);
+            }
 
             return enabled && activated;
         }

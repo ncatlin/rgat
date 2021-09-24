@@ -58,12 +58,12 @@ namespace rgat.OperationModes
         static readonly List<Key> HeldResponsiveKeys = new List<Key>();
 
         //perform rare events like freeing resources which havent been used in a while
-        System.Timers.Timer _longTimer;
+        readonly System.Timers.Timer _longTimer;
         bool _housekeepingTimerFired;
         private void FireLongTimer(object sender, System.Timers.ElapsedEventArgs e) { _housekeepingTimerFired = true; }
 
         //perform regular events
-        System.Timers.Timer _shortTimer;
+        readonly System.Timers.Timer _shortTimer;
         bool _shortTimerFired = false;
         private void FireShortTimer(object sender, System.Timers.ElapsedEventArgs e) { _shortTimerFired = true; }
 
@@ -148,7 +148,10 @@ namespace rgat.OperationModes
                 Logging.RecordError($"Error 2: unable to initialise the Vulkan drivers. {e.Message}");
             }
 
-            if (!loadSuccess || _gd is null || _window is null) return false;
+            if (!loadSuccess || _gd is null || _window is null)
+            {
+                return false;
+            }
 
             _cl = _gd.ResourceFactory.CreateCommandList();
             _rgatState.InitVeldrid(_gd);
@@ -182,7 +185,10 @@ namespace rgat.OperationModes
             {
                 if (GlobalConfig.ResponsiveKeys.Contains(k.Key) && !_controller.DialogOpen)
                 {
-                    if (!HeldResponsiveKeys.Contains(k.Key)) HeldResponsiveKeys.Add(k.Key);
+                    if (!HeldResponsiveKeys.Contains(k.Key))
+                    {
+                        HeldResponsiveKeys.Add(k.Key);
+                    }
                 }
                 else
                 {
@@ -261,8 +267,10 @@ namespace rgat.OperationModes
         {
             //exit if no video capture or screenshot pending
             VideoEncoder recorder = rgatState.VideoRecorder;
-            if ((recorder == null || !recorder.Recording) && _rgatUI!.PendingScreenshot == VideoEncoder.CaptureContent.Invalid) return;
-
+            if ((recorder == null || !recorder.Recording) && _rgatUI!.PendingScreenshot == VideoEncoder.CaptureContent.Invalid)
+            {
+                return;
+            }
 
             if (rgatState.VideoRecorder.Recording && !rgatState.VideoRecorder.CapturePaused)
             {
@@ -286,7 +294,9 @@ namespace rgat.OperationModes
                     Logging.RecordLogEvent($"Unhandled exception while taking screenshot {_rgatUI.PendingScreenshot}: {e.Message}");
                 }
                 if (savePath is not null)
+                {
                     _rgatUI.NotifyScreenshotComplete(savePath);
+                }
             }
         }
 
@@ -405,7 +415,9 @@ namespace rgat.OperationModes
         public void Exit()
         {
             if (GlobalConfig.Settings.Logs.BulkLogging)
+            {
                 Logging.RecordLogEvent("rgat Exit() triggered", Logging.LogFilterType.BulkDebugLogFile);
+            }
 
             rgatState.Shutdown();
 
@@ -471,7 +483,10 @@ namespace rgat.OperationModes
             window_flags |= ImGuiWindowFlags.NoDecoration;
             window_flags |= ImGuiWindowFlags.DockNodeHost;
             if (_rgatUI!.MenuBarVisible)
+            {
                 window_flags |= ImGuiWindowFlags.MenuBar;
+            }
+
             window_flags |= ImGuiWindowFlags.NoBringToFrontOnFocus;
 
             ImGui.GetIO().ConfigWindowsMoveFromTitleBarOnly = true;

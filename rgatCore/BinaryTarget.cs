@@ -114,7 +114,7 @@ namespace rgat
         /// Add a directory whose contents should be instrumented in default-ignore mode
         /// </summary>
         /// <param name="path">A directory path</param>
-        public void AddTracedDirectory(string path) { lock (_lock) { if (!traceDirs.Contains(path)) traceDirs.Add(path); } }
+        public void AddTracedDirectory(string path) { lock (_lock) { if (!traceDirs.Contains(path)) { traceDirs.Add(path); } } }
         /// <summary>
         /// Remove a directory from the list of directories to trace in ignore mode
         /// </summary>
@@ -124,7 +124,7 @@ namespace rgat
         /// Add a module which should be instrumented in default-ignore mode
         /// </summary>
         /// <param name="path">A file path</param>
-        public void AddTracedFile(string path) { lock (_lock) { if (!traceFiles.Contains(path)) traceFiles.Add(path); } }
+        public void AddTracedFile(string path) { lock (_lock) { if (!traceFiles.Contains(path)) { traceFiles.Add(path); } } }
         /// <summary>
         /// Remove a file from the list of files to trace in ignore mode
         /// </summary>
@@ -134,7 +134,7 @@ namespace rgat
         /// Add a directory whose contents should be ignored in default-trace mode
         /// </summary>
         /// <param name="path">A directory path</param>
-        public void AddIgnoredDirectory(string path) { lock (_lock) { if (!ignoreDirs.Contains(path)) ignoreDirs.Add(path); } }
+        public void AddIgnoredDirectory(string path) { lock (_lock) { if (!ignoreDirs.Contains(path)) { ignoreDirs.Add(path); } } }
         /// <summary>
         /// Remove a directory from the list of directories to ignore in default-trace mode
         /// </summary>
@@ -144,7 +144,7 @@ namespace rgat
         /// Add a file which should not be instrumented in default-instrument mode
         /// </summary>
         /// <param name="path">A file path</param>
-        public void AddIgnoredFile(string path) { lock (_lock) { if (!ignoreFiles.Contains(path)) ignoreFiles.Add(path); } }
+        public void AddIgnoredFile(string path) { lock (_lock) { if (!ignoreFiles.Contains(path)) { ignoreFiles.Add(path); } } }
         /// <summary>
         /// Remove a file from the list of files to ignore in default-trace mode
         /// </summary>
@@ -161,7 +161,10 @@ namespace rgat
             {
                 string? windowsDir = Environment.GetEnvironmentVariable("windir", EnvironmentVariableTarget.Machine);
                 if (windowsDir is not null)
+                {
                     ignoreDirs.Add(windowsDir);
+                }
+
                 ignoreFiles.Add("shf篸籊籔籲.txtui@siojf췳츲췥췂췂siojfios.dll"); //TODO: make+trace a test program loading this, fix whatever breaks
             }
         }
@@ -203,7 +206,7 @@ namespace rgat
         /// <summary>
         /// A snippet of the first bytes of the file
         /// </summary>
-        public Byte[]? StartBytes = null;
+        public byte[]? StartBytes = null;
         /// <summary>
         /// An object representing the parsed PE File header/structure
         /// </summary>
@@ -303,7 +306,10 @@ namespace rgat
             JObject result = new JObject();
             result.Add("Size", fileSize);
             if (StartBytes is not null)
+            {
                 result.Add("StartBytes", StartBytes); //any benefit to obfuscating?
+            }
+
             result.Add("SHA1", GetSHA1Hash());
             result.Add("SHA256", GetSHA256Hash());
             if (PEFileObj != null)
@@ -316,7 +322,10 @@ namespace rgat
                 {
                     JObject exportItem = new JObject();
                     if (item.Item1 != null)
+                    {
                         exportItem.Add("Name", item.Item1);
+                    }
+
                     exportItem.Add("Ordinal", item.Item2);
                     exportsArr.Add(exportItem);
                 }
@@ -377,7 +386,11 @@ namespace rgat
                         if (itemTok.Type == JTokenType.Object)
                         {
                             JObject? exportObj = itemTok.ToObject<JObject>();
-                            if (exportObj is null) continue;
+                            if (exportObj is null)
+                            {
+                                continue;
+                            }
+
                             if (exportObj.TryGetValue("Name", out JToken? nameTok) && nameTok.Type == JTokenType.String)
                             {
                                 name = nameTok.ToString();
@@ -406,7 +419,9 @@ namespace rgat
             {
                 _sha1hash = sha1Tok.ToObject<string>() ?? "";
                 if (_sha1hash != null && _sha1hash.Length > 0)
+                {
                     rgatState.targets.RegisterTarget(this);
+                }
             }
 
             if (sha256Tok is not null)
@@ -428,7 +443,11 @@ namespace rgat
         /// <returns>Success or failure</returns>
         public bool InitialiseFromRemoteData(Newtonsoft.Json.Linq.JToken dataTok)
         {
-            if (dataTok.Type != JTokenType.Object) return false;
+            if (dataTok.Type != JTokenType.Object)
+            {
+                return false;
+            }
+
             JObject? dataObj = dataTok.ToObject<JObject>();
             if (dataObj is not null && dataObj.TryGetValue("Error", out JToken? errTok))
             {
@@ -453,8 +472,15 @@ namespace rgat
         /// <returns>The snippet as a string</returns>
         public string HexTooltip()
         {
-            if (StartBytes is null) return "";
-            if (_hexTooltip?.Length > 0) return _hexTooltip;
+            if (StartBytes is null)
+            {
+                return "";
+            }
+
+            if (_hexTooltip?.Length > 0)
+            {
+                return _hexTooltip;
+            }
 
             _hexTooltip = "";
             byte[] fragment;
@@ -462,7 +488,10 @@ namespace rgat
             {
                 fragment = StartBytes.Skip(i * 16).Take(16).ToArray();
                 int fragLen = Math.Min(16, fragment.Length);
-                if (fragLen == 0) break;
+                if (fragLen == 0)
+                {
+                    break;
+                }
 
                 _hexTooltip += $"{i * 16:X3}  ";
                 _hexTooltip += BitConverter.ToString(fragment, 0, fragLen).Replace("-", " ");
@@ -483,7 +512,10 @@ namespace rgat
         /// <returns>Settings dictionary</returns>
         public Dictionary<string, string> GetCurrentTraceConfiguration()
         {
-            lock (tracesLock) return new Dictionary<string, string>(_traceConfiguration);
+            lock (tracesLock)
+            {
+                return new Dictionary<string, string>(_traceConfiguration);
+            }
         }
 
         /// <summary>
@@ -526,7 +558,7 @@ namespace rgat
 
 
 
-        private readonly Object signaturesLock = new Object();
+        private readonly object signaturesLock = new object();
         /// <summary>
         /// Purge the signature hits recorded by the last scan
         /// </summary>
@@ -606,7 +638,7 @@ namespace rgat
         }
 
 
-        private readonly Object tracesLock = new Object();
+        private readonly object tracesLock = new object();
         private readonly Dictionary<DateTime, TraceRecord> RecordedTraces = new Dictionary<DateTime, TraceRecord>();
         private readonly Dictionary<string, TraceRecord> RecordedTraceIDs = new Dictionary<string, TraceRecord>();
         private readonly List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
@@ -616,10 +648,10 @@ namespace rgat
         /// </summary>
         public int TracesCount => TraceRecordsList.Count;
 
-       /// <summary>
-       /// Delete a trace record
-       /// </summary>
-       /// <param name="timestarted"></param>
+        /// <summary>
+        /// Delete a trace record
+        /// </summary>
+        /// <param name="timestarted"></param>
         public void DeleteTrace(DateTime timestarted)
         {
             lock (tracesLock)
@@ -684,8 +716,16 @@ namespace rgat
         /// <returns>A SHA1 string</returns>
         public string GetSHA1Hash()
         {
-            if (_sha1hash.Length > 0) return _sha1hash;
-            if (File.Exists(FilePath)) ParseFile();
+            if (_sha1hash.Length > 0)
+            {
+                return _sha1hash;
+            }
+
+            if (File.Exists(FilePath))
+            {
+                ParseFile();
+            }
+
             return _sha1hash;
         }
 
@@ -695,8 +735,16 @@ namespace rgat
         /// <returns>A SHA256 string</returns>
         public string GetSHA256Hash()
         {
-            if (_sha256hash.Length > 0) return _sha256hash;
-            if (File.Exists(FilePath)) ParseFile();
+            if (_sha256hash.Length > 0)
+            {
+                return _sha256hash;
+            }
+
+            if (File.Exists(FilePath))
+            {
+                ParseFile();
+            }
+
             return _sha1hash;
         }
 
@@ -705,7 +753,11 @@ namespace rgat
         /// </summary>
         private void ParseFile()
         {
-            if (RemoteHost != null && RemoteInitialised == false) return;
+            if (RemoteHost != null && RemoteInitialised == false)
+            {
+                return;
+            }
+
             Debug.Assert(RemoteHost == null);
             try
             {
@@ -725,7 +777,9 @@ namespace rgat
                 SHA1 sha1 = new SHA1Managed();
                 _sha1hash = BitConverter.ToString(sha1.ComputeHash(fs)).Replace("-", "");
                 if (_sha1hash != null && _sha1hash.Length > 0)
+                {
                     rgatState.targets.RegisterTarget(this);
+                }
 
                 SHA256 sha256 = new SHA256Managed();
                 _sha256hash = BitConverter.ToString(sha256.ComputeHash(fs)).Replace("-", "");
@@ -782,7 +836,11 @@ namespace rgat
         /// <returns>Humanised filesize string</returns>
         public string GetFileSizeString()
         {
-            if (_cachedFileSize is not null) return _cachedFileSize;
+            if (_cachedFileSize is not null)
+            {
+                return _cachedFileSize;
+            }
+
             _cachedFileSize = fileSize.Bytes().ToString();
             return _cachedFileSize;
         }
@@ -823,7 +881,11 @@ namespace rgat
         {
             lock (tracesLock)
             {
-                if (TraceRecordsList.Count == 0) return null;
+                if (TraceRecordsList.Count == 0)
+                {
+                    return null;
+                }
+
                 return TraceRecordsList[0];
             }
         }
@@ -836,7 +898,11 @@ namespace rgat
         {
             lock (tracesLock)
             {
-                if (TraceRecordsList.Count == 0) return null;
+                if (TraceRecordsList.Count == 0)
+                {
+                    return null;
+                }
+
                 return TraceRecordsList[^1];
             }
         }

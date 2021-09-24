@@ -21,7 +21,7 @@ namespace rgat
         /// </summary>
         /// <param name="name">A name to identify the layout engine in logfiles</param>
         /// <param name="controller">An ImGuiController to load shader code from [todo: remove it from the controller, will need these in non-imgui runners]</param>
-        public GraphLayoutEngine( string name, ImGuiController controller)
+        public GraphLayoutEngine(string name, ImGuiController controller)
         {
             EngineID = name;
             _controller = controller;
@@ -98,7 +98,11 @@ namespace rgat
             {
                 for (int idx = 0; idx < positions.Length; idx += 4)
                 {
-                    if (positions[idx + 3] == -1) break;
+                    if (positions[idx + 3] == -1)
+                    {
+                        break;
+                    }
+
                     float x = positions[idx];
                     float y = positions[idx + 1];
                     float z = positions[idx + 2];
@@ -173,7 +177,11 @@ namespace rgat
                 result = true;
                 for (int idx = 0; idx < positions.Length; idx += 4)
                 {
-                    if (positions[idx + 3] == -1) break;
+                    if (positions[idx + 3] == -1)
+                    {
+                        break;
+                    }
+
                     float x = positions[idx];
                     float y = positions[idx + 1];
                     float z = positions[idx + 2];
@@ -440,8 +448,9 @@ namespace rgat
 
                 graph.Temperature *= CONSTANTS.Layout_Constants.TemperatureStepMultiplier;
                 if (graph.Temperature <= CONSTANTS.Layout_Constants.MinimumTemperature)
+                {
                     graph.Temperature = 0;
-
+                }
             }
 
             if (rgatUI.ResponsiveKeyHeld)
@@ -493,11 +502,19 @@ namespace rgat
 
             //should we be dispose/recreating these? probably not. todo
             if (attribComputeResourceSet != null)
+            {
                 _gd.DisposeWhenIdle(attribComputeResourceSet);//attribComputeResourceSet.Dispose();
+            }
+
             if (velocityComputeResourceSet != null)
+            {
                 _gd.DisposeWhenIdle(velocityComputeResourceSet);//velocityComputeResourceSet.Dispose();
+            }
+
             if (posRS != null)
+            {
                 _gd.DisposeWhenIdle(posRS);//posRS.Dispose();
+            }
 
             newversion = layout.RenderVersion;
 
@@ -507,11 +524,16 @@ namespace rgat
             {
                 _lastComputeMS.Add(timer.ElapsedMilliseconds);
                 if (_lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
+                {
                     _lastComputeMS = _lastComputeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
+                }
+
                 AverageComputeTime = _lastComputeMS.Average();
             }
             if (GlobalConfig.LayoutPositionsActive)
+            {
                 graph.RecordComputeTime(timer.ElapsedMilliseconds);
+            }
 
             Logging.RecordLogEvent($"Marker Compute end {EngineID} graph {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
 
@@ -562,7 +584,11 @@ namespace rgat
             uint height = textureSize;
 
             uint fixedNodes = 0;
-            if (graph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks) fixedNodes = 1;
+            if (graph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks)
+            {
+                fixedNodes = 1;
+            }
+
             PositionShaderParams parms = new PositionShaderParams
             {
                 delta = delta,
@@ -594,7 +620,10 @@ namespace rgat
         {
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             uint fixedNodes = 0;
-            if (graph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks) fixedNodes = 1;
+            if (graph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks)
+            {
+                fixedNodes = 1;
+            }
 
             VelocityShaderParams parms = new VelocityShaderParams
             {
@@ -605,7 +634,7 @@ namespace rgat
                 EdgeCount = (uint)graph.InternalProtoGraph.EdgeCount,
                 fixedInternalNodes = fixedNodes,
                 snappingToPreset = (uint)(graph.LayoutState.ActivatingPreset ? 1 : 0),
-                nodeCount = (uint)graph.LayoutState.PositionsVRAM1.SizeInBytes / 16
+                nodeCount = graph.LayoutState.PositionsVRAM1.SizeInBytes / 16
             };
 
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
@@ -677,8 +706,15 @@ namespace rgat
             float[] valArray = new float[3];
             foreach (uint idx in pulseNodes)
             {
-                if (idx >= graph.RenderedNodeCount()) break;
-                if (inputAttributes.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
+                if (idx >= graph.RenderedNodeCount())
+                {
+                    break;
+                }
+
+                if (inputAttributes.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float)))
+                {
+                    break;
+                }
 
                 valArray[0] = 300f; //start big
                 valArray[1] = 1.0f; //full alpha
@@ -711,8 +747,15 @@ namespace rgat
 
             foreach (uint idx in lingerNodes)
             {
-                if (idx >= graph.RenderedNodeCount()) break;
-                if (inputAttributes.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
+                if (idx >= graph.RenderedNodeCount())
+                {
+                    break;
+                }
+
+                if (inputAttributes.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float)))
+                {
+                    break;
+                }
 
                 valArray[0] = 2.0f + currentPulseAlpha;
                 fixed (float* dataPtr = valArray)
@@ -724,8 +767,16 @@ namespace rgat
 
             foreach (uint idx in deactivatedNodes)
             {
-                if (idx >= graph.RenderedNodeCount()) break;
-                if (inputAttributes.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float))) break;
+                if (idx >= graph.RenderedNodeCount())
+                {
+                    break;
+                }
+
+                if (inputAttributes.SizeInBytes <= idx * 4 * sizeof(float) + (2 * sizeof(float)))
+                {
+                    break;
+                }
+
                 valArray[0] = 0.8f;
                 fixed (float* dataPtr = valArray)
                 {
@@ -835,7 +886,11 @@ namespace rgat
             float[] outputArray = new float[destinationReadView.Count];
             for (int index = 0; index < destinationReadView.Count; index++)
             {
-                if (index >= destinationReadView.Count) break;
+                if (index >= destinationReadView.Count)
+                {
+                    break;
+                }
+
                 outputArray[index] = destinationReadView[index];
             }
             _gd.Unmap(destinationReadback);
@@ -850,11 +905,21 @@ namespace rgat
             Console.WriteLine(premsg);
             for (var i = 0; i < sourceData.Length; i += 4)
             {
-                if (limit > 0 && i > limit) break;
+                if (limit > 0 && i > limit)
+                {
+                    break;
+                }
+
                 if (i != 0 && (i % 8 == 0))
+                {
                     Console.WriteLine();
+                }
                 //if (sourceData[i] == 0 && sourceData[i+1] == 0)
-                if ((i + 3) > sourceData.Length) break;
+                if ((i + 3) > sourceData.Length)
+                {
+                    break;
+                }
+
                 Console.Write($"{i / 4}({sourceData[i]:f3},{sourceData[i + 1]:f3},{sourceData[i + 2]:f3},{sourceData[i + 3]:f3})");
             }
             Console.WriteLine();

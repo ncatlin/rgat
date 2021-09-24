@@ -53,7 +53,7 @@ namespace rgat.Threads
             public Dictionary<int, int> callerNodes = new Dictionary<int, int>();
         }
 
-        Dictionary<int, APITHUNK> ApiThunks = new Dictionary<int, APITHUNK>();
+        readonly Dictionary<int, APITHUNK> ApiThunks = new Dictionary<int, APITHUNK>();
 
         /// <summary>
         /// Worker for processing trace data
@@ -90,9 +90,21 @@ namespace rgat.Threads
 
         void PerformIrregularActions()
         {
-            if (rgatState.rgatIsExiting) return;
-            if (blockRepeatQueue.Count > 0) AssignBlockRepeats();
-            if (protograph.HasPendingArguments) protograph.ProcessIncomingCallArguments();
+            if (rgatState.rgatIsExiting)
+            {
+                return;
+            }
+
+            if (blockRepeatQueue.Count > 0)
+            {
+                AssignBlockRepeats();
+            }
+
+            if (protograph.HasPendingArguments)
+            {
+                protograph.ProcessIncomingCallArguments();
+            }
+
             IrregularActionTimer?.Start();
         }
 
@@ -117,7 +129,11 @@ namespace rgat.Threads
                         continue;
                     }
                     var block = protograph.ProcessData.BasicBlocksList[(int)brep.blockID];
-                    if (block is null) continue;
+                    if (block is null)
+                    {
+                        continue;
+                    }
+
                     brep.blockInslist = block.Item2;
                 }
 
@@ -136,7 +152,11 @@ namespace rgat.Threads
                         !ApiThunks.ContainsKey(edgeblock)))
                     {
                         var block = protograph.ProcessData.BasicBlocksList[edgeblock];
-                        if (block is null) continue;
+                        if (block is null)
+                        {
+                            continue;
+                        }
+
                         if (block.Item2[0].PossibleidataThunk)
                         {
                             //block has not been processed (and its probably (...) not a thunk)
@@ -154,7 +174,10 @@ namespace rgat.Threads
                     }
                 }
 
-                if (needWait) continue;
+                if (needWait)
+                {
+                    continue;
+                }
 
                 //store pending changes, only apply them if all the data is available
                 List<Tuple<NodeData, ulong>> increaseNodes = new List<Tuple<NodeData, ulong>>();
@@ -168,7 +191,10 @@ namespace rgat.Threads
                     {
                         lastIns.GetThreadVert(protograph.ThreadID, out uint lastNodeIdx);
                         NodeData? lastNode = protograph.GetNode(lastNodeIdx);
-                        if (lastNode is null) continue;
+                        if (lastNode is null)
+                        {
+                            continue;
+                        }
 
                         foreach (var addr_Count in brep.targExternEdges)
                         {
@@ -179,11 +205,18 @@ namespace rgat.Threads
                             foreach (var x in lastNode.OutgoingNeighboursSet)
                             {
                                 NodeData? outn = protograph.GetNode(x);
-                                if (outn == null) continue;
+                                if (outn == null)
+                                {
+                                    continue;
+                                }
+
                                 if (outn.IsExternal && outn.address == targetAddr)
                                 {
                                     EdgeData? e = protograph.GetEdge(lastNodeIdx, outn.Index);
-                                    if (e == null) continue;
+                                    if (e == null)
+                                    {
+                                        continue;
+                                    }
 
                                     increaseNodes.Add(new Tuple<NodeData, ulong>(outn, execCount));
                                     increaseEdges.Add(new Tuple<EdgeData, ulong>(e, execCount));
@@ -200,7 +233,10 @@ namespace rgat.Threads
                         }
                     }
                 }
-                if (needWait) continue;
+                if (needWait)
+                {
+                    continue;
+                }
 
 
                 //first record execution of each instruction
@@ -312,7 +348,10 @@ namespace rgat.Threads
                     }
                 }
 
-                if (needWait) continue;
+                if (needWait)
+                {
+                    continue;
+                }
 
                 //Now everything is validated, apply to the graph
                 foreach (ExtraEdge newEdge in newEdges)
@@ -357,7 +396,13 @@ namespace rgat.Threads
             TAG thistag;
             ulong nextBlockAddress;
             int tokenpos = 0;
-            for (; tokenpos < entry.Length; tokenpos++) if (entry[tokenpos] == ',') break;
+            for (; tokenpos < entry.Length; tokenpos++)
+            {
+                if (entry[tokenpos] == ',')
+                {
+                    break;
+                }
+            }
 
             thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry, 1, tokenpos - 1), NumberStyles.HexNumber);
             //this may be a bad idea, could just be running faster than the dissassembler thread
@@ -450,7 +495,9 @@ namespace rgat.Threads
                     uint calleridx = protograph.ProtoLastLastVertID;
                     NodeData apinode = protograph.NodeList[(int)protograph.ProtoLastVertID];
                     if (!apinode.IncomingNeighboursSet.Contains(calleridx))
+                    {
                         apinode.IncomingNeighboursSet.Add(calleridx);
+                    }
 
                     if (thistag.blockID == protograph.BlocksFirstLastNodeList.Count)
                     {
@@ -759,7 +806,9 @@ namespace rgat.Threads
             protograph.PushAnimUpdate(animUpdate);
 
             if (blockExecs > protograph.BusiestBlockExecCount)
+            {
                 protograph.BusiestBlockExecCount = blockExecs;
+            }
         }
 
 
@@ -826,8 +875,10 @@ namespace rgat.Threads
             int instructionsUntilFault = 0;
             for (; instructionsUntilFault < faultingBB.Count; ++instructionsUntilFault)
             {
-                if (faultingBB[instructionsUntilFault].Address == address) break;
-
+                if (faultingBB[instructionsUntilFault].Address == address)
+                {
+                    break;
+                }
             }
 
             var faultblock = protograph.ProcessData.BasicBlocksList[(int)faultingBasicBlock_ID];
@@ -855,7 +906,7 @@ namespace rgat.Threads
         bool dontcountnextedge = false;
 
 
-        private readonly Object debug_tag_lock = new Object();
+        private readonly object debug_tag_lock = new object();
         void Processor()
         {
             if (protograph.TraceReader is null)

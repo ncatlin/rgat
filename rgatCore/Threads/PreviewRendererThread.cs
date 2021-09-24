@@ -44,7 +44,7 @@ namespace rgat.Threads
         public void ThreadProc()
         {
             Logging.RecordLogEvent($"PreviewRenderThread ThreadProc START", Logging.LogFilterType.BulkDebugLogFile);
-            
+
             Veldrid.CommandList cl = _clientState!._GraphicsDevice!.ResourceFactory.CreateCommandList();
             List<PlottedGraph> graphlist;
             int StopTimer = -1;
@@ -64,7 +64,10 @@ namespace rgat.Threads
                 moreRenderingNeeded = false;
                 foreach (PlottedGraph graph in graphlist)
                 {
-                    if (graph == null) continue;
+                    if (graph == null)
+                    {
+                        continue;
+                    }
 
                     if (graph != _clientState.ActiveGraph)
                     {
@@ -74,7 +77,9 @@ namespace rgat.Threads
                         //Console.WriteLine($"Rendering new preview verts for thread {graph.TID}");
                         graph.RenderGraph();
                         if (!graph.RenderingComplete)
+                        {
                             moreRenderingNeeded = true;
+                        }
                     }
 
                     if (graph.DrawnEdgesCount > 0)
@@ -82,7 +87,11 @@ namespace rgat.Threads
                         _graphWidget!.GeneratePreviewGraph(cl, graph);
                     }
 
-                    if (rgatState.rgatIsExiting) break;
+                    if (rgatState.rgatIsExiting)
+                    {
+                        break;
+                    }
+
                     Thread.Sleep((int)GlobalConfig.Preview_PerThreadLoopSleepMS); //sleep removed for debug
                 }
 
@@ -96,10 +105,13 @@ namespace rgat.Threads
                 }
 
                 if (StopTimer < 0 && !moreRenderingNeeded && !RenderedTrace.IsRunning)
+                {
                     StopTimer = 60;
+                }
                 else if (StopTimer > 0)
+                {
                     StopTimer--;
-
+                }
             }
             Finished();
         }

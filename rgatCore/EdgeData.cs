@@ -96,6 +96,6 @@ namespace rgat
         /// <summary>
         /// Ranking of how busy this edge is relative to other edges, from 0 [least] to 9 [most]
         /// </summary>
-        public float heatRank = 0; 
+        public float heatRank = 0;
     }
 }

@@ -24,7 +24,6 @@ SOFTWARE.
 https://github.com/jitbit/MurmurHash.net
 */
 
-using System;
 namespace MurmurHash
 {
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -46,7 +45,10 @@ namespace MurmurHash
         {
             int length = data.Length;
             if (length == 0)
+            {
                 return 0;
+            }
+
             uint h = seed ^ (uint)length;
             int currentIndex = 0;
             while (length >= 4)
@@ -63,12 +65,12 @@ namespace MurmurHash
             switch (length)
             {
                 case 3:
-                    h ^= (UInt16)(data[currentIndex++] | data[currentIndex++] << 8);
+                    h ^= (ushort)(data[currentIndex++] | data[currentIndex++] << 8);
                     h ^= (uint)(data[currentIndex] << 16);
                     h *= m;
                     break;
                 case 2:
-                    h ^= (UInt16)(data[currentIndex++] | data[currentIndex] << 8);
+                    h ^= (ushort)(data[currentIndex++] | data[currentIndex] << 8);
                     h *= m;
                     break;
                 case 1:

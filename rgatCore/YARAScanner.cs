@@ -47,7 +47,7 @@ namespace rgat
         [DllImport("libyara.dll")]
         private static extern void LibraryExistsTestMethod();
 
-        YaraContext ctx;
+        readonly YaraContext ctx;
 
         /// <summary>
         /// Create a Yara scanner
@@ -58,7 +58,10 @@ namespace rgat
             ctx = new YaraContext();
             ctx.GetType(); //prevent a 'this is never read' warning. It needs to be created and stay in memory but we dont reference it
 
-            if (!CheckLibraryExists()) throw new DllNotFoundException("libyara.dll not available");
+            if (!CheckLibraryExists())
+            {
+                throw new DllNotFoundException("libyara.dll not available");
+            }
 
             RefreshRules(rulesDir);
         }
@@ -195,7 +198,10 @@ namespace rgat
                     RefreshRules(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory), forceRecompile: true);
                 }
 
-                if (!File.Exists(targ.FilePath)) return;
+                if (!File.Exists(targ.FilePath))
+                {
+                    return;
+                }
 
                 List<object> args = new List<object>() { targ };
 
@@ -228,7 +234,9 @@ namespace rgat
                 if (filename.StartsWith("precompiled_rules"))
                 {
                     if (compiledFile == null || File.GetLastWriteTime(filepath) > File.GetLastWriteTime(compiledFile))
+                    {
                         compiledFile = filepath;
+                    }
                 }
             }
 
@@ -242,7 +250,9 @@ namespace rgat
                 {
                     DateTime sigsCompileDate = File.GetLastWriteTime(compiledFile);
                     if (sigsCompileDate > thresholdDate)
+                    {
                         thresholdDate = sigsCompileDate;
+                    }
                 }
                 catch
                 {
@@ -289,7 +299,11 @@ namespace rgat
         /// <returns>Array of Rule objects</returns>
         public Rule[]? GetRuleData()
         {
-            if (loadedRules == null) return null;
+            if (loadedRules == null)
+            {
+                return null;
+            }
+
             lock (_scanLock)
             {
                 return loadedRules.Rules.ToArray();
@@ -349,7 +363,10 @@ namespace rgat
                         }
                     }
                 }
-                if (!failed) break;
+                if (!failed)
+                {
+                    break;
+                }
             }
 
 
@@ -371,9 +388,14 @@ namespace rgat
             {
                 string diskpath = Path.Combine(rulesDir, "precompiled_rules.yarac");
                 if (File.Exists(diskpath))
+                {
                     File.Delete(diskpath);
+                }
+
                 if (loadedRules.Save(diskpath))
+                {
                     savedrules.Add(diskpath);
+                }
             }
 
             return savedrules.ToArray();
@@ -395,7 +417,10 @@ namespace rgat
 
         DateTime LatestSignatureChange(string rulesDir)
         {
-            if ((DateTime.Now - _lastCheck).TotalSeconds < 20) return NewestSignature;
+            if ((DateTime.Now - _lastCheck).TotalSeconds < 20)
+            {
+                return NewestSignature;
+            }
 
             var sigDirs = Directory.GetDirectories(rulesDir, "*", SearchOption.AllDirectories)
                 .SelectMany(x => new List<DateTime>() { Directory.GetCreationTime(x), Directory.GetLastWriteTime(x) });
@@ -420,7 +445,11 @@ namespace rgat
         /// <returns></returns>
         public uint LoadedRuleCount()
         {
-            if (loadedRules == null) return 0;
+            if (loadedRules == null)
+            {
+                return 0;
+            }
+
             return loadedRules.RuleCount;
         }
 
@@ -449,8 +478,15 @@ namespace rgat
             {
                 lock (_scanLock)
                 {
-                    if (LoadedRuleCount() == 0) return;
-                    if (targ.PEFileObj == null) return;
+                    if (LoadedRuleCount() == 0)
+                    {
+                        return;
+                    }
+
+                    if (targ.PEFileObj == null)
+                    {
+                        return;
+                    }
 
                     targetScanProgress[targ] = eYaraScanProgress.eRunning;
                     byte[] fileContentsBuf = targ.PEFileObj.RawFile.ToArray();
@@ -486,7 +522,7 @@ namespace rgat
         /// </summary>
         public void CancelAllScans()
         {
-           
+
         }
 
         /// <summary>

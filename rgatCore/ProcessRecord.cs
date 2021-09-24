@@ -162,10 +162,14 @@ namespace rgat
 
 
                 if (iterations > 3)
+                {
                     Thread.Sleep(1);
+                }
 
                 if (iterations++ > 20 && (iterations % 20 == 0))
+                {
                     Console.WriteLine($"[rgat]Warning: Long wait for disassembly of block ID {blockID}");
+                }
 
                 if (iterations++ > 200)
                 {
@@ -189,7 +193,11 @@ namespace rgat
             for (int modNo = 0; modNo < numModules; ++modNo)
             {
                 Tuple<ulong, ulong> moduleBounds = LoadedModuleBounds[modNo];
-                if (moduleBounds == null) continue;
+                if (moduleBounds == null)
+                {
+                    continue;
+                }
+
                 if (address >= moduleBounds.Item1 && address <= moduleBounds.Item2)
                 {
                     moduleID = modNo;
@@ -227,7 +235,13 @@ namespace rgat
                 APITypes.Add(globalModID, new Dictionary<ulong, Logging.LogFilterType>());
                 //globalModuleIDs.Add(path, globalModID); //sharing violation here???
 
-                if (localmodID >= modIDTranslationVec.Count) { for (int i = 0; i < localmodID + 20; i++) modIDTranslationVec.Add(-1); }
+                if (localmodID >= modIDTranslationVec.Count)
+                {
+                    for (int i = 0; i < localmodID + 20; i++)
+                    {
+                        modIDTranslationVec.Add(-1);
+                    }
+                }
                 modIDTranslationVec[localmodID] = globalModID;
 
                 ModuleTraceStates.Add(isInstrumented == '1' ? eCodeInstrumentation.eInstrumentedCode : eCodeInstrumentation.eUninstrumentedCode);
@@ -386,7 +400,10 @@ namespace rgat
                 {
                     hasBlock = blockIDDict.ContainsKey(address);
                 }
-                if (hasBlock) break;
+                if (hasBlock)
+                {
+                    break;
+                }
 
                 bool found = FindContainingModule(address, out int? moduleNo);
                 if (!found || ModuleTraceStates.Count <= moduleNo)
@@ -549,7 +566,11 @@ namespace rgat
         /// <returns>An API reference value which can be used in API metadata lookup operations</returns>
         public int GetModuleReference(int GlobalModuleID)
         {
-            if (GlobalModuleID >= modsymsPlain.Count) return -1; //todo race condition here where it could stay as -1 if requested too early?
+            if (GlobalModuleID >= modsymsPlain.Count)
+            {
+                return -1; //todo race condition here where it could stay as -1 if requested too early?
+            }
+
             return ModuleAPIReferences[GlobalModuleID];
         }
 
@@ -563,7 +584,10 @@ namespace rgat
         /// <returns>API details for that entry or null if not found</returns>
         public APIDetailsWin.API_ENTRY? GetAPIEntry(int globalModuleID, int moduleAPIRef, ulong address)
         {
-            if (moduleAPIRef == -1) return null;
+            if (moduleAPIRef == -1)
+            {
+                return null;
+            }
 
             ulong symbolOffset = address - LoadedModuleBounds[globalModuleID].Item1;
             if (modsymsPlain[globalModuleID].TryGetValue(symbolOffset, out string? symname) && symname is not null)
@@ -702,7 +726,10 @@ namespace rgat
             }
 
             var modulesArray = moduleslist.ToObject<List<string>>();
-            if (modulesArray is null) return false;
+            if (modulesArray is null)
+            {
+                return false;
+            }
 
             Logging.RecordLogEvent("Loading " + modulesArray.Count + " modules", Logging.LogFilterType.TextDebug);
             foreach (string b64entry in modulesArray)
@@ -717,7 +744,11 @@ namespace rgat
                 return false;
             }
             var modsBoundArray = modulebounds.ToObject<List<List<ulong>>>();
-            if (modsBoundArray is null) return false;
+            if (modsBoundArray is null)
+            {
+                return false;
+            }
+
             LoadedModuleBounds.Clear();
 
             foreach (List<ulong> entry in modsBoundArray)
@@ -736,7 +767,11 @@ namespace rgat
 
 
             int[]? intstates = modtracestatesTkn.ToObject<List<int>>()?.ToArray();
-            if (intstates is null) return false;
+            if (intstates is null)
+            {
+                return false;
+            }
+
             ModuleTraceStates = Array.ConvertAll(intstates, value => (eCodeInstrumentation)value).ToList();
             return true;
         }
@@ -859,7 +894,10 @@ namespace rgat
                 }
 
                 string? mutationStr = mutation[0].ToObject<string>();
-                if (mutationStr is null) return false;
+                if (mutationStr is null)
+                {
+                    return false;
+                }
 
                 InstructionData ins = new InstructionData();
                 ins.GlobalModNum = addressData.moduleID;
@@ -961,7 +999,10 @@ namespace rgat
             {
                 foreach (JArray entry in DisassemblyArray)
                 {
-                    if (!UnpackAddress(entry, disassembler)) return false;
+                    if (!UnpackAddress(entry, disassembler))
+                    {
+                        return false;
+                    }
                 }
             }
 
@@ -996,15 +1037,25 @@ namespace rgat
                 for (var i = 0; i < insAddresses.Count; i++)
                 {
                     JToken insItem = insAddresses[i];
-                    if (insItem is null) return false;
+                    if (insItem is null)
+                    {
+                        return false;
+                    }
 
                     ulong? insAddress = insItem[0]?.ToObject<ulong>();
                     int? mutationIndex = insItem[1]?.ToObject<int>();
-                    if (insAddress is null || mutationIndex is null) return false;
+                    if (insAddress is null || mutationIndex is null)
+                    {
+                        return false;
+                    }
 
                     InstructionData ins = disassembly[insAddress.Value][mutationIndex.Value];
                     blkInstructions.Add(ins);
-                    if (ins.ContainingBlockIDs == null) ins.ContainingBlockIDs = new List<uint>();
+                    if (ins.ContainingBlockIDs == null)
+                    {
+                        ins.ContainingBlockIDs = new List<uint>();
+                    }
+
                     ins.ContainingBlockIDs.Add(blockID);
                     disassembly[insAddress.Value][mutationIndex.Value] = ins;
 
@@ -1091,7 +1142,9 @@ namespace rgat
             foreach (JObject externObj in ExternsArray.Children())
             {
                 if (!UnpackExtern(externObj))
+                {
                     return false;
+                }
             }
             return true;
         }
@@ -1238,7 +1291,10 @@ namespace rgat
 
             foreach (var addr_inslist in BasicBlocksList)
             {
-                if (addr_inslist is null) continue;
+                if (addr_inslist is null)
+                {
+                    continue;
+                }
 
                 JArray blockArray = new JArray();
                 blockArray.Add(addr_inslist.Item1);

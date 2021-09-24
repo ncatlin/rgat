@@ -143,7 +143,10 @@ namespace rgat
                 Logging.RecordLogEvent("YARA loaded", Logging.LogFilterType.TextDebug);
             }
             progress?.Report(1f);
-            if (completionCallback != null) completionCallback();
+            if (completionCallback != null)
+            {
+                completionCallback();
+            }
         }
 
 
@@ -183,7 +186,10 @@ namespace rgat
         {
             _exitTokenSource.Cancel();
 
-            if (rgatState.ConnectedToRemote) rgatState.NetworkBridge.Teardown("Exiting");
+            if (rgatState.ConnectedToRemote)
+            {
+                rgatState.NetworkBridge.Teardown("Exiting");
+            }
 
             DIELib?.CancelAllScans();
             YARALib?.CancelAllScans();
@@ -318,9 +324,13 @@ namespace rgat
             if (trace == null && ActiveTarget != null)
             {
                 if (newest)
+                {
                     trace = ActiveTarget.GetNewestTrace();
+                }
                 else
+                {
                     trace = ActiveTarget.GetFirstTrace();
+                }
             }
 
             ActiveTrace = trace;
@@ -340,13 +350,19 @@ namespace rgat
             targetResult = null;
 
             string? binaryPath = saveJSON.GetValue("BinaryPath")?.ToString();
-            if (binaryPath is null) return false;
+            if (binaryPath is null)
+            {
+                return false;
+            }
 
             if (!targets.GetTargetByPath(binaryPath, out target))
             {
                 bool isLibrary = false;
                 if (saveJSON.TryGetValue("IsLibrary", out JToken? isLibTok) && isLibTok.Type == JTokenType.Boolean)
+                {
                     isLibrary = isLibTok.ToObject<bool>();
+                }
+
                 target = targets.AddTargetByPath(binaryPath, isLibrary: isLibrary);
             }
             //myui.targetListCombo.addTargetToInterface(target, newBinary);
@@ -368,11 +384,21 @@ namespace rgat
             //valid target or not, we assume current graph is no longer fashionable
             ClearActiveGraph();
 
-            if (graph == null || graph.BeingDeleted) return;
+            if (graph == null || graph.BeingDeleted)
+            {
+                return;
+            }
 
             TraceRecord? trace = ActiveTrace;
-            if (trace == null) return;
-            if (ActiveTrace?.PID != graph.PID) return;
+            if (trace == null)
+            {
+                return;
+            }
+
+            if (ActiveTrace?.PID != graph.PID)
+            {
+                return;
+            }
 
             if (SetActiveGraph(graph))
             {
@@ -403,7 +429,9 @@ namespace rgat
             if (ActiveGraph == null)
             {
                 if (ActiveTrace == null)
+                {
                     SelectActiveTrace();
+                }
 
                 SelectGraphInActiveTrace();
             }
@@ -443,7 +471,10 @@ namespace rgat
                     }
                 }
 
-                if (found) return;
+                if (found)
+                {
+                    return;
+                }
             }
 
             PlottedGraph? firstgraph = selectedTrace.GetFirstGraph();
@@ -464,12 +495,16 @@ namespace rgat
         public bool SetActiveGraph(PlottedGraph graph)
         {
             if (ActiveGraph != null && ActiveGraph.BeingDeleted)
+            {
                 return false;
+            }
 
             ClearActiveGraph();
 
-            if (ActiveTrace is not null && graph.PID != ActiveTrace.PID) 
+            if (ActiveTrace is not null && graph.PID != ActiveTrace.PID)
+            {
                 ActiveTrace = null;
+            }
 
             Debug.Assert(ActiveGraph == null);
 
@@ -483,7 +518,10 @@ namespace rgat
         /// <returns>The PlottedGraph object of the active thread graph</returns>
         public PlottedGraph? getActiveGraph()
         {
-            if (ActiveGraph != null && ActiveGraph.BeingDeleted) return null;
+            if (ActiveGraph != null && ActiveGraph.BeingDeleted)
+            {
+                return null;
+            }
 
             if (ActiveGraph == null)
             {
@@ -520,7 +558,9 @@ namespace rgat
             //temporary loading of unix ts in old save files. TODO: move to new format
             DateTime StartTime;
             if (jTime!.Type == JTokenType.Date)
+            {
                 StartTime = jTime.ToObject<DateTime>();
+            }
             else
             {
                 Console.WriteLine("BAD DATETIME");
@@ -552,7 +592,11 @@ namespace rgat
             //display_only_status_message("Loading save file...", clientState);
             //updateActivityStatus("Loading " + QString::fromStdString(traceFilePath.string()) + "...", 2000);
             trace = null;
-            if (!File.Exists(path)) return false;
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+
             Newtonsoft.Json.Linq.JObject? saveJSON = null;
             using (StreamReader file = File.OpenText(path))
             {
@@ -597,7 +641,9 @@ namespace rgat
             //updateActivityStatus("Loaded " + QString::fromStdString(traceFilePath.filename().string()), 15000);
             ExtractChildTraceFilenames(saveJSON, out List<string> childrenFiles);
             if (childrenFiles.Count > 0)
+            {
                 LoadChildTraces(childrenFiles, trace);
+            }
 
             return true;
         }
@@ -635,7 +681,9 @@ namespace rgat
                 string childFilePath = Path.Combine(saveDir, file);
 
                 if (Path.GetDirectoryName(childFilePath) != saveDir) //or a children subdir?
+                {
                     return; //avoid directory traversal
+                }
 
                 if (!File.Exists(childFilePath))
                 {
@@ -752,11 +800,17 @@ namespace rgat
         {
             System.Reflection.Assembly assembly = Assembly.GetExecutingAssembly();
             System.IO.Stream? fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
-            if (fs is null) return null;
+            if (fs is null)
+            {
+                return null;
+            }
 
             System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
             r.GetResourceData(name, out string? rtype, out byte[] resBytes);
-            if (resBytes == null || rtype != "ResourceTypeCode.ByteArray") return null;
+            if (resBytes == null || rtype != "ResourceTypeCode.ByteArray")
+            {
+                return null;
+            }
 
             //https://stackoverflow.com/questions/32891004/why-resourcereader-getresourcedata-return-data-of-type-resourcetypecode-stream
             Stream stream = new MemoryStream(resBytes);

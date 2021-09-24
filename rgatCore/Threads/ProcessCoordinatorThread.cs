@@ -45,16 +45,43 @@ namespace rgat.Threads
                 if (fields.Length == expectedFieldCount)
                 {
                     bool success = true;
-                    if (fields[0] != "PID") success = false;
-                    if (!uint.TryParse(fields[1], out uint PID)) success = false;
-                    if (!int.TryParse(fields[2], out int arch)) success = false;
-                    if (!int.TryParse(fields[3], out int libraryFlag)) success = false;
-                    if (!long.TryParse(fields[4], out long randno)) success = false;
-                    if (!long.TryParse(fields[6], out long testRunID)) success = false;
+                    if (fields[0] != "PID")
+                    {
+                        success = false;
+                    }
+
+                    if (!uint.TryParse(fields[1], out uint PID))
+                    {
+                        success = false;
+                    }
+
+                    if (!int.TryParse(fields[2], out int arch))
+                    {
+                        success = false;
+                    }
+
+                    if (!int.TryParse(fields[3], out int libraryFlag))
+                    {
+                        success = false;
+                    }
+
+                    if (!long.TryParse(fields[4], out long randno))
+                    {
+                        success = false;
+                    }
+
+                    if (!long.TryParse(fields[6], out long testRunID))
+                    {
+                        success = false;
+                    }
+
                     if (success)
                     {
                         string programName = fields[5];
-                        if (libraryFlag == 1) programName = programName.Split(',')[0];
+                        if (libraryFlag == 1)
+                        {
+                            programName = programName.Split(',')[0];
+                        }
 
                         string cmdPipeName = ModuleHandlerThread.GetCommandPipeName(PID, randno);
                         string eventPipeName = ModuleHandlerThread.GetEventPipeName(PID, randno);
@@ -73,7 +100,10 @@ namespace rgat.Threads
                 }
             }
 
-            if (coordPipe.IsConnected) coordPipe.Disconnect();
+            if (coordPipe.IsConnected)
+            {
+                coordPipe.Disconnect();
+            }
         }
 
         void ConnectCallback(IAsyncResult ar)
@@ -166,7 +196,10 @@ namespace rgat.Threads
                 catch (Exception e)
                 {
                     Logging.RecordError($"Trace connection experienced an unknown error: {e.Message}");
-                    if (coordPipe.IsConnected) coordPipe.Disconnect();
+                    if (coordPipe.IsConnected)
+                    {
+                        coordPipe.Disconnect();
+                    }
                 }
             }
             Finished();
@@ -264,7 +297,9 @@ namespace rgat.Threads
             blockHandler.Begin();
 
             if (rgatUI.Exists)
+            {
                 ProcessLaunching.launch_new_visualiser_threads(trace, _clientState);
+            }
         }
     }
 }

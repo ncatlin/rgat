@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading;
 
 namespace rgat.Testing
 {
@@ -59,7 +56,9 @@ namespace rgat.Testing
             lock (_lock)
             {
                 if (_runningTests.Count >= _maxRunningTests)
+                {
                     return -1;
+                }
 
                 _currentTestID += 1;
                 TestCaseRun testRun = new TestCaseRun(test, session, _currentTestID);

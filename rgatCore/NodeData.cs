@@ -28,11 +28,19 @@ namespace rgat
             nodearr.Add(parentIdx);
 
             JArray incoming = new JArray();
-            foreach (var nidx in IncomingNeighboursSet) incoming.Add(nidx);
+            foreach (var nidx in IncomingNeighboursSet)
+            {
+                incoming.Add(nidx);
+            }
+
             nodearr.Add(incoming);
 
             JArray outgoing = new JArray();
-            foreach (var nidx in OutgoingNeighboursSet) outgoing.Add(nidx);
+            foreach (var nidx in OutgoingNeighboursSet)
+            {
+                outgoing.Add(nidx);
+            }
+
             nodearr.Add(outgoing);
 
             nodearr.Add(IsExternal);
@@ -44,7 +52,11 @@ namespace rgat
             else
             {
                 JArray callRecIdxArr = new JArray();
-                foreach (var idx in callRecordsIndexs) callRecIdxArr.Add(idx);
+                foreach (var idx in callRecordsIndexs)
+                {
+                    callRecIdxArr.Add(idx);
+                }
+
                 nodearr.Add(callRecIdxArr);
             }
 
@@ -61,59 +73,107 @@ namespace rgat
         public bool Deserialise(JArray nodeData, ProcessRecord processinfo)
         {
             int jsnArrIdx = 0;
-            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
+            {
+                return ErrorAtIndex(jsnArrIdx);
+            }
+
             Index = nodeData[jsnArrIdx].ToObject<uint>();
             jsnArrIdx++;
 
-            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
+            {
+                return ErrorAtIndex(jsnArrIdx);
+            }
+
             BlockID = nodeData[jsnArrIdx].ToObject<uint>();
             jsnArrIdx++;
 
-            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
+            {
+                return ErrorAtIndex(jsnArrIdx);
+            }
+
             conditional = (ConditionalType)nodeData[jsnArrIdx].ToObject<int>();
             jsnArrIdx++;
 
-            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
+            {
+                return ErrorAtIndex(jsnArrIdx);
+            }
+
             GlobalModuleID = nodeData[jsnArrIdx].ToObject<int>();
             jsnArrIdx++;
 
-            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
+            {
+                return ErrorAtIndex(jsnArrIdx);
+            }
+
             address = nodeData[jsnArrIdx].ToObject<ulong>();
             jsnArrIdx++;
 
-            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
+            {
+                return ErrorAtIndex(jsnArrIdx);
+            }
+
             executionCount = nodeData[jsnArrIdx].ToObject<ulong>();
             jsnArrIdx++;
 
             //execution comes from these nodes to this node
-            if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
+            {
+                return ErrorAtIndex(jsnArrIdx);
+            }
+
             parentIdx = nodeData[jsnArrIdx].ToObject<uint>();
             jsnArrIdx++;
 
             //execution comes from these nodes to this node
-            if (nodeData[jsnArrIdx].Type != JTokenType.Array) return ErrorAtIndex(jsnArrIdx);
+            if (nodeData[jsnArrIdx].Type != JTokenType.Array)
+            {
+                return ErrorAtIndex(jsnArrIdx);
+            }
+
             JArray incomingEdges = (JArray)nodeData[jsnArrIdx];
 
             foreach (JToken incomingIdx in incomingEdges)
             {
-                if (incomingIdx.Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+                if (incomingIdx.Type != JTokenType.Integer)
+                {
+                    return ErrorAtIndex(jsnArrIdx);
+                }
+
                 IncomingNeighboursSet.Add(incomingIdx.ToObject<uint>());
             }
             jsnArrIdx++;
 
             //execution goes from this node to these nodes
-            if (nodeData[jsnArrIdx].Type != JTokenType.Array) return ErrorAtIndex(jsnArrIdx);
+            if (nodeData[jsnArrIdx].Type != JTokenType.Array)
+            {
+                return ErrorAtIndex(jsnArrIdx);
+            }
+
             JArray outgoingEdges = (JArray)nodeData[jsnArrIdx];
 
             foreach (JToken outgoingIdx in outgoingEdges)
             {
-                if (outgoingIdx.Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+                if (outgoingIdx.Type != JTokenType.Integer)
+                {
+                    return ErrorAtIndex(jsnArrIdx);
+                }
+
                 OutgoingNeighboursSet.Add(outgoingIdx.ToObject<uint>());
             }
             jsnArrIdx++;
 
 
-            if (nodeData[jsnArrIdx].Type != JTokenType.Boolean) return ErrorAtIndex(jsnArrIdx);
+            if (nodeData[jsnArrIdx].Type != JTokenType.Boolean)
+            {
+                return ErrorAtIndex(jsnArrIdx);
+            }
+
             IsExternal = nodeData[jsnArrIdx].ToObject<bool>();
             jsnArrIdx++;
 
@@ -121,12 +181,20 @@ namespace rgat
             {
                 HasSymbol = true;
                 //load arguments to the API call
-                if (nodeData[jsnArrIdx].Type != JTokenType.Array) return ErrorAtIndex(jsnArrIdx);
+                if (nodeData[jsnArrIdx].Type != JTokenType.Array)
+                {
+                    return ErrorAtIndex(jsnArrIdx);
+                }
+
                 JArray functionCalls = (JArray)nodeData[jsnArrIdx];
 
                 foreach (JToken callIdx in functionCalls)
                 {
-                    if (callIdx.Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+                    if (callIdx.Type != JTokenType.Integer)
+                    {
+                        return ErrorAtIndex(jsnArrIdx);
+                    }
+
                     callRecordsIndexs.Add(callIdx.ToObject<ulong>());
                 }
             }
@@ -134,7 +202,11 @@ namespace rgat
             {
                 HasSymbol = processinfo.SymbolExists(GlobalModuleID, address);
                 //load disassembly data of the instruction
-                if (nodeData[jsnArrIdx].Type != JTokenType.Integer) return ErrorAtIndex(jsnArrIdx);
+                if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
+                {
+                    return ErrorAtIndex(jsnArrIdx);
+                }
+
                 int mutationIndex = nodeData[jsnArrIdx].ToObject<int>();
 
                 if (!processinfo.disassembly.TryGetValue(address, out List<InstructionData>? addrInstructions))
@@ -147,7 +219,11 @@ namespace rgat
 
             jsnArrIdx++;
 
-            if (nodeData[jsnArrIdx].Type != JTokenType.Boolean) return ErrorAtIndex(jsnArrIdx);
+            if (nodeData[jsnArrIdx].Type != JTokenType.Boolean)
+            {
+                return ErrorAtIndex(jsnArrIdx);
+            }
+
             unreliableCount = nodeData[jsnArrIdx].ToObject<bool>();
 
             return true;
@@ -167,15 +243,30 @@ namespace rgat
         /// <returns>An eEdgeNodeType value</returns>
         public eEdgeNodeType VertType()
         {
-            if (_nodeType != eEdgeNodeType.eENLAST) return _nodeType;
-            if (IsExternal) return eEdgeNodeType.eNodeExternal;
+            if (_nodeType != eEdgeNodeType.eENLAST)
+            {
+                return _nodeType;
+            }
+
+            if (IsExternal)
+            {
+                return eEdgeNodeType.eNodeExternal;
+            }
+
             switch (ins!.itype)
             {
                 case eNodeType.eInsUndefined:
                     {
 
-                        if (ins.conditional) _nodeType = eEdgeNodeType.eNodeJump;
-                        else _nodeType = eEdgeNodeType.eNodeNonFlow;
+                        if (ins.conditional)
+                        {
+                            _nodeType = eEdgeNodeType.eNodeJump;
+                        }
+                        else
+                        {
+                            _nodeType = eEdgeNodeType.eNodeNonFlow;
+                        }
+
                         break;
                     }
                 case eNodeType.eInsJump:
@@ -198,13 +289,27 @@ namespace rgat
 
         bool LabelVisible(PlottedGraph plot)
         {
-            if (!plot.Opt_TextEnabled) return false;
+            if (!plot.Opt_TextEnabled)
+            {
+                return false;
+            }
 
             //always display node label on the active graph, unless text display is disabled entirely
-            if (plot.IsAnimated && plot.InternalProtoGraph.ProtoLastVertID == Index) return true;
+            if (plot.IsAnimated && plot.InternalProtoGraph.ProtoLastVertID == Index)
+            {
+                return true;
+            }
 
-            if (plot.Opt_TextEnabledSym && HasSymbol) return true;
-            if (plot.Opt_TextEnabledIns && ins != null && ins.InsText?.Length > 0) return true;
+            if (plot.Opt_TextEnabledSym && HasSymbol)
+            {
+                return true;
+            }
+
+            if (plot.Opt_TextEnabledIns && ins != null && ins.InsText?.Length > 0)
+            {
+                return true;
+            }
+
             return false;
 
         }
@@ -229,8 +334,15 @@ namespace rgat
             Dirty = false;
             Label = "";
 
-            if (plot.Opt_ShowNodeIndexes) Label += $"{this.Index}:";
-            if (plot.Opt_ShowNodeAddresses) Label += $"0x{this.address:X}:";
+            if (plot.Opt_ShowNodeIndexes)
+            {
+                Label += $"{this.Index}:";
+            }
+
+            if (plot.Opt_ShowNodeAddresses)
+            {
+                Label += $"0x{this.address:X}:";
+            }
 
             if (!IsExternal && ins!.InsText?.Length > 0)
             {
@@ -240,10 +352,13 @@ namespace rgat
             if (HasSymbol)
             {
                 if (IsExternal)
+                {
                     Label += $" {CreateSymbolLabel(graph, specificCallIndex)}";
+                }
                 else
+                {
                     Label += $" <{CreateSymbolLabel(graph, specificCallIndex)}>";
-
+                }
             }
 
             if (!IsExternal)
@@ -258,7 +373,9 @@ namespace rgat
                         {
                             EdgeData? targEdge = graph.GetEdge(Index, (uint)nidx);
                             if (targEdge != null)
+                            {
                                 Label += $" {nidx}:{targEdge.ExecutionCount}, ";
+                            }
                         }
                         Label += ">";
                     }
@@ -303,9 +420,14 @@ namespace rgat
 
             if (callRecordsIndexs.Count == 0)
             {
-                if (executionCount == 1) return $"{symbolText}()";
+                if (executionCount == 1)
+                {
+                    return $"{symbolText}()";
+                }
                 else
+                {
                     return $"{symbolText}() [x{executionCount}]";
+                }
             }
 
             APICALLDATA lastCall;
@@ -334,7 +456,9 @@ namespace rgat
                     argstring += ", ";
                 }
                 else
+                {
                     break;
+                }
             }
 
             string result = $"{symbolText}({argstring})";
@@ -379,7 +503,10 @@ namespace rgat
                         break;
                     }
                 }
-                if (!found) return result;
+                if (!found)
+                {
+                    return result;
+                }
             }
 
             if (callRecordsIndexs.Count == 0 || specificCallIndex >= callRecordsIndexs.Count)
@@ -407,7 +534,10 @@ namespace rgat
                 {
                     result.Add(new Tuple<string, WritableRgbaFloat>($", ", colour1));
                 }
-                else break;
+                else
+                {
+                    break;
+                }
             }
 
             if (lastCall.argList.Count > 0 && lastCall.argList[^1].Item1 == -1)
@@ -474,7 +604,7 @@ namespace rgat
         /// </summary>
         public uint BlockID;
 
-        
+
         /// <summary>
         /// An index used to lookup the caller/arguments of each instance of this being called
         /// </summary>
@@ -490,7 +620,7 @@ namespace rgat
         /// </summary>
         public bool Dirty;
 
-        
+
         /// <summary>
         /// number of external functions called
         /// </summary>
@@ -533,7 +663,7 @@ namespace rgat
         /// <summary>
         /// How often the instruction is executed relative to other instuctions (0 [least] to 9 [most])
         /// </summary>
-        public float heatRank = 0; 
+        public float heatRank = 0;
 
         /// <summary>
         /// Sources for this node

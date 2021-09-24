@@ -18,10 +18,10 @@ namespace rgat
         /// <param name="col">Colour</param>
         public WritableRgbaFloat(Color col)
         {
-            R = (float)col.R / 255f;
-            G = (float)col.G / 255f;
-            B = (float)col.B / 255f;
-            A = (float)col.A / 255f;
+            R = col.R / 255f;
+            G = col.G / 255f;
+            B = col.B / 255f;
+            A = col.A / 255f;
         }
 
 
@@ -73,7 +73,10 @@ namespace rgat
         public uint ToUint(uint? customAlpha = null)
         {
             if (customAlpha != null)
+            {
                 return (customAlpha.Value << 24) + ((uint)(B * 255) << 16) + ((uint)(G * 255) << 8) + ((uint)(R * 255));
+            }
+
             return ((uint)(A * 255) << 24) + ((uint)(B * 255) << 16) + ((uint)(G * 255) << 8) + ((uint)(R * 255));
         }
 
@@ -93,10 +96,10 @@ namespace rgat
         /// <returns>output Vector4</returns>
         public static Vector4 ToVec4(Color col)
         {
-            float R = (float)col.R / 255f;
-            float G = (float)col.G / 255f;
-            float B = (float)col.B / 255f;
-            float A = (float)col.A / 255f;
+            float R = col.R / 255f;
+            float G = col.G / 255f;
+            float B = col.B / 255f;
+            float A = col.A / 255f;
             return new Vector4(R, G, B, A);
         }
 
@@ -107,10 +110,10 @@ namespace rgat
         /// <returns>RgbaFloat</returns>
         public static RgbaFloat ToRgbaFloat(Color col)
         {
-            float R = (float)col.R / 255f;
-            float G = (float)col.G / 255f;
-            float B = (float)col.B / 255f;
-            float A = (float)col.A / 255f;
+            float R = col.R / 255f;
+            float G = col.G / 255f;
+            float B = col.B / 255f;
+            float A = col.A / 255f;
             return new RgbaFloat(R, G, B, A);
         }
 

@@ -64,7 +64,9 @@ namespace rgat.OperationModes
             {
                 string? datafile = APIDetailsWin.FindAPIDatafile();
                 if (datafile is not null)
+                {
                     apiTask = Task.Run(() => APIDetailsWin.Load(datafile));
+                }
             }
             else
             {
@@ -78,7 +80,9 @@ namespace rgat.OperationModes
             }
             */
             if (apiTask is not null)
+            {
                 Task.WhenAll(apiTask);
+            }
 
             coordThread = new ProcessCoordinatorThread();
             coordThread.Begin();
@@ -125,7 +129,10 @@ namespace rgat.OperationModes
                     foreach (var previousTrace in previousTarget.GetTracesList())
                     {
                         traces += 1;
-                        if (previousTrace.IsRunning) running += 1;
+                        if (previousTrace.IsRunning)
+                        {
+                            running += 1;
+                        }
                     }
                 }
                 Console.WriteLine($"{running}/{traces} traces running accross {targets.Count} targets");

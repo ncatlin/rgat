@@ -53,7 +53,9 @@ namespace rgat
             get => _StartupProgress; set
             {
                 if (_StartupProgress < 1)
+                {
                     _StartupProgress = value;
+                }
             }
         }
 
@@ -176,8 +178,10 @@ namespace rgat
             }
             _activeTargetRunnable = _rgatState.ActiveTarget != null && _rgatState.ActiveTarget.IsAccessible;
 
-            if (ExitRequested) ExitFlag = true;
-
+            if (ExitRequested)
+            {
+                ExitFlag = true;
+            }
         }
 
         // keep checking the files in the loading panes so we can highlight if they are deleted (or appear)
@@ -204,10 +208,14 @@ namespace rgat
         {
             _lastFrameTimeMS.Add(elapsedMS);
             if (_lastFrameTimeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
+            {
                 _lastFrameTimeMS = _lastFrameTimeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
+            }
 
             if (visualiserTab != null)
+            {
                 visualiserTab.UIFrameAverage = _lastFrameTimeMS.Average();
+            }
         }
 
 
@@ -252,7 +260,9 @@ namespace rgat
                 DrawWindowContent();
             }
             if (MenuBarVisible)
+            {
                 DrawMainMenu();
+            }
         }
 
 
@@ -263,57 +273,84 @@ namespace rgat
         /// This isn't great but coming up with something more elegant can wait
         public void DrawDialogs()
         {
-            if (!_controller.DialogOpen) return;
+            if (!_controller.DialogOpen)
+            {
+                return;
+            }
+
             bool shown;
             if (_show_settings_window && _SettingsMenu != null)
             {
                 shown = _show_settings_window;
                 _SettingsMenu.Draw(ref shown);
-                if (!shown) ToggleSettingsWindow();
+                if (!shown)
+                {
+                    ToggleSettingsWindow();
+                }
             }
             if (_show_select_exe_window)
             {
                 shown = _show_select_exe_window;
                 DrawFileSelectBox(ref shown);
-                if (!shown) ToggleLoadExeWindow();
+                if (!shown)
+                {
+                    ToggleLoadExeWindow();
+                }
             }
             if (_show_load_trace_window)
             {
                 shown = _show_load_trace_window;
                 DrawTraceLoadBox(ref shown);
-                if (!shown) ToggleLoadTraceWindow();
+                if (!shown)
+                {
+                    ToggleLoadTraceWindow();
+                }
             }
             if (_show_tracelist_selection_window)
             {
                 shown = _show_tracelist_selection_window;
                 DrawTraceListSelectBox(ref shown);
-                if (!shown) ToggleTraceListSelectionWindow();
+                if (!shown)
+                {
+                    ToggleTraceListSelectionWindow();
+                }
             }
             if (_show_test_harness)
             {
                 shown = _show_test_harness;
                 _testHarness!.Draw(ref shown);
-                if (!shown) ToggleTestHarness();
+                if (!shown)
+                {
+                    ToggleTestHarness();
+                }
             }
             if (_show_logs_window)
             {
                 shown = _show_logs_window;
                 _logsWindow!.Draw(ref shown);
-                if (!shown) ToggleLogsWindow();
+                if (!shown)
+                {
+                    ToggleLogsWindow();
+                }
             }
             if (_show_remote_dialog)
             {
                 if (_RemoteDialog == null) { _RemoteDialog = new RemoteDialog(); }
                 shown = _show_remote_dialog;
                 _RemoteDialog.Draw(ref shown);
-                if (!shown) ToggleRemoteDialog();
+                if (!shown)
+                {
+                    ToggleRemoteDialog();
+                }
             }
         }
 
         public void CleanupFrame()
         {
             if (!_tooltipScrollingActive && _tooltipScroll != 0)
+            {
                 _tooltipScroll = 0;
+            }
         }
 
 
@@ -352,7 +389,11 @@ namespace rgat
                 if (_tooltipScrollingActive)
                 {
                     _tooltipScroll -= _mouseWheelDelta * 60;
-                    if (_tooltipScroll < 0) _tooltipScroll = 0;
+                    if (_tooltipScroll < 0)
+                    {
+                        _tooltipScroll = 0;
+                    }
+
                     _mouseWheelDelta = 0;
                     return;
                 }
@@ -423,19 +464,28 @@ namespace rgat
                     {
                         //cancel any open dialogs
                         if (boundAction == eKeybind.Cancel)
+                        {
                             CloseDialogs();
+                        }
                     }
 
 
                     //could be a quickmenu shortcut
-                    if (visualiserTab!.AlertRawKeyPress(KeyModifierTuple)) continue;
+                    if (visualiserTab!.AlertRawKeyPress(KeyModifierTuple))
+                    {
+                        continue;
+                    }
 
                     if (isKeybind && !_show_settings_window)
                     {
                         switch (boundAction)
                         {
                             case eKeybind.ToggleVideo:
-                                if (DialogOpen) continue;
+                                if (DialogOpen)
+                                {
+                                    continue;
+                                }
+
                                 ActivateNotification();
                                 if (rgatState.VideoRecorder.Recording)
                                 {
@@ -448,7 +498,11 @@ namespace rgat
                                 continue;
 
                             case eKeybind.PauseVideo:
-                                if (DialogOpen) continue;
+                                if (DialogOpen)
+                                {
+                                    continue;
+                                }
+
                                 ActivateNotification();
                                 if (rgatState.VideoRecorder.Recording)
                                 {
@@ -457,17 +511,29 @@ namespace rgat
                                 continue;
 
                             case eKeybind.CaptureGraphImage:
-                                if (DialogOpen) continue;
+                                if (DialogOpen)
+                                {
+                                    continue;
+                                }
+
                                 PendingScreenshot = VideoEncoder.CaptureContent.Graph;
 
                                 continue;
                             case eKeybind.CaptureGraphPreviewImage:
-                                if (DialogOpen) continue;
+                                if (DialogOpen)
+                                {
+                                    continue;
+                                }
+
                                 PendingScreenshot = VideoEncoder.CaptureContent.GraphAndPreviews;
 
                                 continue;
                             case eKeybind.CaptureWindowImage:
-                                if (DialogOpen) continue;
+                                if (DialogOpen)
+                                {
+                                    continue;
+                                }
+
                                 PendingScreenshot = VideoEncoder.CaptureContent.Window;
 
                                 continue;
@@ -503,13 +569,40 @@ namespace rgat
             }
 
             //should really be maintaining a list of dialogs rather than this
-            if (_show_select_exe_window) ToggleLoadExeWindow();
-            if (_show_load_trace_window) ToggleLoadTraceWindow();
-            if (_show_tracelist_selection_window) ToggleTraceListSelectionWindow();
-            if (_show_settings_window) ToggleSettingsWindow();
-            if (_show_remote_dialog) ToggleRemoteDialog();
-            if (_show_test_harness) ToggleTestHarness();
-            if (_show_logs_window) ToggleLogsWindow();
+            if (_show_select_exe_window)
+            {
+                ToggleLoadExeWindow();
+            }
+
+            if (_show_load_trace_window)
+            {
+                ToggleLoadTraceWindow();
+            }
+
+            if (_show_tracelist_selection_window)
+            {
+                ToggleTraceListSelectionWindow();
+            }
+
+            if (_show_settings_window)
+            {
+                ToggleSettingsWindow();
+            }
+
+            if (_show_remote_dialog)
+            {
+                ToggleRemoteDialog();
+            }
+
+            if (_show_test_harness)
+            {
+                ToggleTestHarness();
+            }
+
+            if (_show_logs_window)
+            {
+                ToggleLogsWindow();
+            }
         }
 
 
@@ -517,7 +610,10 @@ namespace rgat
         {
             if (_show_test_harness == false)
             {
-                if (_testHarness == null) _testHarness = new TestsWindow(_rgatState, _controller);
+                if (_testHarness == null)
+                {
+                    _testHarness = new TestsWindow(_rgatState, _controller);
+                }
             }
             _show_test_harness = !_show_test_harness;
             _controller.DialogChange(_show_test_harness);
@@ -527,7 +623,10 @@ namespace rgat
         {
             if (_show_remote_dialog == false)
             {
-                if (_RemoteDialog == null) _RemoteDialog = new RemoteDialog();
+                if (_RemoteDialog == null)
+                {
+                    _RemoteDialog = new RemoteDialog();
+                }
             }
             _show_remote_dialog = !_show_remote_dialog;
             _controller.DialogChange(_show_remote_dialog);
@@ -579,13 +678,17 @@ namespace rgat
             {
                 int dateIdx = pathshort.LastIndexOf("__");
                 if (dateIdx > 0)
+                {
                     pathshort = pathshort.Substring(0, dateIdx);
+                }
             }
             string agoText = $" ({pathdata.LastOpen.Humanize()})";
             if (ImGui.CalcTextSize(pathshort + agoText).X > ImGui.GetContentRegionAvail().X)
             {
                 if (pathshort.Length > 50)
+                {
                     pathshort = pathshort.Truncate(50, "...", TruncateFrom.Left);
+                }
             }
             if (isMissing || isBad)
             {
@@ -688,7 +791,10 @@ namespace rgat
                 {
                     foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Length)).Reverse())
                     {
-                        if (DrawRecentPathEntry(entry, true)) LoadTraceByPath(entry.Path);
+                        if (DrawRecentPathEntry(entry, true))
+                        {
+                            LoadTraceByPath(entry.Path);
+                        }
                     }
                     ImGui.EndMenu();
                 }
@@ -697,7 +803,8 @@ namespace rgat
                 if (ImGui.MenuItem("Save Thread Trace")) { } //todo
                 if (ImGui.MenuItem("Save Process Traces")) { } //todo
                 if (ImGui.MenuItem("Save All Traces")) { rgatState.SaveAllTargets(); }
-                if (ImGui.MenuItem("Export Pajek")) {
+                if (ImGui.MenuItem("Export Pajek"))
+                {
                     TraceRecord? record = _rgatState.ActiveTrace;
                     PlottedGraph? graph = _rgatState.ActiveGraph;
                     if (record is not null && graph is not null)
@@ -736,7 +843,9 @@ namespace rgat
                 }
                 System.Net.IPEndPoint? endpoint = rgatState.NetworkBridge.RemoteEndPoint;
                 if (endpoint is not null)
+                {
                     SmallWidgets.MouseoverText($"Samples will be executed on {endpoint.Address}");
+                }
             }
             else
             {
@@ -882,7 +991,10 @@ namespace rgat
             }
             else
             {
-                if (!rgatState.VideoRecorder.Recording) return;
+                if (!rgatState.VideoRecorder.Recording)
+                {
+                    return;
+                }
 
                 ActivateNotification();
                 if (rgatState.VideoRecorder.CapturePaused)
@@ -914,7 +1026,10 @@ namespace rgat
             try
             {
                 if (!Directory.Exists(path))
+                {
                     path = Path.GetDirectoryName(path);
+                }
+
                 if (path is null || !Directory.Exists(path))
                 {
                     Logging.RecordError($"Requested {label} directory {path} was not available");
@@ -986,12 +1101,18 @@ namespace rgat
                 Logging.ClearAlertsBox();
             }
 
-            if (_show_logs_window) return;
+            if (_show_logs_window)
+            {
+                return;
+            }
             //
             //Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), windowSize.X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
             //ImGui.SetNextWindowPos(new Vector2(popupBR.X, popupBR.Y));
             int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
-            if (alertCount == 0) return;
+            if (alertCount == 0)
+            {
+                return;
+            }
 
             ImGui.OpenPopup("##AlertsCtx");
 
@@ -1035,10 +1156,17 @@ namespace rgat
 
             const double lingerTime = UI.ALERT_TEXT_LINGER_TIME;
             double timeSinceLast = Logging.TimeSinceLastAlert.TotalMilliseconds;
-            if (timeSinceLast > lingerTime) return false;
+            if (timeSinceLast > lingerTime)
+            {
+                return false;
+            }
 
             int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
-            if (alerts.Length == 0) return false;
+            if (alerts.Length == 0)
+            {
+                return false;
+            }
+
             ActivateNotification();
 
             Vector2 originalCursorPos = ImGui.GetCursorScreenPos();
@@ -1080,9 +1208,9 @@ namespace rgat
                     int alpha = 255;
                     if (timeRemaining < 1000) //fade out over a second
                     {
-                        float fade = ((float)timeRemaining / 1000f);
+                        float fade = (timeRemaining / 1000f);
                         alpha = (int)(Math.Min(255f, 255f * fade));
-                        alpha = (int)(Math.Max(alpha, 0));
+                        alpha = Math.Max(alpha, 0);
                     }
                     if (item.Filter == LogFilterType.TextAlert)
                     {
@@ -1168,7 +1296,9 @@ namespace rgat
 
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected)
+                    {
                         ImGui.SetItemDefaultFocus();
+                    }
                 }
                 ImGui.EndCombo();
             }
@@ -1202,7 +1332,9 @@ namespace rgat
                     _SwitchToTraceSelectTab = false;
                 }
                 else
+                {
                     tabDrawn = ImGui.BeginTabItem("Start Trace");
+                }
 
                 if (tabDrawn)
                 {
@@ -1222,7 +1354,10 @@ namespace rgat
                     _SwitchToVisualiserTab = false;
                 }
                 else
+                {
                     tabDrawn = ImGui.BeginTabItem("Visualiser");
+                }
+
                 if (tabDrawn)
                 {
                     _currentTab = "Visualiser";
@@ -1241,18 +1376,32 @@ namespace rgat
 
         public bool IsrgatSavedTrace(string filestart)
         {
-            if (filestart.StartsWith("{\"")) return true;
-            if (filestart.StartsWith("RGZ")) return true;
+            if (filestart.StartsWith("{\""))
+            {
+                return true;
+            }
+
+            if (filestart.StartsWith("RGZ"))
+            {
+                return true;
+            }
+
             return false;
         }
 
         public bool LoadSelectedBinary(string? path, bool isRemote)
         {
-            if (path is null) return false;
+            if (path is null)
+            {
+                return false;
+            }
+
             try
             {
                 if (isRemote)
+                {
                     return LoadRemoteBinary(path);
+                }
 
                 if (!File.Exists(path))
                 {
@@ -1327,7 +1476,11 @@ namespace rgat
         public void DrawFileSelectBox(ref bool show_select_exe_window)
         {
             string title = "Select Binary";
-            if (rgatState.ConnectedToRemote) title += " (Remote Machine)";
+            if (rgatState.ConnectedToRemote)
+            {
+                title += " (Remote Machine)";
+            }
+
             ImGui.SetNextWindowSize(new Vector2(600, 600), ImGuiCond.FirstUseEver);
             ImGui.OpenPopup(title);
             if (ImGui.BeginPopupModal(title, ref show_select_exe_window, ImGuiWindowFlags.NoScrollbar))
@@ -1412,7 +1565,11 @@ namespace rgat
             if (ImGui.BeginPopupModal("Select Trace File", ref shown, ImGuiWindowFlags.NoScrollbar))
             {
                 string savedir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);
-                if (!Directory.Exists(savedir)) savedir = Environment.CurrentDirectory;
+                if (!Directory.Exists(savedir))
+                {
+                    savedir = Environment.CurrentDirectory;
+                }
+
                 var picker = rgatFilePicker.FilePicker.GetFilePicker(this, savedir);
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);
                 if (result != rgatFilePicker.FilePicker.PickerResult.eNoAction)
@@ -1434,7 +1591,11 @@ namespace rgat
         {
 
             string? startdir = _rgatState.ActiveTarget != null ? Path.GetDirectoryName(_rgatState.ActiveTarget.FilePath) : null;
-            if (startdir is null || !Directory.Exists(startdir)) startdir = Environment.CurrentDirectory;
+            if (startdir is null || !Directory.Exists(startdir))
+            {
+                startdir = Environment.CurrentDirectory;
+            }
+
             var picker = rgatFilePicker.FilePicker.GetFilePicker(this, startdir, allowMulti: true);
 
             string title = "Select Files to List";

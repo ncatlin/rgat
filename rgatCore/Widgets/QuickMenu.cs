@@ -79,7 +79,11 @@ namespace rgat.Widgets
                 {
                     if (value)
                     {
-                        if (!_isActive) _isActive = true;
+                        if (!_isActive)
+                        {
+                            _isActive = true;
+                        }
+
                         return;
                     }
 
@@ -88,7 +92,10 @@ namespace rgat.Widgets
                     {
                         foreach (var e in children)
                         {
-                            if (e.active) e.active = false;
+                            if (e.active)
+                            {
+                                e.active = false;
+                            }
                         }
                     }
 
@@ -173,26 +180,72 @@ namespace rgat.Widgets
 
 
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(0, ActionName.ToggleEdges, _currentGraph.Opt_EdgesVisible)) ActivateAction(ActionName.ToggleEdges, hotKey: false);
-                if (ShowTooltipToggle(2, ActionName.ToggleTextAll, _currentGraph.Opt_TextEnabled)) ActivateAction(ActionName.ToggleTextAll, hotKey: false);
-                if (ShowTooltipToggle(4, ActionName.ToggleNodeTooltips, GlobalConfig.ShowNodeMouseoverTooltip)) ActivateAction(ActionName.ToggleNodeTooltips, hotKey: false);
-                ImGui.TableNextRow();
-                if (ShowTooltipToggle(0, ActionName.ToggleNodes, _currentGraph.Opt_NodesVisible)) ActivateAction(ActionName.ToggleNodes, hotKey: false);
-                if (ShowTooltipToggle(2, ActionName.ToggleTextInstructions, _currentGraph.Opt_TextEnabledIns)) ActivateAction(ActionName.ToggleTextInstructions, hotKey: false);
-                ImGui.TableNextRow();
-                if (ShowTooltipToggle(0, ActionName.ToggleActiveHighlight, _currentGraph.Opt_LiveNodeEdgeEnabled)) ActivateAction(ActionName.ToggleActiveHighlight, hotKey: false);
-                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbols, _currentGraph.Opt_TextEnabledSym)) ActivateAction(ActionName.ToggleTextSymbols, hotKey: false);
-                ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbolsLive, _currentGraph.Opt_TextEnabledLive)) ActivateAction(ActionName.ToggleTextSymbolsLive, hotKey: false);
-                ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleNodeAddresses, _currentGraph.Opt_ShowNodeAddresses)) ActivateAction(ActionName.ToggleNodeAddresses, hotKey: false);
-                ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleNodeIndexes, _currentGraph.Opt_ShowNodeIndexes)) ActivateAction(ActionName.ToggleNodeIndexes, hotKey: false);
-                ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleSymbolModules, _currentGraph.Opt_ShowSymbolModules)) ActivateAction(ActionName.ToggleSymbolModules, hotKey: false);
-                ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleSymbolFullPaths, _currentGraph.Opt_ShowSymbolModulePaths)) ActivateAction(ActionName.ToggleSymbolFullPaths, hotKey: false);
+                if (ShowTooltipToggle(0, ActionName.ToggleEdges, _currentGraph.Opt_EdgesVisible))
+                {
+                    ActivateAction(ActionName.ToggleEdges, hotKey: false);
+                }
 
+                if (ShowTooltipToggle(2, ActionName.ToggleTextAll, _currentGraph.Opt_TextEnabled))
+                {
+                    ActivateAction(ActionName.ToggleTextAll, hotKey: false);
+                }
+
+                if (ShowTooltipToggle(4, ActionName.ToggleNodeTooltips, GlobalConfig.ShowNodeMouseoverTooltip))
+                {
+                    ActivateAction(ActionName.ToggleNodeTooltips, hotKey: false);
+                }
+
+                ImGui.TableNextRow();
+                if (ShowTooltipToggle(0, ActionName.ToggleNodes, _currentGraph.Opt_NodesVisible))
+                {
+                    ActivateAction(ActionName.ToggleNodes, hotKey: false);
+                }
+
+                if (ShowTooltipToggle(2, ActionName.ToggleTextInstructions, _currentGraph.Opt_TextEnabledIns))
+                {
+                    ActivateAction(ActionName.ToggleTextInstructions, hotKey: false);
+                }
+
+                ImGui.TableNextRow();
+                if (ShowTooltipToggle(0, ActionName.ToggleActiveHighlight, _currentGraph.Opt_LiveNodeEdgeEnabled))
+                {
+                    ActivateAction(ActionName.ToggleActiveHighlight, hotKey: false);
+                }
+
+                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbols, _currentGraph.Opt_TextEnabledSym))
+                {
+                    ActivateAction(ActionName.ToggleTextSymbols, hotKey: false);
+                }
+
+                ImGui.TableNextRow();
+                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbolsLive, _currentGraph.Opt_TextEnabledLive))
+                {
+                    ActivateAction(ActionName.ToggleTextSymbolsLive, hotKey: false);
+                }
+
+                ImGui.TableNextRow();
+                if (ShowTooltipToggle(2, ActionName.ToggleNodeAddresses, _currentGraph.Opt_ShowNodeAddresses))
+                {
+                    ActivateAction(ActionName.ToggleNodeAddresses, hotKey: false);
+                }
+
+                ImGui.TableNextRow();
+                if (ShowTooltipToggle(2, ActionName.ToggleNodeIndexes, _currentGraph.Opt_ShowNodeIndexes))
+                {
+                    ActivateAction(ActionName.ToggleNodeIndexes, hotKey: false);
+                }
+
+                ImGui.TableNextRow();
+                if (ShowTooltipToggle(2, ActionName.ToggleSymbolModules, _currentGraph.Opt_ShowSymbolModules))
+                {
+                    ActivateAction(ActionName.ToggleSymbolModules, hotKey: false);
+                }
+
+                ImGui.TableNextRow();
+                if (ShowTooltipToggle(2, ActionName.ToggleSymbolFullPaths, _currentGraph.Opt_ShowSymbolModulePaths))
+                {
+                    ActivateAction(ActionName.ToggleSymbolFullPaths, hotKey: false);
+                }
 
                 ImGui.EndTable();
             }
@@ -209,7 +262,11 @@ namespace rgat.Widgets
             {
                 clicked = true;
             }
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{menuitem.ToolTip} [{menuitem.Shortcut}]");
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip($"{menuitem.ToolTip} [{menuitem.Shortcut}]");
+            }
+
             ImGui.TableNextColumn();
             return clicked || SmallWidgets.ToggleButton("##Toggle" + menuitem.Label, value, null);
         }
@@ -348,7 +405,10 @@ namespace rgat.Widgets
         public bool KeyPressed(Tuple<Key, ModifierKeys> keyModTuple, out Tuple<string, string>? ComboAction)
         {
             ComboAction = null;
-            if (!_expanded || _activeEntry == null) return false;
+            if (!_expanded || _activeEntry == null)
+            {
+                return false;
+            }
 
             _RecentKeypress = keyModTuple;
 
@@ -367,10 +427,13 @@ namespace rgat.Widgets
                     {
                         if (ActivateAction(entry.Action.Value, hotKey: true, out string? resultText))
                         {
-                            string combo = String.Join("-", keyCombo.ToArray());
+                            string combo = string.Join("-", keyCombo.ToArray());
                             string label = entry.Label!;
                             if (resultText != null)
+                            {
                                 label += $": {resultText}";
+                            }
+
                             ComboAction = new Tuple<string, string>(combo, label);
                         }
                     }
@@ -385,10 +448,14 @@ namespace rgat.Widgets
                 _activeEntry = _activeEntry.parent;
 
                 if (_activeEntry is not null && _activeEntry.Popup is not null)
+                {
                     _activeMenuPopupName = _activeEntry.Popup;
+                }
 
                 if (keyCombo.Any() && keyCombo.Last() == keyModTuple.Item1)
+                {
                     keyCombo.RemoveAt(keyCombo.Count - 1);
+                }
 
                 return true;
             }
@@ -398,8 +465,14 @@ namespace rgat.Widgets
 
         public void MenuPressed()
         {
-            if (Expanded) Contract();
-            else Expand(persistent: true);
+            if (Expanded)
+            {
+                Contract();
+            }
+            else
+            {
+                Expand(persistent: true);
+            }
         }
 
         readonly List<Key> keyCombo = new List<Key>();
@@ -514,12 +587,21 @@ namespace rgat.Widgets
                 float progressAdjustedY = menuY * currentExpansion;
                 DrawMenuButton(entry, progressAdjustedY);
                 menuY += (_iconSize.Y + _menuYPad);
-                if (i >= _expandProgress) break;
+                if (i >= _expandProgress)
+                {
+                    break;
+                }
             }
             //Console.WriteLine(_expanded);
-            if (_expanded && !ExpansionFinished) _expandProgress += expansionPerFrame;
+            if (_expanded && !ExpansionFinished)
+            {
+                _expandProgress += expansionPerFrame;
+            }
+
             if (!_expanded && _expandProgress > 0)
+            {
                 _expandProgress -= expansionPerFrame;
+            }
 
             _expandProgress = Math.Min(_expandProgress, iconCount);
             _expandProgress = Math.Max(_expandProgress, 0);
@@ -539,7 +621,10 @@ namespace rgat.Widgets
                     oldval.active = false;
                 }*/
                 if (value != null)
+                {
                     value.active = true;
+                }
+
                 __activeEntry_ = value;
             }
         }
@@ -561,7 +646,10 @@ namespace rgat.Widgets
                 ImGui.Image(CPUframeBufferTextureId, _iconSize, Vector2.Zero, Vector2.One, Vector4.One, border);
             }
 
-            if (!ExpansionFinished) return;
+            if (!ExpansionFinished)
+            {
+                return;
+            }
 
             ImGuiHoveredFlags flags = ImGuiHoveredFlags.AllowWhenBlockedByActiveItem |
                                       ImGuiHoveredFlags.AllowWhenOverlapped |
@@ -573,7 +661,10 @@ namespace rgat.Widgets
                     if (_activeMenuPopupName != null)
                     {
                         if (_activeEntry is not null)
+                        {
                             _activeEntry.active = false;
+                        }
+
                         ImGui.CloseCurrentPopup();
                         _activeMenuPopupName = null;
                     }
@@ -774,7 +865,9 @@ private void DrawScalePopup()
         void DrawSearchHighlightFrame()
         {
             if (_currentGraph is not null)
+            {
                 HighlightDialogWidget.Draw(_currentGraph);
+            }
         }
     }
 }

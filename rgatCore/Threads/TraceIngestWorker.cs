@@ -94,7 +94,7 @@ namespace rgat.Threads
         /// <returns></returns>
         public virtual bool HasPendingData => PendingDataSize != 0;
 
-        private readonly Object _statsLock = new Object();
+        private readonly object _statsLock = new object();
         readonly System.Timers.Timer StatsTimer;
         DateTime _lastStatsUpdate = DateTime.Now;
         private readonly List<float> _updateRates = new List<float>();
@@ -125,9 +125,9 @@ namespace rgat.Threads
             _lastStatsUpdate = DateTime.Now;
             _recentMsgCount = 0;
 
-            float elapsedTimeS = ((float)(DateTime.Now - lastUpdate).Milliseconds) / 1000.0f;
+            float elapsedTimeS = (DateTime.Now - lastUpdate).Milliseconds / 1000.0f;
 
-            float updateRate = (float)(messagesSinceLastUpdate) / elapsedTimeS;
+            float updateRate = messagesSinceLastUpdate / elapsedTimeS;
             lock (_statsLock)
             {
                 if (_updateRates.Count > _StatCacheSize)
@@ -139,7 +139,10 @@ namespace rgat.Threads
                 if (StopFlag)
                 {
                     //stop updating once all activity has gone
-                    if (_updateRates.Max() == 0) StatsTimer.Stop();
+                    if (_updateRates.Max() == 0)
+                    {
+                        StatsTimer.Stop();
+                    }
                 }
             }
 

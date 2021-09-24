@@ -30,7 +30,10 @@ namespace rgat.Threads
         void update_rendering(PlottedGraph graph)
         {
             ProtoGraph protoGraph = graph.InternalProtoGraph;
-            if (protoGraph == null || protoGraph.EdgeCount == 0) return;
+            if (protoGraph == null || protoGraph.EdgeCount == 0)
+            {
+                return;
+            }
 
             //if (graph.NodesDisplayData == null)// || !graph.setGraphBusy(true, 2))
             //	return;
@@ -47,7 +50,9 @@ namespace rgat.Threads
             if (!protoGraph.Terminated)
             {
                 if (graph.IsAnimated)
+                {
                     graph.ProcessLiveAnimationUpdates();
+                }
             }
             else
             {
@@ -92,7 +97,9 @@ namespace rgat.Threads
 
                 //todo get rid of this 1000 after testing
                 if (GlobalConfig.MainGraphRenderDelay > 0)
+                {
                     Thread.Sleep(GlobalConfig.MainGraphRenderDelay);
+                }
             }
 
             Finished();

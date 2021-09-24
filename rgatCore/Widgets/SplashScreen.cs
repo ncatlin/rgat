@@ -67,7 +67,10 @@ namespace rgat
             float iconTitleYSep = 10;
 
             ImGuiTableFlags tblflags = ImGuiTableFlags.NoHostExtendX;
-            if (boxBorders) tblflags |= ImGuiTableFlags.Borders;
+            if (boxBorders)
+            {
+                tblflags |= ImGuiTableFlags.Borders;
+            }
 
             ImGui.SetCursorPos(new Vector2(runGrpX, blockStart));
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0);

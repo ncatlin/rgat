@@ -24,7 +24,7 @@ namespace rgat
         /// <param name="style">The intial style of the layout</param>
         public GraphLayoutState(PlottedGraph graph, GraphicsDevice device, LayoutStyles.Style style)
         {
-            GraphPlot = graph; 
+            GraphPlot = graph;
             _VRAMBuffers.Style = style;
             _gd = device;
             Logging.RecordLogEvent($"Layout state {GraphPlot.TID} inited", Logging.LogFilterType.BulkDebugLogFile);
@@ -46,7 +46,7 @@ namespace rgat
         /// <summary>
         /// Veldrid GraphicsDevice for GPU operations
         /// </summary>
-        private GraphicsDevice _gd;
+        private readonly GraphicsDevice _gd;
 
         /// <summary>
         /// The layout style currently plotted in the VRAM buffers
@@ -642,12 +642,17 @@ namespace rgat
             {
                 int[] blockdats = graph.GetBlockRenderingMetadata();
                 if (blockdats == null)
+                {
                     blockdats = new int[] { 0 };
+                }
 
                 _VRAMBuffers.BlockMetadata = VeldridGraphBuffers.TrackedVRAMAlloc(_gd,
                     (uint)blockdats.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMetadata_T{graph.TID}");
 
-                if (blockdats.Length == 0) return;
+                if (blockdats.Length == 0)
+                {
+                    return;
+                }
 
                 fixed (int* dataPtr = blockdats)
                 {
@@ -681,7 +686,10 @@ namespace rgat
         {
             Logging.RecordLogEvent($"AddNewNodesToComputeBuffers <{finalCount - graph.ComputeBufferNodeCount}?  {graph.TID} start", Logging.LogFilterType.BulkDebugLogFile);
             int newNodeCount = finalCount - graph.ComputeBufferNodeCount;
-            if (newNodeCount == 0) return;
+            if (newNodeCount == 0)
+            {
+                return;
+            }
 
             Debug.Assert(graph.ActiveLayoutStyle == _VRAMBuffers.Style);
 
@@ -770,7 +778,9 @@ namespace rgat
 
             uint zeroFillStart = 0;
             if (_VRAMBuffers.Initialised)
+            {
                 zeroFillStart = PositionsVRAM1!.SizeInBytes;
+            }
 
             BufferDescription bd = new BufferDescription(bufferSize, BufferUsage.StructuredBufferReadWrite, 4);
 
@@ -822,7 +832,7 @@ namespace rgat
         {
             Logging.RecordLogEvent($"ResetNodeAttributes ", Logging.LogFilterType.BulkDebugLogFile);
 
-            uint bufferSize = AttributesVRAM1?.SizeInBytes ?? 1024; 
+            uint bufferSize = AttributesVRAM1?.SizeInBytes ?? 1024;
             BufferDescription bd = new BufferDescription(bufferSize, BufferUsage.StructuredBufferReadWrite, 4);
 
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Attributes1);
@@ -1018,7 +1028,11 @@ namespace rgat
         public void TriggerLayoutChange(LayoutStyles.Style newStyle)
         {
 
-            if (newStyle == _VRAMBuffers.Style) return;
+            if (newStyle == _VRAMBuffers.Style)
+            {
+                return;
+            }
+
             Lock.EnterWriteLock();
             Console.WriteLine("Preset start");
 
@@ -1096,7 +1110,11 @@ namespace rgat
             int endLength = layoutRAMBuffers.VelocityArray.Length;
             for (var i = 0; i < endLength; i += 4)
             {
-                if (layoutRAMBuffers.PositionsArray[i + 3] == 0) break;
+                if (layoutRAMBuffers.PositionsArray[i + 3] == 0)
+                {
+                    break;
+                }
+
                 layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);
                 layoutRAMBuffers.VelocityArray[i + 1] = rnd.Next(100);
                 layoutRAMBuffers.VelocityArray[i + 2] = rnd.Next(100);

@@ -13,7 +13,8 @@ namespace rgat.Testing
         /// Create a test result commentary
         /// </summary>
         /// <param name="req">The requirement being explained</param>
-        public TestResultCommentary(TestRequirement req) {
+        public TestResultCommentary(TestRequirement req)
+        {
             requirement = req;
         }
 
@@ -77,7 +78,7 @@ namespace rgat.Testing
 
     }
 
-    
+
     /// <summary>
     /// object associated with one execution of a testcase
     /// </summary>
@@ -229,7 +230,9 @@ namespace rgat.Testing
 
             Dictionary<REQUIREMENTS_LIST, List<ProtoGraph>> reqSatisfyGraphs = new Dictionary<REQUIREMENTS_LIST, List<ProtoGraph>>();
             foreach (REQUIREMENTS_LIST reqlist in requirements.ThreadRequirements)
+            {
                 reqSatisfyGraphs[reqlist] = new List<ProtoGraph>();
+            }
 
             foreach (var threadReqList in requirements.ThreadRequirements)
             {
@@ -237,7 +240,10 @@ namespace rgat.Testing
                 foreach (var graph_results in allThreadResults)
                 {
                     ProtoGraph graph = graph_results.Key;
-                    if (graph_results.Value.Failed.Count == 0) reqSatisfyGraphs[threadReqList].Add(graph);
+                    if (graph_results.Value.Failed.Count == 0)
+                    {
+                        reqSatisfyGraphs[threadReqList].Add(graph);
+                    }
                 }
             }
             bool threadsVerified = VerifyAllThreadRequirements(reqSatisfyGraphs, out string? threadVerifyError);
@@ -280,7 +286,10 @@ namespace rgat.Testing
                 foreach (var validGraph in req_graplist.Value)
                 {
                     candidates.Add(new Tuple<REQUIREMENTS_LIST, ProtoGraph>(reqs, validGraph));
-                    if (!uniqueGraphs.Contains(validGraph)) uniqueGraphs.Add(validGraph);
+                    if (!uniqueGraphs.Contains(validGraph))
+                    {
+                        uniqueGraphs.Add(validGraph);
+                    }
                 }
             }
             if (unsatisfied.Count > 0)
@@ -310,14 +319,28 @@ namespace rgat.Testing
                 {
                     ProtoGraph graph = req_graph.Item2;
                     REQUIREMENTS_LIST reqs = req_graph.Item1;
-                    if (usedReqs.Contains(reqs)) continue;
-                    if (usedGraphs.Contains(graph)) continue;
+                    if (usedReqs.Contains(reqs))
+                    {
+                        continue;
+                    }
+
+                    if (usedGraphs.Contains(graph))
+                    {
+                        continue;
+                    }
+
                     currentList.Add(req_graph);
                     usedGraphs.Add(graph);
                     usedReqs.Add(reqs);
-                    if (usedReqs.Count == reqListCount) return true;
+                    if (usedReqs.Count == reqListCount)
+                    {
+                        return true;
+                    }
                 }
-                if (currentList.Count > bestList.Count) bestList = currentList;
+                if (currentList.Count > bestList.Count)
+                {
+                    bestList = currentList;
+                }
             }
 
             error = $"Failed to satisfy all thread requirements, best attempt was {bestList.Count}/{reqListCount}";
@@ -326,7 +349,11 @@ namespace rgat.Testing
 
         static IEnumerable<IEnumerable<T>> GetPermutationsWithRept<T>(IEnumerable<T> list, int length)
         {
-            if (length < 2) return list.Select(t => new T[] { t });
+            if (length < 2)
+            {
+                return list.Select(t => new T[] { t });
+            }
+
             return GetPermutationsWithRept(list, length - 1).SelectMany(t => list, (t1, t2) => t1.Concat(new T[] { t2 }));
         }
     }

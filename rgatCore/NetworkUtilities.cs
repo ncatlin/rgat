@@ -74,7 +74,9 @@ namespace rgat
             {
                 Console.WriteLine($"\t\tAddresses:");
                 foreach (var addr in addresses.Reverse())
+                {
                     Console.WriteLine($"\t\t\t{addr.Address}");
+                }
             }
             else
             {
@@ -82,7 +84,10 @@ namespace rgat
             }
             string MAC = NetworkUtilities.hexMAC(iface.GetPhysicalAddress());
             if (MAC.Length > 0)
+            {
                 Console.WriteLine($"\t\tMAC: {MAC}");
+            }
+
             Console.WriteLine($"\t\tType: {iface.NetworkInterfaceType}");
             Console.WriteLine($"\t\tID: {iface.Id}");
             Console.WriteLine("");
@@ -91,14 +96,29 @@ namespace rgat
         public static NetworkInterface[] GetInterfaces(bool IncludeInvalid = false)
         {
             NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
-            if (IncludeInvalid) return interfaces;
+            if (IncludeInvalid)
+            {
+                return interfaces;
+            }
 
             List<NetworkInterface> result = new List<NetworkInterface>();
             foreach (var iface in interfaces)
             {
-                if (iface.OperationalStatus != OperationalStatus.Up) continue;
-                if (iface.IsReceiveOnly) continue;
-                if (iface.GetIPProperties().UnicastAddresses.Count == 0) continue;
+                if (iface.OperationalStatus != OperationalStatus.Up)
+                {
+                    continue;
+                }
+
+                if (iface.IsReceiveOnly)
+                {
+                    continue;
+                }
+
+                if (iface.GetIPProperties().UnicastAddresses.Count == 0)
+                {
+                    continue;
+                }
+
                 result.Add(iface);
             }
             return result.ToArray();
@@ -106,7 +126,10 @@ namespace rgat
 
         public static NetworkInterface? ValidateNetworkInterface(string interfaceCmdlineString)
         {
-            if (interfaceCmdlineString == null) return null;
+            if (interfaceCmdlineString == null)
+            {
+                return null;
+            }
 
             NetworkInterface? matchedInterface = null;
             NetworkInterface[] validInterfaces = GetInterfaces();
@@ -117,7 +140,10 @@ namespace rgat
             if (int.TryParse(comparer, out int indexInt))
             {
                 indexInt -= 1;
-                if (indexInt >= 0 && indexInt < validInterfaces.Length) return validInterfaces[indexInt];
+                if (indexInt >= 0 && indexInt < validInterfaces.Length)
+                {
+                    return validInterfaces[indexInt];
+                }
             }
 
 

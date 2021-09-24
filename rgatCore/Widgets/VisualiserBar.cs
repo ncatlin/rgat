@@ -132,7 +132,10 @@ namespace rgat.Widgets
 
         void MaintainBuffers()
         {
-            if (_pointVerts is null || _lineVerts is null || _triangleVerts is null) return;//shouldnt be called before generatelive/generatereplay
+            if (_pointVerts is null || _lineVerts is null || _triangleVerts is null)
+            {
+                return;//shouldnt be called before generatelive/generatereplay
+            }
 
             uint requiredSize = (uint)_pointVerts.Length * Position2DColour.SizeInBytes;
             if (_pointsVertexBuffer!.SizeInBytes < requiredSize)
@@ -166,7 +169,10 @@ namespace rgat.Widgets
 
         public void Render()
         {
-            if (_pointVerts is null || _lineVerts is null || _triangleVerts is null) return; //shouldnt be called before generatelive/generatereplay
+            if (_pointVerts is null || _lineVerts is null || _triangleVerts is null)
+            {
+                return; //shouldnt be called before generatelive/generatereplay
+            }
 
             BarShaderParams shaderParams = new BarShaderParams
             {
@@ -185,15 +191,15 @@ namespace rgat.Widgets
             _cl.UpdateBuffer(_paramsBuffer, 0, shaderParams);
             _cl.UpdateBuffer(_pointsVertexBuffer, 0, _pointVerts);
 
-            int[] pointIndices = Enumerable.Range(0, _pointVerts.Length).Select(i => (int)i).ToArray();
+            int[] pointIndices = Enumerable.Range(0, _pointVerts.Length).Select(i => i).ToArray();
             _cl.UpdateBuffer(_pointsIndexBuffer, 0, pointIndices);
             _cl.UpdateBuffer(_linesVertexBuffer, 0, _lineVerts);
 
-            int[] lineIndices = Enumerable.Range(0, _lineVerts.Length).Select(i => (int)i).ToArray();
+            int[] lineIndices = Enumerable.Range(0, _lineVerts.Length).Select(i => i).ToArray();
             _cl.UpdateBuffer(_linesIndexBuffer, 0, lineIndices);
             _cl.UpdateBuffer(_trisVertexBuffer, 0, _triangleVerts);
 
-            int[] triIndices = Enumerable.Range(0, _triangleVerts.Length).Select(i => (int)i).ToArray();
+            int[] triIndices = Enumerable.Range(0, _triangleVerts.Length).Select(i => i).ToArray();
             _cl.UpdateBuffer(_trisIndexBuffer, 0, triIndices);
             _cl.SetFramebuffer(_outputFramebuffer);
             _cl.ClearColorTarget(0, new WritableRgbaFloat(Themes.GetThemeColourUINT(Themes.eThemeColour.eVisBarBg)).ToRgbaFloat());
@@ -301,12 +307,26 @@ namespace rgat.Widgets
             }
 
             Vector2 SliderArrowDrawPos = new Vector2(AnimationProgressBarPos.X + _sliderPosX, AnimationProgressBarPos.Y - 4);
-            if (SliderArrowDrawPos.X < SliderRectStart.X) SliderArrowDrawPos.X = AnimationProgressBarPos.X;
-            if (SliderArrowDrawPos.X > SliderRectEnd.X) SliderArrowDrawPos.X = SliderRectEnd.X;
+            if (SliderArrowDrawPos.X < SliderRectStart.X)
+            {
+                SliderArrowDrawPos.X = AnimationProgressBarPos.X;
+            }
+
+            if (SliderArrowDrawPos.X > SliderRectEnd.X)
+            {
+                SliderArrowDrawPos.X = SliderRectEnd.X;
+            }
 
             float sliderBarPosition = (SliderArrowDrawPos.X - SliderRectStart.X) / progressBarSize.X;
-            if (sliderBarPosition <= 0.05) SliderArrowDrawPos.X += 1;
-            if (sliderBarPosition >= 99.95) SliderArrowDrawPos.X -= 1;
+            if (sliderBarPosition <= 0.05)
+            {
+                SliderArrowDrawPos.X += 1;
+            }
+
+            if (sliderBarPosition >= 99.95)
+            {
+                SliderArrowDrawPos.X -= 1;
+            }
 
             if (ImGui.IsItemActive())
             {
@@ -343,21 +363,30 @@ namespace rgat.Widgets
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid, yStart + len) });
 
             remaining /= 2;
-            if (remaining <= 7) return;
+            if (remaining <= 7)
+            {
+                return;
+            }
 
             len = Math.Min(remaining - 7, 9) + 1;
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid + 1, yStart) });
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid + 1, yStart + len) });
 
             remaining /= 2;
-            if (remaining <= 14) return;
+            if (remaining <= 14)
+            {
+                return;
+            }
 
             len = Math.Min(remaining - 14, 5) + 1;
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid - 1, yStart + 2) });
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid - 1, yStart + 2 + len) });
 
             remaining /= 2;
-            if (remaining <= 19) return;
+            if (remaining <= 19)
+            {
+                return;
+            }
 
             len = Math.Min(remaining - 19, 5) + 1;
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid + 2, yStart + 2) });
@@ -425,7 +454,10 @@ namespace rgat.Widgets
             int entryCount = 100;
             int lastIdx = graph.GetRecentAnimationEntries(entryCount, out List<ANIMATIONENTRY> entries);
             if (barScrollingPos == 0 && lastDrawnTagIdx != lastIdx)
+            {
                 barScrollingPos = 0.05f;
+            }
+
             lastDrawnTagIdx = lastIdx;
 
             float pSep = _width / entryCount;
@@ -435,7 +467,10 @@ namespace rgat.Widgets
             {
                 scrollOffset = (barScrollingPos * pSep) - pSep;
                 barScrollingPos += 0.1f;
-                if (barScrollingPos >= 1f) barScrollingPos = 0;
+                if (barScrollingPos >= 1f)
+                {
+                    barScrollingPos = 0;
+                }
             }
             scrollOffset += _width % pSep;
 
@@ -448,12 +483,19 @@ namespace rgat.Widgets
                 Xoffset -= scrollOffset;
                 int blkID = (int)ae.blockID;
 
-                if (blkID < 0 || blkID >= graph.BlocksFirstLastNodeList.Count) continue;
+                if (blkID < 0 || blkID >= graph.BlocksFirstLastNodeList.Count)
+                {
+                    continue;
+                }
 
                 var blockFirstLast = graph.BlocksFirstLastNodeList[blkID];
 
 
-                if (blockFirstLast == null) continue; //happens on .idata jump thunks
+                if (blockFirstLast == null)
+                {
+                    continue; //happens on .idata jump thunks
+                }
+
                 uint insCount = (blockFirstLast.Item2 - blockFirstLast.Item1) + 1;
                 CreateExecTagSymbol(Xoffset + pSep / 2, insCount, ref lines);
 
@@ -526,7 +568,7 @@ namespace rgat.Widgets
                     {
                         //int blkct = blockTailIdx - (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1;
                         //Console.WriteLine($"NodeID: {node.index} BlockID: {ae.blockID} BlkSz: {blkct} ThisExecCt:{ae.count} TotlExecCount: {node.executionCount} heatrank: {node.heatRank}");
-                        float ecountprop = 1 - ((float)ae.count / (float)graph.BusiestBlockExecCount);
+                        float ecountprop = 1 - (ae.count / (float)graph.BusiestBlockExecCount);
                         if (busyCountLinePoints.Count > 0)
                         {
                             busyCountLinePoints.Add(busyCountLinePoints[^1]);
@@ -560,7 +602,11 @@ namespace rgat.Widgets
                     //Draw Module location bits
                     ulong blockAddr = graph.ProcessData.GetAddressOfBlock((int)ae.blockID);
                     bool found = graph.ProcessData.FindContainingModule(blockAddr, out int? moduleID);
-                    if (!found) continue;
+                    if (!found)
+                    {
+                        continue;
+                    }
+
                     Debug.Assert(moduleID is not null);
 
                     if (moduleAreas.Count > 0)
@@ -663,7 +709,10 @@ namespace rgat.Widgets
                         {
                             ulong blockAddr = graph.ProcessData.GetAddressOfBlock((int)ae.blockID);
                             bool found = graph.ProcessData.FindContainingModule(blockAddr, out int? moduleID);
-                            if (!found) continue;
+                            if (!found)
+                            {
+                                continue;
+                            }
 
                             if (modSegs.Count > 0)
                             {
@@ -684,15 +733,24 @@ namespace rgat.Widgets
                             });
 
                             if (ae.blockID >= graph.BlocksFirstLastNodeList.Count)
+                            {
                                 continue;
+                            }
+
                             var block = graph.BlocksFirstLastNodeList[(int)ae.blockID];
                             if (block is null)
+                            {
                                 continue;
+                            }
+
                             tagInsCount = (block.Item2 - block.Item1) + 1;
                         }
                         break;
                     case eTraceUpdateType.eAnimUnchainedResults:
-                        if (ae.edgeCounts is null) break;
+                        if (ae.edgeCounts is null)
+                        {
+                            break;
+                        }
 
                         foreach (var edge in ae.edgeCounts)
                         {
@@ -706,7 +764,10 @@ namespace rgat.Widgets
                                     tagInsCount += blockInsCt * edge.Item2;
                                 }
                             }
-                            else break;
+                            else
+                            {
+                                break;
+                            }
                         }
                         break;
                 }
@@ -716,16 +777,18 @@ namespace rgat.Widgets
                 segmentBlockCount += 1;
 
 
-                int currentPlotXPixel = (int)Math.Floor(barWidth * ((float)i / (float)animationData.Count));
+                int currentPlotXPixel = (int)Math.Floor(barWidth * (i / (float)animationData.Count));
 
                 if (currentPlotXPixel > lastPlotXPixel)
                 {
 
-                    pixCumul[currentPlotXPixel] = (double)cumulativeInsCount / (double)graph.TotalInstructions;
-                    double segmentAvg = (double)segmentBlockInsCount / (double)segmentBlockCount;
+                    pixCumul[currentPlotXPixel] = cumulativeInsCount / (double)graph.TotalInstructions;
+                    double segmentAvg = segmentBlockInsCount / (double)segmentBlockCount;
                     pixAvg[currentPlotXPixel] = segmentAvg;
                     if (segmentAvg > highestSegmentAvg)
+                    {
                         highestSegmentAvg = segmentAvg;
+                    }
 
                     segmentBlockInsCount = 0;
                     segmentBlockCount = 0;
@@ -761,7 +824,10 @@ namespace rgat.Widgets
             }
             else
             {
-                if (graph == _lastGeneratedReplayGraph) return;
+                if (graph == _lastGeneratedReplayGraph)
+                {
+                    return;
+                }
             }
             _lastGeneratedReplayGraph = graph;
 
@@ -774,7 +840,10 @@ namespace rgat.Widgets
             List<MODULE_SEGMENT> moduleAreas = new List<MODULE_SEGMENT>();
 
             List<ANIMATIONENTRY> animationData = graph.GetSavedAnimationData();
-            if (animationData.Count == 0) return;
+            if (animationData.Count == 0)
+            {
+                return;
+            }
 
             //Draw cumulative instruction count plot
             int lastPlotXPixel = -1;
@@ -827,11 +896,15 @@ namespace rgat.Widgets
 
             for (float x = 0; x < _width; x++)
             {
-                int entryIdx = (int)Math.Floor((x / (float)_width) * animationData.Count);
+                int entryIdx = (int)Math.Floor((x / _width) * animationData.Count);
                 ANIMATIONENTRY sample = animationData[entryIdx];
                 if ((int)sample.blockID != -1)
                 {
-                    if (sample.blockID >= graph.BlocksFirstLastNodeList.Count) continue;
+                    if (sample.blockID >= graph.BlocksFirstLastNodeList.Count)
+                    {
+                        continue;
+                    }
+
                     Tuple<uint, uint>? blockNodes = graph.BlocksFirstLastNodeList[(int)sample.blockID];
                     if (blockNodes == null)
                     {
@@ -867,8 +940,8 @@ namespace rgat.Widgets
             foreach (MODULE_SEGMENT seg in modsegs)
             {
                 WritableRgbaFloat segColour = new WritableRgbaFloat(Color.White);
-                float startX = _width * ((float)seg.firstIdx / (float)animationData.Count);
-                float endX = _width * ((float)seg.lastIdx / (float)animationData.Count);
+                float startX = _width * (seg.firstIdx / (float)animationData.Count);
+                float endX = _width * (seg.lastIdx / (float)animationData.Count);
 
                 //left border
                 lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdStart) });

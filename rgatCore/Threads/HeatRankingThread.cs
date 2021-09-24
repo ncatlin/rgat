@@ -25,14 +25,17 @@ namespace rgat.Threads
 
         static void PerformEdgeHeatRanking(ProtoGraph graph)
         {
-            if (graph.EdgeCount < 10) return;
+            if (graph.EdgeCount < 10)
+            {
+                return;
+            }
 
             var edgeList = graph.GetEdgeObjListCopy();
 
             var allEdgeExecutions = edgeList.Select(e => e.ExecutionCount).Distinct().ToList();
             allEdgeExecutions.Sort();
 
-            float decile = (float)allEdgeExecutions.Count / 10f;
+            float decile = allEdgeExecutions.Count / 10f;
             float current = decile;
 
 
@@ -59,7 +62,10 @@ namespace rgat.Threads
 
         static void PerformNodeHeatRanking(ProtoGraph graph)
         {
-            if (graph.NodeList.Count < 10) return;
+            if (graph.NodeList.Count < 10)
+            {
+                return;
+            }
 
             var nodeList = graph.GetNodeObjlistCopy();
             var allNodeExecutions = nodeList.Select(n => n.executionCount).ToList();

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading;
 
 namespace rgat.Threads
@@ -62,7 +61,11 @@ namespace rgat.Threads
 
         public override byte[]? DeQueueData()
         {
-            if (InQueue.Count == 0) return null;
+            if (InQueue.Count == 0)
+            {
+                return null;
+            }
+
             lock (_lock)
             {
                 byte[] nextMessage = InQueue.Dequeue();
@@ -86,7 +89,10 @@ namespace rgat.Threads
             Console.WriteLine(WorkerThread?.Name + " finished after ingesting " + ProcessedDataSize + " bytes of trace data");
 
             if (!protograph.Terminated)
+            {
                 protograph.SetTerminated();
+            }
+
             Finished();
         }
 

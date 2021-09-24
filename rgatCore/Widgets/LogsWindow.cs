@@ -101,7 +101,10 @@ namespace rgat
                         ImGui.InputText("##IT1", textFilterValue, (uint)textFilterValue.Length);
 
                         ImGui.SameLine();
-                        if (ImGui.Button("Clear")) textFilterValue = new byte[textFilterValue.Length];
+                        if (ImGui.Button("Clear"))
+                        {
+                            textFilterValue = new byte[textFilterValue.Length];
+                        }
 
                         ImGui.EndGroup();
                     }
@@ -170,7 +173,7 @@ namespace rgat
                             {
                                 Logging.TIMELINE_EVENT tl_evt = (Logging.TIMELINE_EVENT)msg;
                                 sourceString = $"{tl_evt.Filter}";
-                                msgString = String.Join("", tl_evt.Label().Select(l => l.Item1));
+                                msgString = string.Join("", tl_evt.Label().Select(l => l.Item1));
                                 break;
                             }
                         default:
@@ -185,7 +188,9 @@ namespace rgat
                         if (!msgString.ToLowerInvariant().Contains(textFilterString) &&
                             !sourceString.ToLowerInvariant().Contains(textFilterString) &&
                             !timeString.Contains(textFilterString))
+                        {
                             continue;
+                        }
                     }
 
                     ImGui.TableNextRow();
@@ -212,7 +217,9 @@ namespace rgat
                     foreach (TIMELINE_EVENT ev in TLmsgs)
                     {
                         if (_LogFilters[(int)ev.Filter])
+                        {
                             shownMsgs.Add(ev);
+                        }
                     }
                 }
             }

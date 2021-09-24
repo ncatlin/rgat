@@ -41,7 +41,7 @@ namespace rgat
         /// Create a video encoder object
         /// </summary>
         public VideoEncoder()
-        { 
+        {
             _imageCodecs = ImageCodecInfo.GetImageEncoders();
         }
 
@@ -82,11 +82,12 @@ namespace rgat
         /// <summary>
         /// Types of content that can be recorded
         /// </summary>
-        public enum CaptureContent { 
+        public enum CaptureContent
+        {
             /// <summary>
             /// The graph in the main graph widget
             /// </summary>
-            Graph, 
+            Graph,
             /// <summary>
             /// The graph and previews in the visualiser tab
             /// </summary>
@@ -94,11 +95,12 @@ namespace rgat
             /// <summary>
             /// The entire UI
             /// </summary>
-            Window, 
+            Window,
             /// <summary>
             /// Invalid
             /// </summary>
-            Invalid };
+            Invalid
+        };
 
 
         /// <summary>
@@ -202,8 +204,10 @@ namespace rgat
         {
             string result;
             string currentPath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.MediaCapturePath);
-            if (Directory.Exists(currentPath)) return currentPath;
-
+            if (Directory.Exists(currentPath))
+            {
+                return currentPath;
+            }
 
             if (currentPath != null && currentPath.Length > 0)
             {
@@ -485,12 +489,18 @@ namespace rgat
         bool DetectFFmpeg(out string? path)
         {
             path = "";
-            if (DateTime.Now < _lastCheck.AddSeconds(5)) return false;
+            if (DateTime.Now < _lastCheck.AddSeconds(5))
+            {
+                return false;
+            }
+
             _lastCheck = DateTime.Now;
 
             string extension = "";
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
                 extension = ".exe";
+            }
 
             string[] matches = Directory.GetFiles(AppContext.BaseDirectory, "ffmpeg" + extension, SearchOption.AllDirectories);
 

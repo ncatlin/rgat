@@ -72,8 +72,16 @@ namespace rgat.OperationModes
         public static void SendSigDates()
         {
             JObject sigDates = new JObject();
-            if (rgatState.YARALib is not null) sigDates.Add("YARA", rgatState.YARALib.NewestSignature);
-            if (rgatState.DIELib is not null) sigDates.Add("DIE", rgatState.DIELib.NewestSignature);
+            if (rgatState.YARALib is not null)
+            {
+                sigDates.Add("YARA", rgatState.YARALib.NewestSignature);
+            }
+
+            if (rgatState.DIELib is not null)
+            {
+                sigDates.Add("DIE", rgatState.DIELib.NewestSignature);
+            }
+
             rgatState.NetworkBridge.SendAsyncData("SignatureTimes", sigDates);
         }
 
@@ -197,7 +205,10 @@ namespace rgat.OperationModes
                         var split = metaparam.Split(':');
                         string reason = "";
                         if (split.Length > 1 && split[1].Length > 0)
+                        {
                             reason = split[1];
+                        }
+
                         Logging.RecordLogEvent($"Disconnected - Remote party tore down the connection{((reason.Length > 0) ? $": {reason}" : "")}", Logging.LogFilterType.TextError);
                         rgatState.NetworkBridge.Teardown(reason);
                         return;
@@ -339,10 +350,16 @@ namespace rgat.OperationModes
             {
                 JObject msgObj = JObject.Parse(injson);
 
-                if (!msgObj.TryGetValue("Name", out JToken? nameTok) || nameTok.Type != JTokenType.String) return false;
-                name = nameTok.ToString();
-                if (msgObj.TryGetValue("Data", out data)) return name is not null && data is not null;
+                if (!msgObj.TryGetValue("Name", out JToken? nameTok) || nameTok.Type != JTokenType.String)
+                {
+                    return false;
+                }
 
+                name = nameTok.ToString();
+                if (msgObj.TryGetValue("Data", out data))
+                {
+                    return name is not null && data is not null;
+                }
             }
             catch (Exception e)
             {
@@ -385,40 +402,68 @@ namespace rgat.OperationModes
 
         bool ProcessSignatureTimes(JToken data)
         {
-            if (data.Type is not JTokenType.Object) return false;
+            if (data.Type is not JTokenType.Object)
+            {
+                return false;
+            }
 
             JObject? values = data.ToObject<JObject>();
-            if (values is null) return false;
+            if (values is null)
+            {
+                return false;
+            }
 
             if (rgatState.YARALib is not null &&
-                values.TryGetValue("YARA", out JToken? yaraTok) && 
+                values.TryGetValue("YARA", out JToken? yaraTok) &&
                 yaraTok.Type is JTokenType.Date)
+            {
                 rgatState.YARALib.EndpointNewestSignature = yaraTok.ToObject<DateTime>();
-            
+            }
+
             if (rgatState.DIELib is not null &&
                 values.TryGetValue("DIE", out JToken? dieTok) && dieTok.Type is JTokenType.Date)
+            {
                 rgatState.DIELib.EndpointNewestSignature = dieTok.ToObject<DateTime>();
+            }
 
             return true;
         }
 
         bool ProcessSignatureHit(JToken data)
         {
-            if (data.Type is not JTokenType.Object) return false;
+            if (data.Type is not JTokenType.Object)
+            {
+                return false;
+            }
 
             JObject? values = data.ToObject<JObject>();
-            if (values is null || !values.TryGetValue("Obj", out JToken? sigObjTok)) return false;
-            if (!values.TryGetValue("TargetSHA", out JToken? shaTok)) return false;
+            if (values is null || !values.TryGetValue("Obj", out JToken? sigObjTok))
+            {
+                return false;
+            }
+
+            if (!values.TryGetValue("TargetSHA", out JToken? shaTok))
+            {
+                return false;
+            }
+
             if (values.TryGetValue("Type", out JToken? typeTok) && typeTok.Type is JTokenType.String)
             {
-                if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget? target) || target is null) return false;
+                if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget? target) || target is null)
+                {
+                    return false;
+                }
+
                 string sigType = typeTok.ToString();
                 switch (sigType)
                 {
                     case "YARA":
                         YARAScanner.YARAHit? yarahit = sigObjTok.ToObject<YARAScanner.YARAHit>();
                         if (yarahit is not null)
+                        {
                             target.AddYaraSignatureHit(yarahit);
+                        }
+
                         break;
 
                     case "DIE":
@@ -447,7 +492,11 @@ namespace rgat.OperationModes
             trace = null;
             metaparams = null;
             string info;
-            if (infoBytes == null) return false;
+            if (infoBytes == null)
+            {
+                return false;
+            }
+
             try
             {
                 info = Encoding.ASCII.GetString(infoBytes);
@@ -471,7 +520,10 @@ namespace rgat.OperationModes
             string idstr = splitmain[2];
             string infostr = splitmain[3];
 
-            if (!uint.TryParse(pidstr, out uint pid) || !long.TryParse(idstr, out long id)) return false;
+            if (!uint.TryParse(pidstr, out uint pid) || !long.TryParse(idstr, out long id))
+            {
+                return false;
+            }
 
             if (sha1 != null && sha1.Length > 0 && rgatState.targets.GetTargetBySHA1(sha1, out BinaryTarget? target) && target is not null)
             {
@@ -527,7 +579,7 @@ namespace rgat.OperationModes
                 return true;
             }
 
-            Logging.RecordError($"Error unhandled cmd {String.Join("", inparams)}");
+            Logging.RecordError($"Error unhandled cmd {string.Join("", inparams)}");
             return false;
 
         }
@@ -556,7 +608,11 @@ namespace rgat.OperationModes
             }
             cmdID = idTok.ToObject<int>();
 
-            if (!cmd.TryGetValue("Paramfield", out paramTok)) paramTok = null;
+            if (!cmd.TryGetValue("Paramfield", out paramTok))
+            {
+                paramTok = null;
+            }
+
             return true;
         }
 
@@ -694,7 +750,9 @@ namespace rgat.OperationModes
 
             bool reload = false;
             if (paramsObj.TryGetValue("Reload", out JToken? reloadtok) && reloadtok.Type == JTokenType.Boolean)
+            {
                 reload = reloadtok.ToObject<bool>();
+            }
 
             string typeName = typeTok.ToString();
             switch (typeName)
@@ -846,7 +904,10 @@ namespace rgat.OperationModes
             if (dirObj is not null && dirObj.Type is JTokenType.String)
             {
                 string dirString = dirObj.ToString();
-                if (dirString.Length != 0) dir = dirString.ToString();
+                if (dirString.Length != 0)
+                {
+                    dir = dirString.ToString();
+                }
             }
 
             DirectoryInfo dirinfo = new DirectoryInfo(dir);
@@ -874,8 +935,14 @@ namespace rgat.OperationModes
                     foreach (string item in listing)
                     {
                         FileInfo info = new FileInfo(item);
-                        if (File.Exists(item)) files.Add(new JArray() { Path.GetFileName(item), false, info.Length, info.LastWriteTime });
-                        else if (Directory.Exists(item)) dirs.Add(new JArray() { Path.GetFileName(item), true, -1, info.LastWriteTime });
+                        if (File.Exists(item))
+                        {
+                            files.Add(new JArray() { Path.GetFileName(item), false, info.Length, info.LastWriteTime });
+                        }
+                        else if (Directory.Exists(item))
+                        {
+                            dirs.Add(new JArray() { Path.GetFileName(item), true, -1, info.LastWriteTime });
+                        }
                     }
                 }
             }
@@ -903,7 +970,9 @@ namespace rgat.OperationModes
                 rgatState.YARALib?.StartYARATargetScan(target);
                 rgatState.DIELib?.StartDetectItEasyScan(target);
                 if (target != null)
-                    return (JToken)target.GetRemoteLoadInitData();
+                {
+                    return target.GetRemoteLoadInitData();
+                }
             }
 
             JObject result = new JObject();
@@ -964,7 +1033,7 @@ namespace rgat.OperationModes
             }
 
             Logging.RecordLogEvent($"Initialising . {GlobalConfig.StartOptions!.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
-            if (GlobalConfig.StartOptions.ConnectModeAddress is null || 
+            if (GlobalConfig.StartOptions.ConnectModeAddress is null ||
                 !GetRemoteAddress(GlobalConfig.StartOptions.ConnectModeAddress, out string address, out int port))
             {
                 Logging.RecordError($"Failed to parse address/port from param {GlobalConfig.StartOptions.ConnectModeAddress}");
@@ -988,7 +1057,11 @@ namespace rgat.OperationModes
             address = "";
             port = -1;
 
-            if (param == null) return false;
+            if (param == null)
+            {
+                return false;
+            }
+
             int slashindex = param.IndexOf("://");
             if (slashindex != -1)
             {
@@ -1066,7 +1139,7 @@ namespace rgat.OperationModes
                 return;
             }
 
-            Int32 port;
+            int port;
             if (GlobalConfig.StartOptions!.ListenPort != null && GlobalConfig.StartOptions.ListenPort.Value > 0)
             {
                 port = GlobalConfig.StartOptions.ListenPort.Value;
@@ -1101,7 +1174,10 @@ namespace rgat.OperationModes
                 }
                 catch (Exception)
                 {
-                    if (((CancellationToken)cancelToken).IsCancellationRequested) return;
+                    if (((CancellationToken)cancelToken).IsCancellationRequested)
+                    {
+                        return;
+                    }
                 }
                 lock (_lock)
                 {

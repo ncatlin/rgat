@@ -160,14 +160,20 @@ namespace rgat
 
             string runargs = $"-t \"{pintool}\" ";
             if (testID > -1)
+            {
                 runargs += $"-T {testID} ";
+            }
+
             runargs += $"-P {rgatState.LocalCoordinatorPipeName!} ";
             runargs += $"-L "; // tracing a library
             runargs += "-- ";
 
 
             string? binaryDir = Path.GetDirectoryName(targetBinary);
-            if (binaryDir is null) return null;
+            if (binaryDir is null)
+            {
+                return null;
+            }
 
             if (InitLoader(binaryDir, loadername, loaderWidth, out string? loaderPath) && loaderPath is not null)
             {
@@ -248,7 +254,10 @@ namespace rgat
 
             string runargs = $"-t \"{pintool}\" ";
             if (testID > -1)
+            {
                 runargs += $"-T {testID} ";
+            }
+
             runargs += $"-P {rgatState.LocalCoordinatorPipeName!} ";
             runargs += $"-- \"{targetBinary}\" ";
 
@@ -276,9 +285,20 @@ namespace rgat
 
             JObject startParamObj = new JObject();
             startParamObj.Add("TargetPath", target.FilePath);
-            if (testID != -1) startParamObj.Add("TestID", testID);
-            if (ordinal != -1) startParamObj.Add("Ordinal", ordinal);
-            if (loaderName != null) startParamObj.Add("LoaderName", loaderName);
+            if (testID != -1)
+            {
+                startParamObj.Add("TestID", testID);
+            }
+
+            if (ordinal != -1)
+            {
+                startParamObj.Add("Ordinal", ordinal);
+            }
+
+            if (loaderName != null)
+            {
+                startParamObj.Add("LoaderName", loaderName);
+            }
 
             rgatState.NetworkBridge.SendCommand("StartTrace", null, null, startParamObj);
         }
