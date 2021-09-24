@@ -1054,13 +1054,15 @@ namespace rgat
             ImGui.SetCursorPosX(X);
             ImGui.MenuItem("Demo", null, ref _controller.ShowDemoWindow, true);
 
-
-            X -= (ImGui.CalcTextSize("Tests ").X + 20);
-            ImGui.SetCursorPosX(X);
-            bool isShown = _show_test_harness;
-            if (ImGui.MenuItem("Tests", null, ref isShown, true))
+            if (GlobalConfig.Settings.UI.EnableTestHarness)
             {
-                ToggleTestHarness();
+                X -= (ImGui.CalcTextSize("Tests ").X + 20);
+                ImGui.SetCursorPosX(X);
+                bool isShown = _show_test_harness;
+                if (ImGui.MenuItem("Tests", null, ref isShown, true))
+                {
+                    ToggleTestHarness();
+                }
             }
 
 

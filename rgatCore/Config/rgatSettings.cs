@@ -303,6 +303,12 @@ namespace rgat.Config
             /// </summary>
             public bool AlertAnimation { get => _AlertAnimation; set { _AlertAnimation = value; MarkDirty(); } }
             private bool _AlertAnimation = true;
+            
+            /// <summary>
+            /// The test dialog appears in the menu bar
+            /// </summary>
+            public bool EnableTestHarness { get => _EnableTestHarness; set { _EnableTestHarness = value; MarkDirty(); } }
+            private bool _EnableTestHarness = true;
 
             /// <summary>
             /// The version of rgat this config file was created by

@@ -1925,6 +1925,11 @@
             Display a ring around alerts
             </summary>
         </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.EnableTestHarness">
+            <summary>
+            The test dialog appears in the menu bar
+            </summary>
+        </member>
         <member name="P:rgat.Config.rgatSettings.UISettings.InstalledVersion">
             <summary>
             The version of rgat this config file was created by
@@ -2395,11 +2400,14 @@
         <member name="F:rgat.CONSTANTS.UI.MINIMUM_PREVIEW_WORKERS">
             <summary>
             Minimum number of preview workers to run
+            If this is less than 2 then active trace previews
+            won't be rendered if there are multiple traces
             </summary>
         </member>
         <member name="F:rgat.CONSTANTS.UI.MAXIMUM_PREVIEW_WORKERS">
             <summary>
-            Maxmimum number of preview workers to run. Going into the dozens risks exhausing the VK allocator pool
+            Maxmimum number of preview workers to run. 
+            Going into the dozens risks exhausing the VK allocator pool
             </summary>
         </member>
         <member name="T:rgat.CONSTANTS.Anim_Constants">
@@ -7394,13 +7402,21 @@
             A worker for rendering the preview graphs of all threads in a trace record
             </summary>
         </member>
-        <member name="M:rgat.Threads.PreviewRendererThread.FetchRenderTask">
+        <member name="M:rgat.Threads.PreviewRendererThread.AddGraphToPreviewRenderQueue(rgat.PlottedGraph)">
+            <summary>
+            Fetch the next graph to render
+            It will first fetch priority graphs (ie: those in the active trace) 
+            unless the background flag is set
+            </summary>
+            <param name="graph"></param>
+        </member>
+        <member name="M:rgat.Threads.PreviewRendererThread.FetchRenderTask(System.Boolean)">
             <summary>
             Fetch the next graph to render
             </summary>
             <returns></returns>
         </member>
-        <member name="M:rgat.Threads.PreviewRendererThread.#ctor(System.Int32,rgat.PreviewGraphsWidget)">
+        <member name="M:rgat.Threads.PreviewRendererThread.#ctor(System.Int32,rgat.PreviewGraphsWidget,System.Boolean)">
             <summary>
             Create a preview renderer
             </summary>
@@ -7408,6 +7424,12 @@
         <member name="M:rgat.Threads.PreviewRendererThread.Begin">
             <summary>
             Start this worker
+            </summary>
+        </member>
+        <member name="M:rgat.Threads.PreviewRendererThread.Stop">
+            <summary>
+            Exit. This is a placeholder for if/when worker counts 
+            are changed at runtime
             </summary>
         </member>
         <member name="M:rgat.Threads.PreviewRendererThread.ThreadProc">

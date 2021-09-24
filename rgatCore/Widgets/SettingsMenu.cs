@@ -1469,7 +1469,7 @@ namespace rgat.Widgets
             SmallWidgets.MouseoverText("Check for new rgat releases");
 
             int previewWorkers = GlobalConfig.Settings.UI.PreviewWorkers;
-            ImGui.SetNextItemWidth(60);
+            ImGui.SetNextItemWidth(100);
             if (ImGui.InputInt("Preview Workers", ref previewWorkers, 1, 1))
             {
                 int count = Math.Max(GlobalConfig.Settings.UI.PreviewWorkers, CONSTANTS.UI.MINIMUM_PREVIEW_WORKERS);
@@ -1478,8 +1478,15 @@ namespace rgat.Widgets
             }
             SmallWidgets.MouseoverText("How many preview workers to run. Increasing this makes " +
                 "rendering many previews snappier, but too may cause contention issues." +
-                $"[Valid range: {UI.MINIMUM_PREVIEW_WORKERS}-{UI.MAXIMUM_PREVIEW_WORKERS}]");
+                $" [Valid range: {UI.MINIMUM_PREVIEW_WORKERS}-{UI.MAXIMUM_PREVIEW_WORKERS}]");
 
+
+            bool testHarnessEnable = GlobalConfig.Settings.UI.EnableTestHarness;
+            if (ImGui.Checkbox("Enable the test harness", ref testHarnessEnable))
+            {
+                GlobalConfig.Settings.UI.EnableTestHarness = testHarnessEnable;
+            }
+            SmallWidgets.MouseoverText("Allows use of the test framework from the menu bar");
         }
 
         private void CreateJSONEditor()
