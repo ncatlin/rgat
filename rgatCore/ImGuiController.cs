@@ -408,7 +408,14 @@ namespace ImGuiNET
             cl.Dispose();
         }
 
+        /// <summary>
+        /// Get an icon/image texture
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public Texture GetImage(string name) => _imageTextures[name];
+
+
         /// <summary>
         /// Get a shader accessible texture view of the loaded images
         /// </summary>

@@ -559,7 +559,7 @@ namespace rgat
             //start by examining our caller
             NodeData? lastNode = GetNode(ProtoLastVertID);
             if (lastNode is null || lastNode.IsExternal) { resultPair = null; return false; }
-            Debug.Assert(lastNode.ins.NumBytes > 0);
+            Debug.Assert(lastNode.ins!.NumBytes > 0);
 
             //if caller is also external then we are not interested in this (does this happen?)
             if (ProcessData.ModuleTraceStates[lastNode.GlobalModuleID] == eCodeInstrumentation.eUninstrumentedCode) { resultPair = null; return false; }
@@ -625,7 +625,7 @@ namespace rgat
             //piddata->dropExternCallerReadLock();
 
             lastNode.childexterns += 1;
-            targVertID = NodeCount;
+            targVertID = (uint)NodeCount;
             resultPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
 
             lock (ProcessData.ExternCallerLock)
@@ -738,7 +738,7 @@ namespace rgat
                     break;
 
 
-                Tuple<uint, uint> blockIndexes = BlocksFirstLastNodeList[(int)currentSourceBlock];
+                Tuple<uint, uint>? blockIndexes = BlocksFirstLastNodeList[(int)currentSourceBlock];
                 if (blockIndexes == null) break;
 
                 uint callerNodeIdx = blockIndexes.Item2;
@@ -888,7 +888,7 @@ namespace rgat
                 {
                     externalNodeList.Add(node.Index);
                 }
-                else if (node.ins.hasSymbol)
+                else if (node.ins!.hasSymbol)
                 {
                     internalNodeList.Add(node.Index);
                 }
@@ -1026,7 +1026,7 @@ namespace rgat
             lock (edgeLock)
             {
                 srcTarg = EdgeList[index];
-                _edgeDict.TryGetValue(srcTarg, out e);
+                e = _edgeDict[srcTarg];
             }
         }
 
@@ -1049,7 +1049,7 @@ namespace rgat
             {
                 newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
             }
-            else if (sourceNode.ins.itype == eNodeType.eInsCall)
+            else if (sourceNode.ins!.itype == eNodeType.eInsCall)
                 newEdge.edgeClass = eEdgeNodeType.eEdgeCall;
             else if (sourceNode.ins.itype == eNodeType.eInsReturn)
                 newEdge.edgeClass = eEdgeNodeType.eEdgeReturn;
@@ -1080,7 +1080,7 @@ namespace rgat
 
             if (source.IsConditional && source.conditional != ConditionalType.CONDCOMPLETE)
             {
-                if (source.ins.condDropAddress == target.address)
+                if (source.ins!.condDropAddress == target.address)
                 {
                     if (source.ins.branchAddress == target.address)
                     {
@@ -1194,21 +1194,45 @@ namespace rgat
         /// Ordered list of executing edges
         /// </summary>
         List<Tuple<uint, uint>> EdgeList = new List<Tuple<uint, uint>>();
-        public int EdgeCount => EdgeList.Count; 
+        /// <summary>
+        /// How many edges have been recorded
+        /// </summary>
+        public int EdgeCount => EdgeList.Count;
+
+        /// <summary>
+        /// Store of edge data
+        /// </summary>
 
         public List<EdgeData> edgeObjList = new List<EdgeData>();
-        //light-touch list of blocks for filling in edges without locking disassembly data
-        public List<Tuple<uint, uint>> BlocksFirstLastNodeList = new List<Tuple<uint, uint>>();
+        
+        /// <summary>
+        /// light-touch list of blocks for filling in edges without locking disassembly data
+        /// </summary>
+        public List<Tuple<uint, uint>?> BlocksFirstLastNodeList = new List<Tuple<uint, uint>?>();
 
 
         private readonly object highlightsLock = new object();
 
 
-        public readonly object nodeLock = new object();
-        public List<NodeData> NodeList = new List<NodeData>(); //node id to node data
+        readonly object nodeLock = new object();
 
-        public bool node_exists(uint idx) { return (NodeList.Count > idx); }
-        public uint NodeCount => (uint)NodeList.Count;
+        /// <summary>
+        /// List of all graph nodes. The node Index is an index into this
+        /// </summary>
+        public List<NodeData> NodeList = new List<NodeData>();
+
+        /// <summary>
+        /// Does a node index exist
+        /// </summary>
+        /// <param name="idx">index</param>
+        /// <returns>it exists</returns>
+        public bool node_exists(uint idx) => NodeList.Count > idx;
+
+        /// <summary>
+        /// how many nodes exist
+        /// </summary>
+        public int NodeCount => NodeList.Count;
+
 
         /// <summary>
         /// Record the execution of an instruction on the graph
@@ -1221,7 +1245,7 @@ namespace rgat
         {
 
             NodeData thisnode = new NodeData();
-            uint targVertID = NodeCount;
+            uint targVertID = (uint)NodeCount;
             thisnode.Index = targVertID;
             thisnode.ins = instruction;
             thisnode.conditional = thisnode.ins.conditional ? ConditionalType.ISCONDITIONAL : ConditionalType.NOTCONDITIONAL;
@@ -1245,6 +1269,11 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Record execution of an instrution that is already on the graph
+        /// </summary>
+        /// <param name="targVertID">Instruction node ID</param>
+        /// <param name="repeats">How many times it executed</param>
         public void handle_previous_instruction(uint targVertID, ulong repeats)
         {
             NodeData? prevInstruction = GetNode(targVertID);
@@ -1254,6 +1283,14 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Add a new basic block to the graph
+        /// </summary>
+        /// <param name="blockID">Block ID</param>
+        /// <param name="repeats">How many times it executed</param>
+        /// <param name="recordEdge">Does the edge need recording</param>
+        /// <param name="setLastID">Should the tail be set as the last executed node</param>
+        /// <param name="customPreviousVert">Add a custom node to set as the last executed node</param>
         public void addBlockToGraph(uint blockID, ulong repeats, bool recordEdge = true, bool setLastID = true, uint? customPreviousVert = null)
         {
             List<InstructionData>? block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
@@ -1362,7 +1399,14 @@ namespace rgat
 
         //list of all external nodes
         readonly List<uint> externalNodeList = new List<uint>();
+        /// <summary>
+        /// Number of external nodes
+        /// </summary>
         public int ExternalNodesCount => externalNodeList.Count;
+        /// <summary>
+        /// Thread safe list of external node indexes
+        /// </summary>
+        /// <returns>Array of external node indexes</returns>
         public uint[] copyExternalNodeList()
         {
             lock (nodeLock)
@@ -1601,7 +1645,7 @@ namespace rgat
                 return false;
             }
 
-            BlocksFirstLastNodeList = new List<Tuple<uint, uint>>();
+            BlocksFirstLastNodeList = new List<Tuple<uint, uint>?>();
             JArray blockBoundsArray = (JArray)blockbounds;
             for (int i = 0; i < blockBoundsArray.Count; i += 2)
             {
@@ -1737,13 +1781,15 @@ namespace rgat
 
         eEdgeNodeType lastNodeType = eEdgeNodeType.eFIRST_IN_THREAD;
 
-        public List<ulong> _edgeHeatThresholds = Enumerable.Repeat((ulong)0, 9).ToList();
-        public List<ulong> _nodeHeatThresholds = Enumerable.Repeat((ulong)0, 9).ToList();
-
+        /// <summary>
+        /// Exec count of the busiest block in the graph
+        /// </summary>
         public ulong BusiestBlockExecCount = 0;
         readonly List<string> loggedCalls = new List<string>();
 
-        //number of times an external function has been called. used to Dictionary arguments to calls
+        /// <summary>
+        /// number of times an external function has been called. used to Dictionary arguments to calls
+        /// </summary>
         public Dictionary<uint, ulong> externFuncCallCounter = new Dictionary<uint, ulong>();
         readonly List<uint> exceptionSet = new List<uint>();
 
@@ -1839,7 +1885,7 @@ namespace rgat
             return results;
         }
 
-        bool ValidateEdgeTestList(JArray testedges, out string? failedComparison)
+        bool ValidateEdgeTestList(JArray testedges, out string failedComparison)
         {
             foreach (JToken testedge in testedges)
             {

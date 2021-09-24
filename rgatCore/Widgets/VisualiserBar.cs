@@ -662,7 +662,7 @@ namespace rgat.Widgets
                             ulong blockAddr = graph.ProcessData.GetAddressOfBlock((int)ae.blockID);
                             bool found = graph.ProcessData.FindContainingModule(blockAddr, out int? moduleID);
                             if (!found) continue;
-                            
+
                             if (modSegs.Count > 0)
                             {
                                 MODULE_SEGMENT lastRec = modSegs[^1];
@@ -683,8 +683,10 @@ namespace rgat.Widgets
 
                             if (ae.blockID >= graph.BlocksFirstLastNodeList.Count)
                                 continue;
-                            tagInsCount = (graph.BlocksFirstLastNodeList[(int)ae.blockID].Item2 -
-                                graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1) + 1;
+                            var block = graph.BlocksFirstLastNodeList[(int)ae.blockID];
+                            if (block is null)
+                                continue;
+                            tagInsCount = (block.Item2 - block.Item1) + 1;
                         }
                         break;
                     case eTraceUpdateType.eAnimUnchainedResults:
@@ -828,7 +830,7 @@ namespace rgat.Widgets
                 if ((int)sample.blockID != -1)
                 {
                     if (sample.blockID >= graph.BlocksFirstLastNodeList.Count) continue;
-                    Tuple<uint, uint> blockNodes = graph.BlocksFirstLastNodeList[(int)sample.blockID];
+                    Tuple<uint, uint>? blockNodes = graph.BlocksFirstLastNodeList[(int)sample.blockID];
                     if (blockNodes == null)
                     {
                         continue; //.idata thunk

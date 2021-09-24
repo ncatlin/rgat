@@ -20,7 +20,7 @@ namespace rgat
     /// </summary>
     class GraphPlotWidget : IDisposable
     {
-        public PlottedGraph ActiveGraph { get; private set; }
+        public PlottedGraph? ActiveGraph { get; private set; }
 
         readonly QuickMenu _QuickMenu;
         readonly ImGuiController _controller;
@@ -150,7 +150,7 @@ namespace rgat
         /// </summary>
         bool CenterGraphInFrameStep(Matrix4x4 worldView, out float MaxRemaining)
         {
-            PlottedGraph graph = ActiveGraph;
+            PlottedGraph? graph = ActiveGraph;
             if (graph == null)
             {
                 MaxRemaining = 0;
@@ -355,7 +355,7 @@ namespace rgat
         {
             _graphLock.EnterReadLock();
 
-            PlottedGraph graph = ActiveGraph;
+            PlottedGraph? graph = ActiveGraph;
             if (graph == null)
             {
                 _graphLock.ExitReadLock();
@@ -505,7 +505,7 @@ namespace rgat
         /// <param name="world"></param>
         void UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world)
         {
-            PlottedGraph graph = ActiveGraph;
+            PlottedGraph? graph = ActiveGraph;
             if (graph == null)
             {
                 proj = Matrix4x4.Identity;
@@ -621,12 +621,12 @@ namespace rgat
         {
             if (latestWrittenTexture == 1)
             {
-                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph.TID}  Returning latest written graph texture 1", Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph?.TID}  Returning latest written graph texture 1", Logging.LogFilterType.BulkDebugLogFile);
                 graphtexture = _outputTexture1;
             }
             else
             {
-                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph.TID}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
+                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph?.TID}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
                 graphtexture = _outputTexture2;
             }
         }
@@ -819,7 +819,7 @@ namespace rgat
                 case eRenderingMode.eConditionals:
                     break;
                 case eRenderingMode.eHeatmap:
-                    ActiveGraph.InternalProtoGraph.HeatSolvingComplete = false; //todo - temporary for dev
+                    ActiveGraph!.InternalProtoGraph.HeatSolvingComplete = false; //todo - temporary for dev
                     break;
                 default:
                     Console.WriteLine("unknown rendering mode");
@@ -968,7 +968,7 @@ namespace rgat
         void maintainRisingTexts(float fontScale, ref List<fontStruc> stringVerts)
         {
             _activeRisings.RemoveAll(x => x.remainingFrames == 0);
-            PlottedGraph graph = ActiveGraph;
+            PlottedGraph? graph = ActiveGraph;
             if (graph == null) return;
 
             graph.GetActiveExternRisings(out List<Tuple<uint, string>> newRisingExterns,
@@ -1046,7 +1046,7 @@ namespace rgat
         List<fontStruc> renderGraphText(List<Tuple<string, uint>> captions)
         {
             List<fontStruc> stringVerts = new List<fontStruc>();
-            PlottedGraph graph = ActiveGraph;
+            PlottedGraph? graph = ActiveGraph;
             if (graph == null) return stringVerts;
             if (!graph.Opt_TextEnabled) return stringVerts;
 
@@ -1355,7 +1355,7 @@ namespace rgat
         /// <param name="pos">Position to draw to</param>
         public void DisplayEventMessages(Vector2 pos)
         {
-            PlottedGraph graph = ActiveGraph;
+            PlottedGraph? graph = ActiveGraph;
             if (graph == null) return;
 
             long timenow = DateTimeOffset.Now.ToUnixTimeMilliseconds();
@@ -1427,11 +1427,10 @@ namespace rgat
             Vector2 bottomLeft = new Vector2(topLeft.X, topLeft.Y + widgetSize.Y);
             Vector2 bottomRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y);
 
-            PlottedGraph graph = ActiveGraph;
-
+            PlottedGraph? graph = ActiveGraph;
             if (graph != null)
             {
-                DrawLayoutSelector(bottomRight, 0.25f, activeGraph.ActiveLayoutStyle);
+                DrawLayoutSelector(graph, bottomRight, 0.25f, activeGraph.ActiveLayoutStyle);
             }
             else
             {
@@ -1479,7 +1478,7 @@ namespace rgat
         }
 
 
-        void DrawLayoutSelector(Vector2 position, float scale, LayoutStyles.Style layout)
+        void DrawLayoutSelector(PlottedGraph graph, Vector2 position, float scale, LayoutStyles.Style layout)
         {
 
             Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
@@ -1511,7 +1510,7 @@ namespace rgat
                 ImGui.OpenPopup("layout select popup");
             }
 
-            bool snappingToPreset = ActiveGraph.LayoutState.ActivatingPreset;
+            bool snappingToPreset = graph.LayoutState.ActivatingPreset;
             if (snappingToPreset) { ImGui.PushStyleColor(ImGuiCol.Border, 0xff4400ff); }
 
             if (ImGui.BeginPopup("layout select popup"))
@@ -1535,7 +1534,7 @@ namespace rgat
 
         void DrawLayoutSelectorIcons(Vector2 iconSize, bool snappingToPreset)
         {
-            PlottedGraph graph = ActiveGraph;
+            PlottedGraph? graph = ActiveGraph;
             if (graph == null) return;
             float buttonWidth = 150f;
 
@@ -1576,7 +1575,7 @@ namespace rgat
         {
             _graphLock.EnterUpgradeableReadLock();
 
-            PlottedGraph graph = ActiveGraph;
+            PlottedGraph? graph = ActiveGraph;
             if (graph == null || Exiting)
             {
                 _graphLock.ExitUpgradeableReadLock();
@@ -1654,7 +1653,7 @@ namespace rgat
         /// </summary>
         void HandleGraphUpdates()
         {
-            PlottedGraph graph = ActiveGraph;
+            PlottedGraph? graph = ActiveGraph;
             if (graph == null || Exiting) return;
             if (_newGraphSize != null)
             {
@@ -1701,7 +1700,7 @@ namespace rgat
         /// <param name="_gd"></param>
         void DoMouseNodePicking(GraphicsDevice _gd)
         {
-            PlottedGraph graph = ActiveGraph;
+            PlottedGraph? graph = ActiveGraph;
             if (graph == null || Exiting) return;
 
             float mouseX = (_MousePos.X - WidgetPos.X);

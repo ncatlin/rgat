@@ -35,9 +35,11 @@ namespace rgat.Threads
             float decile = (float)allEdgeExecutions.Count / 10f;
             float current = decile;
 
+
+            System.Collections.Generic.List<ulong> EdgeHeatThresholds = Enumerable.Repeat((ulong)0, 9).ToList();
             for (var i = 0; i < 9; i++)
             {
-                graph._edgeHeatThresholds[i] = allEdgeExecutions.ElementAt((int)current);
+                EdgeHeatThresholds[i] = allEdgeExecutions.ElementAt((int)current);
                 current += decile;
             }
 
@@ -45,7 +47,7 @@ namespace rgat.Threads
             {
                 ulong execCount = e.ExecutionCount;
                 int threshold = 0;
-                while (threshold < graph._edgeHeatThresholds.Count && execCount > graph._edgeHeatThresholds[threshold])
+                while (threshold < EdgeHeatThresholds.Count && execCount > EdgeHeatThresholds[threshold])
                 {
                     threshold++;
                 }
@@ -63,11 +65,13 @@ namespace rgat.Threads
             var allNodeExecutions = nodeList.Select(n => n.executionCount).ToList();
             allNodeExecutions.Sort();
 
+
+            System.Collections.Generic.List<ulong> NodeHeatThresholds = Enumerable.Repeat((ulong)0, 9).ToList();
             int decile = allNodeExecutions.Count / 10;
             int current = decile;
             for (var i = 0; i < 9; i++)
             {
-                graph._nodeHeatThresholds[i] = allNodeExecutions.ElementAt(current);
+                NodeHeatThresholds[i] = allNodeExecutions.ElementAt(current);
                 current += decile;
             }
 
@@ -75,7 +79,7 @@ namespace rgat.Threads
             {
                 ulong execCount = n.executionCount;
                 int threshold = 0;
-                while (threshold < graph._nodeHeatThresholds.Count && execCount > graph._nodeHeatThresholds[threshold])
+                while (threshold < NodeHeatThresholds.Count && execCount > NodeHeatThresholds[threshold])
                 {
                     threshold++;
                 }
@@ -83,13 +87,17 @@ namespace rgat.Threads
             }
         }
 
+
+        /// <summary>
+        /// Ranking thread function
+        /// </summary>
         public void ThreadProc()
         {
 
             while (!rgatState.rgatIsExiting)
             {
 
-                PlottedGraph? graph = _clientState.ActiveGraph;
+                PlottedGraph? graph = _clientState!.ActiveGraph;
                 if (graph == null)
                 {
                     Thread.Sleep(200);

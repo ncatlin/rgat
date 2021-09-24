@@ -17,7 +17,7 @@ namespace rgat
     class Updates
     {
 
-        public static string PendingInstallPath = null;
+        public static string? PendingInstallPath = null;
 
         public static void CheckForUpdates()
         {

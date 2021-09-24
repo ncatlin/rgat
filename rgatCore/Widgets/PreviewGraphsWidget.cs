@@ -80,7 +80,9 @@ namespace rgat
         }
 
 
-        //Destructor
+        /// <summary>
+        /// Destructor
+        /// </summary>
         public void Dispose()
         {
             Exiting = true;

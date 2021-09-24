@@ -406,7 +406,7 @@ namespace rgat
 
                         case eEdgeNodeType.eNodeJump:
 
-                            if (firstParent.IsConditional && n.address == firstParent.ins.condDropAddress)
+                            if (firstParent.IsConditional && n.address == firstParent.ins!.condDropAddress)
                             {
                                 b += B_BETWEEN_BLOCKNODES;
                                 break;
@@ -462,7 +462,7 @@ namespace rgat
                 //record return address
                 if (n.VertType() == eEdgeNodeType.eNodeCall)
                 {
-                    callStack.Add(new Tuple<Tuple<float, float>, ulong>(new Tuple<float, float>(a, b), n.address + (ulong)n.ins.NumBytes));
+                    callStack.Add(new Tuple<Tuple<float, float>, ulong>(new Tuple<float, float>(a, b), n.address + (ulong)n.ins!.NumBytes));
                 }
 
                 //if returning from a function, limit drawing any new functions to below this one
@@ -859,7 +859,7 @@ namespace rgat
                 return false;
             }
 
-            int nodeCount = InternalProtoGraph.NodeList.Count;
+            int nodeCount = InternalProtoGraph.NodeCount;
             edgeTargetIndexes = new int[textureSize];
             edgeStrengths = new float[textureSize];
 
@@ -1078,7 +1078,7 @@ namespace rgat
                 uint blockSize;
                 int blockMid;
                 int blockID;
-                Tuple<uint, uint> FirstLastIdx;
+                Tuple<uint, uint>? FirstLastIdx;
                 if (!n.IsExternal)
                 {
                     if (n.BlockID >= InternalProtoGraph.BlocksFirstLastNodeList.Count) continue;
@@ -1235,12 +1235,28 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Power of 2 buffer size to fit the uint graph node indexes
+        /// </summary>
+        /// <returns></returns>
         public uint LinearIndexTextureSize() { return indexTextureSize(_graphStructureLinear.Count); }
+        /// <summary>
+        /// Power of 2 buffer size to fit the vector4 graph node data
+        /// </summary>
+        /// <returns></returns>
+        public uint EdgeVertsTextureWidth() { return dataTextureSize(InternalProtoGraph.EdgeCount); }
+
+        /// <summary>
+        /// Power of 2 buffer size to fit the uint graph edge indexes
+        /// </summary>
+        /// <returns></returns>
         public uint NestedIndexTextureSize() { return indexTextureSize(_graphStructureBalanced.Count); }
 
+        /// <summary>
+        /// Power of 2 buffer size to fit the vector4 graph edges
+        /// </summary>
+        /// <returns></returns>
         public uint EdgeTextureWidth() { return dataTextureSize(countDataArrayItems(_graphStructureBalanced)); }
-        public uint EdgeVertsTextureWidth() { return dataTextureSize(InternalProtoGraph.EdgeCount); }
 
 
         /// <summary>
@@ -1252,7 +1268,7 @@ namespace rgat
         /// <returns>The node colour</returns>
         public WritableRgbaFloat GetNodeColor(int nodeIndex, eRenderingMode renderingMode, WritableRgbaFloat[] themeGraphColours)
         {
-            if (nodeIndex >= InternalProtoGraph.NodeList.Count)
+            if (nodeIndex >= InternalProtoGraph.NodeCount)
             {
                 return new WritableRgbaFloat(0, 0, 0, 0);
             }
@@ -1417,7 +1433,7 @@ namespace rgat
                 float y = index / textureSize;
                 Vector2 texturePosition = new Vector2(x, y);
 
-                if (index >= nodeCount || index >= InternalProtoGraph.NodeList.Count) return nodeVerts;
+                if (index >= nodeCount || index >= InternalProtoGraph.NodeCount) return nodeVerts;
 
                 nodeIndices.Add(index);
 
@@ -2203,21 +2219,34 @@ namespace rgat
             }
         }
 
-        public long lastRenderTime;
-        public uint RenderedEdgeCount; //todo - this is really all we need
+        /// <summary>
+        /// When the last compute cycle was done on this graph
+        /// </summary>
+        public long LastComputeTime;
 
-        int _computeBufferNodeCount; //this is gross and temporary
+        int _computeBufferNodeCount; 
+        /// <summary>
+        /// Number of nodes added to the compute buffer
+        /// </summary>
         public int ComputeBufferNodeCount
         {
             get => _computeBufferNodeCount;
             set => _computeBufferNodeCount = value;
         }
 
-        //must hold read lock
-        public void RemoveHighlightedNodes(List<uint> nodeidxs, float[]? attribsArray, HighlightType highlightType)
-        {
-            if (attribsArray is null) return;
+        /// <summary>
+        /// How many edges have been added to compute buffers
+        /// </summary>
+        public uint RenderedEdgeCount; //todo - this is really all we need
 
+        //must hold read lock
+        /// <summary>
+        /// Unhighlight nodes
+        /// </summary>
+        /// <param name="nodeidxs">The nodes to unhighlight</param>
+        /// <param name="highlightType">The type of highlight being removed</param>
+        public void RemoveHighlightedNodes(List<uint> nodeidxs, HighlightType highlightType)
+        {
             List<uint> removedNodes = new List<uint>();
             List<uint> remainingNodes = new List<uint>();
             lock (textLock)
@@ -2268,6 +2297,12 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// fetch changes to highlights that need to be applied to the attributes buffers
+        /// </summary>
+        /// <param name="added">new node highlight indexes</param>
+        /// <param name="removed">removed node highlight indexes</param>
         public void GetHighlightChanges(out List<uint> added, out List<uint> removed)
         {
             lock (textLock)
@@ -2303,6 +2338,11 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Get recent extens being animated
+        /// </summary>
+        /// <param name="risingExterns">List of node index/strings of rising labels</param>
+        /// <param name="risingLingering">List of node index/strings of lingering labels</param>
         public void GetActiveExternRisings(out List<Tuple<uint, string>> risingExterns, out List<Tuple<uint, string>> risingLingering)
         {
             lock (animationLock)
@@ -2330,7 +2370,7 @@ namespace rgat
         }
 
 
-        public void AddRisingSymbol(uint nodeIdx, int callIndex, int lingerFrames)
+        void AddRisingSymbol(uint nodeIdx, int callIndex, int lingerFrames)
         {
             NodeData? n = InternalProtoGraph.GetNode(nodeIdx);
             Debug.Assert(n is not null);
@@ -2354,7 +2394,7 @@ namespace rgat
 
 
         //this node was executed once, make it pulse on the animation
-        public void AddPulseActiveNode(uint nodeIdx)
+        void AddPulseActiveNode(uint nodeIdx)
         {
             lock (animationLock)
             {
@@ -2364,8 +2404,11 @@ namespace rgat
         }
 
 
-        //this node is active in a loop or blocking, keep it lit up until deactivated
-        public void AddContinuousActiveNode(uint nodeIdx)
+        /// <summary>
+        /// this node is active in a loop or blocking, keep it lit up until deactivated
+        /// </summary>
+        /// <param name="nodeIdx">node index</param>
+        void AddContinuousActiveNode(uint nodeIdx)
         {
             lock (animationLock)
             {

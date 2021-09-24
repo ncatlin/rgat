@@ -5,6 +5,9 @@ using System.Threading;
 
 namespace rgat.Threads
 {
+    /// <summary>
+    /// A worker for ingesting trace data
+    /// </summary>
     public abstract class TraceIngestWorker : TraceProcessorWorker
     {
         /// <summary>
@@ -96,6 +99,11 @@ namespace rgat.Threads
         DateTime _lastStatsUpdate = DateTime.Now;
         private readonly List<float> _updateRates = new List<float>();
         readonly int _StatCacheSize = (int)Math.Floor(GlobalConfig.IngestStatWindow * GlobalConfig.IngestStatsPerSecond);
+
+        /// <summary>
+        /// Get recnt messages/second ingest rates
+        /// </summary>
+        /// <returns></returns>
         public float[] RecentMessageRates()
         {
             lock (_statsLock)

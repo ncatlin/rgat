@@ -8,11 +8,14 @@ using System.Threading;
 
 namespace rgat.Threads
 {
+    /// <summary>
+    /// Worker for processing trace data
+    /// </summary>
     public class ThreadTraceProcessingThread : TraceProcessorWorker
     {
         readonly ProtoGraph protograph;
         bool IrregularTimerFired = false;
-        System.Timers.Timer IrregularActionTimer = null;
+        System.Timers.Timer? IrregularActionTimer = null;
 
         struct BLOCKREPEAT
         {
@@ -25,7 +28,13 @@ namespace rgat.Threads
         };
 
         readonly List<BLOCKREPEAT> blockRepeatQueue = new List<BLOCKREPEAT>();
+        /// <summary>
+        /// How many blockrepeats are waiting go be assigned
+        /// </summary>
         public int PendingBlockRepeats => blockRepeatQueue.Count;
+        /// <summary>
+        /// How long it took to assign the last blockrepeats
+        /// </summary>
         public double LastBlockRepeatsTime = 0;
 
         struct NEW_EDGE_BLOCKDATA
@@ -61,7 +70,9 @@ namespace rgat.Threads
             }
         }
 
-
+        /// <summary>
+        /// Begin processing
+        /// </summary>
         public override void Begin()
         {
             base.Begin();
@@ -82,7 +93,7 @@ namespace rgat.Threads
             if (rgatState.rgatIsExiting) return;
             if (blockRepeatQueue.Count > 0) AssignBlockRepeats();
             if (protograph.HasPendingArguments) protograph.ProcessIncomingCallArguments();
-            IrregularActionTimer.Start();
+            IrregularActionTimer?.Start();
         }
 
         //peforms non-sequence-critical graph updates
@@ -145,12 +156,12 @@ namespace rgat.Threads
 
                 if (needWait) continue;
 
-                ///store pending changes, only apply them if all the data is available
+                //store pending changes, only apply them if all the data is available
                 List<Tuple<NodeData, ulong>> increaseNodes = new List<Tuple<NodeData, ulong>>();
                 List<Tuple<EdgeData, ulong>> increaseEdges = new List<Tuple<EdgeData, ulong>>();
 
                 InstructionData lastIns = brep.blockInslist[^1];
-                //todo - increase execs of the extern when the thunk caller brep is done
+
                 if (brep.targExternEdges != null)
                 {
                     if (!lastIns.PossibleidataThunk || brep.blockInslist.Count != 1)
@@ -278,7 +289,7 @@ namespace rgat.Threads
                     }
                     else
                     {
-                        targNodeID = protograph.BlocksFirstLastNodeList[targetBlockID].Item1;
+                        targNodeID = protograph.BlocksFirstLastNodeList[targetBlockID]!.Item1;
                     }
 
 
@@ -337,6 +348,10 @@ namespace rgat.Threads
         bool _ignore_next_tag = false;
         uint _ignored_tag_blockID = 0;
 
+        /// <summary>
+        /// Handle execution of a basic block
+        /// </summary>
+        /// <param name="entry">A trace tag entry from instrumentation</param>
         public void ProcessTraceTag(byte[] entry)
         {
             TAG thistag;
@@ -926,13 +941,13 @@ namespace rgat.Threads
                 }
             }
 
-            IrregularActionTimer.Stop();
+            IrregularActionTimer?.Stop();
 
             //final pass
             PerformIrregularActions();
 
 
-            Console.WriteLine($"{WorkerThread.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
+            Console.WriteLine($"{WorkerThread?.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
             Debug.Assert(blockRepeatQueue.Count == 0 || protograph.TraceReader.StopFlag);
 
             Finished();

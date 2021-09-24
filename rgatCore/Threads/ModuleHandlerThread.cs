@@ -157,7 +157,7 @@ namespace rgat
             Console.WriteLine("Trace thread connected");
 
 
-            PlottedGraph MainGraph = new PlottedGraph(graph, _clientState._GraphicsDevice);
+            PlottedGraph MainGraph = new PlottedGraph(graph, _clientState!._GraphicsDevice!);
 
             graph.TraceReader = new PipeTraceIngestThread(threadListener, graph.ThreadID, graph);
             graph.TraceProcessor = new ThreadTraceProcessingThread(graph);
@@ -207,7 +207,7 @@ namespace rgat
 
                     graph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph: graph);
 
-                    PlottedGraph MainGraph = new PlottedGraph(graph, _clientState._GraphicsDevice);
+                    PlottedGraph MainGraph = new PlottedGraph(graph, _clientState!._GraphicsDevice);
 
                     if (!trace.InsertNewThread(MainGraph.InternalProtoGraph, MainGraph))
                     {

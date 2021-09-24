@@ -42,15 +42,19 @@ namespace rgat
         /// </summary>
         public struct GeomPositionColour
         {
+            /// <summary>
+            /// Item position
+            /// </summary>
             public Vector4 Position;
+            /// <summary>
+            /// Item colour
+            /// </summary>
             public WritableRgbaFloat Color;
+            
+            /// <summary>
+            /// Size of this structure
+            /// </summary>
             public const uint SizeInBytes = 32;
-
-            public GeomPositionColour(Vector3 position, WritableRgbaFloat color, float posIsNodeRef = 0f)
-            {
-                Position = new Vector4(position, posIsNodeRef);
-                Color = color;
-            }
         }
 
 
@@ -185,6 +189,15 @@ namespace rgat
             return buffer;
         }
 
+
+        /// <summary>
+        /// Create two duplicates of a devicebuffer
+        /// </summary>
+        /// <param name="source">Input</param>
+        /// <param name="gdev">GPU GraphicsDevice</param>
+        /// <param name="dest1">Output 1</param>
+        /// <param name="dest2">Output 2</param>
+        /// <param name="name">buffer name prefix</param>
         public static unsafe void CreateBufferCopyPair(DeviceBuffer source, GraphicsDevice gdev, out DeviceBuffer dest1, out DeviceBuffer dest2, string name = "?")
         {
             dest1 = TrackedVRAMAlloc(gdev, source.SizeInBytes, stride: 4, name: name + "_1");
@@ -201,6 +214,13 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Create two GPU buffer copies of a RAM buffer 
+        /// </summary>
+        /// <param name="floats">Float array to copy</param>
+        /// <param name="gdev">Veldrid graphicsdevice</param>
+        /// <param name="name">Name prefix of the buffers</param>
+        /// <returns>Pair of DeviceBuffers</returns>
         public static unsafe Tuple<DeviceBuffer, DeviceBuffer> CreateFloatsDeviceBufferPair(float[] floats, GraphicsDevice gdev, string name = "?")
         {
             DeviceBuffer buffer1 = TrackedVRAMAlloc(gdev, (uint)floats.Length * sizeof(float), stride: 4, name: name + "1");
@@ -219,82 +239,6 @@ namespace rgat
             }
 
             return new Tuple<DeviceBuffer, DeviceBuffer>(buffer1, buffer2);
-        }
-
-
-
-
-        static Pipeline ZeroFillPipeline;
-
-        public static void SetupZeroFillshader(ImGuiController controller)
-        {
-            GraphicsDevice gd = controller.graphicsDevice;
-            ResourceFactory rf = gd.ResourceFactory;
-
-            if (!gd.Features.ComputeShader) { Console.WriteLine("Error: No computeshader feature"); return; }
-
-            ResourceLayout fillShaderLayout = rf.CreateResourceLayout(new ResourceLayoutDescription(
-               new ResourceLayoutElementDescription("params", ResourceKind.UniformBuffer, ShaderStages.Compute),
-               new ResourceLayoutElementDescription("targ", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)
-               ));
-
-            ComputePipelineDescription pipelineDescription = new ComputePipelineDescription();
-            pipelineDescription.ResourceLayouts = new[] { fillShaderLayout, };
-            pipelineDescription.ComputeShader = rf.CreateFromSpirv(SPIRVShaders.CreateZeroFillShader(gd));
-            pipelineDescription.ThreadGroupSizeX = 256;
-            pipelineDescription.ThreadGroupSizeY = 1;
-            pipelineDescription.ThreadGroupSizeZ = 1;
-
-            ZeroFillPipeline = rf.CreateComputePipeline(pipelineDescription);
-
-            paramsBuffer = TrackedVRAMAlloc(gd, (uint)Unsafe.SizeOf<FillParams>(), BufferUsage.UniformBuffer, name: "ZeroFillShaderParam");
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct FillParams
-        {
-            public uint width;
-            public uint value;
-            private readonly uint _padding1; //must be multiple of 16
-            private readonly uint _padding2; //must be multiple of 16
-        }
-
-
-        static DeviceBuffer paramsBuffer;
-
-        public static void ZeroFillBuffers(List<DeviceBuffer> buffers, GraphicsDevice gd)
-        {
-            ResourceFactory rf = gd.ResourceFactory;
-
-            CommandList cl = rf.CreateCommandList();
-            cl.Begin();
-            cl.SetPipeline(ZeroFillPipeline);
-
-            List<ResourceSet> rls = new List<ResourceSet>();
-            foreach (var bw in buffers)
-            {
-                FillParams params1 = new FillParams()
-                {
-                    value = 50,
-                    width = bw.SizeInBytes / 256
-                };
-                ResourceLayout rl = rf.CreateResourceLayout(new ResourceLayoutDescription(
-    new ResourceLayoutElementDescription("params", ResourceKind.UniformBuffer, ShaderStages.Compute, ResourceLayoutElementOptions.None),
-    new ResourceLayoutElementDescription("targ", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute, ResourceLayoutElementOptions.None)));
-                ResourceSet res = rf.CreateResourceSet(new ResourceSetDescription(rl, paramsBuffer, bw));
-                cl.UpdateBuffer(paramsBuffer, 0, params1);
-                cl.SetComputeResourceSet(0, res);
-                cl.Dispatch(params1.width, 1, 1);
-                rls.Add(res);
-                rl.Dispose();
-            }
-            cl.End();
-            gd.SubmitCommands(cl);
-            gd.WaitForIdle();
-            //paramsBuffer.Dispose();
-            cl.Dispose();
-
-            foreach (var r in rls) r.Dispose();
         }
 
 
@@ -338,6 +282,13 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Create a node attributes buffer with standard values
+        /// </summary>
+        /// <param name="bd">BufferDescription</param>
+        /// <param name="gd">GraphicsDevice</param>
+        /// <param name="name">Buuffer name</param>
+        /// <returns>Created attributes buffer</returns>
         public unsafe static DeviceBuffer CreateDefaultAttributesBuffer(BufferDescription bd, GraphicsDevice gd, string name = "")
         {
             DeviceBuffer buf = TrackedVRAMAlloc(gd, bd.SizeInBytes, bd.Usage, bd.StructureByteStride, name);
@@ -365,6 +316,13 @@ namespace rgat
             return buf;
         }
 
+
+        /// <summary>
+        /// Debugging routine to find NaN values in a VRAM buffer
+        /// </summary>
+        /// <param name="_gd">Graphics device</param>
+        /// <param name="buf">Buffer to search</param>
+        /// <returns>true if NaN was found</returns>
         public static bool DetectNaN(GraphicsDevice _gd, DeviceBuffer buf)
         {
 

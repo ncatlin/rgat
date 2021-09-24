@@ -17,6 +17,9 @@ using System.Threading.Tasks;
 
 namespace rgat
 {
+    /// <summary>
+    /// FFMpeg video recorder
+    /// </summary>
     public class VideoEncoder
     {
         /// <summary>
@@ -374,7 +377,16 @@ namespace rgat
 
             try
             {
-                GlobalFFOptions.Configure(new FFOptions { BinaryFolder = Path.GetDirectoryName(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath)) });
+                string? dirname = Path.GetDirectoryName(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath));
+                if (dirname is not null)
+                { GlobalFFOptions.Configure(new FFOptions { BinaryFolder = dirname }); }
+                else
+                {
+                    Logging.RecordLogEvent($"Unable to start recording: FFMpeg not found");
+                    StopRecording();
+                    Loaded = false;
+                    return;
+                }
             }
             catch (Exception e)
             {

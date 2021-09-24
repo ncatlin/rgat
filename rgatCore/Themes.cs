@@ -11,6 +11,9 @@ using System.Text;
 
 namespace rgat
 {
+    /// <summary>
+    /// User customisable themes
+    /// </summary>
     public class Themes
     {
 
@@ -381,7 +384,9 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Init a default theme if no valid custom one is found
+        /// </summary>
         public static void InitFallbackTheme()
         {
             lock (_lock)
@@ -417,7 +422,11 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Get a uint colour value of a specified custom theme item
+        /// </summary>
+        /// <param name="item">A theme attribute</param>
+        /// <returns>uint colour</returns>
         public static uint GetThemeColourUINT(eThemeColour item)
         {
             lock (_lock)
@@ -427,6 +436,11 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Get a WritableRgbaFloat colour value of a specified custom theme item
+        /// </summary>
+        /// <param name="item">A theme attribute</param>
+        /// <returns>WritableRgbaFloat colour</returns>
         public static WritableRgbaFloat GetThemeColourWRF(eThemeColour item)
         {
             lock (_lock)
@@ -437,11 +451,16 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// Get a uint colour value of a specified imgui style colour item
+        /// </summary>
+        /// <param name="item">Am imGui style colour</param>
+        /// <returns>uint colour</returns>
         public static uint GetThemeColourImGui(ImGuiCol item)
         {
             lock (_lock)
             {
-
                 if (!ThemeColoursStandard.TryGetValue(item, out uint value))
                 {
                     return 0x00000000;
@@ -1060,7 +1079,9 @@ namespace rgat
 
         }
 
-
+        /// <summary>
+        /// Activate the default theme
+        /// </summary>
         public static void ActivateDefaultTheme()
         {
             if (CustomThemes.Count != GlobalConfig.Settings.Themes.CustomThemes.Count)

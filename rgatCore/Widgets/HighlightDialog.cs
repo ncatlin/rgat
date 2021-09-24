@@ -111,7 +111,7 @@ namespace rgat.Widgets
             }
             else
             {
-                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, attribsArray, CONSTANTS.HighlightType.Externals);
+                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.Externals);
                 _activeHighlights.SelectedSymbols = _activeHighlights.SelectedSymbols.Where(s => s.address != syminfo.address).ToList();
 
             }
@@ -122,15 +122,13 @@ namespace rgat.Widgets
         private void HandleMouseoverSym(moduleEntry module_modentry, symbolInfo syminfo)
         {
             module_modentry.symbols[syminfo.address] = syminfo;
-            //todo lock?
-            _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[]? attribsArray);
             if (syminfo.hovered)
             {
                 _ActiveGraph.AddHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.Externals);
             }
             else
             {
-                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, attribsArray, CONSTANTS.HighlightType.Externals);
+                _ActiveGraph.RemoveHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.Externals);
             }
 
         }
@@ -317,8 +315,7 @@ namespace rgat.Widgets
                         }
 
                         _ActiveGraph.LayoutState.Lock.EnterUpgradeableReadLock();
-                        _ActiveGraph.LayoutState.GetAttributes(_ActiveGraph.ActiveLayoutStyle, out float[]? attribsArray);
-                        _ActiveGraph.RemoveHighlightedNodes(_ActiveGraph.HighlightedSymbolNodes, attribsArray, CONSTANTS.HighlightType.Externals);
+                        _ActiveGraph.RemoveHighlightedNodes(_ActiveGraph.HighlightedSymbolNodes,  CONSTANTS.HighlightType.Externals);
                         _ActiveGraph.LayoutState.Lock.ExitUpgradeableReadLock();
 
                         _activeHighlights.SelectedSymbols.Clear();
@@ -351,7 +348,10 @@ namespace rgat.Widgets
                 _activeHighlights.SelectedAddresses.RemoveAt(selitem);
                 _ActiveGraph.HighlightedAddresses.Remove(address);
                 List<uint> nodes = _ActiveGraph.InternalProtoGraph.ProcessData.GetNodesAtAddress(address, _ActiveGraph.TID);
-                _ActiveGraph.RemoveHighlightedNodes(nodes, null, CONSTANTS.HighlightType.Addresses);
+
+                _ActiveGraph.LayoutState.Lock.EnterUpgradeableReadLock();
+                _ActiveGraph.RemoveHighlightedNodes(nodes, CONSTANTS.HighlightType.Addresses);
+                _ActiveGraph.LayoutState.Lock.ExitUpgradeableReadLock();
             }
 
         }

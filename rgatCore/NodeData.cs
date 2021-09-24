@@ -39,7 +39,7 @@ namespace rgat
 
             if (!IsExternal)
             {
-                nodearr.Add(ins.MutationIndex);
+                nodearr.Add(ins!.MutationIndex);
             }
             else
             {
@@ -169,7 +169,7 @@ namespace rgat
         {
             if (_nodeType != eEdgeNodeType.eENLAST) return _nodeType;
             if (IsExternal) return eEdgeNodeType.eNodeExternal;
-            switch (ins.itype)
+            switch (ins!.itype)
             {
                 case eNodeType.eInsUndefined:
                     {
@@ -232,7 +232,7 @@ namespace rgat
             if (plot.Opt_ShowNodeIndexes) Label += $"{this.Index}:";
             if (plot.Opt_ShowNodeAddresses) Label += $"0x{this.address:X}:";
 
-            if (!IsExternal && ins.InsText?.Length > 0)
+            if (!IsExternal && ins!.InsText?.Length > 0)
             {
                 Label += $" {ins.InsText}";
             }
@@ -450,7 +450,7 @@ namespace rgat
         /// <summary>
         /// The disassembled instruction
         /// </summary>
-        public InstructionData ins;
+        public InstructionData? ins;
 
         /// <summary>
         /// The node is an entry to uninstrumented code

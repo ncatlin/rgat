@@ -161,7 +161,7 @@ namespace rgat
             string runargs = $"-t \"{pintool}\" ";
             if (testID > -1)
                 runargs += $"-T {testID} ";
-            runargs += $"-P {rgatState.LocalCoordinatorPipeName} ";
+            runargs += $"-P {rgatState.LocalCoordinatorPipeName!} ";
             runargs += $"-L "; // tracing a library
             runargs += "-- ";
 
@@ -243,7 +243,7 @@ namespace rgat
             string runargs = $"-t \"{pintool}\" ";
             if (testID > -1)
                 runargs += $"-T {testID} ";
-            runargs += $"-P {rgatState.LocalCoordinatorPipeName} ";
+            runargs += $"-P {rgatState.LocalCoordinatorPipeName!} ";
             runargs += $"-- \"{targetBinary}\" ";
 
             try

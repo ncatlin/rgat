@@ -37,7 +37,7 @@ namespace rgat.Config
         /// <summary>
         /// Path to the loaded settings file
         /// </summary>
-        public string FilePath { get; set; }
+        public string? FilePath { get; set; }
 
 
         static Action? MarkDirtyCallback = null;
@@ -632,7 +632,7 @@ namespace rgat.Config
                             else
                             {
                                 Logging.RecordError($"Binary signature validation failed for {path}: {error}");
-                                lock (_lock) { BinaryValidationErrors[path] = error; }
+                                lock (_lock) { BinaryValidationErrors[path] = error!; }
                             }
                             SetPath(setting, path);
                             break;
@@ -731,7 +731,9 @@ namespace rgat.Config
 
         }
 
-
+        /// <summary>
+        /// rgat update config
+        /// </summary>
         public class UpdateSettings
         {
             bool _DoUpdateCheck = true;
@@ -877,6 +879,12 @@ namespace rgat.Config
             /// Filesystem locations the user has accessed (opened binaries, opened traces, filepicker directories)
             /// </summary>
             public Dictionary<PathType, List<PathRecord>> RecentPaths { get; set; } = new Dictionary<PathType, List<PathRecord>>();
+
+            /// <summary>
+            /// Fetch recent paths of a specified category
+            /// </summary>
+            /// <param name="pathType">Category of paths</param>
+            /// <returns>PathRecord array</returns>
             public PathRecord[] Get(PathType pathType)
             {
                 lock (_lock)
@@ -957,12 +965,15 @@ namespace rgat.Config
         {
             bool inited = false;
 
-            Dictionary<string, SignatureSource> _signatureSources = null;
+            Dictionary<string, SignatureSource>? _signatureSources ;
 
+            /// <summary>
+            /// github signature repos with the url as key
+            /// </summary>
             [JsonPropertyName("SignatureSources")]
-            public Dictionary<string, SignatureSource> SignatureSources { get => _signatureSources; set { Debug.Assert(!inited); _signatureSources = value; inited = true; } }
+            public Dictionary<string, SignatureSource> SignatureSources { get => _signatureSources!; set { Debug.Assert(!inited); _signatureSources = value; inited = true; } }
 
-
+            /*
             public void ReplaceSignatureSources(List<SignatureSource> sources)
             {
                 lock (_lock)
@@ -974,7 +985,7 @@ namespace rgat.Config
                     }
                     MarkDirty();
                 }
-            }
+            }*/
 
             /// <summary>
             /// Replace the metadata of a signature repo
@@ -1011,7 +1022,7 @@ namespace rgat.Config
                 lock (_lock)
                 {
                     //there is no way to re-add the DIE path other than manually editing the config, so disallow deletion
-                    if (_signatureSources.ContainsKey(sourcePath))
+                    if (_signatureSources!.ContainsKey(sourcePath))
                     {
                         _signatureSources.Remove(sourcePath);
                         MarkDirty();
@@ -1028,7 +1039,7 @@ namespace rgat.Config
             {
                 lock (_lock)
                 {
-                    return _signatureSources[path];
+                    return _signatureSources![path];
                 }
             }
 
@@ -1082,7 +1093,7 @@ namespace rgat.Config
             {
                 lock (_lock)
                 {
-                    return _signatureSources.Values.ToArray();
+                    return _signatureSources!.Values.ToArray();
                 }
             }
 
@@ -1096,12 +1107,13 @@ namespace rgat.Config
             {
                 lock (_lock)
                 {
-                    return _signatureSources.ContainsKey(githubPath);
+                    return _signatureSources!.ContainsKey(githubPath);
                 }
             }
 
             /// <summary>
             /// Init the signature sources if invalid
+            /// Must be called immedately after loading
             /// </summary>
             public void EnsureValidity()
             {

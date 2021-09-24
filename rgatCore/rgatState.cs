@@ -742,6 +742,11 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Read a bundled resouce as bytes
+        /// </summary>
+        /// <param name="name">Resource name</param>
+        /// <returns>null or the bytes of the found resource</returns>
         public static byte[]? ReadBinaryResource(string name)
         {
             System.Reflection.Assembly assembly = Assembly.GetExecutingAssembly();

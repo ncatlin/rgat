@@ -177,7 +177,7 @@ namespace rgat
                                 Logging.APICALL call = (Logging.APICALL)(TLevent.Item);
                                 selected = TLevent == SelectedAPIEvent;
 
-                                if (call.Node.IsExternal)
+                                if (call.Node!.IsExternal)
                                 {
                                     eventType = "API - " + call.APIType();
                                     module = Path.GetFileNameWithoutExtension(trace.DisassemblyData.GetModulePath(call.Node.GlobalModuleID));
@@ -188,9 +188,9 @@ namespace rgat
                                     if (!selected && selectedNode != null)
                                     {
                                         //select all apis called by selected thread node
-                                        selected = selected || (ThreadNodeSelected && call.Graph.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
+                                        selected = selected || (ThreadNodeSelected && call.Graph!.ThreadID == ((ProtoGraph)selectedNode.reference).ThreadID);
                                         //select all apis called by selected process node
-                                        selected = selected || (ProcessNodeSelected && call.Graph.TraceData.PID == ((TraceRecord)selectedNode.reference).PID);
+                                        selected = selected || (ProcessNodeSelected && call.Graph!.TraceData.PID == ((TraceRecord)selectedNode.reference).PID);
                                     }
                                     //WinAPIDetails.API_ENTRY = call.APIEntry;
                                 }
@@ -311,13 +311,13 @@ namespace rgat
                 ImGui.TableNextColumn();
                 ImGui.Text($"Thread ID");
                 ImGui.TableNextColumn();
-                ImGui.Text($"{call.Graph.ThreadID}");
+                ImGui.Text($"{call.Graph!.ThreadID}");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text($"Library");
                 ImGui.TableNextColumn();
-                ImGui.TextWrapped($"{call.Graph.TraceData.DisassemblyData.GetModulePath(call.Node.GlobalModuleID)}");
+                ImGui.TextWrapped($"{call.Graph.TraceData.DisassemblyData.GetModulePath(call.Node!.GlobalModuleID)}");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();

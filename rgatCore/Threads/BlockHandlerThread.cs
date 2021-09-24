@@ -200,7 +200,7 @@ namespace rgat
                         InstructionData possibleInstruction = foundList[^1];
                         //if address has been seen but opcodes are not same as most recent, disassemble again
                         //might be a better to check all mutations instead of most recent
-                        bool mutation = possibleInstruction.NumBytes != insByteCount || !possibleInstruction.Opcodes.SequenceEqual<byte>(opcodes);
+                        bool mutation = possibleInstruction.NumBytes != insByteCount || !possibleInstruction.Opcodes!.SequenceEqual<byte>(opcodes);
                         if (!mutation)
                         {
                             blockInstructions.Add(possibleInstruction);

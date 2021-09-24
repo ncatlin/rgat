@@ -1557,6 +1557,49 @@
             <param name="error">any error message produced by the operation</param>
             <returns>success or failure</returns>
         </member>
+        <member name="T:rgat.Config.RemoteDataMirror">
+            <summary>
+            A storage class for data from the remote rgat session
+            </summary>
+        </member>
+        <member name="T:rgat.Config.RemoteDataMirror.ResponseStatus">
+            <summary>
+            Status of a command
+            </summary>
+        </member>
+        <member name="F:rgat.Config.RemoteDataMirror.ResponseStatus.eNoRecord">
+            <summary>
+            No record of it
+            </summary>
+        </member>
+        <member name="F:rgat.Config.RemoteDataMirror.ResponseStatus.eWaiting">
+            <summary>
+            Waiting for a response
+            </summary>
+        </member>
+        <member name="F:rgat.Config.RemoteDataMirror.ResponseStatus.eDelivered">
+            <summary>
+            The response has arrived
+            </summary>
+        </member>
+        <member name="F:rgat.Config.RemoteDataMirror.ResponseStatus.eError">
+            <summary>
+            Error
+            </summary>
+        </member>
+        <member name="T:rgat.Config.RemoteDataMirror.ProcessResponseCallback">
+            <summary>
+            A callback to a command response being delivered
+            </summary>
+            <param name="response">JSON of the reponse</param>
+            <returns></returns>
+        </member>
+        <member name="T:rgat.Config.RemoteDataMirror.ProcessIncomingWorkerData">
+            <summary>
+            Callback to process incoming trace data
+            </summary>
+            <param name="arg">trace data</param>
+        </member>
         <member name="M:rgat.Config.RemoteDataMirror.RegisterRemotePipe(System.UInt32,rgat.Threads.TraceProcessorWorker,rgat.Config.RemoteDataMirror.ProcessIncomingWorkerData)">
             <summary>
             Associate a remote named pipe with a Trace processor worker
@@ -1588,12 +1631,53 @@
             <param name="pipename">Name of the pipe</param>
             <returns>The ID of the registered pipe</returns>
         </member>
+        <member name="M:rgat.Config.RemoteDataMirror.RegisterPendingResponse(System.Int32,System.String,System.String,rgat.Config.RemoteDataMirror.ProcessResponseCallback)">
+            <summary>
+            Register a recipient and optional callback for a command response
+            </summary>
+            <param name="commandID">ID of the command</param>
+            <param name="cmd">Command text</param>
+            <param name="recipient">Recipient for responses</param>
+            <param name="callback">Callback to handle the response (otherwise it will have to be fetched)</param>
+        </member>
+        <member name="M:rgat.Config.RemoteDataMirror.CheckTaskStatus(System.String,System.String)">
+            <summary>
+            Check if a response has been received
+            </summary>
+            <param name="command">A command</param>
+            <param name="recipient">A recipient waiting for a response to it</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.Config.RemoteDataMirror.DeliverResponse(System.Int32,Newtonsoft.Json.Linq.JToken)">
+            <summary>
+            Deliver a response to a command
+            </summary>
+            <param name="commandID">The ID of the command</param>
+            <param name="response">JSON reponse data</param>
+        </member>
+        <member name="M:rgat.Config.RemoteDataMirror.SetRecentPaths(System.Collections.Generic.List{rgat.Config.rgatSettings.PathRecord})">
+            <summary>
+            Record recent path data from the remote host
+            </summary>
+            <param name="entries">Pathrecord entries</param>
+        </member>
         <member name="M:rgat.Config.RemoteDataMirror.HandleRecentBinariesList(Newtonsoft.Json.Linq.JToken)">
             <summary>
             Store a list of recent binaries sent by the headless rgat instance
             </summary>
             <param name="dataTok">JToken of recent paths</param>
             <returns>Successful deserialising</returns>
+        </member>
+        <member name="M:rgat.Config.RemoteDataMirror.GetRecentBins">
+            <summary>
+            Fetch recently executed binaries
+            </summary>
+            <returns>Array of path records</returns>
+        </member>
+        <member name="F:rgat.Config.RemoteDataMirror.RootDirectory">
+            <summary>
+            Root directory of the remote host session
+            </summary>
         </member>
         <member name="T:rgat.Config.rgatSettings">
             <summary>
@@ -2812,6 +2896,18 @@
             </summary>
             <param name="DBPath">Path to the DIE signatures</param>
         </member>
+        <member name="M:rgat.DetectItEasy.StartDetectItEasyScan(rgat.BinaryTarget,System.Boolean)">
+            <summary>
+            Begin a scan
+            </summary>
+            <param name="targ">Target to scan</param>
+            <param name="reload">If rules should be reloaded</param>
+        </member>
+        <member name="M:rgat.DetectItEasy.CancelAllScans">
+            <summary>
+            Cancel all scans
+            </summary>
+        </member>
         <member name="P:rgat.DetectItEasy.LastError">
             <summary>
             Last scan error
@@ -3581,6 +3677,11 @@
             <summary>
             The layout is now in RAM. Positions are in the preset buffer. 
             Start moving the existing nodes towards them
+            </summary>
+        </member>
+        <member name="T:rgat.Logging">
+            <summary>
+            Class for managing logs and messages
             </summary>
         </member>
         <member name="T:rgat.Logging.eLogFilterBaseType">
@@ -4415,6 +4516,28 @@
             </summary>
             <param name="newnodeidxs">Nodes to highlight</param>
             <param name="highlightType">Type of highlight</param>
+        </member>
+        <member name="F:rgat.PlottedGraph.LastComputeTime">
+            <summary>
+            When the last compute cycle was done on this graph
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.ComputeBufferNodeCount">
+            <summary>
+            Number of nodes added to the compute buffer
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.RenderedEdgeCount">
+            <summary>
+            How many edges have been added to compute buffers
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.RemoveHighlightedNodes(System.Collections.Generic.List{System.UInt32},rgat.CONSTANTS.HighlightType)">
+            <summary>
+            Unhighlight nodes
+            </summary>
+            <param name="nodeidxs">The nodes to unhighlight</param>
+            <param name="highlightType">The type of highlight being removed</param>
         </member>
         <member name="M:rgat.PlottedGraph.AddHighlightedAddress(System.UInt64)">
             <summary>
@@ -5475,6 +5598,38 @@
             Ordered list of executing edges
             </summary>
         </member>
+        <member name="P:rgat.ProtoGraph.EdgeCount">
+            <summary>
+            How many edges have been recorded
+            </summary>
+        </member>
+        <member name="F:rgat.ProtoGraph.edgeObjList">
+            <summary>
+            Store of edge data
+            </summary>
+        </member>
+        <member name="F:rgat.ProtoGraph.BlocksFirstLastNodeList">
+            <summary>
+            light-touch list of blocks for filling in edges without locking disassembly data
+            </summary>
+        </member>
+        <member name="F:rgat.ProtoGraph.NodeList">
+            <summary>
+            List of all graph nodes. The node Index is an index into this
+            </summary>
+        </member>
+        <member name="M:rgat.ProtoGraph.node_exists(System.UInt32)">
+            <summary>
+            Does a node index exist
+            </summary>
+            <param name="idx">index</param>
+            <returns>it exists</returns>
+        </member>
+        <member name="P:rgat.ProtoGraph.NodeCount">
+            <summary>
+            how many nodes exist
+            </summary>
+        </member>
         <member name="M:rgat.ProtoGraph.handle_new_instruction(rgat.InstructionData,System.UInt32,System.UInt64)">
             <summary>
             Record the execution of an instruction on the graph
@@ -5483,6 +5638,23 @@
             <param name="blockID">The basic block the instruction is in</param>
             <param name="repeats">How many times this instruction was executed this time</param>
             <returns>A node index for the created node</returns>
+        </member>
+        <member name="M:rgat.ProtoGraph.handle_previous_instruction(System.UInt32,System.UInt64)">
+            <summary>
+            Record execution of an instrution that is already on the graph
+            </summary>
+            <param name="targVertID">Instruction node ID</param>
+            <param name="repeats">How many times it executed</param>
+        </member>
+        <member name="M:rgat.ProtoGraph.addBlockToGraph(System.UInt32,System.UInt64,System.Boolean,System.Boolean,System.Nullable{System.UInt32})">
+            <summary>
+            Add a new basic block to the graph
+            </summary>
+            <param name="blockID">Block ID</param>
+            <param name="repeats">How many times it executed</param>
+            <param name="recordEdge">Does the edge need recording</param>
+            <param name="setLastID">Should the tail be set as the last executed node</param>
+            <param name="customPreviousVert">Add a custom node to set as the last executed node</param>
         </member>
         <member name="M:rgat.ProtoGraph.GetNode(System.UInt32)">
             <summary>
@@ -5962,6 +6134,11 @@
             A list of test requirements
             </summary>
         </member>
+        <member name="F:rgat.Testing.REQUIREMENTS_LIST.value">
+            <summary>
+            list of requirements
+            </summary>
+        </member>
         <member name="T:rgat.Testing.TestRequirement">
             <summary>
             A requirement to apply to a process or thread
@@ -6266,6 +6443,60 @@
         <member name="F:rgat.Testing.TestResultCommentary.comparedValueString">
             <summary>
             The value that was compared
+            </summary>
+        </member>
+        <member name="T:rgat.Testing.TestCaseRun">
+            <summary>
+            object associated with one execution of a testcase
+            </summary>
+        </member>
+        <member name="M:rgat.Testing.TestCaseRun.#ctor(rgat.Testing.TestCase,System.Int32,System.Int64)">
+            <summary>
+            Create a testcase run
+            </summary>
+            <param name="testc">Testcase</param>
+            <param name="session">Session this test was run in</param>
+            <param name="testID">ID of the test</param>
+        </member>
+        <member name="F:rgat.Testing.TestCaseRun.ResultCommentary">
+            <summary>
+            Get information about the test results
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCaseRun.Complete">
+            <summary>
+            Run is complete
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestCaseRun.Session">
+            <summary>
+            Test session ID
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestCaseRun.TestID">
+            <summary>
+            Test ID
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCaseRun.FirstTrace">
+            <summary>
+            The first trace of the test
+            </summary>
+        </member>
+        <member name="M:rgat.Testing.TestCaseRun.SetFirstTrace(rgat.TraceRecord)">
+            <summary>
+            Set the initial trace
+            </summary>
+            <param name="trace"></param>
+        </member>
+        <member name="P:rgat.Testing.TestCaseRun.GetTestCase">
+            <summary>
+            Get the testcase for this test run
+            </summary>
+        </member>
+        <member name="M:rgat.Testing.TestCaseRun.MarkFinished">
+            <summary>
+            Mark the run as complete
             </summary>
         </member>
         <member name="T:rgat.Testing.TestSession">
@@ -6866,6 +7097,38 @@
             </summary>
             <param name="trace">The running trace</param>
             <param name="testID">Optional test ID if the trace is a test</param>
+        </member>
+        <member name="T:rgat.Threads.ThreadTraceProcessingThread">
+            <summary>
+            Worker for processing trace data
+            </summary>
+        </member>
+        <member name="P:rgat.Threads.ThreadTraceProcessingThread.PendingBlockRepeats">
+            <summary>
+            How many blockrepeats are waiting go be assigned
+            </summary>
+        </member>
+        <member name="F:rgat.Threads.ThreadTraceProcessingThread.LastBlockRepeatsTime">
+            <summary>
+            How long it took to assign the last blockrepeats
+            </summary>
+        </member>
+        <member name="M:rgat.Threads.ThreadTraceProcessingThread.#ctor(rgat.ProtoGraph)">
+            <summary>
+            Worker for processing trace data
+            </summary>
+            <param name="newProtoGraph">Thread graph being processed</param>
+        </member>
+        <member name="M:rgat.Threads.ThreadTraceProcessingThread.Begin">
+            <summary>
+            Begin processing
+            </summary>
+        </member>
+        <member name="M:rgat.Threads.ThreadTraceProcessingThread.ProcessTraceTag(System.Byte[])">
+            <summary>
+            Handle execution of a basic block
+            </summary>
+            <param name="entry">A trace tag entry from instrumentation</param>
         </member>
         <member name="P:rgat.Threads.TraceIngestWorker.StopFlag">
             <summary>
@@ -7498,6 +7761,11 @@
             <param name="b64ChangelogMDContent">base64 encoded changelog.md file</param>
             <returns>plaintext formatted list of change types and changes</returns>
         </member>
+        <member name="T:rgat.VeldridGraphBuffers">
+            <summary>
+            Class for managing VRAM buffers
+            </summary>
+        </member>
         <member name="T:rgat.VeldridGraphBuffers.Position2DColour">
             <summary>
             This is used for shaders where the coordinate being referenced is contained in a texture. 
@@ -7525,6 +7793,29 @@
             If Position.W == 1 then x,y are used as a positions texture reference as in TextureOffsetColour
             </summary>
         </member>
+        <member name="F:rgat.VeldridGraphBuffers.GeomPositionColour.Position">
+            <summary>
+            Item position
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.GeomPositionColour.Color">
+            <summary>
+            Item colour
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.GeomPositionColour.SizeInBytes">
+            <summary>
+            Size of this structure
+            </summary>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.GetReadback(Veldrid.GraphicsDevice,Veldrid.DeviceBuffer)">
+            <summary>
+            Get a CPU readable mapping of VRAM
+            </summary>
+            <param name="gd">A veldrid graphics device</param>
+            <param name="buffer">The buffer to read</param>
+            <returns></returns>
+        </member>
         <member name="M:rgat.VeldridGraphBuffers.DoDispose(Veldrid.Texture)">
             <summary>
             Dispose of a Texture
@@ -7549,6 +7840,45 @@
             </summary>
             <param name="db">DeviceBuffer to dispose</param>
         </member>
+        <member name="M:rgat.VeldridGraphBuffers.TrackedVRAMAlloc(Veldrid.GraphicsDevice,System.UInt32,Veldrid.BufferUsage,System.UInt32,System.String)">
+            <summary>
+            Allocate tracked VRAM memory
+            </summary>
+            <param name="gd">GraphicsDevice</param>
+            <param name="size">Size of the buffer to allocate</param>
+            <param name="usage">How the buffer is used</param>
+            <param name="stride">Data stride</param>
+            <param name="name">Name for the buffer</param>
+            <returns>Allocated device buffer</returns>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.CreateFloatsDeviceBuffer(System.Single[],Veldrid.GraphicsDevice,System.String)">
+            <summary>
+            Upload an array of floats to a new VRAM buffer
+            </summary>
+            <param name="floats">floats</param>
+            <param name="gdev">Graphics Device</param>
+            <param name="name">Buffer name</param>
+            <returns>VRAM DeviceBuffer</returns>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.CreateBufferCopyPair(Veldrid.DeviceBuffer,Veldrid.GraphicsDevice,Veldrid.DeviceBuffer@,Veldrid.DeviceBuffer@,System.String)">
+            <summary>
+            Create two duplicates of a devicebuffer
+            </summary>
+            <param name="source">Input</param>
+            <param name="gdev">GPU GraphicsDevice</param>
+            <param name="dest1">Output 1</param>
+            <param name="dest2">Output 2</param>
+            <param name="name">buffer name prefix</param>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.CreateFloatsDeviceBufferPair(System.Single[],Veldrid.GraphicsDevice,System.String)">
+            <summary>
+            Create two GPU buffer copies of a RAM buffer 
+            </summary>
+            <param name="floats">Float array to copy</param>
+            <param name="gdev">Veldrid graphicsdevice</param>
+            <param name="name">Name prefix of the buffers</param>
+            <returns>Pair of DeviceBuffers</returns>
+        </member>
         <member name="M:rgat.VeldridGraphBuffers.ZeroFillBuffer(Veldrid.DeviceBuffer,Veldrid.GraphicsDevice,System.UInt32)">
             <summary>
             Fill a devicebuffer with null bytes
@@ -7566,6 +7896,23 @@
             <param name="zeroStartOffset">Where to start filling with zeros (before these is reserved for copying existing data)</param>
             <param name="name">Name for the buffer</param>
             <returns></returns>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.CreateDefaultAttributesBuffer(Veldrid.BufferDescription,Veldrid.GraphicsDevice,System.String)">
+            <summary>
+            Create a node attributes buffer with standard values
+            </summary>
+            <param name="bd">BufferDescription</param>
+            <param name="gd">GraphicsDevice</param>
+            <param name="name">Buuffer name</param>
+            <returns>Created attributes buffer</returns>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.DetectNaN(Veldrid.GraphicsDevice,Veldrid.DeviceBuffer)">
+            <summary>
+            Debugging routine to find NaN values in a VRAM buffer
+            </summary>
+            <param name="_gd">Graphics device</param>
+            <param name="buf">Buffer to search</param>
+            <returns>true if NaN was found</returns>
         </member>
         <member name="P:rgat.VideoEncoder.Loaded">
             <summary>
@@ -8329,6 +8676,11 @@
             Manages input for ImGui and handles rendering ImGui's DrawLists with Veldrid.
             </summary>
         </member>
+        <member name="F:ImGuiNET.ImGuiController._fontTextureView">
+            <summary>
+            Shader accessible font texture
+            </summary>
+        </member>
         <member name="F:ImGuiNET.ImGuiController.WindowWidth">
             <summary>
             Width of the main window
@@ -8370,6 +8722,76 @@
             A reference to a GPU graphics device for general use
             </summary>
         </member>
+        <member name="M:ImGuiNET.ImGuiController.#ctor(Veldrid.GraphicsDevice,Veldrid.OutputDescription,System.Int32,System.Int32)">
+            <summary>
+            A general UI management class
+            </summary>
+            <param name="gd">GraphicsDevice for rendering</param>
+            <param name="outputDescription">Framebuffer details</param>
+            <param name="width">window width</param>
+            <param name="height">window height</param>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.BuildFonts">
+            <summary>
+            Load the fonts
+            </summary>
+        </member>
+        <member name="F:ImGuiNET.ImGuiController.LargeIconSize">
+            <summary>
+            Size of large splash screen icons
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.GlyphExists(System.UInt16)">
+            <summary>
+            Was this font glyph loaded in the unicode font
+            </summary>
+            <param name="code">character code</param>
+            <returns>the glyph is in the unicode font</returns>
+        </member>
+        <member name="P:ImGuiNET.ImGuiController.SplashLargeFont">
+            <summary>
+            Large font for splash screen buttons
+            </summary>
+        </member>
+        <member name="P:ImGuiNET.ImGuiController.rgatLargeFont">
+            <summary>
+            Larger font for the splash screen title
+            </summary>
+        </member>
+        <member name="P:ImGuiNET.ImGuiController.IconTexturesView">
+            <summary>
+            Get a shader accessible texture view of the loaded images
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.WindowResized(System.Int32,System.Int32)">
+            <summary>
+            Callback for window resize
+            </summary>
+            <param name="width">New width</param>
+            <param name="height">New height</param>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.PushOriginalFont">
+            <summary>
+            Activate the base ImGui font
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.PushUnicodeFont">
+            <summary>
+            Activate the custom unicode font
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.PushBigIconFont">
+            <summary>
+            Activate the big title font
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.CreateDeviceResources(Veldrid.GraphicsDevice,Veldrid.OutputDescription)">
+            <summary>
+            Create general GPU resources for UI drawing
+            </summary>
+            <param name="gd">Veldrid GraphicsDevice</param>
+            <param name="outputDescription">Framebuffer description</param>
+        </member>
         <member name="M:ImGuiNET.ImGuiController.GetOrCreateImGuiBinding(Veldrid.ResourceFactory,Veldrid.TextureView,System.String)">
             <summary>
             Gets or creates a handle for a texture to be drawn with ImGui.
@@ -8386,6 +8808,20 @@
             <summary>
             Retrieves the shader texture binding for the given helper handle.
             </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.ClearCachedImageResources">
+            <summary>
+            Occasionally dispose of expired resources
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.LoadEmbeddedShaderCode(Veldrid.ResourceFactory,System.String,Veldrid.ShaderStages)">
+            <summary>
+            Load a shader from resources
+            </summary>
+            <param name="factory">Resource factory</param>
+            <param name="name">shader name</param>
+            <param name="stage">unused</param>
+            <returns>shader bytes or null if not found</returns>
         </member>
         <member name="M:ImGuiNET.ImGuiController.RecreateFontDeviceTexture(Veldrid.GraphicsDevice)">
             <summary>
@@ -8426,6 +8862,11 @@
             Create a file selection dialog
             </summary>
             <param name="remoteMirror">Optional remote host this dialog is associated with</param>
+        </member>
+        <member name="P:rgatFilePicker.FilePicker.Created">
+            <summary>
+            When the picker was created
+            </summary>
         </member>
         <member name="T:rgatFilePicker.FilePicker.PickerResult">
             <summary>
@@ -8541,6 +8982,12 @@
             <param name="allowMulti">Allow selection of multiple items</param>
             <returns></returns>
         </member>
+        <member name="M:rgatFilePicker.FilePicker.RemoveFilePicker(System.Object)">
+            <summary>
+            Delete a file picker
+            </summary>
+            <param name="o">file picker key</param>
+        </member>
         <member name="M:rgatFilePicker.FilePicker.EmitFileSelectableEntry(System.String,rgatFilePicker.FilePicker.FileMetadata)">
             <summary>
             Draw a non-directory file in the file list
@@ -8556,6 +9003,13 @@
             </summary>
             <param name="responseTok">JToken containing information about the current directory</param>
             <returns>true if the data was valid</returns>
+        </member>
+        <member name="M:rgatFilePicker.FilePicker.Draw(System.Object)">
+            <summary>
+            Draw the file picker window
+            </summary>
+            <param name="objKey">specific picker to draw</param>
+            <returns>File picker result</returns>
         </member>
         <member name="M:rgatFilePicker.FilePicker.GetLocalDriveStrings">
             <summary>

@@ -13,10 +13,10 @@ namespace rgat.Widgets
     class TestCategory
     {
         public List<TestCase> Tests = new List<TestCase>();
-        public string Path;
+        public string? Path;
         public bool Starred;
-        public string CategoryName;
-        public string ID;
+        public string? CategoryName;
+        public string? ID;
     }
 
     class TestsWindow
@@ -168,7 +168,7 @@ namespace rgat.Widgets
                         foreach (var testcaserun in session.tests)
                         {
                             if (!testcaserun.Complete) continue;
-                            if (testcaserun.ResultCommentary.result == eTestState.Passed)
+                            if (testcaserun.ResultCommentary.Verdict == eTestState.Passed)
                             {
                                 if (testSpecsShowPassed)
                                 {
@@ -179,7 +179,7 @@ namespace rgat.Widgets
                                     }
                                 }
                             }
-                            else if (testcaserun.ResultCommentary.result == eTestState.Failed)
+                            else if (testcaserun.ResultCommentary.Verdict == eTestState.Failed)
                             {
                                 if (testSpecsShowFailed)
                                 {
@@ -350,15 +350,15 @@ namespace rgat.Widgets
 
             TraceTestResultCommentary resultsCommentary = testcaserun.ResultCommentary;
             TestCase testcase = testcaserun.GetTestCase;
-            string stateString = resultsCommentary.result == eTestState.Passed ? "Passed" : "Failed";
-            ImGuiTreeNodeFlags headerflags = resultsCommentary.result == eTestState.Passed ? ImGuiTreeNodeFlags.None : ImGuiTreeNodeFlags.DefaultOpen;
+            string stateString = resultsCommentary.Verdict == eTestState.Passed ? "Passed" : "Failed";
+            ImGuiTreeNodeFlags headerflags = resultsCommentary.Verdict == eTestState.Passed ? ImGuiTreeNodeFlags.None : ImGuiTreeNodeFlags.DefaultOpen;
 
 
             uint passHighlight = Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour).ToUint(0x30);
             uint failHighlight = Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToUint(0x30);
 
             ImGui.TableNextRow();
-            if (resultsCommentary.result == eTestState.Passed)
+            if (resultsCommentary.Verdict == eTestState.Passed)
                 ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, passHighlight);
             else
                 ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, failHighlight);
@@ -409,7 +409,7 @@ namespace rgat.Widgets
             uint failHighlight = Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToUint(0x30);
 
 
-            TRACE_TEST_RESULTS comments = commentary.traceResultsB;
+            TRACE_TEST_RESULTS comments = commentary.traceResults;
 
             ImGui.TableNextRow();
             ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, 0);

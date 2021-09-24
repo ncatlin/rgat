@@ -828,7 +828,7 @@ namespace rgat
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Attributes1);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Attributes2);
 
-            _VRAMBuffers.Attributes1 = VeldridGraphBuffers.CreateDefaultAttributesBuffer(bd, _gd);
+            _VRAMBuffers.Attributes1 = VeldridGraphBuffers.CreateDefaultAttributesBuffer(bd, _gd, "NodeAttribs");
             _VRAMBuffers.Attributes2 = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, _VRAMBuffers.Attributes1.SizeInBytes, _VRAMBuffers.Attributes1.Usage, 4, $"RNA_AattBuf2_{ GraphPlot.TID}");
 
             _VRAMBuffers._flop = true; //process attribs buffer 1 first into buffer 2, saves on an extra copy

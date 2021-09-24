@@ -1119,7 +1119,7 @@ namespace rgat
 
             foreach (NodeData n in pgraph.NodeList)
             {
-                outfile.Write(Encoding.ASCII.GetBytes(n.Index + " \"" + n.ins.InsText + "\"\n"));
+                outfile.Write(Encoding.ASCII.GetBytes(n.Index + " \"" + n.ins!.InsText + "\"\n"));
             }
 
             outfile.Write(Encoding.ASCII.GetBytes("*edgeslist " + pgraph.NodeList.Count + "\n"));
@@ -1149,7 +1149,7 @@ namespace rgat
 
             NodeData? n = graph.GetNode(nodes[^1]);
             Debug.Assert(n is not null);
-            if (n.ins.itype != CONSTANTS.eNodeType.eInsCall)
+            if (n.ins!.itype != CONSTANTS.eNodeType.eInsCall)
             {
                 SendDebugStep(graph);
                 return;
@@ -1231,7 +1231,7 @@ namespace rgat
         {
             TRACE_TEST_RESULTS results = new TRACE_TEST_RESULTS();
 
-            resultsobj.traceResultsB = results;
+            resultsobj.traceResults = results;
             foreach (TestRequirement req in ptreq.ProcessRequirements)
             {
                 Console.WriteLine($"Evaluating process requirement {req.Name} {req.Condition} [val] ");

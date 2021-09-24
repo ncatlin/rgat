@@ -619,12 +619,10 @@ namespace rgat
         public readonly object InstructionsLock = new object();
 
 
-        //maps instruction addresses to list of different instructions that resided at that address
+        /// <summary>
+        /// maps instruction addresses to list of different instructions that resided at that address
+        /// </summary>
         public Dictionary<ulong, List<InstructionData>> disassembly = new Dictionary<ulong, List<InstructionData>>();
-
-
-        //useful for mapping return addresses to callers without a locking search
-        public Dictionary<ulong, ulong> previousInstructionsCache = new Dictionary<ulong, ulong>();
 
 
         /// <summary>
@@ -752,9 +750,16 @@ namespace rgat
         };
 
 
-        //for disassembling saved instructions
-        //takes a capstone context, opcode string, target instruction data struct and the address of the instruction
-        public static int DisassembleIns(CapstoneX86Disassembler disassembler, ulong address, ref InstructionData insdata)
+        /// <summary>
+        /// 
+        /// for disassembling saved instructions
+        /// takes a capstone context, opcode string, target instruction data struct and the address of the instruction
+        /// </summary>
+        /// <param name="disassembler">capstone disassembler instance</param>
+        /// <param name="address">instruction address</param>
+        /// <param name="insdata">partially initialsed instruction data with the bytes</param>
+        /// <returns></returns>
+        public static int DisassembleIns(CapstoneX86Disassembler disassembler, ulong address, ref InstructionData insdata) //todo not a ref?
         {
             X86Instruction[] instructions = disassembler.Disassemble(insdata.Opcodes, (long)address);
             //todo: catch some kind of exception, since i cant see any way of getting error codes
@@ -1088,6 +1093,10 @@ namespace rgat
             return true;
         }
 
+        /// <summary>
+        /// Serialise this process data to JSON
+        /// </summary>
+        /// <returns>JObject of the process data</returns>
         public JObject Serialise()
         {
             JObject result = new JObject();
@@ -1138,7 +1147,7 @@ namespace rgat
                 foreach (var mutation in addr_inslist.Value)
                 {
                     JArray mutationData = new JArray();
-                    string opcodestring = System.Convert.ToBase64String(mutation.Opcodes);
+                    string opcodestring = System.Convert.ToBase64String(mutation.Opcodes!);
                     mutationData.Add(opcodestring);
 
                     JArray threadsUsingInstruction = new JArray();

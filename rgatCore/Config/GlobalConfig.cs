@@ -539,8 +539,8 @@ namespace rgat
         {
             try
             {
-                string path = Settings.FilePath;
-                if (File.Exists(path))
+                string? path = Settings.FilePath;
+                if (path is not null && File.Exists(path))
                 {
                     JsonSerializerOptions serialiseOpts = new JsonSerializerOptions() { WriteIndented = true };
                     string saveText = JsonSerializer.Serialize(Settings, options: serialiseOpts);

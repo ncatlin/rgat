@@ -65,12 +65,16 @@ namespace rgat
             public TraceRecord? Trace;
         }
 
+
+        /// <summary>
+        /// Record of an API call
+        /// </summary>
         public class APICALL
         {
             /// <summary>
             /// The node associated with this call
             /// </summary>
-            public NodeData Node;
+            public NodeData? Node;
             /// <summary>
             /// The index of the call in the call list
             /// </summary>
@@ -86,7 +90,7 @@ namespace rgat
             /// <summary>
             /// The graph associated with the call
             /// </summary>
-            public ProtoGraph Graph;
+            public ProtoGraph? Graph;
 
             /// <summary>
             /// The actual API call ingformation
@@ -148,7 +152,7 @@ namespace rgat
             /// </summary>
             /// <param name="deTok">JToken of the APICALL details</param>
             /// <param name="apiObj">APICALL being deserialised</param>
-            /// <returns></returns>
+            /// <returns>success</returns>
             static bool DeserialiseEffects(JToken deTok, APICALL apiObj)
             {
                 try
@@ -212,15 +216,19 @@ namespace rgat
                 }
             }
 
+            /// <summary>
+            /// Serialise an API event to JSON
+            /// </summary>
+            /// <returns>JObject of the event</returns>
             public JObject Serialise()
             {
 
                 JObject result = new JObject();
-                result.Add("Node", (int)Node.Index);
+                result.Add("Node", (int)Node!.Index);
                 result.Add("CallIdx", Index);
                 result.Add("Repeats", Repeats);
                 result.Add("uniqID", UniqID);
-                result.Add("Graph", Graph.ConstructedTime);
+                result.Add("Graph", Graph!.ConstructedTime);
 
                 if (APIDetails.HasValue)
                 {
@@ -231,11 +239,43 @@ namespace rgat
 
         }
 
+        /// <summary>
+        /// Timeline event types
+        /// </summary>
+        public enum eTimelineEvent {
+            /// <summary>
+            /// A process started
+            /// </summary>
+            ProcessStart, 
+            /// <summary>
+            /// A process stopped
+            /// </summary>
+            ProcessEnd, 
+            /// <summary>
+            /// A thread started
+            /// </summary>
+            ThreadStart, 
+            /// <summary>
+            /// A thread stopped
+            /// </summary>
+            ThreadEnd, 
+            /// <summary>
+            /// An API call was recorded
+            /// </summary>
+            APICall
+        }
 
-        public enum eTimelineEvent { ProcessStart, ProcessEnd, ThreadStart, ThreadEnd, APICall }
 
+        /// <summary>
+        /// A timeline event
+        /// </summary>
         public class TIMELINE_EVENT : LOG_EVENT
         {
+            /// <summary>
+            /// Create a timeline event
+            /// </summary>
+            /// <param name="timelineEventType">The base category</param>
+            /// <param name="item">The event data</param>
             public TIMELINE_EVENT(eTimelineEvent timelineEventType, object item) : base(eLogFilterBaseType.TimeLine)
             {
                 _eventType = timelineEventType;
@@ -258,7 +298,7 @@ namespace rgat
                         }
                     case eTimelineEvent.APICall:
                         {
-                            TraceRecord process = ((APICALL)item).Graph.TraceData;
+                            TraceRecord process = ((APICALL)item).Graph!.TraceData;
                             SetIDs(process.PID);
                             break;
                         }
@@ -270,6 +310,11 @@ namespace rgat
             }
 
 
+            /// <summary>
+            /// Deserialise a timeline event from JSON
+            /// </summary>
+            /// <param name="jobj">A json timeline obj</param>
+            /// <param name="trace">The trace assocated with the timeline event</param>
             public TIMELINE_EVENT(JObject jobj, TraceRecord trace) : base(eLogFilterBaseType.TimeLine)
             {
                 if (!jobj.TryGetValue("EvtType", out JToken? evtType) || evtType.Type != JTokenType.Integer)
@@ -395,7 +440,7 @@ namespace rgat
                     case eTimelineEvent.APICall:
                         {
                             Logging.APICALL call = (Logging.APICALL)_item;
-                            NodeData n = call.Node;
+                            NodeData n = call.Node!;
                             var labelitems = n.CreateColourisedSymbolCall(call.Graph, call.Index, textColour, Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1));
                             _cachedLabel.AddRange(labelitems);
                             break;
@@ -438,7 +483,7 @@ namespace rgat
             /// an error was encountered processing this event, usually on the timeline chart
             /// this does not indicate an error with the actual API
             /// </summary>
-            public string MetaError = null;
+            public string? MetaError = null;
 
             /// <summary>
             /// The event has been inted
@@ -452,6 +497,9 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Categories of log event
+        /// </summary>
         public enum LogFilterType
         {
             /// <summary>
@@ -637,7 +685,7 @@ namespace rgat
         }
 
 
-        static System.IO.StreamWriter _logFile = null;
+        static System.IO.StreamWriter? _logFile = null;
         static void WriteToDebugFile(TEXT_LOG_EVENT log)
         {
             if (System.Threading.Thread.CurrentThread.Name != null && System.Threading.Thread.CurrentThread.Name.Contains("TracePro")) return;
@@ -663,6 +711,7 @@ namespace rgat
             }
         }
 
+        /*
         public static LOG_EVENT[] GetErrorMessages()
         {
             lock (_messagesLock)
@@ -671,9 +720,15 @@ namespace rgat
                 return _logMessages.Where(x => x.LogType == eLogFilterBaseType.Text && x.Filter == LogFilterType.TextError).ToArray();
 
             }
-        }
+        }*/
 
-        public static LOG_EVENT[] GetLogMessages(TraceRecord trace, bool[] filters)
+        /// <summary>
+        /// Fetch messages for a filter and clear pending alerts
+        /// </summary>
+        /// <param name="trace">Specific trace to getch messages for</param>
+        /// <param name="filters">Filters to match</param>
+        /// <returns>Array of log events</returns>
+        public static LOG_EVENT[] GetLogMessages(TraceRecord? trace, bool[] filters)
         {
             lock (_messagesLock)
             {
@@ -686,9 +741,15 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Alerts awaiting viewing
+        /// </summary>
         public static int UnseenAlerts { get; set; } = 0;
 
         static DateTime _lastAlert = DateTime.MinValue;
+        /// <summary>
+        /// How fresh the latest alert is
+        /// </summary>
         public static TimeSpan TimeSinceLastAlert => DateTime.Now - _lastAlert;
 
 

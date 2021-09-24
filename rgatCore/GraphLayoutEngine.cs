@@ -362,10 +362,10 @@ namespace rgat
 
 
             var now = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
-            float delta = Math.Min((now - graph.lastRenderTime) / 1000f, 1.0f);// safety cap on large deltas
+            float delta = Math.Min((now - graph.LastComputeTime) / 1000f, 1.0f);// safety cap on large deltas
             delta *= (graph.LayoutState.ActivatingPreset ? 7.5f : 1.0f); //without this the preset animation will 'bounce'
 
-            graph.lastRenderTime = now;
+            graph.LastComputeTime = now;
 
             ResourceSet? attribComputeResourceSet = null;
             ResourceSetDescription velocity_rsrc_desc, pos_rsrc_desc, attr_rsrc_desc;

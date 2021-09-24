@@ -1055,7 +1055,7 @@ namespace rgat.Testing
                 _passed[sessionID] = val + 1;
 
                 LatestResultState = eTestState.Passed;
-                testrun.ResultCommentary.result = eTestState.Passed;
+                testrun.ResultCommentary.Verdict = eTestState.Passed;
                 LatestTestRun = testrun;
             }
         }
@@ -1081,7 +1081,7 @@ namespace rgat.Testing
                 _failed.TryGetValue(sessionID, out int val);
                 _failed[sessionID] = val + 1;
                 LatestResultState = eTestState.Failed;
-                testrun.ResultCommentary.result = eTestState.Failed;
+                testrun.ResultCommentary.Verdict = eTestState.Failed;
                 LatestTestRun = testrun;
                 LatestErrorReason = reason;
             }

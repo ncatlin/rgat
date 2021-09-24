@@ -7,9 +7,9 @@ namespace rgat.Testing
 {
     class TestRunThread
     {
-        readonly TestCase _testCase = null;
+        readonly TestCase _testCase;
         readonly TestCaseRun _thisTest;
-        Thread thisThread;
+        Thread? thisThread;
         readonly rgatState _rgatState;
         public bool Running { get; private set; } = false;
         public bool Finished { get; private set; } = false;
@@ -32,7 +32,7 @@ namespace rgat.Testing
             thisThread.Start(null);
         }
 
-        void TestMain(Object _)
+        void TestMain(Object? _)
         {
             if (!File.Exists(_testCase.BinaryPath))
             {

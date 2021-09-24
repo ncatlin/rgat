@@ -48,11 +48,9 @@ namespace rgat.Threads
         public void ThreadProc()
         {
             PlottedGraph? activeGraph;
-            Veldrid.CommandList cl = _clientState._GraphicsDevice!.ResourceFactory.CreateCommandList();
             while (!rgatState.rgatIsExiting)
             {
-
-                activeGraph = _clientState.getActiveGraph();
+                activeGraph = _clientState!.getActiveGraph();
                 while (activeGraph == null)
                 {
                     Thread.Sleep(50);

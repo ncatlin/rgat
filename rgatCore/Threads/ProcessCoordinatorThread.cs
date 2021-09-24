@@ -6,16 +6,17 @@ using System.Threading.Tasks;
 
 namespace rgat.Threads
 {
+    /// <summary>
+    /// Listens for connections from new processes and spawns workers to handle them
+    /// </summary>
     public class ProcessCoordinatorThread : TraceProcessorWorker
     {
         readonly byte[] buf = new byte[1024];
-        NamedPipeServerStream coordPipe = null;
+        NamedPipeServerStream? coordPipe = null;
 
-
-        public ProcessCoordinatorThread()
-        {
-        }
-
+        /// <summary>
+        /// Start work
+        /// </summary>
         public override void Begin()
         {
             base.Begin();
@@ -27,7 +28,7 @@ namespace rgat.Threads
         void GotMessage(IAsyncResult ir)
         {
 
-            int bytesRead = coordPipe.EndRead(ir);
+            int bytesRead = coordPipe!.EndRead(ir);
 
             bytesRead = Array.FindIndex(buf, elem => elem == 0);
 
@@ -91,13 +92,15 @@ namespace rgat.Threads
 
         }
 
-
+        /// <summary>
+        /// The actual listener function
+        /// </summary>
         public void Listener()
         {
             try
             {
 
-                coordPipe = new NamedPipeServerStream(rgatState.LocalCoordinatorPipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
+                coordPipe = new NamedPipeServerStream(rgatState.LocalCoordinatorPipeName!, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
             }
             catch (System.IO.IOException e)
             {
@@ -187,7 +190,7 @@ namespace rgat.Threads
             BinaryTarget? target;
             if (!rgatState.targets.GetTargetByPath(path: programName, out target) || target is null)
             {
-                target = _clientState.AddTargetByPath(path: programName, arch: arch, isLibrary: isLibrary, makeActive: true);
+                target = _clientState!.AddTargetByPath(path: programName, arch: arch, isLibrary: isLibrary, makeActive: true);
             }
 
             if (target.BitWidth != arch)
@@ -245,7 +248,7 @@ namespace rgat.Threads
             {
                 trace.SetTestRunID(testID);
                 trace.Target.MarkTestBinary();
-                _clientState.RecordTestRunConnection(testID, trace);
+                _clientState!.RecordTestRunConnection(testID, trace);
             }
 
             ModuleHandlerThread moduleHandler = new ModuleHandlerThread(trace.Target, trace);

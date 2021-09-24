@@ -18,8 +18,8 @@ namespace rgat
         readonly rgatState _rgatState;
 
         //threads
-        Threads.VisualiserBarRendererThread visbarRenderThreadObj = null;
-        Threads.MainGraphRenderThread mainRenderThreadObj = null;
+        Threads.VisualiserBarRendererThread? visbarRenderThreadObj = null;
+        Threads.MainGraphRenderThread? mainRenderThreadObj = null;
 
         public double UIFrameAverage = 0;
 
@@ -51,13 +51,13 @@ namespace rgat
         /// <summary>
         /// Called whenever the widget opens/closes an inner dialog
         /// </summary>
-        /// <param name="action">Function to call when dialog is opened/closed. Param is open/closed state.</param>
+        /// <param name="callback">Function to call when dialog is opened/closed. Param is open/closed state.</param>
         public void SetDialogStateChangeCallback(Action<bool> callback)
         {
             _dialogStateChangeCallback = callback;
             MainGraphWidget.SetStateChangeCallback(callback);
         }
-        Action<bool> _dialogStateChangeCallback = null;
+        Action<bool>? _dialogStateChangeCallback = null;
 
 
         public void Draw()
@@ -748,7 +748,7 @@ namespace rgat
                     {
                         ImGui.BeginTooltip();
                         ImGui.Text("How long it takes to complete a step of graph layout");
-                        ImGui.Text($"Layout Cumulative Time: {MainGraphWidget.ActiveGraph.ComputeLayoutTime} ({MainGraphWidget.ActiveGraph.ComputeLayoutSteps} steps");
+                        ImGui.Text($"Layout Cumulative Time: {MainGraphWidget.ActiveGraph?.ComputeLayoutTime} MS - ({MainGraphWidget.ActiveGraph?.ComputeLayoutSteps} steps");
                         ImGui.EndTooltip();
                     }
                     //ImGui.Text($"AllocMem: {_controller.graphicsDevice.MemoryManager._totalAllocatedBytes}");
@@ -984,7 +984,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("Total Layout Steps");
                     ImGui.TableNextColumn();
-                    ImGui.Text($"{MainGraphWidget.ActiveGraph.ComputeLayoutSteps}");
+                    ImGui.Text($"{MainGraphWidget.ActiveGraph?.ComputeLayoutSteps}");
                     ImGui.TableNextColumn();
                     ImGui.Text("How many steps it took to create this layout");
 
@@ -992,7 +992,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("Total Layout Time");
                     ImGui.TableNextColumn();
-                    ImGui.Text($"{MainGraphWidget.ActiveGraph.ComputeLayoutTime:0.#} MS");
+                    ImGui.Text($"{MainGraphWidget.ActiveGraph?.ComputeLayoutTime:0.#} MS");
                     ImGui.TableNextColumn();
                     ImGui.Text("Total GPU time used to generate this layout");
 

@@ -9,6 +9,10 @@ namespace rgat.Testing
     /// </summary>
     public class TestResultCommentary
     {
+        /// <summary>
+        /// Create a test result commentary
+        /// </summary>
+        /// <param name="req">The requirement being explained</param>
         public TestResultCommentary(TestRequirement req) {
             requirement = req;
         }
@@ -37,34 +41,31 @@ namespace rgat.Testing
 
     }
 
+    /// <summary>
+    /// Information about test results
+    /// </summary>
     public class TraceTestResultCommentary
     {
-
+        /// <summary>
+        /// Whole test run requirement results
+        /// </summary>
         public Dictionary<TestRequirement, TestResultCommentary> generalTests = new Dictionary<TestRequirement, TestResultCommentary>();
 
         //trace tests have a set of process results, each must match up to a process
         //public Dictionary<TraceRecord, TRACE_TEST_RESULTS> processTests = new Dictionary<TraceRecord, TRACE_TEST_RESULTS>();
-        public Dictionary<TraceRecord, TRACE_TEST_RESULTS> processTests = new Dictionary<TraceRecord, TRACE_TEST_RESULTS>();
-        public TRACE_TEST_RESULTS traceResultsB = new TRACE_TEST_RESULTS();
-        //public Dictionary<REQUIREMENTS_LIST, TestResultCommentary> threadTests = new Dictionary<REQUIREMENTS_LIST, TestResultCommentary>();
-
-        public Dictionary<REQUIREMENTS_LIST, Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS>> threadTests =
-    new Dictionary<REQUIREMENTS_LIST, Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS>>();
-
-
-        /*
-
-        public List<
-            List<Tuple<TestRequirement, TestResultCommentary>>
-            > threadTests = new List<List<Tuple<TestRequirement, TestResultCommentary>>>();
-        */
-
-        public TraceRequirements traceRequirements;
-        public TestRequirement singleRequirement;
-        public eTestState result;
-        public string Note;
-        public List<ProtoGraph> matchingGraphs = new List<ProtoGraph>();
-        public List<TraceRecord> matchingTraces = new List<TraceRecord>();
+        /// <summary>
+        /// Process trace requirement results
+        /// </summary>
+        public TRACE_TEST_RESULTS traceResults = new TRACE_TEST_RESULTS();
+        /// <summary>
+        /// Thread requirement results
+        /// </summary>
+        public Dictionary<REQUIREMENTS_LIST, Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS>> threadTests = new();
+        /// <summary>
+        /// The final overall test result
+        /// </summary>
+        public eTestState Verdict;
+        //public string Note;
 
     }
 
@@ -327,17 +328,6 @@ namespace rgat.Testing
         {
             if (length < 2) return list.Select(t => new T[] { t });
             return GetPermutationsWithRept(list, length - 1).SelectMany(t => list, (t1, t2) => t1.Concat(new T[] { t2 }));
-        }
-
-
-
-        public TestResult[]? Results()
-        {
-            if (!Complete) return null;
-            lock (_lock)
-            {
-                return results.ToArray();
-            }
         }
     }
 }
