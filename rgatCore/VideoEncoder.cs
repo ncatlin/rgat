@@ -346,7 +346,7 @@ namespace rgat
             return targetfile;
         }
 
-        private Speed GetVideoSpeed()
+        private static Speed GetVideoSpeed()
         {
             Speed result;
             try
@@ -513,7 +513,7 @@ namespace rgat
             return false;
         }
 
-        private void DrawNoLibSettingsPane()
+        private static void DrawNoLibSettingsPane()
         {
 
             ImGui.Text("Use of video capture requires the FFmpeg.exe executable, which has to be downloaded seperately");

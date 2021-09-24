@@ -65,9 +65,10 @@ namespace rgat
             RefreshRules(rulesDir);
         }
 
+
         // have to check libyara exists before attempting to use dnYara
         // otherwise the destructor will crash us when it fails
-        private bool CheckLibraryExists()
+        private static bool CheckLibraryExists()
         {
             try
             {
@@ -89,6 +90,7 @@ namespace rgat
             return false;
         }
 
+
         /// <summary>
         /// Destructor
         /// </summary>
@@ -103,6 +105,7 @@ namespace rgat
 
             }
         }
+
 
         /// <summary>
         /// A serialisable YARA hit record
@@ -526,7 +529,7 @@ namespace rgat
         /// <summary>
         /// Send the signatures on this device to the connected device
         /// </summary>
-        public void UploadSignatures()
+        public static void UploadSignatures()
         {
             try
             {
@@ -556,7 +559,7 @@ namespace rgat
         /// Replace the signatures on this device with signatures from the remote device
         /// </summary>
         /// <param name="zipfile">bytes of a zipped signature directory</param>
-        public void ReplaceSignatures(byte[] zipfile)
+        public static void ReplaceSignatures(byte[] zipfile)
         {
             Console.WriteLine($"Replacing yara sigs with zip size {zipfile.Length}");
             try

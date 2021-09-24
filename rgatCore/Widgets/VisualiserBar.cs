@@ -392,7 +392,7 @@ namespace rgat.Widgets
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.White), Position = new Vector2(xMid + 2, yStart + 2 + len) });
         }
 
-        private void CreateRect(WritableRgbaFloat colour, float leftX, float topY, float width, float height, ref List<Position2DColour> triangles)
+        private static void CreateRect(WritableRgbaFloat colour, float leftX, float topY, float width, float height, ref List<Position2DColour> triangles)
         {
             triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX, topY) });
             triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX, topY + height) });
@@ -402,7 +402,7 @@ namespace rgat.Widgets
             triangles.Add(new Position2DColour() { Color = colour, Position = new Vector2(leftX + width, topY + height) });
         }
 
-        private void DrawAPIEntry(float Xoffset, float Yoffset, float width, int moduleID, string module, string symbol, ref List<Position2DColour> lines)
+        private static void DrawAPIEntry(float Xoffset, float Yoffset, float width, int moduleID, string module, string symbol, ref List<Position2DColour> lines)
         {
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset, Yoffset) });
             lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset + width, Yoffset + 8) });

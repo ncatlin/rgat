@@ -240,7 +240,7 @@ namespace rgat
             }
         }
 
-        private void DrawProcessNodeTable(TraceRecord trace)
+        private static void DrawProcessNodeTable(TraceRecord trace)
         {
             if (ImGui.BeginTable("#ProcSelTl", 2))
             {
@@ -274,7 +274,7 @@ namespace rgat
             }
         }
 
-        private void DrawThreadNodeTable(ProtoGraph thread)
+        private static void DrawThreadNodeTable(ProtoGraph thread)
         {
             if (ImGui.BeginTable("#ThreadSelTl", 2))
             {
@@ -309,7 +309,7 @@ namespace rgat
             }
         }
 
-        public void DrawAPIInfoTable(TIMELINE_EVENT evt)
+        public static void DrawAPIInfoTable(TIMELINE_EVENT evt)
         {
             if (ImGui.BeginTable("#ThreadSelTl", 2))
             {

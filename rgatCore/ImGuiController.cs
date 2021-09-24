@@ -598,7 +598,7 @@ namespace ImGuiNET
         /// <param name="name">shader name</param>
         /// <param name="stage">unused</param>
         /// <returns>shader bytes or null if not found</returns>
-        public byte[]? LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
+        public static byte[]? LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
         {
             switch (factory.BackendType)
             {
@@ -627,7 +627,8 @@ namespace ImGuiNET
             }
         }
 
-        private byte[]? GetEmbeddedResourceBytes(string resourceName)
+
+        private static byte[]? GetEmbeddedResourceBytes(string resourceName)
         {
             Assembly assembly = typeof(ImGuiController).Assembly;
 

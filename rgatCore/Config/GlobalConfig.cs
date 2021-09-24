@@ -497,6 +497,14 @@ namespace rgat
 
 
         /// <summary>
+        /// Failed signature checks
+        /// </summary>
+        /// <param name="errors">Signature validation errors</param>
+        /// <returns>Errors were found</returns>
+        public static bool BadSigners(out List<Tuple<string, string>>? errors) => rgatSettings.PathSettings.BadSigners(out errors);
+
+
+        /// <summary>
         /// Get the code signing certificate validation result for a binary
         /// </summary>
         /// <param name="path">Path of the binary</param>
@@ -506,7 +514,7 @@ namespace rgat
         public static bool PreviousSignatureCheckPassed(string path, out string? error, out bool timeWarning)
         {
             timeWarning = false;
-            if (Settings.ToolPaths.BadSigners(out List<Tuple<string, string>>? signerErrors))
+            if (BadSigners(out List<Tuple<string, string>>? signerErrors))
             {
                 foreach (var val in signerErrors!)
                 {

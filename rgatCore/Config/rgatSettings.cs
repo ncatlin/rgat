@@ -46,6 +46,8 @@ namespace rgat.Config
         /// <param name="_updateAction">callback</param>
         public static void SetChangeCallback(Action _updateAction) => MarkDirtyCallback = _updateAction;
 
+
+
         private static void MarkDirty()
         {
             if (MarkDirtyCallback != null)
@@ -712,7 +714,7 @@ namespace rgat.Config
             /// </summary>
             /// <param name="errors">Signature validation errors</param>
             /// <returns>Errors were found</returns>
-            public bool BadSigners(out List<Tuple<string, string>>? errors)
+            public static bool BadSigners(out List<Tuple<string, string>>? errors)
             {
                 lock (_lock)
                 {
@@ -726,6 +728,7 @@ namespace rgat.Config
                 return false;
             }
         }
+
 
         /// <summary>
         /// Configuration for tracing

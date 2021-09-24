@@ -67,8 +67,11 @@ namespace rgat
         private Vector2 _mouseDragDelta = new Vector2(0, 0);
 
         private bool DialogOpen => _controller.DialogOpen;
-        public bool MenuBarVisible => (_rgatState.ActiveTarget != null || _splashHeaderHover ||
-            _logsWindow!.RecentAlert() || DialogOpen || (DateTime.Now - _lastNotification).TotalMilliseconds < 500);
+        public bool MenuBarVisible => (_rgatState.ActiveTarget is not null || 
+            _splashHeaderHover ||
+            LogsWindow.RecentAlert() || 
+            DialogOpen || 
+            (DateTime.Now - _lastNotification).TotalMilliseconds < 500);
 
         private bool _splashHeaderHover = false;
         private DateTime _lastNotification = DateTime.MinValue;
@@ -802,7 +805,7 @@ namespace rgat
                     PlottedGraph? graph = _rgatState.ActiveGraph;
                     if (record is not null && graph is not null)
                     {
-                        _rgatState.ExportTraceAsPajek(record, graph.TID);
+                        rgatState.ExportTraceAsPajek(record, graph.TID);
                     }
                 }
                 ImGui.Separator();
@@ -1012,7 +1015,8 @@ namespace rgat
             }
         }
 
-        private void OpenDirectoryInFileBrowser(string? path, string label)
+
+        private static void OpenDirectoryInFileBrowser(string? path, string label)
         {
             try
             {
@@ -1082,7 +1086,7 @@ namespace rgat
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
             {
                 ToggleLogsWindow();
-                _logsWindow!.ShowAlerts();
+                LogsWindow.ShowAlerts();
                 Logging.ClearAlertsBox();
             }
 
@@ -1149,7 +1153,7 @@ namespace rgat
                 return false;
             }
 
-            int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
+            Logging.GetAlerts(8, out LOG_EVENT[] alerts);
             if (alerts.Length == 0)
             {
                 return false;
@@ -1362,7 +1366,7 @@ namespace rgat
 
         }
 
-        public bool IsrgatSavedTrace(string filestart)
+        public static bool IsrgatSavedTrace(string filestart)
         {
             if (filestart.StartsWith("{\""))
             {

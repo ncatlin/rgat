@@ -28,7 +28,7 @@ namespace rgat
         //takes a directory path. if it contains a db/_init path - returns db folder
         //otherwise if it contains a db.zip file - returns that
         //this allows a bit of flexibiilty if the user wants to cut down on files 
-        private string GetScriptsPath(string sigsDiEPath)
+        private static string GetScriptsPath(string sigsDiEPath)
         {
             if (Path.GetDirectoryName(sigsDiEPath) == "db")
             {
@@ -281,7 +281,7 @@ namespace rgat
         /// <summary>
         /// Zip up the DIE sigs database and sent it to the remote party
         /// </summary>
-        public void UploadSignatures()
+        public static void UploadSignatures()
         {
             try
             {
@@ -312,7 +312,7 @@ namespace rgat
         /// Replace the DIE signatures directory
         /// </summary>
         /// <param name="zipfile">A zipfile of signatures</param>
-        public void ReplaceSignatures(byte[] zipfile)
+        public static void ReplaceSignatures(byte[] zipfile)
         {
             Console.WriteLine($"Replacing die sigs with zip size {zipfile.Length}");
             try

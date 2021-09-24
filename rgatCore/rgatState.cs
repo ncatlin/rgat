@@ -653,7 +653,7 @@ namespace rgat
         /// </summary>
         /// <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
         /// <param name="childrenFiles">A list of relative filesystem paths of child traces</param>
-        private void ExtractChildTraceFilenames(JObject saveJSON, out List<string> childrenFiles)
+        private static void ExtractChildTraceFilenames(JObject saveJSON, out List<string> childrenFiles)
         {
             childrenFiles = new List<string>();
             if (saveJSON.TryGetValue("Children", out JToken? jChildren) && jChildren.Type == JTokenType.Array)
@@ -748,10 +748,8 @@ namespace rgat
         /// <summary>
         /// Export the current trace in the pajek format, a simple graph serialisation format that other graph layout programs accept
         /// </summary>
-        public void ExportTraceAsPajek(TraceRecord trace, uint TID)
-        {
-            trace.ExportPajek(TID);
-        }
+        public static void ExportTraceAsPajek(TraceRecord trace, uint TID) => trace.ExportPajek(TID);
+
 
         private readonly object _testDictLock = new object();
         private readonly Dictionary<long, TraceRecord> _testConnections = new Dictionary<long, TraceRecord>();

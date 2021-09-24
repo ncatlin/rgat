@@ -20,18 +20,12 @@ namespace rgat.Threads
             WorkerThread.Start();
         }
 
-        public void Dispose()
+        public static void Dispose()
         {
 
         }
 
         private readonly VisualiserBar _visualiserBarWidget;
-
-        private void update_rendering(PlottedGraph graph)
-        {
-
-
-        }
 
         public void ThreadProc()
         {

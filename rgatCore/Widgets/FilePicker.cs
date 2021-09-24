@@ -767,7 +767,7 @@ namespace rgatFilePicker
             return true;
         }
 
-        private bool ParseRemoteDirectoryContents(string dirpath, JObject remoteData, out DirectoryContents contents)
+        private static bool ParseRemoteDirectoryContents(string dirpath, JObject remoteData, out DirectoryContents contents)
         {
             contents = new DirectoryContents(dirpath);
             if (!remoteData.TryGetValue("Files", out JToken? filesTok) || filesTok.Type != JTokenType.Array

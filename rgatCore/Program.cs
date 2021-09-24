@@ -57,7 +57,7 @@ namespace ImGuiNET
                     rgatState.NetworkBridge.GUIMode = false;
                     CommandLineRunner runner = new CommandLineRunner();
                     runner.InitNoGPU();
-                    runner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: false);
+                    CommandLineRunner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: false);
                     break;
 
                 case LaunchConfig.eRunMode.GPURenderCommand:

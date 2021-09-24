@@ -978,7 +978,7 @@ namespace rgat
 
         }
 
-        private void EnlargeRAMDataBuffers(uint size, CPUBuffers bufs)
+        private static void EnlargeRAMDataBuffers(uint size, CPUBuffers bufs)
         {
             float[] newVelocityArr1 = new float[size];
             float[] newPositionsArr1 = new float[size];
@@ -1100,7 +1100,7 @@ namespace rgat
         /// and then into arrangement
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
-        private void ExplodePositions(CPUBuffers layoutRAMBuffers)
+        private static void ExplodePositions(CPUBuffers layoutRAMBuffers)
         {
             Random rnd = new Random();
 
@@ -1127,7 +1127,7 @@ namespace rgat
         /// Attraction dominates the intial stages of layout
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
-        private void ImplodePositions(CPUBuffers layoutRAMBuffers)
+        private static void ImplodePositions(CPUBuffers layoutRAMBuffers)
         {
             Random rnd = new Random();
 
@@ -1147,7 +1147,7 @@ namespace rgat
         }
 
         //https://karthikkaranth.me/blog/generating-random-points-in-a-sphere/
-        private void getPoint(Random rnd, float radius, out float x, out float y, out float z)
+        private static void getPoint(Random rnd, float radius, out float x, out float y, out float z)
         {
             var u = rnd.NextDouble();
             var v = rnd.NextDouble();
@@ -1168,7 +1168,7 @@ namespace rgat
         /// Balance of attraction and repulsion will move them into position
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
-        private void ScatterPositions(CPUBuffers layoutRAMBuffers)
+        private static void ScatterPositions(CPUBuffers layoutRAMBuffers)
         {
             Random rnd = new Random();
             int MaxDimension = (layoutRAMBuffers.VelocityArray.Length / 4) * 3;

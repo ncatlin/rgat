@@ -139,9 +139,9 @@ namespace rgat.Widgets
             _netIFList.AddRange(newInterfaces);
         }
 
-        private void RegenerateKey()
+        private static void RegenerateKey()
         {
-            Regex matchSimilar = new Regex(@"[\.1IO0]");
+            Regex matchSimilar = new Regex(@"[\.1lIO0]"); //get rid of characters that look like other characters
             string newkey = "";
             while (newkey.Length != CONSTANTS.NETWORK.DefaultKeyLength) //avoid hard to distinguish characters
             {
@@ -469,7 +469,8 @@ namespace rgat.Widgets
             }
         }
 
-        private void DrawBothModeOptions()
+
+        private static void DrawBothModeOptions()
         {
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
@@ -703,13 +704,13 @@ namespace rgat.Widgets
             }
         }
 
-        private void SelectRemoteAddress(string address)
+        private static void SelectRemoteAddress(string address)
         {
             GlobalConfig.StartOptions.ConnectModeAddress = address;
             GlobalConfig.Settings.Network.DefaultConnectAddress = address;
         }
 
-        private void DrawMessagesList(float itemsWidth)
+        private static void DrawMessagesList(float itemsWidth)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
             if (ImGui.BeginChild("##MsgsFrame1", new Vector2(itemsWidth, ImGui.GetContentRegionAvail().Y - 30), false, ImGuiWindowFlags.HorizontalScrollbar))
@@ -770,10 +771,6 @@ namespace rgat.Widgets
             }
         }
 
-        private void WaitFinishSync()
-        {
-
-        }
 
         private bool _syncingSigs = false;
 
@@ -786,12 +783,12 @@ namespace rgat.Widgets
                 List<Task> tasks = new List<Task>();
                 if (rgatState.YARALib is not null)
                 {
-                    tasks.Add(Task.Run(() => rgatState.YARALib.UploadSignatures()));
+                    tasks.Add(Task.Run(() => YARAScanner.UploadSignatures()));
                 }
 
                 if (rgatState.DIELib is not null)
                 {
-                    tasks.Add(Task.Run(() => rgatState.DIELib.UploadSignatures()));
+                    tasks.Add(Task.Run(() => DetectItEasy.UploadSignatures()));
                 }
 
                 if (tasks.Any())

@@ -131,7 +131,7 @@ namespace rgat.Widgets
         }
 
 
-        private void HandleMouseoverSym(PlottedGraph graph, moduleEntry module_modentry, symbolInfo syminfo)
+        private static void HandleMouseoverSym(PlottedGraph graph, moduleEntry module_modentry, symbolInfo syminfo)
         {
             module_modentry.symbols[syminfo.address] = syminfo;
             if (syminfo.hovered)

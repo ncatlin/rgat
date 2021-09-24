@@ -105,7 +105,7 @@ namespace rgat.OperationModes
         /// <param name="targetPath">Binary to trace</param>
         /// <param name="saveDirectory">Where to save the result</param>
         /// <param name="recordVideo">If a video is being recorded</param>
-        public void TraceBinary(string targetPath, string? saveDirectory = null, bool recordVideo = false)
+        public static void TraceBinary(string targetPath, string? saveDirectory = null, bool recordVideo = false)
         {
 
             Console.WriteLine($"Command line mode tracing binary {targetPath}");

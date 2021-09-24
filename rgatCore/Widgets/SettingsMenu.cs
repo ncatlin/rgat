@@ -797,7 +797,7 @@ namespace rgat.Widgets
 
         private eRepoChangeState _repoChangeState = eRepoChangeState.Inactive;
 
-        private void DeleteSources(List<string> sources, bool eraseFiles)
+        private static void DeleteSources(List<string> sources, bool eraseFiles)
         {
             foreach (string path in sources)
             {
@@ -813,13 +813,13 @@ namespace rgat.Widgets
                 }
                 else
                 {
-                    _githubSigDownloader.PurgeRepoFiles(source);
+                    GithubSignatureManager.PurgeRepoFiles(source);
                     GlobalConfig.Settings.Signatures.DeleteSignatureSource(path);
                 }
             }
         }
 
-        private void AddInputSources(List<GlobalConfig.SignatureSource> repoPaths)
+        private static void AddInputSources(List<GlobalConfig.SignatureSource> repoPaths)
         {
             for (var i = 0; i < repoPaths.Count; i++)
             {
@@ -1091,7 +1091,7 @@ namespace rgat.Widgets
             DrawFileSelectBox();
         }
 
-        private void ChoseSettingPath(CONSTANTS.PathKey setting, string path)
+        private static void ChoseSettingPath(CONSTANTS.PathKey setting, string path)
         {
             switch (setting)
             {
@@ -1426,12 +1426,13 @@ namespace rgat.Widgets
 
         }
 
-        private void CreateOptionsPane_VideoEncode()
+
+        private static void CreateOptionsPane_VideoEncode()
         {
             rgatState.VideoRecorder?.DrawSettingsPane();
         }
 
-        private void CreateOptionsPane_Miscellaneous()
+        private static void CreateOptionsPane_Miscellaneous()
         {
             bool debglog = GlobalConfig.Settings.Logs.BulkLogging;
             if (ImGui.Checkbox("Bulk Debug Logging", ref debglog))
@@ -1574,7 +1575,8 @@ namespace rgat.Widgets
             ImGui.EndGroup();
         }
 
-        private void DeleteCurrentTheme()
+
+        private static void DeleteCurrentTheme()
         {
             Themes.GetMetadataValue("Name", out string? oldTheme);
             //todo load default theme
@@ -1594,6 +1596,7 @@ namespace rgat.Widgets
             }
         }
 
+
         private void CreateThemeTester()
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.WindowBg));
@@ -1609,6 +1612,7 @@ namespace rgat.Widgets
 
         private bool testCheck = true;
         private float testSlider = 25f;
+
 
         private void DrawThemeTestFrame()
         {
@@ -1686,6 +1690,7 @@ namespace rgat.Widgets
             }
         }
 
+
         private unsafe void CreateThemeSelectors()
         {
             bool changed = Themes.DrawColourSelectors();
@@ -1696,12 +1701,14 @@ namespace rgat.Widgets
             }
         }
 
+
         private void RegenerateUIThemeJSON()
         {
             _theme_UI_JSON = Themes.RegenerateUIThemeJSON();
             _theme_UI_JSON_Text = _theme_UI_JSON;
             _UI_JSON_edited = false;
         }
+
 
         private void ApplyNewThemeJSONToUI()
         {
@@ -1720,10 +1727,9 @@ namespace rgat.Widgets
             _UI_JSON_edited = (_theme_UI_JSON != _theme_UI_JSON_Text);
         }
 
-        private void ActivateUIThemePreset(string name)
-        {
-            Themes.LoadTheme(name);
-        }
+
+        private static void ActivateUIThemePreset(string name) => Themes.LoadTheme(name);
+
 
         private void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex, string? tooltip = null)
         {
@@ -1802,6 +1808,7 @@ namespace rgat.Widgets
 
             ImGui.PopStyleColor();
         }
+
 
         private void DoClickToSetKeybind(string caption, eKeybind action, int bindIndex)
         {

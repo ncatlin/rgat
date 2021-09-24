@@ -2021,7 +2021,7 @@ namespace rgat
             return true;
         }
 
-        private bool GetTestEdgeCount(JObject edgeObj, out ulong count)
+        private static bool GetTestEdgeCount(JObject edgeObj, out ulong count)
         {
             if (edgeObj.TryGetValue("Count", out JToken? countTok))
             {

@@ -106,7 +106,7 @@ namespace rgat.Widgets
         public ItemNode? GetSelectedNode => _selectedNode;
         public Logging.TIMELINE_EVENT? SelectedAPIEvent { get; private set; }
 
-        private Vector2 Point2Vec(GraphShape.Point point) => new Vector2((float)point.X, (float)point.Y);
+        private static Vector2 Point2Vec(GraphShape.Point point) => new Vector2((float)point.X, (float)point.Y);
 
         private Vector2 chartOffset = Vector2.Zero;
 

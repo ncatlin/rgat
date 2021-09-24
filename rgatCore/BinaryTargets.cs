@@ -74,8 +74,7 @@ namespace rgat
         {
             lock (targetslock)
             {
-                BinaryTarget? target = null;
-                if (!targets.TryGetValue(path, out target))
+                if (!targets.TryGetValue(path, out BinaryTarget? target))
                 {
                     target = new BinaryTarget(path, arch, remoteAddr, isLibrary: isLibrary);
                     targets.Add(path, target);

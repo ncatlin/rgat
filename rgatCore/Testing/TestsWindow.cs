@@ -847,7 +847,8 @@ namespace rgat.Widgets
             }
         }
 
-        private void DrawValidTestcaseTooltip(TestCase testcase)
+
+        private static void DrawValidTestcaseTooltip(TestCase testcase)
         {
             ImGui.BeginTooltip();
 
@@ -876,7 +877,7 @@ namespace rgat.Widgets
             ImGui.EndTooltip();
         }
 
-        private void DrawFailedTestTooltip(TestCase testcase)
+        private static void DrawFailedTestTooltip(TestCase testcase)
         {
             ImGui.BeginTooltip();
 
@@ -897,7 +898,8 @@ namespace rgat.Widgets
             ImGui.EndTooltip();
         }
 
-        private void DrawInvalidTestcaseTooltip(TestCase testcase)
+
+        private static void DrawInvalidTestcaseTooltip(TestCase testcase)
         {
             ImGui.BeginTooltip();
             ImGui.Text("Failed to load " + testcase.JSONPath);
@@ -908,6 +910,7 @@ namespace rgat.Widgets
             }
             ImGui.EndTooltip();
         }
+
 
         private void DrawTestsTree()
         {

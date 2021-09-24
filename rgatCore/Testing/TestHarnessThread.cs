@@ -36,9 +36,6 @@ namespace rgat.Testing
         private readonly Dictionary<long, TestRunThread> _runningTests = new Dictionary<long, TestRunThread>();
         private readonly int _maxRunningTests = 5;
         public int FreeTestSlots => _maxRunningTests - _runningTests.Count;
-
-        private readonly Queue<long> _testsQueue = new Queue<long>();
-
         public TestHarnessThread(rgatState clientState)
         {
             _rgatState = clientState;

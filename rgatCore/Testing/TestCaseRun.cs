@@ -130,9 +130,6 @@ namespace rgat.Testing
         /// </summary>
         public TestCase GetTestCase => _test;
 
-        private readonly List<TestResult> results = new List<TestResult>();
-        private readonly object _lock = new object();
-
         /// <summary>
         /// Mark the run as complete
         /// </summary>
@@ -221,7 +218,7 @@ namespace rgat.Testing
             }
         }
 
-        private bool EvaluateProcessTestResults(TraceRequirements requirements, TRACE_TEST_RESULTS results, int depth)
+        private static bool EvaluateProcessTestResults(TraceRequirements requirements, TRACE_TEST_RESULTS results, int depth)
         {
             //need to ensure each set of thread requirements can be satisfied by at least one unique thread
 
@@ -262,7 +259,7 @@ namespace rgat.Testing
 
         }
 
-        private bool VerifyAllThreadRequirements(Dictionary<REQUIREMENTS_LIST, List<ProtoGraph>> reqSatisfyGraphs, out string? error)
+        private static bool VerifyAllThreadRequirements(Dictionary<REQUIREMENTS_LIST, List<ProtoGraph>> reqSatisfyGraphs, out string? error)
         {
             error = "";
             int reqListCount = reqSatisfyGraphs.Count;

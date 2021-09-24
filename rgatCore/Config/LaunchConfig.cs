@@ -376,7 +376,7 @@ namespace rgat.Config
             }
         }
 
-        private bool TryGetBool(JToken jtok, out bool result)
+        private static bool TryGetBool(JToken jtok, out bool result)
         {
             if (jtok.Type == JTokenType.Boolean)
             {

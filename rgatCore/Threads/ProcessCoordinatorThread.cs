@@ -207,10 +207,7 @@ namespace rgat.Threads
         }
 
 
-
-
-
-        private void process_new_pin_connection(uint PID, int arch, bool isLibrary, long ID, string programName, long testID = -1)
+        private static void process_new_pin_connection(uint PID, int arch, bool isLibrary, long ID, string programName, long testID = -1)
         {
 
             string binaryName = Path.GetFileName(programName);
@@ -275,7 +272,7 @@ namespace rgat.Threads
         /// </summary>
         /// <param name="trace">The running trace</param>
         /// <param name="testID">Optional test ID if the trace is a test</param>
-        public void StartLocalTraceThreads(TraceRecord trace, long testID = -1)
+        public static void StartLocalTraceThreads(TraceRecord trace, long testID = -1)
         {
             System.Diagnostics.Debug.Assert(_clientState is not null);
             if (testID != -1)

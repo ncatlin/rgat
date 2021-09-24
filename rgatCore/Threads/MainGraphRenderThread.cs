@@ -18,7 +18,7 @@ namespace rgat.Threads
             WorkerThread.Start();
         }
 
-        public void Dispose()
+        public static void Dispose()
         {
         }
 

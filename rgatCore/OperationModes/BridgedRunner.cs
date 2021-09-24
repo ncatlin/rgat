@@ -132,7 +132,7 @@ namespace rgat.OperationModes
             rgatState.Shutdown();
         }
 
-        private void InitStartOptions()
+        private static void InitStartOptions()
         {
             string defaultKey = GlobalConfig.Settings.Network.DefaultNetworkKey;
             if (defaultKey?.Length > 0)
@@ -340,7 +340,8 @@ namespace rgat.OperationModes
             }
         }
 
-        private bool ParseAsync(string injson, out string? name, out JToken? data)
+
+        private static bool ParseAsync(string injson, out string? name, out JToken? data)
         {
             name = null; data = null;
             try
@@ -365,7 +366,7 @@ namespace rgat.OperationModes
             return false;
         }
 
-        public void ProcessAsync(string name, JToken data)
+        public static void ProcessAsync(string name, JToken data)
         {
             bool success = false;
             try
@@ -396,7 +397,8 @@ namespace rgat.OperationModes
 
         }
 
-        private bool ProcessSignatureTimes(JToken data)
+
+        private static bool ProcessSignatureTimes(JToken data)
         {
             if (data.Type is not JTokenType.Object)
             {
@@ -425,7 +427,7 @@ namespace rgat.OperationModes
             return true;
         }
 
-        private bool ProcessSignatureHit(JToken data)
+        private static bool ProcessSignatureHit(JToken data)
         {
             if (data.Type is not JTokenType.Object)
             {
@@ -483,7 +485,7 @@ namespace rgat.OperationModes
         /// <param name="trace">The trace the metadata applies to</param>
         /// <param name="metaparams">The metadata string items produced</param>
         /// <returns>If parsing succeeded</returns>
-        private bool ParseTraceMeta(byte[] infoBytes, out TraceRecord? trace, out string[]? metaparams)
+        private static bool ParseTraceMeta(byte[] infoBytes, out TraceRecord? trace, out string[]? metaparams)
         {
             trace = null;
             metaparams = null;
@@ -539,7 +541,7 @@ namespace rgat.OperationModes
             return metaparams is not null;
         }
 
-        private bool HandleTraceMeta(TraceRecord? trace, string[] inparams)
+        private static bool HandleTraceMeta(TraceRecord? trace, string[] inparams)
         {
             Debug.Assert(trace != null);
 
@@ -579,7 +581,7 @@ namespace rgat.OperationModes
 
         }
 
-        private bool ParseCommandFields(JObject cmd, out string? actualCmd, out int cmdID, out JToken? paramTok)
+        private static bool ParseCommandFields(JObject cmd, out string? actualCmd, out int cmdID, out JToken? paramTok)
         {
             actualCmd = "";
             paramTok = null;
@@ -607,8 +609,8 @@ namespace rgat.OperationModes
             return true;
         }
 
-        //todo un-badify this
-        private void ProcessCommand(JObject cmd)
+
+        private static void ProcessCommand(JObject cmd)
         {
             if (rgatState.NetworkBridge.GUIMode)
             {
@@ -672,7 +674,8 @@ namespace rgat.OperationModes
 
         }
 
-        private void HandleSignatureUpload(JToken? paramfield)
+
+        private static void HandleSignatureUpload(JToken? paramfield)
         {
             if (rgatState.NetworkBridge.GUIMode)
             {
@@ -703,10 +706,10 @@ namespace rgat.OperationModes
                 switch (typeName)
                 {
                     case "YARA":
-                        rgatState.YARALib?.ReplaceSignatures(zipBytes);
+                        YARAScanner.ReplaceSignatures(zipBytes);
                         break;
                     case "DIE":
-                        rgatState.DIELib?.ReplaceSignatures(zipBytes);
+                        DetectItEasy.ReplaceSignatures(zipBytes);
                         break;
                     default:
                         Logging.RecordError($"Invalid signature type: {typeName}");
@@ -716,7 +719,7 @@ namespace rgat.OperationModes
 
         }
 
-        private void HandleSigScanCommand(JToken? paramfield)
+        private static void HandleSigScanCommand(JToken? paramfield)
         {
             if (paramfield is null || paramfield.Type is not JTokenType.Object)
             {
@@ -760,7 +763,8 @@ namespace rgat.OperationModes
             }
         }
 
-        private void StartHeadlessTrace(JToken? paramfield)
+
+        private static void StartHeadlessTrace(JToken? paramfield)
         {
             if (paramfield is null || paramfield.Type is not JTokenType.Object)
             {
@@ -797,7 +801,6 @@ namespace rgat.OperationModes
             }
 
             BinaryTarget target = rgatState.targets.AddTargetByPath(path);
-
 
             if (target.PEFileObj == null)
             {
@@ -839,7 +842,7 @@ namespace rgat.OperationModes
             }
         }
 
-        private bool StartThreadIngestWorker(int cmdID, JToken? paramfield)
+        private static bool StartThreadIngestWorker(int cmdID, JToken? paramfield)
         {
             if (paramfield is null || paramfield.Type is not JTokenType.Object)
             {
@@ -882,7 +885,7 @@ namespace rgat.OperationModes
 
         private readonly JsonLoadSettings _JSONLoadSettings = new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error };
 
-        private JObject GetDirectoryInfo(JToken? dirObj)
+        private static JObject GetDirectoryInfo(JToken? dirObj)
         {
 
             JObject data = new JObject();
@@ -906,7 +909,8 @@ namespace rgat.OperationModes
             return data;
         }
 
-        private JObject GetDirectoryListing(string param, out string? error)
+
+        private static JObject GetDirectoryListing(string param, out string? error)
         {
             JArray files = new JArray();
             JArray dirs = new JArray();
@@ -946,7 +950,8 @@ namespace rgat.OperationModes
             return result;
         }
 
-        private JToken GatherTargetInitData(JToken? pathTok)
+
+        private static JToken GatherTargetInitData(JToken? pathTok)
         {
             if (pathTok != null && pathTok.Type == JTokenType.String)
             {
@@ -963,6 +968,7 @@ namespace rgat.OperationModes
             result.Add("Error", "Not Loaded");
             return result;
         }
+
 
         private bool ParseResponse(string messageJson, out int commandID, out JToken? responseData)
         {
@@ -1032,7 +1038,7 @@ namespace rgat.OperationModes
             rgatState.NetworkBridge.SendCommand("GetRecentBinaries", recipientID: "GUI", callback: RemoteDataMirror.HandleRecentBinariesList);
         }
 
-        private bool GetRemoteAddress(string param, out string address, out int port)
+        private static bool GetRemoteAddress(string param, out string address, out int port)
         {
             address = "";
             port = -1;
@@ -1056,7 +1062,7 @@ namespace rgat.OperationModes
             return false;
         }
 
-        private IPAddress? GetLocalAddress()
+        private static IPAddress? GetLocalAddress()
         {
             IPAddress? result = null;
             if (GlobalConfig.StartOptions!.ActiveNetworkInterface == null && GlobalConfig.StartOptions.Interface != null)

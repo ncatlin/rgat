@@ -240,7 +240,7 @@ namespace rgat
             ImGui.PopStyleColor();
         }
 
-        private void DrawReplayControlsPanel(PlottedGraph graph)
+        private static void DrawReplayControlsPanel(PlottedGraph graph)
         {
             string indexPos = "";
             if (graph.AnimationIndex > 0)
@@ -361,7 +361,7 @@ namespace rgat
             }
         }
 
-        private void DrawActiveTraceControlPanel(PlottedGraph graph)
+        private static void DrawActiveTraceControlPanel(PlottedGraph graph)
         {
             if (ImGui.BeginChild("LiveTraceCtrls", new Vector2(160, 110), true))
             {
@@ -428,7 +428,7 @@ namespace rgat
             }
         }
 
-        private void DrawRenderControlPanel(PlottedGraph graph)
+        private static void DrawRenderControlPanel(PlottedGraph graph)
         {
             if (ImGui.BeginChild("GraphRenderControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
             {
@@ -449,7 +449,7 @@ namespace rgat
             }
         }
 
-        private void DrawVideoControlPanel(PlottedGraph graph)
+        private static void DrawVideoControlPanel(PlottedGraph graph)
         {
             if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
             {
@@ -488,7 +488,7 @@ namespace rgat
             }
         }
 
-        private void DrawDiasmPreviewBox(ProtoGraph graph, int lastAnimIdx)
+        private static void DrawDiasmPreviewBox(ProtoGraph graph, int lastAnimIdx)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
             if (ImGui.BeginChildFrame(ImGui.GetID("##DisasmPreview"), ImGui.GetContentRegionAvail()))

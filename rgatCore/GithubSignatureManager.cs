@@ -180,7 +180,7 @@ namespace rgat
             }
         }
 
-        private string? GetRepoDirectory(ref GlobalConfig.SignatureSource repo, string sigsdir)
+        private static string? GetRepoDirectory(ref GlobalConfig.SignatureSource repo, string sigsdir)
         {
 
             try
@@ -218,7 +218,7 @@ namespace rgat
             }
         }
 
-        private bool PurgeDirectory(string repoDirectory)
+        private static bool PurgeDirectory(string repoDirectory)
         {
             Logging.RecordLogEvent($"Deleting existing contents of directory {repoDirectory}", filter: Logging.LogFilterType.TextDebug);
             try
@@ -340,7 +340,7 @@ namespace rgat
         /// Must be called before the removal of the repo metadata via DeleteSignatureSource
         /// </summary>
         /// <param name="repo">Repo key</param>
-        public void PurgeRepoFiles(GlobalConfig.SignatureSource repo)
+        public static void PurgeRepoFiles(GlobalConfig.SignatureSource repo)
         {
             string? repoDirectory = null;
             if (repo.SignatureType == CONSTANTS.eSignatureType.YARA)

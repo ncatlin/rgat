@@ -246,7 +246,7 @@ namespace rgat
             */
         }
 
-        public void ShowAlerts()
+        public static void ShowAlerts()
         {
             //select only the alerts filter
             Array.Clear(_LogFilters, 0, _LogFilters.Length);
@@ -254,7 +254,8 @@ namespace rgat
             _LogFilters[(int)LogFilterType.TextError] = true;
         }
 
-        public bool RecentAlert()
+
+        public static bool RecentAlert()
         {
             const double lingerTime = UI.ALERT_TEXT_LINGER_TIME;
             double timeSinceLast = Logging.TimeSinceLastAlert.TotalMilliseconds;

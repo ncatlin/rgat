@@ -70,7 +70,7 @@ namespace rgat
             _QuickMenu = new QuickMenu(_controller);
 
             WidgetSize = initialSize ?? new Vector2(400, 400);
-            _layoutEngine = new GraphLayoutEngine("Main", controller);
+            _layoutEngine = new GraphLayoutEngine("Main");
         }
 
 
@@ -171,7 +171,7 @@ namespace rgat
                 _centeringSteps += 1;
             }
 
-            _layoutEngine.GetScreenFitOffsets(graph, worldView, WidgetSize,
+            GraphLayoutEngine.GetScreenFitOffsets(graph, worldView, WidgetSize,
                 out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
             float delta;
             float xdelta = 0, ydelta = 0, zdelta = 0;
@@ -1335,7 +1335,7 @@ namespace rgat
         /// Wrapper for the memory unsafe ImGui API 
         /// </summary>
         /// <returns>A Vector4 describing the current text colour</returns>
-        private unsafe Vector4 GetTextColour() => *ImGui.GetStyleColorVec4(ImGuiCol.Text);
+        private static unsafe Vector4 GetTextColour() => *ImGui.GetStyleColorVec4(ImGuiCol.Text);
 
 
         /// <summary>

@@ -20,11 +20,9 @@ namespace rgat
         /// Runs the computation shaders on graph layout buffers 
         /// </summary>
         /// <param name="name">A name to identify the layout engine in logfiles</param>
-        /// <param name="controller">An ImGuiController to load shader code from [todo: remove it from the controller, will need these in non-imgui runners]</param>
-        public GraphLayoutEngine(string name, ImGuiController controller)
+        public GraphLayoutEngine(string name)
         {
             EngineID = name;
-            _controller = controller;
         }
 
 
@@ -40,7 +38,6 @@ namespace rgat
 
         private GraphicsDevice? _gd;
         private ResourceFactory? _factory;
-        private readonly ImGuiController _controller;
 
         /// <summary>
         /// The unique name of the layout engine
@@ -67,7 +64,7 @@ namespace rgat
         /// <param name="xoffsets">xoffsets.X = distance of furthest left node from left of the widget. Ditto xoffsets.Y for right node/side</param>
         /// <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
         /// <param name="zoffsets">zoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
-        public void GetScreenFitOffsets(PlottedGraph graph, Matrix4x4 worldView, Vector2 graphWidgetSize,
+        public static void GetScreenFitOffsets(PlottedGraph graph, Matrix4x4 worldView, Vector2 graphWidgetSize,
             out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
         {
             Logging.RecordLogEvent($"GetScreenFitOffsets ", Logging.LogFilterType.BulkDebugLogFile);
@@ -217,7 +214,7 @@ namespace rgat
 
             if (_gd.Features.ComputeShader is false) { Logging.RecordError("Error: Compute shaders are unavailable"); return; }
 
-            byte[]? velocityShaderBytes = _controller.LoadEmbeddedShaderCode(factory, "sim-velocity", ShaderStages.Fragment);
+            byte[]? velocityShaderBytes = ImGuiController.LoadEmbeddedShaderCode(factory, "sim-velocity", ShaderStages.Fragment);
             _velocityShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, velocityShaderBytes, "FS"));
 
             _velocityComputeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
@@ -245,14 +242,14 @@ namespace rgat
             new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)));
 
 
-            byte[]? positionShaderBytes = _controller.LoadEmbeddedShaderCode(factory, "sim-position", ShaderStages.Vertex);
+            byte[]? positionShaderBytes = ImGuiController.LoadEmbeddedShaderCode(factory, "sim-position", ShaderStages.Vertex);
             _positionShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, positionShaderBytes, "FS")); //todo ... not fragment
 
             ComputePipelineDescription PositionCPD = new ComputePipelineDescription(_positionShader, _positionComputeLayout, 16, 16, 1);
             _positionComputePipeline = factory.CreateComputePipeline(PositionCPD);
             _positionParamsBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<PositionShaderParams>(), BufferUsage.UniformBuffer, name: "PositionShaderParams");
 
-            byte[]? noteattribShaderBytes = _controller.LoadEmbeddedShaderCode(factory, "sim-nodeAttrib", ShaderStages.Vertex);
+            byte[]? noteattribShaderBytes = ImGuiController.LoadEmbeddedShaderCode(factory, "sim-nodeAttrib", ShaderStages.Vertex);
             _nodeAttribShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, noteattribShaderBytes, "FS"));
 
             _nodeAttribComputeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
@@ -800,7 +797,7 @@ namespace rgat
         /// <param name="cl">Thread specific Veldrid CommandList</param>
         /// <param name="graph">Graph with highlights to apply</param>
         /// <param name="attribsBuf">Attributes buffer to apply highlight data to</param>
-        public void ApplyHighlightAttributes(CommandList cl, PlottedGraph graph, DeviceBuffer attribsBuf)
+        public static void ApplyHighlightAttributes(CommandList cl, PlottedGraph graph, DeviceBuffer attribsBuf)
         {
             graph.GetHighlightChanges(out List<uint> added, out List<uint> removed);
 
@@ -823,7 +820,7 @@ namespace rgat
         /// <param name="nodeIdxs">List of node indexes to set as highlighted</param>
         /// <param name="attribsBuf">Attributes buffer to set highlight state in</param>
         /// <param name="highlightType">CONSTANTS.HighlightType of highlight [Currently unused, could be used to select the icon]</param>
-        public unsafe void SetHighlightedNodes(CommandList cl, List<uint> nodeIdxs, DeviceBuffer attribsBuf, CONSTANTS.HighlightType highlightType)
+        public static unsafe void SetHighlightedNodes(CommandList cl, List<uint> nodeIdxs, DeviceBuffer attribsBuf, CONSTANTS.HighlightType highlightType)
         {
             float[] val = new float[] { 400f,//bigger
                 1.0f, //full alpha 
@@ -845,7 +842,7 @@ namespace rgat
         /// <param name="cl">Thread specific Veldrid CommandList</param>
         /// <param name="nodeIdxs">List of node indexes to set as not highlighted</param>
         /// <param name="attribsBuf">Attributes buffer to set highlight state in</param>
-        public unsafe void UnsetHighlightedNodes(CommandList cl, List<uint> nodeIdxs, DeviceBuffer attribsBuf)
+        public static unsafe void UnsetHighlightedNodes(CommandList cl, List<uint> nodeIdxs, DeviceBuffer attribsBuf)
         {
             float[] val = new float[] { 400f,//still big, let the shader shrink it
                 1.0f, //full alpha 

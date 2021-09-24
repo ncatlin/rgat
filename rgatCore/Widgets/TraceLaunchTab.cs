@@ -218,7 +218,8 @@ namespace rgat
             }
         }
 
-        private void DrawDLLTraceSettings(BinaryTarget activeTarget)
+
+        private static void DrawDLLTraceSettings(BinaryTarget activeTarget)
         {
             ImGui.Indent(8);
             if (ImGui.BeginTable("#DLLSettingsTable", 2))
@@ -247,7 +248,7 @@ namespace rgat
             ImGui.Indent(-8);
         }
 
-        private void DrawExportPickerCombo(BinaryTarget activeTarget)
+        private static void DrawExportPickerCombo(BinaryTarget activeTarget)
         {
 
             string preview = "";
@@ -594,7 +595,7 @@ namespace rgat
                     }
                 }
 
-                if (GlobalConfig.Settings.ToolPaths.BadSigners(out List<Tuple<string, string>>? issues))
+                if (GlobalConfig.BadSigners(out List<Tuple<string, string>>? issues))
                 {
                     string pinpath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath);
                     issues = issues!.Where(i => (i.Item1 == pintoolpath || i.Item1 == pinpath)).ToList();
@@ -615,7 +616,7 @@ namespace rgat
         }
 
 
-        private void DrawDetectItEasyProgress(BinaryTarget activeTarget, Vector2 barSize)
+        private static void DrawDetectItEasyProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
             if (rgatState.DIELib == null)
             {
@@ -727,7 +728,7 @@ namespace rgat
 
 
         //YARA
-        private void DrawYARAProgress(BinaryTarget activeTarget, Vector2 barSize)
+        private static void DrawYARAProgress(BinaryTarget activeTarget, Vector2 barSize)
         {
             if (rgatState.YARALib == null)
             {

@@ -410,7 +410,7 @@ namespace rgat
             if (data.TryGetValue("StartBytes", out snipTok) && snipTok is not null && snipTok.Type == JTokenType.String)
             {
                 string? b64snippet = snipTok!.ToObject<string>();
-                StartBytes = b64snippet is not null ? Convert.FromBase64String(b64snippet) : new byte[0];
+                StartBytes = b64snippet is not null ? Convert.FromBase64String(b64snippet) : Array.Empty<byte>();
                 InitPreviews();
             }
 
@@ -859,8 +859,7 @@ namespace rgat
         {
             lock (tracesLock)
             {
-                TraceRecord? found;
-                if (RecordedTraces.TryGetValue(key: timeStarted, value: out found))
+                if (RecordedTraces.TryGetValue(key: timeStarted, value: out TraceRecord? found))
                 {
                     newRecord = found;
                     return false;

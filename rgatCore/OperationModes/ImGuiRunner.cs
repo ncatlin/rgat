@@ -31,8 +31,6 @@ namespace rgat.OperationModes
         private Sdl2Window? _window;
         private GraphicsDevice? _gd;
         private CommandList? _cl;
-        private Vector2 WindowStartPos = new Vector2(100f, 100f);
-        private Vector2 WindowOffset = new Vector2(0, 0);
 
         /// <summary>
         /// Create an ImGui GUI rgat session
@@ -497,8 +495,6 @@ namespace rgat.OperationModes
             ImGui.Begin("rgat Primary Window", window_flags);
 
             {
-                WindowOffset = ImGui.GetWindowPos() - WindowStartPos;
-
                 _rgatUI.HandleUserInput();
                 _rgatUI.DrawMain();
                 _rgatUI.DrawDialogs();

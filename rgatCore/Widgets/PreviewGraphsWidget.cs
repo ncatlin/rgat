@@ -67,7 +67,7 @@ namespace rgat
             _ImGuiController = controller;
             _NodeCircleSpriteview = controller.IconTexturesView;
             _rgatState = clientState;
-            _layoutEngine = new GraphLayoutEngine("Preview", controller);
+            _layoutEngine = new GraphLayoutEngine("Preview");
         }
 
 
@@ -838,7 +838,7 @@ namespace rgat
 
         private readonly Dictionary<PlottedGraph, bool> _centeringRequired = new Dictionary<PlottedGraph, bool>();
 
-        private WritableRgbaFloat GetGraphBackgroundColour(PlottedGraph graph)
+        private static WritableRgbaFloat GetGraphBackgroundColour(PlottedGraph graph)
         {
             if (graph.InternalProtoGraph.Terminated)
             {
@@ -858,7 +858,7 @@ namespace rgat
             }
         }
 
-        private uint GetGraphBorderColour(PlottedGraph graph)
+        private static uint GetGraphBorderColour(PlottedGraph graph)
         {
             if (graph.InternalProtoGraph.Terminated)
             {
