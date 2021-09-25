@@ -250,14 +250,14 @@ namespace rgat
         public static bool LayoutAttribsActive = true;
 
         /// <summary>
-        /// Maximum configurable speed of force-directed nodes. Fast nodes will layout quickly but wobble
-        /// in their low energy position
+        /// Maximum temperature that will be applied to force-directed nodes. Fast nodes will layout quickly but wobble
+        /// in their low energy position.
         /// </summary>
-        public static float NodeSoftSpeedLimit = 200f;
+        public static float NodeSoftSpeedLimit = 3000f;
         /// <summary>
-        /// Speed limit nodes cannot exceed
+        /// Maximum speed limit available on the GUI
         /// </summary>
-        public static readonly float NodeHardSpeedLimit = 1000f; //match with value in velocity shader
+        public static readonly float NodeHardSpeedLimit = 3000f; //match with value in velocity shader
 
         /// <summary>
         /// A new rgat release is available to download

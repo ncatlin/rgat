@@ -523,8 +523,8 @@ namespace rgat
                                 }
 
                                 PendingScreenshot = VideoEncoder.CaptureContent.Graph;
-
                                 continue;
+
                             case eKeybind.CaptureGraphPreviewImage:
                                 if (DialogOpen)
                                 {
@@ -532,8 +532,8 @@ namespace rgat
                                 }
 
                                 PendingScreenshot = VideoEncoder.CaptureContent.GraphAndPreviews;
-
                                 continue;
+
                             case eKeybind.CaptureWindowImage:
                                 if (DialogOpen)
                                 {
@@ -541,8 +541,8 @@ namespace rgat
                                 }
 
                                 PendingScreenshot = VideoEncoder.CaptureContent.Window;
-
                                 continue;
+
                             default:
                                 break;
                         }

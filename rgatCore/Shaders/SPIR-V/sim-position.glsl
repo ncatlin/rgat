@@ -51,13 +51,22 @@ void main()	{
     uint index = id.x;// id.y * 256 + id.x;
     vec4 selfPosition = positions[index];    
     vec4 res;
-
+    
     if (fieldParams.fixedInternalNodes == 1 && !fieldParams.activatingPreset )
     {
-        
+    
+        /*
+        blockdata.x = index of block
+        blockdata.y = count of how many nodes from this node to center of block node
+        blockdata.z = first node in block  [set only for mid node]
+        blockdata.w = last node in block [set only for mid node]
+        */
+              
+
+        //Position non-center node above/below the center node
         ivec4 selfBlockData = blockData[index];
         int offsetFromCenter = selfBlockData.y;
-        if (selfBlockData.y != 0)
+        if (selfBlockData.y != 0) 
         {
             vec4 parent = positions[index-offsetFromCenter];
             res.x = parent.x;
@@ -67,18 +76,15 @@ void main()	{
         }
         else
         {
-            vec3 selfVelocity = velocities[index].xyz;
-            res = vec4( selfPosition.xyz + selfVelocity * fieldParams.delta * 50.0, selfPosition.w );
+            //vec3 selfVelocity = velocities[index].xyz;
+            res = vec4( selfPosition.xyz + velocities[index].xyz * fieldParams.delta * 50.0, selfPosition.w );
         }
 
     }
     else
     {
-    
-        vec3 selfVelocity = velocities[index].xyz;
-        res = vec4( selfPosition.xyz + selfVelocity * fieldParams.delta * 50.0, selfPosition.w );
-
-
+        //vec3 selfVelocity = velocities[index].xyz;
+        res = vec4( selfPosition.xyz + velocities[index].xyz * fieldParams.delta * 50.0, selfPosition.w );
     }
 
 

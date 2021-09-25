@@ -101,6 +101,10 @@ namespace rgat
             /// Various descriptions of basic blocks, for the block-based layouts
             /// </summary>
             public DeviceBuffer? BlockMetadata;
+            /// <summary>
+            /// Indexes of basic block centers
+            /// </summary>
+            public DeviceBuffer? BlockMiddles;
 
             /// <summary>
             /// The current version of the layout, incremented every time a compute pass is done
@@ -160,6 +164,11 @@ namespace rgat
         /// VRAM Basic Block descriptions buffer
         /// </summary>
         public DeviceBuffer? BlockMetadata => _VRAMBuffers.BlockMetadata;
+        /// <summary>
+        /// VRAM Basic Block middle indexes
+        /// </summary>
+        public DeviceBuffer? BlockMiddles => _VRAMBuffers.BlockMiddles;
+
         /// <summary>
         /// VRAM Edge attraction strenths buffer
         /// </summary>
@@ -234,6 +243,7 @@ namespace rgat
                 EdgeConnectionIndexes = new int[] { };
                 EdgeStrengths = new float[] { };
                 BlockMetadata = new int[] { };
+                BlockMiddles = new int[] { };
 
                 RenderVersion = 0;
                 Style = style;
@@ -269,19 +279,23 @@ namespace rgat
             /// <summary>
             /// Edge connection descriptors
             /// </summary>
-            public int[] EdgeConnections;
+            public int[] EdgeConnections; //unreferenced?
             /// <summary>
             /// Edge connection buffer indexes
             /// </summary>
-            public int[] EdgeConnectionIndexes;
+            public int[] EdgeConnectionIndexes; //unreferenced?
             /// <summary>
             /// The attraction strength of each edge 
             /// </summary>
-            public float[] EdgeStrengths;
+            public float[] EdgeStrengths; //unreferenced?
             /// <summary>
             /// Basic Block metadata
             /// </summary>
-            public int[] BlockMetadata;
+            public int[] BlockMetadata; //unreferenced?
+            /// <summary>
+            /// Basic Block middles
+            /// </summary>
+            public int[] BlockMiddles;
         }
 
         private void LockedUploadStateToVRAM(LayoutStyles.Style style)
@@ -310,14 +324,16 @@ namespace rgat
             _VRAMBuffers.Velocities2 = bufferPair.Item2;
 
 
-            bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.PositionsArray, _gd, $"_AvelBuf_{GraphPlot.TID}_");
+            bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.PositionsArray, _gd, $"_AposBuf_{GraphPlot.TID}_");
 
             _VRAMBuffers.Positions1 = bufferPair.Item1;
             _VRAMBuffers.Positions2 = bufferPair.Item2;
 
-            bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.NodeAttribArray, _gd, $"_AvelBuf_{GraphPlot.TID}_");
+            /*
+            bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.NodeAttribArray, _gd, $"_AattBuf_{GraphPlot.TID}_");
             _VRAMBuffers.Attributes1 = bufferPair.Item1;
             _VRAMBuffers.Attributes2 = bufferPair.Item2;
+            */
             _VRAMBuffers.RenderVersion = sourceBuffers.RenderVersion;
 
             RegenerateEdgeDataBuffers(GraphPlot);
@@ -343,6 +359,7 @@ namespace rgat
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeStrengths);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.PresetPositions);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMetadata);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMiddles);
         }
 
         /// <summary>
@@ -449,7 +466,7 @@ namespace rgat
 
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, PositionsVRAM1);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
-            CopyMappedVRAMBufferToFloatArray(destinationReadView, destbuffers.PositionsArray);
+            CopyMappedVRAMBufferToFloatArray(destinationReadView, ref destbuffers.PositionsArray);
             _gd.Unmap(destinationReadback);
             VeldridGraphBuffers.VRAMDispose(destinationReadback);
             Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph finished", Logging.LogFilterType.BulkDebugLogFile);
@@ -461,7 +478,7 @@ namespace rgat
         /// </summary>
         /// <param name="VRAMBuf">Mapped GPU buffer</param>
         /// <param name="destbuffer">RAM buffer to copy them to</param>
-        public void CopyMappedVRAMBufferToFloatArray(MappedResourceView<float> VRAMBuf, float[] destbuffer)
+        public void CopyMappedVRAMBufferToFloatArray(MappedResourceView<float> VRAMBuf, ref float[] destbuffer)
         {
             int floatCount = VRAMBuf.Count;//xyzw
             if (destbuffer.Length < floatCount)
@@ -488,7 +505,7 @@ namespace rgat
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
             //uint floatCount = Math.Min(textureSize * textureSize * 4, (uint)destinationReadView.Count);
             uint floatCount = (uint)destinationReadView.Count;
-            CopyMappedVRAMBufferToFloatArray(destinationReadView, destbuffers.VelocityArray);
+            CopyMappedVRAMBufferToFloatArray(destinationReadView, ref destbuffers.VelocityArray);
             Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph done updatenode", Logging.LogFilterType.BulkDebugLogFile);
             _gd.Unmap(destinationReadback);
             VeldridGraphBuffers.VRAMDispose(destinationReadback);
@@ -634,29 +651,30 @@ namespace rgat
             Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
 
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMetadata);
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMiddles);
 
             var textureSize = graph.EdgeTextureWidth();
             if (textureSize > 0)
             {
-                int[] blockdats = graph.GetBlockRenderingMetadata();
-                if (blockdats == null)
-                {
-                    blockdats = new int[] { 0 };
-                }
+                graph.GetBlockRenderingMetadata(out int[] blockdats, out int[] blockMiddles);
 
                 _VRAMBuffers.BlockMetadata = VeldridGraphBuffers.TrackedVRAMAlloc(_gd,
                     (uint)blockdats.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMetadata_T{graph.TID}");
+
+                _VRAMBuffers.BlockMiddles = VeldridGraphBuffers.TrackedVRAMAlloc(_gd,
+                    (uint)blockMiddles.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMiddles_T{graph.TID}");
 
                 if (blockdats.Length == 0)
                 {
                     return;
                 }
 
-                fixed (int* dataPtr = blockdats)
+                fixed (int* datsPtr = blockdats, midsPtr = blockMiddles)
                 {
                     CommandList cl = _gd.ResourceFactory.CreateCommandList();
                     cl.Begin();
-                    cl.UpdateBuffer(_VRAMBuffers.BlockMetadata, 0, (IntPtr)dataPtr, (uint)blockdats.Length * sizeof(int));
+                    cl.UpdateBuffer(_VRAMBuffers.BlockMetadata, 0, (IntPtr)datsPtr, (uint)blockdats.Length * sizeof(int));
+                    cl.UpdateBuffer(_VRAMBuffers.BlockMiddles, 0, (IntPtr)midsPtr, (uint)blockMiddles.Length * sizeof(int));
                     cl.End();
                     _gd.SubmitCommands(cl);
                     _gd.WaitForIdle();
@@ -901,6 +919,7 @@ namespace rgat
 
         }
 
+
         /// <summary>
         /// Add a new node to the active compute buffers
         /// </summary>
@@ -978,6 +997,7 @@ namespace rgat
 
         }
 
+
         private static void EnlargeRAMDataBuffers(uint size, CPUBuffers bufs)
         {
             float[] newVelocityArr1 = new float[size];
@@ -1014,7 +1034,6 @@ namespace rgat
             bufs.VelocityArray = newVelocityArr1;
             bufs.NodeAttribArray = newAttsArr1;
             bufs.PresetPositions = newPresetsArray;
-
         }
 
 
@@ -1045,6 +1064,7 @@ namespace rgat
             Lock.ExitWriteLock();
         }
 
+
         /// <summary>
         /// Layout randomisation methods
         /// </summary>
@@ -1058,12 +1078,13 @@ namespace rgat
             Implode
         }
 
+
         /// <summary>
         /// Cause a force directed plot to be randomly re-distributed in the
         /// specified style. Use this to try a different arrangement.
         /// </summary>
         /// <param name="resetMethod">The initial randomisation method</param>
-        public void Reset(PositionResetStyle resetMethod)
+        public void Reset(PositionResetStyle resetMethod, float spread = 2)
         {
 
             if (LayoutStyles.IsForceDirected(this.Style))
@@ -1077,13 +1098,13 @@ namespace rgat
                 switch (resetMethod)
                 {
                     case PositionResetStyle.Scatter:
-                        ScatterPositions(oldData);
+                        ScatterPositions(oldData, spread: spread);
                         break;
                     case PositionResetStyle.Explode:
                         ExplodePositions(oldData);
                         break;
                     case PositionResetStyle.Implode:
-                        ImplodePositions(oldData);
+                        ImplodePositions(oldData, spread: spread);
                         break;
 
                 }
@@ -1104,7 +1125,7 @@ namespace rgat
         {
             Random rnd = new Random();
 
-            int endLength = layoutRAMBuffers.VelocityArray.Length;
+            int endLength = layoutRAMBuffers.PositionsArray.Length;
             for (var i = 0; i < endLength; i += 4)
             {
                 if (layoutRAMBuffers.PositionsArray[i + 3] == 0)
@@ -1112,9 +1133,9 @@ namespace rgat
                     break;
                 }
 
-                layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);
-                layoutRAMBuffers.VelocityArray[i + 1] = rnd.Next(100);
-                layoutRAMBuffers.VelocityArray[i + 2] = rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i] = 0; //rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 1] = 0; //rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 2] = 0;// rnd.Next(100);
 
                 layoutRAMBuffers.PositionsArray[i] = (float)rnd.NextDouble();
                 layoutRAMBuffers.PositionsArray[i + 1] = (float)rnd.NextDouble();
@@ -1122,29 +1143,31 @@ namespace rgat
             }
         }
 
+
         /// <summary>
         /// Distributes the nodes on the edge of a sphere. 
         /// Attraction dominates the intial stages of layout
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
-        private static void ImplodePositions(CPUBuffers layoutRAMBuffers)
+        private static void ImplodePositions(CPUBuffers layoutRAMBuffers, float spread = 2)
         {
             Random rnd = new Random();
 
-            int MaxDimension = (layoutRAMBuffers.VelocityArray.Length / 4) * 3;
-            int endLength = layoutRAMBuffers.VelocityArray.Length;
+            float radius = (layoutRAMBuffers.PositionsArray.Length / 4) * spread;
+            int endLength = layoutRAMBuffers.PositionsArray.Length;
             for (var i = 0; i < endLength; i += 4)
             {
                 layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);
                 layoutRAMBuffers.VelocityArray[i + 1] = rnd.Next(100);
                 layoutRAMBuffers.VelocityArray[i + 2] = rnd.Next(100);
 
-                getPoint(rnd, MaxDimension, out float x, out float y, out float z);
+                getPoint(rnd, radius, out float x, out float y, out float z);
                 layoutRAMBuffers.PositionsArray[i] = x;
                 layoutRAMBuffers.PositionsArray[i + 1] = y;
                 layoutRAMBuffers.PositionsArray[i + 2] = z;
             }
         }
+
 
         //https://karthikkaranth.me/blog/generating-random-points-in-a-sphere/
         private static void getPoint(Random rnd, float radius, out float x, out float y, out float z)
@@ -1163,16 +1186,17 @@ namespace rgat
             z = (float)(radius * cosPhi);
         }
 
+
         /// <summary>
         /// Distributes the nodes randomly in a wide area. 
         /// Balance of attraction and repulsion will move them into position
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
-        private static void ScatterPositions(CPUBuffers layoutRAMBuffers)
+        private static void ScatterPositions(CPUBuffers layoutRAMBuffers, float spread = 2)
         {
             Random rnd = new Random();
-            int MaxDimension = (layoutRAMBuffers.VelocityArray.Length / 4) * 3;
-            int MinDimension = -1 * MaxDimension;
+            float MaxDimension = (layoutRAMBuffers.VelocityArray.Length / 4) * spread;
+            float MinDimension = -1 * MaxDimension;
 
             int endLength = layoutRAMBuffers.VelocityArray.Length;
             for (var i = 0; i < endLength; i += 4)
@@ -1181,10 +1205,15 @@ namespace rgat
                 layoutRAMBuffers.VelocityArray[i + 1] = rnd.Next(100);
                 layoutRAMBuffers.VelocityArray[i + 2] = rnd.Next(100);
 
-                layoutRAMBuffers.PositionsArray[i] = rnd.Next(MinDimension, MaxDimension);
-                layoutRAMBuffers.PositionsArray[i + 1] = rnd.Next(MinDimension, MaxDimension);
-                layoutRAMBuffers.PositionsArray[i + 2] = rnd.Next(MinDimension, MaxDimension);
+                layoutRAMBuffers.PositionsArray[i] = RandomFloat(rnd, MinDimension, MaxDimension);
+                layoutRAMBuffers.PositionsArray[i + 1] = RandomFloat(rnd, MinDimension, MaxDimension);
+                layoutRAMBuffers.PositionsArray[i + 2] = RandomFloat(rnd, MinDimension, MaxDimension);
             }
+        }
+
+        static float RandomFloat(Random rnd, float min, float max)
+        {
+            return (float)rnd.NextDouble() * (max - min) + min;
         }
 
         /// <summary>
@@ -1208,7 +1237,7 @@ namespace rgat
                     //Debug.Assert(false, "shouldn't be snapping to nonexistent preset");
                     VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions1);
                     VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.Positions2);
-                    VeldridGraphBuffers.CreateBufferCopyPair(_VRAMBuffers.PresetPositions!, _gd, out _VRAMBuffers.Positions1, out _VRAMBuffers.Positions2, name: "PresetCopy");
+                    VeldridGraphBuffers.CreateBufferCopyPair(_VRAMBuffers.PresetPositions!, _gd, out _VRAMBuffers.Positions1, out _VRAMBuffers.Positions2, name: "PresetCopyFD");
 
                     RegenerateEdgeDataBuffers(GraphPlot);
                 }

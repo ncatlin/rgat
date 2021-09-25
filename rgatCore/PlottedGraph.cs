@@ -1064,7 +1064,8 @@ namespace rgat
             }
 
             //create the basic block metadata here for no good reason
-            _blockRenderingMetadata = CreateBlockMetadataBuf(Math.Min(nodeNeighboursArray.Count, InternalProtoGraph.NodeList.Count));
+             
+            CreateBlockMetadataBuf(Math.Min(nodeNeighboursArray.Count, InternalProtoGraph.NodeList.Count), out _blockRenderingMetadata, out int[]? blockMiddles);
 
             var textureSize = indexTextureSize(nodeNeighboursArray.Count);
 
@@ -1111,14 +1112,14 @@ namespace rgat
         private int[]? _blockRenderingMetadata;
 
         /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
-        public unsafe int[] GetBlockRenderingMetadata()
+        public unsafe bool GetBlockRenderingMetadata(out int[] blockData, out int[] blockMiddles)
         {
             List<List<int>>? nodeNeighboursArray = null;
             lock (animationLock)
             {
                 nodeNeighboursArray = _graphStructureBalanced.ToList();
             }
-            return CreateBlockMetadataBuf(Math.Min(nodeNeighboursArray.Count, InternalProtoGraph.NodeList.Count));
+            return CreateBlockMetadataBuf(Math.Min(nodeNeighboursArray.Count, InternalProtoGraph.NodeList.Count), out blockData, out blockMiddles);
         }
 
 
@@ -1131,11 +1132,12 @@ namespace rgat
         /// </summary>
         /// <param name="nodecount">Number of nodes to add. This isn't just taken from nodelist because
         /// it may be intended for a texture of a certain size</param>
-        private int[] CreateBlockMetadataBuf(int nodecount)
+        private bool CreateBlockMetadataBuf(int nodecount, out int[] blockData, out int[] blockMiddles)
         {
 
             int[] blockDataInts = new int[nodecount * 4];
-            Dictionary<int, int> blockMiddles = new Dictionary<int, int>();
+            Dictionary<int, int> blockMiddlesDict = new Dictionary<int, int>();
+            List<int> blockMiddlesList = new List<int>();
 
             //step 1: find the center node of each block
             //  todo: cache
@@ -1149,7 +1151,8 @@ namespace rgat
 
                 if (firstIdx_LastIdx.Item1 == firstIdx_LastIdx.Item2)
                 {
-                    blockMiddles[blockIdx] = (int)firstIdx_LastIdx.Item1; //1 node block, top/mid/base is the same
+                    blockMiddlesDict[blockIdx] = (int)firstIdx_LastIdx.Item1; //1 node block, top/mid/base is the same
+                    blockMiddlesList.Add((int)firstIdx_LastIdx.Item1);
                 }
                 else
                 {
@@ -1159,12 +1162,13 @@ namespace rgat
                     var middleIns = block[midIdx];
                     if (!middleIns.GetThreadVert(TID, out uint centerNodeID))
                     {
-                        blockMiddles[blockIdx] = -1; //instructions sent and not executed? why?
+                        blockMiddlesDict[blockIdx] = -1; //instructions sent and not executed? why?
                         //Debug.Assert(false, $"Instruction 0x{middleIns.address:X} not found in thread {tid}");
                     }
                     else
                     {
-                        blockMiddles[blockIdx] = (int)centerNodeID;
+                        blockMiddlesDict[blockIdx] = (int)centerNodeID;
+                        blockMiddlesList.Add((int)centerNodeID);
                     }
                 }
             }
@@ -1195,12 +1199,12 @@ namespace rgat
 
                     blockSize = (FirstLastIdx.Item2 - FirstLastIdx.Item1) + 1;
                     blockID = (int)n.BlockID;
-                    if (!blockMiddles.ContainsKey(blockID))
+                    if (!blockMiddlesDict.ContainsKey(blockID))
                     {
                         continue;
                     }
 
-                    blockMid = blockMiddles[blockID];
+                    blockMid = blockMiddlesDict[blockID];
                 }
                 else
                 {
@@ -1223,21 +1227,24 @@ namespace rgat
                     offsetFromCenter = 0;
                 }
 
-                int centerPseudoBlockTopID = -1;
-                int centerPseudoBlockBaseID = -1;
+                int blockTopNodeIndex = -1;
+                int blockBaseNodeIndex = -1;
                 if (nodeIdx == blockMid || blockSize == 1)
                 {
-                    centerPseudoBlockTopID = (int)FirstLastIdx.Item1;
-                    centerPseudoBlockBaseID = (int)FirstLastIdx.Item2;
+                    blockTopNodeIndex = (int)FirstLastIdx.Item1;
+                    blockBaseNodeIndex = (int)FirstLastIdx.Item2;
                 }
 
                 blockDataInts[nodeIdx * 4] = blockID;
                 blockDataInts[nodeIdx * 4 + 1] = offsetFromCenter;
-                blockDataInts[nodeIdx * 4 + 2] = centerPseudoBlockTopID;
-                blockDataInts[nodeIdx * 4 + 3] = centerPseudoBlockBaseID;
+                blockDataInts[nodeIdx * 4 + 2] = blockTopNodeIndex;
+                blockDataInts[nodeIdx * 4 + 3] = blockBaseNodeIndex;
             }
 
-            return blockDataInts;
+            blockMiddles = blockMiddlesList.ToArray();
+            blockData = blockDataInts;
+
+            return true;
         }
 
 
@@ -1330,9 +1337,9 @@ namespace rgat
         /// Reset the layout state for drawing a new plot
         /// </summary>
         /// <param name="resetStyle">How to distribute the reset nodes</param>
-        public void ResetPlot(GraphLayoutState.PositionResetStyle resetStyle)
+        public void ResetPlot(GraphLayoutState.PositionResetStyle resetStyle, float layoutSpread = 2)
         {
-            LayoutState.Reset(resetStyle);
+            LayoutState.Reset(resetStyle, spread: layoutSpread);
             BeginNewLayout();
         }
 
@@ -2348,7 +2355,7 @@ namespace rgat
                 LayoutState.AddNewNodesToComputeBuffers(graphNodeCount, this);
 
                 LayoutState.Lock.EnterWriteLock();
-                LayoutState.RegenerateEdgeDataBuffers(this); //tod change to upgradread
+                LayoutState.RegenerateEdgeDataBuffers(this); //todo change to upgradread
                 LayoutState.Lock.ExitWriteLock();
             }
 
@@ -2723,7 +2730,8 @@ namespace rgat
         /// </summary>
         public bool Opt_EdgesVisible { get; set; } = true;
 
-        private bool _textEnabled = true;
+
+        private bool _textEnabled = false;
         /// <summary>
         /// Text is being drawn
         /// </summary>
@@ -2859,6 +2867,7 @@ namespace rgat
             _unprojWorldCoordTL = GraphicsMaths.ScreenToWorldCoord(new Vector2(0, 0), NDC.Z, ClipAfterProj.W, invWV, invProj, graphWidgetSize);
             _unprojWorldCoordBR = GraphicsMaths.ScreenToWorldCoord(graphWidgetSize, NDC.Z, ClipAfterProj.W, invWV, invProj, graphWidgetSize);
         }
+
 
         /// <summary>
         /// Use the values from UpdatePreviewVisibleRegion to work out where to draw the preview camera box
@@ -3011,6 +3020,18 @@ namespace rgat
         {
             ComputeLayoutTime = 0;
             ComputeLayoutSteps = 0;
+            VelocitySetupTime = 0;
+            VelocityShaderTime = 0;
+            VelocitySteps = 0;
+            VelocityNodes = 0;
+            PositionSetupTime = 0;
+            PositionShaderTime = 0;
+            PositionSteps = 0;
+            PositionNodes = 0;
+            AttributeSetupTime = 0;
+            AttributeShaderTime = 0;
+            AttributeSteps = 0;
+            AttributeNodes = 0;
         }
 
         /// <summary>

@@ -22,7 +22,6 @@ struct VelocityParams
     float delta; //not used
     float k;
     float temperature;
-    uint nodesTexWidth;
 
     uint edgeCount;
     uint fixedInternalNodes;
@@ -75,20 +74,28 @@ layout(set = 0, binding=8) buffer resultData
 
 
 vec4 getNeighbor(uint bufferIndex){
-    //vec2 uv = vec2(((mod(textureIndex, fieldParams.nodesTexWidth)) / fieldParams.nodesTexWidth), (floor(textureIndex / fieldParams.nodesTexWidth) / fieldParams.nodesTexWidth));
-    //vec4  r =  texture(sampler2D(positions, positionsView), uv );
-    
     return positions[bufferIndex];
 }
 
 
-//fr(x) = (k*k)/x;
-vec3 addRepulsion(vec4 self, vec4 neighbor, float multiplier){
+
+vec3 addRepulsionOriginal(vec4 self, vec4 neighbor, float multiplier){
     if (neighbor.w == -1) return vec3(0,0,0); 
     vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
-    float f = ( fieldParams.k * fieldParams.k ) / max(x, 0.001);
+   float f = ( fieldParams.k * fieldParams.k ) / max(x, 0.001);
     return normalize(diff) * f * multiplier;
+}
+
+
+//fr(x) = (k*k)/x;
+vec3 addRepulsion(vec4 self, vec4 neighbor){
+    //if (neighbor.w == -1) return vec3(0,0,0); 
+    //vec3 diff = self.xyz - neighbor.xyz;
+    //float x = length( diff );
+    //float f = ( fieldParams.k * fieldParams.k ) / max(x, 0.001);
+    float f = 100000.0 / max( length( self.xyz - neighbor.xyz ), 0.001);
+    return normalize(self.xyz - neighbor.xyz) * f;
 }
 
 
@@ -134,35 +141,34 @@ void main()	{
 
     
     uvec3 id = gl_GlobalInvocationID;
-    uint index = id.x;//id.y * 256 + id.x;
+    uint index = id.y * 256 + id.x;
 
-    vec4 selfPosition = positions[index];
-    vec4 presetLayoutPosition = presetPositions[index];
-    vec3 selfVelocity = velocities[index].xyz;
-    vec3 velocity = selfVelocity;
+    if (index < fieldParams.nodeCount)
+    {
 
-    vec4 nodePosition;
-    vec4 compareNodePosition;
+        vec4 selfPosition = positions[index];
+        vec4 presetLayoutPosition = presetPositions[index];
+        vec3 selfVelocity = velocities[index].xyz;
+        vec3 velocity = selfVelocity;
 
-    const float speedLimit = 1000.0;
-    float attct = 0;
-    float outputDebug = -100;
+        vec4 nodePosition;
+
+        const float speedLimit = 100000.0;
+        float attct = 0;
+        float outputDebug = -100;
      
-     /*
-     .w presetLayoutPosition values
+         /*
+         .w presetLayoutPosition values
      
-        -1 = not a node
-         0 = internal block node, fixed position from parent
-         1 = preset, simple attraction towards target
-         2 = free body subject to standard forces
-     */
+            -1 = not a node
+             0 = internal block node, fixed position from parent
+             1 = preset, simple attraction towards target
+             2 = free body subject to standard forces
+         */
 
-     if ( selfPosition.w > 0)// && (selfPosition.w < 2 || fieldParams.fixedInternalNodes == 0)) 
-     {
-     
-
+         if ( selfPosition.w > 0)// && (selfPosition.w < 2 || fieldParams.fixedInternalNodes == 0)) 
+         {
             //move towards preset layout position
-            //todo: new shader
             if ( fieldParams.snapToPreset >= 1.0) 
             {
      
@@ -176,153 +182,72 @@ void main()	{
                     velocity -= addProportionalAttraction(selfPosition.xyz, presetLayoutPosition, distFromDest/10);
                 }
                 velocity *= 0.75;
-                //velocity = vec3(1000,10000,100000);
-
             } 
             else 
             {
             
-                if (fieldParams.fixedInternalNodes == 0 )
+                // force-directed n-body simulation
+
+                //first repel every node away from each other
+                //this loop reduces throughput by 1M nodes/second
+                                        
+                for(uint nodeIndex = 0; nodeIndex < fieldParams.nodeCount; nodeIndex++)
                 {
-    
-                    // force-directed n-body simulation
+                    //compareNodePosition = positions[nodeIndex];
+                    // note: double ifs work.  using continues do not work for all GPUs.
 
-                    //first repel every node away from each other
-                    //todo ditch this double loop
-                    for(uint nodeIndex = 0; nodeIndex < fieldParams.nodeCount; nodeIndex++)
-                    {
-                        compareNodePosition = positions[nodeIndex];
-                        // note: double ifs work.  using continues do not work for all GPUs.
-                        if (compareNodePosition.w >= 0) 
+                        //if distance below threshold, repel every node from every single node
+                        //float edgeLength = distance(compareNodePosition.xyz, selfPosition.xyz);
+                        //if (edgeLength > 0.001) 
                         {
-                            //if distance below threshold, repel every node from every single node
-                            if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
-                            {
-                                //field_Destination[index*5 + y*fieldParams.nodesTexWidth + x] = vec4(index, float( y*fieldParams.nodesTexWidth + x), -2,-2);
-                                velocity += addRepulsion(selfPosition, compareNodePosition, 1);
+                            vec3 compos = positions[nodeIndex].xyz;
+                            vec3 diff = selfPosition.xyz - positions[nodeIndex].xyz;  
+                                float f = ( 100000000 ) / max(length(diff), 0.001);
+                                velocity += normalize(diff) * f;
 
-                            }
+                            //velocity += addRepulsion(selfPosition,  positions[nodeIndex]);
+                            //velocity += addRepulsionOriginal(selfPosition, positions[nodeIndex], 1);
                         }
-		            }
+		        }
+           
+
+
+                //now iterate over each edge, attracting every connected node towards each other
+                //this loop has low impact on throughput (50-150k nodes/second)    
+                vec2 selfEdgeIndices = edgeIndices[index];
+                float start = selfEdgeIndices.x;
+                float end = selfEdgeIndices.y;
+
+                if(start != -1) //todo: get rid of this by making start == end?
+                {
+                    for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
+                    {
+                        uint neighbour = edgeTargets[edgeIndex];
+                        nodePosition = positions[neighbour];
+                        velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
+                    
+                    }
+                }
+                     
             
-                    //now iterate over each edge, attracting every connected node towards each other
-                    vec2 selfEdgeIndices = edgeIndices[index];
-                    float start = selfEdgeIndices.x;
-                    float end = selfEdgeIndices.y;
+                // temperature gradually cools down to zero
+                velocity = normalize(velocity) * fieldParams.temperature;
 
-                    if(start != -1) //todo: get rid of this by making start == end?
-                    {
-                        for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
-                        {
-                            uint neighbour = edgeTargets[edgeIndex];
-                            nodePosition = positions[neighbour];
-                            velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
-                    
-                        }
-                    }
-        
-                } 
-                else 
+                // Speed Limits
+                if ( length( velocity ) > speedLimit ) 
                 {
-        
-                    // force-directed blocks
-        
-                    //first repel 
-                    for(uint nodeIdx = 0; nodeIdx < fieldParams.nodeCount; nodeIdx++)
-                    {
-                        compareNodePosition = positions[nodeIdx];
-                        // note: double ifs work.  using continues do not work for all GPUs.
-                        if (compareNodePosition.w >= 1) 
-                        {
-                            //if distance below threshold, repel every node from every single node
-                            if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
-                            {
-                                velocity += addRepulsion(selfPosition, compareNodePosition, 60);
-                            }
-                        }
-		            }
-
-                    //now attract
-                    //vec2 selfEdgeIndices = edgeIndices[index];
-                    //float start = selfEdgeIndices.x;
-                    //float end = selfEdgeIndices.y;
-                    ivec4 selfBlockData = blockData[index];
-                    outputDebug = float(selfBlockData.z);
-
-                    /*
-                    blockdata.x = index of block
-                    blockdata.y = nodes from this node to center of block node
-                    blockdata.z = first node in block  [set only for mid node]
-                    blockdata.w = last node in block [set only for mid node]
-                    */
-                    
-                    if (selfBlockData.z != -1) //if this node is middle of block 
-                    { 
-                        //attract any blocks linked to the base node towards this center node
-                        vec2 baseEdgeIndices = edgeIndices[selfBlockData.z];
-                        float start = baseEdgeIndices.x;
-                        float end = baseEdgeIndices.y;
-                        if(start != -1)
-                        {
-                            for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
-                            {
-                                uint neighbourID = edgeTargets[edgeIndex];
-                                nodePosition = positions[neighbourID];
-                                vec4 neighborBlockData = blockData[neighbourID];
-                                //attract center to another block
-                                if (neighborBlockData.z != -1 && neighborBlockData.x != selfBlockData.x)
-                                {
-                                    vec3 resvel = addAttraction(selfPosition, nodePosition, int(edgeIndex));
-                                    velocity -= resvel;
-                                }
-                            }
-                        }
-                               
-                              
-                        //attract any blocks linked to the top node towards this center node 
-                        vec2 topEdgeIndices = edgeIndices[selfBlockData.w];
-                        start = topEdgeIndices.x;
-                        end = topEdgeIndices.y;
-                        if(start != -1)
-                        {
-                            for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
-                            {
-                                uint neighbourID = edgeTargets[edgeIndex];
-                                nodePosition = positions[neighbourID];
-                                vec4 neighborBlockData = blockData[neighbourID];
-                                //attract center to another block
-                                if (neighborBlockData.x != selfBlockData.x)
-                                {
-                                    vec3 resvel = addAttraction(selfPosition, nodePosition, int(edgeIndex));
-                                    velocity -= resvel;
-                                }
-                            }
-                        }
-                        
-                    }
+                    velocity = normalize( velocity ) * speedLimit;
+                }
             }
-
-
-            // temperature gradually cools down to zero
-
-            velocity = normalize(velocity) * fieldParams.temperature;
-
-            // Speed Limits
-            if ( length( velocity ) > speedLimit ) 
-            {
-                velocity = normalize( velocity ) * speedLimit;
-            }
-        
         }
-    }
     
-    // add friction
-    velocity *= 0.25;
+        // add friction
+        velocity *= 0.25;
     
     
-    //debugging
+        //debugging
 
-    field_Destination[index] = vec4(velocity,  outputDebug);//velocities[index].w);
-    
+        field_Destination[index] = vec4(velocity,  outputDebug);//velocities[index].w);
+    }
 }
 

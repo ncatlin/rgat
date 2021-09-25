@@ -43,6 +43,7 @@
     <None Remove="Shaders\SPIR-V\imgui-frag.glsl" />
     <None Remove="Shaders\SPIR-V\imgui-frag.spv" />
     <None Remove="Shaders\SPIR-V\imgui-vertex.spv" />
+    <None Remove="Shaders\SPIR-V\sim-blockVelocity.spv" />
   </ItemGroup>
 
   <ItemGroup>
@@ -52,6 +53,7 @@
     <EmbeddedResource Include="Shaders\HLSL\imgui-frag.hlsl.bytes" />
     <EmbeddedResource Include="Shaders\HLSL\imgui-vertex.hlsl" />
     <EmbeddedResource Include="Shaders\HLSL\imgui-vertex.hlsl.bytes" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-blockVelocity.spv" />
     <Resource Include="Shaders\SPIR-V\imgui-frag.glsl" />
     <EmbeddedResource Include="Shaders\SPIR-V\imgui-frag.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\imgui-vertex.spv" />

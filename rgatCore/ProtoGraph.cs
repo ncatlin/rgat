@@ -978,7 +978,7 @@ namespace rgat
         /// <param name="edge">The node pair</param>
         /// <param name="edged">The edge, if found</param>
         /// <returns>An edge was found</returns>
-        public bool EdgeExists(Tuple<uint, uint> edge, out EdgeData? edged)
+        public bool EdgeExists(Tuple<uint, uint> edge, out EdgeData? edged) //todo this is a bottleneck
         {
             lock (edgeLock)
             {

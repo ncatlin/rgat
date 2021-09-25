@@ -1225,13 +1225,13 @@
         </member>
         <member name="F:rgat.GlobalConfig.NodeSoftSpeedLimit">
             <summary>
-            Maximum configurable speed of force-directed nodes. Fast nodes will layout quickly but wobble
-            in their low energy position
+            Maximum temperature that will be applied to force-directed nodes. Fast nodes will layout quickly but wobble
+            in their low energy position.
             </summary>
         </member>
         <member name="F:rgat.GlobalConfig.NodeHardSpeedLimit">
             <summary>
-            Speed limit nodes cannot exceed
+            Maximum speed limit available on the GUI
             </summary>
         </member>
         <member name="F:rgat.GlobalConfig.NewVersionAvailable">
@@ -3242,7 +3242,7 @@
             <param name="resources">Position shader resource set</param>
             <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         </member>
-        <member name="M:rgat.GraphLayoutEngine.RenderVelocity(Veldrid.CommandList,rgat.PlottedGraph,Veldrid.ResourceSet,System.Single,System.Single)">
+        <member name="M:rgat.GraphLayoutEngine.RenderVelocityStandard(Veldrid.CommandList,rgat.PlottedGraph,Veldrid.ResourceSet,System.Single,System.Single)">
             <summary>
             Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
             </summary>
@@ -3404,6 +3404,11 @@
             Various descriptions of basic blocks, for the block-based layouts
             </summary>
         </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.BlockMiddles">
+            <summary>
+            Indexes of basic block centers
+            </summary>
+        </member>
         <member name="F:rgat.GraphLayoutState.GPUBuffers.RenderVersion">
             <summary>
             The current version of the layout, incremented every time a compute pass is done
@@ -3468,6 +3473,11 @@
         <member name="P:rgat.GraphLayoutState.BlockMetadata">
             <summary>
             VRAM Basic Block descriptions buffer
+            </summary>
+        </member>
+        <member name="P:rgat.GraphLayoutState.BlockMiddles">
+            <summary>
+            VRAM Basic Block middle indexes
             </summary>
         </member>
         <member name="P:rgat.GraphLayoutState.EdgeStrengths">
@@ -3588,6 +3598,11 @@
             Basic Block metadata
             </summary>
         </member>
+        <member name="F:rgat.GraphLayoutState.CPUBuffers.BlockMiddles">
+            <summary>
+            Basic Block middles
+            </summary>
+        </member>
         <member name="M:rgat.GraphLayoutState.LockedUploadStateToVRAM(rgat.GraphLayoutState.CPUBuffers)">
             <summary>
             Must hold writer lock
@@ -3612,7 +3627,7 @@
             must hold write lock
             </summary>
         </member>
-        <member name="M:rgat.GraphLayoutState.CopyMappedVRAMBufferToFloatArray(Veldrid.MappedResourceView{System.Single},System.Single[])">
+        <member name="M:rgat.GraphLayoutState.CopyMappedVRAMBufferToFloatArray(Veldrid.MappedResourceView{System.Single},System.Single[]@)">
             <summary>
             Set the saved float buffer in the graph after computing them in the GPU
             </summary>
@@ -3711,7 +3726,7 @@
         <member name="F:rgat.GraphLayoutState.PositionResetStyle.Implode">
             Distribute around the edge
         </member>
-        <member name="M:rgat.GraphLayoutState.Reset(rgat.GraphLayoutState.PositionResetStyle)">
+        <member name="M:rgat.GraphLayoutState.Reset(rgat.GraphLayoutState.PositionResetStyle,System.Single)">
             <summary>
             Cause a force directed plot to be randomly re-distributed in the
             specified style. Use this to try a different arrangement.
@@ -3725,14 +3740,14 @@
             </summary>
             <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
         </member>
-        <member name="M:rgat.GraphLayoutState.ImplodePositions(rgat.GraphLayoutState.CPUBuffers)">
+        <member name="M:rgat.GraphLayoutState.ImplodePositions(rgat.GraphLayoutState.CPUBuffers,System.Single)">
             <summary>
             Distributes the nodes on the edge of a sphere. 
             Attraction dominates the intial stages of layout
             </summary>
             <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
         </member>
-        <member name="M:rgat.GraphLayoutState.ScatterPositions(rgat.GraphLayoutState.CPUBuffers)">
+        <member name="M:rgat.GraphLayoutState.ScatterPositions(rgat.GraphLayoutState.CPUBuffers,System.Single)">
             <summary>
             Distributes the nodes randomly in a wide area. 
             Balance of attraction and repulsion will move them into position
@@ -4540,10 +4555,10 @@
             </summary>
             <returns></returns>
         </member>
-        <member name="M:rgat.PlottedGraph.GetBlockRenderingMetadata">
+        <member name="M:rgat.PlottedGraph.GetBlockRenderingMetadata(System.Int32[]@,System.Int32[]@)">
             Creates an array of metadata for basic blocks used for basic-block-centric graph layout
         </member>
-        <member name="M:rgat.PlottedGraph.CreateBlockMetadataBuf(System.Int32)">
+        <member name="M:rgat.PlottedGraph.CreateBlockMetadataBuf(System.Int32,System.Int32[]@,System.Int32[]@)">
             <summary>
             Creates an array of metadata for basic blocks used for basic-block-centric graph layout
             item[0] = blockID
@@ -4565,7 +4580,7 @@
             </summary>
             <returns>Positions of the preset nodes</returns>
         </member>
-        <member name="M:rgat.PlottedGraph.ResetPlot(rgat.GraphLayoutState.PositionResetStyle)">
+        <member name="M:rgat.PlottedGraph.ResetPlot(rgat.GraphLayoutState.PositionResetStyle,System.Single)">
             <summary>
             Reset the layout state for drawing a new plot
             </summary>

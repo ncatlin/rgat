@@ -781,34 +781,46 @@ private void DrawScalePopup()
                 ImGui.Text("Cylinder Config Options");
             }
 
-            if (_currentGraph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks)
+            if (CONSTANTS.LayoutStyles.IsForceDirected(_currentGraph.ActiveLayoutStyle))
             {
-                ImGui.Text("ForceDirected3DBlocks Config Options");
-            }
-
-            if (_currentGraph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes)
-            {
-                ImGui.Text("eForceDirected3DNodes Config Options");
+                bool spreadHighlight = false;
+                ImGui.Text("Force Directed Layout Configuration");
                 if (ImGui.Button("Rerender: Scatter"))
                 {
-                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Scatter);
+                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Scatter, _replotSpread);
+                }
+                if (ImGui.IsItemHovered())
+                {
+                    spreadHighlight = true;
+                    ImGui.SetTooltip("Scatter the nodes randomly. Control how far apart by adjusting the Replotting Spread");
                 }
                 ImGui.SameLine();
                 if (ImGui.Button("Rerender: Explode"))
                 {
+                    spreadHighlight = true;
                     InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Explode);
+                }
+                if (ImGui.IsItemHovered())
+                {
+                    spreadHighlight = true;
+                    ImGui.SetTooltip("Scatter the nodes randomly. Control how far apart by adjusting the Replotting Spread");
                 }
                 ImGui.SameLine();
                 if (ImGui.Button("Rerender: Implode"))
                 {
-                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Implode);
+                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Implode, _replotSpread);
+                }
+                if (ImGui.IsItemHovered())
+                {
+                    spreadHighlight = true;
+                    ImGui.SetTooltip("Scatter the nodes randomly. Control how far apart by adjusting the Replotting Spread");
                 }
 
-                if (ImGui.BeginTable("ComputationSelectNodes", 2))
+
+                if (ImGui.BeginTable("ComputationSelectNodes", 2, ImGuiTableFlags.RowBg))
                 {
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-
                     ImGui.Text("All Computation:");
                     ImGui.TableNextColumn();
                     if (SmallWidgets.ToggleButton("#ComputeActive", GlobalConfig.LayoutAllComputeEnabled, "Toggle GPU-based plot updates"))
@@ -818,7 +830,6 @@ private void DrawScalePopup()
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-
                     ImGui.Text("Display Computation:");
                     ImGui.TableNextColumn();
                     if (SmallWidgets.ToggleButton("#ComputeAttrib", GlobalConfig.LayoutAttribsActive, "Toggle the computation of transparency and animation effects", isEnabled: GlobalConfig.LayoutAllComputeEnabled))
@@ -828,7 +839,6 @@ private void DrawScalePopup()
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-
                     ImGui.Text("Layout Computation:");
                     ImGui.TableNextColumn();
                     if (SmallWidgets.ToggleButton("#ComputePosVel", GlobalConfig.LayoutPositionsActive, "Toggle the computation of graph layout", isEnabled: GlobalConfig.LayoutAllComputeEnabled))
@@ -838,12 +848,22 @@ private void DrawScalePopup()
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-
                     ImGui.Text("Max Node Speed");
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(150);
                     ImGui.SliderFloat("##MaxNodeSpeed", ref GlobalConfig.NodeSoftSpeedLimit, 0, GlobalConfig.NodeHardSpeedLimit);
 
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    if (spreadHighlight)
+                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextEmphasis2));
+                    else
+                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                    ImGui.Text("Replotting Spread");
+                    ImGui.PopStyleColor();
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(150);
+                    ImGui.SliderFloat("##_replotSpread", ref _replotSpread, 0.001f, 5f);
 
 
                     ImGui.EndTable();
@@ -851,10 +871,12 @@ private void DrawScalePopup()
             }
         }
 
+        float _replotSpread = 3;
 
-        private void InitGraphReplot(GraphLayoutState.PositionResetStyle resetStyle)
+
+        private void InitGraphReplot(GraphLayoutState.PositionResetStyle resetStyle, float spread = 2f)
         {
-            _currentGraph?.ResetPlot(resetStyle: resetStyle);
+            _currentGraph?.ResetPlot(resetStyle: resetStyle, spread);
 
         }
 

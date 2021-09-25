@@ -44,10 +44,11 @@ namespace rgat
         /// </summary>
         public string EngineID { get; private set; }
 
-        private Pipeline? _positionComputePipeline, _velocityComputePipeline, _nodeAttribComputePipeline;
-        private Shader? _positionShader, _velocityShader, _nodeAttribShader;
+        private Pipeline? _positionComputePipeline, _velocityComputePipeline, _velocityBlockComputePipeline, _nodeAttribComputePipeline;
+        private Shader? _positionShader, _velocityStandardShader, _velocityBlockShader, _nodeAttribShader;
         private DeviceBuffer? _velocityParamsBuffer, _positionParamsBuffer, _attribsParamsBuffer;
-        private ResourceLayout? _velocityComputeLayout, _positionComputeLayout, _nodeAttribComputeLayout;
+        private ResourceLayout? _velocityComputeStandardLayout, _velocityComputeBlockLayout;
+        private ResourceLayout? _positionComputeLayout, _nodeAttribComputeLayout;
         private readonly object _lock = new object();
 
 
@@ -207,6 +208,7 @@ namespace rgat
             return result;
         }
 
+
         private unsafe void SetupComputeResources()
         {
             Debug.Assert(_gd is not null, "Init not called");
@@ -214,10 +216,10 @@ namespace rgat
 
             if (_gd.Features.ComputeShader is false) { Logging.RecordError("Error: Compute shaders are unavailable"); return; }
 
-            byte[]? velocityShaderBytes = ImGuiController.LoadEmbeddedShaderCode(factory, "sim-velocity", ShaderStages.Fragment);
-            _velocityShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, velocityShaderBytes, "FS"));
+            byte[]? velocityStandardShaderBytes = ImGuiController.LoadEmbeddedShaderCode(factory, "sim-velocity", ShaderStages.Fragment);
+            _velocityStandardShader = factory.CreateShader(new ShaderDescription(ShaderStages.Compute, velocityStandardShaderBytes, "FS"));
 
-            _velocityComputeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _velocityComputeStandardLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Compute),
             new ResourceLayoutElementDescription("positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("layoutPositions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
@@ -230,24 +232,42 @@ namespace rgat
 
             _velocityParamsBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<VelocityShaderParams>(), BufferUsage.UniformBuffer, name: "VelocityShaderParams");
 
-            ComputePipelineDescription VelocityCPD = new ComputePipelineDescription(_velocityShader, _velocityComputeLayout, 16, 16, 1);
+            ComputePipelineDescription VelocityCPD = new ComputePipelineDescription(_velocityStandardShader, _velocityComputeStandardLayout, 16, 16, 1);
 
             _velocityComputePipeline = factory.CreateComputePipeline(VelocityCPD);
+
+
+
+            byte[]? velocityBlockShaderBytes = ImGuiController.LoadEmbeddedShaderCode(factory, "sim-blockVelocity", ShaderStages.Fragment);
+            _velocityBlockShader = factory.CreateShader(new ShaderDescription(ShaderStages.Compute, velocityBlockShaderBytes, "FS"));
+
+            _velocityComputeBlockLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
+            new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("velocities", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("edgeIndices", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("edgeData", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("edgeStrengths", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("blockData", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("blockMiddles", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
+            new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)));
+
+            //_velocityParamsBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<VelocityShaderParams>(), BufferUsage.UniformBuffer, name: "VelocityShaderParams");
+
+            ComputePipelineDescription VelocityBlockCPD = new ComputePipelineDescription(_velocityBlockShader, _velocityComputeBlockLayout, 16, 16, 1);
+
+            _velocityBlockComputePipeline = factory.CreateComputePipeline(VelocityBlockCPD);
+
+
+
+
 
             _positionComputeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Compute),
             new ResourceLayoutElementDescription("positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("velocities", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("blockData", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
-            new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute),
-
-
-            new ResourceLayoutElementDescription("test1presetpos", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
-            new ResourceLayoutElementDescription("test2edgeIndices", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
-            new ResourceLayoutElementDescription("test3edgeData", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
-            new ResourceLayoutElementDescription("test4edgeStre", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute)
-
-
+            new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)
             ));
 
 
@@ -290,14 +310,12 @@ namespace rgat
             public float delta;
             public float k;
             public float temperature;
-            public uint NodesTexWidth;
-
             public uint EdgeCount;
+
             public uint fixedInternalNodes;
             public uint snappingToPreset;
             public uint nodeCount;
-
-            //private readonly uint _padding1; //must be multiple of 16
+            private readonly uint _padding1; //must be multiple of 16
         }
 
 
@@ -311,6 +329,7 @@ namespace rgat
         /// <returns></returns>
         private float FindHighXYZ(DeviceBuffer buf, int nodeCount, out int highIndex)
         {
+
             Logging.RecordLogEvent($"FindHighXYZ  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd!, buf);
             MappedResourceView<float> destinationReadView = _gd!.Map<float>(destinationReadback, MapMode.Read);
@@ -384,7 +403,7 @@ namespace rgat
             Debug.Assert(graph != null, "Layout engine called to compute without active graph");
 
 
-            if (_velocityShader == null)
+            if (_velocityStandardShader == null)
             {
                 SetupComputeResources();
             }
@@ -409,69 +428,63 @@ namespace rgat
             bool isForceDirected = CONSTANTS.LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle);
 
             bool forceComputationActive = GlobalConfig.LayoutPositionsActive && graph.Temperature > 0 && (graph.LayoutState.ActivatingPreset || isForceDirected);
+            CONSTANTS.LayoutStyles.Style layoutStyle = layout.Style;
 
             if (graph.LayoutState.flip())
             {
-                //todo unified resource layout
-                velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeLayout, _velocityParamsBuffer,
+                if (layoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks && !layout.ActivatingPreset)
+                {
+                    velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeBlockLayout, _velocityParamsBuffer,
+                    layout.PositionsVRAM1, layout.VelocitiesVRAM1,
+                    layout.EdgeConnectionIndexes, layout.EdgeConnections, layout.EdgeStrengths, layout.BlockMetadata, layout.BlockMiddles,
+                    layout.VelocitiesVRAM2);
+                }
+                else
+                {
+                    velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeStandardLayout, _velocityParamsBuffer,
                     layout.PositionsVRAM1, layout.PresetPositions, layout.VelocitiesVRAM1,
                     layout.EdgeConnectionIndexes, layout.EdgeConnections, layout.EdgeStrengths, layout.BlockMetadata,
                 layout.VelocitiesVRAM2);
+                }
 
                 pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout,
                     _positionParamsBuffer,
                    layout.PositionsVRAM1,
                    layout.VelocitiesVRAM2,
                    layout.BlockMetadata,
-                   layout.PositionsVRAM2,
-
-                  //tests
-                  layout.PresetPositions,
-                layout.EdgeConnectionIndexes,
-                layout.EdgeConnections,
-                layout.EdgeStrengths
+                   layout.PositionsVRAM2
                   );
 
                 attr_rsrc_desc = new ResourceSetDescription(_nodeAttribComputeLayout,
                     _attribsParamsBuffer, layout.AttributesVRAM1, layout.EdgeConnectionIndexes,
                     layout.EdgeConnections, layout.AttributesVRAM2);
                 inputAttributes = layout.AttributesVRAM1!;
-                //outputAttributes = layout.AttributesVRAM2;
-
             }
 
             else
             {
-                velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeLayout,
-                _velocityParamsBuffer,
-                layout.PositionsVRAM2,
-                layout.PresetPositions, //
-                layout.VelocitiesVRAM2,
-                layout.EdgeConnectionIndexes, // 
-                layout.EdgeConnections, //
-                layout.EdgeStrengths, // 
-                layout.BlockMetadata,
-                layout.VelocitiesVRAM1);
+                if (layoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks && !layout.ActivatingPreset)
+                {
+                    velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeBlockLayout,
+                    _velocityParamsBuffer, layout.PositionsVRAM2,
+                    layout.VelocitiesVRAM2, layout.EdgeConnectionIndexes, layout.EdgeConnections,
+                    layout.EdgeStrengths, layout.BlockMetadata, layout.BlockMiddles, layout.VelocitiesVRAM1);
+                }
+                else
+                {
+                    velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeStandardLayout,
+                    _velocityParamsBuffer, layout.PositionsVRAM2, layout.PresetPositions,
+                    layout.VelocitiesVRAM2, layout.EdgeConnectionIndexes, layout.EdgeConnections,
+                    layout.EdgeStrengths, layout.BlockMetadata, layout.VelocitiesVRAM1);
+                }
 
                 pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout,
-                    _positionParamsBuffer,
-                 layout.PositionsVRAM2,
-                 layout.VelocitiesVRAM1,
-                 layout.BlockMetadata,
-                  layout.PositionsVRAM1,
-
-                  //tests
-                  layout.PresetPositions,
-                layout.EdgeConnectionIndexes,
-                layout.EdgeConnections,
-                layout.EdgeStrengths
-                  );
+                    _positionParamsBuffer, layout.PositionsVRAM2, layout.VelocitiesVRAM1, layout.BlockMetadata, layout.PositionsVRAM1);
 
                 attr_rsrc_desc = new ResourceSetDescription(_nodeAttribComputeLayout,
-                    _attribsParamsBuffer, layout.AttributesVRAM2, layout.EdgeConnectionIndexes,
-                    layout.EdgeConnections, layout.AttributesVRAM1);
+                    _attribsParamsBuffer, layout.AttributesVRAM2, layout.EdgeConnectionIndexes, layout.EdgeConnections,
+                    layout.AttributesVRAM1);
                 inputAttributes = layout.AttributesVRAM2!;
-                //outputAttributes = layout.AttributesVRAM1;
             }
 
             ResourceSet? posRS = null, velocityComputeResourceSet = null;
@@ -485,7 +498,14 @@ namespace rgat
             {
                 _velSetupTimer.Restart();
                 cl.Begin();
-                RenderVelocity(cl, graph, velocityComputeResourceSet!, delta, graph.Temperature);
+                if (layoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks && !layout.ActivatingPreset)
+                {
+                    RenderVelocityBlocks(cl, graph, velocityComputeResourceSet!, delta, graph.Temperature);
+                }
+                else
+                {
+                    RenderVelocityStandard(cl, graph, velocityComputeResourceSet!, delta, graph.Temperature);
+                }
                 cl.End();
                 _velSetupTimer.Stop();
 
@@ -530,13 +550,14 @@ namespace rgat
                 // for now just do it every 3 frames
                 if (forceComputationActive && (layout.RenderVersion % 3) == 0)
                 {
-
-                    float highPosition = FindHighXYZ(graph.LayoutState.PositionsVRAM1!, graph.ComputeBufferNodeCount, out int furthestNodeIdx);
-                    if (furthestNodeIdx != -1)
+                    if (layout.PositionsVRAM1 is not null && (graph.ComputeBufferNodeCount * 4 * sizeof(float)) <= layout.PositionsVRAM1.SizeInBytes)
                     {
-                        graph.SetFurthestNodeDimension(furthestNodeIdx, highPosition);
+                        float highPosition = FindHighXYZ(layout.PositionsVRAM1!, graph.ComputeBufferNodeCount, out int furthestNodeIdx);
+                        if (furthestNodeIdx != -1)
+                        {
+                            graph.SetFurthestNodeDimension(furthestNodeIdx, highPosition);
+                        }
                     }
-
                 }
             }
 
@@ -562,21 +583,27 @@ namespace rgat
 
             //_gd!.WaitForIdle();
 
+            //DebugPrintOutputIntBuffer(layout.BlockMiddles!, "Middles", 100);
+            //DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 5000);
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM1, "Atts1", 32);
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM2, "Atts2", 32);
 
-            if (graph.LayoutState.ActivatingPreset && graph.LayoutState.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
+            if (layout.ActivatingPreset && layout.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
             {
-                //when the nodes are near their targets, instead of bouncing around while coming to a slow, just snap them into position
-                float highest = FindHighXYZ(layout.VelocitiesVRAM1!, graph.ComputeBufferNodeCount, out int highIndex);
-                Logging.WriteConsole($"Presetspeed: {highest}");
-                if (highest < 1)
+                if (layout.VelocitiesVRAM1 is not null && (graph.ComputeBufferNodeCount * 4 * sizeof(float)) <= layout.VelocitiesVRAM1.SizeInBytes)
                 {
-                    Logging.WriteConsole("Preset done");
-                    graph.LayoutState.CompleteLayoutChange();
+                    //when the nodes are near their targets, instead of bouncing around while coming to a stop, just snap them into position
+                    float fastest = FindHighXYZ(layout.VelocitiesVRAM1, graph.ComputeBufferNodeCount, out int highIndex);
+                    Logging.WriteConsole($"Presetspeed: {fastest}");
+                    if (fastest < 1)
+                    {
+                        Logging.WriteConsole("Preset done");
+                        graph.LayoutState.CompleteLayoutChange();
+                    }
                 }
             }
             graph.LayoutState.Lock.ExitUpgradeableReadLock();
+
 
             //should we be dispose/recreating these? probably not. todo
             if (attribComputeResourceSet != null)
@@ -598,18 +625,18 @@ namespace rgat
 
             _stepTimer.Stop();
 
-                _lastComputeMS.Add(_stepTimer.Elapsed.TotalMilliseconds);
-                if (_lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
-                {
-                    _lastComputeMS = _lastComputeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
-                }
+            _lastComputeMS.Add(_stepTimer.Elapsed.TotalMilliseconds);
+            if (_lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
+            {
+                _lastComputeMS = _lastComputeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
+            }
 
-                AverageComputeTime = _lastComputeMS.Average();
-            
+            AverageComputeTime = _lastComputeMS.Average();
+
             if (GlobalConfig.LayoutPositionsActive)
             {
-                graph.RecordComputeTime(stepMSTotal: _stepTimer.Elapsed.TotalMilliseconds, 
-                    positionSetupTime: positionSetupTime, positionShaderTime: positionTime, 
+                graph.RecordComputeTime(stepMSTotal: _stepTimer.Elapsed.TotalMilliseconds,
+                    positionSetupTime: positionSetupTime, positionShaderTime: positionTime,
                     velocitySetupTime: velocitySetupTime, velocityShaderTime: velocityTime,
                     attributeSetupTime: attributeSetupTime, attributeShaderTime: attributeTime);
             }
@@ -695,25 +722,19 @@ namespace rgat
         /// <param name="resources">Velocity shader resource set</param>
         /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         /// <param name="temperature">The activity level of the layout state. Higher balues => bigger movements</param>
-        private unsafe double RenderVelocity(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
+        private unsafe double RenderVelocityStandard(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
         {
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-            uint fixedNodes = 0;
-            if (graph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks)
-            {
-                fixedNodes = 1;
-            }
 
             VelocityShaderParams parms = new VelocityShaderParams
             {
                 delta = delta,
                 k = 100f,
                 temperature = Math.Min(temperature, GlobalConfig.NodeSoftSpeedLimit),
-                NodesTexWidth = (uint)Math.Sqrt(graph.LayoutState.PositionsVRAM1!.SizeInBytes) / 4,//no longer used?
                 EdgeCount = (uint)graph.InternalProtoGraph.EdgeCount,
-                fixedInternalNodes = fixedNodes,
+                fixedInternalNodes = 0,
                 snappingToPreset = (uint)(graph.LayoutState.ActivatingPreset ? 1 : 0),
-                nodeCount = graph.LayoutState.PositionsVRAM1.SizeInBytes / 16
+                nodeCount = (uint)graph.RenderedNodeCount()
             };
 
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
@@ -724,12 +745,47 @@ namespace rgat
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
-            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.PositionsVRAM1.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
+            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.VelocitiesVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
             watch.Stop();
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done in {watch.ElapsedMilliseconds} MS", Logging.LogFilterType.BulkDebugLogFile);
             return watch.Elapsed.TotalMilliseconds;
-
         }
+
+
+
+        private unsafe double RenderVelocityBlocks(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
+        {
+            Logging.RecordLogEvent($"RenderVelocityBlocks  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+
+            VelocityShaderParams parms = new VelocityShaderParams
+            {
+                delta = delta,
+                k = 500f,
+                temperature = Math.Min(temperature, GlobalConfig.NodeSoftSpeedLimit),
+                EdgeCount = (uint)graph.InternalProtoGraph.EdgeCount,
+                fixedInternalNodes = 1,
+                snappingToPreset = 0,
+                nodeCount = (uint)graph.LayoutState.BlockMiddles!.SizeInBytes / 4
+            };
+
+            Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
+
+            cl.UpdateBuffer(_velocityParamsBuffer, 0, parms);
+            cl.SetPipeline(_velocityBlockComputePipeline);
+            cl.SetComputeResourceSet(0, resources);
+
+            Stopwatch watch = new Stopwatch();
+            watch.Start();
+            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.VelocitiesVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
+            watch.Stop();
+            Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done in {watch.ElapsedMilliseconds} MS", Logging.LogFilterType.BulkDebugLogFile);
+            return watch.Elapsed.TotalMilliseconds;
+        }
+
+
+
+
+
 
 
         /*
@@ -980,11 +1036,64 @@ namespace rgat
                 outputArray[index] = destinationReadView[index];
             }
             _gd.Unmap(destinationReadback);
-            PrintBufferArray(outputArray, message, printCount);
+            PrintFloatBufferArray(outputArray, message, printCount);
             VeldridGraphBuffers.VRAMDispose(destinationReadback);
         }
 
-        private static void PrintBufferArray(float[] sourceData, string premsg, int limit = 0)
+        private static void PrintFloatBufferArray(float[] sourceData, string premsg, int limit = 0)
+        {
+
+            Logging.WriteConsole(premsg);
+            bool printed = false;
+            for (var i = 0; i < sourceData.Length; i += 4)
+            {
+                if (limit > 0 && i > limit)
+                {
+                    break;
+                }
+
+                if (i != 0 && (i % 8 == 0))
+                {
+                    if (printed)
+                        Logging.WriteConsole();
+                    printed = false;
+                }
+                //if (sourceData[i] == 0 && sourceData[i+1] == 0)
+                if ((i + 3) > sourceData.Length)
+                {
+                    break;
+                }
+                if (sourceData[i + 3] != 181) continue;
+                Console.Write($"{i / 4}({sourceData[i]:f3},{sourceData[i + 1]:f3},{sourceData[i + 2]:f3},{sourceData[i + 3]:f3})");
+                printed = true;
+            }
+            Logging.WriteConsole();
+
+        }
+
+
+
+
+        private void DebugPrintOutputIntBuffer(DeviceBuffer buf, string message, int printCount)
+        {
+            DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd!, buf);
+            MappedResourceView<int> destinationReadView = _gd!.Map<int>(destinationReadback, MapMode.Read);
+            int[] outputArray = new int[destinationReadView.Count];
+            for (int index = 0; index < destinationReadView.Count; index++)
+            {
+                if (index >= destinationReadView.Count)
+                {
+                    break;
+                }
+
+                outputArray[index] = destinationReadView[index];
+            }
+            _gd.Unmap(destinationReadback);
+            PrintIntBufferArray(outputArray, message, printCount);
+            VeldridGraphBuffers.VRAMDispose(destinationReadback);
+        }
+
+        private static void PrintIntBufferArray(int[] sourceData, string premsg, int limit = 0)
         {
 
             Logging.WriteConsole(premsg);
@@ -1004,12 +1113,13 @@ namespace rgat
                 {
                     break;
                 }
-
-                Console.Write($"{i / 4}({sourceData[i]:f3},{sourceData[i + 1]:f3},{sourceData[i + 2]:f3},{sourceData[i + 3]:f3})");
+                //if (sourceData[i + 3] != 181) continue;
+                Console.Write($"{i / 4}({sourceData[i]},{sourceData[i + 1]},{sourceData[i + 2]},{sourceData[i + 3]})");
             }
             Logging.WriteConsole();
 
         }
+
 
     }
 }
