@@ -10,47 +10,9 @@ namespace rgat
     /// </summary>
     public class VeldridGraphBuffers
     {
-        /// <summary>
-        /// This is used for shaders where the coordinate being referenced is contained in a texture. 
-        /// The Texposition is the location (in the positions texture) to read and then draw geometry at with the specified colour.
-        /// </summary>
-        public struct Position2DColour
-        {
-            /// <summary>
-            /// Texture coordinate
-            /// </summary>
-            public Vector2 Position;
-            /// <summary>
-            /// Colour of the geometry
-            /// </summary>
-            public WritableRgbaFloat Color;
-            /// <summary>
-            /// Size of this structure in bytes
-            /// </summary>
-            public const uint SizeInBytes = 24;
-        }
 
-
-        /// <summary>
-        /// This just describes raw position and colour of geometry. Used for things unrelated to graph geometry like wireframes
-        /// If Position.W == 1 then x,y are used as a positions texture reference as in TextureOffsetColour
-        /// </summary>
-        public struct GeomPositionColour
-        {
-            /// <summary>
-            /// Item position
-            /// </summary>
-            public Vector4 Position;
-            /// <summary>
-            /// Item colour
-            /// </summary>
-            public WritableRgbaFloat Color;
-
-            /// <summary>
-            /// Size of this structure
-            /// </summary>
-            public const uint SizeInBytes = 32;
-        }
+        public static long AllocatedBytes { get; private set; } = 0;
+        public static long AllocatedBuffers { get; private set; } = 0;
 
 
         /// <summary>
@@ -124,7 +86,7 @@ namespace rgat
             //if (rs != null && rs.IsDisposed == false) rs.Dispose();
         }
 
-        private static long total_1 = 0;
+
         /// <summary>
         /// Dispose of a VRAM devide buffer and track the deallocation
         /// </summary>
@@ -135,7 +97,8 @@ namespace rgat
             {
                 if (db != null && db.IsDisposed == false)
                 {
-                    total_1 -= db.SizeInBytes;
+                    AllocatedBytes -= db.SizeInBytes;
+                    AllocatedBuffers -= 1;
                     //Logging.RecordLogEvent($"DEALLOC! Disposing devicebuff of size {db.SizeInBytes} name {db.Name}  totl[{total_1}]");
                     db.Dispose();
                     _allocatedBufs.Remove(db.Name);
@@ -159,7 +122,8 @@ namespace rgat
         {
             lock (b_lock)
             {
-                total_1 += size;
+                AllocatedBytes += size;
+                AllocatedBuffers += 1;
                 //Logging.RecordLogEvent($"ALLOC! {size} name:{name} totl[{total_1}]", Logging.LogFilterType.BulkDebugLogFile);
                 DeviceBuffer result = gd.ResourceFactory.CreateBuffer(new BufferDescription(size, usage, stride));
                 result.Name = name;
@@ -351,6 +315,50 @@ namespace rgat
             _gd.Unmap(destinationReadback);
             return false;
         }
+
+
+        /// <summary>
+        /// This is used for shaders where the coordinate being referenced is contained in a texture. 
+        /// The Texposition is the location (in the positions texture) to read and then draw geometry at with the specified colour.
+        /// </summary>
+        public struct Position2DColour
+        {
+            /// <summary>
+            /// Texture coordinate
+            /// </summary>
+            public Vector2 Position;
+            /// <summary>
+            /// Colour of the geometry
+            /// </summary>
+            public WritableRgbaFloat Color;
+            /// <summary>
+            /// Size of this structure in bytes
+            /// </summary>
+            public const uint SizeInBytes = 24;
+        }
+
+
+        /// <summary>
+        /// This just describes raw position and colour of geometry. Used for things unrelated to graph geometry like wireframes
+        /// If Position.W == 1 then x,y are used as a positions texture reference as in TextureOffsetColour
+        /// </summary>
+        public struct GeomPositionColour
+        {
+            /// <summary>
+            /// Item position
+            /// </summary>
+            public Vector4 Position;
+            /// <summary>
+            /// Item colour
+            /// </summary>
+            public WritableRgbaFloat Color;
+
+            /// <summary>
+            /// Size of this structure
+            /// </summary>
+            public const uint SizeInBytes = 32;
+        }
+
 
     }
 }

@@ -1472,7 +1472,7 @@ namespace rgat.Widgets
             ImGui.SetNextItemWidth(100);
             if (ImGui.InputInt("Preview Workers", ref previewWorkers, 1, 1))
             {
-                int count = Math.Max(GlobalConfig.Settings.UI.PreviewWorkers, CONSTANTS.UI.MINIMUM_PREVIEW_WORKERS);
+                int count = Math.Max(previewWorkers, CONSTANTS.UI.MINIMUM_PREVIEW_WORKERS);
                 count = Math.Min(count, CONSTANTS.UI.MAXIMUM_PREVIEW_WORKERS);
                     GlobalConfig.Settings.UI.PreviewWorkers = count;
             }

@@ -691,7 +691,7 @@ namespace rgat
             }
 
             Logging.RecordLogEvent($"GeneratePreviewGraph starting render {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
-            renderPreview(cl, graph: graph);
+            RenderPreview(cl, graph: graph);
         }
 
         /// <summary>
@@ -878,7 +878,7 @@ namespace rgat
             }
         }
 
-        private void renderPreview(CommandList cl, PlottedGraph graph)
+        private void RenderPreview(CommandList cl, PlottedGraph graph)
         {
             if (graph == null || Exiting)
             {
@@ -942,10 +942,9 @@ namespace rgat
             cl.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
             cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
 
-            if (((edgeVertCount * sizeof(uint)) > _EdgeIndexBuffer!.SizeInBytes))
+            if (((edgeVertCount * Position2DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes) ||
+                (edgeDrawIndexes.Count * sizeof(uint)) > _EdgeIndexBuffer!.SizeInBytes)
             {
-                Logging.WriteConsole($"Resizing EVX from {_EdgeVertBuffer!.SizeInBytes} to { EdgeLineVerts.Length * Position2DColour.SizeInBytes}");
-                Logging.WriteConsole($"Resizing EVIDX from {_EdgeIndexBuffer!.SizeInBytes} to {edgeDrawIndexes.Count * sizeof(uint)}");
                 Logging.RecordLogEvent("disposeremake edgeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
 
                 VeldridGraphBuffers.VRAMDispose(_EdgeVertBuffer);
@@ -954,6 +953,8 @@ namespace rgat
                 VeldridGraphBuffers.VRAMDispose(_EdgeIndexBuffer);
                 _EdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd!, (uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewEdgeIndexBuffer");
             }
+
+            Debug.Assert(((edgeVertCount * sizeof(uint)) <= _EdgeIndexBuffer!.SizeInBytes));
 
             Logging.RecordLogEvent("render preview 3", filter: Logging.LogFilterType.BulkDebugLogFile);
             cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);

@@ -1755,18 +1755,24 @@ namespace rgat
         }
 
 
-        //node+edge col+pos
-        private bool get_block_nodelist(ulong blockAddr, long blockID, out List<uint>? newnodelist)
+
+        /// <summary>
+        /// Get the nodes of a block
+        /// </summary>
+        /// <param name="externBlockAddr"></param>
+        /// <param name="blockID"></param>
+        /// <param name="newnodelist"></param>
+        /// <returns></returns>
+        private bool get_block_nodelist(ulong externBlockAddr, long blockID, out List<uint>? newnodelist)
         {
             ProcessRecord piddata = InternalProtoGraph.ProcessData;
             ROUTINE_STRUCT? externBlock = new ROUTINE_STRUCT();
-            List<InstructionData>? block = piddata.GetDisassemblyBlock((uint)blockID, ref externBlock, blockAddr);
+            List<InstructionData>? block = piddata.GetDisassemblyBlock((uint)blockID, ref externBlock, externBlockAddr);
             if (block == null && externBlock == null)
             {
                 newnodelist = null;
                 return false;
             }
-            //if (internalProtoGraph.terminationFlag) return false;
 
             if (externBlock != null)
             {
@@ -1778,7 +1784,7 @@ namespace rgat
                     {
                         if (externBlock.Value.ThreadCallers == null)
                         {
-                            Logging.WriteConsole($"Error: Extern block thread_callers was null [block 0x{blockAddr:x}]");
+                            Logging.WriteConsole($"Error: Extern block thread_callers was null [block 0x{externBlockAddr:x}]");
                         }
                         else
                         {
@@ -1796,7 +1802,7 @@ namespace rgat
                         newnodelist = null;
                         return false;
                     }
-                    Logging.WriteConsole($"[rgat]get_block_nodelist() Fail to find edge for thread {TID} calling extern 0x{blockAddr:x}");
+                    Logging.WriteConsole($"[rgat]get_block_nodelist() Fail to find edge for thread {TID} calling extern 0x{externBlockAddr:x}");
                 }
 
 
@@ -1804,11 +1810,14 @@ namespace rgat
                 newnodelist = new List<uint>();
                 if (calls is not null)
                 {
-                    foreach (Tuple<uint, uint> edge in calls) //record each call by caller
+                    lock (piddata.ExternCallerLock)
                     {
-                        if (edge.Item1 == LastAnimatedVert)
+                        foreach (Tuple<uint, uint> edge in calls) //record each call by caller 
                         {
-                            newnodelist.Add(edge.Item2);
+                            if (edge.Item1 == LastAnimatedVert)
+                            {
+                                newnodelist.Add(edge.Item2);
+                            }
                         }
                     }
                 }
@@ -2956,11 +2965,43 @@ namespace rgat
         /// <summary>
         /// Update the graph computation time stats
         /// </summary>
-        /// <param name="ms">Time taken for the latest round of velocity/position computation in Milliseconds</param>
-        public void RecordComputeTime(long ms)
+        /// <param name="stepMSTotal">Time taken for the latest round of GPU computation in Milliseconds</param>
+        /// <param name="positionShaderTime">Time taken for the latest round of position computation in Milliseconds, or null if not performed</param>
+        /// <param name="velocityShaderTime">Time taken for the latest round of velocity computation in Milliseconds, or null if not performed</param>
+        /// <param name="attributeShaderTime">Time taken for the latest round of attribute computation in Milliseconds, or null if not performed</param>
+        /// <param name="otherTime">Time spent performing allocation and management</param>
+        public void RecordComputeTime(double stepMSTotal,
+            double? positionSetupTime, double? positionShaderTime,
+            double? velocitySetupTime, double? velocityShaderTime,
+            double? attributeSetupTime, double? attributeShaderTime)
         {
-            ComputeLayoutTime += ms;
+            ComputeLayoutTime += stepMSTotal;
             ComputeLayoutSteps += 1;
+
+            if (positionShaderTime is not null)
+            {
+                PositionSetupTime += positionSetupTime!.Value;
+                PositionShaderTime += positionShaderTime.Value;
+                PositionSteps += 1;
+                PositionNodes += this._computeBufferNodeCount;
+            }
+
+            if (velocityShaderTime is not null)
+            {
+                VelocitySetupTime += velocitySetupTime!.Value;
+                VelocityShaderTime += velocityShaderTime.Value;
+                VelocitySteps += 1;
+                VelocityNodes += this._computeBufferNodeCount;
+            }
+
+            if (attributeShaderTime is not null)
+            {
+                AttributeSetupTime += attributeSetupTime!.Value;
+                AttributeShaderTime += attributeShaderTime.Value;
+                AttributeSteps += 1;
+                AttributeNodes += this._computeBufferNodeCount;
+            }
+
         }
 
         /// <summary>
@@ -2975,11 +3016,67 @@ namespace rgat
         /// <summary>
         /// How many MS were spent in compute shaders for this layout
         /// </summary>
-        public long ComputeLayoutTime = 0;
+        public double ComputeLayoutTime { get; private set; } = 0;
         /// <summary>
         /// How many rounds of computation were completed for this layout
         /// </summary>
-        public long ComputeLayoutSteps = 0;
+        public long ComputeLayoutSteps { get; private set; } = 0;
+
+        /// <summary>
+        /// Time spent preparing buffers for the velocity shader for this layout
+        /// </summary>
+        public double VelocitySetupTime { get; private set; } = 0;
+        /// <summary>
+        /// Time spent in the velocity shader for this layout
+        /// </summary>
+        public double VelocityShaderTime { get; private set; } = 0;
+        /// <summary>
+        /// Velocity shader passes for this layout
+        /// </summary>
+        public uint VelocitySteps { get; private set; } = 0;
+        /// <summary>
+        /// Total nodes the velocity shader has been run on
+        /// </summary>
+        public long VelocityNodes { get; private set; } = 0;
+
+
+        /// <summary>
+        /// Time spent preparing buffers for the position shader for this layout
+        /// </summary>
+        public double PositionSetupTime { get; private set; } = 0;
+        /// <summary>
+        /// Time spent in the position shader for this layout
+        /// </summary>
+        public double PositionShaderTime { get; private set; } = 0;
+        /// <summary>
+        /// Position shader passes for this layout
+        /// </summary>
+        public uint PositionSteps { get; private set; } = 0;
+        /// <summary>
+        /// Total nodes the position shader has been run on
+        /// </summary>
+        public long PositionNodes { get; private set; } = 0;
+
+
+
+        /// <summary>
+        /// Time spent preparing buffers for the attribute shader for this layout
+        /// </summary>
+        public double AttributeSetupTime { get; private set; } = 0;
+        /// <summary>
+        /// Time spent in the attribute shader for this layout
+        /// </summary>
+        public double AttributeShaderTime { get; private set; } = 0;
+        /// <summary>
+        /// Attribute shader passes for this layout
+        /// </summary>
+        public uint AttributeSteps { get; private set; } = 0;
+        /// <summary>
+        /// Total nodes the attribute shader has been run on
+        /// </summary>
+        public long AttributeNodes { get; private set; } = 0;
+
+
 
         /// <summary>
         /// The current main camera zoom

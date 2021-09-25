@@ -4664,6 +4664,15 @@
             <param name="address">address</param>
             <param name="idx">index</param>
         </member>
+        <member name="M:rgat.PlottedGraph.get_block_nodelist(System.UInt64,System.Int64,System.Collections.Generic.List{System.UInt32}@)">
+            <summary>
+            Get the nodes of a block
+            </summary>
+            <param name="externBlockAddr"></param>
+            <param name="blockID"></param>
+            <param name="newnodelist"></param>
+            <returns></returns>
+        </member>
         <member name="M:rgat.PlottedGraph.ProcessLiveAnimationUpdates">
             <summary>
             Process more animation updates from a live trace
@@ -4959,25 +4968,89 @@
             </summary>
             <param name="graphtexture"></param>
         </member>
-        <member name="M:rgat.PlottedGraph.RecordComputeTime(System.Int64)">
+        <member name="M:rgat.PlottedGraph.RecordComputeTime(System.Double,System.Nullable{System.Double},System.Nullable{System.Double},System.Nullable{System.Double},System.Nullable{System.Double},System.Nullable{System.Double},System.Nullable{System.Double})">
             <summary>
             Update the graph computation time stats
             </summary>
-            <param name="ms">Time taken for the latest round of velocity/position computation in Milliseconds</param>
+            <param name="stepMSTotal">Time taken for the latest round of GPU computation in Milliseconds</param>
+            <param name="positionShaderTime">Time taken for the latest round of position computation in Milliseconds, or null if not performed</param>
+            <param name="velocityShaderTime">Time taken for the latest round of velocity computation in Milliseconds, or null if not performed</param>
+            <param name="attributeShaderTime">Time taken for the latest round of attribute computation in Milliseconds, or null if not performed</param>
+            <param name="otherTime">Time spent performing allocation and management</param>
         </member>
         <member name="M:rgat.PlottedGraph.ResetLayoutStats">
             <summary>
             Reset the tracking info for layout time/steps
             </summary>
         </member>
-        <member name="F:rgat.PlottedGraph.ComputeLayoutTime">
+        <member name="P:rgat.PlottedGraph.ComputeLayoutTime">
             <summary>
             How many MS were spent in compute shaders for this layout
             </summary>
         </member>
-        <member name="F:rgat.PlottedGraph.ComputeLayoutSteps">
+        <member name="P:rgat.PlottedGraph.ComputeLayoutSteps">
             <summary>
             How many rounds of computation were completed for this layout
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.VelocitySetupTime">
+            <summary>
+            Time spent preparing buffers for the velocity shader for this layout
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.VelocityShaderTime">
+            <summary>
+            Time spent in the velocity shader for this layout
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.VelocitySteps">
+            <summary>
+            Velocity shader passes for this layout
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.VelocityNodes">
+            <summary>
+            Total nodes the velocity shader has been run on
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.PositionSetupTime">
+            <summary>
+            Time spent preparing buffers for the position shader for this layout
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.PositionShaderTime">
+            <summary>
+            Time spent in the position shader for this layout
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.PositionSteps">
+            <summary>
+            Position shader passes for this layout
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.PositionNodes">
+            <summary>
+            Total nodes the position shader has been run on
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.AttributeSetupTime">
+            <summary>
+            Time spent preparing buffers for the attribute shader for this layout
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.AttributeShaderTime">
+            <summary>
+            Time spent in the attribute shader for this layout
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.AttributeSteps">
+            <summary>
+            Attribute shader passes for this layout
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.AttributeNodes">
+            <summary>
+            Total nodes the attribute shader has been run on
             </summary>
         </member>
         <member name="F:rgat.PlottedGraph.CameraZoom">
@@ -5670,10 +5743,6 @@
             Mark this thread as having completed execution
             </summary>
         </member>
-        <member name="M:rgat.ProtoGraph.AddEdge_LastToTargetVert(System.Boolean,System.Int32,System.UInt64)">
-            todo is this needed
-            yes. yes it is.
-        </member>
         <member name="P:rgat.ProtoGraph.HasRecentStep">
             <summary>
             A step command was just issued
@@ -5803,13 +5872,13 @@
             <param name="source">Source NodeData</param>
             <param name="target">Target NodeData</param>
         </member>
-        <member name="M:rgat.ProtoGraph.handle_exception_tag(rgat.TAG)">
+        <member name="M:rgat.ProtoGraph.HandleExceptionTag(rgat.TAG)">
             <summary>
             Record an exception in the instruented process
             </summary>
             <param name="thistag">The exception tag</param>
         </member>
-        <member name="M:rgat.ProtoGraph.handle_tag(rgat.TAG,System.Boolean)">
+        <member name="M:rgat.ProtoGraph.HandleTag(rgat.TAG,System.Boolean)">
             <summary>
             Handle an event in the traced graph
             </summary>
@@ -5846,7 +5915,7 @@
             List of all graph nodes. The node Index is an index into this
             </summary>
         </member>
-        <member name="M:rgat.ProtoGraph.node_exists(System.UInt32)">
+        <member name="M:rgat.ProtoGraph.NodeExists(System.UInt32)">
             <summary>
             Does a node index exist
             </summary>
@@ -5858,7 +5927,7 @@
             how many nodes exist
             </summary>
         </member>
-        <member name="M:rgat.ProtoGraph.handle_new_instruction(rgat.InstructionData,System.UInt32,System.UInt64)">
+        <member name="M:rgat.ProtoGraph.HandleNewInstruction(rgat.InstructionData,System.UInt32,System.UInt64)">
             <summary>
             Record the execution of an instruction on the graph
             </summary>
@@ -5867,7 +5936,7 @@
             <param name="repeats">How many times this instruction was executed this time</param>
             <returns>A node index for the created node</returns>
         </member>
-        <member name="M:rgat.ProtoGraph.handle_previous_instruction(System.UInt32,System.UInt64)">
+        <member name="M:rgat.ProtoGraph.HandlePreviousInstruction(System.UInt32,System.UInt64)">
             <summary>
             Record execution of an instrution that is already on the graph
             </summary>
@@ -8174,48 +8243,6 @@
             Class for managing VRAM buffers
             </summary>
         </member>
-        <member name="T:rgat.VeldridGraphBuffers.Position2DColour">
-            <summary>
-            This is used for shaders where the coordinate being referenced is contained in a texture. 
-            The Texposition is the location (in the positions texture) to read and then draw geometry at with the specified colour.
-            </summary>
-        </member>
-        <member name="F:rgat.VeldridGraphBuffers.Position2DColour.Position">
-            <summary>
-            Texture coordinate
-            </summary>
-        </member>
-        <member name="F:rgat.VeldridGraphBuffers.Position2DColour.Color">
-            <summary>
-            Colour of the geometry
-            </summary>
-        </member>
-        <member name="F:rgat.VeldridGraphBuffers.Position2DColour.SizeInBytes">
-            <summary>
-            Size of this structure in bytes
-            </summary>
-        </member>
-        <member name="T:rgat.VeldridGraphBuffers.GeomPositionColour">
-            <summary>
-            This just describes raw position and colour of geometry. Used for things unrelated to graph geometry like wireframes
-            If Position.W == 1 then x,y are used as a positions texture reference as in TextureOffsetColour
-            </summary>
-        </member>
-        <member name="F:rgat.VeldridGraphBuffers.GeomPositionColour.Position">
-            <summary>
-            Item position
-            </summary>
-        </member>
-        <member name="F:rgat.VeldridGraphBuffers.GeomPositionColour.Color">
-            <summary>
-            Item colour
-            </summary>
-        </member>
-        <member name="F:rgat.VeldridGraphBuffers.GeomPositionColour.SizeInBytes">
-            <summary>
-            Size of this structure
-            </summary>
-        </member>
         <member name="M:rgat.VeldridGraphBuffers.GetReadback(Veldrid.GraphicsDevice,Veldrid.DeviceBuffer)">
             <summary>
             Get a CPU readable mapping of VRAM
@@ -8321,6 +8348,48 @@
             <param name="_gd">Graphics device</param>
             <param name="buf">Buffer to search</param>
             <returns>true if NaN was found</returns>
+        </member>
+        <member name="T:rgat.VeldridGraphBuffers.Position2DColour">
+            <summary>
+            This is used for shaders where the coordinate being referenced is contained in a texture. 
+            The Texposition is the location (in the positions texture) to read and then draw geometry at with the specified colour.
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position2DColour.Position">
+            <summary>
+            Texture coordinate
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position2DColour.Color">
+            <summary>
+            Colour of the geometry
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position2DColour.SizeInBytes">
+            <summary>
+            Size of this structure in bytes
+            </summary>
+        </member>
+        <member name="T:rgat.VeldridGraphBuffers.GeomPositionColour">
+            <summary>
+            This just describes raw position and colour of geometry. Used for things unrelated to graph geometry like wireframes
+            If Position.W == 1 then x,y are used as a positions texture reference as in TextureOffsetColour
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.GeomPositionColour.Position">
+            <summary>
+            Item position
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.GeomPositionColour.Color">
+            <summary>
+            Item colour
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.GeomPositionColour.SizeInBytes">
+            <summary>
+            Size of this structure
+            </summary>
         </member>
         <member name="T:rgat.VideoEncoder">
             <summary>

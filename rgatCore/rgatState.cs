@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -598,23 +599,26 @@ namespace rgat
             }
 
             Newtonsoft.Json.Linq.JObject? saveJSON = null;
-            using (StreamReader file = File.OpenText(path))
+            using (StreamReader streamreader = File.OpenText(path))
             {
-                string jsnfile = file.ReadToEnd();
-                try
+                using (JsonTextReader r = new JsonTextReader(streamreader))
                 {
-                    saveJSON = Newtonsoft.Json.Linq.JObject.Parse(jsnfile);
-                }
-                catch (Newtonsoft.Json.JsonReaderException e)
-                {
-                    Logging.WriteConsole("Failed to parse trace file - invalid JSON.");
-                    Logging.WriteConsole("\t->\t" + e.Message);
-                    return false;
-                }
-                catch (Exception e)
-                {
-                    Logging.WriteConsole("Failed to parse trace file: " + e.Message);
-                    return false;
+                    //string jsnfile = file.ReadToEnd();
+                    try
+                    {
+                        saveJSON = Newtonsoft.Json.Linq.JObject.Load(r);
+                    }
+                    catch (Newtonsoft.Json.JsonReaderException e)
+                    {
+                        Logging.WriteConsole("Failed to parse trace file - invalid JSON.");
+                        Logging.WriteConsole("\t->\t" + e.Message);
+                        return false;
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.WriteConsole("Failed to parse trace file: " + e.Message);
+                        return false;
+                    }
                 }
             }
 

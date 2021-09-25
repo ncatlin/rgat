@@ -294,6 +294,7 @@ namespace rgat
 
             if (exeModuleID < 0 || exeModuleID >= TraceData.DisassemblyData.LoadedModuleBounds.Count)
             {
+                Logging.RecordError($"Loaded graph {this.ThreadID} had moduleID {exeModuleID} with {TraceData.DisassemblyData.LoadedModuleBounds.Count} loaded");
                 return false;
             }
 
@@ -381,7 +382,8 @@ namespace rgat
             return true;
         }
 
-        private bool set_target_instruction(InstructionData instruction)
+
+        private bool SetTargetInstruction(InstructionData instruction)
         {
             //ReadLock(piddata->disassemblyRWLock);
             lock (TraceData.DisassemblyData.InstructionsLock) //todo this can be a read lock
@@ -397,9 +399,6 @@ namespace rgat
         }
 
 
-
-        ///todo is this needed
-        ///yes. yes it is.
         private void AddEdge_LastToTargetVert(bool alreadyExecuted, int instructionIndex, ulong repeats)
         {
             Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
@@ -472,6 +471,7 @@ namespace rgat
 
         }
 
+
         /// <summary>
         /// A step command was just issued
         /// </summary>
@@ -540,17 +540,17 @@ namespace rgat
             {
                 InstructionData instruction = block[instructionIndex];
 
-                if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD && !node_exists(ProtoLastVertID))
+                if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD && !NodeExists(ProtoLastVertID))
                 {
                     Logging.WriteConsole("\t\t[rgat]ERROR: RunBB- Last vert {lastVertID} not found");
                     Debug.Assert(false);
                 }
 
                 //target vert already on this threads graph?
-                bool alreadyExecuted = set_target_instruction(instruction);
+                bool alreadyExecuted = SetTargetInstruction(instruction);
                 if (!alreadyExecuted)
                 {
-                    targVertID = handle_new_instruction(instruction, tag.blockID, 1);
+                    targVertID = HandleNewInstruction(instruction, tag.blockID, 1);
                 }
                 else
                 {
@@ -825,7 +825,7 @@ namespace rgat
                     if (functionNode.callRecordsIndexs.Count >= GlobalConfig.Settings.Tracing.ArgStorageMax)
                     {
                         //todo: blacklist this callee from future processing
-                        Logging.WriteConsole($"Warning, dropping args to extern 0x{currentTarget:X} because the storage limit is {GlobalConfig.Settings.Tracing.ArgStorageMax}");
+                        Logging.RecordLogEvent($"Warning, dropping args to extern 0x{currentTarget:X} because the storage limit is {GlobalConfig.Settings.Tracing.ArgStorageMax}");
                     }
                     else
                     {
@@ -857,7 +857,8 @@ namespace rgat
                     NodeData? targnode = GetNode(threadCalls[0].Item2);
                     Debug.Assert(targnode is not null);
                     ProcessData.GetSymbol(targnode.GlobalModuleID, arg.calledAddress, out string? sym);
-                    Logging.WriteConsole($"\tProcessIncomingCallArguments - Failed to find *specific* caller of 0x{arg.calledAddress:X} [{sym}] in current thread. Leaving until it appears.");
+                    //This happens a lot
+                    //Logging.WriteConsole($"\tProcessIncomingCallArguments - Failed to find *specific* caller of 0x{arg.calledAddress:X} [{sym}] in current thread. Leaving until it appears.");
                     break;
                 }
 
@@ -924,7 +925,7 @@ namespace rgat
 
         private bool lookup_extern_func_calls(ulong called_function_address, out List<Tuple<uint, uint>>? callEdges)
         {
-            Logging.WriteConsole($"lookup_extern_func_calls looking for 0x{called_function_address:x}");
+            Logging.RecordLogEvent($"lookup_extern_func_calls looking for 0x{called_function_address:x}");
             lock (ProcessData.ExternCallerLock)
             {
                 if (TraceData.DisassemblyData.externdict.TryGetValue(called_function_address, out ROUTINE_STRUCT rtn))
@@ -1183,7 +1184,7 @@ namespace rgat
         /// Record an exception in the instruented process
         /// </summary>
         /// <param name="thistag">The exception tag</param>
-        public void handle_exception_tag(TAG thistag)
+        public void HandleExceptionTag(TAG thistag)
         {
             if (thistag.InstrumentationState == eCodeInstrumentation.eInstrumentedCode)
             {
@@ -1220,7 +1221,7 @@ namespace rgat
         /// </summary>
         /// <param name="thistag">The event tag</param>
         /// <param name="skipFirstEdge">If we are expecting this and have already recorded the edge that leads to this</param> //messy
-        public void handle_tag(TAG thistag, bool skipFirstEdge = false)
+        public void HandleTag(TAG thistag, bool skipFirstEdge = false)
         {
             if (thistag.InstrumentationState == eCodeInstrumentation.eInstrumentedCode)
             {
@@ -1292,7 +1293,7 @@ namespace rgat
         /// </summary>
         /// <param name="idx">index</param>
         /// <returns>it exists</returns>
-        public bool node_exists(uint idx) => NodeList.Count > idx;
+        public bool NodeExists(uint idx) => NodeList.Count > idx;
 
         /// <summary>
         /// how many nodes exist
@@ -1307,7 +1308,7 @@ namespace rgat
         /// <param name="blockID">The basic block the instruction is in</param>
         /// <param name="repeats">How many times this instruction was executed this time</param>
         /// <returns>A node index for the created node</returns>
-        public uint handle_new_instruction(InstructionData instruction, uint blockID, ulong repeats)
+        public uint HandleNewInstruction(InstructionData instruction, uint blockID, ulong repeats)
         {
 
             NodeData thisnode = new NodeData();
@@ -1322,7 +1323,7 @@ namespace rgat
             thisnode.GlobalModuleID = instruction.GlobalModNum;
             thisnode.HasSymbol = instruction.hasSymbol;
 
-            Debug.Assert(!node_exists(targVertID));
+            Debug.Assert(!NodeExists(targVertID));
             InsertNode(targVertID, thisnode);
 
             lock (TraceData.DisassemblyData.InstructionsLock)
@@ -1340,7 +1341,7 @@ namespace rgat
         /// </summary>
         /// <param name="targVertID">Instruction node ID</param>
         /// <param name="repeats">How many times it executed</param>
-        public void handle_previous_instruction(uint targVertID, ulong repeats)
+        public void HandlePreviousInstruction(uint targVertID, ulong repeats)
         {
             NodeData? prevInstruction = GetNode(targVertID);
 
@@ -1383,7 +1384,7 @@ namespace rgat
                 //start possible #ifdef DEBUG  candidate
                 if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD)
                 {
-                    if (!node_exists(ProtoLastVertID))
+                    if (!NodeExists(ProtoLastVertID))
                     {
                         //had an odd error here where it returned false with idx 0 and node list size 1. can only assume race condition?
                         Logging.WriteConsole($"\t\t[rgat]ERROR: RunBB- Last vert {ProtoLastVertID} not found. Node list size is: {NodeList.Count}");
@@ -1394,16 +1395,16 @@ namespace rgat
 
 
                 //target vert already on this threads graph?
-                bool alreadyExecuted = set_target_instruction(instruction);
+                bool alreadyExecuted = SetTargetInstruction(instruction);
                 if (!alreadyExecuted)
                 {
-                    targVertID = handle_new_instruction(instruction, blockID, repeats);
+                    targVertID = HandleNewInstruction(instruction, blockID, repeats);
                     // Logging.WriteConsole($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
                 }
                 else
                 {
                     // Logging.WriteConsole($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} exists [targVID => {targVertID}], handling as existing");
-                    handle_previous_instruction(targVertID, repeats);
+                    HandlePreviousInstruction(targVertID, repeats);
                 }
 
                 if (instructionIndex == 0)

@@ -20,7 +20,7 @@ namespace rgat
         private readonly rgatState _rgatState;
 
         //hardware resources
-        private readonly ImGuiController _controller;
+        private static ImGuiController _controller;
         private readonly GraphicsDevice _gd;
 
         //widgets
@@ -46,6 +46,8 @@ namespace rgat
         private bool _show_test_harness = false;
         private bool _show_logs_window = false;
         private bool _show_remote_dialog = false;
+        public static bool ShowStatsDialog { get; private set; } = false;
+
         private double _StartupProgress = 0;
         public double StartupProgress
         {
@@ -110,10 +112,11 @@ namespace rgat
             _controller = controller;
             _gd = _controller.graphicsDevice;
             _logsWindow = new LogsWindow(_rgatState);
-
         }
 
+
         ~rgatUI() { }
+
 
         public void InitWidgets(IProgress<float> progress)
         {
@@ -338,6 +341,7 @@ namespace rgat
                     ToggleLogsWindow();
                 }
             }
+
             if (_show_remote_dialog)
             {
                 if (_RemoteDialog == null) { _RemoteDialog = new RemoteDialog(); }
@@ -605,6 +609,11 @@ namespace rgat
             {
                 ToggleLogsWindow();
             }
+
+            if (ShowStatsDialog)
+            {
+                ToggleRenderStatsDialog();
+            }
         }
 
         private void ToggleTestHarness()
@@ -632,6 +641,14 @@ namespace rgat
             _show_remote_dialog = !_show_remote_dialog;
             _controller.DialogChange(_show_remote_dialog);
         }
+
+
+        public static void ToggleRenderStatsDialog()
+        {
+            ShowStatsDialog = !ShowStatsDialog;
+            _controller.DialogChange(ShowStatsDialog);
+        }
+
 
         private void ToggleLoadTraceWindow()
         {

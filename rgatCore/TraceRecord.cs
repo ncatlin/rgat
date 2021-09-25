@@ -420,7 +420,7 @@ namespace rgat
             }
         }
 
-        private void killTraceProcess() { if (IsRunning) { killed = true; } }
+        private void KillTraceProcess() { if (IsRunning) { killed = true; } }
 
         private bool should_die() { return killed; }
 

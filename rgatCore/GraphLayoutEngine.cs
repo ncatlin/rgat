@@ -343,6 +343,14 @@ namespace rgat
             return highest;
         }
 
+        readonly private Stopwatch _stepTimer = new Stopwatch();
+        readonly private Stopwatch _posSetupTimer = new Stopwatch();
+        readonly private Stopwatch _posShaderTimer = new Stopwatch();
+        readonly private Stopwatch _velSetupTimer = new Stopwatch();
+        readonly private Stopwatch _velShaderTimer = new Stopwatch();
+        readonly private Stopwatch _attSetupTimer = new Stopwatch();
+        readonly private Stopwatch _attShaderTimer = new Stopwatch();
+
 
         /// <summary>
         /// Do the actual computation of graph layout and animation
@@ -357,9 +365,9 @@ namespace rgat
         /// <returns>The version ID associated with the produced graph layout computed</returns>
         public ulong Compute(CommandList cl, PlottedGraph graph, int mouseoverNodeID, bool isAnimated)
         {
+            Debug.Assert(_gd is not null);
+
             ulong newversion;
-            Stopwatch timer = new Stopwatch();
-            timer.Start();
 
             if (graph.DrawnEdgesCount == 0 || !GlobalConfig.LayoutAllComputeEnabled)
             {
@@ -367,10 +375,15 @@ namespace rgat
                 return newversion;
             }
 
-            int edgesCount = graph.DrawnEdgesCount;
             Logging.RecordLogEvent($"Marker Compute start {EngineID} graph {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
 
+            _stepTimer.Restart();
+
+            int edgesCount = graph.DrawnEdgesCount;
+
             Debug.Assert(graph != null, "Layout engine called to compute without active graph");
+
+
             if (_velocityShader == null)
             {
                 SetupComputeResources();
@@ -405,10 +418,10 @@ namespace rgat
                     layout.EdgeConnectionIndexes, layout.EdgeConnections, layout.EdgeStrengths, layout.BlockMetadata,
                 layout.VelocitiesVRAM2);
 
-                pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout, 
+                pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout,
                     _positionParamsBuffer,
-                   layout.PositionsVRAM1, 
-                   layout.VelocitiesVRAM2, 
+                   layout.PositionsVRAM1,
+                   layout.VelocitiesVRAM2,
                    layout.BlockMetadata,
                    layout.PositionsVRAM2,
 
@@ -431,7 +444,7 @@ namespace rgat
             {
                 velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeLayout,
                 _velocityParamsBuffer,
-                layout.PositionsVRAM2, 
+                layout.PositionsVRAM2,
                 layout.PresetPositions, //
                 layout.VelocitiesVRAM2,
                 layout.EdgeConnectionIndexes, // 
@@ -440,10 +453,10 @@ namespace rgat
                 layout.BlockMetadata,
                 layout.VelocitiesVRAM1);
 
-                pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout, 
+                pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout,
                     _positionParamsBuffer,
-                 layout.PositionsVRAM2, 
-                 layout.VelocitiesVRAM1, 
+                 layout.PositionsVRAM2,
+                 layout.VelocitiesVRAM1,
                  layout.BlockMetadata,
                   layout.PositionsVRAM1,
 
@@ -451,7 +464,7 @@ namespace rgat
                   layout.PresetPositions,
                 layout.EdgeConnectionIndexes,
                 layout.EdgeConnections,
-                layout.EdgeStrengths 
+                layout.EdgeStrengths
                   );
 
                 attr_rsrc_desc = new ResourceSetDescription(_nodeAttribComputeLayout,
@@ -462,23 +475,44 @@ namespace rgat
             }
 
             ResourceSet? posRS = null, velocityComputeResourceSet = null;
-            //try
-            //{
-                posRS = _factory!.CreateResourceSet(pos_rsrc_desc);
-                velocityComputeResourceSet = _factory!.CreateResourceSet(velocity_rsrc_desc);
-            //}
-            //catch(Exception e)
-            //{
-            //    Logging.RecordError("Mem alloc error");
-            //}
-            cl.Begin();
+            posRS = _factory!.CreateResourceSet(pos_rsrc_desc);
+            velocityComputeResourceSet = _factory!.CreateResourceSet(velocity_rsrc_desc);
 
-
+            double? positionTime = null, velocityTime = null, attributeTime = null;
+            double? positionSetupTime = null, velocitySetupTime = null, attributeSetupTime = null;
 
             if (forceComputationActive)
             {
+                _velSetupTimer.Restart();
+                cl.Begin();
                 RenderVelocity(cl, graph, velocityComputeResourceSet!, delta, graph.Temperature);
+                cl.End();
+                _velSetupTimer.Stop();
+
+                _velShaderTimer.Restart();
+                _gd!.SubmitCommands(cl);
+                _gd!.WaitForIdle();
+                _velShaderTimer.Stop();
+
+                velocitySetupTime = _velSetupTimer.Elapsed.TotalMilliseconds;
+                velocityTime = _velShaderTimer.Elapsed.TotalMilliseconds;
+
+
+
+                _posSetupTimer.Restart();
+                cl.Begin();
                 RenderPosition(cl, graph, posRS!, delta);
+                cl.End();
+                _posSetupTimer.Stop();
+
+                _velShaderTimer.Restart();
+                _gd!.SubmitCommands(cl);
+                _gd!.WaitForIdle();
+                _velShaderTimer.Stop();
+
+                positionSetupTime = _posSetupTimer.Elapsed.TotalMilliseconds;
+                positionTime = _velShaderTimer.Elapsed.TotalMilliseconds;
+
                 layout.IncrementVersion();
 
                 graph.Temperature *= CONSTANTS.Layout_Constants.TemperatureStepMultiplier;
@@ -494,7 +528,6 @@ namespace rgat
                 // not sure whether to make this timer based or do it in the shader
                 // it looks pretty bad doing it every 10 frames
                 // for now just do it every 3 frames
-
                 if (forceComputationActive && (layout.RenderVersion % 3) == 0)
                 {
 
@@ -510,14 +543,24 @@ namespace rgat
             if (GlobalConfig.LayoutAttribsActive)
             {
                 attribComputeResourceSet = _factory!.CreateResourceSet(attr_rsrc_desc);
+
+                _attSetupTimer.Restart();
+                cl.Begin();
                 RenderNodeAttribs(cl, graph, inputAttributes, attribComputeResourceSet, delta, mouseoverNodeID, isAnimated);
+                cl.End();
+                _attSetupTimer.Stop();
+
+                _attShaderTimer.Restart();
+                _gd!.SubmitCommands(cl);
+                _gd!.WaitForIdle();
+                _attShaderTimer.Stop();
+
+                attributeSetupTime = _attSetupTimer.Elapsed.TotalMilliseconds;
+                attributeTime = _attShaderTimer.Elapsed.TotalMilliseconds;
             }
 
 
-            cl.End();
-
-            _gd!.SubmitCommands(cl);
-            _gd.WaitForIdle();
+            //_gd!.WaitForIdle();
 
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM1, "Atts1", 32);
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM2, "Atts2", 32);
@@ -544,32 +587,31 @@ namespace rgat
             if (velocityComputeResourceSet != null)
             {
                 _gd.DisposeWhenIdle(velocityComputeResourceSet);
-                //velocityComputeResourceSet.Dispose();
             }
 
             if (posRS != null)
             {
                 _gd.DisposeWhenIdle(posRS);
-                //posRS.Dispose();
             }
 
             newversion = layout.RenderVersion;
 
+            _stepTimer.Stop();
 
-            timer.Stop();
-            lock (_lock)
-            {
-                _lastComputeMS.Add(timer.ElapsedMilliseconds);
+                _lastComputeMS.Add(_stepTimer.Elapsed.TotalMilliseconds);
                 if (_lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
                 {
                     _lastComputeMS = _lastComputeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
                 }
 
                 AverageComputeTime = _lastComputeMS.Average();
-            }
+            
             if (GlobalConfig.LayoutPositionsActive)
             {
-                graph.RecordComputeTime(timer.ElapsedMilliseconds);
+                graph.RecordComputeTime(stepMSTotal: _stepTimer.Elapsed.TotalMilliseconds, 
+                    positionSetupTime: positionSetupTime, positionShaderTime: positionTime, 
+                    velocitySetupTime: velocitySetupTime, velocityShaderTime: velocityTime,
+                    attributeSetupTime: attributeSetupTime, attributeShaderTime: attributeTime);
             }
 
             Logging.RecordLogEvent($"Marker Compute end {EngineID} graph {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
@@ -653,7 +695,7 @@ namespace rgat
         /// <param name="resources">Velocity shader resource set</param>
         /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         /// <param name="temperature">The activity level of the layout state. Higher balues => bigger movements</param>
-        private unsafe void RenderVelocity(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
+        private unsafe double RenderVelocity(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
         {
             Logging.RecordLogEvent($"RenderVelocity  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             uint fixedNodes = 0;
@@ -679,9 +721,14 @@ namespace rgat
             cl.UpdateBuffer(_velocityParamsBuffer, 0, parms);
             cl.SetPipeline(_velocityComputePipeline);
             cl.SetComputeResourceSet(0, resources);
-            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.PositionsVRAM1.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
 
-            Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done", Logging.LogFilterType.BulkDebugLogFile);
+            Stopwatch watch = new Stopwatch();
+            watch.Start();
+            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.PositionsVRAM1.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
+            watch.Stop();
+            Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done in {watch.ElapsedMilliseconds} MS", Logging.LogFilterType.BulkDebugLogFile);
+            return watch.Elapsed.TotalMilliseconds;
+
         }
 
 
@@ -829,7 +876,8 @@ namespace rgat
 
             cl.SetPipeline(_nodeAttribComputePipeline);
             cl.SetComputeResourceSet(0, resources);
-            cl.Dispatch((uint)Math.Ceiling(inputAttributes.SizeInBytes / (256.0 * 4.0 * 4.0)), 1, 1);
+
+            cl.Dispatch((uint)Math.Ceiling(inputAttributes.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
             //DebugPrintOutputFloatBuffer((int)textureSize, attribBufOut, "attrib Computation Done. Result: ", 32);
         }
 
@@ -909,7 +957,7 @@ namespace rgat
         /// </summary>
         public double AverageComputeTime { get; private set; } = 0;
 
-        private List<long> _lastComputeMS = new List<long>() { 0 };
+        private List<double> _lastComputeMS = new List<double>() { 0 };
 
         /// <summary>
         /// Read out some values from a DeviceBuffer and print them to the console. Just for debugging.

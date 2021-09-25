@@ -508,7 +508,7 @@ namespace rgat.Threads
                 }
             }
 
-            protograph.handle_tag(thistag, dontcountnextedge);
+            protograph.HandleTag(thistag, dontcountnextedge);
             if (dontcountnextedge)
             {
                 dontcountnextedge = false;
@@ -565,7 +565,7 @@ namespace rgat.Threads
             externTag.InstrumentationState = eCodeInstrumentation.eUninstrumentedCode;
             externTag.blockaddr = externAddr;
 
-            protograph.handle_tag(externTag);
+            protograph.HandleTag(externTag);
 
             ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
             animUpdate.blockAddr = externAddr;
@@ -876,7 +876,7 @@ namespace rgat.Threads
             interruptedBlockTag.InstrumentationState = eCodeInstrumentation.eInstrumentedCode;
             interruptedBlockTag.foundExtern = null;
             interruptedBlockTag.insCount = 0;
-            protograph.handle_exception_tag(interruptedBlockTag);
+            protograph.HandleExceptionTag(interruptedBlockTag);
 
             ANIMATIONENTRY animUpdate;
             animUpdate.entryType = eTraceUpdateType.eAnimExecException;

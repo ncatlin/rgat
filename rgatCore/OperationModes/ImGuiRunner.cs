@@ -303,11 +303,10 @@ namespace rgat.OperationModes
 
 
             Exit();
+
             // Clean up Veldrid resources
             _gd?.WaitForIdle();
             _controller?.Dispose();
-            _cl?.Dispose();
-            _gd?.Dispose();
         }
 
 
