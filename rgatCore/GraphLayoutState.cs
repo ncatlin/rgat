@@ -1041,16 +1041,15 @@ namespace rgat
         /// Initiate the swap of layout buffers into VRAM
         /// </summary>
         /// <param name="newStyle"></param>
-        public void TriggerLayoutChange(LayoutStyles.Style newStyle)
+        public void TriggerLayoutChange(LayoutStyles.Style newStyle, bool forceSame = false)
         {
 
-            if (newStyle == _VRAMBuffers.Style)
+            if (newStyle == _VRAMBuffers.Style && forceSame is false)
             {
                 return;
             }
 
             Lock.EnterWriteLock();
-            Logging.WriteConsole("Preset start");
 
             DownloadStateFromVRAM();
 
@@ -1087,38 +1086,45 @@ namespace rgat
         /// </summary>
         /// <param name="resetMethod">The initial randomisation method</param>
         /// <param name="spread">How far to spread the replotted nodes</param>
-        public void Reset(PositionResetStyle resetMethod, float spread = 2)
+        public void ResetForceLayout(PositionResetStyle resetMethod, float spread = 2)
         {
 
-            if (LayoutStyles.IsForceDirected(this.Style))
+            if (LayoutStyles.IsForceDirected(this.Style) is false) return;
+
+            _lock.EnterWriteLock();
+
+            DownloadStateFromVRAM();
+
+            CPUBuffers oldData = this.SavedStates[this.Style];
+
+            switch (resetMethod)
             {
-                _lock.EnterWriteLock();
+                case PositionResetStyle.Scatter:
+                    ScatterPositions(oldData, spread: spread);
+                    break;
+                case PositionResetStyle.Explode:
+                    ExplodePositions(oldData);
+                    break;
+                case PositionResetStyle.Implode:
+                    ImplodePositions(oldData, spread: spread);
+                    break;
+                case PositionResetStyle.Pillar:
+                    PillarPositions(oldData, spread: spread);
+                    break;
 
-                DownloadStateFromVRAM();
-
-                CPUBuffers oldData = this.SavedStates[this.Style];
-
-                switch (resetMethod)
-                {
-                    case PositionResetStyle.Scatter:
-                        ScatterPositions(oldData, spread: spread);
-                        break;
-                    case PositionResetStyle.Explode:
-                        ExplodePositions(oldData);
-                        break;
-                    case PositionResetStyle.Implode:
-                        ImplodePositions(oldData, spread: spread);
-                        break;
-                    case PositionResetStyle.Pillar:
-                        PillarPositions(oldData, spread: spread);
-                        break;
-
-                }
-
-                this.LockedUploadStateToVRAM(oldData);
-
-                _lock.ExitWriteLock();
             }
+
+            this.LockedUploadStateToVRAM(oldData);
+            _lock.ExitWriteLock();
+        }
+
+
+        public void ResetCylinderLayout()
+        {
+            if (this.Style is not LayoutStyles.Style.CylinderLayout) return;
+
+
+
         }
 
 

@@ -3716,7 +3716,7 @@
             <param name="bufferWidth">Width of the compute buffer</param>
             <param name="edge"></param>
         </member>
-        <member name="M:rgat.GraphLayoutState.TriggerLayoutChange(rgat.CONSTANTS.LayoutStyles.Style)">
+        <member name="M:rgat.GraphLayoutState.TriggerLayoutChange(rgat.CONSTANTS.LayoutStyles.Style,System.Boolean)">
             <summary>
             Initiate the swap of layout buffers into VRAM
             </summary>
@@ -3739,7 +3739,7 @@
         <member name="F:rgat.GraphLayoutState.PositionResetStyle.Pillar">
             Spread out in a vertical line
         </member>
-        <member name="M:rgat.GraphLayoutState.Reset(rgat.GraphLayoutState.PositionResetStyle,System.Single)">
+        <member name="M:rgat.GraphLayoutState.ResetForceLayout(rgat.GraphLayoutState.PositionResetStyle,System.Single)">
             <summary>
             Cause a force directed plot to be randomly re-distributed in the
             specified style. Use this to try a different arrangement.
@@ -4597,13 +4597,6 @@
             Create a new blank preset layout for this graph
             </summary>
             <returns>Positions of the preset nodes</returns>
-        </member>
-        <member name="M:rgat.PlottedGraph.ResetPlot(rgat.GraphLayoutState.PositionResetStyle,System.Single)">
-            <summary>
-            Reset the layout state for drawing a new plot
-            </summary>
-            <param name="resetStyle">How to distribute the reset nodes</param>
-            <param name="layoutSpread">How far to distribute the nodes</param>
         </member>
         <member name="M:rgat.PlottedGraph.BeginNewLayout">
             <summary>

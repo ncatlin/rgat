@@ -1383,8 +1383,11 @@ namespace rgat
                 if (tabDrawn)
                 {
                     _currentTab = "Visualiser";
-
                     visualiserTab!.Draw();
+                }
+                else
+                {
+                    if (ShowStatsDialog) ToggleRenderStatsDialog();
                 }
 
                 DrawAnalysisTab(_rgatState.ActiveTrace);

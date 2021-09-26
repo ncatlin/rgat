@@ -444,7 +444,7 @@ namespace rgat
             var textureArray = new float[textureSize * textureSize * 4];
             float a = 0;
             float b = 0;
-            float radius = CYLINDER_RADIUS;
+            float radius = OPT_CYLINDER_RADIUS;
 
             textureArray[0] = radius;
             textureArray[1] = 0;
@@ -561,9 +561,9 @@ namespace rgat
                     _lowestWireframeLoop = b;
                 }
 
-                double aPix = -1 * a * CYLINDER_PIXELS_PER_A;
+                double aPix = -1 * a * OPT_CYLINDER_PIXELS_PER_A;
                 float x = (float)(radius * Math.Cos((aPix * Math.PI) / radius));
-                float y = -1 * CYLINDER_PIXELS_PER_B * b;
+                float y = -1 * OPT_CYLINDER_PIXELS_PER_B * b;
                 float z = (float)(radius * Math.Sin((aPix * Math.PI) / radius));
 
                 textureArray[i * 4] = x;
@@ -583,18 +583,20 @@ namespace rgat
             return textureArray;
         }
 
-        private readonly float CYLINDER_RADIUS = 5000f;
-        private readonly float CYLINDER_PIXELS_PER_B = 30f;
-        private readonly float CYLINDER_PIXELS_PER_A = 60f;
+        public float OPT_CYLINDER_RADIUS = 5000f;
+        public float OPT_CYLINDER_PIXELS_PER_B = 30f;
+        public float OPT_CYLINDER_PIXELS_PER_A = 60f;
+        public float OPT_WIREFRAME_ALPHA = 0.3f;
 
         private void GenerateCylinderWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
-            int CYLINDER_PIXELS_PER_ROW = 500;
+            int CYLINDER_PIXELS_PER_ROW = (int)500;
             float WF_POINTSPERLINE = 50f;
-            int wireframe_loop_count = (int)Math.Ceiling((_lowestWireframeLoop * CYLINDER_PIXELS_PER_B) / CYLINDER_PIXELS_PER_ROW) + 1;
-            float radius = CYLINDER_RADIUS;
+            int wireframe_loop_count = (int)Math.Ceiling((_lowestWireframeLoop * OPT_CYLINDER_PIXELS_PER_B) / CYLINDER_PIXELS_PER_ROW) + 1;
+            float radius = OPT_CYLINDER_RADIUS;
 
-            WritableRgbaFloat wireframeColour = Themes.GetThemeColourWRF(Themes.eThemeColour.WireFrame);
+            float alpha = OPT_WIREFRAME_ALPHA * 255f;
+            WritableRgbaFloat wireframeColour = new WritableRgbaFloat(Themes.GetThemeColourWRF(Themes.eThemeColour.WireFrame).ToUint((uint)alpha));
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {
                 int rowYcoord = -rowY * CYLINDER_PIXELS_PER_ROW;
@@ -1335,16 +1337,6 @@ namespace rgat
             return positions;
         }
 
-        /// <summary>
-        /// Reset the layout state for drawing a new plot
-        /// </summary>
-        /// <param name="resetStyle">How to distribute the reset nodes</param>
-        /// <param name="layoutSpread">How far to distribute the nodes</param>
-        public void ResetPlot(GraphLayoutState.PositionResetStyle resetStyle, float layoutSpread = 2)
-        {
-            LayoutState.Reset(resetStyle, spread: layoutSpread);
-            BeginNewLayout();
-        }
 
         /// <summary>
         /// Reset the layout tracking statistics and reset the temperature to a high value

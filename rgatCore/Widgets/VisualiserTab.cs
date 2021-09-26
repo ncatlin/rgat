@@ -661,6 +661,192 @@ namespace rgat
             }
         }
 
+
+        private void DrawThreadSelectorCombo(ProtoGraph graph)
+        {
+            if (_rgatState.ActiveTrace != null)
+            {
+                string selString = $"TID {graph.ThreadID}: {graph.FirstInstrumentedModuleName}";
+                List<PlottedGraph> graphs = _rgatState.ActiveTrace.GetPlottedGraphs();
+                if (ImGui.BeginCombo($"{graphs.Count} Thread{(graphs.Count != 1 ? "s" : "")}", selString))
+                {
+                    foreach (PlottedGraph selectablegraph in graphs)
+                    {
+                        string caption = $"{selectablegraph.TID}: {selectablegraph.InternalProtoGraph.FirstInstrumentedModuleName}";
+                        int nodeCount = selectablegraph.GraphNodeCount();
+                        if (nodeCount == 0)
+                        {
+                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
+                            caption += " [Uninstrumented]";
+                        }
+                        else
+                        {
+                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                            caption += $" [{nodeCount} nodes]";
+                        }
+
+                        if (ImGui.Selectable(caption, graph.ThreadID == selectablegraph.TID) && nodeCount > 0)
+                        {
+                            SetActiveGraph(selectablegraph);
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.BeginTooltip();
+                            ImGui.Text($"Thread Start: 0x{graph.StartAddress:X} [{graph.StartModuleName}]");
+                            if (graph.NodeList.Count > 0)
+                            {
+                                NodeData? n = graph.GetNode(0);
+                                if (n is not null)
+                                {
+                                    string insBase = System.IO.Path.GetFileName(graph.ProcessData.GetModulePath(n.GlobalModuleID));
+                                    ImGui.Text($"First Instrumented: 0x{n.address:X} [{insBase}]");
+                                }
+                            }
+                            ImGui.EndTooltip();
+                        }
+                        ImGui.PopStyleColor();
+                    }
+                    ImGui.EndCombo();
+                }
+            }
+        }
+
+
+        private void DrawPlotStatColumns(PlottedGraph plot)
+        {
+            ProtoGraph graph = plot.InternalProtoGraph;
+
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
+
+            ImGui.Text($"Thread ID: {graph.ThreadID}");
+
+            ImGui.SameLine();
+            if (graph.Terminated)
+            {
+                ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Red), "(Terminated)");
+            }
+            else
+            {
+                ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.LimeGreen), $"(Active)");
+            }
+
+            float metricsHeight = ImGui.GetContentRegionAvail().Y - 4;
+            ImGui.Columns(3, "visstatColumns");
+            ImGui.SetColumnWidth(0, 20);
+            ImGui.SetColumnWidth(1, 130);
+            ImGui.SetColumnWidth(2, 250);
+            ImGui.NextColumn();
+
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
+            if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
+            {
+                ImGui.Text($"Edges: {graph.EdgeCount}");
+                ImGui.Text($"Nodes: {graph.NodeList.Count}");
+                ImGui.Text($"Updates: {graph.SavedAnimationData.Count}");
+                ImGui.Text($"Instructions: {graph.TotalInstructions}");
+
+                ImGui.EndChild();
+            }
+
+            ImGui.NextColumn();
+
+            if (_stats_click_hover)
+            {
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff313142);
+            }
+
+            if (ImGui.BeginChild("OtherMetrics", new Vector2(200, metricsHeight)))
+            {
+                if (graph.TraceReader != null)
+                {
+                    if (graph.TraceReader.QueueSize > 0)
+                    {
+                        ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.TraceReader.QueueSize}");
+                    }
+                    else
+                    {
+                        ImGui.Text($"Backlog: {graph.TraceReader.QueueSize}");
+                    }
+                }
+
+                if (graph.PerformingUnchainedExecution)
+                {
+                    ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"Busy: True");
+                }
+                else
+                {
+                    ImGui.Text("Busy: False");
+                }
+                SmallWidgets.MouseoverText("Busy if the thread is in a lightly instrumented high-CPU usage area");
+
+                ThreadTraceProcessingThread? traceProcessor = graph.TraceProcessor;
+                if (traceProcessor != null)
+                {
+                    string BrQlab = $"{traceProcessor.PendingBlockRepeats}";
+                    if (traceProcessor.PendingBlockRepeats > 0)
+                    {
+                        BrQlab += $" {traceProcessor.LastBlockRepeatsTime}";
+                    }
+                    ImGui.Text($"BRepQu: {BrQlab}");
+                }
+
+                double fps = rgatUI.UIDrawFPS;
+                if (fps >= 100)
+                {
+                    ImGui.Text($"UI FPS: 100+");
+                }
+                else
+                {
+                    uint fpscol;
+                    if (fps >= 40)
+                    {
+                        fpscol = Themes.GetThemeColourImGui(ImGuiCol.Text);
+                    }
+                    else if (fps < 40 && fps >= 10)
+                    {
+                        fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
+                    }
+                    else
+                    {
+                        fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                    }
+
+                    ImGui.PushStyleColor(ImGuiCol.Text, fpscol);
+                    ImGui.Text($"UI FPS: {fps:0.#}");
+                    ImGui.PopStyleColor();
+                }
+                SmallWidgets.MouseoverText($"How many frames the UI can render in one second (Last 10 Avg MS: {UIFrameAverage})");
+
+                if (plot.ComputeLayoutSteps > 0)
+                {
+                    ImGui.Text($"Layout MS: {(plot.ComputeLayoutTime / plot.ComputeLayoutSteps):0.#}");
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text("How long it takes to complete a step of graph layout");
+                        ImGui.Text($"Layout Cumulative Time: {plot.ComputeLayoutTime} MS - ({plot.ComputeLayoutSteps} steps");
+                        ImGui.EndTooltip();
+                    }
+                }
+
+
+                ImGui.EndChild();
+                if (ImGui.IsItemClicked())
+                {
+                    rgatUI.ToggleRenderStatsDialog();
+                }
+            }
+            if (_stats_click_hover)
+            {
+                ImGui.PopStyleColor();
+            }
+
+            _stats_click_hover = ImGui.IsItemHovered();
+            ImGui.PopStyleColor();
+            ImGui.Columns(1, "smushes");
+        }
+
+
         private void DrawTraceSelector(float frameHeight, float frameWidth)
         {
 
@@ -681,9 +867,6 @@ namespace rgat
 
             if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth, frameHeight)))
             {
-
-                float combosHeight = 60 - vpadding;
-
                 if (_rgatState.ActiveTarget != null)
                 {
                     var tracelist = _rgatState.ActiveTarget.GetTracesUIList();
@@ -701,189 +884,13 @@ namespace rgat
                             {
                                 CreateTracesDropdown(selectableTrace, 1);
                             }
-                            //ImGui.Selectable("PID 12345 (xyz.exe)");
                         }
                         ImGui.EndCombo();
                     }
-
-                    if (_rgatState.ActiveTrace != null)
-                    {
-                        selString = $"TID {graph.ThreadID}: {graph.FirstInstrumentedModuleName}";
-                        List<PlottedGraph> graphs = _rgatState.ActiveTrace.GetPlottedGraphs();
-                        if (ImGui.BeginCombo($"{graphs.Count} Thread{(graphs.Count != 1 ? "s" : "")}", selString))
-                        {
-                            foreach (PlottedGraph selectablegraph in graphs)
-                            {
-                                string caption = $"{selectablegraph.TID}: {selectablegraph.InternalProtoGraph.FirstInstrumentedModuleName}";
-                                int nodeCount = selectablegraph.GraphNodeCount();
-                                if (nodeCount == 0)
-                                {
-                                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
-                                    caption += " [Uninstrumented]";
-                                }
-                                else
-                                {
-                                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                                    caption += $" [{nodeCount} nodes]";
-                                }
-
-                                if (ImGui.Selectable(caption, graph.ThreadID == selectablegraph.TID) && nodeCount > 0)
-                                {
-                                    SetActiveGraph(selectablegraph);
-                                }
-                                if (ImGui.IsItemHovered())
-                                {
-                                    ImGui.BeginTooltip();
-                                    ImGui.Text($"Thread Start: 0x{graph.StartAddress:X} [{graph.StartModuleName}]");
-                                    if (graph.NodeList.Count > 0)
-                                    {
-                                        NodeData? n = graph.GetNode(0);
-                                        if (n is not null)
-                                        {
-                                            string insBase = System.IO.Path.GetFileName(graph.ProcessData.GetModulePath(n.GlobalModuleID));
-                                            ImGui.Text($"First Instrumented: 0x{n.address:X} [{insBase}]");
-                                        }
-                                    }
-                                    ImGui.EndTooltip();
-                                }
-                                ImGui.PopStyleColor();
-                            }
-                            ImGui.EndCombo();
-                        }
-                    }
+                    DrawThreadSelectorCombo(graph);
                 }
 
-
-
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
-
-                ImGui.Text($"Thread ID: {graph.ThreadID}");
-
-                ImGui.SameLine();
-                if (graph.Terminated)
-                {
-                    ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Red), "(Terminated)");
-                }
-                else
-                {
-                    ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.LimeGreen), $"(Active)");
-                }
-
-                float metricsHeight = ImGui.GetContentRegionAvail().Y - 4;
-                ImGui.Columns(3, "visstatColumns");
-                ImGui.SetColumnWidth(0, 20);
-                ImGui.SetColumnWidth(1, 130);
-                ImGui.SetColumnWidth(2, 250);
-                ImGui.NextColumn();
-
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
-                if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
-                {
-                    ImGui.Text($"Edges: {graph.EdgeCount}");
-                    ImGui.Text($"Nodes: {graph.NodeList.Count}");
-                    ImGui.Text($"Updates: {graph.SavedAnimationData.Count}");
-                    ImGui.Text($"Instructions: {graph.TotalInstructions}");
-
-                    ImGui.EndChild();
-                }
-
-                ImGui.NextColumn();
-
-                if (_stats_click_hover)
-                {
-                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff313142);
-                }
-
-                if (ImGui.BeginChild("OtherMetrics", new Vector2(200, metricsHeight)))
-                {
-                    if (graph.TraceReader != null)
-                    {
-                        if (graph.TraceReader.QueueSize > 0)
-                        {
-                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"Backlog: {graph.TraceReader.QueueSize}");
-                        }
-                        else
-                        {
-                            ImGui.Text($"Backlog: {graph.TraceReader.QueueSize}");
-                        }
-                    }
-
-                    if (graph.PerformingUnchainedExecution)
-                    {
-                        ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"Busy: True");
-                    }
-                    else
-                    {
-                        ImGui.Text("Busy: False");
-                    }
-                    SmallWidgets.MouseoverText("Busy if the thread is in a lightly instrumented high-CPU usage area");
-
-                    ThreadTraceProcessingThread? traceProcessor = graph.TraceProcessor;
-                    if (traceProcessor != null)
-                    {
-                        string BrQlab = $"{traceProcessor.PendingBlockRepeats}";
-                        if (traceProcessor.PendingBlockRepeats > 0)
-                        {
-                            BrQlab += $" {traceProcessor.LastBlockRepeatsTime}";
-                        }
-                        ImGui.Text($"BRepQu: {BrQlab}");
-                    }
-
-                    double fps = rgatUI.UIDrawFPS;
-                    if (fps >= 100)
-                    {
-                        ImGui.Text($"UI FPS: 100+");
-                    }
-                    else
-                    {
-                        uint fpscol;
-                        if (fps >= 40)
-                        {
-                            fpscol = Themes.GetThemeColourImGui(ImGuiCol.Text);
-                        }
-                        else if (fps < 40 && fps >= 10)
-                        {
-                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
-                        }
-                        else
-                        {
-                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
-                        }
-
-                        ImGui.PushStyleColor(ImGuiCol.Text, fpscol);
-                        ImGui.Text($"UI FPS: {fps:0.#}");
-                        ImGui.PopStyleColor();
-                    }
-                    SmallWidgets.MouseoverText($"How many frames the UI can render in one second (Last 10 Avg MS: {UIFrameAverage})");
-
-                    if (plot.ComputeLayoutSteps > 0)
-                    {
-                        ImGui.Text($"Layout MS: {(plot.ComputeLayoutTime / plot.ComputeLayoutSteps):0.#}");
-                        if (ImGui.IsItemHovered())
-                        {
-                            ImGui.BeginTooltip();
-                            ImGui.Text("How long it takes to complete a step of graph layout");
-                            ImGui.Text($"Layout Cumulative Time: {plot.ComputeLayoutTime} MS - ({plot.ComputeLayoutSteps} steps");
-                            ImGui.EndTooltip();
-                        }
-                    }
-
-
-                    ImGui.EndChild();
-                    if (ImGui.IsItemClicked())
-                    {
-                        rgatUI.ToggleRenderStatsDialog();
-                    }
-                }
-                if (_stats_click_hover)
-                {
-                    ImGui.PopStyleColor();
-                }
-
-                _stats_click_hover = ImGui.IsItemHovered();
-                ImGui.PopStyleColor();
-                ImGui.Columns(1, "smushes");
-
+                DrawPlotStatColumns(plot);
 
                 ImGui.EndChild();
             }
@@ -933,7 +940,7 @@ namespace rgat
                         }
                         else
                         {
-                            DrawPlaybackControls(frameHeight, ImGui.GetContentRegionAvail().X );
+                            DrawPlaybackControls(frameHeight, ImGui.GetContentRegionAvail().X);
                         }
                         ImGui.EndChild();
                     }
@@ -1168,7 +1175,7 @@ namespace rgat
                         ImGui.Text($"Velocity %");
                         ImGui.TableNextColumn();
                         double velpc = ((graphplot.VelocitySetupTime + graphplot.VelocityShaderTime)) / accountedComputeTime;
-                        ImGui.Text($"{velpc*100.0:0.#}%%");
+                        ImGui.Text($"{velpc * 100.0:0.#}%%");
                         ImGui.TableNextColumn();
                         ImGui.Text("Proportion of compute time spent measuring forces");
                         ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff884444);
@@ -1177,7 +1184,7 @@ namespace rgat
                         ImGui.TableNextColumn();
                         ImGui.Text($"Velocity Throughput");
                         ImGui.TableNextColumn();
-                        long nodesPerSec = (long)(graphplot.VelocityNodes/ graphplot.VelocityShaderTime) * 1000;
+                        long nodesPerSec = (long)(graphplot.VelocityNodes / graphplot.VelocityShaderTime) * 1000;
                         ImGui.Text($"{((int)nodesPerSec).ToMetric()} Nodes/Second");
                         ImGui.TableNextColumn();
                         ImGui.Text("How fast the velocity shader is running");
