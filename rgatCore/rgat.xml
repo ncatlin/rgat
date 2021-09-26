@@ -6025,7 +6025,12 @@
         </member>
         <member name="P:rgat.ProtoGraph.StartModuleName">
             <summary>
-            The module the thread was located in, usually the argument passed to CreateThread (or the linux equivalent)
+            Reported as the thread start by PIn
+            </summary>
+        </member>
+        <member name="P:rgat.ProtoGraph.FirstInstrumentedModuleName">
+            <summary>
+            The first instrumented module, or if failing that the start module
             </summary>
         </member>
         <member name="M:rgat.ProtoGraph.Serialise">

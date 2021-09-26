@@ -1554,9 +1554,40 @@ namespace rgat
         private readonly List<uint> ExceptionNodeIndexes = new List<uint>();
 
         /// <summary>
-        /// The module the thread was located in, usually the argument passed to CreateThread (or the linux equivalent)
+        /// Reported as the thread start by PIn
         /// </summary>
         public string StartModuleName { get; private set; } = "";
+
+        /// <summary>
+        /// The first instrumented module, or if failing that the start module
+        /// </summary>
+        public string FirstInstrumentedModuleName
+        {
+            get
+            {
+                if (_firstInstrumentedModuleName.Length > 0) return _firstInstrumentedModuleName;
+                if (NodeCount > 0)
+                {
+                    try
+                    {
+                        int firstNodeModule = NodeList[0].GlobalModuleID;
+                        if (ProcessData.LoadedModulePaths.Count > firstNodeModule)
+                        {
+                            string modulePath = ProcessData.LoadedModulePaths[firstNodeModule];
+                            _firstInstrumentedModuleName = System.IO.Path.GetFileName(modulePath);
+                            return _firstInstrumentedModuleName;
+                        }
+                    }
+                    catch { }
+                }
+                return StartModuleName;
+            }
+        }
+
+
+        private string _firstInstrumentedModuleName = "";
+
+
 
         private void AssignModulePath()
         {

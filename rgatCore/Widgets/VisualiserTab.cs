@@ -708,13 +708,13 @@ namespace rgat
 
                     if (_rgatState.ActiveTrace != null)
                     {
-                        selString = "TID " + graph.ThreadID;
+                        selString = $"TID {graph.ThreadID}: {graph.FirstInstrumentedModuleName}";
                         List<PlottedGraph> graphs = _rgatState.ActiveTrace.GetPlottedGraphs();
                         if (ImGui.BeginCombo($"{graphs.Count} Thread{(graphs.Count != 1 ? "s" : "")}", selString))
                         {
                             foreach (PlottedGraph selectablegraph in graphs)
                             {
-                                string caption = $"{selectablegraph.TID}: {selectablegraph.InternalProtoGraph.StartModuleName}";
+                                string caption = $"{selectablegraph.TID}: {selectablegraph.InternalProtoGraph.FirstInstrumentedModuleName}";
                                 int nodeCount = selectablegraph.GraphNodeCount();
                                 if (nodeCount == 0)
                                 {
