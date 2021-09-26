@@ -842,23 +842,11 @@ namespace rgat
         /// <param name="newMode">Mode to activate</param>
         private void SetRenderingMode(eRenderingMode newMode)
         {
-            switch (newMode)
-            {
-                case eRenderingMode.eStandardControlFlow:
-                    break;
-                case eRenderingMode.eConditionals:
-                    break;
-                case eRenderingMode.eHeatmap:
-                    ActiveGraph!.InternalProtoGraph.HeatSolvingComplete = false; //todo - temporary for dev
-                    break;
-                default:
-                    Logging.WriteConsole("unknown rendering mode");
-                    break;
-            }
             _renderingMode = newMode;
         }
 
         private static readonly Dictionary<string, List<fontStruc>> _cachedStrings = new Dictionary<string, List<fontStruc>>();
+
 
         /// <summary>
         /// Convert a string to a List of fontStrucs describing the font glyphs to display the string
@@ -939,6 +927,7 @@ namespace rgat
             return shaderParams;
         }
 
+
         private class RISINGEXTTXT
         {
             public RISINGEXTTXT(string label) { text = label; }
@@ -947,6 +936,7 @@ namespace rgat
             public string text;
             public int remainingFrames;
         }
+
 
         private readonly List<RISINGEXTTXT> _activeRisings = new List<RISINGEXTTXT>();
 

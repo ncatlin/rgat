@@ -5762,9 +5762,14 @@
             When the thread was recorded, used as a unique identifier for threads
             </summary>
         </member>
-        <member name="F:rgat.ProtoGraph.HeatSolvingComplete">
+        <member name="P:rgat.ProtoGraph.HeatSolvingComplete">
             <summary>
             The order of most busy instructions has been calculated since the graph was last updated
+            </summary>
+        </member>
+        <member name="M:rgat.ProtoGraph.MarkHeatSolvingComplete">
+            <summary>
+            Used by the heat solver to mark heat ranking as complete
             </summary>
         </member>
         <member name="M:rgat.ProtoGraph.SetTerminated">
@@ -7488,6 +7493,7 @@
         <member name="T:rgat.Threads.HeatRankingThread">
             <summary>
             Iterates over all the instructions in a thread ranking them by execution count
+            Only operates on the graph active in the visualiser pane
             </summary>
         </member>
         <member name="M:rgat.Threads.HeatRankingThread.Begin">

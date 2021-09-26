@@ -5,6 +5,7 @@ namespace rgat.Threads
 {
     /// <summary>
     /// Iterates over all the instructions in a thread ranking them by execution count
+    /// Only operates on the graph active in the visualiser pane
     /// </summary>
     public class HeatRankingThread : TraceProcessorWorker
     {
@@ -16,12 +17,9 @@ namespace rgat.Threads
             base.Begin();
             WorkerThread = new Thread(ThreadProc);
             WorkerThread.Name = $"HeakRankingWorker";
-
-
-            //WorkerThread.Start();//temporarily disable in lieu of marking ranking complete for a thread
-
-
+            WorkerThread.Start();
         }
+
 
         private static void PerformEdgeHeatRanking(ProtoGraph graph)
         {
@@ -102,27 +100,26 @@ namespace rgat.Threads
 
             while (!rgatState.rgatIsExiting)
             {
+                Thread.Sleep(1000);
 
                 PlottedGraph? graph = _clientState!.ActiveGraph;
-                if (graph == null)
+                if (graph == null || graph.InternalProtoGraph.HeatSolvingComplete)
                 {
-                    Thread.Sleep(200);
                     continue;
                 }
 
-                if (!graph.InternalProtoGraph.HeatSolvingComplete)
+                if (graph.InternalProtoGraph.HeatSolvingComplete is false)
                 {
+                    ulong instructionTotal = graph.InternalProtoGraph.TotalInstructions;
+
                     PerformEdgeHeatRanking(graph.InternalProtoGraph);
                     PerformNodeHeatRanking(graph.InternalProtoGraph);
+                    if ((graph.InternalProtoGraph.TraceProcessor is null || graph.InternalProtoGraph.TraceProcessor.Running is false) && 
+                        instructionTotal == graph.InternalProtoGraph.TotalInstructions)
+                    {
+                        graph.InternalProtoGraph.MarkHeatSolvingComplete();
+                    }
                 }
-
-
-                TraceRecord? activeTrace = _clientState.ActiveTrace;
-                if (activeTrace == null)
-                {
-                    Thread.Sleep(200);
-                }
-
             }
             Finished();
         }

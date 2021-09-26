@@ -224,7 +224,12 @@ namespace rgat
         /// <summary>
         /// The order of most busy instructions has been calculated since the graph was last updated
         /// </summary>
-        public bool HeatSolvingComplete = false; //todo set this once processing is done?
+        public bool HeatSolvingComplete { get; private set; } = false;
+
+        /// <summary>
+        /// Used by the heat solver to mark heat ranking as complete
+        /// </summary>
+        public void MarkHeatSolvingComplete() => HeatSolvingComplete = true;
 
         /*
         public List<InteractionTarget> SystemInteractions = new List<InteractionTarget>();
