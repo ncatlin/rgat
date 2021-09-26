@@ -1234,6 +1234,16 @@
             Maximum speed limit available on the GUI
             </summary>
         </member>
+        <member name="F:rgat.GlobalConfig.AttractionK">
+            <summary>
+            Velocity shader attraction constant
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.RepulsionK">
+            <summary>
+            Velocity shader repulsion constant
+            </summary>
+        </member>
         <member name="F:rgat.GlobalConfig.NewVersionAvailable">
             <summary>
             A new rgat release is available to download

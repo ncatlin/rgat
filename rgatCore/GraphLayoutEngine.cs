@@ -308,9 +308,9 @@ namespace rgat
         private struct VelocityShaderParams
         {
             public float delta;
-            public float k;
             public float temperature;
-            public uint EdgeCount;
+            public float attractionK;
+            public float repulsionK;
 
             public uint fixedInternalNodes;
             public uint snappingToPreset;
@@ -729,9 +729,9 @@ namespace rgat
             VelocityShaderParams parms = new VelocityShaderParams
             {
                 delta = delta,
-                k = 100f,
+                attractionK =  GlobalConfig.AttractionK,
                 temperature = Math.Min(temperature, GlobalConfig.NodeSoftSpeedLimit),
-                EdgeCount = (uint)graph.InternalProtoGraph.EdgeCount,
+                repulsionK = GlobalConfig.RepulsionK,
                 fixedInternalNodes = 0,
                 snappingToPreset = (uint)(graph.LayoutState.ActivatingPreset ? 1 : 0),
                 nodeCount = (uint)graph.RenderedNodeCount()
@@ -760,9 +760,9 @@ namespace rgat
             VelocityShaderParams parms = new VelocityShaderParams
             {
                 delta = delta,
-                k = 500f,
+                attractionK = GlobalConfig.AttractionK,
+                repulsionK = GlobalConfig.RepulsionK,
                 temperature = Math.Min(temperature, GlobalConfig.NodeSoftSpeedLimit),
-                EdgeCount = (uint)graph.InternalProtoGraph.EdgeCount,
                 fixedInternalNodes = 1,
                 snappingToPreset = 0,
                 nodeCount = (uint)graph.LayoutState.BlockMiddles!.SizeInBytes / 4

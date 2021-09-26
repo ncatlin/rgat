@@ -116,7 +116,7 @@ namespace rgat
 
                 float controlsHeight = 230;
 
-                DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y - 13) - controlsHeight);
+                DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y - 16) - controlsHeight);
                 DrawVisualiserControls(controlsHeight);
             }
             ImGui.EndTabItem();
@@ -1004,7 +1004,7 @@ namespace rgat
 
             ImGui.SetNextWindowSize(new Vector2(800, 500), ImGuiCond.Appearing);
 
-            if (ImGui.Begin("Graph Performance Stats", ref hideme))
+            if (ImGui.Begin("Performance Statistics", ref hideme))
             {
 
                 if (ImGui.BeginTable("#StatsTable", 3, ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg))

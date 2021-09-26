@@ -866,6 +866,24 @@ private void DrawScalePopup()
                     ImGui.SliderFloat("##_replotSpread", ref _replotSpread, 0.001f, 5f);
 
 
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Edge Attraction");
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(150);
+                    ImGui.SliderFloat("##AttractionK", ref GlobalConfig.AttractionK, 0.001f, 1000);
+
+
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Node Repulsion");
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(150);
+                    ImGui.SliderFloat("##RepulsionK", ref GlobalConfig.RepulsionK, 0.001f, 1000);
+
+
                     ImGui.EndTable();
                 }
             }

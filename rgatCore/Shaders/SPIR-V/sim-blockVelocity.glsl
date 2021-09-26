@@ -18,10 +18,10 @@ C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\U
 struct VelocityParams
 {
     float delta; //not used
-    float k;
     float temperature;
+    float attractionK;
+    float repulsionK;
 
-    uint edgeCount;
     uint fixedInternalNodes;
     uint snapToPreset;
     uint nodeCount;
@@ -86,7 +86,7 @@ vec3 addRepulsionOriginal(vec4 self, vec4 neighbor, float multiplier){
     if (neighbor.w == -1) return vec3(0,0,0); 
     vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
-   float f = ( fieldParams.k * fieldParams.k ) / max(x, 0.001);
+   float f = ( fieldParams.repulsionK * fieldParams.repulsionK ) / max(x, 0.001);
     return normalize(diff) * f * multiplier;
 }
 
@@ -96,7 +96,7 @@ vec3 addRepulsion(vec4 self, vec4 neighbor){
     //if (neighbor.w == -1) return vec3(0,0,0); 
     vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
-    float f = ( fieldParams.k * fieldParams.k ) / max(x, 0.001);
+    float f = ( fieldParams.repulsionK * fieldParams.repulsionK ) / max(x, 0.001);
     return normalize(diff) * f * 100;
 }
 
@@ -107,7 +107,7 @@ vec3 addAttraction(vec4 self, vec4 neighbor, int edgeIndex){
     if (neighbor.w == -1) return vec3(0,0,0); 
     vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
-    float f = ( x * x ) / fieldParams.k;
+    float f = ( x * x ) / fieldParams.attractionK;
     f *= edgeStrengths[edgeIndex];
 
 
@@ -122,7 +122,7 @@ vec3 addWorldGravity(vec4 self, float force)
     bodyAbove.y += force;
     vec3 diff = self.xyz - bodyAbove.xyz;
     float x = length( diff );
-    float f = ( x * x ) / fieldParams.k;
+    float f = ( x * x ) / fieldParams.attractionK;
     vec3 normalised = normalize(diff) * f;
 
   

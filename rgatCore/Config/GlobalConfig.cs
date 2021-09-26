@@ -260,6 +260,15 @@ namespace rgat
         public static readonly float NodeHardSpeedLimit = 3000f; //match with value in velocity shader
 
         /// <summary>
+        /// Velocity shader attraction constant
+        /// </summary>
+        public static float AttractionK = 100f;
+        /// <summary>
+        /// Velocity shader repulsion constant
+        /// </summary>
+        public static float RepulsionK = 100f;
+
+        /// <summary>
         /// A new rgat release is available to download
         /// </summary>
         public static bool NewVersionAvailable = false;

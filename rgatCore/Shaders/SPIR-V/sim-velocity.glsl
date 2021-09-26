@@ -20,10 +20,10 @@ C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\U
 struct VelocityParams
 {
     float delta; //not used
-    float k;
     float temperature;
+    float attractionK;
+    float repulsionK;
 
-    uint edgeCount;
     uint fixedInternalNodes;
     uint snapToPreset;
     uint nodeCount;
@@ -83,19 +83,18 @@ vec3 addRepulsionOriginal(vec4 self, vec4 neighbor, float multiplier){
     if (neighbor.w == -1) return vec3(0,0,0); 
     vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
-   float f = ( fieldParams.k * fieldParams.k ) / max(x, 0.001);
+   float f = ( fieldParams.repulsionK * fieldParams.repulsionK ) / max(x, 0.001);
     return normalize(diff) * f * multiplier;
 }
 
 
 //fr(x) = (k*k)/x;
 vec3 addRepulsion(vec4 self, vec4 neighbor){
-    //if (neighbor.w == -1) return vec3(0,0,0); 
-    //vec3 diff = self.xyz - neighbor.xyz;
-    //float x = length( diff );
-    //float f = ( fieldParams.k * fieldParams.k ) / max(x, 0.001);
-    float f = 100000.0 / max( length( self.xyz - neighbor.xyz ), 0.001);
-    return normalize(self.xyz - neighbor.xyz) * f;
+    if (neighbor.w == -1) return vec3(0,0,0); 
+    vec3 diff = self.xyz - neighbor.xyz;
+    float x = length( diff );
+    float f = ( fieldParams.repulsionK * fieldParams.repulsionK ) / max(x, 0.001);
+    return normalize(diff) * f;
 }
 
 
@@ -105,8 +104,8 @@ vec3 addAttraction(vec4 self, vec4 neighbor, int edgeIndex){
     if (neighbor.w == -1) return vec3(0,0,0); 
     vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
-    float f = ( x * x ) / fieldParams.k;
-    f *= edgeStrengths[edgeIndex];
+    float f = ( x * x ) / fieldParams.attractionK;
+   // f *= edgeStrengths[edgeIndex];
 
 
     return normalize(diff) * f;
@@ -120,7 +119,7 @@ vec3 addWorldGravity(vec4 self, float force)
     bodyAbove.y += force;
     vec3 diff = self.xyz - bodyAbove.xyz;
     float x = length( diff );
-    float f = ( x * x ) / fieldParams.k;
+    float f = ( x * x ) / fieldParams.attractionK;
     vec3 normalised = normalize(diff) * f;
 
   
@@ -189,26 +188,11 @@ void main()	{
                 // force-directed n-body simulation
 
                 //first repel every node away from each other
-                //this loop reduces throughput by 1M nodes/second
-                                        
+                
                 for(uint nodeIndex = 0; nodeIndex < fieldParams.nodeCount; nodeIndex++)
                 {
-                    //compareNodePosition = positions[nodeIndex];
-                    // note: double ifs work.  using continues do not work for all GPUs.
-
-                        //if distance below threshold, repel every node from every single node
-                        //float edgeLength = distance(compareNodePosition.xyz, selfPosition.xyz);
-                        //if (edgeLength > 0.001) 
-                        {
-                            vec3 compos = positions[nodeIndex].xyz;
-                            vec3 diff = selfPosition.xyz - positions[nodeIndex].xyz;  
-                                float f = ( 100000000 ) / max(length(diff), 0.001);
-                                velocity += normalize(diff) * f;
-
-                            //velocity += addRepulsion(selfPosition,  positions[nodeIndex]);
-                            //velocity += addRepulsionOriginal(selfPosition, positions[nodeIndex], 1);
-                        }
-		        }
+                  velocity += addRepulsion(selfPosition,  positions[nodeIndex]);
+                }
            
 
 
@@ -234,10 +218,10 @@ void main()	{
                 velocity = normalize(velocity) * fieldParams.temperature;
 
                 // Speed Limits
-                if ( length( velocity ) > speedLimit ) 
-                {
-                    velocity = normalize( velocity ) * speedLimit;
-                }
+                //if ( length( velocity ) > speedLimit ) 
+               // {
+                //    velocity = normalize( velocity ) * speedLimit;
+               /// }
             }
         }
     

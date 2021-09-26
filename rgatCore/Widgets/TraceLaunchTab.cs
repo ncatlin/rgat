@@ -18,11 +18,11 @@ namespace rgat
 
             if (activeTarget is not null)
             {
-                DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X);
+                DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y/2);
 
                 ImGui.BeginGroup();
                 {
-                    DrawTraceTab_InstrumentationSettings(activeTarget, 600);
+                    DrawTraceTab_InstrumentationSettings(activeTarget, ImGui.GetContentRegionAvail().X /2.5f);
                     ImGui.SameLine();
                     DrawTraceTab_ExecutionSettings(activeTarget, ImGui.GetContentRegionAvail().X);
                     ImGui.EndGroup();
@@ -31,9 +31,9 @@ namespace rgat
             ImGui.EndTabItem();
         }
 
-        private void DrawTraceTab_FileInfo(BinaryTarget activeTarget, float width)
+        private void DrawTraceTab_FileInfo(BinaryTarget activeTarget, float width, float height)
         {
-            ImGui.BeginChildFrame(22, new Vector2(width, 300), ImGuiWindowFlags.AlwaysAutoResize);
+            ImGui.BeginChildFrame(22, new Vector2(width, height), ImGuiWindowFlags.AlwaysAutoResize);
 
             if (activeTarget.RemoteHost != null && !activeTarget.RemoteInitialised)
             {
@@ -52,10 +52,10 @@ namespace rgat
 
             ImGui.BeginGroup();
             {
-                if (ImGui.BeginTable("#BasicStaticFields", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX, ImGui.GetContentRegionAvail()))
+                if (ImGui.BeginTable("#BasicStaticFields", 2, ImGuiTableFlags.Borders , ImGui.GetContentRegionAvail()))
                 {
                     ImGui.TableSetupColumn("#FieldName", ImGuiTableColumnFlags.WidthFixed, 135);
-                    ImGui.TableSetupColumn("#FieldValue", ImGuiTableColumnFlags.WidthFixed, width - 140);
+                    ImGui.TableSetupColumn("#FieldValue");
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
@@ -63,6 +63,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     string fileStr = string.Format("{0} ({1})", activeTarget.FileName, activeTarget.GetFileSizeString());
                     byte[] _dataInput = Encoding.UTF8.GetBytes(fileStr);
+                    ImGui.SetNextItemWidth(500);
                     ImGui.InputText("##filenameinp", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
 
                     ImGui.TableNextRow();
@@ -70,6 +71,7 @@ namespace rgat
                     ImGui.Text("SHA1 Hash");
                     ImGui.TableNextColumn();
                     _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA1Hash());
+                    ImGui.SetNextItemWidth(500);
                     ImGui.InputText("##s1hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
 
                     ImGui.TableNextRow();
@@ -77,6 +79,7 @@ namespace rgat
                     ImGui.Text("SHA256 Hash");
                     ImGui.TableNextColumn();
                     _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA256Hash());
+                    ImGui.SetNextItemWidth(500);
                     ImGui.InputText("##s256hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
 
 
@@ -84,6 +87,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("Hex Preview");
                     ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(500);
                     _controller.PushOriginalFont(); //original imgui font is monospace and UTF8, good for this
                     {
                         _dataInput = Encoding.UTF8.GetBytes(activeTarget.HexPreview);
@@ -100,6 +104,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("ASCII Preview");
                     ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(500);
                     _controller.PushOriginalFont();
                     {
                         _dataInput = Encoding.ASCII.GetBytes(activeTarget.ASCIIPreview);
@@ -124,7 +129,8 @@ namespace rgat
 
                     ImGui.TableNextColumn();
 
-                    DrawSignaturesBox(activeTarget, 530);
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 12);
+                    DrawSignaturesBox(activeTarget, 800);
 
                     ImGui.EndTable();
                 }
@@ -203,16 +209,16 @@ namespace rgat
 
         private void DrawTraceTab_InstrumentationSettings(BinaryTarget activeTarget, float width)
         {
-            if (ImGui.BeginChild("TraceInstruSettings", new Vector2(width, ImGui.GetContentRegionAvail().Y)))
+            if (ImGui.BeginChild("TraceInstruSettings", new Vector2(width, ImGui.GetContentRegionAvail().Y - 20)))
             {
                 if (activeTarget.IsLibrary)
                 {
                     DrawDLLTraceSettings(activeTarget);
-                    DrawModuleFilterControls(activeTarget, 200);
+                    DrawModuleFilterControls(activeTarget, ImGui.GetContentRegionAvail().Y);
                 }
                 else
                 {
-                    DrawModuleFilterControls(activeTarget, 200);
+                    DrawModuleFilterControls(activeTarget, ImGui.GetContentRegionAvail().Y);
                 }
                 ImGui.EndChild();
             }
@@ -246,6 +252,7 @@ namespace rgat
                 ImGui.EndTable();
             }
             ImGui.Indent(-8);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 12);
         }
 
         private static void DrawExportPickerCombo(BinaryTarget activeTarget)
@@ -312,11 +319,11 @@ namespace rgat
                 if (ImGui.BeginChild("ModFilterToggleChild", new Vector2(ImGui.GetContentRegionAvail().X, 40)))
                 {
                     ImGui.AlignTextToFramePadding();
-                    ImGui.Text("Module Tracing");
+                    ImGui.Text("Module Selection Mode");
                     ImGui.SameLine();
                     ImguiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
                     ImGui.SameLine();
-                    string TraceLabel = $"Trace [{activeTarget.TraceChoices.TraceDirCount + activeTarget.TraceChoices.TraceFilesCount}]";
+                    string TraceLabel = $"Default Trace [{activeTarget.TraceChoices.TraceDirCount + activeTarget.TraceChoices.TraceFilesCount}]";
 
                     int traceModeRef = activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore ? 0 : 1;
                     if (ImGui.RadioButton(TraceLabel, ref traceModeRef, 0))
@@ -326,13 +333,13 @@ namespace rgat
                     ImGui.SameLine();
                     ImguiUtils.HelpMarker("Only specified libraries will be traced");
                     ImGui.SameLine();
-                    string IgnoreLabel = $"Ignore [{activeTarget.TraceChoices.IgnoreDirsCount + activeTarget.TraceChoices.ignoreFilesCount}]";
+                    string IgnoreLabel = $"Default Ignore [{activeTarget.TraceChoices.IgnoreDirsCount + activeTarget.TraceChoices.ignoreFilesCount}]";
                     if (ImGui.RadioButton(IgnoreLabel, ref traceModeRef, 1))
                     {
                         activeTarget.TraceChoices.TracingMode = (eModuleTracingMode)traceModeRef;
                     };
                     ImGui.SameLine();
-                    ImguiUtils.HelpMarker("All libraries will be traced except for those specified");
+                    ImguiUtils.HelpMarker("All libraries will be traced except for those on the ignore list");
                     ImGui.EndChild();
                 }
 
@@ -350,7 +357,7 @@ namespace rgat
                     ImGui.PopStyleColor();
                 }
 
-                if (ImGui.BeginChild("ModFilterContentChild", new Vector2(ImGui.GetContentRegionAvail().X, 200)))
+                if (ImGui.BeginChild("ModFilterContentChild", new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y)))
                 {
                     ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFdddddd);
 
@@ -477,11 +484,11 @@ namespace rgat
         {
             ImGui.BeginGroup();
             {
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF222200);
-                ImGui.BeginChildFrame(10, new Vector2(width, 280));
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
+                ImGui.BeginChildFrame(10, new Vector2(width, ImGui.GetContentRegionAvail().Y - 20));
                 ImGui.Text("Execution Settings");
 
-                ImGui.BeginChildFrame(18, new Vector2(width, 50));
+                ImGui.BeginChildFrame(18, new Vector2(500, 80));
                 //ImGui.AlignTextToFramePadding();
                 /*
                 ImGui.Text("Instrumentation Engine: ");
@@ -501,11 +508,13 @@ namespace rgat
 
                 ImGui.Text("Instrumentation Level: ");
                 ImGui.SameLine();
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBgHovered));
                 ImGui.RadioButton("Single Shot", ref _selectedInstrumentationLevel, 0);
                 ImGui.SameLine();
                 ImGui.RadioButton("Continuous", ref _selectedInstrumentationLevel, 1);
                 ImGui.SameLine();
                 ImGui.RadioButton("Data", ref _selectedInstrumentationLevel, 2);
+                ImGui.PopStyleColor(1);
 
 
 
@@ -517,55 +526,13 @@ namespace rgat
                 ImGui.SameLine();
                 ImguiUtils.HelpMarker("Command line arguments passed to the program being executed");
                 ImGui.SameLine();
-
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBgHovered));
                 byte[] _dataInput = new byte[1024];
                 ImGui.InputText("##cmdline", _dataInput, 1024);
-                ImGui.PopStyleColor();
 
-                string pintoolpath = activeTarget.BitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
-                    GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
+                ImGui.PopStyleColor(2);
 
 
-                bool runnable = _activeTargetRunnable;
-
-                ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourImGui(ImGuiCol.Button) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
-                ImGui.AlignTextToFramePadding();
-                if (
-                    (activeTarget.RemoteBinary || activeTarget.PEFileObj != null)
-                    && ImGui.Button("Start Trace " + ImGuiController.FA_PLAY_CIRCLE) && runnable)
-                {
-                    _OldTraceCount = rgatState.TotalTraceCount;
-                    int ordinal = (activeTarget.IsLibrary && activeTarget.SelectedExportIndex > -1) ? activeTarget.Exports[activeTarget.SelectedExportIndex].Item2 : 0;
-                    if (activeTarget.RemoteBinary)
-                    {
-                        ProcessLaunching.StartRemoteTrace(activeTarget, ordinal: ordinal);
-                    }
-                    else
-                    {
-                        //todo loadername, ordinal
-                        System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
-                        System.Diagnostics.Process? p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath,
-                            loaderName: activeTarget.LoaderName, ordinal: ordinal, targetPE: activeTarget.PEFileObj);
-                        if (p != null)
-                        {
-                            watch.Start();
-                            if (p.WaitForExit(80)) //in testing it takes under 30ms to fail if pin can't load it
-                            {
-                                if (p.ExitCode != 0)
-                                {
-                                    Logging.RecordError($"Trace error after {watch.ElapsedMilliseconds} ms: Exit code {p.ExitCode}. Target binary may be invalid or incompatible");
-                                }
-                            }
-                        }
-
-                    }
-                }
-                if (!runnable)
-                {
-                    SmallWidgets.MouseoverText("File not available");
-                }
-
-                ImGui.PopStyleColor();
                 ImGui.SameLine();
 
                 if (ImGui.Checkbox("Start Paused", ref _checkStartPausedState) && _rgatState.ActiveTarget is not null)
@@ -595,6 +562,11 @@ namespace rgat
                     }
                 }
 
+
+
+                string pintoolpath = activeTarget.BitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
+                    GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
+
                 if (GlobalConfig.BadSigners(out List<Tuple<string, string>>? issues))
                 {
                     string pinpath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath);
@@ -610,8 +582,60 @@ namespace rgat
                     }
 
                 }
+
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + width - 140);
+                StartButton(activeTarget, pintoolpath);
+
                 ImGui.EndChildFrame();
+
                 ImGui.EndGroup();
+            }
+        }
+
+        private void StartButton(BinaryTarget activeTarget, string pintoolpath)
+        {
+
+            bool runnable = _activeTargetRunnable;
+            ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourImGui(ImGuiCol.Button) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
+            ImGui.AlignTextToFramePadding();
+
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
+            if (
+                (activeTarget.RemoteBinary || activeTarget.PEFileObj != null)
+                && ImGui.Button("Start Trace " + ImGuiController.FA_PLAY_CIRCLE, new Vector2(100, 40)) && runnable)
+            {
+                _OldTraceCount = rgatState.TotalTraceCount;
+                int ordinal = (activeTarget.IsLibrary && activeTarget.SelectedExportIndex > -1) ? activeTarget.Exports[activeTarget.SelectedExportIndex].Item2 : 0;
+                if (activeTarget.RemoteBinary)
+                {
+                    ProcessLaunching.StartRemoteTrace(activeTarget, ordinal: ordinal);
+                }
+                else
+                {
+
+                    //todo loadername, ordinal
+                    System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
+                    System.Diagnostics.Process? p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath,
+                        loaderName: activeTarget.LoaderName, ordinal: ordinal, targetPE: activeTarget.PEFileObj);
+                    if (p != null)
+                    {
+                        watch.Start();
+                        if (p.WaitForExit(80)) //in testing it takes under 30ms to fail if pin can't load it
+                        {
+                            if (p.ExitCode != 0)
+                            {
+                                Logging.RecordError($"Trace error after {watch.ElapsedMilliseconds} ms: Exit code {p.ExitCode}. Target binary may be invalid or incompatible");
+                            }
+                        }
+                    }
+
+                }
+            }
+            ImGui.PopStyleVar();
+            ImGui.PopStyleColor();
+            if (!runnable)
+            {
+                SmallWidgets.MouseoverText("File not available");
             }
         }
 
@@ -796,11 +820,12 @@ namespace rgat
 
         private void DrawSignaturesBox(BinaryTarget activeTarget, float width)
         {
-            if (ImGui.BeginTable("#SigHitsTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY |
-                ImGuiTableFlags.NoHostExtendX, new Vector2(width, ImGui.GetContentRegionAvail().Y - 6)))
+            if (ImGui.BeginTable("#SigHitsTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.SizingStretchProp |
+                ImGuiTableFlags.ScrollX | ImGuiTableFlags.Resizable, new Vector2(width, ImGui.GetContentRegionAvail().Y - 6)))
             {
+                
                 ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 90);
-                ImGui.TableSetupColumn("Rule", ImGuiTableColumnFlags.WidthFixed, width - 92);
+                ImGui.TableSetupColumn("Rule");
                 ImGui.TableSetupScrollFreeze(0, 1);
                 ImGui.TableHeadersRow();
 

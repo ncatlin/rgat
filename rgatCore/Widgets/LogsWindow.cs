@@ -121,7 +121,7 @@ namespace rgat
             string textFilterString = Encoding.ASCII.GetString(textFilterValue, 0, filterLen);
 
             ImGuiTableFlags tableFlags =
-                ImGuiTableFlags.SizingFixedFit |
+                ImGuiTableFlags.SizingStretchProp |
                 ImGuiTableFlags.RowBg |
                 ImGuiTableFlags.Borders |
                 ImGuiTableFlags.Resizable |
@@ -144,8 +144,8 @@ namespace rgat
                 }
 
                 ImGui.TableSetupScrollFreeze(0, 1);
-                ImGui.TableSetupColumn("Time");//, ImGuiTableColumnFlags.WidthFixed);// | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending);
-                ImGui.TableSetupColumn("Source");//;//", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 150);// | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending);
+                ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 200);//;//", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Details");//, ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoSort);
                 ImGui.TableHeadersRow();
 

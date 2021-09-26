@@ -1127,9 +1127,10 @@ namespace rgat
                 return;
             }
 
+            ImGui.SetCursorPosY(25);//SetNextWindowPos(new Vector2(ImGui.GetWindowSize().X - ( 600), 25));
             ImGui.OpenPopup("##AlertsCtx");
 
-            if (ImGui.BeginPopup("##AlertsCtx"))
+            if (ImGui.BeginPopup("##AlertsCtx", ImGuiWindowFlags.AlwaysAutoResize))
             {
                 if (ImGui.BeginTable("##AlertsCtxTbl", 2))
                 {
