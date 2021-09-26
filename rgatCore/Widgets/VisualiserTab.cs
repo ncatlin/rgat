@@ -177,6 +177,7 @@ namespace rgat
                 MainGraphWidget?.ApplyZoom(_delta);
             }
         }
+
         public void NotifyMouseDrag(Vector2 _delta)
         {
             if (MouseInMainWidget)

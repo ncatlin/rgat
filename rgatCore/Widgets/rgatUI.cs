@@ -4,6 +4,7 @@ using rgat.Config;
 using rgat.Widgets;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -19,8 +20,10 @@ namespace rgat
         //all-modes state
         private readonly rgatState _rgatState;
 
+        private static ImGuiController? _controller;
+        public static ImGuiController Controller { get => _controller!; set => _controller = value; }
+
         //hardware resources
-        private static ImGuiController _controller;
         private readonly GraphicsDevice _gd;
 
         //widgets
@@ -68,11 +71,11 @@ namespace rgat
         private float _mouseWheelDelta = 0;
         private Vector2 _mouseDragDelta = new Vector2(0, 0);
 
-        private bool DialogOpen => _controller.DialogOpen;
-        public bool MenuBarVisible => (_rgatState.ActiveTarget is not null || 
+        private bool DialogOpen => Controller.DialogOpen;
+        public bool MenuBarVisible => (_rgatState.ActiveTarget is not null ||
             _splashHeaderHover ||
-            LogsWindow.RecentAlert() || 
-            DialogOpen || 
+            LogsWindow.RecentAlert() ||
+            DialogOpen ||
             (DateTime.Now - _lastNotification).TotalMilliseconds < 500);
 
         private bool _splashHeaderHover = false;
@@ -110,12 +113,12 @@ namespace rgat
             Exists = true;
             _rgatState = state;
             _controller = controller;
-            _gd = _controller.graphicsDevice;
+            _gd = Controller.graphicsDevice;
             _logsWindow = new LogsWindow(_rgatState);
         }
 
 
-        ~rgatUI() { }
+
 
 
         public void InitWidgets(IProgress<float> progress)
@@ -125,18 +128,18 @@ namespace rgat
 
             Logging.RecordLogEvent("Startup: Initing graph display widgets", Logging.LogFilterType.TextDebug);
 
-            visualiserTab = new VisualiserTab(_rgatState, _controller);
+            visualiserTab = new VisualiserTab(_rgatState, Controller);
 
 
             Logging.RecordLogEvent($"Startup: Visualiser tab created in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
             visualiserTab.Init(_gd, progress);
-            visualiserTab.SetDialogStateChangeCallback((bool state) => _controller.DialogChange(opened: state));
+            visualiserTab.SetDialogStateChangeCallback((bool state) => Controller.DialogChange(opened: state));
 
             Logging.RecordLogEvent($"Startup: Visualiser tab initialised in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
 
-            chart = new SandboxChart(_controller._unicodeFont);
+            chart = new SandboxChart(Controller._unicodeFont);
 
             Logging.RecordLogEvent($"Startup: Analysis chart loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Stop();
@@ -144,7 +147,7 @@ namespace rgat
 
         public void InitSettingsMenu()
         {
-            _SettingsMenu = new SettingsMenu(_controller); //call after config init, so theme gets generated
+            _SettingsMenu = new SettingsMenu(Controller); //call after config init, so theme gets generated
         }
 
         //public delegate UpdateProgress(ref float progress)
@@ -281,7 +284,7 @@ namespace rgat
         /// This isn't great but coming up with something more elegant can wait
         public void DrawDialogs()
         {
-            if (!_controller.DialogOpen)
+            if (!Controller.DialogOpen)
             {
                 return;
             }
@@ -410,7 +413,7 @@ namespace rgat
             bool currentTabTimeline = _currentTab == "Timeline";
             lock (_inputLock)
             {
-                if (!_controller.DialogOpen)
+                if (!Controller.DialogOpen)
                 {
                     bool MouseInMainWidget = currentTabVisualiser && visualiserTab!.MouseInMainWidget;
                     if (_mouseWheelDelta != 0)
@@ -614,23 +617,27 @@ namespace rgat
             {
                 ToggleRenderStatsDialog();
             }
+
+            Debug.Assert(DialogOpen is false);
         }
 
         private void ToggleTestHarness()
         {
+            Logging.RecordLogEvent("Test harness toggled", LogFilterType.TextDebug);
             if (_show_test_harness == false)
             {
                 if (_testHarness == null)
                 {
-                    _testHarness = new TestsWindow(_rgatState, _controller);
+                    _testHarness = new TestsWindow(_rgatState, Controller);
                 }
             }
             _show_test_harness = !_show_test_harness;
-            _controller.DialogChange(_show_test_harness);
+            Controller.DialogChange(_show_test_harness);
         }
 
         private void ToggleRemoteDialog()
         {
+            Logging.RecordLogEvent("Remote dialog toggled", LogFilterType.TextDebug);
             if (_show_remote_dialog == false)
             {
                 if (_RemoteDialog == null)
@@ -639,46 +646,46 @@ namespace rgat
                 }
             }
             _show_remote_dialog = !_show_remote_dialog;
-            _controller.DialogChange(_show_remote_dialog);
+            Controller.DialogChange(_show_remote_dialog);
         }
 
 
         public static void ToggleRenderStatsDialog()
         {
             ShowStatsDialog = !ShowStatsDialog;
-            _controller.DialogChange(ShowStatsDialog);
+            Controller.DialogChange(ShowStatsDialog);
         }
 
 
         private void ToggleLoadTraceWindow()
         {
             _show_load_trace_window = !_show_load_trace_window;
-            _controller.DialogChange(_show_load_trace_window);
+            Controller.DialogChange(_show_load_trace_window);
         }
 
         private void ToggleLoadExeWindow()
         {
             _show_select_exe_window = !_show_select_exe_window;
-            _controller.DialogChange(_show_select_exe_window);
+            Controller.DialogChange(_show_select_exe_window);
         }
 
         private void ToggleTraceListSelectionWindow()
         {
             _show_tracelist_selection_window = !_show_tracelist_selection_window;
-            _controller.DialogChange(_show_tracelist_selection_window);
+            Controller.DialogChange(_show_tracelist_selection_window);
         }
 
         private void ToggleSettingsWindow()
         {
             _show_settings_window = !_show_settings_window;
-            _controller.DialogChange(_show_settings_window);
+            Controller.DialogChange(_show_settings_window);
         }
 
         private void ToggleLogsWindow()
         {
             Logging.WriteConsole($"Logwindow toggle {_show_logs_window}");
             _show_logs_window = !_show_logs_window;
-            _controller.DialogChange(_show_logs_window);
+            Controller.DialogChange(_show_logs_window);
         }
 
         private bool DrawRecentPathEntry(rgatSettings.PathRecord pathdata, bool menu)
@@ -997,7 +1004,10 @@ namespace rgat
                     //fade out
                     uint alpha = MSago < StateChangeSolidTime ? 255 : (uint)(255.0 * (1.0 - ((MSago - StateChangeSolidTime) / StateChangeFadeTime)));
                     ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis2).ToUint(alpha));
-                    ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Stopped");
+                    if (rgatState.VideoRecorder.Error is not null)
+                        ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Error");
+                    else
+                        ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Stopped");
                     ImGui.PopStyleColor();
                 }
             }
@@ -1069,7 +1079,7 @@ namespace rgat
             //draw right to left
             float X = ImGui.GetContentRegionMax().X - (ImGui.CalcTextSize("Demo ").X + 15);
             ImGui.SetCursorPosX(X);
-            ImGui.MenuItem("Demo", null, ref _controller.ShowDemoWindow, true);
+            ImGui.MenuItem("Demo", null, ref Controller.ShowDemoWindow, true);
 
             if (GlobalConfig.Settings.UI.EnableTestHarness)
             {
@@ -1388,15 +1398,23 @@ namespace rgat
 
         public static bool IsrgatSavedTrace(string filestart)
         {
-            if (filestart.StartsWith("{\""))
+            try
             {
-                return true;
+                if (filestart.StartsWith("{\""))
+                {
+                    return true;
+                }
+
+                if (filestart.StartsWith("RGZ"))
+                {
+                    return true;
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Unable to check if file is a saved trace [{e.Message}]. Assuming it isn't", LogFilterType.TextDebug);
             }
 
-            if (filestart.StartsWith("RGZ"))
-            {
-                return true;
-            }
 
             return false;
         }
@@ -1431,18 +1449,8 @@ namespace rgat
                 byte[] preview = new byte[4];
                 fs.Read(preview, 0, preview.Length);
                 fs.Close();
-                bool isSavedTrace = false;
-                try
-                {
-                    isSavedTrace = IsrgatSavedTrace(ASCIIEncoding.ASCII.GetString(preview));
-                }
-                catch (Exception e)
-                {
-                    Logging.RecordLogEvent($"Unable to check if file {path} is a saved trace [{e.Message}]. Assuming it isn't", LogFilterType.TextDebug);
-                }
 
-
-                if (isSavedTrace)
+                if (IsrgatSavedTrace(ASCIIEncoding.ASCII.GetString(preview)))
                 {
                     if (!LoadTraceByPath(path))
                     {

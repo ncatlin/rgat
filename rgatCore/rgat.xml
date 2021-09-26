@@ -3736,12 +3736,16 @@
         <member name="F:rgat.GraphLayoutState.PositionResetStyle.Implode">
             Distribute around the edge
         </member>
+        <member name="F:rgat.GraphLayoutState.PositionResetStyle.Pillar">
+            Spread out in a vertical line
+        </member>
         <member name="M:rgat.GraphLayoutState.Reset(rgat.GraphLayoutState.PositionResetStyle,System.Single)">
             <summary>
             Cause a force directed plot to be randomly re-distributed in the
             specified style. Use this to try a different arrangement.
             </summary>
             <param name="resetMethod">The initial randomisation method</param>
+            <param name="spread">How far to spread the replotted nodes</param>
         </member>
         <member name="M:rgat.GraphLayoutState.ExplodePositions(rgat.GraphLayoutState.CPUBuffers)">
             <summary>
@@ -3756,6 +3760,7 @@
             Attraction dominates the intial stages of layout
             </summary>
             <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+            <param name="spread">How far to spread nodes</param>
         </member>
         <member name="M:rgat.GraphLayoutState.ScatterPositions(rgat.GraphLayoutState.CPUBuffers,System.Single)">
             <summary>
@@ -3763,6 +3768,7 @@
             Balance of attraction and repulsion will move them into position
             </summary>
             <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+            <param name="spread">How far to spread nodes</param>
         </member>
         <member name="M:rgat.GraphLayoutState.CompleteLayoutChange">
             <summary>
@@ -4578,6 +4584,8 @@
             </summary>
             <param name="nodecount">Number of nodes to add. This isn't just taken from nodelist because
             it may be intended for a texture of a certain size</param>
+            <param name="blockData">Output description of basic block information for each node</param>
+            <param name="blockMiddles">Output List of basic block middle nodes</param>
         </member>
         <member name="F:rgat.PlottedGraph.DrawnEdgesCount">
             <summary>
@@ -4595,6 +4603,7 @@
             Reset the layout state for drawing a new plot
             </summary>
             <param name="resetStyle">How to distribute the reset nodes</param>
+            <param name="layoutSpread">How far to distribute the nodes</param>
         </member>
         <member name="M:rgat.PlottedGraph.BeginNewLayout">
             <summary>
@@ -4998,10 +5007,12 @@
             Update the graph computation time stats
             </summary>
             <param name="stepMSTotal">Time taken for the latest round of GPU computation in Milliseconds</param>
+            <param name="positionSetupTime">Time taken setting up the latest round of position computation in Milliseconds, or null if not performed</param>
             <param name="positionShaderTime">Time taken for the latest round of position computation in Milliseconds, or null if not performed</param>
+            <param name="velocitySetupTime">Time taken setting up the latest round of velocity computation in Milliseconds, or null if not performed</param>
             <param name="velocityShaderTime">Time taken for the latest round of velocity computation in Milliseconds, or null if not performed</param>
+            <param name="attributeSetupTime">Time taken setting the latest round of attribute computation in Milliseconds, or null if not performed</param>
             <param name="attributeShaderTime">Time taken for the latest round of attribute computation in Milliseconds, or null if not performed</param>
-            <param name="otherTime">Time spent performing allocation and management</param>
         </member>
         <member name="M:rgat.PlottedGraph.ResetLayoutStats">
             <summary>
@@ -8268,6 +8279,16 @@
             Class for managing VRAM buffers
             </summary>
         </member>
+        <member name="P:rgat.VeldridGraphBuffers.AllocatedBytes">
+            <summary>
+            Total allocated VRAM DeviceBuffer size
+            </summary>
+        </member>
+        <member name="P:rgat.VeldridGraphBuffers.AllocatedBuffers">
+            <summary>
+            Number of allocated VRAM device buffers
+            </summary>
+        </member>
         <member name="M:rgat.VeldridGraphBuffers.GetReadback(Veldrid.GraphicsDevice,Veldrid.DeviceBuffer)">
             <summary>
             Get a CPU readable mapping of VRAM
@@ -8512,7 +8533,7 @@
             Begin capture of the selected content to the video file
             </summary>
         </member>
-        <member name="M:rgat.VideoEncoder.StopRecording">
+        <member name="M:rgat.VideoEncoder.StopRecording(System.String)">
             <summary>
             Stop recording video to the file
             </summary>

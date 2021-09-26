@@ -1132,6 +1132,8 @@ namespace rgat
         /// </summary>
         /// <param name="nodecount">Number of nodes to add. This isn't just taken from nodelist because
         /// it may be intended for a texture of a certain size</param>
+        /// <param name="blockData">Output description of basic block information for each node</param>
+        /// <param name="blockMiddles">Output List of basic block middle nodes</param>
         private bool CreateBlockMetadataBuf(int nodecount, out int[] blockData, out int[] blockMiddles)
         {
 
@@ -1337,6 +1339,7 @@ namespace rgat
         /// Reset the layout state for drawing a new plot
         /// </summary>
         /// <param name="resetStyle">How to distribute the reset nodes</param>
+        /// <param name="layoutSpread">How far to distribute the nodes</param>
         public void ResetPlot(GraphLayoutState.PositionResetStyle resetStyle, float layoutSpread = 2)
         {
             LayoutState.Reset(resetStyle, spread: layoutSpread);
@@ -2975,10 +2978,12 @@ namespace rgat
         /// Update the graph computation time stats
         /// </summary>
         /// <param name="stepMSTotal">Time taken for the latest round of GPU computation in Milliseconds</param>
+        /// <param name="positionSetupTime">Time taken setting up the latest round of position computation in Milliseconds, or null if not performed</param>
         /// <param name="positionShaderTime">Time taken for the latest round of position computation in Milliseconds, or null if not performed</param>
+        /// <param name="velocitySetupTime">Time taken setting up the latest round of velocity computation in Milliseconds, or null if not performed</param>
         /// <param name="velocityShaderTime">Time taken for the latest round of velocity computation in Milliseconds, or null if not performed</param>
+        /// <param name="attributeSetupTime">Time taken setting the latest round of attribute computation in Milliseconds, or null if not performed</param>
         /// <param name="attributeShaderTime">Time taken for the latest round of attribute computation in Milliseconds, or null if not performed</param>
-        /// <param name="otherTime">Time spent performing allocation and management</param>
         public void RecordComputeTime(double stepMSTotal,
             double? positionSetupTime, double? positionShaderTime,
             double? velocitySetupTime, double? velocityShaderTime,

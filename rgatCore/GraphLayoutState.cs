@@ -1075,7 +1075,9 @@ namespace rgat
             ///Gather in a tiny mass
             Explode,
             ///Distribute around the edge
-            Implode
+            Implode,
+            ///Spread out in a vertical line
+            Pillar
         }
 
 
@@ -1084,6 +1086,7 @@ namespace rgat
         /// specified style. Use this to try a different arrangement.
         /// </summary>
         /// <param name="resetMethod">The initial randomisation method</param>
+        /// <param name="spread">How far to spread the replotted nodes</param>
         public void Reset(PositionResetStyle resetMethod, float spread = 2)
         {
 
@@ -1105,6 +1108,9 @@ namespace rgat
                         break;
                     case PositionResetStyle.Implode:
                         ImplodePositions(oldData, spread: spread);
+                        break;
+                    case PositionResetStyle.Pillar:
+                        PillarPositions(oldData, spread: spread);
                         break;
 
                 }
@@ -1149,6 +1155,7 @@ namespace rgat
         /// Attraction dominates the intial stages of layout
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+        /// <param name="spread">How far to spread nodes</param>
         private static void ImplodePositions(CPUBuffers layoutRAMBuffers, float spread = 2)
         {
             Random rnd = new Random();
@@ -1192,6 +1199,7 @@ namespace rgat
         /// Balance of attraction and repulsion will move them into position
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+        /// <param name="spread">How far to spread nodes</param>
         private static void ScatterPositions(CPUBuffers layoutRAMBuffers, float spread = 2)
         {
             Random rnd = new Random();
@@ -1211,10 +1219,34 @@ namespace rgat
             }
         }
 
+
+        private static void PillarPositions(CPUBuffers layoutRAMBuffers, float spread = 2)
+        {
+
+            Random rnd = new Random();
+            float MaxDimension = 40 * spread;
+            float MinDimension = -1 * MaxDimension;
+
+            int endLength = layoutRAMBuffers.VelocityArray.Length;
+            for (var i = 0; i < endLength; i += 4)
+            {
+                layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 1] = rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 2] = rnd.Next(100);
+
+                layoutRAMBuffers.PositionsArray[i] = RandomFloat(rnd, MinDimension, MaxDimension);
+                layoutRAMBuffers.PositionsArray[i + 1] = -1 * i * spread;
+                layoutRAMBuffers.PositionsArray[i + 2] = RandomFloat(rnd, MinDimension, MaxDimension);
+            }
+        }
+
+
+
         static float RandomFloat(Random rnd, float min, float max)
         {
             return (float)rnd.NextDouble() * (max - min) + min;
         }
+
 
         /// <summary>
         /// The layout is now in RAM. Positions are in the preset buffer. 

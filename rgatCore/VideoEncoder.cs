@@ -145,6 +145,8 @@ namespace rgat
         }
 
         private DateTime _recordingStateChanged = DateTime.MinValue;
+
+
         /// <summary>
         /// Begin capture of the selected content to the video file
         /// </summary>
@@ -155,13 +157,25 @@ namespace rgat
             _recordingStateChanged = DateTime.Now;
         }
 
+
         /// <summary>
         /// Stop recording video to the file
         /// </summary>
-        public void StopRecording()
+        public void StopRecording(string? error = "")
         {
-            _recordingStateChanged = DateTime.Now;
-            _recording = false;
+            try
+            {
+                _recordingStateChanged = DateTime.Now;
+                _recording = false;
+                Error = error;
+                _bmpQueue.Clear();
+                if (error is not null)
+                    Logging.RecordError($"Recording stopped: {error}");
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Error stopping recording: {e}");
+            }
         }
 
 
@@ -178,8 +192,7 @@ namespace rgat
                 {
                     if (_bmpQueue.Count > 1024)
                     {
-                        Logging.RecordLogEvent($"Warning: Recording has amassed {_bmpQueue.Count} frames in backlog, stopping recording");
-                        StopRecording();
+                        StopRecording($"Recording has amassed {_bmpQueue.Count} frames in backlog, stopping recording");
                     }
                     if (_bmpQueue.TryDequeue(out Bitmap? frame) && frame is not null)
                     {
@@ -216,7 +229,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordLogEvent($"Unable to use configured media path {currentPath}: {e.Message}");
+                    Logging.RecordError($"Unable to use configured media path {currentPath}: {e.Message}");
                 }
             }
 
@@ -257,8 +270,7 @@ namespace rgat
                 targetfile = Path.Combine(storedir, $"{vidname}({attempt++}).mp4");
                 if (attempt == 255)
                 {
-                    Logging.RecordLogEvent("Bizarre error finding place to store media.", filter: Logging.LogFilterType.TextError);
-                    StopRecording();
+                    StopRecording("Bizarre error finding place to store saved media.");
                     return Path.GetRandomFileName();
                 }
             }
@@ -331,7 +343,7 @@ namespace rgat
                 targetfile = Path.Combine(storedir, $"{vidname}({attempt++}).{extension}");
                 if (attempt == 255)
                 {
-                    Logging.RecordLogEvent("Bizarre error finding place to store iamge.", filter: Logging.LogFilterType.TextError);
+                    Logging.RecordError("Bizarre error finding place to store iamge.");
                 }
             }
 
@@ -341,7 +353,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Error saving image {targetfile} as format {format}: {e.Message}");
+                Logging.RecordError($"Error saving image {targetfile} as format {format}: {e.Message}");
             }
             return targetfile;
         }
@@ -355,7 +367,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Unable to parse video speed setting '{GlobalConfig.Settings.Media.VideoCodec_Speed}' into a speed preset: {e.Message}");
+                Logging.RecordError($"Unable to parse video speed setting '{GlobalConfig.Settings.Media.VideoCodec_Speed}' into a speed preset: {e.Message}");
                 result = Speed.Medium;
                 GlobalConfig.Settings.Media.VideoCodec_Speed = GlobalConfig.Settings.Media.VideoCodec_Speed.ToString();
             }
@@ -370,9 +382,9 @@ namespace rgat
         {
             if (!File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath)))
             {
-                Logging.RecordLogEvent($"Unable to start recording: Path to ffmpeg.exe not configured");
-                StopRecording();
+                StopRecording($"Unable to start recording: Path to ffmpeg.exe not configured");
                 Loaded = false;
+                Initialised = false;
                 return;
             }
 
@@ -383,21 +395,19 @@ namespace rgat
                 { GlobalFFOptions.Configure(new FFOptions { BinaryFolder = dirname }); }
                 else
                 {
-                    Logging.RecordLogEvent($"Unable to start recording: FFMpeg not found");
-                    StopRecording();
+                    StopRecording($"Unable to start recording: FFMpeg not found");
                     Loaded = false;
                     return;
                 }
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Unable to start recording: Exception '{e.Message}' configuring recorder");
-                StopRecording();
+                StopRecording($"Unable to start recording: Exception '{e.Message}' configuring recorder");
                 Loaded = false;
                 return;
             }
 
-
+            Initialised = true;
             CurrentRecordingFile = GenerateVideoFilepath(graph);
             _recordedFrameCount = 0;
             Logging.RecordLogEvent("Recording video to " + CurrentRecordingFile);
@@ -417,7 +427,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent("FFMpeg Record Error: " + e.Message, Logging.LogFilterType.TextError);
+                Logging.RecordError("FFMpeg Record Error: " + e.Message);
                 Logging.WriteConsole("-----------FFMPEG EXCEPTION-------------");
                 Logging.WriteConsole(e.Message);
                 Logging.WriteConsole(e.InnerException?.Message);
@@ -444,13 +454,11 @@ namespace rgat
         {
             if (frame != null && _recording)
             {
-                if (!Initialised)
+                if (!Initialised) // Start recording using the dimensions of the first frame
                 {
                     CurrentVideoWidth = frame.Width;
-                    CurrentVideoHeight = frame.Height;
-
+                    CurrentVideoHeight = frame.Height; ;
                     Task.Run(() => { Go(graph); });
-                    Initialised = true;
                 }
                 _bmpQueue.Enqueue(frame);
 

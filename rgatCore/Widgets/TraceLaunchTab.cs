@@ -88,7 +88,7 @@ namespace rgat
                     ImGui.Text("Hex Preview");
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(500);
-                    _controller.PushOriginalFont(); //original imgui font is monospace and UTF8, good for this
+                    Controller.PushOriginalFont(); //original imgui font is monospace and UTF8, good for this
                     {
                         _dataInput = Encoding.UTF8.GetBytes(activeTarget.HexPreview);
                         ImGui.InputText("##hexprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
@@ -105,7 +105,7 @@ namespace rgat
                     ImGui.Text("ASCII Preview");
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(500);
-                    _controller.PushOriginalFont();
+                    Controller.PushOriginalFont();
                     {
                         _dataInput = Encoding.ASCII.GetBytes(activeTarget.ASCIIPreview);
                         ImGui.InputText("##ascprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
@@ -837,7 +837,7 @@ namespace rgat
                         ImGui.TableNextColumn();
                         ImGui.Text("DIE");
                         ImGui.TableNextColumn();
-                        _controller.PushOriginalFont();
+                        Controller.PushOriginalFont();
                         ImGui.AlignTextToFramePadding();
                         ImGui.Text(hit);
                         ImGui.PopFont();
@@ -852,7 +852,7 @@ namespace rgat
                         ImGui.TableNextColumn();
                         ImGui.Text("YARA");
                         ImGui.TableNextColumn();
-                        _controller.PushOriginalFont();
+                        Controller.PushOriginalFont();
                         ImGui.AlignTextToFramePadding();
                         int strCount = hit.Matches.Values.Count;
                         string label = hit.MatchingRule.Identifier;

@@ -42,7 +42,7 @@ namespace rgat
             float blockStart = headerHeight + 40f;
 
             //ImGui.PushFont(_controller.f)
-            ImGui.PushFont(_controller.rgatLargeFont);
+            ImGui.PushFont(Controller.rgatLargeFont);
             Vector2 titleSize = ImGui.CalcTextSize("rgat");
             ImGui.SetCursorScreenPos(new Vector2((ImGui.GetWindowContentRegionMax().X / 2) - (titleSize.X / 2), (ImGui.GetWindowContentRegionMax().Y / 5) - (titleSize.Y / 2)));
             ImGui.Text("rgat");
@@ -75,11 +75,11 @@ namespace rgat
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0);
             if (ImGui.BeginChild("##RunGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
             {
-                ImGui.PushFont(_controller.SplashLargeFont);
+                ImGui.PushFont(Controller.SplashLargeFont);
                 float captionHeight = ImGui.CalcTextSize("Load Binary").Y;
                 if (ImGui.BeginTable("##LoadBinBtnBox", 3, tblflags))
                 {
-                    Vector2 LargeIconSize = _controller.LargeIconSize;
+                    Vector2 LargeIconSize = Controller.LargeIconSize;
                     float iconColumnWidth = 200;
                     float paddingX = (buttonBlockWidth - iconColumnWidth) / 2;
                     ImGui.TableSetupColumn("##BBSPadL", ImGuiTableColumnFlags.WidthFixed, paddingX);
@@ -94,7 +94,7 @@ namespace rgat
                     {
                         ToggleLoadExeWindow();
                     }
-                    _controller.PushUnicodeFont();
+                    Controller.PushUnicodeFont();
                     Widgets.SmallWidgets.MouseoverText("Load an executable or DLL for examination. It will not be executed at this stage.");
                     ImGui.PopFont();
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
@@ -102,7 +102,7 @@ namespace rgat
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (LargeIconSize.X / 2));
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTitleYSep);
 
-                    _controller.PushBigIconFont();
+                    Controller.PushBigIconFont();
                     ImGui.Text($"{ImGuiController.FA_ICON_SAMPLE}");
                     ImGui.PopFont();
 
@@ -156,11 +156,11 @@ namespace rgat
             ImGui.SetCursorPosX(runGrpX + buttonBlockWidth + voidspace);
             if (ImGui.BeginChild("##LoadGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
             {
-                ImGui.PushFont(_controller.SplashLargeFont);
+                ImGui.PushFont(Controller.SplashLargeFont);
                 float captionHeight = ImGui.CalcTextSize("Load Trace").Y;
                 if (ImGui.BeginTable("##LoadBtnBox", 3, tblflags))
                 {
-                    Vector2 LargeIconSize = _controller.LargeIconSize;
+                    Vector2 LargeIconSize = Controller.LargeIconSize;
                     float iconColumnWidth = 200;
                     float paddingX = (buttonBlockWidth - iconColumnWidth) / 2;
                     ImGui.TableSetupColumn("##LBSPadL", ImGuiTableColumnFlags.WidthFixed, paddingX);
@@ -173,7 +173,7 @@ namespace rgat
                     {
                         ToggleLoadTraceWindow();
                     }
-                    _controller.PushUnicodeFont();
+                    Controller.PushUnicodeFont();
                     Widgets.SmallWidgets.MouseoverText("Load a previously generated trace");
                     ImGui.PopFont();
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
@@ -181,7 +181,7 @@ namespace rgat
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (LargeIconSize.X / 2) + 8); //shift a bit to the right to balance it 
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTitleYSep);
 
-                    _controller.PushBigIconFont();
+                    Controller.PushBigIconFont();
                     ImGui.Text($"{ImGuiController.FA_ICON_LOADFILE}");
                     ImGui.PopFont();
 

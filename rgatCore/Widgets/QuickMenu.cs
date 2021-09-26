@@ -815,6 +815,15 @@ private void DrawScalePopup()
                     spreadHighlight = true;
                     ImGui.SetTooltip("Scatter the nodes randomly. Control how far apart by adjusting the Replotting Spread");
                 }
+                if (ImGui.Button("Rerender: Pillar"))
+                {
+                    InitGraphReplot(resetStyle: GraphLayoutState.PositionResetStyle.Pillar, _replotSpread);
+                }
+                if (ImGui.IsItemHovered())
+                {
+                    spreadHighlight = true;
+                    ImGui.SetTooltip("Scatter the nodes randomly. Control how far apart by adjusting the Replotting Spread");
+                }
 
 
                 if (ImGui.BeginTable("ComputationSelectNodes", 2, ImGuiTableFlags.RowBg))

@@ -10,8 +10,14 @@ namespace rgat
     /// </summary>
     public class VeldridGraphBuffers
     {
-
+        /// <summary>
+        /// Total allocated VRAM DeviceBuffer size
+        /// </summary>
         public static long AllocatedBytes { get; private set; } = 0;
+
+        /// <summary>
+        /// Number of allocated VRAM device buffers
+        /// </summary>
         public static long AllocatedBuffers { get; private set; } = 0;
 
 
