@@ -587,6 +587,7 @@ namespace rgat
         public float OPT_CYLINDER_PIXELS_PER_B = 30f;
         public float OPT_CYLINDER_PIXELS_PER_A = 60f;
         public float OPT_WIREFRAME_ALPHA = 0.3f;
+        public bool OPT_LOCK_TEMPERATURE = false;
 
         private void GenerateCylinderWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
@@ -906,6 +907,7 @@ namespace rgat
         public void IncreaseTemperature()
         {
             Temperature += _graphStructureLinear.Count / 2;
+            Temperature = Math.Min(Temperature, GlobalConfig.TemperatureLimit);
         }
 
         /// <summary>
@@ -915,6 +917,7 @@ namespace rgat
         public void IncreaseTemperature(float temp)
         {
             Temperature = temp;
+            Temperature = Math.Min(Temperature, GlobalConfig.TemperatureLimit);
         }
 
         private unsafe void AddNode(uint nodeIdx, EdgeData? edge = null)

@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using System.Numerics;
 using Veldrid;
 /*
@@ -116,6 +117,25 @@ namespace rgat
             float A = col.A / 255f;
             return new RgbaFloat(R, G, B, A);
         }
+
+
+        /// <summary>
+        /// Convert float colour components to an imgui uint
+        /// </summary>
+        /// <param name="R">Red component 0-1</param>
+        /// <param name="G">Green component 0-1</param>
+        /// <param name="B">Blue component 0-1</param>
+        /// <param name="A">Alpha component 0-1</param>
+        /// <returns>uint colour</returns>
+        public static uint CreateUint(float R, float G, float B, float A)
+        {
+            R = Math.Min(R, 1);
+            G = Math.Min(G, 1);
+            B = Math.Min(B, 1);
+            A = Math.Min(A, 1);
+            return ((uint)(A * 255) << 24) + ((uint)(B * 255) << 16) + ((uint)(G * 255) << 8) + ((uint)(R * 255));
+        }
+
 
         /// <summary>
         /// Get this colour as a Veldrid RgbaFloat

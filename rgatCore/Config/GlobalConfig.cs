@@ -253,17 +253,18 @@ namespace rgat
         /// Maximum temperature that will be applied to force-directed nodes. Fast nodes will layout quickly but wobble
         /// in their low energy position.
         /// </summary>
-        public static float NodeSoftSpeedLimit = 400f;
+        public static float NodeSpeedLimit = 3000f;
 
         /// <summary>
         /// Maximum speed limit available on the GUI
         /// </summary>
-        public static readonly float NodeHardSpeedLimit = 3000f; //match with value in velocity shader
+        public static readonly float TemperatureLimit = 3000f;
 
         /// <summary>
         /// Velocity shader attraction constant
         /// </summary>
         public static float AttractionK = 100f;
+
         /// <summary>
         /// Velocity shader repulsion constant
         /// </summary>

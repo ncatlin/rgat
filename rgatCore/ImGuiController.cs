@@ -985,23 +985,24 @@ namespace ImGuiNET
 
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        public static readonly char FA_ICON_COG = '\uf013';
+        public static readonly char FA_ICON_LOCK = '\uf023';
+        public static readonly char FA_ICON_LEFT = '\uf060';
+        public static readonly char FA_ICON_RIGHT = '\uf061';
+        public static readonly char FA_ICON_UP = '\uf062';
+        public static readonly char FA_ICON_DOWN = '\uf063';
         public static readonly char FA_ICON_NETWORK = '\uf6ff';
         public static readonly char FA_ICON_LOCALCODE = '\uf5fc';
         public static readonly char FA_ICON_SAMPLE = '\ue05a';
-        public static readonly char FA_ICON_LOADFILE = '\uf56e';
-        public static readonly char FA_ICON_COG = '\uf013';
         public static readonly char FA_ICON_COGS = '\uf085';
-        public static readonly char FA_ICON_SQUAREGRID = '\uf00a';
 
+        public static readonly char FA_ICON_SQUAREGRID = '\uf00a';
+        public static readonly char FA_ICON_CLOCK = '\uf017';
         public static readonly char FA_PLAY_CIRCLE = '\uf144';
         public static readonly char FA_VIDEO_CAMERA = '\uf03d';
         public static readonly char FA_STILL_CAMERA = '\uf030';
         public static readonly char FA_ICON_WARNING = '\uf071';
         public static readonly char FA_ICON_EXCLAIM = '\uf12a';
-        public static readonly char FA_ICON_UP = '\uf062';
-        public static readonly char FA_ICON_LEFT = '\uf060';
-        public static readonly char FA_ICON_RIGHT = '\uf061';
-        public static readonly char FA_ICON_DOWN = '\uf063';
         public static readonly char FA_ICON_DIRECTORY = '\uf07b';
         public static readonly char FA_ICON_FILEPLAIN = '\uf15b';
         public static readonly char FA_ICON_FILECODE = '\uf1c9';
@@ -1014,8 +1015,8 @@ namespace ImGuiNET
         public static readonly char FA_ICON_TRASHCAN = '\uf2ed';
         public static readonly char FA_ICON_WRENCH = '\uf0ad';
         public static readonly char FA_ICON_ADDFILE = '\uf477';
-        public static readonly char FA_ICON_CLOCK = '\uf017';
         public static readonly char FA_ICON_DOWNLOAD = '\uf56d';
+        public static readonly char FA_ICON_LOADFILE = '\uf56e';
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
     }
 }

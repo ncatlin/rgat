@@ -720,11 +720,13 @@ namespace rgat.Widgets
                 }
             }
 
+
             if ((_activeMenuPopupName == "GraphLayoutMenu") && ImGui.BeginPopup("GraphLayoutMenu"))
             {
                 DrawGraphLayoutFrame();
                 ImGui.EndPopup();
             }
+
 
 
             if (_activeMenuPopupName != null && !ImGui.IsPopupOpen(_activeMenuPopupName))
@@ -763,14 +765,21 @@ private void DrawScalePopup()
         private void DrawGraphLayoutFrame()
         {
             Debug.Assert(_currentGraph is not null);
-            if (_currentGraph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.Circle)
-            {
-                ImGui.Text("Circle Config Options");
-            }
 
             if (_currentGraph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.CylinderLayout)
             {
                 DrawCylinderOptions();
+                return;
+            }
+
+            if (_currentGraph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.Circle)
+            {
+                if (ImGui.BeginChild("#CircMsg", new Vector2(360, 50)))
+                {
+                    ImguiUtils.DrawRegionCenteredText("There are no configuration settings for circle layout");
+                    ImGui.EndChild();
+                }
+                return;
             }
 
             if (CONSTANTS.LayoutStyles.IsForceDirected(_currentGraph.ActiveLayoutStyle))
@@ -861,6 +870,8 @@ private void DrawScalePopup()
 
             if (ImGui.BeginTable("ComputationSelectNodes", 2, ImGuiTableFlags.RowBg))
             {
+                ImGui.PushStyleColor(ImGuiCol.TableRowBg, 0xff111111);
+
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text("All Computation:");
@@ -893,16 +904,18 @@ private void DrawScalePopup()
                 ImGui.Text("Max Node Speed");
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                ImGui.SliderFloat("##MaxNodeSpeed", ref GlobalConfig.NodeSoftSpeedLimit, 0, GlobalConfig.NodeHardSpeedLimit);
+                ImGui.SliderFloat("##MaxNodeSpeed", ref GlobalConfig.NodeSpeedLimit, 0, GlobalConfig.TemperatureLimit);
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
-                if (spreadHighlight)
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextEmphasis2));
-                else
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                ImGui.Text("Replotting Spread");
-                ImGui.PopStyleColor();
+                {
+                    if (spreadHighlight)
+                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextEmphasis2));
+                    else
+                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                    ImGui.Text("Replotting Spread");
+                    ImGui.PopStyleColor();
+                }
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
                 ImGui.SliderFloat("##_replotSpread", ref _replotSpread, 0.001f, 5f);
@@ -925,7 +938,38 @@ private void DrawScalePopup()
                 ImGui.SetNextItemWidth(150);
                 ImGui.SliderFloat("##RepulsionK", ref GlobalConfig.RepulsionK, 0.001f, 1000);
 
+                PlottedGraph? graph = this._currentGraph;
 
+                if (graph is not null)
+                {
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Temperature");
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(150);
+                    float tempNow = Math.Min(graph.Temperature, GlobalConfig.TemperatureLimit);
+                    float proportion = 1 - (graph.Temperature / GlobalConfig.TemperatureLimit);
+                    {
+                        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
+                        ImGui.PushStyleColor(ImGuiCol.Border, WritableRgbaFloat.CreateUint(1, proportion, proportion, 1));
+                        if (ImGui.SliderFloat("##TempBar", ref tempNow, 0, GlobalConfig.TemperatureLimit))
+                        {
+                            graph.Temperature = tempNow;
+                        }
+                        ImGui.PopStyleColor();
+                        ImGui.PopStyleVar();
+                    }
+                    ImGui.SameLine();
+                    SmallWidgets.MouseoverText("A general rate modifer for force-directed graph layout");
+                    bool dolock = graph.OPT_LOCK_TEMPERATURE;
+                    if (ImGui.Checkbox($"{ImGuiController.FA_ICON_LOCK}", ref dolock))
+                    {
+                        graph.OPT_LOCK_TEMPERATURE = dolock;
+                    }
+                    SmallWidgets.MouseoverText("Prevent the force layout rate from dropping over time");
+                }
+
+                ImGui.PopStyleColor(1);
                 ImGui.EndTable();
             }
         }

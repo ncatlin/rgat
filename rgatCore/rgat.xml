@@ -1223,13 +1223,13 @@
             Toggle attribute (animation brightness+size) computation
             </summary>
         </member>
-        <member name="F:rgat.GlobalConfig.NodeSoftSpeedLimit">
+        <member name="F:rgat.GlobalConfig.NodeSpeedLimit">
             <summary>
             Maximum temperature that will be applied to force-directed nodes. Fast nodes will layout quickly but wobble
             in their low energy position.
             </summary>
         </member>
-        <member name="F:rgat.GlobalConfig.NodeHardSpeedLimit">
+        <member name="F:rgat.GlobalConfig.TemperatureLimit">
             <summary>
             Maximum speed limit available on the GUI
             </summary>
@@ -9023,6 +9023,16 @@
             </summary>
             <param name="col"></param>
             <returns>RgbaFloat</returns>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.CreateUint(System.Single,System.Single,System.Single,System.Single)">
+            <summary>
+            Convert float colour components to an imgui uint
+            </summary>
+            <param name="R">Red component 0-1</param>
+            <param name="G">Green component 0-1</param>
+            <param name="B">Blue component 0-1</param>
+            <param name="A">Alpha component 0-1</param>
+            <returns>uint colour</returns>
         </member>
         <member name="M:rgat.WritableRgbaFloat.ToRgbaFloat">
             <summary>

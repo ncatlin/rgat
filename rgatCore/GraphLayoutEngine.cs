@@ -535,10 +535,13 @@ namespace rgat
 
                 layout.IncrementVersion();
 
-                graph.Temperature *= CONSTANTS.Layout_Constants.TemperatureStepMultiplier;
-                if (graph.Temperature <= CONSTANTS.Layout_Constants.MinimumTemperature)
+                if (graph.OPT_LOCK_TEMPERATURE is false)
                 {
-                    graph.Temperature = 0;
+                    graph.Temperature *= CONSTANTS.Layout_Constants.TemperatureStepMultiplier;
+                    if (graph.Temperature <= CONSTANTS.Layout_Constants.MinimumTemperature)
+                    {
+                        graph.Temperature = 0;
+                    }
                 }
             }
 
@@ -730,7 +733,7 @@ namespace rgat
             {
                 delta = delta,
                 attractionK =  GlobalConfig.AttractionK,
-                temperature = Math.Min(temperature, GlobalConfig.NodeSoftSpeedLimit),
+                temperature = Math.Min(temperature, GlobalConfig.NodeSpeedLimit),
                 repulsionK = GlobalConfig.RepulsionK,
                 fixedInternalNodes = 0,
                 snappingToPreset = (uint)(graph.LayoutState.ActivatingPreset ? 1 : 0),
@@ -762,7 +765,7 @@ namespace rgat
                 delta = delta,
                 attractionK = GlobalConfig.AttractionK,
                 repulsionK = GlobalConfig.RepulsionK,
-                temperature = Math.Min(temperature, GlobalConfig.NodeSoftSpeedLimit),
+                temperature = Math.Min(temperature, GlobalConfig.NodeSpeedLimit),
                 fixedInternalNodes = 1,
                 snappingToPreset = 0,
                 nodeCount = (uint)graph.LayoutState.BlockMiddles!.SizeInBytes / 4
