@@ -583,10 +583,25 @@ namespace rgat
             return textureArray;
         }
 
+        /// <summary>
+        /// Size of a cylinder plot
+        /// </summary>
         public float OPT_CYLINDER_RADIUS = 5000f;
+        /// <summary>
+        /// Vertical separation of nodes on a cylinder plot
+        /// </summary>
         public float OPT_CYLINDER_PIXELS_PER_B = 30f;
+        /// <summary>
+        /// Horizonal separation of nodes on a cylinder plot
+        /// </summary>
         public float OPT_CYLINDER_PIXELS_PER_A = 60f;
+        /// <summary>
+        /// Alpha value of plot wireframes
+        /// </summary>
         public float OPT_WIREFRAME_ALPHA = 0.3f;
+        /// <summary>
+        /// If set then the temperature will not decrease
+        /// </summary>
         public bool OPT_LOCK_TEMPERATURE = false;
 
         private void GenerateCylinderWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
@@ -1807,7 +1822,9 @@ namespace rgat
                         newnodelist = null;
                         return false;
                     }
-                    Logging.WriteConsole($"[rgat]get_block_nodelist() Fail to find edge for thread {TID} calling extern 0x{externBlockAddr:x}");
+                    Logging.RecordError($"[rgat]get_block_nodelist() Fail to find edge for thread {TID} calling extern 0x{externBlockAddr:x}");
+                    newnodelist = null;
+                    return false;
                 }
 
 
@@ -2108,7 +2125,6 @@ namespace rgat
 
         private void process_replay_update(int replayUpdateIndex)
         {
-            bool verbose = true;
             ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[replayUpdateIndex];
 
             double stepSize = AnimationRate;
@@ -2124,11 +2140,6 @@ namespace rgat
                 ANIMATIONENTRY lastentry = InternalProtoGraph.SavedAnimationData[replayUpdateIndex - 1];
                 if (lastentry.entryType == eTraceUpdateType.eAnimExecTag)
                 {
-                    if (verbose)
-                    {
-                        Logging.WriteConsole($"\tLast entry was block exec - brighten edge to block address 0x{entry.blockAddr:x} ");
-                    }
-
                     brighten_next_block_edge(entry.blockID, entry.blockAddr);
                 }
             }
@@ -2146,12 +2157,6 @@ namespace rgat
                 {
                     unchainedWaitFrames = maxWait;
                 }
-
-                if (verbose)
-                {
-                    Logging.WriteConsole($"\tUpdate eAnimUnchainedResults block 0x{entry.blockAddr:x} ");
-                }
-
                 remove_unchained_from_animation();
 
 
@@ -2161,12 +2166,6 @@ namespace rgat
             //all consecutive unchained areas finished, wait until animation paused appropriate frames
             if (entry.entryType == eTraceUpdateType.eAnimReinstrument)
             {
-                if (verbose)
-                {
-                    Logging.WriteConsole($"\tUpdate eAnimReinstrument");
-                }
-                //if (unchainedWaitFrames-- > 1) return;
-
                 remove_unchained_from_animation();
                 end_unchained(entry);
                 return;
@@ -2176,11 +2175,6 @@ namespace rgat
             int brightTime;
             if (entry.entryType == eTraceUpdateType.eAnimUnchained || animBuildingLoop)
             {
-                if (verbose)
-                {
-                    Logging.WriteConsole($"\tUpdate Replay eAnimUnchained/buildingloop");
-                }
-
                 brightTime = (int)Anim_Constants.BRIGHTNESS.KEEP_BRIGHT;
             }
             else
@@ -2207,7 +2201,6 @@ namespace rgat
 
             if (nodeIDList is not null)
             {
-                Logging.WriteConsole($"Trace type {entry.entryType} brightening nodes {string.Join(",", nodeIDList!.Select(x => x.ToString()))} for time {brightTime}");
                 //add all the nodes+edges in the block to the brightening list
                 brighten_node_list(entry, brightTime, nodeIDList);
             }
@@ -2215,11 +2208,6 @@ namespace rgat
             //brighten edge to next unchained block
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
             {
-                if (verbose)
-                {
-                    Logging.WriteConsole($"\tUpdate eAnimUnchained");
-                }
-
                 brighten_next_block_edge(entry.targetID, entry.targetAddr);
             }
 

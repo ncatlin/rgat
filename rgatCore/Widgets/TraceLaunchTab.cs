@@ -506,6 +506,7 @@ namespace rgat
                     _diagnosticMode = !_diagnosticMode;
                 }
 
+                ImGui.AlignTextToFramePadding();
                 ImGui.Text("Instrumentation Level: ");
                 ImGui.SameLine();
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBgHovered));
@@ -612,6 +613,10 @@ namespace rgat
                 }
                 else
                 {
+                    if (_selectedInstrumentationLevel == 0)
+                    {
+                        _rgatState.ActiveTarget!.SetTraceConfig("SINGLE_SHOT_INSTRUMENTATION", "TRUE");
+                    }
 
                     //todo loadername, ordinal
                     System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();

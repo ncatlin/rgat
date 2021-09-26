@@ -1477,10 +1477,10 @@ namespace rgat
             string msg;
             Vector2 topLeft = ImGui.GetCursorScreenPos();
             Vector2 bottomLeft = new Vector2(topLeft.X, topLeft.Y + widgetSize.Y);
-            Vector2 bottomRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y);
 
             if (activeGraph != null)
             {
+                Vector2 bottomRight = new Vector2(bottomLeft.X + widgetSize.X - 8, bottomLeft.Y);
                 DrawLayoutSelector(activeGraph, bottomRight, 0.25f, activeGraph.ActiveLayoutStyle);
             }
             else

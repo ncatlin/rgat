@@ -60,6 +60,7 @@ PIN_SEMAPHORE continueSem;
 PIN_SEMAPHORE stepSem;
 bool processStateBroken = false;
 bool pendingSpecialInstrumentation = false;
+bool singleShotInstrumentation = false;
 
 std::map<std::string, std::string> traceOptions;
 
@@ -303,14 +304,16 @@ Requirements:
 	1. As low CPU overhead as possible to reduce the burden on execution of every block
 	2. Compressed enough output to minimise the ability of small regions of code to generate disproportionately large traces
 	but
-	3. Output regularly enough to make live viewing responsive (ie: don't just cache the whole trace then output at termination)
+	3. Output regularly enough to make live viewing responsive (ie: don't just cache the whole trace then 
+	output at termination). Low priority: The UI can just poll for this.
 
 Tradeoffs to achieve this:
 	* Where possible sacrifice space for time. Application memory usage is usually finite but we almost always want more speed
 	* Go nuts with expensive setup operations on thread/trace creation and first block execution -
 	  Slow programs are due to loops and blocking, not because of the number of unique instructions.
 	* The trace can be lossy as long as rgat knows. We don't replay the exact order of block execution,
-		so it's fine to say in busy areas "these {N} blocks executed for a while with edge execution counts E1:X,E2:Y,E3:Z,...".
+		so it's fine to say in busy areas "these {N} blocks executed for a while with edge execution counts E1:X,E2:Y,E3:Z,..."
+		without preserving the exact order.
 
 Future improvements:
 	It may be necessary to have multiple different algorithms which are used for code regions with wildly different execution profiles.
@@ -355,6 +358,7 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 			}
 		}
 	}
+
 
 	//PART 3: record/report that this block execution
 	if (threadObj->activityLevel >= DEINSTRUMENTATION_LIMIT)
@@ -416,12 +420,22 @@ VOID RecordStep(threadObject* threadObj, BLOCKDATA* block, ADDRINT thisAddress, 
 	fflush(threadObj->threadpipeFILE);
 }
 
+
 VOID at_unconditional_branch(BLOCKDATA* block_data, ADDRINT targetBlockAddress, THREADID threadid)
 {
 	//std::cout << "at_unconditional_branch hit block " << block_data->blockID << std::endl;
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
 	RecordEdge(thread, block_data, targetBlockAddress);
 }
+
+VOID at_unconditional_branch_oneshot(BLOCKDATA* block_data, ADDRINT targetBlockAddress, THREADID threadid)
+{
+	//std::cout << "at_unconditional_branch hit block " << block_data->blockID << std::endl;
+	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
+	RecordEdge(thread, block_data, targetBlockAddress);
+	PIN_RemoveInstrumentationInRange(block_data->appc, block_data->appc);
+}
+
 
 VOID at_conditional_branch(BLOCKDATA* block_data, bool taken, ADDRINT targetBlockAddress, ADDRINT fallthroughAddress, THREADID threadid)
 {
@@ -430,22 +444,28 @@ VOID at_conditional_branch(BLOCKDATA* block_data, bool taken, ADDRINT targetBloc
 	RecordEdge(thread, block_data, taken ? targetBlockAddress : fallthroughAddress);
 }
 
+VOID at_conditional_branch_oneshot(BLOCKDATA* block_data, bool taken, ADDRINT targetBlockAddress, ADDRINT fallthroughAddress, THREADID threadid)
+{
+	//std::cout << "at_conditional_branch hit block " << block_data->blockID << " address 0x"<<std::hex<<block_data->appc << std::endl;
+	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
+	RecordEdge(thread, block_data, taken ? targetBlockAddress : fallthroughAddress);
+	PIN_RemoveInstrumentationInRange(block_data->appc, block_data->appc);
+}
+
+
 VOID at_non_branch(BLOCKDATA* block_data, ADDRINT nextIns, THREADID threadid)
 {
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
 	RecordEdge(thread, block_data, nextIns);
 }
 
-
-
-VOID single_ins_block(BLOCKDATA* block_data, ADDRINT afterAddress, THREADID threadid)
+VOID at_non_branch_oneshot(BLOCKDATA* block_data, ADDRINT nextIns, THREADID threadid)
 {
-
-	writeEventPipe("!At single insinstruction 0x" PTR_prefix ". ", block_data->appc);// repCountBefore);
-
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
-	RecordEdge(thread, block_data, afterAddress);
+	RecordEdge(thread, block_data, nextIns);
+	PIN_RemoveInstrumentationInRange(block_data->appc, block_data->appc);
 }
+
 
 
 
@@ -465,6 +485,33 @@ ADDRINT at_first_rep(BLOCKDATA* block_data, bool isFirst, bool isExec, ADDRINT n
 
 
 
+ADDRINT at_first_rep_oneshot(BLOCKDATA* block_data, bool isFirst, bool isExec, ADDRINT nextIns, THREADID threadid)
+{
+	threadObject* threadObj = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
+	if (isFirst && isExec && !block_data->repexec)
+	{
+		block_data->repexec = true;
+		fprintf(threadObj->threadpipeFILE, REP_EXEC_MARKER",%lx\x01", block_data->blockID);
+		fflush(threadObj->threadpipeFILE);
+	}
+
+	RecordEdge(threadObj, block_data, nextIns);
+	PIN_RemoveInstrumentationInRange(block_data->appc, block_data->appc);
+	return true;
+}
+
+
+
+
+
+VOID single_ins_block(BLOCKDATA* block_data, ADDRINT afterAddress, THREADID threadid)
+{
+
+	writeEventPipe("!At single insinstruction 0x" PTR_prefix ". ", block_data->appc);// repCountBefore);
+
+	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
+	RecordEdge(thread, block_data, afterAddress);
+}
 
 
 
@@ -615,16 +662,20 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		write_sync_bb((char*)basicBlockBuffer, bufpos);
 		++blockCounter;
 
+		AFUNPTR insrumentationFunction = NULL;
+
 		if (INS_IsBranchOrCall(lastins))
 		{
 			if (INS_HasFallThrough(lastins))
 			{
-				INS_InsertCall(lastins, IPOINT_BEFORE, (AFUNPTR)at_conditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
+				insrumentationFunction = !singleShotInstrumentation ? (AFUNPTR)at_conditional_branch : (AFUNPTR)at_conditional_branch_oneshot;
+				INS_InsertCall(lastins, IPOINT_BEFORE, insrumentationFunction, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
 					IARG_PTR, block_data, IARG_BRANCH_TAKEN, IARG_BRANCH_TARGET_ADDR, IARG_FALLTHROUGH_ADDR, IARG_THREAD_ID, IARG_END);
 			}
 			else
 			{
 
+				insrumentationFunction = !singleShotInstrumentation ? (AFUNPTR)at_unconditional_branch : (AFUNPTR)at_unconditional_branch_oneshot;
 				INS_InsertCall(lastins, IPOINT_BEFORE, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
 					IARG_PTR, block_data, IARG_BRANCH_TARGET_ADDR, IARG_THREAD_ID, IARG_END);
 
@@ -632,6 +683,8 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		}
 		else if (INS_RepPrefix(lastins) || INS_RepnePrefix(lastins))
 		{
+			insrumentationFunction = !singleShotInstrumentation ? (AFUNPTR)at_first_rep : (AFUNPTR)at_first_rep_oneshot;
+
 			block_data->repexec = false;
 			//https://trello.com/c/I89DMjjh/160-repxx-handling-with-ecx-0
 			INS_InsertCall(lastins,
@@ -855,6 +908,7 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 		time += 15;
 	}
 }
+
 
 VOID ThreadEnd(THREADID threadIndex, const CONTEXT* ctxt, INT32 flags, VOID* v)
 {
@@ -1472,6 +1526,10 @@ VOID SetupConfigItems()
 
 	if (ConfigValueMatches("PAUSE_ON_START", "TRUE")) {
 		pendingSpecialInstrumentation = true;
+	}
+
+	if (ConfigValueMatches("SINGLE_SHOT_INSTRUMENTATION", "TRUE")) {
+		singleShotInstrumentation = true;
 	}
 }
 

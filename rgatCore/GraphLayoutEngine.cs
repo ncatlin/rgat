@@ -410,8 +410,10 @@ namespace rgat
 
             graph.LayoutState.Lock.EnterUpgradeableReadLock();
 
-            graph.AddNewEdgesToLayoutBuffers(edgesCount);
-
+            if (!graph.LayoutState.ActivatingPreset)
+            {
+                graph.AddNewEdgesToLayoutBuffers(edgesCount);
+            }
 
             var now = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
             float delta = Math.Min((now - graph.LastComputeTime) / 1000f, 1.0f);// safety cap on large deltas

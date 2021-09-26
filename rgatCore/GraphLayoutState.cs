@@ -1040,7 +1040,8 @@ namespace rgat
         /// <summary>
         /// Initiate the swap of layout buffers into VRAM
         /// </summary>
-        /// <param name="newStyle"></param>
+        /// <param name="newStyle">The style of the layout to change to</param>
+        /// <param name="forceSame">If true then the same layout can be replot</param>
         public void TriggerLayoutChange(LayoutStyles.Style newStyle, bool forceSame = false)
         {
 
@@ -1116,15 +1117,6 @@ namespace rgat
 
             this.LockedUploadStateToVRAM(oldData);
             _lock.ExitWriteLock();
-        }
-
-
-        public void ResetCylinderLayout()
-        {
-            if (this.Style is not LayoutStyles.Style.CylinderLayout) return;
-
-
-
         }
 
 

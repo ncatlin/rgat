@@ -402,10 +402,15 @@ namespace rgat.Threads
 
             thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry, 1, tokenpos - 1), NumberStyles.HexNumber);
             //this may be a bad idea, could just be running faster than the dissassembler thread
+            int waits = 0;
             while (thistag.blockID >= protograph.ProcessData.BasicBlocksList.Count)
             {
                 Thread.Sleep(50);
-                Logging.WriteConsole("Waiting for disas");
+                waits += 1;
+                if (waits > 5)
+                {
+                    Logging.WriteConsole($"Waiting for block {thistag.blockID} to appear ({protograph.ProcessData.BasicBlocksList.Count} available)");
+                }
             }
             Debug.Assert(thistag.blockID < protograph.ProcessData.BasicBlocksList.Count, "ProcessTraceTag tried to process block that hasn't been disassembled");
 
@@ -501,7 +506,7 @@ namespace rgat.Threads
                     }
                     else if (thistag.blockID < protograph.BlocksFirstLastNodeList.Count && protograph.BlocksFirstLastNodeList[(int)thistag.blockID] != null)
                     {
-                        Debug.Assert(false, "Panik");
+                        Debug.Assert(false, "Panik"); //todo: exceptions
                     }
 
                     return;
@@ -986,7 +991,7 @@ namespace rgat.Threads
 
 
             Logging.WriteConsole($"{WorkerThread?.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
-            Debug.Assert(blockRepeatQueue.Count == 0 || protograph.TraceReader.StopFlag);
+            Debug.Assert(blockRepeatQueue.Count == 0 || rgatState.rgatIsExiting || protograph.TraceReader.StopFlag);
 
             Finished();
         }

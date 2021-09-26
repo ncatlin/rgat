@@ -81,13 +81,13 @@ namespace rgat
              * Always create a background worker that prioritises low priority threads so
              * traces that are not selected in the visualiser are not starved of rendering
              */
-            PreviewRendererThread prev = new PreviewRendererThread(0, PreviewGraphWidget, background: true);
+            PreviewRendererThread prev = new PreviewRendererThread(0,  PreviewGraphWidget, _controller, _rgatState, background: true);
             previewRenderers.Add(prev);
             prev.Begin();
 
             for (var i = 1; i < count; i++)
             {
-                prev = new PreviewRendererThread(i, PreviewGraphWidget, background: false);
+                prev = new PreviewRendererThread(i, PreviewGraphWidget, _controller, _rgatState, background: false);
                 previewRenderers.Add(prev);
                 prev.Begin();
             }
@@ -126,6 +126,7 @@ namespace rgat
         private void DrawVisualiserGraphs(float height)
         {
             Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI.PREVIEW_PANE_WIDTH, height);
+            //ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, 0));
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
                 MainGraphWidget.Draw(graphSize, _rgatState.ActiveGraph);
@@ -134,13 +135,13 @@ namespace rgat
                 MainGraphWidget.DisplayEventMessages(msgpos);
                 ImGui.EndChild();
             }
+            //ImGui.PopStyleVar();
 
             ImGui.SameLine(0, 0);
 
             Vector2 previewPaneSize = new Vector2(UI.PREVIEW_PANE_WIDTH, height);
             ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewPaneBorder));
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewPaneBackground));
-
 
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, 0));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
@@ -260,7 +261,7 @@ namespace rgat
                 {
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
                     ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
-                    if (ImGui.BeginChild("ReplayControls", new Vector2(600, ImGui.GetContentRegionAvail().Y - 2)))
+                    if (ImGui.BeginChild("ReplayControls", new Vector2(725, ImGui.GetContentRegionAvail().Y - 2)))
                     {
 
                         DrawReplayControlsPanel(activeGraph);
@@ -268,6 +269,8 @@ namespace rgat
                         DrawRenderControlPanel(activeGraph);
                         ImGui.SameLine();
                         DrawVideoControlPanel(activeGraph);
+                        ImGui.SameLine();
+                        DrawCameraPanel(activeGraph);
 
                         ImGui.EndChild();
                     }
@@ -493,9 +496,10 @@ namespace rgat
             }
         }
 
+
         private static void DrawVideoControlPanel(PlottedGraph graph)
         {
-            if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
+            if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(130, ImGui.GetContentRegionAvail().Y - 2), true))
             {
                 if (rgatState.VideoRecorder.Recording)
                 {
@@ -530,6 +534,17 @@ namespace rgat
                 ImGui.Button("Capture Settings");
                 ImGui.EndChild();
             }
+        }        
+        
+        private static void DrawCameraPanel(PlottedGraph graph)
+        {
+            if (ImGui.BeginChild("CameraStatFrame1", new Vector2(130, ImGui.GetContentRegionAvail().Y - 2), true))
+            {
+                ImGui.Text($"CameraX: {graph.CameraXOffset}");
+                ImGui.Text($"CameraY: {graph.CameraYOffset}");
+                ImGui.Text($"CameraZ: {graph.CameraZoom}");
+                ImGui.EndChild();
+            }
         }
 
         private static void DrawDiasmPreviewBox(ProtoGraph graph, int lastAnimIdx)
@@ -551,6 +566,7 @@ namespace rgat
                         case eTraceUpdateType.eAnimExecTag:
                             {
                                 uint blkID = lastEntry.blockID;
+                                ImGui.Text($"Block {blkID} (0x{lastEntry.blockAddr})");
                                 if (blkID < uint.MaxValue)
                                 {
                                     List<InstructionData>? inslist = graph.ProcessData.getDisassemblyBlock(blockID: blkID);
@@ -622,6 +638,8 @@ namespace rgat
                     DrawRenderControlPanel(graph);
                     ImGui.SameLine();
                     DrawVideoControlPanel(graph);
+                    ImGui.SameLine();
+                    DrawCameraPanel(graph);
                     ImGui.EndChild();
                 }
                 ImGui.SameLine();
@@ -732,9 +750,9 @@ namespace rgat
 
             float metricsHeight = ImGui.GetContentRegionAvail().Y - 4;
             ImGui.Columns(3, "visstatColumns");
-            ImGui.SetColumnWidth(0, 20);
-            ImGui.SetColumnWidth(1, 130);
-            ImGui.SetColumnWidth(2, 250);
+            ImGui.SetColumnWidth(0, 12);
+            ImGui.SetColumnWidth(1, 150);
+            ImGui.SetColumnWidth(2, 170);
             ImGui.NextColumn();
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
@@ -755,7 +773,7 @@ namespace rgat
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff313142);
             }
 
-            if (ImGui.BeginChild("OtherMetrics", new Vector2(200, metricsHeight)))
+            if (ImGui.BeginChild("OtherMetrics", new Vector2(ImGui.GetContentRegionAvail().X, metricsHeight)))
             {
                 if (graph.TraceReader != null)
                 {
@@ -862,10 +880,8 @@ namespace rgat
             }
             ProtoGraph graph = plot.InternalProtoGraph;
 
-            float vpadding = 4;
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
-
-            if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth, frameHeight)))
+            if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth - 15, frameHeight)))
             {
                 if (_rgatState.ActiveTarget != null)
                 {
@@ -894,7 +910,7 @@ namespace rgat
 
                 ImGui.EndChild();
             }
-            ImGui.PopStyleColor();
+            ImGui.PopStyleColor(1);
 
             if (rgatUI.ShowStatsDialog)
             {
@@ -927,12 +943,13 @@ namespace rgat
             float otherControlsHeight = controlsHeight - topControlsBarHeight;
             float frameHeight = otherControlsHeight - vpadding;
             float controlsWidth = ImGui.GetContentRegionAvail().X;
-            if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(controlsWidth, frameHeight)))
+
+            if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(controlsWidth - 10, frameHeight)))
             {
                 PlottedGraph activeGraph = _rgatState.ActiveGraph;
                 if (activeGraph != null)
                 {
-                    if (ImGui.BeginChild("ControlsInner", new Vector2(controlsWidth - UI.PREVIEW_PANE_WIDTH, frameHeight)))
+                    if (ImGui.BeginChild("ControlsInner", new Vector2((controlsWidth - UI.PREVIEW_PANE_WIDTH), frameHeight)))
                     {
                         if (!activeGraph.InternalProtoGraph.Terminated)
                         {
@@ -946,10 +963,10 @@ namespace rgat
                     }
                 }
                 ImGui.SameLine();
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 5); //too much item padding
                 DrawTraceSelector(frameHeight, UI.PREVIEW_PANE_WIDTH);
                 ImGui.EndChild();
             }
-
         }
 
         private void ManageActiveGraph()

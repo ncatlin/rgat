@@ -258,9 +258,12 @@ namespace rgat.Widgets
                 labels = _moduleTexts.ToArray();
             }
 
+            float i = 5;
             foreach (var mtxt in labels)
             {
-                imdp.AddText(pos + new Vector2(mtxt.startX, 30), 0xffffffff, "start");
+                imdp.AddText(pos + new Vector2(i,0) + new Vector2(mtxt.startX, 30), 0xffffffff, mtxt.name);
+                i += ImGui.CalcTextSize(mtxt.name).X;
+                
             }
 
 

@@ -7525,7 +7525,7 @@
             </summary>
             <returns></returns>
         </member>
-        <member name="M:rgat.Threads.PreviewRendererThread.#ctor(System.Int32,rgat.PreviewGraphsWidget,System.Boolean)">
+        <member name="M:rgat.Threads.PreviewRendererThread.#ctor(System.Int32,rgat.PreviewGraphsWidget,ImGuiNET.ImGuiController,rgat.rgatState,System.Boolean)">
             <summary>
             Create a preview renderer
             </summary>
@@ -7544,6 +7544,11 @@
         <member name="M:rgat.Threads.PreviewRendererThread.ThreadProc">
             <summary>
             The worker thread entry point
+            </summary>
+        </member>
+        <member name="M:rgat.Threads.PreviewRendererThread.CenterGraphInFrameStep(System.Single@,rgat.GraphLayoutEngine,rgat.PlottedGraph)">
+            <summary>
+            Adjust the camera offset and zoom so that every node of the graph is in the frame
             </summary>
         </member>
         <member name="T:rgat.Threads.ProcessCoordinatorThread">
@@ -8922,11 +8927,6 @@
             do it via Draw so events are handled by the same thread
             </summary>
         </member>
-        <member name="M:rgat.PreviewGraphsWidget.CenterGraphInFrameStep(System.Single@,rgat.PlottedGraph)">
-            <summary>
-            Adjust the camera offset and zoom so that every node of the graph is in the frame
-            </summary>
-        </member>
         <member name="M:rgat.PreviewGraphsWidget.DrawWidget">
             <summary>
             Draw the preview graph widget
@@ -8941,13 +8941,6 @@
             <summary>
             The preview graph the mouse is hovering over
             </summary>
-        </member>
-        <member name="M:rgat.PreviewGraphsWidget.GeneratePreviewGraph(Veldrid.CommandList,rgat.PlottedGraph)">
-            <summary>
-            Used by the preview renderer thread to compute the next round of layout
-            </summary>
-            <param name="cl">Renderer worker command list</param>
-            <param name="graph">Graph to compute</param>
         </member>
         <member name="M:rgat.PreviewGraphsWidget.DrawPreviewGraph(rgat.PlottedGraph,System.Single,System.Single,System.UInt32)">
             <summary>
