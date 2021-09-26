@@ -161,7 +161,7 @@ namespace rgat
         private bool CenterGraphInFrameStep(Matrix4x4 worldView, out float MaxRemaining)
         {
             PlottedGraph? graph = ActiveGraph;
-            if (graph == null)
+            if (graph == null || graph.LayoutState.Initialised is false)
             {
                 MaxRemaining = 0;
                 return false;
@@ -1656,7 +1656,7 @@ namespace rgat
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
             Matrix4x4 worldView = world * view;
-            if (_centeringInFrame is not 0)
+            if (_centeringInFrame is not 0 && graph.LayoutState.Initialised)
             {
 
                 //todo - increase stopping threshold as step count increases

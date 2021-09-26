@@ -557,15 +557,6 @@ namespace rgat.Widgets
             float expandedHeight = iconCount * (_iconSize.Y + _menuYPad);
             Vector2 menuPos = new Vector2(position.X + padding.X, position.Y - (expandedHeight * currentExpansion + _menuYPad));
 
-            ImGui.SetCursorScreenPos(menuPos);
-            ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 5.0f);
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.1f, 0.3f, 0.6f, 0.4f));
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.1f, 0.3f, 0.6f, 0.5f));
-            ImGui.Button(" ", new Vector2(_iconSize.X, expandedHeight * currentExpansion));
-            ImGui.PopStyleColor();
-            ImGui.PopStyleColor();
-            ImGui.PopStyleVar();
-
             //close menu if menu fully expanded, no child popup and mouse is far enough away
             if (_expanded && _activeMenuPopupName == null && ExpansionFinished && !_stayExpanded)
             {

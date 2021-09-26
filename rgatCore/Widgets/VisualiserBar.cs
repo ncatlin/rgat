@@ -267,7 +267,10 @@ namespace rgat.Widgets
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + _height);
         }
 
+
         private float _sliderPosX = -1;
+
+
         /// <summary>
         /// Draw a replay graph visualiser bar with animation sliders 
         /// </summary>
@@ -284,6 +287,10 @@ namespace rgat.Widgets
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - progressBarSize.Y);
             ImGui.PopStyleVar();
 
+
+
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 10);
+
             Vector2 AnimationProgressBarPos = ImGui.GetItemRectMin();
 
             Vector2 SliderRectStart = new Vector2(AnimationProgressBarPos.X, AnimationProgressBarPos.Y);
@@ -291,7 +298,7 @@ namespace rgat.Widgets
 
             if (ImGui.IsItemActive())
             {
-                _sliderPosX = ImGui.GetIO().MousePos.X - ImGui.GetWindowPos().X;
+                _sliderPosX = ImGui.GetIO().MousePos.X - ImGui.GetCursorScreenPos().X;
             }
             else
             {
@@ -299,7 +306,7 @@ namespace rgat.Widgets
                 if (graph != null)
                 {
                     float animPercentage = graph.GetAnimationProgress();
-                    _sliderPosX = animPercentage * (SliderRectEnd.X - SliderRectStart.X);
+                    _sliderPosX = ImGui.GetCursorPosX() + animPercentage * (SliderRectEnd.X - SliderRectStart.X);
                 }
             }
 
@@ -333,8 +340,6 @@ namespace rgat.Widgets
                 }
                 Logging.WriteConsole($"User changed animation position to: {sliderBarPosition * 100}%");
             }
-
-
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 0);
 
             Draw(progressBarSize.X, height);

@@ -253,7 +253,7 @@ namespace rgat
 
             if (ImGui.BeginChild(ImGui.GetID("ReplayControlPanel"), new Vector2(width, otherControlsHeight)))
             {
-                _visualiserBar!.DrawReplaySlider(width: width, height: 50, graph: activeGraph);
+                _visualiserBar!.DrawReplaySlider(width: width - 10, height: 50, graph: activeGraph);
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
 
                 ImGui.BeginGroup();
@@ -933,7 +933,7 @@ namespace rgat
                         }
                         else
                         {
-                            DrawPlaybackControls(frameHeight, ImGui.GetContentRegionAvail().X);
+                            DrawPlaybackControls(frameHeight, ImGui.GetContentRegionAvail().X );
                         }
                         ImGui.EndChild();
                     }
