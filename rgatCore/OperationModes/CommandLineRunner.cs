@@ -111,11 +111,13 @@ namespace rgat.OperationModes
             Logging.WriteConsole($"Command line mode tracing binary {targetPath}");
 
             BinaryTarget target = new BinaryTarget(targetPath);
+            ProcessLaunchSettings settings = new ProcessLaunchSettings(targetPath); //todo - other settings. provided by command line or json file.
+            
             string pintoolpath = target.BitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
 
 
-            ProcessLaunching.StartLocalTrace(pintoolpath, targetPath, target.PEFileObj);
+            ProcessLaunching.StartLocalTrace(pintoolpath, settings, target.PEFileObj);
 
             while (true)
             {

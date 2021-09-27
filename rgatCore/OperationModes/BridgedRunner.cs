@@ -826,9 +826,31 @@ namespace rgat.OperationModes
                 return;
             }
             JObject? paramsObj = paramfield.ToObject<JObject>();
-            if (paramsObj is null)
+            if (paramsObj is null || paramsObj.TryGetValue("Settings", out JToken? settingsTok) is false || settingsTok is null)
             {
                 Logging.RecordError("Bad StartHeadlessTrace params");
+                return;
+            }
+            JObject? settingsObj = settingsTok.ToObject<JObject>();
+            if (settingsObj is null)
+            {
+                Logging.RecordError("Bad Launch Settings");
+                return;
+            }
+
+            ProcessLaunchSettings? settings;
+            try
+            {
+                settings = settingsObj.ToObject<ProcessLaunchSettings>();
+            }
+            catch ( Exception e)
+            {
+                Logging.RecordError($"Bad Launch Settings: {e.Message}");
+                return;
+            }
+            if (settings is null)
+            {
+                Logging.RecordError("Bad Launch Settings");
                 return;
             }
 
@@ -837,24 +859,15 @@ namespace rgat.OperationModes
             {
                 testID = testIDTok.ToObject<long>();
             }
-            if (paramsObj.TryGetValue("TargetPath", out JToken? pathTok) && pathTok.Type == JTokenType.String)
+;
+            if (!File.Exists(settings.BinaryPath))
             {
-                path = pathTok.ToString();
-                if (!File.Exists(path))
-                {
-                    Logging.RecordError($"StartHeadlessTrace: Target {path} not found");
-                    rgatState.NetworkBridge.Teardown("Target path not found");
-                    return;
-                }
-            }
-            else
-            {
-                Logging.RecordError($"StartHeadlessTrace: No valid target path in trace start request");
-                rgatState.NetworkBridge.Teardown("No Target Path");
+                Logging.RecordError($"StartHeadlessTrace: Target {path} not found");
+                rgatState.NetworkBridge.Teardown("Target path not found");
                 return;
             }
 
-            BinaryTarget target = rgatState.targets.AddTargetByPath(path);
+            BinaryTarget target = rgatState.targets.AddTargetByPath(settings.BinaryPath);
 
             if (target.PEFileObj == null)
             {
@@ -866,26 +879,7 @@ namespace rgat.OperationModes
                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
 
-            bool isDLL = target.PEFileObj.IsDll;
-            int ordinal = 0;
-
-            if (isDLL && paramsObj.TryGetValue("Ordinal", out JToken? ordTok) && ordTok.Type == JTokenType.Integer)
-            {
-                ordinal = ordTok.ToObject<int>();
-            }
-
-            string? loaderName = null;
-            if (isDLL && paramsObj.TryGetValue("LoaderName", out JToken? loaderTok) && loaderTok.Type == JTokenType.String)
-            {
-                loaderName = loaderTok.ToObject<string>();
-            }
-
-            if (loaderName is null)
-            {
-                loaderName = "LoadDLL";
-            }
-
-            Process? p = ProcessLaunching.StartLocalTrace(pintool, path, target.PEFileObj, loaderName: loaderName, ordinal: ordinal, testID: testID);
+            Process? p = ProcessLaunching.StartLocalTrace(pintool, settings, testID: testID);
             if (p != null)
             {
                 rgatState.NetworkBridge.SendLog($"Trace of {path} launched as remote process ID {p.Id}", Logging.LogFilterType.TextAlert);

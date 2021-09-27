@@ -513,6 +513,7 @@ namespace rgat
         private bool _recordVideoOnStart;
         private bool _diagnosticMode;
         private bool _activeTargetRunnable;
+        private string? _cmdLineArgs;
         private void DrawTraceTab_ExecutionSettings(BinaryTarget activeTarget, float width)
         {
             ImGui.BeginGroup();
@@ -562,7 +563,11 @@ namespace rgat
                 ImGui.SameLine();
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBgHovered));
                 byte[] _dataInput = new byte[1024];
-                ImGui.InputText("##cmdline", _dataInput, 1024);
+                if(ImGui.InputText("##cmdline", _dataInput, 1024))
+                {
+                    int argsLen = Array.FindIndex(_dataInput, x => x == '\0');
+                    _cmdLineArgs = Encoding.UTF8.GetString(_dataInput, 0, argsLen);
+                }
 
                 ImGui.PopStyleColor(2);
 
@@ -626,6 +631,25 @@ namespace rgat
             }
         }
 
+        ProcessLaunchSettings BuildSettings(BinaryTarget activeTarget)
+        {
+            ProcessLaunchSettings settings = new ProcessLaunchSettings(activeTarget.FilePath);
+
+            settings.DLLOrdinal = (activeTarget.IsLibrary && activeTarget.SelectedExportIndex > -1) ? activeTarget.Exports[activeTarget.SelectedExportIndex].Item2 : 0;
+            settings.CommandLineArgs = this._cmdLineArgs;
+            settings.LoaderName = activeTarget.LoaderName;
+
+
+            //only continuous instrumentation supported
+            //if (_selectedInstrumentationLevel == 0)
+            // {
+            //     _rgatState.ActiveTarget!.SetTraceConfig("SINGLE_SHOT_INSTRUMENTATION", "TRUE");
+            // }
+
+
+            return settings;
+        }
+
         private void StartButton(BinaryTarget activeTarget, string pintoolpath)
         {
 
@@ -639,22 +663,19 @@ namespace rgat
                 && ImGui.Button("Start Trace " + ImGuiController.FA_PLAY_CIRCLE, new Vector2(100, 40)) && runnable)
             {
                 _OldTraceCount = rgatState.TotalTraceCount;
-                int ordinal = (activeTarget.IsLibrary && activeTarget.SelectedExportIndex > -1) ? activeTarget.Exports[activeTarget.SelectedExportIndex].Item2 : 0;
+
+                ProcessLaunchSettings settings = BuildSettings(activeTarget);
+
                 if (activeTarget.IsRemoteBinary)
                 {
-                    ProcessLaunching.StartRemoteTrace(activeTarget, ordinal: ordinal);
+                    ProcessLaunching.StartRemoteTrace(activeTarget, settings );
                 }
                 else
                 {
-                    if (_selectedInstrumentationLevel == 0)
-                    {
-                        _rgatState.ActiveTarget!.SetTraceConfig("SINGLE_SHOT_INSTRUMENTATION", "TRUE");
-                    }
 
                     //todo loadername, ordinal
                     System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
-                    System.Diagnostics.Process? p = ProcessLaunching.StartLocalTrace(pintoolpath, activeTarget.FilePath,
-                        loaderName: activeTarget.LoaderName, ordinal: ordinal, targetPE: activeTarget.PEFileObj);
+                    System.Diagnostics.Process? p = ProcessLaunching.StartLocalTrace(pintoolpath, settings: settings, targetPE: activeTarget.PEFileObj);
                     if (p != null)
                     {
                         watch.Start();

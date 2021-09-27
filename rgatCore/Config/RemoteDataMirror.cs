@@ -62,7 +62,9 @@ namespace rgat.Config
         private static List<PathRecord> _cachedRecentBins = new List<PathRecord>();
 
 
-
+        /// <summary>
+        /// Clear all the connection state
+        /// </summary>
         public static void PurgeConnectionData()
         {
             lock(_lock)

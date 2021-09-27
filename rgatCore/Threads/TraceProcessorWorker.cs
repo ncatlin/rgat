@@ -46,6 +46,9 @@ namespace rgat.Threads
             stopped = false;
         }
 
+        /// <summary>
+        /// Basic thread termination
+        /// </summary>
         public virtual void Terminate()
         {
             stopped = true;

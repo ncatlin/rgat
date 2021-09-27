@@ -5274,6 +5274,68 @@
             </summary>
             <returns>A running worker was found</returns>
         </member>
+        <member name="T:rgat.ProcessLaunchSettings">
+            <summary>
+            This is for buncling up all the user settings from the 
+            trace launch tab and using it in local trace, remote trace or serialising
+            it to settings or for command line launching
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.CommandLineArgs">
+            <summary>
+            Command line arguments passed to the target binary
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.LoaderName">
+            <summary>
+            Custom DLL loader name
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.LoaderWidth">
+            <summary>
+            32 or 64 bit loader
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.DLLOrdinal">
+            <summary>
+            DLL ordinal to execute
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.tracingMode">
+            <summary>
+            Level of instrumentation to use. Only continuous is implemented at the moment
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.DefaultIgnore">
+            <summary>
+            How to choose which modules to trace
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.IgnoredFiles">
+            <summary>
+            Modules to ignore in default trace mode
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.IgnoredDirectories">
+            <summary>
+            Directories to ignore in default trace mode
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.TracedFiles">
+            <summary>
+            Modules to trace in default ignore mode
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.TracedDirectories">
+            <summary>
+            Directories to trace in default ignore mode
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.TraceSettings">
+            <summary>
+            Passed to instrumentation tool
+            </summary>
+        </member>
         <member name="T:rgat.ProcessRecord">
             <summary>
             Records process data which is shared between threads

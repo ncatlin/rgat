@@ -89,9 +89,7 @@ namespace rgat
 
     internal class ProcessLaunching
     {
-
-        public static System.Diagnostics.Process? StartLocalTrace(string pintool, string targetBinary, PeNet.PeFile? targetPE = null,
-            string loaderName = "LoadDLL", int ordinal = 0, long testID = -1)
+        public static System.Diagnostics.Process? StartLocalTrace(string pintool, ProcessLaunchSettings settings, PeNet.PeFile? targetPE = null, long testID = -1)
         {
             if (!File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath)))
             {
@@ -112,12 +110,9 @@ namespace rgat
                 return null;
             }
 
-            if (!File.Exists(targetBinary))
+            if (!File.Exists(settings.BinaryPath))
             {
-                if (pintool == null)
-                {
-                    Logging.RecordError($"Target binary not found: {targetBinary}");
-                }
+                Logging.RecordError($"Target binary not available: {settings.BinaryPath}");
                 return null;
             }
 
@@ -125,36 +120,35 @@ namespace rgat
             {
                 if (targetPE == null)
                 {
-                    targetPE = new PeNet.PeFile(targetBinary);
+                    targetPE = new PeNet.PeFile(settings.BinaryPath);
                     if (targetPE == null)
                     {
-                        Logging.RecordError($"Unable to parse PE file: {targetBinary}");
+                        Logging.RecordError($"Unable to parse PE file: {settings.BinaryPath}");
                         return null;
                     }
                 }
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Unable to parse PE file: {targetBinary} - {e.Message}");
+                Logging.RecordError($"Unable to parse PE file: {settings.BinaryPath} - {e.Message}");
                 return null;
             }
 
 
             if (targetPE.IsDll)
             {
-                BitWidth width = targetPE.Is32Bit ? BitWidth.Arch32 : BitWidth.Arch64;
-                return StartLocalDLLTrace(pintool, targetBinary, loaderName, width, ordinal, testID);
+                return StartLocalDLLTrace(pintool, settings, testID);
             }
             else if (targetPE.IsExe) //'isexe' is true even for DLLs, so isdll has to be first
             {
-                return StartLocalEXETrace(pintool, targetBinary, testID);
+                return StartLocalEXETrace(pintool, settings, testID: testID);
             }
 
             Logging.RecordError("Unable to trace non-EXE/DLL file");
             return null;
         }
 
-        private static System.Diagnostics.Process? StartLocalDLLTrace(string pintool, string targetBinary, string loadername, BitWidth loaderWidth, int ordinal = 0, long testID = -1)
+        private static System.Diagnostics.Process? StartLocalDLLTrace(string pintool, ProcessLaunchSettings settings, long testID = -1)
         {
 
             System.Diagnostics.Process? result = null;
@@ -170,15 +164,23 @@ namespace rgat
             runargs += "-- ";
 
 
-            string? binaryDir = Path.GetDirectoryName(targetBinary);
-            if (binaryDir is null)
+            string? binaryDir = Path.GetDirectoryName(settings.BinaryPath);
+            if (binaryDir is null || Directory.Exists(binaryDir) == false)
             {
+                Logging.RecordError("No binary directory");
                 return null;
             }
 
-            if (InitLoader(binaryDir, loadername, loaderWidth, out string? loaderPath) && loaderPath is not null)
+            if (settings.LoaderName is null) settings.LoaderName = "DllLoader";
+            if (settings.LoaderWidth is not BitWidth.Arch32 && settings.LoaderWidth is not BitWidth.Arch64)
             {
-                runargs += $"{loaderPath} {targetBinary},{ordinal}$";
+                Logging.RecordError("No Loader Width Specified");
+                return null;
+            }
+
+            if (InitLoader(binaryDir, settings.LoaderName, settings.LoaderWidth, out string? loaderPath) && loaderPath is not null)
+            {
+                runargs += $"{loaderPath} {settings.BinaryPath},{settings.DLLOrdinal}$";
             }
             else
             {
@@ -248,7 +250,7 @@ namespace rgat
             return true;
         }
 
-        private static System.Diagnostics.Process? StartLocalEXETrace(string pintool, string targetBinary, long testID = -1)
+        private static System.Diagnostics.Process? StartLocalEXETrace(string pintool, ProcessLaunchSettings settings, long testID = -1)
         {
             System.Diagnostics.Process? result = null;
 
@@ -259,7 +261,9 @@ namespace rgat
             }
 
             runargs += $"-P {rgatState.LocalCoordinatorPipeName!} ";
-            runargs += $"-- \"{targetBinary}\" ";
+            runargs += $"-- \"{settings.BinaryPath}\" ";
+            if (settings.CommandLineArgs is not null)
+                runargs += settings.CommandLineArgs;
 
             try
             {
@@ -275,7 +279,8 @@ namespace rgat
 
         }
 
-        public static void StartRemoteTrace(BinaryTarget target, int ordinal = -1, string? loaderName = null, long testID = -1)
+
+        public static void StartRemoteTrace(BinaryTarget target, ProcessLaunchSettings settings, long testID = -1)
         {
             if (!target.RemoteAccessible)
             {
@@ -284,21 +289,13 @@ namespace rgat
             }
 
             JObject startParamObj = new JObject();
-            startParamObj.Add("TargetPath", target.FilePath);
             if (testID != -1)
             {
                 startParamObj.Add("TestID", testID);
             }
 
-            if (ordinal != -1)
-            {
-                startParamObj.Add("Ordinal", ordinal);
-            }
-
-            if (loaderName != null)
-            {
-                startParamObj.Add("LoaderName", loaderName);
-            }
+            startParamObj.Add("Settings", JObject.FromObject(settings));
+            
 
             rgatState.NetworkBridge.SendCommand("StartTrace", null, null, startParamObj);
         }
