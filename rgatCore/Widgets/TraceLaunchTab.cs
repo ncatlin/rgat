@@ -602,12 +602,12 @@ namespace rgat
 
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
             if (
-                (activeTarget.RemoteBinary || activeTarget.PEFileObj != null)
+                (activeTarget.IsRemoteBinary || activeTarget.PEFileObj != null)
                 && ImGui.Button("Start Trace " + ImGuiController.FA_PLAY_CIRCLE, new Vector2(100, 40)) && runnable)
             {
                 _OldTraceCount = rgatState.TotalTraceCount;
                 int ordinal = (activeTarget.IsLibrary && activeTarget.SelectedExportIndex > -1) ? activeTarget.Exports[activeTarget.SelectedExportIndex].Item2 : 0;
-                if (activeTarget.RemoteBinary)
+                if (activeTarget.IsRemoteBinary)
                 {
                     ProcessLaunching.StartRemoteTrace(activeTarget, ordinal: ordinal);
                 }

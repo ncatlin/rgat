@@ -186,7 +186,7 @@ namespace rgat
         /// <summary>
         /// True if this target was loaded on a remote host in remote tracing mode
         /// </summary>
-        public bool RemoteBinary => RemoteHost != null;
+        public bool IsRemoteBinary => RemoteHost != null;
         /// <summary>
         /// Do we have an active connection to the host this file resides on?
         /// </summary>
@@ -198,7 +198,7 @@ namespace rgat
         /// <summary>
         /// Is this file accessible at the moment?
         /// </summary>
-        public bool IsAccessible => RemoteBinary ? RemoteAccessible : File.Exists(FilePath);
+        public bool IsAccessible => IsRemoteBinary ? RemoteAccessible : File.Exists(FilePath);
         /// <summary>
         /// Settings for which modules are instrumented/ignored
         /// </summary>
@@ -675,6 +675,23 @@ namespace rgat
             lock (tracesLock)
             {
                 result = TraceRecordsList.Find(x => x.PID == pid && x.randID == ID);
+                return (result != null);
+            }
+        }
+
+        /// <summary>
+        /// Retrieve the data for a trace record
+        /// </summary>
+        /// <param name="time">Start time of the trace</param>
+        /// <param name="ID">Unique ID of the trace</param>
+        /// <param name="result">TraceRecord of the associated trace</param>
+        /// <returns>true if a trace was found</returns>
+        public bool GetTraceByTime(DateTime time, long ID, out TraceRecord? result)
+        {
+            result = null;
+            lock (tracesLock)
+            {
+                result = TraceRecordsList.Find(x => x.LaunchedTime == time && x.randID == ID);
                 return (result != null);
             }
         }

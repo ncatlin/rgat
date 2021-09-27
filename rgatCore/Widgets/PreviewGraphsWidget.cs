@@ -42,7 +42,6 @@ namespace rgat
         private readonly ImGuiController? _ImGuiController;
         private GraphicsDevice? _gd;
 
-        private readonly rgatState _rgatState;
 
         /// <summary>
         /// Create a preview graph widget
@@ -56,7 +55,6 @@ namespace rgat
             IrregularTimer.AutoReset = true;
             IrregularTimer.Start();
             _ImGuiController = controller;
-            _rgatState = clientState;
         }
 
 

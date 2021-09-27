@@ -249,6 +249,16 @@ namespace rgat
         /// <param name="newState">The new state</param>
         public void SetTraceState(eTraceState newState)
         {
+            if (rgatState.NetworkBridge.HeadlessMode)
+            {
+                JObject state = new JObject();
+                state.Add("PID", this.PID);
+                state.Add("ID", this.randID);
+                state.Add("State", newState.ToString());
+                state.Add("SHA1", Target.GetSHA1Hash());
+                rgatState.NetworkBridge.SendAsyncData("TraceState", state);
+            }
+
             Logging.RecordLogEvent($"Set trace state {newState}", Logging.LogFilterType.TextDebug);
             if (TraceState == newState)
             {
@@ -1265,14 +1275,26 @@ namespace rgat
         /// <param name="command">A command</param>
         public void SendDebugCommand(uint threadID, string command)
         {
+            string cmd = command + '@' + threadID.ToString() + "\n\x00";
+
+            if (Target.IsRemoteBinary)
+            {
+                uint? cmdPipeID = this.ProcessThreads.modThread?.RemoteCommandPipeID;
+                if (Target.IsAccessible && cmdPipeID is not null)
+                {
+                    rgatState.NetworkBridge.SendTraceCommand(cmdPipeID.Value, cmd);
+                }
+                return;
+            }
+
+
             if (ProcessThreads.modThread == null)
             {
                 Logging.RecordLogEvent("Error: DBG command send to trace with no active module thread", Logging.LogFilterType.TextError);
                 return;
             }
 
-
-            byte[] buf = System.Text.Encoding.ASCII.GetBytes(command + '@' + threadID.ToString() + "\n\x00");
+            byte[] buf = System.Text.Encoding.ASCII.GetBytes(cmd);
             if (!ProcessThreads.modThread.SendCommand(buf))
             {
                 Logging.RecordLogEvent("Error sending command to control pipe", Logging.LogFilterType.TextError);

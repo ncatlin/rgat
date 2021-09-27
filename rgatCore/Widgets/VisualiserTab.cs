@@ -40,15 +40,12 @@ namespace rgat
         public void Init(GraphicsDevice gd, IProgress<float> progress)
         {
             MainGraphWidget.Init(gd);//1000~ ms
-            progress.Report(0.7f);
-
-            PreviewGraphWidget.Init(gd);//350~ ms
-            progress.Report(0.9f);
+             PreviewGraphWidget.Init(gd);
             _visualiserBar = new VisualiserBar(gd, _controller!); //200~ ms
+            progress.Report(0.2f);
 
-            StartPreviewWorkers();
-
-            progress.Report(0.99f);
+            //time depends on how many workers
+            StartPreviewWorkers(progress);
 
             mainRenderThreadObj = new MainGraphRenderThread(MainGraphWidget);
             mainRenderThreadObj.Begin();
@@ -62,7 +59,7 @@ namespace rgat
         /// <summary>
         /// Could do this at runtime instead of requiring a restart
         /// </summary>
-        private void StartPreviewWorkers()
+        private void StartPreviewWorkers(IProgress<float> progress)
         {
             int count = Math.Max(GlobalConfig.Settings.UI.PreviewWorkers, CONSTANTS.UI.MINIMUM_PREVIEW_WORKERS);
             count = Math.Min(count, CONSTANTS.UI.MAXIMUM_PREVIEW_WORKERS);
@@ -90,6 +87,8 @@ namespace rgat
                 prev = new PreviewRendererThread(i, PreviewGraphWidget, _controller, _rgatState, background: false);
                 previewRenderers.Add(prev);
                 prev.Begin();
+                progress.Report(0.2f + (i / count));
+                Logging.WriteConsole($"Reported progress of renderchild {i}/{count}");
             }
         }
 

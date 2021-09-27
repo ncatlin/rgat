@@ -68,7 +68,7 @@ namespace rgat.Config
         {
             lock (_lock)
             {
-                _remoteDataWorkers.Add(pipeID, worker);
+                _remoteDataWorkers.Add(pipeID, worker); //todo same key on reconnection
                 _pipeInterfaces.Add(pipeID, func);
             }
         }

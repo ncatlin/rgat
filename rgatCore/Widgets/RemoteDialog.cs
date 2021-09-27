@@ -36,19 +36,6 @@ namespace rgat.Widgets
             _refreshTimer.AutoReset = true;
             _refreshTimerFired = true;
 
-            string? addr = GlobalConfig.StartOptions.ConnectModeAddress;
-            if (addr != null)
-            {
-                currentAddress = addr;
-            }
-            else
-            {
-                List<string> recentAddrs = GlobalConfig.Settings.Network.RecentConnectedAddresses();
-                if (recentAddrs.Any())
-                {
-                    currentAddress = recentAddrs[0];
-                }
-            }
 
         }
 
@@ -117,6 +104,22 @@ namespace rgat.Widgets
                 }
             }
 
+            string? addr = GlobalConfig.StartOptions.ConnectModeAddress;
+            if (addr != null)
+            {
+                currentAddress = addr;
+            }
+            else
+            {
+                List<string> recentAddrs = GlobalConfig.Settings.Network.RecentConnectedAddresses();
+                if (recentAddrs.Any())
+                {
+                    currentAddress = recentAddrs[0];
+                    GlobalConfig.StartOptions.ConnectModeAddress = currentAddress;
+                }
+            }
+
+
         }
 
         public void Close()
@@ -167,7 +170,7 @@ namespace rgat.Widgets
                 _refreshTimer.Start();
             }
             float itemsWidth = 350;
-            ImGui.SetNextWindowSize(new Vector2(itemsWidth + 30, 435), ImGuiCond.Appearing);
+            ImGui.SetNextWindowSize(new Vector2(itemsWidth + 30, 455), ImGuiCond.Appearing);
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags.NoResize;
 
@@ -178,7 +181,7 @@ namespace rgat.Widgets
             {
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 10);
-                if (ImGui.BeginChild("#RemoteFrameMain", new Vector2(itemsWidth, 400)))
+                if (ImGui.BeginChild("#RemoteFrameMain", new Vector2(itemsWidth, 420)))
                 {
                     DrawStatusBanner();
                     DrawActivationToggle(itemsWidth);
@@ -258,7 +261,7 @@ namespace rgat.Widgets
                 }
                 ImGui.SameLine();
                 if (SmallWidgets.ToggleButton("NwkListenActive", activeNetworking, null) && KeyIsSet)
-                {
+                {    
                     if (activeNetworking)
                     {
                         rgatState.NetworkBridge.Teardown("Manual Disconnect");
@@ -530,8 +533,8 @@ namespace rgat.Widgets
                 _refreshTimerFired = false;
             }
 
-
-            if (ImGui.BeginTable("#IFListtable", 1, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.NoHostExtendY))
+            ImGui.PushStyleColor(ImGuiCol.TableBorderLight, 0xffff0000);
+            if (ImGui.BeginTable("#IFListtable", 1, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.ScrollY | ImGuiTableFlags.NoHostExtendY, new Vector2(220, 120)))
             {
                 int i = 0;
                 foreach (var iface in _netIFList)
@@ -584,6 +587,8 @@ namespace rgat.Widgets
                 }
                 ImGui.EndTable();
             }
+            ImGui.PopStyleColor();
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
         }
 
         private static void DrawIFToolTip(NetworkInterface iface)

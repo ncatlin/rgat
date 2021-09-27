@@ -412,7 +412,7 @@
             The network address this target resides on
             </summary>
         </member>
-        <member name="P:rgat.BinaryTarget.RemoteBinary">
+        <member name="P:rgat.BinaryTarget.IsRemoteBinary">
             <summary>
             True if this target was loaded on a remote host in remote tracing mode
             </summary>
@@ -599,6 +599,15 @@
             Retrieve the data for a trace record
             </summary>
             <param name="pid">Process ID of the trace</param>
+            <param name="ID">Unique ID of the trace</param>
+            <param name="result">TraceRecord of the associated trace</param>
+            <returns>true if a trace was found</returns>
+        </member>
+        <member name="M:rgat.BinaryTarget.GetTraceByTime(System.DateTime,System.Int64,rgat.TraceRecord@)">
+            <summary>
+            Retrieve the data for a trace record
+            </summary>
+            <param name="time">Start time of the trace</param>
             <param name="ID">Unique ID of the trace</param>
             <param name="result">TraceRecord of the associated trace</param>
             <returns>true if a trace was found</returns>
@@ -1048,6 +1057,11 @@
         <member name="T:rgat.GlobalConfig">
             <summary>
             Runtime rgat settings
+            </summary>
+        </member>
+        <member name="P:rgat.GlobalConfig.Loaded">
+            <summary>
+            Has the initial to load the config from settings.json finished
             </summary>
         </member>
         <member name="M:rgat.GlobalConfig.VerifyCertificate(System.String,System.String,System.String@,System.String@)">
@@ -8197,6 +8211,17 @@
             Child processes spawned by this process
             </summary>
         </member>
+        <member name="P:rgat.TraceRecord.Children">
+            <summary>
+            Get a thread safe array copy of all child process TraceRecords
+            </summary>
+        </member>
+        <member name="M:rgat.TraceRecord.AddChildTrace(rgat.TraceRecord)">
+            <summary>
+            Add a tracerecord as a child process spawned by this trace
+            </summary>
+            <param name="trace">Child process trace record</param>
+        </member>
         <member name="M:rgat.TraceRecord.GetChildren">
             <summary>
             returns a copy of the child trace list
@@ -9049,7 +9074,7 @@
             <param name="graph">The Graph</param>
             <returns></returns>
         </member>
-        <member name="M:rgat.VisualiserTab.StartPreviewWorkers">
+        <member name="M:rgat.VisualiserTab.StartPreviewWorkers(System.IProgress{System.Single})">
             <summary>
             Could do this at runtime instead of requiring a restart
             </summary>

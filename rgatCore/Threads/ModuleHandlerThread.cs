@@ -544,7 +544,7 @@ namespace rgat
                 switch (dbgCmd)
                 {
                     case 'b':
-                        Logging.RecordLogEvent(text: "Trace entered suspended state to to pingat break event", trace: trace);
+                        Logging.RecordLogEvent(text: "Trace entered suspended state due to pingat break event", trace: trace);
                         trace.SetTraceState(eTraceState.eSuspended);
                         break;
                     case 'c':

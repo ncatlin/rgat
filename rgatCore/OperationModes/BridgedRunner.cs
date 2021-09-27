@@ -48,6 +48,10 @@ namespace rgat.OperationModes
                     return;
                 }
             }
+            else
+            {
+                Logging.RecordError("No address to connect to");
+            }
         }
 
         public void StartGUIListen(BridgeConnection connection, BridgeConnection.OnConnectSuccessCallback onConnected)
@@ -380,6 +384,11 @@ namespace rgat.OperationModes
                     case "SigHit":
                         success = ProcessSignatureHit(data);
                         break;
+
+                    case "TraceState":
+                        success = ProcessTraceState(data);
+                        break;
+
                     default:
                         Logging.RecordError("Bad async data: " + name);
                         return;
@@ -475,6 +484,51 @@ namespace rgat.OperationModes
                 }
             }
             return true;
+        }
+
+
+        private static bool ProcessTraceState(JToken data)
+        {
+            Logging.RecordLogEvent("Remote trace state change command received");
+
+            if (data.Type is not JTokenType.Object)
+            {
+                return false;
+            }
+
+            JObject? values = data.ToObject<JObject>();
+            if (values is null ||
+                !values.TryGetValue("ID", out JToken? idTok) ||
+                idTok.Type is not JTokenType.Integer ||
+                !values.TryGetValue("SHA1", out JToken? shaTok) ||
+                shaTok.Type is not JTokenType.String ||
+                !values.TryGetValue("PID", out JToken? pidTok) ||
+                pidTok.Type is not JTokenType.Integer ||
+                !values.TryGetValue("State", out JToken? stateTok) ||
+                stateTok.Type is not JTokenType.String
+                )
+            {
+                return false;
+            }
+
+            if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget? targ) || targ is null) return false;
+
+            long ID = idTok.ToObject<long>();
+            uint PID = pidTok.ToObject<uint>();
+
+            if (targ.GetTraceByIDs(PID, ID, out TraceRecord? traceOut) is false || traceOut is null)
+            {
+                return false;
+            }
+
+
+            if (Enum.TryParse(typeof(TraceRecord.eTraceState), stateTok.ToString(), out object? newState) && newState is not null)
+            {
+                traceOut.SetTraceState((TraceRecord.eTraceState)newState);
+                return true;
+            }
+            
+            return false;
         }
 
 

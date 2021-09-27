@@ -637,6 +637,7 @@ namespace rgat
 
         private void ToggleRemoteDialog()
         {
+            if (GlobalConfig.Loaded is false) return;
             Logging.RecordLogEvent("Remote dialog toggled", LogFilterType.TextDebug);
             if (_show_remote_dialog == false)
             {
@@ -868,10 +869,14 @@ namespace rgat
             }
             else
             {
+                uint iconColour = GlobalConfig.Loaded ? Themes.GetThemeColourImGui(ImGuiCol.Text) : Themes.GetThemeColourImGui(ImGuiCol.TextDisabled);
+                ImGui.PushStyleColor(ImGuiCol.Text, iconColour);
                 if (ImGui.MenuItem(ImGuiController.FA_ICON_LOCALCODE + " Local Mode", null, ref rdlgshown))
                 {
-                    ToggleRemoteDialog();
+                    if (GlobalConfig.Loaded)
+                        ToggleRemoteDialog();
                 }
+                ImGui.PopStyleColor();
                 SmallWidgets.MouseoverText("Samples will be executed on this computer");
             }
         }

@@ -18,6 +18,11 @@ namespace rgat
     /// </summary>
     public partial class GlobalConfig
     {
+        /// <summary>
+        /// Has the initial to load the config from settings.json finished
+        /// </summary>
+        public static bool Loaded { get; private set; }
+
         static GlobalConfig()
         {
             //with single executables the AppContext.BaseDirectory value is the temp extract dir
@@ -772,6 +777,8 @@ namespace rgat
             Logging.RecordLogEvent($"Startup: Config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Stop();
             progress?.Report(1f);
+
+            Loaded = true;
         }
 
         private static void InstallNewTools()
