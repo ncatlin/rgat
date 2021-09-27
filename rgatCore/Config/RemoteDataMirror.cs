@@ -58,6 +58,29 @@ namespace rgat.Config
         private static readonly Dictionary<uint, ProcessIncomingWorkerData?> _pipeInterfaces = new Dictionary<uint, ProcessIncomingWorkerData?>();
 
 
+        // file info
+        private static List<PathRecord> _cachedRecentBins = new List<PathRecord>();
+
+
+
+        public static void PurgeConnectionData()
+        {
+            lock(_lock)
+            {
+                foreach(var worker in _remoteDataWorkers)
+                {
+                    worker.Value.Terminate();
+                }
+                _remoteDataWorkers.Clear();
+                _pipeInterfaces.Clear();
+                _pendingEvents.Clear();
+                _pendingEventsReverse.Clear();
+                _pendingCommandCallbacks.Clear();
+                _cachedRecentBins.Clear();
+            }
+        }
+
+
         /// <summary>
         /// Associate a remote named pipe with a Trace processor worker
         /// </summary>
@@ -208,9 +231,6 @@ namespace rgat.Config
 
 
 
-        // file info
-
-        private static List<PathRecord> _cachedRecentBins = new List<PathRecord>();
         /// <summary>
         /// Record recent path data from the remote host
         /// </summary>

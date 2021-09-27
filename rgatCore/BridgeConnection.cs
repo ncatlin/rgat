@@ -989,6 +989,8 @@ namespace rgat
                         _ActiveListener.Stop();
                     }
                 }
+
+                RemoteDataMirror.PurgeConnectionData();
             }
         }
 

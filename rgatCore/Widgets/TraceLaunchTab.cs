@@ -59,19 +59,52 @@ namespace rgat
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-                    ImGui.Text("Filename (Size)");
+                    ImGui.Text("Filename");
                     ImGui.TableNextColumn();
-                    string fileStr = string.Format("{0} ({1})", activeTarget.FileName, activeTarget.GetFileSizeString());
-                    byte[] _dataInput = Encoding.UTF8.GetBytes(fileStr);
-                    ImGui.SetNextItemWidth(500);
+
+
+                    byte[] _dataInput = Encoding.UTF8.GetBytes(activeTarget.FileName);
+                    ImGui.SetNextItemWidth(350);
                     ImGui.InputText("##filenameinp", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
+
+
+                    ImGui.SameLine();
+                    ImGui.Text("Size: "+activeTarget.GetFileSizeString());
+
+                    if (activeTarget.IsRemoteBinary)
+                    {
+                        ImGui.SameLine();
+                        if (activeTarget.IsAccessible)
+                        {
+                            ImGui.Text("[Remote Target]");
+                            SmallWidgets.MouseoverText($"This target is loaded on {activeTarget.RemoteHost}");
+                        }
+                        else
+                        {
+                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                            ImGui.Text("[Remote (Inaccessible)]");
+                            ImGui.PopStyleColor();
+                            SmallWidgets.MouseoverText($"This target was loaded on {activeTarget.RemoteHost} in remote tracing mode");
+                        }
+                    }
+                    else
+                    {
+                        ImGui.SameLine();
+                        if (rgatState.NetworkBridge.ActiveNetworking)
+                        {
+                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                            ImGui.Text("[Local]");
+                            ImGui.PopStyleColor();
+                        }
+                    }
+
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     ImGui.Text("SHA1 Hash");
                     ImGui.TableNextColumn();
                     _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA1Hash());
-                    ImGui.SetNextItemWidth(500);
+                    ImGui.SetNextItemWidth(550);
                     ImGui.InputText("##s1hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
 
                     ImGui.TableNextRow();
@@ -79,7 +112,7 @@ namespace rgat
                     ImGui.Text("SHA256 Hash");
                     ImGui.TableNextColumn();
                     _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA256Hash());
-                    ImGui.SetNextItemWidth(500);
+                    ImGui.SetNextItemWidth(550);
                     ImGui.InputText("##s256hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
 
 
@@ -87,7 +120,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("Hex Preview");
                     ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(500);
+                    ImGui.SetNextItemWidth(550);
                     Controller.PushOriginalFont(); //original imgui font is monospace and UTF8, good for this
                     {
                         _dataInput = Encoding.UTF8.GetBytes(activeTarget.HexPreview);
@@ -104,7 +137,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("ASCII Preview");
                     ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(500);
+                    ImGui.SetNextItemWidth(550);
                     Controller.PushOriginalFont();
                     {
                         _dataInput = Encoding.ASCII.GetBytes(activeTarget.ASCIIPreview);

@@ -46,12 +46,16 @@ namespace rgat.Threads
             stopped = false;
         }
 
+        public virtual void Terminate()
+        {
+            stopped = true;
+        }
+
         /// <summary>
         /// The worker is finished
         /// </summary>
         protected virtual void Finished()
         {
-            Debug.Assert(!stopped);
             stopped = true;
         }
     }
