@@ -21,7 +21,6 @@ namespace rgat
     {
         private List<PlottedGraph> DrawnPreviewGraphs = new List<PlottedGraph>();
         private readonly System.Timers.Timer IrregularTimer;
-        private bool IrregularTimerFired = false;
         private TraceRecord? ActiveTrace = null;
 
         /// <summary>
@@ -33,7 +32,7 @@ namespace rgat
         /// Height of each preview graph
         /// </summary>
         public static readonly float EachGraphHeight = CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT;
-        private bool Exiting = false;
+
         private uint selectedGraphTID;
         /// <summary>
         /// The graph the user clicked
@@ -70,17 +69,17 @@ namespace rgat
             _gd = gdev;
         }
 
+
         /// <summary>
         /// Destructor
         /// </summary>
         public void Dispose()
         {
-            Exiting = true;
             IrregularTimer.Stop();
         }
 
 
-        private void FireTimer(object sender, ElapsedEventArgs e) { IrregularTimerFired = true; }
+        private void FireTimer(object sender, ElapsedEventArgs e) { HandleFrameTimerFired(); }
 
         /// <summary>
         /// Set the trace of the active graph
@@ -110,10 +109,12 @@ namespace rgat
         private void HandleFrameTimerFired()
         {
             //Logging.WriteConsole("Handling timer fired");
-            IrregularTimerFired = false;
-            foreach (PlottedGraph graph in _centeringRequired.Keys.ToList())
+            lock (_lock)
             {
-                _centeringRequired[graph] = true;
+                foreach (PlottedGraph graph in _centeringRequired.Keys.ToList())
+                {
+                    _centeringRequired[graph] = true;
+                }
             }
         }
 
@@ -138,10 +139,6 @@ namespace rgat
                 return;
             }
 
-            if (IrregularTimerFired)
-            {
-                HandleFrameTimerFired();
-            }
 
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
 

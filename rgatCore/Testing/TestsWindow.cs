@@ -1,4 +1,5 @@
-﻿using ImGuiNET;
+﻿using Humanizer;
+using ImGuiNET;
 using rgat.Testing;
 using System;
 using System.Collections.Generic;
@@ -376,7 +377,7 @@ namespace rgat.Widgets
 
             ImGui.TableNextColumn();
 
-            if (ImGui.TreeNodeEx($"{testcase.CategoryName}:{testcase.TestName} - [{stateString}]"))
+            if (ImGui.TreeNodeEx($"{testcase.CategoryName}:{testcase.TestName} - [{stateString} after {testcaserun.TestDurationString}]"))
             {
                 var wholeTestReqs = testcase.TestRunRequirements();
 
@@ -551,24 +552,46 @@ namespace rgat.Widgets
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
             if (ImGui.BeginChild("#TestsStatusBar", new Vector2(ImGui.GetContentRegionAvail().X, 28)))
             {
-                if (_sessionStats["Loaded"] == 0)
+                float loadedCount = 0;
+                float execCount = 0;
+                float failedCount = 0;
+                float passedCount = 0;
+
+                lock(_TestsLock)
+                {
+                    execCount = _sessionStats["Executed"];
+                    loadedCount = _sessionStats["Loaded"];
+                    failedCount = _sessionStats["Failed"];
+                    passedCount = _sessionStats["Passed"];
+                }
+
+                if (loadedCount is 0)
                 {
                     ImGui.Text("No tests loaded. Ensure the test path is defined in settings and contains tests (see [URL - TODO])");
                 }
                 else
                 {
-                    if (_sessionStats["Executed"] == 0)
+                    if (execCount is 0)
                     {
                         ImGui.TextWrapped("No tests perfomed in this session. Queue tests using the list to the left or controls below and press \"Start Testing\"");
                     }
                     else
                     {
-                        float exec_pct = (_sessionStats["Executed"] / _allTests.Count);
-                        float pass_pct = (_sessionStats["Passed"] / _sessionStats["Executed"]);
-                        string label = $"{_sessionStats["Executed"]} of {_allTests.Count} tests executed ({exec_pct:P0}%). {_sessionStats["Failed"]} failed tests ({pass_pct:P0}% pass rate for most recent run of each test).";
+                        float exec_pct = (execCount / _allTests.Count);
+                        float pass_pct = (passedCount / execCount);
+
+                        string label = "";
+                        if (execCount is 1)
+                        {
+                            label = $"1 unique test case executed ({exec_pct:P0}%)";
+                        }
+                        else
+                        {
+                            label = $"{execCount} of {_allTests.Count} unique test cases executed ({exec_pct:P0}%)";
+                        }
+                        label += $" with {failedCount} failed tests ({pass_pct:P0}% pass rate for most recent run of each test).";
                         ImGui.Text(label);
                     }
-
                 }
 
                 ImGui.SameLine(ImGui.GetContentRegionAvail().X - 85);

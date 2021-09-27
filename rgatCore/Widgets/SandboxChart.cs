@@ -138,7 +138,7 @@ namespace rgat.Widgets
                 }
 
 
-                var threads = trace.GetProtoGraphs();
+                var threads = trace.ProtoGraphs;
                 foreach (var thread in threads)
                 {
                     string threadName = $"THREADNODE_{thread.TraceData.randID}_{thread.ThreadID}";

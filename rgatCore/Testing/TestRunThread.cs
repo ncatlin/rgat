@@ -61,10 +61,17 @@ namespace rgat.Testing
 
                         while (!rgatState.rgatIsExiting && !Finished)
                         {
+                            /*
+                             * This is quite awkward - main concern is something that does CreateProces(); ExitProcess()
+                             * and we exit thinking the job is done just before another child process connects. Of course
+                             * a 100 ms delay is not great at all but without actually instrumenting all the process creation
+                             * APIs it's difficult to come up with something to wait on
+                             */
                             Thread.Sleep(100);
-                            if (!testTrace.IsRunning && !testTrace.ProcessingRemaining)
+                            if (!testTrace.IsRunning && !testTrace.ProcessingRemaining_All)
                             {
                                 Finished = true;
+                                _thisTest.SetFinishTime(DateTime.Now);
                             }
                         }
                     }
@@ -73,11 +80,11 @@ namespace rgat.Testing
             }
 
 
+            Running = false;
+            _testCase.RecordFinished();
+
             Logging.WriteConsole($"Finished test [Session{_thisTest.Session}/ID{_thisTest.TestID}/{_testCase.TestName}]");
 
-            Running = false;
-
-            _testCase.RecordFinished();
             _harness.NotifyComplete(_thisTest.TestID);
         }
 

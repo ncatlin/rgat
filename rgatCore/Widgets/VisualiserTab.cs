@@ -665,14 +665,14 @@ namespace rgat
 
         private void CreateTracesDropdown(TraceRecord tr, int level)
         {
-            foreach (TraceRecord child in tr.children)
+            foreach (TraceRecord child in tr.Children)
             {
                 string tabs = new string("  ");
                 if (ImGui.Selectable(tabs + "PID " + child.PID, _rgatState.ActiveGraph?.PID == child.PID))
                 {
                     _rgatState.SelectActiveTrace(child);
                 }
-                if (child.children.Count > 0)
+                if (child.Children.Length > 0)
                 {
                     CreateTracesDropdown(tr, level + 1);
                 }
@@ -896,7 +896,7 @@ namespace rgat
                             {
                                 _rgatState.SelectActiveTrace(selectableTrace);
                             }
-                            if (selectableTrace.children.Count > 0)
+                            if (selectableTrace.Children.Length > 0)
                             {
                                 CreateTracesDropdown(selectableTrace, 1);
                             }

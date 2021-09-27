@@ -201,7 +201,7 @@ namespace rgat
                 foreach (TraceRecord trace in targ.GetTracesList())
                 {
                     //give the orders
-                    List<ProtoGraph> graphs = trace.GetProtoGraphs();
+                    List<ProtoGraph> graphs = trace.ProtoGraphs;
                     for (var i = 0; i < graphs.Count; i++)
                     {
                         graphs[i]?.TraceReader?.Terminate();
@@ -210,7 +210,7 @@ namespace rgat
                     trace.ProcessThreads?.BBthread?.Terminate();
 
                     //wait for all spawned processes to terminate
-                    while (trace.GetProtoGraphs().Exists(p => ((p.TraceProcessor != null) && p.TraceProcessor.Running) ||
+                    while (trace.ProtoGraphs.Exists(p => ((p.TraceProcessor != null) && p.TraceProcessor.Running) ||
                     ((p.TraceReader != null) && p.TraceReader.Running)))
                     {
                         Thread.Sleep(10);
@@ -698,7 +698,7 @@ namespace rgat
 
                 if (LoadTraceByPath(childFilePath, out TraceRecord? childTrace) && childTrace is not null)
                 {
-                    trace.children.Add(childTrace);
+                    trace.AddChildTrace(childTrace);
                     childTrace.ParentTrace = trace;
                 }
             }

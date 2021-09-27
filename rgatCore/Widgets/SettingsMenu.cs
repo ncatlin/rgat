@@ -1261,8 +1261,10 @@ namespace rgat.Widgets
                 CreateKeybindInput("Pause Video Capture", eKeybind.PauseVideo, index++, "Stop sending frames to be recorded");
                 ImGui.EndTable();
             }
+            ImGui.Text("Valid key modifiers are: Ctrl, Shift and Alt");
+            ImGui.Text("Only keybinds with the Alt modifier work with dialog windows open");
 
-            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2((ImGui.GetContentRegionMax().X / 2) - 70, 17));
+            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2((ImGui.GetContentRegionMax().X / 2) - 70, -15));
             if (ImGui.Button("Restore Defaults", new Vector2(140, 34)))
             {
                 GlobalConfig.Settings.Keybinds.ResetKeybinds();

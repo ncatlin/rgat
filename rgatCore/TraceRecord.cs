@@ -261,8 +261,8 @@ namespace rgat
 
                 lock (GraphListLock)
                 {
-                    Logging.RecordLogEvent($"\t\t {ProtoGraphs.Count} graphs", Logging.LogFilterType.TextDebug);
-                    foreach (ProtoGraph graph in ProtoGraphs.Values)
+                    Logging.RecordLogEvent($"\t\t {_protoGraphs.Count} graphs", Logging.LogFilterType.TextDebug);
+                    foreach (ProtoGraph graph in _protoGraphs.Values)
                     {
                         Logging.RecordLogEvent("\t\t clearing flag step", Logging.LogFilterType.TextDebug);
                         graph.ClearRecentStep();
@@ -286,7 +286,7 @@ namespace rgat
 
                 if (mainplot is not null)
                 {
-                    if (ProtoGraphs.ContainsKey(mainplot.TID))
+                    if (_protoGraphs.ContainsKey(mainplot.TID))
                     {
                         Logging.WriteConsole("Warning - thread with duplicate ID detected. This should never happen. Undefined behaviour ahoy.");
                         return false;
@@ -295,7 +295,7 @@ namespace rgat
                     PlottedGraphs[graph.ThreadID] = mainplot;
                 }
 
-                ProtoGraphs.Add(graph.ThreadID, graph);
+                _protoGraphs.Add(graph.ThreadID, graph);
 
                 //runtimeline.notify_new_thread(getPID(), randID, TID);
             }
@@ -470,7 +470,7 @@ namespace rgat
                             if (runningThreads != 0)
                             {
                                 Logging.RecordLogEvent("Got process terminate event with running threads. Forcing state to terminated");
-                                var graphs = trace.GetProtoGraphs();
+                                var graphs = trace.ProtoGraphs;
                                 foreach (ProtoGraph pgraph in graphs)
                                 {
                                     if (!pgraph.Terminated)
@@ -660,24 +660,27 @@ namespace rgat
         }
 
         private readonly object GraphListLock = new object();
-        private readonly Dictionary<uint, ProtoGraph> ProtoGraphs = new Dictionary<uint, ProtoGraph>();
+        private readonly Dictionary<uint, ProtoGraph> _protoGraphs = new Dictionary<uint, ProtoGraph>();
 
         /// <summary>
         /// get a copy of the protographs list
         /// </summary>
         /// <returns></returns>
-        public List<ProtoGraph> GetProtoGraphs()
+        public List<ProtoGraph> ProtoGraphs
         {
-            lock (GraphListLock)
+            get
             {
-                return ProtoGraphs.Values.ToList();
+                lock (GraphListLock)
+                {
+                    return _protoGraphs.Values.ToList();
+                }
             }
         }
 
         /// <summary>
         /// The number of graphs in the trace
         /// </summary>
-        public int GraphCount => ProtoGraphs.Count;
+        public int GraphCount => _protoGraphs.Count;
 
 
         //todo: thread IDs are not unique!
@@ -712,7 +715,34 @@ namespace rgat
         /// <summary>
         /// Child processes spawned by this process
         /// </summary>
-        public List<TraceRecord> children = new List<TraceRecord>();
+        private readonly List<TraceRecord> _children = new List<TraceRecord>();
+
+        /// <summary>
+        /// Get a thread safe array copy of all child process TraceRecords
+        /// </summary>
+        public TraceRecord[] Children
+        {
+            get
+            {
+                lock (GraphListLock)
+                {
+                    return _children.ToArray();
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Add a tracerecord as a child process spawned by this trace
+        /// </summary>
+        /// <param name="trace">Child process trace record</param>
+        public void AddChildTrace(TraceRecord trace)
+        {
+            lock(GraphListLock)
+            {
+                _children.Add(trace);
+            }
+        }
 
 
         /// <summary>
@@ -723,7 +753,7 @@ namespace rgat
         {
             lock (GraphListLock)
             {
-                return children.ToList();
+                return Children.ToList();
             }
         }
 
@@ -750,7 +780,7 @@ namespace rgat
         public int CountDescendantTraces()
         {
             int TraceCount = 1;
-            foreach (var child in this.children)
+            foreach (var child in this.Children)
             {
                 TraceCount += child.CountDescendantTraces();
             }
@@ -772,7 +802,7 @@ namespace rgat
 
             lock (GraphListLock)
             {
-                foreach (var child in children)
+                foreach (var child in Children)
                 {
                     TraceRecord? rec = child.GetTraceByID(traceID);
                     if (rec != null)
@@ -794,14 +824,14 @@ namespace rgat
         {
             lock (GraphListLock)
             {
-                foreach (ProtoGraph graph in ProtoGraphs.Values)
+                foreach (ProtoGraph graph in _protoGraphs.Values)
                 {
                     if (graph.ThreadID == graphID)
                     {
                         return graph;
                     }
                 }
-                foreach (var child in children)
+                foreach (var child in Children)
                 {
                     ProtoGraph? graph = child.GetProtoGraphByTID(graphID);
                     if (graph != null)
@@ -822,14 +852,14 @@ namespace rgat
         {
             lock (GraphListLock)
             {
-                foreach (ProtoGraph graph in ProtoGraphs.Values)
+                foreach (ProtoGraph graph in _protoGraphs.Values)
                 {
                     if (graph.ConstructedTime == time)
                     {
                         return graph;
                     }
                 }
-                foreach (var child in children)
+                foreach (var child in Children)
                 {
                     ProtoGraph? graph = child.GetProtoGraphByTime(time);
                     if (graph != null)
@@ -848,8 +878,8 @@ namespace rgat
         /// <returns>Threads in this and child processes</returns>
         public int CountDescendantGraphs()
         {
-            int GraphCount = ProtoGraphs.Count;
-            foreach (var child in this.children)
+            int GraphCount = _protoGraphs.Count;
+            foreach (var child in this.Children)
             {
                 GraphCount += child.CountDescendantGraphs();
             }
@@ -917,7 +947,7 @@ namespace rgat
 
             lock (GraphListLock)
             {
-                ProtoGraphs.Add(GraphThreadID, protograph);
+                _protoGraphs.Add(GraphThreadID, protograph);
             }
 
             //CylinderGraph standardRenderedGraph = new CylinderGraph(protograph, GlobalConfig.defaultGraphColours);
@@ -971,7 +1001,7 @@ namespace rgat
 
             JArray childPathsArray = new JArray();
             int saveCount = 0;
-            foreach (TraceRecord trace in children)
+            foreach (TraceRecord trace in Children)
             {
                 if (trace.Save(trace.LaunchedTime, out string? childpath) && childpath is not null)
                 {
@@ -1159,7 +1189,7 @@ namespace rgat
         /// <param name="TID">Thread ID of the graph to serialise</param>
         public void ExportPajek(uint TID)
         {
-            ProtoGraph pgraph = this.ProtoGraphs[TID];
+            ProtoGraph pgraph = this._protoGraphs[TID];
             string saveDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);
             if (!Directory.Exists(saveDir))
             {
@@ -1275,10 +1305,20 @@ namespace rgat
         /// </summary>
         public eTraceState TraceState { private set; get; } = eTraceState.eTerminated;
 
+
         /// <summary>
-        /// Are there any edges left to render, or might more trace data arrive?
+        /// Is the process terminated, with all the trace records integrated into their graphs
         /// </summary>
-        public bool ProcessingRemaining => ProcessThreads.modThread is not null && (ProcessThreads.modThread.Running || this.PlottedGraphs.Values.Any(g => !g.RenderingComplete));
+        public bool ProcessingRemaining_Trace => this._protoGraphs.Values.Any(g => g.TraceProcessor is not null && g.TraceProcessor.Running is true);
+
+
+        /// <summary>
+        /// Is the process - and all its children - terminated, with all the trace records integrated into their graphs 
+        /// </summary>
+        public bool ProcessingRemaining_All => this.ProcessingRemaining_Trace || this.Children.Any(c => c.ProcessingRemaining_All is true);
+
+
+
 
         /// <summary>
         /// See if the success requirements of a complete trace run are met 
@@ -1300,8 +1340,8 @@ namespace rgat
                 switch (req.Name)
                 {
                     case "GraphCount":
-                        passed = req.Compare(ProtoGraphs.Count, out error);
-                        compareValueString = $"{ProtoGraphs.Count}";
+                        passed = req.Compare(_protoGraphs.Count, out error);
+                        compareValueString = $"{_protoGraphs.Count}";
                         break;
                     default:
                         Logging.RecordLogEvent("Invalid process test requirement: " + req.Name, Logging.LogFilterType.TextError);
@@ -1345,7 +1385,7 @@ namespace rgat
                 foreach (TraceRequirements childRequirements in ptreq.ChildProcessRequirements)
                 {
                     Dictionary<TraceRecord, TRACE_TEST_RESULTS> childRequirementResults = new Dictionary<TraceRecord, TRACE_TEST_RESULTS>();
-                    foreach (TraceRecord record in children)
+                    foreach (TraceRecord record in Children)
                     {
                         //TraceTestResultCommentary childComm = resultsobj.ChildProcessRequirements[0];
                         TraceTestResultCommentary dummy = new TraceTestResultCommentary();
@@ -1366,7 +1406,7 @@ namespace rgat
         public Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS> EvaluateThreadTestRequirements(REQUIREMENTS_LIST threadTestReqs)
         {
             Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS> results = new Dictionary<ProtoGraph, REQUIREMENT_TEST_RESULTS>();
-            foreach (ProtoGraph graph in ProtoGraphs.Values)
+            foreach (ProtoGraph graph in _protoGraphs.Values)
             {
                 results[graph] = graph.MeetsTestRequirements(threadTestReqs);
             }

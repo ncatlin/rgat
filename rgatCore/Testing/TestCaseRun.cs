@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Humanizer;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -122,7 +123,45 @@ namespace rgat.Testing
         /// Set the initial trace
         /// </summary>
         /// <param name="trace"></param>
-        public void SetFirstTrace(TraceRecord trace) => FirstTrace = trace;
+        public void SetFirstTrace(TraceRecord trace)
+        {
+            FirstTrace = trace;
+            StartTime = DateTime.Now;
+        }
+
+        /// <summary>
+        /// When the tracer connected to rgat
+        /// </summary>
+        public DateTime StartTime { get; private set; } = DateTime.MinValue;
+
+        /// <summary>
+        /// When rgat decided the trace had finished. Could be 100ms or more off the actual termination time
+        /// and may not even notice child processes. Use thiis as a rough timeline of events, not a fine grained 
+        /// performance metric
+        /// </summary>
+        public DateTime EndTime { get; private set; } = DateTime.MaxValue;
+
+        /// <summary>
+        /// Set the rough end time of the trace
+        /// </summary>
+        /// <param name="time">DateTime of the end</param>
+        public void SetFinishTime(DateTime time)
+        {
+            EndTime = time;
+            TestDuration = EndTime - StartTime;
+            TestDurationString = ((TimeSpan)TestDuration!).Humanize(precision: 2);
+        }
+
+        /// <summary>
+        /// Roughly how long the test took to complete (likely a slight overestimation)
+        /// </summary>
+        public TimeSpan? TestDuration { get; private set; } = null;
+
+        /// <summary>
+        /// A humanized string of how long the test took to complete
+        /// </summary>
+        public string TestDurationString = "";
+
 
         private readonly TestCase _test;
         /// <summary>

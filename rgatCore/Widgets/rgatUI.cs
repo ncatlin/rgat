@@ -538,7 +538,7 @@ namespace rgat
                                 continue;
 
                             case eKeybind.CaptureWindowImage:
-                                if (DialogOpen)
+                                if (DialogOpen && ImGui.GetIO().KeyAlt is false)
                                 {
                                     continue;
                                 }
@@ -1571,7 +1571,7 @@ namespace rgat
         {
             ProcessLaunching.launch_saved_process_threads(trace, clientState);
 
-            foreach (TraceRecord childTrace in trace.children)
+            foreach (TraceRecord childTrace in trace.Children)
             {
                 StartTraceDisplayWorkers(childTrace, clientState);
             }

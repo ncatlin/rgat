@@ -3720,7 +3720,8 @@
             <summary>
             Initiate the swap of layout buffers into VRAM
             </summary>
-            <param name="newStyle"></param>
+            <param name="newStyle">The style of the layout to change to</param>
+            <param name="forceSame">If true then the same layout can be replot</param>
         </member>
         <member name="T:rgat.GraphLayoutState.PositionResetStyle">
             <summary>
@@ -4528,6 +4529,31 @@
             </summary>
             <param name="style">The layout style</param>
             <returns>Positions for each node</returns>
+        </member>
+        <member name="F:rgat.PlottedGraph.OPT_CYLINDER_RADIUS">
+            <summary>
+            Size of a cylinder plot
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.OPT_CYLINDER_PIXELS_PER_B">
+            <summary>
+            Vertical separation of nodes on a cylinder plot
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.OPT_CYLINDER_PIXELS_PER_A">
+            <summary>
+            Horizonal separation of nodes on a cylinder plot
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.OPT_WIREFRAME_ALPHA">
+            <summary>
+            Alpha value of plot wireframes
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.OPT_LOCK_TEMPERATURE">
+            <summary>
+            If set then the temperature will not decrease
+            </summary>
         </member>
         <member name="M:rgat.PlottedGraph.GetIllustrationEdges(System.Collections.Generic.List{System.UInt32}@)">
             <summary>
@@ -6884,6 +6910,34 @@
             </summary>
             <param name="trace"></param>
         </member>
+        <member name="P:rgat.Testing.TestCaseRun.StartTime">
+            <summary>
+            When the tracer connected to rgat
+            </summary>
+        </member>
+        <member name="P:rgat.Testing.TestCaseRun.EndTime">
+            <summary>
+            When rgat decided the trace had finished. Could be 100ms or more off the actual termination time
+            and may not even notice child processes. Use thiis as a rough timeline of events, not a fine grained 
+            performance metric
+            </summary>
+        </member>
+        <member name="M:rgat.Testing.TestCaseRun.SetFinishTime(System.DateTime)">
+            <summary>
+            Set the rough end time of the trace
+            </summary>
+            <param name="time">DateTime of the end</param>
+        </member>
+        <member name="P:rgat.Testing.TestCaseRun.TestDuration">
+            <summary>
+            Roughly how long the test took to complete (likely a slight overestimation)
+            </summary>
+        </member>
+        <member name="F:rgat.Testing.TestCaseRun.TestDurationString">
+            <summary>
+            A humanized string of how long the test took to complete
+            </summary>
+        </member>
         <member name="P:rgat.Testing.TestCaseRun.GetTestCase">
             <summary>
             Get the testcase for this test run
@@ -8106,7 +8160,7 @@
             <param name="localmodID">The module the address was in</param>
             <returns>If the address was found in a module</returns>
         </member>
-        <member name="M:rgat.TraceRecord.GetProtoGraphs">
+        <member name="P:rgat.TraceRecord.ProtoGraphs">
             <summary>
             get a copy of the protographs list
             </summary>
@@ -8138,7 +8192,7 @@
             The trace of the process which spawn this process, if this process is a child
             </summary>
         </member>
-        <member name="F:rgat.TraceRecord.children">
+        <member name="F:rgat.TraceRecord._children">
             <summary>
             Child processes spawned by this process
             </summary>
@@ -8256,9 +8310,14 @@
             The state of the trace process
             </summary>
         </member>
-        <member name="P:rgat.TraceRecord.ProcessingRemaining">
+        <member name="P:rgat.TraceRecord.ProcessingRemaining_Trace">
             <summary>
-            Are there any edges left to render, or might more trace data arrive?
+            Is the process terminated, with all the trace records integrated into their graphs
+            </summary>
+        </member>
+        <member name="P:rgat.TraceRecord.ProcessingRemaining_All">
+            <summary>
+            Is the process - and all its children - terminated, with all the trace records integrated into their graphs 
             </summary>
         </member>
         <member name="M:rgat.TraceRecord.EvaluateProcessTestRequirement(rgat.Testing.TraceRequirements,rgat.Testing.TraceTestResultCommentary@)">
@@ -8951,6 +9010,44 @@
             <param name="captionHeight">height of the caption</param>
             <param name="captionBackgroundcolor">contrast background colour of the caption</param>
             <returns>The graph was clicked</returns>
+        </member>
+        <member name="P:rgat.PreviewGraphsWidget.PreviewProjection">
+            <summary>
+            Get the projection matrix of a preview graph
+            </summary>
+        </member>
+        <member name="M:rgat.PreviewGraphsWidget.IsCenteringRequired(rgat.PlottedGraph)">
+            <summary>
+            Check if a graph is queued for preview centering
+            </summary>
+            <param name="graph">The graph</param>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.PreviewGraphsWidget.StartCentering(rgat.PlottedGraph)">
+            <summary>
+            Set a graph as requiring preview centering
+            </summary>
+            <param name="graph">The graph</param>
+        </member>
+        <member name="M:rgat.PreviewGraphsWidget.StopCentering(rgat.PlottedGraph)">
+            <summary>
+            Stop preview graph centering on a graph
+            </summary>
+            <param name="graph">The graph</param>
+        </member>
+        <member name="M:rgat.PreviewGraphsWidget.GetGraphBackgroundColour(rgat.PlottedGraph)">
+            <summary>
+            Get the background colour of a preview graph
+            </summary>
+            <param name="graph">The graph</param>
+            <returns>The colour</returns>
+        </member>
+        <member name="M:rgat.PreviewGraphsWidget.GetGraphBorderColour(rgat.PlottedGraph)">
+            <summary>
+            Get the border colour of a preview graph
+            </summary>
+            <param name="graph">The Graph</param>
+            <returns></returns>
         </member>
         <member name="M:rgat.VisualiserTab.StartPreviewWorkers">
             <summary>
