@@ -354,6 +354,7 @@ namespace rgat
             {
                 result.Add("PEBitWidth", 0);
             }
+
             return result;
         }
 
@@ -440,6 +441,11 @@ namespace rgat
                 {
                     rgatState.targets.RegisterTarget(this);
                 }
+                else
+                {
+                    Logging.RecordLogEvent($"InitialiseFromRemoteData invalid SHA1", Logging.LogFilterType.TextError);
+                    return false;
+                }
             }
 
             if (sha256Tok is not null)
@@ -448,6 +454,14 @@ namespace rgat
             }
 
             BitWidth = bitTok!.ToObject<int>();
+
+            ProcessLaunchSettings? settings;
+            if (!GlobalConfig.Settings.GetPreviousLaunchSettings(_sha1hash, out settings) || settings is null)
+            {
+                settings = new ProcessLaunchSettings(this.FilePath);
+                settings.TraceChoices.InitDefaultExclusions();
+            }
+            LaunchSettings = settings;
 
             RemoteInitialised = true;
             return true;

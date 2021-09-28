@@ -282,9 +282,11 @@ namespace rgat
 
             if (StartupProgress < 1)
             {
+                float originalY = ImGui.GetCursorPosY();
                 float ypos = ImGui.GetWindowSize().Y - 12;
                 ImGui.SetCursorPosY(ypos);
                 ImGui.ProgressBar((float)StartupProgress, new Vector2(-1, 4f));
+                ImGui.SetCursorPosY(originalY);
             }
 
             if (ImGui.IsPopupOpen("New Version Available"))

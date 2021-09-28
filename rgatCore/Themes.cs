@@ -359,10 +359,9 @@ namespace rgat
             }
 
 
-            Dictionary<eThemeSize, float> DefaultCustomSizes = new Dictionary<eThemeSize, float>
-            {
-                [eThemeSize.ePreviewSelectedBorder] = 1f
-            };
+            Dictionary<eThemeSize, float> DefaultCustomSizes = new Dictionary<eThemeSize, float>();
+
+            DefaultCustomSizes[eThemeSize.ePreviewSelectedBorder] = 1f;
 
             foreach (eThemeSize themeStyle in DefaultCustomSizes.Keys)
             {

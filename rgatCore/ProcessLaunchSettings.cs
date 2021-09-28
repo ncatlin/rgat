@@ -90,6 +90,18 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Get the tracing configuration settings as a dictrionary of keyvaluepair strings
+        /// </summary>
+        /// <returns>Settings dictionary</returns>
+        public string? GetInstrumentationSetting(string setting)
+        {
+            lock (_lock)
+            {
+                if (InstrumentationToolSettings.TryGetValue(setting, out string? value)) return value;
+                return null;
+            }
+        }
 
         /// <summary>
         /// Set a tracing configuration value to be sent to the instrumentation tool

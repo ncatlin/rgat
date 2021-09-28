@@ -5407,6 +5407,12 @@
             </summary>
             <returns>Settings dictionary</returns>
         </member>
+        <member name="M:rgat.ProcessLaunchSettings.GetInstrumentationSetting(System.String)">
+            <summary>
+            Get the tracing configuration settings as a dictrionary of keyvaluepair strings
+            </summary>
+            <returns>Settings dictionary</returns>
+        </member>
         <member name="M:rgat.ProcessLaunchSettings.SetTraceConfig(System.String,System.String)">
             <summary>
             Set a tracing configuration value to be sent to the instrumentation tool

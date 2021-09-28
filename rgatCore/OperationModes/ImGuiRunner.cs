@@ -47,7 +47,6 @@ namespace rgat.OperationModes
 
         // UI state
         private Vector3 _clearColor = new Vector3(0.15f, 0.15f, 0.16f);
-        private bool _showDemoWindow = true;
         private static Vector2 _lastMousePos;
         private static readonly List<Key> HeldResponsiveKeys = new List<Key>();
 
@@ -231,7 +230,7 @@ namespace rgat.OperationModes
 
             if (_controller.ShowDemoWindow)
             {
-                ImGui.ShowDemoWindow(ref _showDemoWindow);
+                ImGui.ShowDemoWindow(ref _controller.ShowDemoWindow);
             }
 
             _gd!.WaitForIdle();

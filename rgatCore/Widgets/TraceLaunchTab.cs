@@ -510,7 +510,7 @@ namespace rgat
             ImGui.Indent(-8);
         }
 
-        private bool _checkStartPausedState;
+
         private bool _recordVideoOnStart;
         private bool _diagnosticMode;
         private bool _activeTargetRunnable;
@@ -589,10 +589,11 @@ namespace rgat
 
                 ImGui.SameLine();
 
-                _checkStartPausedState = activeTarget.LaunchSettings!.InstrumentationToolSettings.TryGetValue("PAUSE_ON_START", out string? pauseVal) && pauseVal is not null && pauseVal == "TRUE";
-                if (ImGui.Checkbox("Start Paused", ref _checkStartPausedState) && _rgatState.ActiveTarget is not null)
+                string? startPausedVal = activeTarget.LaunchSettings!.GetInstrumentationSetting("PAUSE_ON_START");
+                bool startPaused = startPausedVal is not null && startPausedVal == "TRUE";
+                if (ImGui.Checkbox("Start Paused", ref startPaused))
                 {
-                    _rgatState.ActiveTarget.LaunchSettings.SetTraceConfig("PAUSE_ON_START", _checkStartPausedState ? "TRUE" : "FALSE");
+                    activeTarget.LaunchSettings.SetTraceConfig("PAUSE_ON_START", startPaused ? "TRUE" : "FALSE");
                 }
                 if (rgatState.VideoRecorder.Loaded)
                 {
@@ -628,12 +629,20 @@ namespace rgat
                     issues = issues!.Where(i => (i.Item1 == pintoolpath || i.Item1 == pinpath)).ToList();
                     if (issues.Any())
                     {
-                        //todo: be more specific on tooltip, but prevent a potential errordictionary reading race condition
-                        ImGui.TextWrapped("Warning: One or more tracing binaries does not have a validated signature");
-                        foreach (var issue in issues)
+                        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
+                        ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                        if (ImGui.BeginChild("#WarnIssueFrame", new Vector2(600,70 * issues.Count), true, ImGuiWindowFlags.AlwaysAutoResize))
                         {
-                            ImGui.TextWrapped($"    {Path.GetFileName(issue.Item1)}: {issue.Item2}");
+                            //todo: be more specific on tooltip, but prevent a potential error dictionary reading race condition
+                            ImGui.TextWrapped("Warning: One or more tracing binaries does not have a validated signature");
+                            foreach (var issue in issues)
+                            {
+                                ImGui.TextWrapped($"    {Path.GetFileName(issue.Item1)}: {issue.Item2}");
+                            }
+                            ImGui.EndChild();
                         }
+                        ImGui.PopStyleColor();
+                        ImGui.PopStyleVar();
                     }
 
                 }

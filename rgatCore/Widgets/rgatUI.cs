@@ -487,13 +487,14 @@ namespace rgat
 
                     if (isKeybind && !_show_settings_window)
                     {
+                        //ingore keybinds if a non-alt keybind used in dialog or user is entering text
+                        bool InInputArea = ((DialogOpen && ImGui.GetIO().KeyAlt is false) ||
+                                    ImGui.GetIO().WantTextInput);
+                        if (InInputArea) continue;
+
                         switch (boundAction)
                         {
                             case eKeybind.ToggleVideo:
-                                if (DialogOpen)
-                                {
-                                    continue;
-                                }
 
                                 ActivateNotification();
                                 if (rgatState.VideoRecorder.Recording)
@@ -507,10 +508,6 @@ namespace rgat
                                 continue;
 
                             case eKeybind.PauseVideo:
-                                if (DialogOpen)
-                                {
-                                    continue;
-                                }
 
                                 ActivateNotification();
                                 if (rgatState.VideoRecorder.Recording)
@@ -520,29 +517,14 @@ namespace rgat
                                 continue;
 
                             case eKeybind.CaptureGraphImage:
-                                if (DialogOpen)
-                                {
-                                    continue;
-                                }
-
                                 PendingScreenshot = VideoEncoder.CaptureContent.Graph;
                                 continue;
 
                             case eKeybind.CaptureGraphPreviewImage:
-                                if (DialogOpen)
-                                {
-                                    continue;
-                                }
-
                                 PendingScreenshot = VideoEncoder.CaptureContent.GraphAndPreviews;
                                 continue;
 
                             case eKeybind.CaptureWindowImage:
-                                if (DialogOpen && ImGui.GetIO().KeyAlt is false)
-                                {
-                                    continue;
-                                }
-
                                 PendingScreenshot = VideoEncoder.CaptureContent.Window;
                                 continue;
 
@@ -1142,6 +1124,7 @@ namespace rgat
                 return;
             }
 
+            float origy = ImGui.GetCursorPosY();
             ImGui.SetCursorPosY(25);//SetNextWindowPos(new Vector2(ImGui.GetWindowSize().X - ( 600), 25));
             ImGui.OpenPopup("##AlertsCtx");
 
@@ -1176,17 +1159,22 @@ namespace rgat
                 ImGui.PopStyleColor();
                 ImGui.EndPopup();
             }
+            ImGui.SetCursorPosY(origy);
         }
 
         private bool DrawAlerts(Vector2 logMenuPosition)
         {
 
             const double lingerTime = UI.ALERT_TEXT_LINGER_TIME;
+            const double fadeThreshold = 1000;
+
             double timeSinceLast = Logging.TimeSinceLastAlert.TotalMilliseconds;
             if (timeSinceLast > lingerTime)
             {
                 return false;
             }
+
+
 
             Logging.GetAlerts(8, out LOG_EVENT[] alerts);
             if (alerts.Length == 0)
@@ -1196,7 +1184,6 @@ namespace rgat
 
             ActivateNotification();
 
-            Vector2 originalCursorPos = ImGui.GetCursorScreenPos();
             if (GlobalConfig.Settings.UI.AlertAnimation && timeSinceLast < UI.ALERT_CIRCLE_ANIMATION_TIME)
             {
                 uint color = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.Text)).ToUint(150);
@@ -1216,8 +1203,14 @@ namespace rgat
             Vector2 size = new Vector2(width, 38);
             ImGui.SetCursorScreenPos(new Vector2(windowSize.X - width, 32));
 
+            double boxTimeRemaining = timeSinceLast - lingerTime; //fade out over a second
+            uint opacity = 255;
+            if (boxTimeRemaining < 1000)
+            {
+                opacity = ((uint)(boxTimeRemaining / (float)fadeThreshold));
+            }
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourWRF(Themes.eThemeColour.eAlertWindowBg).ToUint(customAlpha: opacity));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
             if (ImGui.BeginChild("##alertpopchildfrm", size))
@@ -1233,9 +1226,9 @@ namespace rgat
                     long alertAge = nowTime - item.EventTimeMS;
                     long timeRemaining = (long)lingerTime - alertAge;
                     int alpha = 255;
-                    if (timeRemaining < 1000) //fade out over a second
+                    if (timeRemaining < fadeThreshold) //fade out over a second
                     {
-                        float fade = (timeRemaining / 1000f);
+                        float fade = (timeRemaining / (float)fadeThreshold);
                         alpha = (int)(Math.Min(255f, 255f * fade));
                         alpha = Math.Max(alpha, 0);
                     }
@@ -1264,7 +1257,6 @@ namespace rgat
             ImGui.PopStyleVar();
             ImGui.PopStyleColor();
 
-            ImGui.SetCursorScreenPos(originalCursorPos);
             return true;
         }
 
