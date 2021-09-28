@@ -349,6 +349,7 @@ namespace rgat
             {
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF992200);
 
+                TraceChoiceSettings moduleChoices = activeTarget.LaunchSettings.TraceChoices;
                 if (ImGui.BeginChild("ModFilterToggleChild", new Vector2(ImGui.GetContentRegionAvail().X, 40)))
                 {
                     ImGui.AlignTextToFramePadding();
@@ -356,20 +357,20 @@ namespace rgat
                     ImGui.SameLine();
                     ImguiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
                     ImGui.SameLine();
-                    string TraceLabel = $"Default Trace [{activeTarget.TraceChoices.TraceDirCount + activeTarget.TraceChoices.TraceFilesCount}]";
+                    string TraceLabel = $"Default Trace [{moduleChoices.TraceDirCount + moduleChoices.TraceFilesCount}]";
 
-                    int traceModeRef = activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore ? 0 : 1;
+                    int traceModeRef = moduleChoices.TracingMode == ModuleTracingMode.eDefaultIgnore ? 0 : 1;
                     if (ImGui.RadioButton(TraceLabel, ref traceModeRef, 0))
                     {
-                        activeTarget.TraceChoices.TracingMode = (eModuleTracingMode)traceModeRef;
+                        moduleChoices.TracingMode = (ModuleTracingMode)traceModeRef;
                     };
                     ImGui.SameLine();
                     ImguiUtils.HelpMarker("Only specified libraries will be traced");
                     ImGui.SameLine();
-                    string IgnoreLabel = $"Default Ignore [{activeTarget.TraceChoices.IgnoreDirsCount + activeTarget.TraceChoices.ignoreFilesCount}]";
+                    string IgnoreLabel = $"Default Ignore [{moduleChoices.IgnoreDirsCount + moduleChoices.IgnoreFilesCount}]";
                     if (ImGui.RadioButton(IgnoreLabel, ref traceModeRef, 1))
                     {
-                        activeTarget.TraceChoices.TracingMode = (eModuleTracingMode)traceModeRef;
+                        moduleChoices.TracingMode = (ModuleTracingMode)traceModeRef;
                     };
                     ImGui.SameLine();
                     ImguiUtils.HelpMarker("All libraries will be traced except for those on the ignore list");
@@ -384,7 +385,7 @@ namespace rgat
                         ImGui.Selectable(fstr);
                         if (ImGui.IsItemClicked())
                         {
-                            activeTarget.TraceChoices.RemoveIgnoredDirectory(fstr);
+                            moduleChoices.RemoveIgnoredDirectory(fstr);
                         }
                     }
                     ImGui.PopStyleColor();
@@ -397,13 +398,13 @@ namespace rgat
                     if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
                     {
                         ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
-                        if (activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultTrace)
+                        if (moduleChoices.TracingMode == ModuleTracingMode.eDefaultTrace)
                         {
-                            int ignoredDirCount = activeTarget.TraceChoices.IgnoreDirsCount;
+                            int ignoredDirCount = moduleChoices.IgnoreDirsCount;
                             ImGui.SetNextItemOpen(true, ImGuiCond.Once);
                             if (ImGui.TreeNode($"Ignored Directories ({ignoredDirCount})"))
                             {
-                                DrawClickablePaths(activeTarget.TraceChoices.GetIgnoredDirs(), (x) => { activeTarget.TraceChoices.RemoveIgnoredDirectory(x); });
+                                DrawClickablePaths(moduleChoices.GetIgnoredDirs(), (x) => { moduleChoices.RemoveIgnoredDirectory(x); });
                                 ImGui.TreePop();
                             }
                             if (ignoredDirCount > 0 && ImGui.BeginPopupContextItem("IgnoreDirsClear", ImGuiPopupFlags.MouseButtonRight))
@@ -411,18 +412,18 @@ namespace rgat
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                                 if (ImGui.Selectable("Clear all ignored directories"))
                                 {
-                                    activeTarget.TraceChoices.ClearIgnoredDirs();
+                                    moduleChoices.ClearIgnoredDirs();
                                 }
 
                                 ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
 
-                            int ignoredFileCount = activeTarget.TraceChoices.ignoreFilesCount;
+                            int ignoredFileCount = moduleChoices.IgnoreFilesCount;
                             ImGui.SetNextItemOpen(true, ImGuiCond.Once);
                             if (ImGui.TreeNode($"Ignored Files ({ignoredFileCount})"))
                             {
-                                DrawClickablePaths(activeTarget.TraceChoices.GetIgnoredFiles(), (x) => { activeTarget.TraceChoices.RemoveIgnoredFile(x); });
+                                DrawClickablePaths(moduleChoices.GetIgnoredFiles(), (x) => { moduleChoices.RemoveIgnoredFile(x); });
                                 ImGui.TreePop();
                             }
                             if (ignoredFileCount > 0 && ImGui.BeginPopupContextItem("IgnoreFilesClear", ImGuiPopupFlags.MouseButtonRight))
@@ -430,7 +431,7 @@ namespace rgat
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                                 if (ImGui.Selectable("Clear all ignored files"))
                                 {
-                                    activeTarget.TraceChoices.ClearIgnoredFiles();
+                                    moduleChoices.ClearIgnoredFiles();
                                 }
 
                                 ImGui.PopStyleColor();
@@ -446,12 +447,12 @@ namespace rgat
                             ImGui.PopStyleVar();
                             SmallWidgets.MouseoverText("Add files/directories to this filter");
                         }
-                        else if (activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+                        else if (moduleChoices.TracingMode == ModuleTracingMode.eDefaultIgnore)
                         {
                             ImGui.SetNextItemOpen(true, ImGuiCond.Once);
-                            if (ImGui.TreeNode($"Traced Directories ({activeTarget.TraceChoices.TraceDirCount})"))
+                            if (ImGui.TreeNode($"Traced Directories ({moduleChoices.TraceDirCount})"))
                             {
-                                DrawClickablePaths(activeTarget.TraceChoices.GetTracedDirs(), (x) => { activeTarget.TraceChoices.RemoveTracedDirectory(x); });
+                                DrawClickablePaths(moduleChoices.GetTracedDirs(), (x) => { moduleChoices.RemoveTracedDirectory(x); });
                                 ImGui.TreePop();
                             }
                             if (ImGui.BeginPopupContextItem("TraceDirsClear", ImGuiPopupFlags.MouseButtonRight))
@@ -459,7 +460,7 @@ namespace rgat
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                                 if (ImGui.Selectable("Clear all traced directories"))
                                 {
-                                    activeTarget.TraceChoices.ClearTracedDirs();
+                                    moduleChoices.ClearTracedDirs();
                                 }
 
                                 ImGui.PopStyleColor();
@@ -467,9 +468,9 @@ namespace rgat
                             }
 
                             ImGui.SetNextItemOpen(true, ImGuiCond.Once);
-                            if (ImGui.TreeNode($"Traced Files ({activeTarget.TraceChoices.TraceFilesCount})"))
+                            if (ImGui.TreeNode($"Traced Files ({moduleChoices.TraceFilesCount})"))
                             {
-                                DrawClickablePaths(activeTarget.TraceChoices.GetTracedFiles(), (x) => { activeTarget.TraceChoices.RemoveTracedFile(x); });
+                                DrawClickablePaths(moduleChoices.GetTracedFiles(), (x) => { moduleChoices.RemoveTracedFile(x); });
                                 ImGui.TreePop();
                             }
                             if (ImGui.BeginPopupContextItem("TraceDirsClear", ImGuiPopupFlags.MouseButtonRight))
@@ -477,7 +478,7 @@ namespace rgat
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                                 if (ImGui.Selectable("Clear all traced files"))
                                 {
-                                    activeTarget.TraceChoices.ClearTracedFiles();
+                                    moduleChoices.ClearTracedFiles();
                                 }
 
                                 ImGui.PopStyleColor();
@@ -513,7 +514,10 @@ namespace rgat
         private bool _recordVideoOnStart;
         private bool _diagnosticMode;
         private bool _activeTargetRunnable;
-        private string? _cmdLineArgs;
+
+        byte[] _cmdLineArgData = Array.Empty<byte>();
+        BinaryTarget? viewedTarget = null;
+
         private void DrawTraceTab_ExecutionSettings(BinaryTarget activeTarget, float width)
         {
             ImGui.BeginGroup();
@@ -562,11 +566,22 @@ namespace rgat
                 ImguiUtils.HelpMarker("Command line arguments passed to the program being executed");
                 ImGui.SameLine();
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBgHovered));
-                byte[] _dataInput = new byte[1024];
-                if(ImGui.InputText("##cmdline", _dataInput, 1024))
+
+                if (activeTarget != viewedTarget)
                 {
-                    int argsLen = Array.FindIndex(_dataInput, x => x == '\0');
-                    _cmdLineArgs = Encoding.UTF8.GetString(_dataInput, 0, argsLen);
+                    _cmdLineArgData = new byte[4096];
+                    if (activeTarget.LaunchSettings.CommandLineArgs is not null)
+                    {
+                        byte[] savedargs = Encoding.UTF8.GetBytes(activeTarget.LaunchSettings.CommandLineArgs);
+                        Array.Copy(savedargs, _cmdLineArgData, savedargs.Length);
+                    }
+                    viewedTarget = activeTarget;
+                }
+
+                if(ImGui.InputText("##cmdline", _cmdLineArgData, (uint)_cmdLineArgData.Length))
+                {
+                    int argsLen = Array.FindIndex(_cmdLineArgData, x => x == '\0');
+                    activeTarget.LaunchSettings!.CommandLineArgs = Encoding.UTF8.GetString(_cmdLineArgData, 0, argsLen);
                 }
 
                 ImGui.PopStyleColor(2);
@@ -574,9 +589,10 @@ namespace rgat
 
                 ImGui.SameLine();
 
+                _checkStartPausedState = activeTarget.LaunchSettings!.InstrumentationToolSettings.TryGetValue("PAUSE_ON_START", out string? pauseVal) && pauseVal is not null && pauseVal == "TRUE";
                 if (ImGui.Checkbox("Start Paused", ref _checkStartPausedState) && _rgatState.ActiveTarget is not null)
                 {
-                    _rgatState.ActiveTarget.SetTraceConfig("PAUSE_ON_START", _checkStartPausedState ? "TRUE" : "FALSE");
+                    _rgatState.ActiveTarget.LaunchSettings.SetTraceConfig("PAUSE_ON_START", _checkStartPausedState ? "TRUE" : "FALSE");
                 }
                 if (rgatState.VideoRecorder.Loaded)
                 {
@@ -633,11 +649,11 @@ namespace rgat
 
         ProcessLaunchSettings BuildSettings(BinaryTarget activeTarget)
         {
-            ProcessLaunchSettings settings = new ProcessLaunchSettings(activeTarget.FilePath);
+            activeTarget.LaunchSettings.BinaryPath = activeTarget.FilePath;
+            activeTarget.LaunchSettings.DLLOrdinal = (activeTarget.IsLibrary && activeTarget.SelectedExportIndex > -1) ? activeTarget.Exports[activeTarget.SelectedExportIndex].Item2 : 0;
+            activeTarget.LaunchSettings.LoaderName = activeTarget.LoaderName;
 
-            settings.DLLOrdinal = (activeTarget.IsLibrary && activeTarget.SelectedExportIndex > -1) ? activeTarget.Exports[activeTarget.SelectedExportIndex].Item2 : 0;
-            settings.CommandLineArgs = this._cmdLineArgs;
-            settings.LoaderName = activeTarget.LoaderName;
+            GlobalConfig.Settings.AddLaunchSettings(activeTarget.GetSHA1Hash(), activeTarget.LaunchSettings); //only store settings on launch
 
 
             //only continuous instrumentation supported
@@ -647,7 +663,7 @@ namespace rgat
             // }
 
 
-            return settings;
+            return activeTarget.LaunchSettings;
         }
 
         private void StartButton(BinaryTarget activeTarget, string pintoolpath)

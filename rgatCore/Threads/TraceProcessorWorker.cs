@@ -13,6 +13,7 @@ namespace rgat.Threads
         /// </summary>
         protected static rgatState? _clientState;
 
+
         /// <summary>
         /// init the state property
         /// </summary>
@@ -21,6 +22,7 @@ namespace rgat.Threads
         {
             _clientState = state_;
         }
+
 
         private bool stopped = true;
         /// <summary>
@@ -38,6 +40,7 @@ namespace rgat.Threads
         /// </summary>
         public Thread? WorkerThread = null;
 
+
         /// <summary>
         /// Start work
         /// </summary>
@@ -46,6 +49,7 @@ namespace rgat.Threads
             stopped = false;
         }
 
+
         /// <summary>
         /// Basic thread termination
         /// </summary>
@@ -53,6 +57,7 @@ namespace rgat.Threads
         {
             stopped = true;
         }
+
 
         /// <summary>
         /// The worker is finished

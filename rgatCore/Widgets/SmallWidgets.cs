@@ -152,7 +152,7 @@ namespace rgat.Widgets
         public static void DrawSpinner(ImGuiController controller, int count)
         {
             Texture btnIcon = controller.GetImage("ArrowSpin");
-            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.graphicsDevice.ResourceFactory, btnIcon, "Spinner");
+            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.GraphicsDevice.ResourceFactory, btnIcon, "Spinner");
 
             Vector2 size = new Vector2(btnIcon.Width, btnIcon.Height);
             Vector2 corner = ImGui.GetCursorScreenPos() + new Vector2(0, size.Y);
@@ -192,7 +192,7 @@ namespace rgat.Widgets
         public static void DrawIcon(ImGuiController controller, string name, int countCaption = 1, Vector2? offset = null)
         {
             Texture btnIcon = controller.GetImage(name);
-            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.graphicsDevice.ResourceFactory, btnIcon, $"Icon" + name);
+            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.GraphicsDevice.ResourceFactory, btnIcon, $"Icon" + name);
 
             Vector2 size = new Vector2(btnIcon.Width, btnIcon.Height);
             Vector2 corner = ImGui.GetCursorScreenPos() + (offset ?? Vector2.Zero);
@@ -208,7 +208,7 @@ namespace rgat.Widgets
         public static void DrawClickableIcon(ImGuiController controller, string name, int countCaption = 1, Vector2? offset = null)
         {
             Texture btnIcon = controller.GetImage(name);
-            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.graphicsDevice.ResourceFactory, btnIcon, $"ClickIcon" + name);
+            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.GraphicsDevice.ResourceFactory, btnIcon, $"ClickIcon" + name);
 
             Vector2 size = new Vector2(btnIcon.Width, btnIcon.Height);
             Vector2 thispos = ImGui.GetCursorScreenPos();

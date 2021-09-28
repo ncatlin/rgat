@@ -15,7 +15,6 @@ namespace rgat
     /// </summary>
     public class PipeTraceIngestThread : TraceIngestWorker
     {
-        private readonly uint TraceBufSize = GlobalConfig.Settings.Tracing.TraceBufferSize;
         private readonly ProtoGraph? protograph;
         private readonly NamedPipeServerStream threadpipe;
         private readonly Thread splittingThread;
@@ -50,7 +49,6 @@ namespace rgat
         {
             Debug.Assert(newProtoGraph == null || newProtoGraph.ThreadID == threadID);
             _threadID = threadID;
-            TraceBufSize = GlobalConfig.Settings.Tracing.TraceBufferSize;
             protograph = newProtoGraph;
             threadpipe = _threadpipe;
             ReadingQueue = FirstQueue;
@@ -65,8 +63,10 @@ namespace rgat
         public override void Begin()
         {
             base.Begin();
-            WorkerThread = new Thread(Reader);
-            WorkerThread.Name = "TraceReader" + _threadID;
+            WorkerThread = new Thread(Reader)
+            {
+                Name = "TraceReader" + _threadID
+            };
             WorkerThread.Start();
 
             splittingThread.Name = "MessageSplitter" + _threadID;
@@ -188,7 +188,7 @@ namespace rgat
         private void MessageSplitterThread(object? queueFunc)
         {
             QueueIngestedData AddData = (QueueIngestedData)queueFunc!;
-            while (!rgatState.rgatIsExiting && (threadpipe.IsConnected || RawQueue.Count > 0))
+            while (!rgatState.rgatIsExiting && (threadpipe.IsConnected || !RawQueue.IsEmpty))
             {
                 if (!RawQueue.TryDequeue(out Tuple<byte[], int>? buf_sz))
                 {
@@ -275,7 +275,7 @@ namespace rgat
             while (!StopFlag && !PipeBroke)
             {
                 byte[] TagReadBuffer = new byte[CONSTANTS.TRACING.TagCacheSize];
-                int bytesRead = await threadpipe.ReadAsync(TagReadBuffer, 0, CONSTANTS.TRACING.TagCacheSize, CancelToken);
+                int bytesRead = await threadpipe.ReadAsync(TagReadBuffer.AsMemory(0, CONSTANTS.TRACING.TagCacheSize), CancelToken);
 
                 if (bytesRead < CONSTANTS.TRACING.TagCacheSize)
                 {
@@ -310,7 +310,7 @@ namespace rgat
             threadpipe.Dispose();
 
             //wait for the queue to be empty before destroying self
-            while ((RawQueue.Count > 0 || FirstQueue.Count > 0 || SecondQueue.Count > 0) && !StopFlag)
+            while ((RawQueue.IsEmpty is false || FirstQueue.Count > 0 || SecondQueue.Count > 0) && !StopFlag)
             {
                 if (WakeupRequested)
                 {

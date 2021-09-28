@@ -163,7 +163,7 @@ namespace rgat
         /// <summary>
         /// The type of tracing done
         /// </summary>
-        public enum eTracePurpose
+        public enum TracingPurpose
         {
             /// <summary>
             /// Gather trace data of the process executing normally to visualise it
@@ -178,7 +178,7 @@ namespace rgat
         /// <summary>
         /// The state of the process being traced
         /// </summary>
-        public enum eTraceState
+        public enum ProcessState
         {
             /// <summary>
             /// The process is running
@@ -204,7 +204,7 @@ namespace rgat
         /// <param name="timeStarted">When the process was recorded starting</param>
         /// <param name="purpose">A purpose value for the trace [only visualiser is supported]</param>
         /// <param name="arch">32 or 64 bits, or 0 if unknown (remote)</param>
-        public TraceRecord(uint newPID, long randomNo, BinaryTarget binary, DateTime timeStarted, eTracePurpose purpose = eTracePurpose.eVisualiser, int arch = 0)
+        public TraceRecord(uint newPID, long randomNo, BinaryTarget binary, DateTime timeStarted, TracingPurpose purpose = TracingPurpose.eVisualiser, int arch = 0)
         {
             PID = newPID;
             randID = randomNo;
@@ -218,7 +218,7 @@ namespace rgat
             }
 
             DisassemblyData = new ProcessRecord(binary.BitWidth);
-            TraceState = eTraceState.eRunning;
+            TraceState = ProcessState.eRunning;
 
             //_tlFilterCounts[Logging.LogFilterType.TimelineProcess] = 0;
             //_tlFilterCounts[Logging.LogFilterType.TimelineThread] = 0;
@@ -241,21 +241,23 @@ namespace rgat
         /// </summary>
         public bool WasLoadedFromSave => _loadedFromSave;
 
-        private string getModpathID() { return PID.ToString() + randID.ToString(); }
+        private string GetModpathID() { return PID.ToString() + randID.ToString(); }
 
         /// <summary>
         /// Set the trace state
         /// </summary>
         /// <param name="newState">The new state</param>
-        public void SetTraceState(eTraceState newState)
+        public void SetTraceState(ProcessState newState)
         {
             if (rgatState.NetworkBridge.HeadlessMode)
             {
-                JObject state = new JObject();
-                state.Add("PID", this.PID);
-                state.Add("ID", this.randID);
-                state.Add("State", newState.ToString());
-                state.Add("SHA1", Target.GetSHA1Hash());
+                JObject state = new JObject
+                {
+                    { "PID", this.PID },
+                    { "ID", this.randID },
+                    { "State", newState.ToString() },
+                    { "SHA1", Target.GetSHA1Hash() }
+                };
                 rgatState.NetworkBridge.SendAsyncData("TraceState", state);
             }
 
@@ -266,7 +268,7 @@ namespace rgat
             }
 
             Logging.RecordLogEvent("\tactioning it", Logging.LogFilterType.TextDebug);
-            if (newState != eTraceState.eSuspended)
+            if (newState != ProcessState.eSuspended)
             {
 
                 lock (GraphListLock)
@@ -420,7 +422,7 @@ namespace rgat
                 }
 
                 _loadedFromSave = true;
-                TraceState = eTraceState.eTerminated;
+                TraceState = ProcessState.eTerminated;
                 return true;
             }
             catch (Exception e)
@@ -472,10 +474,10 @@ namespace rgat
                     {
                         Debug.Assert(trace != null);
                         //might have been terminated by other means
-                        if (trace.TraceState != eTraceState.eTerminated)
+                        if (trace.TraceState != ProcessState.eTerminated)
                         {
                             runningProcesses -= 1;
-                            SetTraceState(eTraceState.eTerminated);
+                            SetTraceState(ProcessState.eTerminated);
 
                             if (runningThreads != 0)
                             {
@@ -524,7 +526,7 @@ namespace rgat
                             runningThreads -= 1;
                             if (runningProcesses == 0 && runningThreads == 0)
                             {
-                                SetTraceState(eTraceState.eTerminated);
+                                SetTraceState(ProcessState.eTerminated);
                             }
                             //  _tlFilterCounts.TryGetValue(Logging.LogFilterType.TimelineThread, out currentCount);
                             //_tlFilterCounts[Logging.LogFilterType.TimelineThread] = currentCount + 1;
@@ -652,7 +654,7 @@ namespace rgat
 
             localmodID = -1;
             Logging.WriteConsole($"Warning: Unknown module in traceRecord::FindContainingModule for address 0x{address:X}");
-            int attempts = 1;
+            int attempts = 22;
             while (attempts-- != 0)
             {
                 Thread.Sleep(30);
@@ -715,7 +717,7 @@ namespace rgat
         /// <summary>
         /// The type of trace. Currently visualiser is the only supported type
         /// </summary>
-        public eTracePurpose TraceType { get; private set; } = eTracePurpose.eVisualiser;
+        public TracingPurpose TraceType { get; private set; } = TracingPurpose.eVisualiser;
 
         /// <summary>
         /// The trace of the process which spawn this process, if this process is a child
@@ -986,7 +988,7 @@ namespace rgat
         {
             savePath = null;
             Logging.RecordLogEvent($"Saving trace {Target.FilePath} -> PID {PID}");
-            if (TraceType != eTracePurpose.eVisualiser)
+            if (TraceType != TracingPurpose.eVisualiser)
             {
                 Logging.RecordLogEvent("\tSkipping non visualiser trace");
                 return false;
@@ -999,15 +1001,17 @@ namespace rgat
                 return false;
             }
 
-            JObject traceSaveObject = new JObject();
-            traceSaveObject.Add("PID", PID);
-            traceSaveObject.Add("PID_ID", randID);
-            traceSaveObject.Add("IsLibrary", Target.IsLibrary);
-            traceSaveObject.Add("ProcessData", DisassemblyData.Serialise());
-            traceSaveObject.Add("BinaryPath", Target.FilePath);
-            traceSaveObject.Add("StartTime", traceStartedTime);
-            traceSaveObject.Add("Threads", SerialiseGraphs());
-            traceSaveObject.Add("Timeline", SerialiseTimeline());
+            JObject traceSaveObject = new JObject
+            {
+                { "PID", PID },
+                { "PID_ID", randID },
+                { "IsLibrary", Target.IsLibrary },
+                { "ProcessData", DisassemblyData.Serialise() },
+                { "BinaryPath", Target.FilePath },
+                { "StartTime", traceStartedTime },
+                { "Threads", SerialiseGraphs() },
+                { "Timeline", SerialiseTimeline() }
+            };
 
             JArray childPathsArray = new JArray();
             int saveCount = 0;
@@ -1067,7 +1071,7 @@ namespace rgat
 
         private JsonTextWriter? CreateSaveFile(DateTime startedTime, out string? path)
         {
-            string saveFilename = $"{Target.FileName}-{PID}-{startedTime.ToString("MMM-dd__HH-mm-ss")}.rgat";
+            string saveFilename = $"{Target.FileName}-{PID}-{startedTime:MMM-dd__HH-mm-ss}.rgat";
             string saveDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);
             if (!Directory.Exists(saveDir))
             {
@@ -1319,13 +1323,13 @@ namespace rgat
         /// <summary>
         /// false if the process is no longer being traced
         /// </summary>
-        public bool IsRunning => TraceState != eTraceState.eTerminated;
+        public bool IsRunning => TraceState != ProcessState.eTerminated;
         private bool killed = false;
 
         /// <summary>
         /// The state of the trace process
         /// </summary>
-        public eTraceState TraceState { private set; get; } = eTraceState.eTerminated;
+        public ProcessState TraceState { private set; get; } = ProcessState.eTerminated;
 
 
         /// <summary>

@@ -41,7 +41,8 @@ namespace rgat
 
         private readonly ImGuiController? _ImGuiController;
         private GraphicsDevice? _gd;
-
+        public GraphLayoutEngine ForegroundLayoutEngine;
+        public GraphLayoutEngine BackgroundLayoutEngine;
 
         /// <summary>
         /// Create a preview graph widget
@@ -55,6 +56,11 @@ namespace rgat
             IrregularTimer.AutoReset = true;
             IrregularTimer.Start();
             _ImGuiController = controller;
+
+            ForegroundLayoutEngine = new GraphLayoutEngine($"Preview_Foreground");
+            ForegroundLayoutEngine.Init(controller.GraphicsDevice);
+            BackgroundLayoutEngine = new GraphLayoutEngine($"Preview_Background");
+            BackgroundLayoutEngine.Init(controller.GraphicsDevice);
         }
 
 
@@ -230,7 +236,7 @@ namespace rgat
                     result = Enumerable.Range(0, DrawnPreviewGraphs.Count).ToList();
                     break;
                 default:
-                    Logging.RecordLogEvent($"Bad preview sort order: {order.ToString()}");
+                    Logging.RecordLogEvent($"Bad preview sort order: {order}");
                     break;
             }
 
@@ -244,7 +250,7 @@ namespace rgat
             ImGui.BeginTooltip();
             string runningState;
             //todo a 'blocked' option when i get around to detecting/displaying the blocked state
-            if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eSuspended)
+            if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.ProcessState.eSuspended)
             {
                 runningState = "Suspended";
             }
@@ -405,7 +411,7 @@ namespace rgat
         /// </summary>
         public PlottedGraph? HoveredGraph { get; private set; } = null;
 
-        private void DrawPreviewZoomEnvelope(PlottedGraph graph, Vector2 subGraphPosition)
+        private static void DrawPreviewZoomEnvelope(PlottedGraph graph, Vector2 subGraphPosition)
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList();
             float previewBaseY = subGraphPosition.Y + EachGraphHeight;
@@ -620,11 +626,11 @@ namespace rgat
 
             switch (graph.InternalProtoGraph.TraceData.TraceState)
             {
-                case TraceRecord.eTraceState.eTerminated:
+                case TraceRecord.ProcessState.eTerminated:
                     return Themes.GetThemeColourWRF(Themes.eThemeColour.PreviewBGTerminated);
-                case TraceRecord.eTraceState.eRunning:
+                case TraceRecord.ProcessState.eRunning:
                     return Themes.GetThemeColourWRF(Themes.eThemeColour.PreviewBGRunning);
-                case TraceRecord.eTraceState.eSuspended:
+                case TraceRecord.ProcessState.eSuspended:
                     return Themes.GetThemeColourWRF(Themes.eThemeColour.PreviewBGSuspended);
                 default:
                     return new WritableRgbaFloat(0, 0, 0, 0);
@@ -646,11 +652,11 @@ namespace rgat
 
             switch (graph.InternalProtoGraph.TraceData.TraceState)
             {
-                case TraceRecord.eTraceState.eTerminated:
+                case TraceRecord.ProcessState.eTerminated:
                     return 0x4f00004f;
-                case TraceRecord.eTraceState.eRunning:
+                case TraceRecord.ProcessState.eRunning:
                     return 0xff00ff00;
-                case TraceRecord.eTraceState.eSuspended:
+                case TraceRecord.ProcessState.eSuspended:
                     return 0xff47A3f0;
                 default:
                     return 0;

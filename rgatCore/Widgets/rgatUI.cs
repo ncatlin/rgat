@@ -71,7 +71,7 @@ namespace rgat
         private float _mouseWheelDelta = 0;
         private Vector2 _mouseDragDelta = new Vector2(0, 0);
 
-        private bool DialogOpen => Controller.DialogOpen;
+        private static bool DialogOpen => Controller.DialogOpen;
         public bool MenuBarVisible => (_rgatState.ActiveTarget is not null ||
             _splashHeaderHover ||
             LogsWindow.RecentAlert() ||
@@ -113,7 +113,7 @@ namespace rgat
             Exists = true;
             _rgatState = state;
             _controller = controller;
-            _gd = Controller.graphicsDevice;
+            _gd = Controller.GraphicsDevice;
             _logsWindow = new LogsWindow(_rgatState);
         }
 
@@ -1655,18 +1655,19 @@ namespace rgat
             BinaryTarget? activeTarget = _rgatState.ActiveTarget;
             if (activeTarget is not null)
             {
-                if (activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+                TraceChoiceSettings moduleChoices = activeTarget.LaunchSettings.TraceChoices;
+                if (moduleChoices.TracingMode == ModuleTracingMode.eDefaultIgnore)
                 {
                     foreach (string f in files)
                     {
-                        activeTarget.TraceChoices.AddTracedDirectory(f);
+                        moduleChoices.AddTracedDirectory(f);
                     }
                 }
                 else
                 {
                     foreach (string f in files)
                     {
-                        activeTarget.TraceChoices.AddIgnoredDirectory(f);
+                        moduleChoices.AddIgnoredDirectory(f);
                     }
                 }
             }
@@ -1678,18 +1679,19 @@ namespace rgat
             BinaryTarget? activeTarget = _rgatState.ActiveTarget;
             if (activeTarget is not null)
             {
-                if (activeTarget.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+                TraceChoiceSettings moduleChoices = activeTarget.LaunchSettings.TraceChoices;
+                if (moduleChoices.TracingMode == ModuleTracingMode.eDefaultIgnore)
                 {
                     foreach (string f in files)
                     {
-                        activeTarget.TraceChoices.AddTracedFile(f);
+                        moduleChoices.AddTracedFile(f);
                     }
                 }
                 else
                 {
                     foreach (string f in files)
                     {
-                        activeTarget.TraceChoices.AddIgnoredFile(f);
+                        moduleChoices.AddIgnoredFile(f);
                     }
                 }
             }

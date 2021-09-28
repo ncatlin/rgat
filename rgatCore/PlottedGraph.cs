@@ -39,6 +39,54 @@ namespace rgat
             Ended
         };
 
+
+        /// <summary>
+        /// How to center the graph
+        /// </summary>
+        public enum CenteringMode {
+            /// <summary>
+            /// The graph is not being centered
+            /// </summary>
+            Inactive,
+            /// <summary>
+            /// The graph is being centered until it is centered
+            /// </summary>
+            Centering, 
+            /// <summary>
+            /// The widget will continue centering the graph to lock it in position even as it grows
+            /// </summary>
+            ContinuousCentering 
+        };
+
+        /// <summary>
+        /// The current centering state for this graph in the main graph renderer
+        /// </summary>
+        public CenteringMode CenteringInFrame = CenteringMode.Inactive;
+        /// <summary>
+        /// How many steps the current non-continuous centering operation has taken
+        /// </summary>
+        public int CenteringSteps = 0;
+
+
+        /// <summary>
+        /// Toggle centering on or off
+        /// </summary>
+        /// <param name="locked">If toggling on, this will turn on continuous centering</param>
+        public void ToggleCentering(bool locked = false)
+        {
+            if (CenteringInFrame is not CenteringMode.Inactive)
+            {
+                CenteringInFrame = CenteringMode.Inactive;
+                CenteringSteps = 0;
+            }
+            else
+            {
+                CenteringInFrame = locked ? CenteringMode.ContinuousCentering : CenteringMode.Centering;
+                CenteringSteps = 0;
+            }
+        }
+
+
         private readonly ReaderWriterLockSlim _renderLock = new ReaderWriterLockSlim();
 
         /// <summary>

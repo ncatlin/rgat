@@ -124,6 +124,7 @@ namespace rgat
             return result.ToArray();
         }
 
+
         public static NetworkInterface? ValidateNetworkInterface(string interfaceCmdlineString)
         {
             if (interfaceCmdlineString == null)

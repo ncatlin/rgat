@@ -24,7 +24,7 @@ namespace rgat
         /// <summary>
         /// Message types
         /// </summary>
-        public enum emsgType
+        public enum MsgType
         {
             /// <summary>
             /// Involved in the management of the connection
@@ -67,7 +67,7 @@ namespace rgat
         /// <summary>
         /// Connection activity
         /// </summary>
-        public enum eBridgeState
+        public enum BridgeState
         {
             /// <summary>
             /// There is no network activity
@@ -104,7 +104,7 @@ namespace rgat
         /// <summary>
         /// Is there an established connection
         /// </summary>
-        public bool Connected => BridgeState == eBridgeState.Connected;
+        public bool Connected => ConnectionState == BridgeState.Connected;
 
         /// <summary>
         /// The most recently connected host
@@ -114,13 +114,13 @@ namespace rgat
         /// <summary>
         /// Are we either listening, connecting or connected
         /// </summary>
-        public bool ActiveNetworking => BridgeState == eBridgeState.Connected || BridgeState == eBridgeState.Listening || BridgeState == eBridgeState.Connecting;
+        public bool ActiveNetworking => ConnectionState == BridgeState.Connected || ConnectionState == BridgeState.Listening || ConnectionState == BridgeState.Connecting;
 
 
         /// <summary>
         /// The state of the connection
         /// </summary>
-        public eBridgeState BridgeState
+        public BridgeState ConnectionState
         {
             get => _bridgeState;
             private set
@@ -129,7 +129,7 @@ namespace rgat
             }
         }
 
-        private eBridgeState _bridgeState = eBridgeState.Inactive;
+        private BridgeState _bridgeState = BridgeState.Inactive;
 
         //nacl.core doesn't mention thread safety anywhere so have one for each direction
         private NetworkStream? _networkStream;
@@ -177,7 +177,7 @@ namespace rgat
             /// <summary>
             /// The message type
             /// </summary>
-            public emsgType msgType;
+            public MsgType msgType;
             /// <summary>
             /// The intended recipient of the message
             /// </summary>
@@ -225,7 +225,7 @@ namespace rgat
         public void Start(IPAddress localBindAddress, string remoteConnectAddress, int remoteConnectPort, OnGotDataCallback datacallback, BridgeConnection.OnConnectSuccessCallback connectCallback)
         {
             Reset();
-            BridgeState = eBridgeState.Connecting;
+            ConnectionState = BridgeState.Connecting;
             _ActiveClient = new TcpClient(new IPEndPoint(localBindAddress, 0));
             _registeredIncomingDataCallback = datacallback;
             Task.Run(() => StartConnectOut(_ActiveClient, remoteConnectAddress, remoteConnectPort, connectCallback));
@@ -434,13 +434,11 @@ namespace rgat
 
                 using (var plaintextStream = new MemoryStream(buf))
                 {
-                    using (var plaintextReader = new BinaryReader(plaintextStream))
-                    {
-                        emsgType msgType = (emsgType)plaintextReader.ReadByte();
-                        uint destination = plaintextReader.ReadUInt32();
-                        int count = plaintextReader.ReadInt32();
-                        data = new NETWORK_MSG() { msgType = msgType, destinationID = destination, data = plaintextReader.ReadBytes(count) };
-                    }
+                    using var plaintextReader = new BinaryReader(plaintextStream);
+                    MsgType msgType = (MsgType)plaintextReader.ReadByte();
+                    uint destination = plaintextReader.ReadUInt32();
+                    int count = plaintextReader.ReadInt32();
+                    data = new NETWORK_MSG() { msgType = msgType, destinationID = destination, data = plaintextReader.ReadBytes(count) };
                 }
                 return true;
             }
@@ -498,7 +496,7 @@ namespace rgat
         /// <param name="msgtype">Message Type</param>
         /// <param name="textdata">Message string</param>
         /// <returns>If successful</returns>
-        private bool RawSendData(emsgType msgtype, string textdata)
+        private bool RawSendData(MsgType msgtype, string textdata)
         {
             return RawSendData(new NETWORK_MSG() { msgType = msgtype, destinationID = 0, data = Encoding.ASCII.GetBytes(textdata) });
         }
@@ -517,14 +515,12 @@ namespace rgat
                 Span<byte> plaintext;
                 using (var msgBufStream = new MemoryStream())
                 {
-                    using (var msgBufWriter = new BinaryWriter(msgBufStream))
-                    {
-                        msgBufWriter.Write((byte)msg.msgType);
-                        msgBufWriter.Write(msg.destinationID);
-                        msgBufWriter.Write(msg.data.Length);
-                        msgBufWriter.Write(msg.data);
-                        plaintext = msgBufStream.ToArray();
-                    }
+                    using var msgBufWriter = new BinaryWriter(msgBufStream);
+                    msgBufWriter.Write((byte)msg.msgType);
+                    msgBufWriter.Write(msg.destinationID);
+                    msgBufWriter.Write(msg.data.Length);
+                    msgBufWriter.Write(msg.data);
+                    plaintext = msgBufStream.ToArray();
                 }
 
                 _sendIV += 1;
@@ -624,10 +620,12 @@ namespace rgat
 
             try
             {
-                _ActiveListener = new TcpListener(localBindAddress, localBindPort);
-                _ActiveListener.ExclusiveAddressUse = true;
+                _ActiveListener = new TcpListener(localBindAddress, localBindPort)
+                {
+                    ExclusiveAddressUse = true
+                };
                 _ActiveListener.Start();
-                BridgeState = eBridgeState.Listening;
+                ConnectionState = BridgeState.Listening;
             }
             catch (SocketException e)
             {
@@ -641,7 +639,7 @@ namespace rgat
                 Teardown();
             }
 
-            if (BridgeState is eBridgeState.Listening)
+            if (ConnectionState is BridgeState.Listening)
             {
                 _registeredIncomingDataCallback = dataCallback;
                 return Task.Run(() => StartListenForConnection(_ActiveListener!, connectCallback));
@@ -654,7 +652,7 @@ namespace rgat
 
         private void StartListenForConnection(TcpListener listener, OnConnectSuccessCallback connectCallback)
         {
-            if (BridgeState != eBridgeState.Listening)
+            if (ConnectionState is not BridgeState.Listening)
             {
                 return;
             }
@@ -745,7 +743,7 @@ namespace rgat
             }
             RemoteEndPoint = (IPEndPoint)_ActiveClient.Client.RemoteEndPoint;
             LastAddress = RemoteEndPoint.Address.ToString();
-            BridgeState = eBridgeState.Connected;
+            ConnectionState = BridgeState.Connected;
             Logging.WriteConsole("Invoking connected callback");
             Task.Run(() => connectedCallback());
             StartConnectionDataHandlers();
@@ -776,9 +774,11 @@ namespace rgat
             {
                 commandCount += 1;
 
-                JObject item = new JObject();
-                item.Add("Name", command);
-                item.Add("CmdID", commandCount);
+                JObject item = new JObject
+                {
+                    { "Name", command },
+                    { "CmdID", commandCount }
+                };
                 if (param != null)
                 {
                     item.Add("Paramfield", param);
@@ -789,7 +789,7 @@ namespace rgat
                     Debug.Assert(recipientID != null);
                     RemoteDataMirror.RegisterPendingResponse(commandCount, command, recipientID, callback);
                 }
-                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.Command, destinationID = 0, data = Encoding.ASCII.GetBytes(item.ToString()) });
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = MsgType.Command, destinationID = 0, data = Encoding.ASCII.GetBytes(item.ToString()) });
                 NewOutDataEvent.Set();
                 return commandCount;
             }
@@ -805,7 +805,7 @@ namespace rgat
         {
             lock (_sendQueueLock)
             {
-                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.TraceCommand, destinationID = pipe, data = Encoding.ASCII.GetBytes(message) });
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = MsgType.TraceCommand, destinationID = pipe, data = Encoding.ASCII.GetBytes(message) });
                 NewOutDataEvent.Set();
             }
         }
@@ -820,7 +820,7 @@ namespace rgat
         {
             lock (_sendQueueLock)
             {
-                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.Log, destinationID = (uint)msgType, data = Encoding.ASCII.GetBytes(message) });
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = MsgType.Log, destinationID = (uint)msgType, data = Encoding.ASCII.GetBytes(message) });
                 NewOutDataEvent.Set();
             }
 
@@ -849,7 +849,7 @@ namespace rgat
 
             lock (_sendQueueLock)
             {
-                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.TraceData, destinationID = pipeID, data = data });
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = MsgType.TraceData, destinationID = pipeID, data = data });
                 NewOutDataEvent.Set();
             }
         }
@@ -866,7 +866,7 @@ namespace rgat
             lock (_sendQueueLock)
             {
                 byte[] Jsnbytes = Encoding.ASCII.GetBytes($"{trace.Target.GetSHA1Hash()},{trace.PID},{trace.randID},{info}");
-                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.TraceMeta, destinationID = 0, data = Jsnbytes });
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = MsgType.TraceMeta, destinationID = 0, data = Jsnbytes });
                 NewOutDataEvent.Set();
             }
         }
@@ -899,7 +899,7 @@ namespace rgat
                 JObject responseObj = new JObject() { new JProperty("CommandID", commandID), new JProperty("Response", JToken.Parse(sb.ToString())) };
 
                 byte[] Jsnbytes = Encoding.ASCII.GetBytes(responseObj.ToString(formatting: Formatting.None));
-                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.CommandResponse, destinationID = 0, data = Jsnbytes });
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = MsgType.CommandResponse, destinationID = 0, data = Jsnbytes });
                 NewOutDataEvent.Set();
             }
         }
@@ -917,7 +917,7 @@ namespace rgat
             {
                 JObject responseObj = new JObject() { new JProperty("CommandID", commandID), new JProperty("Response", response) };
                 byte[] Jsnbytes = Encoding.ASCII.GetBytes(responseObj.ToString(formatting: Formatting.None));
-                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.CommandResponse, destinationID = 0, data = Jsnbytes });
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = MsgType.CommandResponse, destinationID = 0, data = Jsnbytes });
                 NewOutDataEvent.Set();
             }
         }
@@ -934,7 +934,7 @@ namespace rgat
             {
                 JObject responseObj = new JObject() { new JProperty("Name", dataName), new JProperty("Data", data) };
                 byte[] Jsnbytes = Encoding.ASCII.GetBytes(responseObj.ToString(formatting: Formatting.None));
-                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = emsgType.AsyncData, destinationID = 0, data = Jsnbytes });
+                _OutDataQueue.Enqueue(new NETWORK_MSG() { msgType = MsgType.AsyncData, destinationID = 0, data = Jsnbytes });
                 NewOutDataEvent.Set();
             }
         }
@@ -948,13 +948,13 @@ namespace rgat
         {
             lock (_lock)
             {
-                if (BridgeState != eBridgeState.Teardown)
+                if (ConnectionState is not BridgeState.Teardown)
                 {
                     try
                     {
                         if (_ActiveClient != null && _ActiveClient.Connected)
                         {
-                            RawSendData(emsgType.Meta, "Teardown:" + reason);
+                            RawSendData(MsgType.Meta, "Teardown:" + reason);
                             AddNetworkDisplayLogMessage($"Disconnected{(reason.Length > 0 ? $": {reason}" : "")}", Themes.eThemeColour.eWarnStateColour);
                         }
                         else
@@ -963,7 +963,7 @@ namespace rgat
                         }
 
                         Thread.Sleep(250); //give the UI a chance to close the connection gracefully so the right error message appears first. 
-                        BridgeState = eBridgeState.Teardown;
+                        ConnectionState = BridgeState.Teardown;
                         if (_reader != null)
                         {
                             _reader.Dispose();
@@ -1067,7 +1067,7 @@ namespace rgat
             Logging.WriteConsole($"AuthenticateOutgoingConnection Sending prelude '{(GUIMode ? connectPreludeGUI : connectPreludeHeadless)}'");
 
 
-            if (!RawSendData(emsgType.Meta, GUIMode ? connectPreludeGUI : connectPreludeHeadless))
+            if (!RawSendData(MsgType.Meta, GUIMode ? connectPreludeGUI : connectPreludeHeadless))
             {
                 Logging.WriteConsole($"Failed to send prelude using {client}");
                 return false;
@@ -1075,7 +1075,7 @@ namespace rgat
 
 
             bool success = ReadData(out NETWORK_MSG? response) && response != null;
-            if (!success || response!.Value.data == null || response.Value.msgType != emsgType.Meta)
+            if (!success || response!.Value.data == null || response.Value.msgType != MsgType.Meta)
             {
                 return false;
             }
@@ -1136,9 +1136,7 @@ namespace rgat
         /// <returns>Authenticated</returns>
         public bool AuthenticateIncomingConnection(TcpClient client)
         {
-            NETWORK_MSG? recvd;
-
-            if (!ReadData(out recvd) || recvd == null)
+            if (!ReadData(out NETWORK_MSG? recvd) || recvd == null)
             {
                 return false;
             }
@@ -1146,7 +1144,7 @@ namespace rgat
             NETWORK_MSG msg = recvd.Value;
             string authString = ASCIIEncoding.ASCII.GetString(recvd.Value.data);
 
-            if (recvd == null || msg.msgType != emsgType.Meta || msg.data.Length == 0)
+            if (recvd == null || msg.msgType != MsgType.Meta || msg.data.Length == 0)
             {
                 AddNetworkDisplayLogMessage("Authentication failed - no vald data", Themes.eThemeColour.eBadStateColour);
                 Logging.WriteConsole($"AuthenticateIncomingConnection No prelude from {client}, ignoring");
@@ -1155,7 +1153,7 @@ namespace rgat
             }
 
             string connectPrelude = GUIMode ? connectPreludeHeadless : connectPreludeGUI;
-            if (authString == connectPrelude && RawSendData(emsgType.Meta, GUIMode ? connectResponseGUI : connectResponseHeadless))
+            if (authString == connectPrelude && RawSendData(MsgType.Meta, GUIMode ? connectResponseGUI : connectResponseHeadless))
             {
                 Logging.WriteConsole($"Auth succeeded");
                 return true;
@@ -1174,7 +1172,7 @@ namespace rgat
                     }
 
                     Logging.RecordLogEvent($"Connection refused - Connection can only be made between rgat in GUI and command-line modes", Logging.LogFilterType.TextError);
-                    RawSendData(emsgType.Meta, "Bad Mode");
+                    RawSendData(MsgType.Meta, "Bad Mode");
                 }
                 else
                 {

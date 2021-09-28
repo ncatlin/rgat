@@ -97,8 +97,10 @@ namespace rgat
             else
             {
                 Debug.Assert(_remoteEventPipeID == null);
-                WorkerThread = new Thread(PipeEventListener);
-                WorkerThread.Name = $"TraceModuleHandler_{trace.PID}_{trace.randID}";
+                WorkerThread = new Thread(PipeEventListener)
+                {
+                    Name = $"TraceModuleHandler_{trace.PID}_{trace.randID}"
+                };
                 param = ProcessMessageLocal;
             }
             WorkerThread.Start(param);
@@ -245,7 +247,7 @@ namespace rgat
 
             switch (trace.TraceType)
             {
-                case eTracePurpose.eVisualiser:
+                case TracingPurpose.eVisualiser:
                     ProtoGraph newProtoGraph = new ProtoGraph(trace, TID, startAddr);
                     if (!rgatState.ConnectedToRemote)
                     {
@@ -259,16 +261,18 @@ namespace rgat
                             traceRef = spawnedThreadCount++;
                             _pendingPipeThreads.Add(traceRef, newProtoGraph);
                         }
-                        JObject params_ = new JObject();
-                        params_.Add("TID", TID);
-                        params_.Add("PID", trace.PID);
-                        params_.Add("RID", trace.randID);
-                        params_.Add("ref", traceRef);
+                        JObject params_ = new JObject
+                        {
+                            { "TID", TID },
+                            { "PID", trace.PID },
+                            { "RID", trace.randID },
+                            { "ref", traceRef }
+                        };
                         rgatState.NetworkBridge.SendCommand("ThreadIngest", trace.randID.ToString() + spawnedThreadCount.ToString(), SpawnRemoteTraceProcessorThreads, params_);
                     }
 
                     break;
-                case eTracePurpose.eFuzzer:
+                case TracingPurpose.eFuzzer:
                     {
                         /*
                         fuzzRun* fuzzinstance = (fuzzRun*)runRecord->fuzzRunPtr;
@@ -388,10 +392,11 @@ namespace rgat
             }
 
             byte[] buf;
-            if (target.TraceChoices.TracingMode == eModuleTracingMode.eDefaultIgnore)
+            TraceChoiceSettings moduleChoices = target.LaunchSettings.TraceChoices;
+            if (moduleChoices.TracingMode == ModuleTracingMode.eDefaultIgnore)
             {
-                List<string> tracedDirs = target.TraceChoices.GetTracedDirs();
-                List<string> tracedFiles = target.TraceChoices.GetTracedFiles();
+                List<string> tracedDirs = moduleChoices.GetTracedDirs();
+                List<string> tracedFiles = moduleChoices.GetTracedFiles();
 
                 if (tracedDirs.Count == 0 && tracedFiles.Count == 0)
                 {
@@ -419,8 +424,8 @@ namespace rgat
             }
             else
             {
-                List<string> ignoredDirs = target.TraceChoices.GetIgnoredDirs();
-                List<string> ignoredFiles = target.TraceChoices.GetIgnoredFiles();
+                List<string> ignoredDirs = moduleChoices.GetIgnoredDirs();
+                List<string> ignoredFiles = moduleChoices.GetIgnoredFiles();
 
                 foreach (string name in ignoredDirs)
                 {
@@ -447,7 +452,7 @@ namespace rgat
 
         private void SendConfiguration()
         {
-            Dictionary<string, string> config = target.GetCurrentTraceConfiguration();
+            Dictionary<string, string> config = target.LaunchSettings.GetCurrentTraceConfiguration();
 
             if (!CommandWrite($"CONFIGKEYS@{config.Count}"))
             {
@@ -545,11 +550,11 @@ namespace rgat
                 {
                     case 'b':
                         Logging.RecordLogEvent(text: "Trace entered suspended state due to pingat break event", trace: trace);
-                        trace.SetTraceState(eTraceState.eSuspended);
+                        trace.SetTraceState(ProcessState.eSuspended);
                         break;
                     case 'c':
                         Logging.RecordLogEvent(text: "Trace left suspended state to to pingat continue event", trace: trace);
-                        trace.SetTraceState(eTraceState.eRunning);
+                        trace.SetTraceState(ProcessState.eRunning);
                         break;
                     default:
                         Logging.RecordLogEvent($"Bad debug command response {dbgCmd}", Logging.LogFilterType.TextError);
@@ -809,7 +814,7 @@ namespace rgat
                 byte[] buf = new byte[BufMax];
                 try
                 {
-                    bytesRead = await eventPipe.ReadAsync(buf, 0, BufMax, cancelTokens.Token);
+                    bytesRead = await eventPipe.ReadAsync(buf.AsMemory(0, BufMax), cancelTokens.Token);
                 }
                 catch
                 {

@@ -27,8 +27,10 @@ namespace rgat.Testing
 
         public void Begin(string _)
         {
-            thisThread = new Thread(new ParameterizedThreadStart(TestMain));
-            thisThread.Name = $"Test_{_thisTest.Session}_{_thisTest.TestID}_{_testCase.TestName.Truncate(20)}";
+            thisThread = new Thread(new ParameterizedThreadStart(TestMain))
+            {
+                Name = $"Test_{_thisTest.Session}_{_thisTest.TestID}_{_testCase.TestName.Truncate(20)}"
+            };
             thisThread.Start(null);
         }
 
@@ -47,7 +49,10 @@ namespace rgat.Testing
 
             string pintool = _testCase.TestBits == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
+
             ProcessLaunchSettings settings = new ProcessLaunchSettings(_testCase.BinaryPath);
+            settings.TraceChoices.InitDefaultExclusions();
+
             System.Diagnostics.Process? testProcess = ProcessLaunching.StartLocalTrace(pintool, settings, testID: _thisTest.TestID);
             if (testProcess != null)
             {

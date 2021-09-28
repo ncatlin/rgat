@@ -54,11 +54,13 @@ namespace rgat.Widgets
         {
             lock (_TestsLock)
             {
-                _sessionStats = new Dictionary<string, float>();
-                _sessionStats["Loaded"] = 0;
-                _sessionStats["Passed"] = 0;
-                _sessionStats["Failed"] = 0;
-                _sessionStats["Executed"] = 0;
+                _sessionStats = new Dictionary<string, float>
+                {
+                    ["Loaded"] = 0,
+                    ["Passed"] = 0,
+                    ["Failed"] = 0,
+                    ["Executed"] = 0
+                };
 
                 _testDirectories.Clear();
                 _testCategories.Clear();
@@ -93,11 +95,13 @@ namespace rgat.Widgets
                             string categoryName = splitted[1];
                             validDirs.Add(new Tuple<uint, string>(num, Path.Combine(testspath, testdir)));
                             string fullpath = Path.Combine(testspath, testdir);
-                            TestCategory tests = new TestCategory();
-                            tests.Tests = FindTests(fullpath, categoryName);
-                            tests.CategoryName = categoryName;
-                            tests.Path = fullpath;
-                            tests.ID = categoryName + $"{_testCategories.Count}";
+                            TestCategory tests = new TestCategory
+                            {
+                                Tests = FindTests(fullpath, categoryName),
+                                CategoryName = categoryName,
+                                Path = fullpath,
+                                ID = categoryName + $"{_testCategories.Count}"
+                            };
                             _testDirectories[fullpath] = tests;
                             _testCategories[categoryName] = tests;
                             _allTests.AddRange(tests.Tests);
@@ -1027,7 +1031,7 @@ namespace rgat.Widgets
                                 continue;
                             }
 
-                            Veldrid.ResourceFactory rf = _controller.graphicsDevice.ResourceFactory;
+                            Veldrid.ResourceFactory rf = _controller.GraphicsDevice.ResourceFactory;
                             IntPtr starFullIcon = _controller.GetOrCreateImGuiBinding(rf, _controller.GetImage("StarFull"), "TestStarFull");
                             IntPtr starEmptyIcon = _controller.GetOrCreateImGuiBinding(rf, _controller.GetImage("StarEmpty"), "TestStarEmpty");
                             IntPtr addIcon = _controller.GetOrCreateImGuiBinding(rf, _controller.GetImage("GreenPlus"), "TestGreenPlus");

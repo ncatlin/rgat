@@ -145,14 +145,9 @@ namespace rgat
             return false;
         }
 
-        private int _centeringInFrame = 0;
-        private int _centeringSteps = 0;
 
-        public void StartCenterGraphInFrameStepping(bool locked)
-        {
-            _centeringInFrame = locked ? 2 : 1;
-            _centeringSteps = 0;
-        }
+
+
 
         /// <summary>
         /// Adjust the camera offset and zoom so that every node of the graph is in the frame
@@ -166,9 +161,9 @@ namespace rgat
                 MaxRemaining = 0;
                 return false;
             }
-            if (_centeringInFrame == 1)
+            if (graph.CenteringInFrame == PlottedGraph.CenteringMode.Centering)
             {
-                _centeringSteps += 1;
+                graph.CenteringSteps += 1;
             }
 
             GraphLayoutEngine.GetScreenFitOffsets(graph, worldView, WidgetSize,
@@ -484,13 +479,13 @@ namespace rgat
                     }
 
                 case eKeybind.CenterFrame:
-                    StartCenterGraphInFrameStepping(false);
-                    resultText = _centeringInFrame > 0 ? "Activated" : "Deactivated";
+                    graph.ToggleCentering(false);
+                    resultText = graph.CenteringInFrame is not PlottedGraph.CenteringMode.Inactive ? "Activated" : "Deactivated";
                     break;
 
                 case eKeybind.LockCenterFrame:
-                    StartCenterGraphInFrameStepping(true);
-                    resultText = _centeringInFrame > 0 ? "Activated" : "Deactivated";
+                    graph.ToggleCentering(true);
+                    resultText = graph.CenteringInFrame is not PlottedGraph.CenteringMode.Inactive ? "Activated" : "Deactivated";
                     break;
 
                 case eKeybind.RaiseForceTemperature:
@@ -681,17 +676,19 @@ namespace rgat
 
 
             // Create pipelines
-            GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
-            pipelineDescription.BlendState = BlendStateDescription.SingleAlphaBlend;
-            pipelineDescription.DepthStencilState = DepthStencilStateDescription.DepthOnlyLessEqual;
-            pipelineDescription.RasterizerState = new RasterizerStateDescription(
+            GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription
+            {
+                BlendState = BlendStateDescription.SingleAlphaBlend,
+                DepthStencilState = DepthStencilStateDescription.DepthOnlyLessEqual,
+                RasterizerState = new RasterizerStateDescription(
                 cullMode: FaceCullMode.Back,
                 fillMode: PolygonFillMode.Solid,
                 frontFace: FrontFace.Clockwise,
                 depthClipEnabled: false,
-                scissorTestEnabled: false);
-            pipelineDescription.ResourceLayouts = new[] { _coreRsrcLayout, _nodesEdgesRsrclayout };
-            pipelineDescription.ShaderSet = SPIRVShaders.CreateNodeShaders(_gd, out _NodeVertexBuffer, out _NodeIndexBuffer);
+                scissorTestEnabled: false),
+                ResourceLayouts = new[] { _coreRsrcLayout, _nodesEdgesRsrclayout },
+                ShaderSet = SPIRVShaders.CreateNodeShaders(_gd, out _NodeVertexBuffer, out _NodeIndexBuffer)
+            };
 
             Debug.Assert(_outputTexture1 is null && _outputFramebuffer1 is null);
             Debug.Assert(_outputTexture2 is null && _outputFramebuffer2 is null);
@@ -1506,9 +1503,9 @@ namespace rgat
 
         private bool _showLayoutSelectorPopup;
 
-        private IntPtr getLayoutIcon(LayoutStyles.Style layout)
+        private IntPtr GetLayoutIcon(LayoutStyles.Style layout)
         {
-            Texture? iconTex = null;
+            Texture? iconTex;
             switch (layout)
             {
                 case LayoutStyles.Style.ForceDirected3DBlocks:
@@ -1542,7 +1539,7 @@ namespace rgat
 
             ImGui.PushStyleColor(ImGuiCol.Button, 0x11000000);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0x11000000);
-            ImGui.ImageButton(getLayoutIcon(layout), iconSize);
+            ImGui.ImageButton(GetLayoutIcon(layout), iconSize);
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();
 
@@ -1592,25 +1589,25 @@ namespace rgat
 
             float buttonWidth = 150f;
 
-            if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.ForceDirected3DNodes),
+            if (SmallWidgets.ImageCaptionButton(GetLayoutIcon(LayoutStyles.Style.ForceDirected3DNodes),
                 iconSize, buttonWidth, "Force Directed Nodes", graph.ActiveLayoutStyle == LayoutStyles.Style.ForceDirected3DNodes))
             {
                 if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.ForceDirected3DNodes)) { graph.BeginNewLayout(); }
             }
 
-            if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.ForceDirected3DBlocks),
+            if (SmallWidgets.ImageCaptionButton(GetLayoutIcon(LayoutStyles.Style.ForceDirected3DBlocks),
                 iconSize, buttonWidth, "Force Directed Blocks", graph.ActiveLayoutStyle == LayoutStyles.Style.ForceDirected3DBlocks))
             {
                 if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.ForceDirected3DBlocks)) { graph.BeginNewLayout(); }
             }
 
-            if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.CylinderLayout),
+            if (SmallWidgets.ImageCaptionButton(GetLayoutIcon(LayoutStyles.Style.CylinderLayout),
                 iconSize, buttonWidth, "Cylinder", graph.ActiveLayoutStyle == LayoutStyles.Style.CylinderLayout))
             {
                 if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.CylinderLayout)) { graph.BeginNewLayout(); }
             }
 
-            if (SmallWidgets.ImageCaptionButton(getLayoutIcon(LayoutStyles.Style.Circle),
+            if (SmallWidgets.ImageCaptionButton(GetLayoutIcon(LayoutStyles.Style.Circle),
                 iconSize, buttonWidth, "Circle", graph.ActiveLayoutStyle == LayoutStyles.Style.Circle))
             {
                 if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.Circle)) { graph.BeginNewLayout(); }
@@ -1646,7 +1643,7 @@ namespace rgat
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
             Matrix4x4 worldView = world * view;
-            if (_centeringInFrame is not 0 && graph.LayoutState.Initialised)
+            if (graph.CenteringInFrame is not PlottedGraph.CenteringMode.Inactive && graph.LayoutState.Initialised)
             {
 
                 //todo - increase stopping threshold as step count increases
@@ -1659,17 +1656,17 @@ namespace rgat
                         done = CenterGraphInFrameStep(worldView, out remaining);
                     }
                 }
-                if (done && _centeringInFrame != 2)
+                if (done && graph.CenteringInFrame is not PlottedGraph.CenteringMode.ContinuousCentering)
                 {
-                    Logging.WriteConsole($"Centering done after {_centeringSteps} steps");
-                    _centeringInFrame = 0;
+                    Logging.WriteConsole($"Centering done after {graph.CenteringSteps} steps");
+                    graph.ToggleCentering();
                 }
                 else
                 {
-                    if (_centeringInFrame == 1 && _centeringSteps > 1000)
+                    if (graph.CenteringInFrame is PlottedGraph.CenteringMode.Centering && graph.CenteringSteps > 1000)
                     {
-                        Logging.WriteConsole($"Warning: centering has taken {_centeringSteps} steps so far, abandoning");
-                        _centeringInFrame = 0;
+                        Logging.WriteConsole($"Warning: centering has taken {graph.CenteringSteps } steps so far, abandoning");
+                        graph.ToggleCentering();
                     }
                 }
             }
@@ -1742,16 +1739,16 @@ namespace rgat
         }
 
 
-
         public Vector2 WidgetPos { get; private set; }
 
         private Vector2 _MousePos;
         private int _mouseoverNodeID = -1;
 
+
         /// <summary>
         /// Must hold read lock
-        /// Check if the mouse position corresponds to a node ID in the picking texture
-        /// If so - the mouse is over that nod
+        /// Check if the mouse position corresponds to a node ID embedded in the colour values of the picking texture
+        /// If so - the mouse is over that node
         /// </summary>
         /// <param name="_gd"></param>
         private void DoMouseNodePicking(GraphicsDevice _gd)

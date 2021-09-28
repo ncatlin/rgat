@@ -27,8 +27,10 @@ namespace rgat.Threads
         public override void Begin()
         {
             base.Begin();
-            WorkerThread = new Thread(Reader);
-            WorkerThread.Name = "SocketTraceReader" + protograph.ThreadID;
+            WorkerThread = new Thread(Reader)
+            {
+                Name = "SocketTraceReader" + protograph.ThreadID
+            };
             WorkerThread.Start();
 
             //splittingThread = new Thread(MessageSplitterThread);

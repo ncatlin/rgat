@@ -57,7 +57,6 @@ namespace rgat.Config
         private static readonly Dictionary<uint, Threads.TraceProcessorWorker> _remoteDataWorkers = new Dictionary<uint, Threads.TraceProcessorWorker>();
         private static readonly Dictionary<uint, ProcessIncomingWorkerData?> _pipeInterfaces = new Dictionary<uint, ProcessIncomingWorkerData?>();
 
-
         // file info
         private static List<PathRecord> _cachedRecentBins = new List<PathRecord>();
 
@@ -283,7 +282,7 @@ namespace rgat.Config
 
                 if (!success)
                 {
-                    Logging.RecordLogEvent($"HandleRecentBinariesList: Bad property in cached path item. {recentbinTok.ToString()}");
+                    Logging.RecordLogEvent($"HandleRecentBinariesList: Bad property in cached path item. {recentbinTok}");
                     return false;
                 }
 

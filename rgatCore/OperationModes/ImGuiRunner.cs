@@ -320,15 +320,15 @@ namespace rgat.OperationModes
             Logging.RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug);
             double currentUIProgress = _rgatUI!.StartupProgress;
 
-            System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
+            Stopwatch timer = new(), timerTotal = new();
             timer.Start();
-            System.Diagnostics.Stopwatch timerTotal = new System.Diagnostics.Stopwatch();
             timerTotal.Start();
 
             float configProgress = 0, widgetProgress = 0;
             void UpdateProgressConfWidgets() { _rgatUI.StartupProgress = Math.Max(_rgatUI.StartupProgress, currentUIProgress + 0.2 * configProgress + 0.5 * widgetProgress); };
-            Progress<float> IProgressConfig = new Progress<float>(progress => { configProgress = progress; UpdateProgressConfWidgets(); });
-            Progress<float> IProgressWidgets = new Progress<float>(progress => { widgetProgress = progress; UpdateProgressConfWidgets(); });
+
+            Progress<float> IProgressConfig = new(progress => { configProgress = progress; UpdateProgressConfWidgets(); });
+            Progress<float> IProgressWidgets = new(progress => { widgetProgress = progress; UpdateProgressConfWidgets(); });
 
             Task confloader = Task.Run(() => GlobalConfig.LoadConfig(GUI: true, progress: IProgressConfig)); // 900ms~ depending on themes
             Task widgetLoader = Task.Run(() => _rgatUI.InitWidgets(IProgressWidgets)); //2000ms~ fairly flat
@@ -352,7 +352,6 @@ namespace rgat.OperationModes
             heatRankThreadObj = new HeatRankingThread();
             heatRankThreadObj.Begin();
 
-            //todo - conditional thread here instead of new trace
             rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
             rgatState.processCoordinatorThreadObj.Begin();
 
@@ -361,8 +360,8 @@ namespace rgat.OperationModes
 
             float apiProgress = 0, sigProgress = 0;
             void UpdateProgressAPISig() { _rgatUI.StartupProgress = currentUIProgress + 0.07 * sigProgress + 0.7f * apiProgress; };
-            Progress<float> IProgressAPI = new Progress<float>(progress => { apiProgress = progress; UpdateProgressAPISig(); });
-            Progress<float> IProgressSigs = new Progress<float>(progress => { sigProgress = progress; UpdateProgressAPISig(); });
+            Progress<float> IProgressAPI = new(progress => { apiProgress = progress; UpdateProgressAPISig(); });
+            Progress<float> IProgressSigs = new(progress => { sigProgress = progress; UpdateProgressAPISig(); });
 
             Task sigsTask = Task.Run(() => rgatState.LoadSignatures(IProgressSigs));
 

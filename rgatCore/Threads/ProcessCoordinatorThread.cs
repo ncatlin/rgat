@@ -20,8 +20,10 @@ namespace rgat.Threads
         public override void Begin()
         {
             base.Begin();
-            WorkerThread = new Thread(Listener);
-            WorkerThread.Name = $"Coordinator";
+            WorkerThread = new Thread(Listener)
+            {
+                Name = $"Coordinator"
+            };
             WorkerThread.Start();
         }
 
@@ -90,7 +92,7 @@ namespace rgat.Threads
                         string response = $"CM@{cmdPipeName}@CR@{eventPipeName}@BB@{blockPipeName}@\x00";
                         coordPipe.Write(System.Text.Encoding.UTF8.GetBytes(response));
 
-                        Task startTask = Task.Run(() => process_new_pin_connection(PID, arch, libraryFlag == 1, randno, programName, testRunID));
+                        Task startTask = Task.Run(() => ProcessNewPinConnection(PID, arch, libraryFlag == 1, randno, programName, testRunID));
                         Logging.RecordLogEvent($"Coordinator connection initiated", Logging.LogFilterType.TextDebug);
                     }
                     else
@@ -207,7 +209,7 @@ namespace rgat.Threads
         }
 
 
-        private static void process_new_pin_connection(uint PID, int arch, bool isLibrary, long ID, string programName, long testID = -1)
+        private static void ProcessNewPinConnection(uint PID, int arch, bool isLibrary, long ID, string programName, long testID = -1)
         {
 
             string binaryName = Path.GetFileName(programName);
@@ -249,8 +251,10 @@ namespace rgat.Threads
                 string pipeMessage = $"InitialPipes@C@{cmdPipeID}@E@{eventPipeID}@B@{blockPipeID}";
                 rgatState.NetworkBridge.SendTraceMeta(tr, pipeMessage);
 
-                ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr, eventPipeID);
-                moduleHandler.RemoteCommandPipeID = cmdPipeID;
+                ModuleHandlerThread moduleHandler = new ModuleHandlerThread(target, tr, eventPipeID)
+                {
+                    RemoteCommandPipeID = cmdPipeID
+                };
                 Config.RemoteDataMirror.RegisterRemotePipe(cmdPipeID, moduleHandler, moduleHandler.ProcessIncomingTraceCommand);
                 tr.ProcessThreads.Register(moduleHandler);
                 moduleHandler.Begin();

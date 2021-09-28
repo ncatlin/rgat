@@ -76,10 +76,9 @@ namespace rgat
             Vector2 ylimits = new Vector2(float.MaxValue, float.MinValue);
             Vector2 zlimits = new Vector2(float.MaxValue, float.MinValue);
             Vector2 ev = new Vector2(0, 0);
-            Vector2 xmin = ev, xmax = ev, ymin = ev, ymax = ev, zmin = ev, zmax = ev;
+            Vector2 xmin = ev, xmax = ev, ymin = ev, ymax = ev;//, zmin = ev, zmax = ev;
             float maxWorldX = 0, maxWorldY = 0, maxWorldZ = 0;
-            int fZ1 = 0;
-            int fZ2 = 0;
+            //int fZ1, fZ2;
 
             float[] positions = graph.LayoutState.DownloadVRAMPositions();
 
@@ -114,8 +113,8 @@ namespace rgat
                     if (ndcPos.X > xlimits.Y) { xlimits = new Vector2(xlimits.X, ndcPos.X); xmax = ndcPos; }
                     if (ndcPos.Y < ylimits.X) { ylimits = new Vector2(ndcPos.Y, ylimits.Y); ymin = ndcPos; }
                     if (ndcPos.Y > ylimits.Y) { ylimits = new Vector2(ylimits.X, ndcPos.Y); ymax = ndcPos; }
-                    if (worldpos.Z < zlimits.X) { zlimits = new Vector2(worldpos.Z, zlimits.Y); zmin = ndcPos; fZ1 = (idx / 4); }
-                    if (worldpos.Z > zlimits.Y) { zlimits = new Vector2(zlimits.X, worldpos.Z); zmax = ndcPos; fZ2 = (idx / 4); }
+                    if (worldpos.Z < zlimits.X) { zlimits = new Vector2(worldpos.Z, zlimits.Y); }// zmin = ndcPos; fZ1 = (idx / 4); }
+                    if (worldpos.Z > zlimits.Y) { zlimits = new Vector2(zlimits.X, worldpos.Z); }// zmax = ndcPos; fZ2 = (idx / 4); }
                 }
 
                 Vector2 minxS = GraphicsMaths.NdcToScreenPos(xmin, graphWidgetSize);
@@ -489,9 +488,8 @@ namespace rgat
                 inputAttributes = layout.AttributesVRAM2!;
             }
 
-            ResourceSet? posRS = null, velocityComputeResourceSet = null;
-            posRS = _factory!.CreateResourceSet(pos_rsrc_desc);
-            velocityComputeResourceSet = _factory!.CreateResourceSet(velocity_rsrc_desc);
+            ResourceSet? posRS = _factory!.CreateResourceSet(pos_rsrc_desc);
+            ResourceSet? velocityComputeResourceSet = _factory!.CreateResourceSet(velocity_rsrc_desc);
 
             double? positionTime = null, velocityTime = null, attributeTime = null;
             double? positionSetupTime = null, velocitySetupTime = null, attributeSetupTime = null;
@@ -598,7 +596,7 @@ namespace rgat
                 if (layout.VelocitiesVRAM1 is not null && (graph.ComputeBufferNodeCount * 4 * sizeof(float)) <= layout.VelocitiesVRAM1.SizeInBytes)
                 {
                     //when the nodes are near their targets, instead of bouncing around while coming to a stop, just snap them into position
-                    float fastest = FindHighXYZ(layout.VelocitiesVRAM1, graph.ComputeBufferNodeCount, out int highIndex);
+                    float fastest = FindHighXYZ(layout.VelocitiesVRAM1, graph.ComputeBufferNodeCount, out int _);
                     Logging.WriteConsole($"Presetspeed: {fastest}");
                     if (fastest < 1)
                     {
@@ -690,9 +688,6 @@ namespace rgat
 
             Logging.RecordLogEvent($"RenderPosition  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             var textureSize = graph.LinearIndexTextureSize();
-
-            uint width = textureSize;
-            uint height = textureSize;
 
             uint fixedNodes = 0;
             if (graph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks)

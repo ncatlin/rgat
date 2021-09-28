@@ -50,10 +50,7 @@ namespace rgat.Config
 
         private static void MarkDirty()
         {
-            if (MarkDirtyCallback != null)
-            {
-                MarkDirtyCallback();
-            }
+            MarkDirtyCallback?.Invoke();
         }
 
         /// <summary>
@@ -117,6 +114,42 @@ namespace rgat.Config
         /// UI/Graph theme settings
         /// </summary>
         public ThemeSettings Themes { get; set; } = new ThemeSettings();
+
+        /// <summary>
+        /// Dictionary of launch settings for SHA1s of targets
+        /// </summary>
+        public Dictionary<string, ProcessLaunchSettings> SavedLaunchSettings {get; set;} = new();
+
+
+        /// <summary>
+        /// Add tracing settings for reuse
+        /// </summary>
+        /// <param name="targetSHA1">SHA1 of target</param>
+        /// <param name="settings">settings for target</param>
+        public void AddLaunchSettings(string targetSHA1, ProcessLaunchSettings settings)
+        {
+            lock (_lock)
+            {
+                SavedLaunchSettings[targetSHA1] = settings;
+                MarkDirty();
+            }
+        }
+
+
+        /// <summary>
+        /// Fetch previously used trace launch settings for this target from last session
+        /// </summary>
+        /// <param name="targetSHA1">SHA1 of target</param>
+        /// <param name="settings">output settings</param>
+        /// <returns>if found</returns>
+        public bool GetPreviousLaunchSettings(string targetSHA1, out ProcessLaunchSettings? settings)
+        {
+            lock (_lock)
+            {
+                return SavedLaunchSettings.TryGetValue(targetSHA1, out settings);
+            }
+        }
+
 
         /// <summary>
         /// Configurable UI/Graph themes
@@ -356,17 +389,19 @@ namespace rgat.Config
             /// </summary>
             public KeybindSettings()
             {
-                ResponsiveHeldActions = new List<eKeybind>();
-                ResponsiveHeldActions.Add(eKeybind.MoveRight);
-                ResponsiveHeldActions.Add(eKeybind.MoveLeft);
-                ResponsiveHeldActions.Add(eKeybind.MoveDown);
-                ResponsiveHeldActions.Add(eKeybind.MoveUp);
-                ResponsiveHeldActions.Add(eKeybind.PitchXBack);
-                ResponsiveHeldActions.Add(eKeybind.PitchXFwd);
-                ResponsiveHeldActions.Add(eKeybind.YawYLeft);
-                ResponsiveHeldActions.Add(eKeybind.YawYRight);
-                ResponsiveHeldActions.Add(eKeybind.RollGraphZAnti);
-                ResponsiveHeldActions.Add(eKeybind.RollGraphZClock);
+                ResponsiveHeldActions = new List<eKeybind>
+                {
+                    eKeybind.MoveRight,
+                    eKeybind.MoveLeft,
+                    eKeybind.MoveDown,
+                    eKeybind.MoveUp,
+                    eKeybind.PitchXBack,
+                    eKeybind.PitchXFwd,
+                    eKeybind.YawYLeft,
+                    eKeybind.YawYRight,
+                    eKeybind.RollGraphZAnti,
+                    eKeybind.RollGraphZClock
+                };
 
                 InitDefaultKeybinds();
                 InitResponsiveKeys();
@@ -580,8 +615,9 @@ namespace rgat.Config
             {
                 lock (_lock)
                 {
+                    if (Paths is null) Paths = new Dictionary<PathKey, string>();
                     //we call this when the values are the same to cause a signature check
-                    if (!Paths!.TryGetValue(setting, out string? oldval) || oldval != value)
+                    if (!Paths.TryGetValue(setting, out string? oldval) || oldval != value)
                     {
                         Paths[setting] = value;
                         MarkDirty();
@@ -932,7 +968,7 @@ namespace rgat.Config
                         return RecentPaths[pathType].ToArray();
                     }
                 }
-                return new PathRecord[] { };
+                return Array.Empty<PathRecord>();
             }
 
 

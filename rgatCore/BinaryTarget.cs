@@ -6,14 +6,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-
+using System.Text.Json.Serialization;
 
 namespace rgat
 {
     /// <summary>
     /// How the instrumentation handles code in different modules
     /// </summary>
-    public enum eModuleTracingMode
+    public enum ModuleTracingMode
     {
         /// <summary>
         /// Code will not be traced unless explicitly requested
@@ -34,43 +34,51 @@ namespace rgat
         /// <summary>
         /// Whether rgat traces or ignores modules which are not in the ignore/trace lists
         /// </summary>
-        public eModuleTracingMode TracingMode = eModuleTracingMode.eDefaultTrace;
+        public ModuleTracingMode TracingMode { get; set; } = ModuleTracingMode.eDefaultTrace;
 
         /// <summary>
         /// Binaries in these directories will be traced in default ignore mode
         /// </summary>
-        private readonly HashSet<string> traceDirs = new HashSet<string>();
+        public HashSet<string> TraceDirs { get; set; } = new();
 
         /// <summary>
         /// The number of directories listed for instrumentation
         /// </summary>
-        public int TraceDirCount => traceDirs.Count;
+        [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+        public int TraceDirCount => TraceDirs.Count;
 
         /// <summary>
         /// These binaries will be instrumentated in default ignore mode
         /// </summary>
-        private readonly HashSet<string> traceFiles = new HashSet<string>();
+        public HashSet<string> TraceFiles { get; set; } = new();
 
         /// <summary>
         /// The number of modules that are listed for tracing
         /// </summary>
-        public int TraceFilesCount => traceFiles.Count;
+        [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+        public int TraceFilesCount => TraceFiles.Count;
 
-        //Binaries in these directories will be ignored in default trace mode
-        private readonly HashSet<string> ignoreDirs = new HashSet<string>();
+        
+        /// <summary>
+        /// Binaries in these directories will be ignored in default trace mode
+        /// </summary>
+        public HashSet<string> IgnoreDirs { get; set; } = new();
 
         /// <summary>
         /// The number of directories which are explicitly ignored in default trace mode
         /// </summary>
-        public int IgnoreDirsCount => ignoreDirs.Count;
+        public int IgnoreDirsCount => IgnoreDirs.Count;
 
-        //These binaries will be ignored in default trace mode
-        private readonly HashSet<string> ignoreFiles = new HashSet<string>();
+        /// <summary>
+        /// These binaries will be ignored in default trace mode
+        /// </summary>
+        public HashSet<string> IgnoreFiles { get; set; } = new();
 
         /// <summary>
         /// The number of files which are explicitly ignored in default trace mode
         /// </summary>
-        public int ignoreFilesCount => ignoreFiles.Count;
+        [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+        public int IgnoreFilesCount => IgnoreFiles.Count;
 
         private readonly object _lock = new();
 
@@ -78,78 +86,78 @@ namespace rgat
         /// Get the list of directories which contain modules which should not be instrumented
         /// </summary>
         /// <returns>A list of directory paths</returns>
-        public List<string> GetIgnoredDirs() { lock (_lock) { return ignoreDirs.ToList<string>(); } }
+        public List<string> GetIgnoredDirs() { lock (_lock) { return IgnoreDirs.ToList<string>(); } }
         /// <summary>
         /// Clear the list of ignored directories
         /// </summary>
-        public void ClearIgnoredDirs() { lock (_lock) { ignoreDirs.Clear(); } }
+        public void ClearIgnoredDirs() { lock (_lock) { IgnoreDirs.Clear(); } }
         /// <summary>
         /// Get the list of modules which should not be instrumented
         /// </summary>
         /// <returns>A list of file paths</returns>
-        public List<string> GetIgnoredFiles() { lock (_lock) { return ignoreFiles.ToList<string>(); } }
+        public List<string> GetIgnoredFiles() { lock (_lock) { return IgnoreFiles.ToList<string>(); } }
         /// <summary>
         /// Clear the list of ignored files
         /// </summary>
-        public void ClearIgnoredFiles() { lock (_lock) { ignoreFiles.Clear(); } }
+        public void ClearIgnoredFiles() { lock (_lock) { IgnoreFiles.Clear(); } }
         /// <summary>
         /// Get the list of directories which contain modules which should be instrumented even in ignore mode
         /// </summary>
         /// <returns>A list of directory paths</returns>
-        public List<string> GetTracedDirs() { lock (_lock) { return traceDirs.ToList<string>(); } }
+        public List<string> GetTracedDirs() { lock (_lock) { return TraceDirs.ToList<string>(); } }
         /// <summary>
         /// Clear the list of explicitly instrumented directories
         /// </summary>
-        public void ClearTracedDirs() { lock (_lock) { traceDirs.Clear(); } }
+        public void ClearTracedDirs() { lock (_lock) { TraceDirs.Clear(); } }
         /// <summary>
         /// Get the list of modules which should be instrumented even in ignore mode
         /// </summary>
         /// <returns>A list of file paths</returns>
-        public List<string> GetTracedFiles() { lock (_lock) { return traceFiles.ToList<string>(); } }
+        public List<string> GetTracedFiles() { lock (_lock) { return TraceFiles.ToList<string>(); } }
         /// <summary>
         /// Clear the list of explicitly instrumented modules
         /// </summary>
-        public void ClearTracedFiles() { lock (_lock) { traceFiles.Clear(); } }
+        public void ClearTracedFiles() { lock (_lock) { TraceFiles.Clear(); } }
         /// <summary>
         /// Add a directory whose contents should be instrumented in default-ignore mode
         /// </summary>
         /// <param name="path">A directory path</param>
-        public void AddTracedDirectory(string path) { lock (_lock) { if (!traceDirs.Contains(path)) { traceDirs.Add(path); } } }
+        public void AddTracedDirectory(string path) { lock (_lock) { if (!TraceDirs.Contains(path)) { TraceDirs.Add(path); } } }
         /// <summary>
         /// Remove a directory from the list of directories to trace in ignore mode
         /// </summary>
         /// <param name="path">A directory path</param>
-        public void RemoveTracedDirectory(string path) { lock (_lock) { traceDirs.Remove(path); } }
+        public void RemoveTracedDirectory(string path) { lock (_lock) { TraceDirs.Remove(path); } }
         /// <summary>
         /// Add a module which should be instrumented in default-ignore mode
         /// </summary>
         /// <param name="path">A file path</param>
-        public void AddTracedFile(string path) { lock (_lock) { if (!traceFiles.Contains(path)) { traceFiles.Add(path); } } }
+        public void AddTracedFile(string path) { lock (_lock) { if (!TraceFiles.Contains(path)) { TraceFiles.Add(path); } } }
         /// <summary>
         /// Remove a file from the list of files to trace in ignore mode
         /// </summary>
         /// <param name="path">A file path</param>
-        public void RemoveTracedFile(string path) { lock (_lock) { traceFiles.Remove(path); } }
+        public void RemoveTracedFile(string path) { lock (_lock) { TraceFiles.Remove(path); } }
         /// <summary>
         /// Add a directory whose contents should be ignored in default-trace mode
         /// </summary>
         /// <param name="path">A directory path</param>
-        public void AddIgnoredDirectory(string path) { lock (_lock) { if (!ignoreDirs.Contains(path)) { ignoreDirs.Add(path); } } }
+        public void AddIgnoredDirectory(string path) { lock (_lock) { if (!IgnoreDirs.Contains(path)) { IgnoreDirs.Add(path); } } }
         /// <summary>
         /// Remove a directory from the list of directories to ignore in default-trace mode
         /// </summary>
         /// <param name="path">A directory path</param>
-        public void RemoveIgnoredDirectory(string path) { lock (_lock) { ignoreDirs.Remove(path); } }
+        public void RemoveIgnoredDirectory(string path) { lock (_lock) { IgnoreDirs.Remove(path); } }
         /// <summary>
         /// Add a file which should not be instrumented in default-instrument mode
         /// </summary>
         /// <param name="path">A file path</param>
-        public void AddIgnoredFile(string path) { lock (_lock) { if (!ignoreFiles.Contains(path)) { ignoreFiles.Add(path); } } }
+        public void AddIgnoredFile(string path) { lock (_lock) { if (!IgnoreFiles.Contains(path)) { IgnoreFiles.Add(path); } } }
         /// <summary>
         /// Remove a file from the list of files to ignore in default-trace mode
         /// </summary>
         /// <param name="path">A file path</param>
-        public void RemoveIgnoredFile(string path) { lock (_lock) { ignoreFiles.Remove(path); } }
+        public void RemoveIgnoredFile(string path) { lock (_lock) { IgnoreFiles.Remove(path); } }
 
         /// <summary>
         /// Add some standard default paths to always ignore
@@ -162,10 +170,10 @@ namespace rgat
                 string? windowsDir = Environment.GetEnvironmentVariable("windir", EnvironmentVariableTarget.Machine);
                 if (windowsDir is not null)
                 {
-                    ignoreDirs.Add(windowsDir);
+                    IgnoreDirs.Add(windowsDir);
                 }
 
-                ignoreFiles.Add("shf篸籊籔籲.txtui@siojf췳츲췥췂췂siojfios.dll"); //TODO: make+trace a test program loading this, fix whatever breaks
+                IgnoreFiles.Add("shf篸籊籔籲.txtui@siojf췳츲췥췂췂siojfios.dll"); //TODO: make+trace a test program loading this, fix whatever breaks
             }
         }
     }
@@ -199,10 +207,7 @@ namespace rgat
         /// Is this file accessible at the moment?
         /// </summary>
         public bool IsAccessible => IsRemoteBinary ? RemoteAccessible : File.Exists(FilePath);
-        /// <summary>
-        /// Settings for which modules are instrumented/ignored
-        /// </summary>
-        public TraceChoiceSettings TraceChoices = new TraceChoiceSettings();
+
         /// <summary>
         /// A snippet of the first bytes of the file
         /// </summary>
@@ -292,8 +297,20 @@ namespace rgat
 
             RemoteHost = remoteAddr;
 
-            TraceChoices.InitDefaultExclusions();
+            ProcessLaunchSettings? settings;
+            if (!GlobalConfig.Settings.GetPreviousLaunchSettings(_sha1hash, out settings) || settings is null)
+            {
+                settings = new ProcessLaunchSettings(filepath);
+                settings.TraceChoices.InitDefaultExclusions();
+            }
+            LaunchSettings = settings;
         }
+
+        /// <summary>
+        /// Settings for launching this binary including module tracing options
+        /// and instrumentation toggles
+        /// </summary>
+        public ProcessLaunchSettings LaunchSettings { get; private set; }
 
 
         /// <summary>
@@ -303,8 +320,10 @@ namespace rgat
         /// <returns>JSON serialised initialisation data</returns>
         public JToken GetRemoteLoadInitData()
         {
-            JObject result = new JObject();
-            result.Add("Size", fileSize);
+            JObject result = new JObject
+            {
+                { "Size", fileSize }
+            };
             if (StartBytes is not null)
             {
                 result.Add("StartBytes", StartBytes); //any benefit to obfuscating?
@@ -356,7 +375,7 @@ namespace rgat
             }
 
             bool success = true;
-            JToken? sizeTok = null, snipTok = null, sha1Tok = null, sha256Tok = null, bitTok = null;
+            JToken? sizeTok = null, snipTok, sha1Tok = null, sha256Tok = null, bitTok = null;
             success = success && data.TryGetValue("Size", out sizeTok) && sizeTok is not null && sizeTok.Type == JTokenType.Integer;
             success = success && data.TryGetValue("SHA1", out sha1Tok) && (sha1Tok.Type == JTokenType.String || sha1Tok == null);
             success = success && data.TryGetValue("SHA256", out sha256Tok) && (sha256Tok.Type == JTokenType.String || sha256Tok == null);
@@ -503,34 +522,9 @@ namespace rgat
 
         private readonly List<string> signatureHitsDIE = new List<string>();
         private readonly List<YARAScanner.YARAHit> signatureHitsYARA = new List<YARAScanner.YARAHit>();
-        private readonly Dictionary<string, string> _traceConfiguration = new Dictionary<string, string>();
 
-        /// <summary>
-        /// Get the tracing configuration settings as a dictrionary of keyvaluepair strings
-        /// </summary>
-        /// <returns>Settings dictionary</returns>
-        public Dictionary<string, string> GetCurrentTraceConfiguration()
-        {
-            lock (tracesLock)
-            {
-                return new Dictionary<string, string>(_traceConfiguration);
-            }
-        }
 
-        /// <summary>
-        /// Set a tracing configuration value to be sent to the instrumentation tool
-        /// </summary>
-        /// <param name="key">Setting to set</param>
-        /// <param name="value">Value of the setting</param>
-        public void SetTraceConfig(string key, string value)
-        {
-            //this probably doesnt matter anymore
-            if (key.Contains('@') || value.Contains('@')) { Logging.RecordError("invalid character '@' in config item"); return; }
-            lock (tracesLock)
-            {
-                _traceConfiguration[key] = value;
-            }
-        }
+
 
         /// <summary>
         /// Get Yara hits recorded for the target
@@ -593,10 +587,12 @@ namespace rgat
                 signatureHitsDIE.Add(hitstring);
                 if (rgatState.NetworkBridge is not null && rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
                 {
-                    JObject hitObj = new JObject();
-                    hitObj.Add("Type", "DIE");
-                    hitObj.Add("TargetSHA", this._sha1hash);
-                    hitObj.Add("Obj", hitstring);
+                    JObject hitObj = new JObject
+                    {
+                        { "Type", "DIE" },
+                        { "TargetSHA", this._sha1hash },
+                        { "Obj", hitstring }
+                    };
                     rgatState.NetworkBridge.SendAsyncData("SigHit", hitObj);
                 }
             }
@@ -615,10 +611,12 @@ namespace rgat
                 signatureHitsYARA.Add(managedHit);
                 if (rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
                 {
-                    JObject hitObj = new JObject();
-                    hitObj.Add("Type", "YARA");
-                    hitObj.Add("TargetSHA", this._sha1hash);
-                    hitObj.Add("Obj", JObject.FromObject(managedHit));
+                    JObject hitObj = new JObject
+                    {
+                        { "Type", "YARA" },
+                        { "TargetSHA", this._sha1hash },
+                        { "Obj", JObject.FromObject(managedHit) }
+                    };
                     rgatState.NetworkBridge.SendAsyncData("SigHit", hitObj);
                 }
             }

@@ -18,7 +18,7 @@ namespace rgat
         public static void SetController(ImGuiNET.ImGuiController controller)
         {
             _controller = controller;
-            _commandList = controller.graphicsDevice.ResourceFactory.CreateCommandList();
+            _commandList = controller.GraphicsDevice.ResourceFactory.CreateCommandList();
         }
 
         public static void Cleanup() => _commandList?.Dispose();
@@ -29,7 +29,7 @@ namespace rgat
 
         public static unsafe Bitmap CreateRecordingFrame(Framebuffer fbuf, float startX, float startY, float drawWidth, float drawHeight)
         {
-            GraphicsDevice gd = _controller!.graphicsDevice;
+            GraphicsDevice gd = _controller!.GraphicsDevice;
             Texture ftex = fbuf.ColorTargets[0].Target;
             if (_recordingStager == null || _recordingStager.Width != ftex.Width || _recordingStager.Height != ftex.Height)
             {

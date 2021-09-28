@@ -249,17 +249,17 @@
             <param name="symbolname">Case sensitive API name (ie: a library export like you would pass to GetProcAddress)</param>
             <returns>API_ENTRY struct for the symbol if we have metadata for it, otherwise null</returns>
         </member>
-        <member name="T:rgat.eModuleTracingMode">
+        <member name="T:rgat.ModuleTracingMode">
             <summary>
             How the instrumentation handles code in different modules
             </summary>
         </member>
-        <member name="F:rgat.eModuleTracingMode.eDefaultIgnore">
+        <member name="F:rgat.ModuleTracingMode.eDefaultIgnore">
             <summary>
             Code will not be traced unless explicitly requested
             </summary>
         </member>
-        <member name="F:rgat.eModuleTracingMode.eDefaultTrace">
+        <member name="F:rgat.ModuleTracingMode.eDefaultTrace">
             <summary>
             Code will be traced unless explicitly ignored
             </summary>
@@ -269,12 +269,12 @@
             Settings for how rgat chooses which code to trace or ignore
             </summary>
         </member>
-        <member name="F:rgat.TraceChoiceSettings.TracingMode">
+        <member name="P:rgat.TraceChoiceSettings.TracingMode">
             <summary>
             Whether rgat traces or ignores modules which are not in the ignore/trace lists
             </summary>
         </member>
-        <member name="F:rgat.TraceChoiceSettings.traceDirs">
+        <member name="P:rgat.TraceChoiceSettings.TraceDirs">
             <summary>
             Binaries in these directories will be traced in default ignore mode
             </summary>
@@ -284,7 +284,7 @@
             The number of directories listed for instrumentation
             </summary>
         </member>
-        <member name="F:rgat.TraceChoiceSettings.traceFiles">
+        <member name="P:rgat.TraceChoiceSettings.TraceFiles">
             <summary>
             These binaries will be instrumentated in default ignore mode
             </summary>
@@ -294,12 +294,22 @@
             The number of modules that are listed for tracing
             </summary>
         </member>
+        <member name="P:rgat.TraceChoiceSettings.IgnoreDirs">
+            <summary>
+            Binaries in these directories will be ignored in default trace mode
+            </summary>
+        </member>
         <member name="P:rgat.TraceChoiceSettings.IgnoreDirsCount">
             <summary>
             The number of directories which are explicitly ignored in default trace mode
             </summary>
         </member>
-        <member name="P:rgat.TraceChoiceSettings.ignoreFilesCount">
+        <member name="P:rgat.TraceChoiceSettings.IgnoreFiles">
+            <summary>
+            These binaries will be ignored in default trace mode
+            </summary>
+        </member>
+        <member name="P:rgat.TraceChoiceSettings.IgnoreFilesCount">
             <summary>
             The number of files which are explicitly ignored in default trace mode
             </summary>
@@ -432,11 +442,6 @@
             Is this file accessible at the moment?
             </summary>
         </member>
-        <member name="F:rgat.BinaryTarget.TraceChoices">
-            <summary>
-            Settings for which modules are instrumented/ignored
-            </summary>
-        </member>
         <member name="F:rgat.BinaryTarget.StartBytes">
             <summary>
             A snippet of the first bytes of the file
@@ -511,6 +516,12 @@
             <param name="remoteAddr">The address of the remote rgat instance where this target is being traced</param>
             <param name="isLibrary">if the target is a library or not. This value will be used if the binary cannot be found and parsed</param>
         </member>
+        <member name="P:rgat.BinaryTarget.LaunchSettings">
+            <summary>
+            Settings for launching this binary including module tracing options
+            and instrumentation toggles
+            </summary>
+        </member>
         <member name="M:rgat.BinaryTarget.GetRemoteLoadInitData">
             <summary>
             This file is on a headless remote tracing host. 
@@ -530,19 +541,6 @@
             Get an annoted hexdump snippet of the start of the target binary
             </summary>
             <returns>The snippet as a string</returns>
-        </member>
-        <member name="M:rgat.BinaryTarget.GetCurrentTraceConfiguration">
-            <summary>
-            Get the tracing configuration settings as a dictrionary of keyvaluepair strings
-            </summary>
-            <returns>Settings dictionary</returns>
-        </member>
-        <member name="M:rgat.BinaryTarget.SetTraceConfig(System.String,System.String)">
-            <summary>
-            Set a tracing configuration value to be sent to the instrumentation tool
-            </summary>
-            <param name="key">Setting to set</param>
-            <param name="value">Value of the setting</param>
         </member>
         <member name="M:rgat.BinaryTarget.GetYaraHits(rgat.YARAScanner.YARAHit[]@)">
             <summary>
@@ -728,82 +726,82 @@
             Manages the remote tracing connection to another rgat instance
             </summary>
         </member>
-        <member name="T:rgat.BridgeConnection.emsgType">
+        <member name="T:rgat.BridgeConnection.MsgType">
             <summary>
             Message types
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.emsgType.Meta">
+        <member name="F:rgat.BridgeConnection.MsgType.Meta">
             <summary>
             Involved in the management of the connection
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.emsgType.Command">
+        <member name="F:rgat.BridgeConnection.MsgType.Command">
             <summary>
             A GUI-issued command
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.emsgType.CommandResponse">
+        <member name="F:rgat.BridgeConnection.MsgType.CommandResponse">
             <summary>
             A response to the GUI
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.emsgType.TraceMeta">
+        <member name="F:rgat.BridgeConnection.MsgType.TraceMeta">
             <summary>
             Involved in managing the transfer of trace data
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.emsgType.TraceData">
+        <member name="F:rgat.BridgeConnection.MsgType.TraceData">
             <summary>
             Trace data from an instrumented process
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.emsgType.TraceCommand">
+        <member name="F:rgat.BridgeConnection.MsgType.TraceCommand">
             <summary>
             A trace command
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.emsgType.Log">
+        <member name="F:rgat.BridgeConnection.MsgType.Log">
             <summary>
             A log event
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.emsgType.AsyncData">
+        <member name="F:rgat.BridgeConnection.MsgType.AsyncData">
             <summary>
             Non-trace related data sent without requiring a command to generate it (eg: result of signature scanning)
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.emsgType.BAD">
+        <member name="F:rgat.BridgeConnection.MsgType.BAD">
             <summary>
             No
             </summary>
         </member>
-        <member name="T:rgat.BridgeConnection.eBridgeState">
+        <member name="T:rgat.BridgeConnection.BridgeState">
             <summary>
             Connection activity
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.eBridgeState.Inactive">
+        <member name="F:rgat.BridgeConnection.BridgeState.Inactive">
             <summary>
             There is no network activity
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.eBridgeState.Connecting">
+        <member name="F:rgat.BridgeConnection.BridgeState.Connecting">
             <summary>
             rgat is connecting out
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.eBridgeState.Listening">
+        <member name="F:rgat.BridgeConnection.BridgeState.Listening">
             <summary>
             rgat is waiting for an incoming connection
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.eBridgeState.Connected">
+        <member name="F:rgat.BridgeConnection.BridgeState.Connected">
             <summary>
             rgat is connected
             </summary>
         </member>
-        <member name="F:rgat.BridgeConnection.eBridgeState.Teardown">
+        <member name="F:rgat.BridgeConnection.BridgeState.Teardown">
             <summary>
             The connecton has been torn down
             </summary>
@@ -834,7 +832,7 @@
             Are we either listening, connecting or connected
             </summary>
         </member>
-        <member name="P:rgat.BridgeConnection.BridgeState">
+        <member name="P:rgat.BridgeConnection.ConnectionState">
             <summary>
             The state of the connection
             </summary>
@@ -926,7 +924,7 @@
             <param name="data">A NETWORK_MSG object</param>
             <returns>If successful</returns>
         </member>
-        <member name="M:rgat.BridgeConnection.RawSendData(rgat.BridgeConnection.emsgType,System.String)">
+        <member name="M:rgat.BridgeConnection.RawSendData(rgat.BridgeConnection.MsgType,System.String)">
             <summary>
             Encrypt and send a message to the connected party
             </summary>
@@ -1636,6 +1634,11 @@
             </summary>
             <param name="arg">trace data</param>
         </member>
+        <member name="M:rgat.Config.RemoteDataMirror.PurgeConnectionData">
+            <summary>
+            Clear all the connection state
+            </summary>
+        </member>
         <member name="M:rgat.Config.RemoteDataMirror.RegisterRemotePipe(System.UInt32,rgat.Threads.TraceProcessorWorker,rgat.Config.RemoteDataMirror.ProcessIncomingWorkerData)">
             <summary>
             Associate a remote named pipe with a Trace processor worker
@@ -1816,6 +1819,26 @@
             <summary>
             UI/Graph theme settings
             </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.SavedLaunchSettings">
+            <summary>
+            Dictionary of launch settings for SHA1s of targets
+            </summary>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.AddLaunchSettings(System.String,rgat.ProcessLaunchSettings)">
+            <summary>
+            Add tracing settings for reuse
+            </summary>
+            <param name="targetSHA1">SHA1 of target</param>
+            <param name="settings">settings for target</param>
+        </member>
+        <member name="M:rgat.Config.rgatSettings.GetPreviousLaunchSettings(System.String,rgat.ProcessLaunchSettings@)">
+            <summary>
+            Fetch previously used trace launch settings for this target from last session
+            </summary>
+            <param name="targetSHA1">SHA1 of target</param>
+            <param name="settings">output settings</param>
+            <returns>if found</returns>
         </member>
         <member name="T:rgat.Config.rgatSettings.ThemeSettings">
             <summary>
@@ -4357,7 +4380,7 @@
         </member>
         <member name="M:rgat.OperationModes.CommandLineRunner.InitGPU">
             <summary>
-            Init a GPU usage mode
+            Init a GPU usage mode (todo)
             </summary>
         </member>
         <member name="M:rgat.OperationModes.CommandLineRunner.TraceBinary(System.String,System.String,System.Boolean)">
@@ -4419,6 +4442,42 @@
             <summary>
             Awaiting reset to a stopped state
             </summary>
+        </member>
+        <member name="T:rgat.PlottedGraph.CenteringMode">
+            <summary>
+            How to center the graph
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CenteringMode.Inactive">
+            <summary>
+            The graph is not being centered
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CenteringMode.Centering">
+            <summary>
+            The graph is being centered until it is centered
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CenteringMode.ContinuousCentering">
+            <summary>
+            The widget will continue centering the graph to lock it in position even as it grows
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CenteringInFrame">
+            <summary>
+            The current centering state for this graph in the main graph renderer
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CenteringSteps">
+            <summary>
+            How many steps the current non-continuous centering operation has taken
+            </summary>
+        </member>
+        <member name="M:rgat.PlottedGraph.ToggleCentering(System.Boolean)">
+            <summary>
+            Toggle centering on or off
+            </summary>
+            <param name="locked">If toggling on, this will turn on continuous centering</param>
         </member>
         <member name="F:rgat.PlottedGraph._previewFramebuffer1">
             <summary>
@@ -5281,60 +5340,79 @@
             it to settings or for command line launching
             </summary>
         </member>
-        <member name="F:rgat.ProcessLaunchSettings.CommandLineArgs">
+        <member name="T:rgat.ProcessLaunchSettings.TracingMode">
+            <summary>
+            Unimplemented trace mode
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.TracingMode.Continuous">
+            <summary>
+            Instrumenting every path continuously
+            </summary>
+        </member>
+        <member name="F:rgat.ProcessLaunchSettings.TracingMode.SingleShot">
+            <summary>
+            Stop instrumenting blocks after all possible paths seen
+            </summary>
+        </member>
+        <member name="M:rgat.ProcessLaunchSettings.#ctor(System.String)">
+            <summary>
+            Create launch config
+            </summary>
+            <param name="BinaryPath">Path of target</param>
+        </member>
+        <member name="P:rgat.ProcessLaunchSettings.BinaryPath">
+            <summary>
+            Path of the binary on disk
+            </summary>
+        </member>
+        <member name="P:rgat.ProcessLaunchSettings.CommandLineArgs">
             <summary>
             Command line arguments passed to the target binary
             </summary>
         </member>
-        <member name="F:rgat.ProcessLaunchSettings.LoaderName">
+        <member name="P:rgat.ProcessLaunchSettings.LoaderName">
             <summary>
             Custom DLL loader name
             </summary>
         </member>
-        <member name="F:rgat.ProcessLaunchSettings.LoaderWidth">
+        <member name="P:rgat.ProcessLaunchSettings.LoaderWidth">
             <summary>
             32 or 64 bit loader
             </summary>
         </member>
-        <member name="F:rgat.ProcessLaunchSettings.DLLOrdinal">
+        <member name="P:rgat.ProcessLaunchSettings.DLLOrdinal">
             <summary>
             DLL ordinal to execute
             </summary>
         </member>
-        <member name="F:rgat.ProcessLaunchSettings.tracingMode">
+        <member name="P:rgat.ProcessLaunchSettings.tracingMode">
             <summary>
             Level of instrumentation to use. Only continuous is implemented at the moment
             </summary>
         </member>
-        <member name="F:rgat.ProcessLaunchSettings.DefaultIgnore">
+        <member name="P:rgat.ProcessLaunchSettings.TraceChoices">
             <summary>
-            How to choose which modules to trace
+            Settings for which modules are instrumented/ignored
             </summary>
         </member>
-        <member name="F:rgat.ProcessLaunchSettings.IgnoredFiles">
-            <summary>
-            Modules to ignore in default trace mode
-            </summary>
-        </member>
-        <member name="F:rgat.ProcessLaunchSettings.IgnoredDirectories">
-            <summary>
-            Directories to ignore in default trace mode
-            </summary>
-        </member>
-        <member name="F:rgat.ProcessLaunchSettings.TracedFiles">
-            <summary>
-            Modules to trace in default ignore mode
-            </summary>
-        </member>
-        <member name="F:rgat.ProcessLaunchSettings.TracedDirectories">
-            <summary>
-            Directories to trace in default ignore mode
-            </summary>
-        </member>
-        <member name="F:rgat.ProcessLaunchSettings.TraceSettings">
+        <member name="P:rgat.ProcessLaunchSettings.InstrumentationToolSettings">
             <summary>
             Passed to instrumentation tool
             </summary>
+        </member>
+        <member name="M:rgat.ProcessLaunchSettings.GetCurrentTraceConfiguration">
+            <summary>
+            Get the tracing configuration settings as a dictrionary of keyvaluepair strings
+            </summary>
+            <returns>Settings dictionary</returns>
+        </member>
+        <member name="M:rgat.ProcessLaunchSettings.SetTraceConfig(System.String,System.String)">
+            <summary>
+            Set a tracing configuration value to be sent to the instrumentation tool
+            </summary>
+            <param name="key">Setting to set</param>
+            <param name="value">Value of the setting</param>
         </member>
         <member name="T:rgat.ProcessRecord">
             <summary>
@@ -7844,6 +7922,11 @@
             Start work
             </summary>
         </member>
+        <member name="M:rgat.Threads.TraceProcessorWorker.Terminate">
+            <summary>
+            Basic thread termination
+            </summary>
+        </member>
         <member name="M:rgat.Threads.TraceProcessorWorker.Finished">
             <summary>
             The worker is finished
@@ -8102,42 +8185,42 @@
             A record of a traced process
             </summary>
         </member>
-        <member name="T:rgat.TraceRecord.eTracePurpose">
+        <member name="T:rgat.TraceRecord.TracingPurpose">
             <summary>
             The type of tracing done
             </summary>
         </member>
-        <member name="F:rgat.TraceRecord.eTracePurpose.eVisualiser">
+        <member name="F:rgat.TraceRecord.TracingPurpose.eVisualiser">
             <summary>
             Gather trace data of the process executing normally to visualise it
             </summary>
         </member>
-        <member name="F:rgat.TraceRecord.eTracePurpose.eFuzzer">
+        <member name="F:rgat.TraceRecord.TracingPurpose.eFuzzer">
             <summary>
             Not implemented
             </summary>
         </member>
-        <member name="T:rgat.TraceRecord.eTraceState">
+        <member name="T:rgat.TraceRecord.ProcessState">
             <summary>
             The state of the process being traced
             </summary>
         </member>
-        <member name="F:rgat.TraceRecord.eTraceState.eRunning">
+        <member name="F:rgat.TraceRecord.ProcessState.eRunning">
             <summary>
             The process is running
             </summary>
         </member>
-        <member name="F:rgat.TraceRecord.eTraceState.eSuspended">
+        <member name="F:rgat.TraceRecord.ProcessState.eSuspended">
             <summary>
             The process is suspended by rgat
             </summary>
         </member>
-        <member name="F:rgat.TraceRecord.eTraceState.eTerminated">
+        <member name="F:rgat.TraceRecord.ProcessState.eTerminated">
             <summary>
             The process is terminated
             </summary>
         </member>
-        <member name="M:rgat.TraceRecord.#ctor(System.UInt32,System.Int64,rgat.BinaryTarget,System.DateTime,rgat.TraceRecord.eTracePurpose,System.Int32)">
+        <member name="M:rgat.TraceRecord.#ctor(System.UInt32,System.Int64,rgat.BinaryTarget,System.DateTime,rgat.TraceRecord.TracingPurpose,System.Int32)">
             <summary>
             Create a trace record
             </summary>
@@ -8164,7 +8247,7 @@
             Was this recorded in this session or loaded from a save
             </summary>
         </member>
-        <member name="M:rgat.TraceRecord.SetTraceState(rgat.TraceRecord.eTraceState)">
+        <member name="M:rgat.TraceRecord.SetTraceState(rgat.TraceRecord.ProcessState)">
             <summary>
             Set the trace state
             </summary>
@@ -9008,8 +9091,8 @@
         <member name="M:rgat.GraphPlotWidget.DoMouseNodePicking(Veldrid.GraphicsDevice)">
             <summary>
             Must hold read lock
-            Check if the mouse position corresponds to a node ID in the picking texture
-            If so - the mouse is over that nod
+            Check if the mouse position corresponds to a node ID embedded in the colour values of the picking texture
+            If so - the mouse is over that node
             </summary>
             <param name="_gd"></param>
         </member>
@@ -9451,7 +9534,7 @@
             Is the demo window open
             </summary>
         </member>
-        <member name="P:ImGuiNET.ImGuiController.graphicsDevice">
+        <member name="P:ImGuiNET.ImGuiController.GraphicsDevice">
             <summary>
             A reference to a GPU graphics device for general use
             </summary>

@@ -116,11 +116,12 @@ namespace rgat.Threads
             _graphWidget = widget;
             _background = background;
             _rgatState = clientState;
-            _gdev = controller.graphicsDevice;
+            _gdev = controller.GraphicsDevice;
             _NodeCircleSpriteview = controller.IconTexturesView;
             _factory = _gdev.ResourceFactory;
-            _layoutEngine = new GraphLayoutEngine($"Preview_{workerID}");
-            _layoutEngine.Init(_gdev);
+
+            _layoutEngine = background ? widget.BackgroundLayoutEngine : widget.ForegroundLayoutEngine;
+
             SetupRenderingResources();
         }
 
@@ -131,8 +132,10 @@ namespace rgat.Threads
         {
 
             base.Begin();
-            WorkerThread = new Thread(ThreadProc);
-            WorkerThread.Name = $"PreviewWrk_{_idNum}_{(_background ? "BG" : "FG")}";
+            WorkerThread = new Thread(ThreadProc)
+            {
+                Name = $"PreviewWrk_{_idNum}_{(_background ? "BG" : "FG")}"
+            };
             WorkerThread.Start();
         }
 
@@ -333,7 +336,7 @@ namespace rgat.Threads
         /// <summary>
         /// Adjust the camera offset and zoom so that every node of the graph is in the frame
         /// </summary>
-        private bool CenterGraphInFrameStep(out float MaxRemaining, GraphLayoutEngine computeEngine, PlottedGraph graph)
+        private static bool CenterGraphInFrameStep(out float MaxRemaining, GraphLayoutEngine computeEngine, PlottedGraph graph)
         {
             Vector2 size = new Vector2(PreviewGraphsWidget.EachGraphWidth, PreviewGraphsWidget.EachGraphHeight);
             if (!computeEngine.GetPreviewFitOffsets(size, graph, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets))
@@ -511,21 +514,23 @@ namespace rgat.Threads
                 ));
 
             // Create pipelines
-            GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
-            pipelineDescription.BlendState = BlendStateDescription.SingleAlphaBlend;
-            pipelineDescription.DepthStencilState = new DepthStencilStateDescription(
+            GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription
+            {
+                BlendState = BlendStateDescription.SingleAlphaBlend,
+                DepthStencilState = new DepthStencilStateDescription(
                 depthTestEnabled: true,
                 depthWriteEnabled: true,
-                comparisonKind: ComparisonKind.LessEqual);
-
-            pipelineDescription.RasterizerState = new RasterizerStateDescription(
-                cullMode: FaceCullMode.Back,
-                fillMode: PolygonFillMode.Solid,
-                frontFace: FrontFace.Clockwise,
-                depthClipEnabled: true,
-                scissorTestEnabled: false);
-            pipelineDescription.ResourceLayouts = new[] { _coreRsrcLayout, _nodesEdgesRsrclayout };
-            pipelineDescription.ShaderSet = SPIRVShaders.CreateNodeShaders(_gdev, out _NodeVertexBuffer, out _NodeIndexBuffer);
+                comparisonKind: ComparisonKind.LessEqual),
+                RasterizerState = new RasterizerStateDescription(
+                    cullMode: FaceCullMode.Back,
+                    fillMode: PolygonFillMode.Solid,
+                    frontFace: FrontFace.Clockwise,
+                    depthClipEnabled: false,
+                    scissorTestEnabled: false),
+                    ResourceLayouts = new[] { _coreRsrcLayout, _nodesEdgesRsrclayout },
+                    ShaderSet = SPIRVShaders.CreateNodeShaders(_gdev, out _NodeVertexBuffer, out _NodeIndexBuffer
+                    )
+                };
 
             OutputAttachmentDescription[] oads = { new OutputAttachmentDescription(PixelFormat.R32_G32_B32_A32_Float) };
             pipelineDescription.Outputs = new OutputDescription

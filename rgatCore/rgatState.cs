@@ -144,10 +144,7 @@ namespace rgat
                 Logging.RecordLogEvent("YARA loaded", Logging.LogFilterType.TextDebug);
             }
             progress?.Report(1f);
-            if (completionCallback != null)
-            {
-                completionCallback();
-            }
+            completionCallback?.Invoke();
         }
 
 
@@ -348,7 +345,6 @@ namespace rgat
         /// <returns></returns>
         private static bool InitialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, out BinaryTarget? targetResult)
         {
-            BinaryTarget? target = null;
             targetResult = null;
 
             string? binaryPath = saveJSON.GetValue("BinaryPath")?.ToString();
@@ -357,6 +353,7 @@ namespace rgat
                 return false;
             }
 
+            BinaryTarget? target;
             if (!targets.GetTargetByPath(binaryPath, out target))
             {
                 bool isLibrary = false;

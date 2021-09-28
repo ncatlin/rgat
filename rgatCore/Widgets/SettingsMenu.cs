@@ -12,7 +12,7 @@ namespace rgat.Widgets
 {
     internal class SettingsMenu
     {
-        private bool[] optionsSelectStates = new bool[0];
+        private bool[] optionsSelectStates = Array.Empty<bool>();
         private List<string> settingsNames = new List<string>();
         private readonly ImGuiController _controller;
 
@@ -144,14 +144,16 @@ namespace rgat.Widgets
         {
             RegenerateUIThemeJSON();
 
-            settingsNames = new List<string>();
-            settingsNames.Add("Files");
-            settingsNames.Add("Signatures");
-            settingsNames.Add("Text");
-            settingsNames.Add("Keybinds");
-            settingsNames.Add("Theme");
-            settingsNames.Add("Video Encoder");
-            settingsNames.Add("Miscellaneous");
+            settingsNames = new List<string>
+            {
+                "Files",
+                "Signatures",
+                "Text",
+                "Keybinds",
+                "Theme",
+                "Video Encoder",
+                "Miscellaneous"
+            };
             optionsSelectStates = new bool[settingsNames.Count];
             optionsSelectStates[(int)eSettingsCategory.eFiles] = false;
             optionsSelectStates[(int)eSettingsCategory.eText] = false;
@@ -466,7 +468,7 @@ namespace rgat.Widgets
 
                                             if (sigset.LastFetch != DateTime.MinValue)
                                             {
-                                                SmallWidgets.MouseoverText($"Last Successful Download: {sigset.LastFetch.ToString()}");
+                                                SmallWidgets.MouseoverText($"Last Successful Download: {sigset.LastFetch}");
                                             }
                                         }
                                     }

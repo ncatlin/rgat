@@ -71,10 +71,11 @@ namespace rgat.Threads
         /// </summary>
         protected void IncreaseMessageCount() => _recentMsgCount += 1;
 
+
         /// <summary>
         /// Stop processing, cause the worker to exit
         /// </summary>
-        public virtual void Terminate()
+        public override void Terminate()
         {
             if (!StopFlag)
             {
@@ -82,6 +83,7 @@ namespace rgat.Threads
                 cancelTokens.Cancel();
             }
         }
+
 
         /// <summary>
         /// Fetch the next data from the queue

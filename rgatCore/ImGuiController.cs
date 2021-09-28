@@ -95,7 +95,7 @@ namespace ImGuiNET
         /// <summary>
         /// A reference to a GPU graphics device for general use
         /// </summary>
-        public GraphicsDevice graphicsDevice => _gd;
+        public GraphicsDevice GraphicsDevice => _gd;
 
 
 
@@ -675,7 +675,7 @@ namespace ImGuiNET
 
         /// <summary>
         /// Renders the ImGui draw list data.
-        /// This method requires a <see cref="GraphicsDevice"/> because it may create new DeviceBuffers if the size of vertex
+        /// This method requires a <see cref="Veldrid.GraphicsDevice"/> because it may create new DeviceBuffers if the size of vertex
         /// or index data has increased beyond the capacity of the existing buffers.
         /// A <see cref="CommandList"/> is needed to submit drawing and resource update commands.
         /// </summary>
@@ -969,6 +969,7 @@ namespace ImGuiNET
                 resource.Dispose();
             }
         }
+
 
         private struct ResourceSetInfo
         {

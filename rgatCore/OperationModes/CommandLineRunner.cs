@@ -35,7 +35,7 @@ namespace rgat.OperationModes
 
             Logging.RecordLogEvent("Initing/Loading Config", Logging.LogFilterType.TextDebug);
 
-            System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
+            System.Diagnostics.Stopwatch timer = new();
             timer.Start();
             //float configProgress = 0, widgetProgress = 0;
 
@@ -92,7 +92,7 @@ namespace rgat.OperationModes
         }
 
         /// <summary>
-        /// Init a GPU usage mode
+        /// Init a GPU usage mode (todo)
         /// </summary>
         public void InitGPU()
         {
@@ -111,11 +111,14 @@ namespace rgat.OperationModes
             Logging.WriteConsole($"Command line mode tracing binary {targetPath}");
 
             BinaryTarget target = new BinaryTarget(targetPath);
-            ProcessLaunchSettings settings = new ProcessLaunchSettings(targetPath); //todo - other settings. provided by command line or json file.
+            if (!GlobalConfig.Settings.GetPreviousLaunchSettings(target.GetSHA1Hash(), out ProcessLaunchSettings? settings) || settings is null)
+            {
+                settings = new ProcessLaunchSettings(targetPath);
+                settings.TraceChoices.InitDefaultExclusions();
+            }
             
             string pintoolpath = target.BitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
-
 
             ProcessLaunching.StartLocalTrace(pintoolpath, settings, target.PEFileObj);
 

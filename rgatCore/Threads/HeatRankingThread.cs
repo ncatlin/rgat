@@ -15,8 +15,10 @@ namespace rgat.Threads
         public override void Begin()
         {
             base.Begin();
-            WorkerThread = new Thread(ThreadProc);
-            WorkerThread.Name = $"HeakRankingWorker";
+            WorkerThread = new Thread(ThreadProc)
+            {
+                Name = $"HeakRankingWorker"
+            };
             WorkerThread.Start();
         }
 

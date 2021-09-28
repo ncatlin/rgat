@@ -186,7 +186,7 @@ namespace rgat
 
         private IEnumerable<IVideoFrame> GetNextFrame()
         {
-            while (_recording || _bmpQueue.Count > 0)
+            while (_recording || _bmpQueue.IsEmpty is false)
             {
                 if (_bmpQueue.Any())
                 {
@@ -257,11 +257,11 @@ namespace rgat
             if (graph != null)
             {
                 targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.Target.FilePath);
-                vidname = $"rgat_{targetname}_{graph.PID}_{DateTime.Now.ToString("MMdd_HHMMss")}";
+                vidname = $"rgat_{targetname}_{graph.PID}_{DateTime.Now:MMdd_HHMMss}";
             }
             else
             {
-                vidname = $"rgat_nograph_{DateTime.Now.ToString("MMdd_HHMMss")}";
+                vidname = $"rgat_nograph_{DateTime.Now:MMdd_HHMMss}";
             }
             string targetfile = Path.Combine(storedir, $"{vidname}.mp4");
             int attempt = 1;
@@ -329,12 +329,12 @@ namespace rgat
             string vidname;
             if (graph == null)
             {
-                vidname = $"rgat_NoGraph_{DateTime.Now.ToString("MMdd_HHMMss")}";
+                vidname = $"rgat_NoGraph_{DateTime.Now:MMdd_HHMMss}";
             }
             else
             {
                 string targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.Target.FilePath);
-                vidname = $"rgat_{targetname}_{graph.PID}_{DateTime.Now.ToString("MMdd_HHMMss")}";
+                vidname = $"rgat_{targetname}_{graph.PID}_{DateTime.Now:MMdd_HHMMss}";
             }
             string targetfile = Path.Combine(storedir, $"{vidname}.{extension}");
             int attempt = 1;

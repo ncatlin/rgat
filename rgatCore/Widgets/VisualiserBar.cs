@@ -60,17 +60,19 @@ namespace rgat.Widgets
                ));
 
             // Create pipelines
-            GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription();
-            pipelineDescription.BlendState = BlendStateDescription.SingleAlphaBlend;
-            pipelineDescription.DepthStencilState = DepthStencilStateDescription.Disabled;
-            pipelineDescription.RasterizerState = new RasterizerStateDescription(
+            GraphicsPipelineDescription pipelineDescription = new GraphicsPipelineDescription
+            {
+                BlendState = BlendStateDescription.SingleAlphaBlend,
+                DepthStencilState = DepthStencilStateDescription.Disabled,
+                RasterizerState = new RasterizerStateDescription(
                 cullMode: FaceCullMode.Back,
                 fillMode: PolygonFillMode.Solid,
                 frontFace: FrontFace.Clockwise,
                 depthClipEnabled: false,
-                scissorTestEnabled: false);
-            pipelineDescription.ResourceLayouts = new[] { _rsrcLayout };
-            pipelineDescription.ShaderSet = SPIRVShaders.CreateVisBarPointIconShader(_gd);
+                scissorTestEnabled: false),
+                ResourceLayouts = new[] { _rsrcLayout },
+                ShaderSet = SPIRVShaders.CreateVisBarPointIconShader(_gd)
+            };
 
             CreateTextures(1, 1);
 

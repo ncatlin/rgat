@@ -906,6 +906,9 @@ private void DrawScalePopup()
                 ImGui.SetNextItemWidth(150);
                 ImGui.SliderFloat("##MaxNodeSpeed", ref GlobalConfig.NodeSpeedLimit, 0, GlobalConfig.TemperatureLimit);
 
+                SmallWidgets.MouseoverText("Speed limit for node layout. High values make layout faster in the early stages,\n" +
+                    "but cause nodes to vibrate violently when they are near equilibrium.");
+
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 {

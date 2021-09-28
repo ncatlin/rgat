@@ -264,8 +264,8 @@ namespace rgat
         /// <summary>
         /// Cause the worker to stop and disconnect its pipe
         /// </summary>
-        public void Terminate()
-        {
+        public override void Terminate()
+        { 
             try
             {
                 cancelTokens.Cancel();

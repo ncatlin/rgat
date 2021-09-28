@@ -291,12 +291,14 @@ namespace rgat
             public JObject Serialise()
             {
 
-                JObject result = new JObject();
-                result.Add("Node", (int)Node!.Index);
-                result.Add("CallIdx", Index);
-                result.Add("Repeats", Repeats);
-                result.Add("uniqID", UniqID);
-                result.Add("Graph", Graph!.ConstructedTime);
+                JObject result = new JObject
+                {
+                    { "Node", (int)Node!.Index },
+                    { "CallIdx", Index },
+                    { "Repeats", Repeats },
+                    { "uniqID", UniqID },
+                    { "Graph", Graph!.ConstructedTime }
+                };
 
                 if (APIDetails.HasValue)
                 {
@@ -396,9 +398,8 @@ namespace rgat
 
                 _eventType = evtType.ToObject<eTimelineEvent>();
 
-                JToken? idtok, pidtok;
-                if (!jobj.TryGetValue("ID", out idtok) || idtok.Type != JTokenType.Integer ||
-                    !jobj.TryGetValue("PARENT", out pidtok) || pidtok.Type != JTokenType.Integer)
+                if (!jobj.TryGetValue("ID", out JToken? idtok) || idtok.Type != JTokenType.Integer ||
+                    !jobj.TryGetValue("PARENT", out JToken? pidtok) || pidtok.Type != JTokenType.Integer)
                 {
                     Logging.RecordError("Bad timeline id/parent id in saved timeline");
                     return;
@@ -451,11 +452,12 @@ namespace rgat
             /// <returns>The JSON value</returns>
             public JObject Serialise()
             {
-                JObject obj = new JObject();
-                obj.Add("EvtType", (int)TimelineEventType);
-
-                obj.Add("ID", ID);
-                obj.Add("PARENT", Parent);
+                JObject obj = new JObject
+                {
+                    { "EvtType", (int)TimelineEventType },
+                    { "ID", ID },
+                    { "PARENT", Parent }
+                };
                 if (_eventType == eTimelineEvent.APICall)
                 {
                     APICALL apic = (Logging.APICALL)_item;

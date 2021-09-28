@@ -313,7 +313,7 @@ namespace rgat
             Logging.RecordLogEvent($"Loading Resources", Logging.LogFilterType.TextDebug);
 
             System.Reflection.Assembly assembly = typeof(ImGuiController).Assembly;
-            System.IO.Stream? fs = null;
+            System.IO.Stream? fs;
             try
             {
                 fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);

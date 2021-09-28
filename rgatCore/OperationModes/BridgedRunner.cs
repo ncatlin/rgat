@@ -150,13 +150,13 @@ namespace rgat.OperationModes
         {
             while (!rgatState.rgatIsExiting && !connection.Connected && connection.ActiveNetworking)
             {
-                Logging.WriteConsole($"Waiting for connection: {connection.BridgeState}");
+                Logging.WriteConsole($"Waiting for connection: {connection.ConnectionState}");
                 System.Threading.Thread.Sleep(500);
             }
             List<NETWORK_MSG> incoming = new List<NETWORK_MSG>();
             while (!rgatState.rgatIsExiting && connection.Connected)
             {
-                Logging.WriteConsole($"Headless bridge running while connected {connection.BridgeState}");
+                Logging.WriteConsole($"Headless bridge running while connected {connection.ConnectionState}");
                 NewDataEvent.Wait();
                 lock (_lock)
                 {
@@ -200,7 +200,7 @@ namespace rgat.OperationModes
 
             switch (item.msgType)
             {
-                case emsgType.Meta:
+                case MsgType.Meta:
                     string metaparam = GetString(item.data);
                     if (metaparam != null && metaparam.StartsWith("Teardown:"))
                     {
@@ -219,7 +219,7 @@ namespace rgat.OperationModes
                     Logging.WriteConsole($"Unhandled meta message: {metaparam}");
                     break;
 
-                case emsgType.Command:
+                case MsgType.Command:
                     try
                     {
                         JObject cmdObj = JObject.Parse(GetString(item.data));
@@ -233,7 +233,7 @@ namespace rgat.OperationModes
 
                     break;
 
-                case emsgType.CommandResponse:
+                case MsgType.CommandResponse:
                     try
                     {
                         string responseStr = GetString(item.data);
@@ -253,7 +253,7 @@ namespace rgat.OperationModes
 
                     break;
 
-                case emsgType.TraceMeta:
+                case MsgType.TraceMeta:
 
                     if (!ParseTraceMeta(item.data, out TraceRecord? trace, out string[]? items))
                     {
@@ -268,7 +268,7 @@ namespace rgat.OperationModes
                     }
                     break;
 
-                case emsgType.TraceData:
+                case MsgType.TraceData:
                     {
 
                         //Logging.WriteConsole("handletracedata to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(item.data, 0, item.data.Length));
@@ -285,7 +285,7 @@ namespace rgat.OperationModes
                         break;
                     }
 
-                case emsgType.TraceCommand:
+                case MsgType.TraceCommand:
                     {
                         Logging.WriteConsole("Incoming trace command:" + GetString(item.data));
                         if (rgatState.NetworkBridge.HeadlessMode &&
@@ -303,7 +303,7 @@ namespace rgat.OperationModes
                         break;
                     }
 
-                case emsgType.Log:
+                case MsgType.Log:
                     {
                         Logging.LogFilterType filter = (Logging.LogFilterType)item.destinationID;
                         if (!Enum.IsDefined(typeof(Logging.LogFilterType), filter))
@@ -315,7 +315,7 @@ namespace rgat.OperationModes
                         break;
                     }
 
-                case emsgType.AsyncData:
+                case MsgType.AsyncData:
                     {
                         try
                         {
@@ -522,9 +522,9 @@ namespace rgat.OperationModes
             }
 
 
-            if (Enum.TryParse(typeof(TraceRecord.eTraceState), stateTok.ToString(), out object? newState) && newState is not null)
+            if (Enum.TryParse(typeof(TraceRecord.ProcessState), stateTok.ToString(), out object? newState) && newState is not null)
             {
-                traceOut.SetTraceState((TraceRecord.eTraceState)newState);
+                traceOut.SetTraceState((TraceRecord.ProcessState)newState);
                 return true;
             }
             
@@ -911,9 +911,11 @@ namespace rgat.OperationModes
                 uint pipeID = RemoteDataMirror.RegisterPipe(pipename);
                 NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
 
-                JObject response = new JObject();
-                response.Add("Thread#", refTok);
-                response.Add("Pipe#", pipeID);
+                JObject response = new JObject
+                {
+                    { "Thread#", refTok },
+                    { "Pipe#", pipeID }
+                };
 
 
                 rgatState.NetworkBridge.SendResponseJSON(cmdID, response);
@@ -992,9 +994,11 @@ namespace rgat.OperationModes
                 error = e.Message;
             }
 
-            JObject result = new JObject();
-            result.Add("Files", files);
-            result.Add("Dirs", dirs);
+            JObject result = new JObject
+            {
+                { "Files", files },
+                { "Dirs", dirs }
+            };
             return result;
         }
 
@@ -1012,8 +1016,10 @@ namespace rgat.OperationModes
                 }
             }
 
-            JObject result = new JObject();
-            result.Add("Error", "Not Loaded");
+            JObject result = new JObject
+            {
+                { "Error", "Not Loaded" }
+            };
             return result;
         }
 
@@ -1099,7 +1105,7 @@ namespace rgat.OperationModes
             int slashindex = param.IndexOf("://");
             if (slashindex != -1)
             {
-                param = param.Substring(slashindex);
+                param = param[slashindex..];
             }
             string[] parts = param.Split(':', options: StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 2 && int.TryParse(parts[1], out port))

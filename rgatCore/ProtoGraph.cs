@@ -328,13 +328,15 @@ namespace rgat
                     return false;
                 }
 
-                ANIMATIONENTRY entry = new ANIMATIONENTRY();
-                entry.entryType = (eTraceUpdateType)animFields[0].ToObject<uint>();
-                entry.blockAddr = animFields[1].ToObject<ulong>();
-                entry.blockID = animFields[2].ToObject<uint>();
-                entry.count = animFields[3].ToObject<ulong>();
-                entry.targetAddr = animFields[4].ToObject<ulong>();
-                entry.targetID = animFields[5].ToObject<uint>();
+                ANIMATIONENTRY entry = new ANIMATIONENTRY
+                {
+                    entryType = (eTraceUpdateType)animFields[0].ToObject<uint>(),
+                    blockAddr = animFields[1].ToObject<ulong>(),
+                    blockID = animFields[2].ToObject<uint>(),
+                    count = animFields[3].ToObject<ulong>(),
+                    targetAddr = animFields[4].ToObject<ulong>(),
+                    targetID = animFields[5].ToObject<uint>()
+                };
                 JArray edgecounts = (JArray)animFields[6];
                 if (edgecounts.Count > 0)
                 {
@@ -379,9 +381,11 @@ namespace rgat
                     CallArgList.Add(argData);
                 }
 
-                APICALLDATA callDat = new APICALLDATA();
-                callDat.argList = CallArgList;
-                callDat.edgeIdx = edge;
+                APICALLDATA callDat = new APICALLDATA
+                {
+                    argList = CallArgList,
+                    edgeIdx = edge
+                };
                 SymbolCallRecords.Add(callDat);
             }
             return true;
@@ -675,9 +679,11 @@ namespace rgat
                 //has this thread executed this basic block before?
                 if (callers == null)
                 {
-                    List<Tuple<uint, uint>> callervec = new List<Tuple<uint, uint>>();
-                    //cout << "add extern addr " << std::hex<<  targaddr << " mod " << std::dec << modnum << endl;
-                    callervec.Add(resultPair);
+                    List<Tuple<uint, uint>> callervec = new List<Tuple<uint, uint>>
+                    {
+                        //cout << "add extern addr " << std::hex<<  targaddr << " mod " << std::dec << modnum << endl;
+                        resultPair
+                    };
                     thisbb.ThreadCallers.Add(ThreadID, callervec);
                 }
                 else
@@ -689,12 +695,14 @@ namespace rgat
             int module = thisbb.Module;
 
             //make new external/library call node
-            NodeData newTargNode = new NodeData();
-            newTargNode.GlobalModuleID = module;
-            newTargNode.IsExternal = true;
-            newTargNode.address = targaddr;
-            newTargNode.Index = targVertID;
-            newTargNode.parentIdx = ProtoLastVertID;
+            NodeData newTargNode = new NodeData
+            {
+                GlobalModuleID = module,
+                IsExternal = true,
+                address = targaddr,
+                Index = targVertID,
+                parentIdx = ProtoLastVertID
+            };
             newTargNode.SetExecutionCount(repeats);
             newTargNode.BlockID = uint.MaxValue;
             newTargNode.HasSymbol = true;
@@ -710,8 +718,10 @@ namespace rgat
             NodeData? targetNode = GetNode(targVertID);
             Debug.Assert(targetNode is not null);
 
-            EdgeData newEdge = new EdgeData(index: EdgeList.Count, sourceType: sourceNode.VertType(), execCount: repeats);
-            newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
+            EdgeData newEdge = new EdgeData(index: EdgeList.Count, sourceType: sourceNode.VertType(), execCount: repeats)
+            {
+                edgeClass = eEdgeNodeType.eEdgeLib
+            };
             AddEdge(newEdge, sourceNode, targetNode);
             //cout << "added external edge from " << lastVertID << "->" << targVertID << endl;
             lastNodeType = eEdgeNodeType.eNodeExternal;
@@ -1617,9 +1627,11 @@ namespace rgat
         /// <returns>The JObject of the thread</returns>
         public JObject Serialise()
         {
-            JObject result = new JObject();
-            result.Add("ThreadID", ThreadID);
-            result.Add("StartAddress", StartAddress);
+            JObject result = new JObject
+            {
+                { "ThreadID", ThreadID },
+                { "StartAddress", StartAddress }
+            };
 
             lock (nodeLock)
             {
@@ -1669,16 +1681,20 @@ namespace rgat
             JArray externCalls = new JArray();
             foreach (APICALLDATA ecd in SymbolCallRecords)
             {
-                JArray callArgsEntry = new JArray();
-                callArgsEntry.Add(ecd.edgeIdx.Item1);
-                callArgsEntry.Add(ecd.edgeIdx.Item2);
+                JArray callArgsEntry = new JArray
+                {
+                    ecd.edgeIdx.Item1,
+                    ecd.edgeIdx.Item2
+                };
 
                 JArray argsArray = new JArray();
                 foreach (var arg in ecd.argList)
                 {
-                    JArray ecdEntryArgs = new JArray();
-                    ecdEntryArgs.Add(arg.Item1);
-                    ecdEntryArgs.Add(arg.Item2);
+                    JArray ecdEntryArgs = new JArray
+                    {
+                        arg.Item1,
+                        arg.Item2
+                    };
                     argsArray.Add(ecdEntryArgs);
                 }
                 callArgsEntry.Add(argsArray);
@@ -1694,13 +1710,15 @@ namespace rgat
             {
                 foreach (ANIMATIONENTRY repentry in SavedAnimationData)
                 {
-                    JArray replayItem = new JArray();
-                    replayItem.Add(repentry.entryType);
-                    replayItem.Add(repentry.blockAddr);
-                    replayItem.Add(repentry.blockID);
-                    replayItem.Add(repentry.count);
-                    replayItem.Add(repentry.targetAddr);
-                    replayItem.Add(repentry.targetID);
+                    JArray replayItem = new JArray
+                    {
+                        repentry.entryType,
+                        repentry.blockAddr,
+                        repentry.blockID,
+                        repentry.count,
+                        repentry.targetAddr,
+                        repentry.targetID
+                    };
 
                     JArray edgeCounts = new JArray();
                     if (repentry.edgeCounts != null)

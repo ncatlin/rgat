@@ -437,7 +437,7 @@ namespace rgat
 
                 ImGui.BeginGroup();
                 {
-                    if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eRunning)
+                    if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.ProcessState.eRunning)
                     {
                         if (ImGui.Button("Pause/Break"))
                         {
@@ -446,7 +446,7 @@ namespace rgat
                         SmallWidgets.MouseoverText("Pause all process threads");
                     }
 
-                    if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.eTraceState.eSuspended)
+                    if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.ProcessState.eSuspended)
                     {
                         if (ImGui.Button("Continue"))
                         {
@@ -533,7 +533,8 @@ namespace rgat
                 ImGui.Button("Capture Settings");
                 ImGui.EndChild();
             }
-        }        
+        }    
+        
         
         private static void DrawCameraPanel(PlottedGraph graph)
         {
@@ -542,9 +543,17 @@ namespace rgat
                 ImGui.Text($"CameraX: {graph.CameraXOffset}");
                 ImGui.Text($"CameraY: {graph.CameraYOffset}");
                 ImGui.Text($"CameraZ: {graph.CameraZoom}");
+                if (graph.CenteringInFrame is not PlottedGraph.CenteringMode.Inactive)
+                {
+                    if (graph.CenteringInFrame is PlottedGraph.CenteringMode.Centering)
+                        ImGui.Text("Centering...");
+                    else if (graph.CenteringInFrame is PlottedGraph.CenteringMode.ContinuousCentering)
+                        ImGui.Text("Centering [locked]");
+                }
                 ImGui.EndChild();
             }
         }
+
 
         private static void DrawDiasmPreviewBox(ProtoGraph graph, int lastAnimIdx)
         {

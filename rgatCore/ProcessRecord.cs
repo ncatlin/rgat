@@ -43,9 +43,11 @@ namespace rgat
             {
                 if (!externdict.TryGetValue(address, out RTN))
                 {
-                    RTN = new ROUTINE_STRUCT();
-                    RTN.Module = moduleNum;
-                    RTN.ThreadCallers = new Dictionary<uint, List<Tuple<uint, uint>>>();
+                    RTN = new ROUTINE_STRUCT
+                    {
+                        Module = moduleNum,
+                        ThreadCallers = new Dictionary<uint, List<Tuple<uint, uint>>>()
+                    };
                     externdict.Add(address, RTN);
                 }
             }
@@ -899,12 +901,14 @@ namespace rgat
                     return false;
                 }
 
-                InstructionData ins = new InstructionData();
-                ins.GlobalModNum = addressData.moduleID;
-                ins.hasSymbol = addressData.hasSym;
-                ins.Opcodes = System.Convert.FromBase64String(mutationStr);
-                ins.Address = addressData.address;
-                ins.BlockBoundary = addressData.blockBoundary;
+                InstructionData ins = new InstructionData
+                {
+                    GlobalModNum = addressData.moduleID,
+                    hasSymbol = addressData.hasSym,
+                    Opcodes = System.Convert.FromBase64String(mutationStr),
+                    Address = addressData.address,
+                    BlockBoundary = addressData.blockBoundary
+                };
 
                 if (ins.NumBytes == 0)
                 {
@@ -952,7 +956,7 @@ namespace rgat
             {
                 address = entry[0].ToObject<ulong>(),
                 moduleID = entry[1].ToObject<int>(),
-                blockBoundary = entry[2].ToObject<int>() == 1 ? true : false
+                blockBoundary = entry[2].ToObject<int>() == 1
             };
 
             addrData.hasSym = (modsymsPlain.ContainsKey(addrData.moduleID) &&
@@ -1192,10 +1196,12 @@ namespace rgat
             JArray disasarray = new JArray();
             foreach (KeyValuePair<ulong, List<InstructionData>> addr_inslist in disassembly)
             {
-                JArray insentry = new JArray();
-                insentry.Add(addr_inslist.Key);
-                insentry.Add(addr_inslist.Value[0].GlobalModNum);
-                insentry.Add(addr_inslist.Value[0].BlockBoundary ? 1 : 0);
+                JArray insentry = new JArray
+                {
+                    addr_inslist.Key,
+                    addr_inslist.Value[0].GlobalModNum,
+                    addr_inslist.Value[0].BlockBoundary ? 1 : 0
+                };
 
                 JArray opcodesMutationsList = new JArray();
                 foreach (var mutation in addr_inslist.Value)
@@ -1210,9 +1216,11 @@ namespace rgat
                     {
                         foreach (Tuple<uint, uint> thread_node in threadVerts)
                         {
-                            JArray threadNodeMappings = new JArray();
-                            threadNodeMappings.Add(thread_node.Item1);
-                            threadNodeMappings.Add(thread_node.Item2);
+                            JArray threadNodeMappings = new JArray
+                            {
+                                thread_node.Item1,
+                                thread_node.Item2
+                            };
                             threadsUsingInstruction.Add(threadNodeMappings);
                         }
                     }
@@ -1242,9 +1250,11 @@ namespace rgat
             JArray ModuleBounds = new JArray();
             foreach (Tuple<ulong, ulong> start_end in LoadedModuleBounds)
             {
-                JArray BoundsTuple = new JArray();
-                BoundsTuple.Add(start_end.Item1);
-                BoundsTuple.Add(start_end.Item2);
+                JArray BoundsTuple = new JArray
+                {
+                    start_end.Item1,
+                    start_end.Item2
+                };
                 ModuleBounds.Add(BoundsTuple);
             }
             saveObject.Add("ModuleBounds", ModuleBounds);
@@ -1264,15 +1274,19 @@ namespace rgat
 
             foreach (var modID_symsdict in modsymsPlain)
             {
-                JObject modSymsObj = new JObject();
-                modSymsObj.Add("ModuleID", modID_symsdict.Key);
+                JObject modSymsObj = new JObject
+                {
+                    { "ModuleID", modID_symsdict.Key }
+                };
 
                 JArray modSymsArr = new JArray();
                 foreach (var address_symstring in modID_symsdict.Value)
                 {
-                    JArray modSymEntry = new JArray();
-                    modSymEntry.Add(address_symstring.Key);
-                    modSymEntry.Add(address_symstring.Value);
+                    JArray modSymEntry = new JArray
+                    {
+                        address_symstring.Key,
+                        address_symstring.Value
+                    };
                     modSymsArr.Add(modSymEntry);
                 }
                 modSymsObj.Add("Symbols", modSymsArr);
@@ -1294,15 +1308,19 @@ namespace rgat
                     continue;
                 }
 
-                JArray blockArray = new JArray();
-                blockArray.Add(addr_inslist.Item1);
+                JArray blockArray = new JArray
+                {
+                    addr_inslist.Item1
+                };
 
                 JArray inslist = new JArray();
                 foreach (InstructionData i in addr_inslist.Item2)
                 {
-                    JArray insentry = new JArray();
-                    insentry.Add(i.Address);
-                    insentry.Add(i.MutationIndex);
+                    JArray insentry = new JArray
+                    {
+                        i.Address,
+                        i.MutationIndex
+                    };
                     inslist.Add(insentry);
                 }
                 blockArray.Add(inslist);
@@ -1318,8 +1336,10 @@ namespace rgat
 
             foreach (var addr_rtnstruct in externdict)
             {
-                JObject externObj = new JObject();
-                externObj.Add("A", addr_rtnstruct.Key);
+                JObject externObj = new JObject
+                {
+                    { "A", addr_rtnstruct.Key }
+                };
 
                 ROUTINE_STRUCT externStruc = addr_rtnstruct.Value;
                 externObj.Add("M", externStruc.Module);
@@ -1331,15 +1351,19 @@ namespace rgat
 
                     foreach (var thread_edgelist in externStruc.ThreadCallers)
                     {
-                        JArray callerCalls = new JArray();
-                        callerCalls.Add(thread_edgelist.Key);
+                        JArray callerCalls = new JArray
+                        {
+                            thread_edgelist.Key
+                        };
 
                         JArray edgeList = new JArray();
                         foreach (var edge in thread_edgelist.Value)
                         {
-                            JArray threadEdge = new JArray();
-                            threadEdge.Add(edge.Item1);
-                            threadEdge.Add(edge.Item2);
+                            JArray threadEdge = new JArray
+                            {
+                                edge.Item1,
+                                edge.Item2
+                            };
                             edgeList.Add(threadEdge);
                         }
 

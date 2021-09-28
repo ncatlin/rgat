@@ -486,19 +486,19 @@ namespace rgat.Widgets
                         TraceRecord trace = (TraceRecord)node.reference;
                         switch (trace.TraceState)
                         {
-                            case TraceRecord.eTraceState.eTerminated:
+                            case TraceRecord.ProcessState.eTerminated:
                                 DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
                                 DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff0000ff, $"{ImGuiController.FA_ICON_COGS}");
                                 DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Process {trace.PID} (Exited)");
                                 break;
 
-                            case TraceRecord.eTraceState.eRunning:
+                            case TraceRecord.ProcessState.eRunning:
                                 DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
                                 DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff00ff00, $"{ImGuiController.FA_ICON_COGS}");
                                 DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Process {trace.PID} (Running)");
                                 break;
 
-                            case TraceRecord.eTraceState.eSuspended:
+                            case TraceRecord.ProcessState.eSuspended:
                                 DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
                                 DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff00ffff, $"{ImGuiController.FA_ICON_COGS}");
                                 DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Process {trace.PID} (Suspended)");

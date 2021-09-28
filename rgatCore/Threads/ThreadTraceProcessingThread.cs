@@ -76,8 +76,10 @@ namespace rgat.Threads
         {
             base.Begin();
 
-            WorkerThread = new Thread(Processor);
-            WorkerThread.Name = "TraceProcessor" + this.protograph.ThreadID;
+            WorkerThread = new Thread(Processor)
+            {
+                Name = "TraceProcessor" + this.protograph.ThreadID
+            };
             WorkerThread.Start();
 
             IrregularActionTimer = new System.Timers.Timer(800);
@@ -421,11 +423,12 @@ namespace rgat.Threads
                 return;
             }
 
-            ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
-            animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
-            animUpdate.blockAddr = thistag.blockaddr;
-
-            animUpdate.blockID = thistag.blockID;
+            ANIMATIONENTRY animUpdate = new ANIMATIONENTRY
+            {
+                entryType = eTraceUpdateType.eAnimExecTag,
+                blockAddr = thistag.blockaddr,
+                blockID = thistag.blockID
+            };
             protograph.PushAnimUpdate(animUpdate);
 
             int addrstart = ++tokenpos;
@@ -554,9 +557,11 @@ namespace rgat.Threads
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
             string[] entries = msg.Split(',', 2);
 
-            ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
-            animUpdate.entryType = eTraceUpdateType.eAnimRepExec;
-            animUpdate.blockID = uint.Parse(entries[1], NumberStyles.HexNumber);
+            ANIMATIONENTRY animUpdate = new ANIMATIONENTRY
+            {
+                entryType = eTraceUpdateType.eAnimRepExec,
+                blockID = uint.Parse(entries[1], NumberStyles.HexNumber)
+            };
             protograph.PushAnimUpdate(animUpdate);
             Logging.RecordLogEvent($"A REP instruction (blkid {animUpdate.blockID}) has executed at least once. Need to action this as per trello 160");
         }
@@ -566,16 +571,20 @@ namespace rgat.Threads
             //modType could be known unknown here
             //in case of unknown, this waits until we know. hopefully rare.
 
-            TAG externTag = new TAG();
-            externTag.InstrumentationState = eCodeInstrumentation.eUninstrumentedCode;
-            externTag.blockaddr = externAddr;
+            TAG externTag = new TAG
+            {
+                InstrumentationState = eCodeInstrumentation.eUninstrumentedCode,
+                blockaddr = externAddr
+            };
 
             protograph.HandleTag(externTag);
 
-            ANIMATIONENTRY animUpdate = new ANIMATIONENTRY();
-            animUpdate.blockAddr = externAddr;
-            animUpdate.entryType = eTraceUpdateType.eAnimExecTag;
-            animUpdate.blockID = uint.MaxValue;
+            ANIMATIONENTRY animUpdate = new ANIMATIONENTRY
+            {
+                blockAddr = externAddr,
+                entryType = eTraceUpdateType.eAnimExecTag,
+                blockID = uint.MaxValue
+            };
             if (protograph.externFuncCallCounter.TryGetValue(callerBlock, out ulong prevCount))
             {
                 protograph.externFuncCallCounter[callerBlock] = prevCount + 1;
@@ -689,9 +698,6 @@ namespace rgat.Threads
 
             currentUnchainedBlocks.Add(animUpdate.blockID);
 
-
-
-            uint lastlastlast = protograph.ProtoLastLastVertID;
             protograph.ProtoLastLastVertID = protograph.ProtoLastVertID;
             var blockNodes = protograph.BlocksFirstLastNodeList[(int)animUpdate.blockID];
 
@@ -758,7 +764,7 @@ namespace rgat.Threads
             string[] edgeCounts = entries[2].Split(',');
 
             ulong blockExecs = 0;
-            for (int i = 0; i < edgeCounts.Count(); i += 2)
+            for (int i = 0; i < edgeCounts.Length; i += 2)
             {
                 ulong targAddr = ulong.Parse(edgeCounts[i], NumberStyles.HexNumber);
 

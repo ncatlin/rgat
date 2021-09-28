@@ -283,62 +283,63 @@ namespace rgat
         /// </summary>
         private static void InitUnsetCustomColours()
         {
-            Dictionary<eThemeColour, uint> DefaultCustomColours = new Dictionary<eThemeColour, uint>();
+            Dictionary<eThemeColour, uint> DefaultCustomColours = new Dictionary<eThemeColour, uint>
+            {
+                [eThemeColour.ePreviewText] = new WritableRgbaFloat(Af: 1f, Gf: 1, Bf: 1, Rf: 1).ToUint(),
+                [eThemeColour.ePreviewTextBackground] = new WritableRgbaFloat(Af: 0.3f, Gf: 0, Bf: 0, Rf: 0).ToUint(),
+                [eThemeColour.ePreviewPaneBorder] = new WritableRgbaFloat(Af: 1f, Gf: 0, Bf: 0, Rf: 1).ToUint(),
+                [eThemeColour.ePreviewPaneBackground] = new WritableRgbaFloat(Af: 1f, Gf: 0.05f, Bf: 0.05f, Rf: 0.05f).ToUint(),
+                [eThemeColour.ePreviewZoomEnvelope] = new WritableRgbaFloat(Af: 0.7f, Gf: 0.7f, Bf: 0.7f, Rf: 0.7f).ToUint(),
+                [eThemeColour.PreviewBGRunning] = new WritableRgbaFloat(Color.FromArgb(180, 0, 42, 0)).ToUint(),
+                [eThemeColour.PreviewBGSuspended] = new WritableRgbaFloat(Color.FromArgb(150, 245, 163, 71)).ToUint(),
+                [eThemeColour.PreviewBGTerminated] = new WritableRgbaFloat(Color.FromArgb(180, 42, 0, 0)).ToUint(),
 
-            DefaultCustomColours[eThemeColour.ePreviewText] = new WritableRgbaFloat(Af: 1f, Gf: 1, Bf: 1, Rf: 1).ToUint();
-            DefaultCustomColours[eThemeColour.ePreviewTextBackground] = new WritableRgbaFloat(Af: 0.3f, Gf: 0, Bf: 0, Rf: 0).ToUint();
-            DefaultCustomColours[eThemeColour.ePreviewPaneBorder] = new WritableRgbaFloat(Af: 1f, Gf: 0, Bf: 0, Rf: 1).ToUint();
-            DefaultCustomColours[eThemeColour.ePreviewPaneBackground] = new WritableRgbaFloat(Af: 1f, Gf: 0.05f, Bf: 0.05f, Rf: 0.05f).ToUint();
-            DefaultCustomColours[eThemeColour.ePreviewZoomEnvelope] = new WritableRgbaFloat(Af: 0.7f, Gf: 0.7f, Bf: 0.7f, Rf: 0.7f).ToUint();
-            DefaultCustomColours[eThemeColour.PreviewBGRunning] = new WritableRgbaFloat(Color.FromArgb(180, 0, 42, 0)).ToUint();
-            DefaultCustomColours[eThemeColour.PreviewBGSuspended] = new WritableRgbaFloat(Color.FromArgb(150, 245, 163, 71)).ToUint();
-            DefaultCustomColours[eThemeColour.PreviewBGTerminated] = new WritableRgbaFloat(Color.FromArgb(180, 42, 0, 0)).ToUint();
+                [eThemeColour.eTextDull1] = new WritableRgbaFloat(Af: 1, Gf: 0.698f, Bf: 0.698f, Rf: 0.698f).ToUint(),
+                [eThemeColour.eTextDull2] = new WritableRgbaFloat(Af: 1, Gf: 0.494f, Bf: 0.494f, Rf: 0.537f).ToUint(),
+                [eThemeColour.eTextEmphasis1] = new WritableRgbaFloat(Af: 1, Gf: 1f, Bf: 0.9f, Rf: 0.6f).ToUint(),
+                [eThemeColour.eTextEmphasis2] = new WritableRgbaFloat(Af: 1, Gf: 0.773f, Bf: 01, Rf: 1f).ToUint(),
 
-            DefaultCustomColours[eThemeColour.eTextDull1] = new WritableRgbaFloat(Af: 1, Gf: 0.698f, Bf: 0.698f, Rf: 0.698f).ToUint();
-            DefaultCustomColours[eThemeColour.eTextDull2] = new WritableRgbaFloat(Af: 1, Gf: 0.494f, Bf: 0.494f, Rf: 0.537f).ToUint();
-            DefaultCustomColours[eThemeColour.eTextEmphasis1] = new WritableRgbaFloat(Af: 1, Gf: 1f, Bf: 0.9f, Rf: 0.6f).ToUint();
-            DefaultCustomColours[eThemeColour.eTextEmphasis2] = new WritableRgbaFloat(Af: 1, Gf: 0.773f, Bf: 01, Rf: 1f).ToUint();
+                [eThemeColour.edgeCall] = new WritableRgbaFloat(Color.Purple).ToUint(),
+                [eThemeColour.edgeOld] = new WritableRgbaFloat(Color.FromArgb(150, 150, 150, 150)).ToUint(),
+                [eThemeColour.edgeRet] = new WritableRgbaFloat(Color.Orange).ToUint(),
+                [eThemeColour.edgeLib] = new WritableRgbaFloat(Color.Green).ToUint(),
+                [eThemeColour.edgeNew] = new WritableRgbaFloat(Color.Yellow).ToUint(),
+                [eThemeColour.edgeExcept] = new WritableRgbaFloat(Color.Cyan).ToUint(),
 
-            DefaultCustomColours[eThemeColour.edgeCall] = new WritableRgbaFloat(Color.Purple).ToUint();
-            DefaultCustomColours[eThemeColour.edgeOld] = new WritableRgbaFloat(Color.FromArgb(150, 150, 150, 150)).ToUint();
-            DefaultCustomColours[eThemeColour.edgeRet] = new WritableRgbaFloat(Color.Orange).ToUint();
-            DefaultCustomColours[eThemeColour.edgeLib] = new WritableRgbaFloat(Color.Green).ToUint();
-            DefaultCustomColours[eThemeColour.edgeNew] = new WritableRgbaFloat(Color.Yellow).ToUint();
-            DefaultCustomColours[eThemeColour.edgeExcept] = new WritableRgbaFloat(Color.Cyan).ToUint();
+                [eThemeColour.nodeStd] = new WritableRgbaFloat(Color.Yellow).ToUint(),
+                [eThemeColour.nodeJump] = new WritableRgbaFloat(Color.Red).ToUint(),
+                [eThemeColour.nodeCall] = new WritableRgbaFloat(Color.Purple).ToUint(),
+                [eThemeColour.nodeRet] = new WritableRgbaFloat(Color.Orange).ToUint(),
+                [eThemeColour.nodeExtern] = new WritableRgbaFloat(Color.FromArgb(255, 40, 255, 0)).ToUint(),
+                [eThemeColour.nodeExcept] = new WritableRgbaFloat(Color.Cyan).ToUint(),
 
-            DefaultCustomColours[eThemeColour.nodeStd] = new WritableRgbaFloat(Color.Yellow).ToUint();
-            DefaultCustomColours[eThemeColour.nodeJump] = new WritableRgbaFloat(Color.Red).ToUint();
-            DefaultCustomColours[eThemeColour.nodeCall] = new WritableRgbaFloat(Color.Purple).ToUint();
-            DefaultCustomColours[eThemeColour.nodeRet] = new WritableRgbaFloat(Color.Orange).ToUint();
-            DefaultCustomColours[eThemeColour.nodeExtern] = new WritableRgbaFloat(Color.FromArgb(255, 40, 255, 0)).ToUint();
-            DefaultCustomColours[eThemeColour.nodeExcept] = new WritableRgbaFloat(Color.Cyan).ToUint();
+                [eThemeColour.SymbolText] = new WritableRgbaFloat(Color.SpringGreen).ToUint(),
+                [eThemeColour.InternalSymbol] = new WritableRgbaFloat(Color.DarkGray).ToUint(),
+                [eThemeColour.SymbolRising] = new WritableRgbaFloat(Color.ForestGreen).ToUint(),
+                [eThemeColour.InstructionText] = new WritableRgbaFloat(Color.White).ToUint(),
+                [eThemeColour.WireFrame] = new WritableRgbaFloat(180f / 255f, 180f / 255f, 180f / 255f, 0.3f).ToUint(),
 
-            DefaultCustomColours[eThemeColour.SymbolText] = new WritableRgbaFloat(Color.SpringGreen).ToUint();
-            DefaultCustomColours[eThemeColour.InternalSymbol] = new WritableRgbaFloat(Color.DarkGray).ToUint();
-            DefaultCustomColours[eThemeColour.SymbolRising] = new WritableRgbaFloat(Color.ForestGreen).ToUint();
-            DefaultCustomColours[eThemeColour.InstructionText] = new WritableRgbaFloat(Color.White).ToUint();
-            DefaultCustomColours[eThemeColour.WireFrame] = new WritableRgbaFloat(180f / 255f, 180f / 255f, 180f / 255f, 0.3f).ToUint();
+                [eThemeColour.eHeat0Lowest] = new WritableRgbaFloat(0, 0, 155f / 255f, 0.7f).ToUint(),
+                [eThemeColour.eHeat1] = new WritableRgbaFloat(46f / 255f, 28f / 255f, 155f / 255f, 1).ToUint(),
+                [eThemeColour.eHeat2] = new WritableRgbaFloat(95f / 255f, 104f / 255f, 226f / 255f, 1).ToUint(),
+                [eThemeColour.eHeat3] = new WritableRgbaFloat(117f / 255f, 143f / 255f, 223f / 255f, 1).ToUint(),
+                [eThemeColour.eHeat4] = new WritableRgbaFloat(255f / 255f, 255f / 225f, 255f / 255f, 1).ToUint(),
+                [eThemeColour.eHeat5] = new WritableRgbaFloat(252f / 255f, 196f / 255f, 180f / 255f, 1).ToUint(),
+                [eThemeColour.eHeat6] = new WritableRgbaFloat(242f / 255f, 152f / 255f, 152f / 255f, 1).ToUint(),
+                [eThemeColour.eHeat7] = new WritableRgbaFloat(249f / 255f, 107f / 255f, 107f / 255f, 1).ToUint(),
+                [eThemeColour.eHeat8] = new WritableRgbaFloat(255f / 255f, 64f / 255f, 64f / 255f, 1).ToUint(),
+                [eThemeColour.eHeat9Highest] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint(),
 
-            DefaultCustomColours[eThemeColour.eHeat0Lowest] = new WritableRgbaFloat(0, 0, 155f / 255f, 0.7f).ToUint();
-            DefaultCustomColours[eThemeColour.eHeat1] = new WritableRgbaFloat(46f / 255f, 28f / 255f, 155f / 255f, 1).ToUint();
-            DefaultCustomColours[eThemeColour.eHeat2] = new WritableRgbaFloat(95f / 255f, 104f / 255f, 226f / 255f, 1).ToUint();
-            DefaultCustomColours[eThemeColour.eHeat3] = new WritableRgbaFloat(117f / 255f, 143f / 255f, 223f / 255f, 1).ToUint();
-            DefaultCustomColours[eThemeColour.eHeat4] = new WritableRgbaFloat(255f / 255f, 255f / 225f, 255f / 255f, 1).ToUint();
-            DefaultCustomColours[eThemeColour.eHeat5] = new WritableRgbaFloat(252f / 255f, 196f / 255f, 180f / 255f, 1).ToUint();
-            DefaultCustomColours[eThemeColour.eHeat6] = new WritableRgbaFloat(242f / 255f, 152f / 255f, 152f / 255f, 1).ToUint();
-            DefaultCustomColours[eThemeColour.eHeat7] = new WritableRgbaFloat(249f / 255f, 107f / 255f, 107f / 255f, 1).ToUint();
-            DefaultCustomColours[eThemeColour.eHeat8] = new WritableRgbaFloat(255f / 255f, 64f / 255f, 64f / 255f, 1).ToUint();
-            DefaultCustomColours[eThemeColour.eHeat9Highest] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint();
-
-            DefaultCustomColours[eThemeColour.eVisBarPlotLine] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint();
-            DefaultCustomColours[eThemeColour.eVisBarBg] = new WritableRgbaFloat(Color.Black).ToUint();
-            DefaultCustomColours[eThemeColour.eAlertWindowBg] = new WritableRgbaFloat(Color.SlateBlue).ToUint();
-            DefaultCustomColours[eThemeColour.eAlertWindowBorder] = new WritableRgbaFloat(Color.GhostWhite).ToUint();
-            DefaultCustomColours[eThemeColour.eBadStateColour] = new WritableRgbaFloat(Color.Red).ToUint();
-            DefaultCustomColours[eThemeColour.eWarnStateColour] = new WritableRgbaFloat(Color.Yellow).ToUint();
-            DefaultCustomColours[eThemeColour.eGoodStateColour] = new WritableRgbaFloat(Color.Green).ToUint();
-            DefaultCustomColours[eThemeColour.GraphBackground] = new WritableRgbaFloat(Color.Black).ToUint();
-            DefaultCustomColours[eThemeColour.eSandboxChartBG] = new WritableRgbaFloat(1, 1, 1, 1).ToUint();
+                [eThemeColour.eVisBarPlotLine] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint(),
+                [eThemeColour.eVisBarBg] = new WritableRgbaFloat(Color.Black).ToUint(),
+                [eThemeColour.eAlertWindowBg] = new WritableRgbaFloat(Color.SlateBlue).ToUint(),
+                [eThemeColour.eAlertWindowBorder] = new WritableRgbaFloat(Color.GhostWhite).ToUint(),
+                [eThemeColour.eBadStateColour] = new WritableRgbaFloat(Color.Red).ToUint(),
+                [eThemeColour.eWarnStateColour] = new WritableRgbaFloat(Color.Yellow).ToUint(),
+                [eThemeColour.eGoodStateColour] = new WritableRgbaFloat(Color.Green).ToUint(),
+                [eThemeColour.GraphBackground] = new WritableRgbaFloat(Color.Black).ToUint(),
+                [eThemeColour.eSandboxChartBG] = new WritableRgbaFloat(1, 1, 1, 1).ToUint()
+            };
 
 
             foreach (eThemeColour themeStyle in DefaultCustomColours.Keys)
@@ -358,9 +359,10 @@ namespace rgat
             }
 
 
-            Dictionary<eThemeSize, float> DefaultCustomSizes = new Dictionary<eThemeSize, float>();
-
-            DefaultCustomSizes[eThemeSize.ePreviewSelectedBorder] = 1f;
+            Dictionary<eThemeSize, float> DefaultCustomSizes = new Dictionary<eThemeSize, float>
+            {
+                [eThemeSize.ePreviewSelectedBorder] = 1f
+            };
 
             foreach (eThemeSize themeStyle in DefaultCustomSizes.Keys)
             {
@@ -371,8 +373,10 @@ namespace rgat
             }
 
 
-            Dictionary<eThemeSize, Vector2> DefaultSizeLimits = new Dictionary<eThemeSize, Vector2>();
-            DefaultSizeLimits[eThemeSize.ePreviewSelectedBorder] = new Vector2(0, 30);
+            Dictionary<eThemeSize, Vector2> DefaultSizeLimits = new Dictionary<eThemeSize, Vector2>
+            {
+                [eThemeSize.ePreviewSelectedBorder] = new Vector2(0, 30)
+            };
             foreach (eThemeSize themeStyle in DefaultSizeLimits.Keys)
             {
                 if (!ThemeSizeLimits.ContainsKey(themeStyle))
