@@ -108,19 +108,14 @@ namespace rgat
 
         public void Draw()
         {
-            Logging.RecordLogEvent("EEV");
             if (MainGraphWidget != null && PreviewGraphWidget != null)
             {
-                Logging.RecordLogEvent("ESE");
                 ManageActiveGraph();
 
                 float controlsHeight = 230;
 
-                Logging.RecordLogEvent("VEE");
                 DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y - 16) - controlsHeight);
-                Logging.RecordLogEvent("BB");
                 DrawVisualiserControls(controlsHeight);
-                Logging.RecordLogEvent("EE");
             }
         }
 

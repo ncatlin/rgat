@@ -6326,6 +6326,11 @@
             </summary>
             <returns>List of node indexes</returns>
         </member>
+        <member name="P:rgat.ProtoGraph.ExceptionCount">
+            <summary>
+            Number of exceptions in this thread
+            </summary>
+        </member>
         <member name="P:rgat.ProtoGraph.Terminated">
             <summary>
             Is this thread terminated

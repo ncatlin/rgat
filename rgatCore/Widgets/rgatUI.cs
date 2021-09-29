@@ -1381,15 +1381,11 @@ namespace rgat
                 if (tabDrawn)
                 {
                     _currentTab = "Visualiser";
-                    Logging.RecordLogEvent("1EE");
                     visualiserTab!.Draw();
-                    Logging.RecordLogEvent("2EE");
                     ImGui.EndTabItem();
-                    Logging.RecordLogEvent("3EE");
                 }
                 else
                 {
-                    Logging.RecordLogEvent("4EE");
                     if (ShowStatsDialog) ToggleRenderStatsDialog();
                 }
 

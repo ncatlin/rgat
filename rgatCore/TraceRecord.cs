@@ -314,10 +314,7 @@ namespace rgat
                 }
 
                 _protoGraphs.Add(graph.ThreadID, graph);
-
-                //runtimeline.notify_new_thread(getPID(), randID, TID);
             }
-            Logging.WriteConsole("Todo implement runtimeline");
             return true;
         }
 

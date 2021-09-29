@@ -11,7 +11,7 @@ a pin implementation of the drgat client
 #include "threadObject.h"
 #include "utilities.h"
 #include "blockdata.h"
-
+#include "instlib.H"
 
 #include "crt\include\os-apis\memory.h"
 #include "crt\include\os-apis\file.h"
@@ -1581,6 +1581,13 @@ bool ConfigValueMatches(std::string option, std::string optionValue)
 }
 
 
+BOOL ChildProcess(CHILD_PROCESS chpd, void* v)
+{
+	
+	printf("Child process spawned, todo setup parent process ID and calling node mapping-> %d\n", CHILD_PROCESS_GetId(chpd));
+	return true;
+}
+
 
 //TODO - use this
 //TRACE_AddSmcDetectedFunction
@@ -1608,6 +1615,7 @@ int main(int argc, char* argv[])
 	PIN_SemaphoreInit(&continueSem);
 	PIN_SemaphoreInit(&stepSem);
 	PIN_MutexInit(&dataMutex);
+
 
 	OS_Time(&startTime);
 
@@ -1658,6 +1666,7 @@ int main(int argc, char* argv[])
 
 	TRACE_AddInstrumentFunction(InstrumentNewTrace, 0);
 
+	PIN_AddFollowChildProcessFunction(ChildProcess, 0);
 	IMG_AddInstrumentFunction(moduleLoad, (void*)tls_key);
 
 	// Register function to be called for every thread before it starts running
