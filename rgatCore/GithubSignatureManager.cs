@@ -245,11 +245,55 @@ namespace rgat
             return true;
         }
 
+
+        private void DownloadProgressCallback(object sender, System.Net.DownloadProgressChangedEventArgs e)
+        {
+            TaskCompletionSource<byte[]>? task = ((TaskCompletionSource<byte[]>?)e.UserState);
+            Uri? source = (Uri?)(task?.Task.AsyncState);
+            if (source is not null)
+            {
+                lock (_lock)
+                {
+                    _downloadProgress[source.OriginalString] = e.ProgressPercentage;
+                }
+            }
+        }
+
+        static Dictionary<string, float> _downloadProgress = new();
+        static Dictionary<string, string> _repoDownloadUrls = new();
+        
+
+        /// <summary>
+        /// Get the percentage progress of a download for a given repo
+        /// </summary>
+        /// <param name="url">The repos fetch path</param>
+        /// <returns>The progress percentage if downloading, null if finished/not started or 100 if extracting</returns>
+        public float? GetProgress(string url)
+        {
+            lock (_lock)
+            {
+                try
+                {
+                    if (_repoDownloadUrls.TryGetValue(url, out string? DLURL) && DLURL is not null)
+                    {
+                        if (_downloadProgress.TryGetValue(DLURL, out float progress)) return progress;
+                    }
+                    return null;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
+
+
         private void DownloadRepo(GlobalConfig.SignatureSource repo)
         {
-            System.Net.Http.HttpClient client = new HttpClient();
-            string rgatVersion = CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC.ToString();
-            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("rgat", rgatVersion));
+            System.Net.WebClient client = new();
+            client.Headers.Add(System.Net.HttpRequestHeader.UserAgent, $"rgat {CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC}");
+            Uri downloadAddr = new Uri($"https://api.github.com/repos/{repo.OrgName}/{repo.RepoName}/zipball");
+
             try
             {
                 string? repoDirectory = null;
@@ -269,7 +313,14 @@ namespace rgat
                     return;
                 }
 
-                Task<byte[]> repobytes = client.GetByteArrayAsync($"https://api.github.com/repos/{repo.OrgName}/{repo.RepoName}/zipball");
+                lock (_lock)
+                {
+                    _downloadProgress[repo.FetchPath] = 0;
+                    _repoDownloadUrls[repo.FetchPath] = downloadAddr.OriginalString;
+                }
+                Task<byte[]> repobytes = client.DownloadDataTaskAsync(downloadAddr);
+                client.DownloadProgressChanged += DownloadProgressCallback;
+
                 repobytes.Wait(cancellationToken: _token);
                 Logging.WriteConsole($"Downloaded {repobytes.Result.Length} bytes of signaturedata");
                 string tempname = Path.GetTempFileName();
@@ -282,6 +333,11 @@ namespace rgat
                 {
                     repo.LastDownloadError = "Can't Delete Existing";
                     GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
+                    lock (_lock)
+                    {
+                        _downloadProgress.Remove(repo.FetchPath);
+                        _repoDownloadUrls.Remove(repo.FetchPath);
+                    }
                     return;
                 }
 
@@ -331,6 +387,14 @@ namespace rgat
                 }
                 GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
                 Logging.RecordError($"Exception downloading {repo.FetchPath} => {e.Message}");
+            }
+            finally
+            {
+                lock (_lock)
+                {
+                    _downloadProgress.Remove(repo.FetchPath);
+                    _repoDownloadUrls.Remove(repo.FetchPath);
+                }
             }
         }
 

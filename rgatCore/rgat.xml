@@ -5406,6 +5406,11 @@
             Level of instrumentation to use. Only continuous is implemented at the moment
             </summary>
         </member>
+        <member name="P:rgat.ProcessLaunchSettings.DiscardReplayData">
+            <summary>
+            Traces (and their children) will not record replay data
+            </summary>
+        </member>
         <member name="P:rgat.ProcessLaunchSettings.TraceChoices">
             <summary>
             Settings for which modules are instrumented/ignored
@@ -8279,6 +8284,11 @@
         <member name="P:rgat.TraceRecord.WasLoadedFromSave">
             <summary>
             Was this recorded in this session or loaded from a save
+            </summary>
+        </member>
+        <member name="P:rgat.TraceRecord.DiscardTraceData">
+            <summary>
+            This trace (and its children) are not recording replay data
             </summary>
         </member>
         <member name="M:rgat.TraceRecord.SetTraceState(rgat.TraceRecord.ProcessState)">

@@ -459,7 +459,16 @@ namespace rgat.Widgets
                                             _githubSigDownloader.TaskType == "Download" &&
                                             activeRepoTasks.Contains(sigset.FetchPath))
                                         {
-                                            ImguiUtils.DrawHorizCenteredText("Downloading");
+                                            float? progress = _githubSigDownloader.GetProgress(sigset.FetchPath);
+                                            if (progress is not null)
+                                            { 
+                                                if (progress == 100)
+                                                    ImguiUtils.DrawHorizCenteredText($"Extracting...");
+                                                else
+                                                    ImguiUtils.DrawHorizCenteredText($"Downloading: {progress}%%"); 
+                                            }
+                                            else
+                                                ImguiUtils.DrawHorizCenteredText("Downloading");
                                         }
                                         else
                                         {
@@ -1478,7 +1487,7 @@ namespace rgat.Widgets
             {
                 int count = Math.Max(previewWorkers, CONSTANTS.UI.MINIMUM_PREVIEW_WORKERS);
                 count = Math.Min(count, CONSTANTS.UI.MAXIMUM_PREVIEW_WORKERS);
-                    GlobalConfig.Settings.UI.PreviewWorkers = count;
+                GlobalConfig.Settings.UI.PreviewWorkers = count;
             }
             SmallWidgets.MouseoverText("How many preview workers to run. Increasing this makes " +
                 "rendering many previews snappier, but too may cause contention issues." +
