@@ -5333,6 +5333,21 @@
             </summary>
             <returns>A running worker was found</returns>
         </member>
+        <member name="T:rgat.BitWidth">
+            <summary>
+            Arch bitwidth
+            </summary>
+        </member>
+        <member name="F:rgat.BitWidth.Arch32">
+            <summary>
+            32 bit (x86)
+            </summary>
+        </member>
+        <member name="F:rgat.BitWidth.Arch64">
+            <summary>
+            64 bit (x64)
+            </summary>
+        </member>
         <member name="T:rgat.ProcessLaunchSettings">
             <summary>
             This is for buncling up all the user settings from the 
@@ -5340,17 +5355,17 @@
             it to settings or for command line launching
             </summary>
         </member>
-        <member name="T:rgat.ProcessLaunchSettings.TracingMode">
+        <member name="T:rgat.ProcessLaunchSettings.TracingStrategy">
             <summary>
             Unimplemented trace mode
             </summary>
         </member>
-        <member name="F:rgat.ProcessLaunchSettings.TracingMode.Continuous">
+        <member name="F:rgat.ProcessLaunchSettings.TracingStrategy.Continuous">
             <summary>
             Instrumenting every path continuously
             </summary>
         </member>
-        <member name="F:rgat.ProcessLaunchSettings.TracingMode.SingleShot">
+        <member name="F:rgat.ProcessLaunchSettings.TracingStrategy.SingleShot">
             <summary>
             Stop instrumenting blocks after all possible paths seen
             </summary>
@@ -5386,7 +5401,7 @@
             DLL ordinal to execute
             </summary>
         </member>
-        <member name="P:rgat.ProcessLaunchSettings.tracingMode">
+        <member name="P:rgat.ProcessLaunchSettings.TracingMode">
             <summary>
             Level of instrumentation to use. Only continuous is implemented at the moment
             </summary>
@@ -6197,9 +6212,22 @@
             </summary>
             <param name="entry">The ANIMATIONENTRY value</param>
         </member>
+        <member name="M:rgat.ProtoGraph.PurgeAnimationEntries(System.Int32)">
+            <summary>
+            Delete animation entries
+            This only activates on a live trace if a certain number are stored
+            </summary>
+            <param name="maxIndex">index to delete up to</param>
+            <returns>New adjusted index</returns>
+        </member>
         <member name="P:rgat.ProtoGraph.LastUpdated">
             <summary>
             When an animation entry was last added
+            </summary>
+        </member>
+        <member name="P:rgat.ProtoGraph.UpdateCount">
+            <summary>
+            Store how many updates have been recorded (even if animation data is being discarded)
             </summary>
         </member>
         <member name="F:rgat.ProtoGraph.SavedAnimationData">
@@ -9120,6 +9148,16 @@
         <member name="P:rgat.PreviewGraphsWidget.clickedGraph">
             <summary>
             The graph the user clicked
+            </summary>
+        </member>
+        <member name="F:rgat.PreviewGraphsWidget.ForegroundLayoutEngine">
+            <summary>
+            Preview layout engine that prioritises graphs of trace being viewed in visualiser
+            </summary>
+        </member>
+        <member name="F:rgat.PreviewGraphsWidget.BackgroundLayoutEngine">
+            <summary>
+            Preview layout engine that prioritises graphs of trace not being viewed in visualiser
             </summary>
         </member>
         <member name="M:rgat.PreviewGraphsWidget.#ctor(ImGuiNET.ImGuiController,rgat.rgatState)">

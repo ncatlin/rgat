@@ -41,7 +41,13 @@ namespace rgat
 
         private readonly ImGuiController? _ImGuiController;
         private GraphicsDevice? _gd;
+        /// <summary>
+        /// Preview layout engine that prioritises graphs of trace being viewed in visualiser
+        /// </summary>
         public GraphLayoutEngine ForegroundLayoutEngine;
+        /// <summary>
+        /// Preview layout engine that prioritises graphs of trace not being viewed in visualiser
+        /// </summary>
         public GraphLayoutEngine BackgroundLayoutEngine;
 
         /// <summary>
@@ -301,7 +307,7 @@ namespace rgat
             ImGui.Text($"Graph PID: {graph.PID}");
             ImGui.Text($"Unique Instructions: {graph.InternalProtoGraph.NodeList.Count}");
             ImGui.Text($"Total Instructions: {graph.InternalProtoGraph.TotalInstructions}");
-            ImGui.Text($"Animation Entries: {graph.InternalProtoGraph.SavedAnimationData.Count}");
+            ImGui.Text($"Animation Entries: {graph.InternalProtoGraph.UpdateCount}");
 
 
             ImGui.Separator();

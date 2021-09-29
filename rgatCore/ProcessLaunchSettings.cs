@@ -17,7 +17,7 @@ namespace rgat
         /// <summary>
         /// Unimplemented trace mode
         /// </summary>
-        public enum TracingMode {
+        public enum TracingStrategy {
             /// <summary>
             /// Instrumenting every path continuously
             /// </summary>
@@ -63,9 +63,9 @@ namespace rgat
         /// <summary>
         /// Level of instrumentation to use. Only continuous is implemented at the moment
         /// </summary>
-        public TracingMode tracingMode { get; set; } = 0;
+        public TracingStrategy TracingMode { get; set; } = 0;
 
-
+        public bool DiscardReplayData { get; set; }
 
         /// <summary>
         /// Settings for which modules are instrumented/ignored

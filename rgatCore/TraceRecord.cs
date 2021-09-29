@@ -219,6 +219,7 @@ namespace rgat
 
             DisassemblyData = new ProcessRecord(binary.BitWidth);
             TraceState = ProcessState.eRunning;
+            DiscardTraceData = binary.LaunchSettings.DiscardReplayData;
 
             //_tlFilterCounts[Logging.LogFilterType.TimelineProcess] = 0;
             //_tlFilterCounts[Logging.LogFilterType.TimelineThread] = 0;
@@ -240,6 +241,8 @@ namespace rgat
         /// Was this recorded in this session or loaded from a save
         /// </summary>
         public bool WasLoadedFromSave => _loadedFromSave;
+
+        public bool DiscardTraceData { get; private set; }
 
         private string GetModpathID() { return PID.ToString() + randID.ToString(); }
 

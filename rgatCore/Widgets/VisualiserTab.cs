@@ -40,7 +40,7 @@ namespace rgat
         public void Init(GraphicsDevice gd, IProgress<float> progress)
         {
             MainGraphWidget.Init(gd);//1000~ ms
-             PreviewGraphWidget.Init(gd);
+            PreviewGraphWidget.Init(gd);
             _visualiserBar = new VisualiserBar(gd, _controller!); //200~ ms
             progress.Report(0.2f);
 
@@ -78,7 +78,7 @@ namespace rgat
              * Always create a background worker that prioritises low priority threads so
              * traces that are not selected in the visualiser are not starved of rendering
              */
-            PreviewRendererThread prev = new PreviewRendererThread(0,  PreviewGraphWidget, _controller, _rgatState, background: true);
+            PreviewRendererThread prev = new PreviewRendererThread(0, PreviewGraphWidget, _controller, _rgatState, background: true);
             previewRenderers.Add(prev);
             prev.Begin();
 
@@ -87,8 +87,7 @@ namespace rgat
                 prev = new PreviewRendererThread(i, PreviewGraphWidget, _controller, _rgatState, background: false);
                 previewRenderers.Add(prev);
                 prev.Begin();
-                progress.Report(0.2f + (i / count));
-                Logging.WriteConsole($"Reported progress of renderchild {i}/{count}");
+                progress.Report(0.2f + ((float)i / (float)count));
             }
         }
 
@@ -109,16 +108,20 @@ namespace rgat
 
         public void Draw()
         {
+            Logging.RecordLogEvent("EEV");
             if (MainGraphWidget != null && PreviewGraphWidget != null)
             {
+                Logging.RecordLogEvent("ESE");
                 ManageActiveGraph();
 
                 float controlsHeight = 230;
 
+                Logging.RecordLogEvent("VEE");
                 DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y - 16) - controlsHeight);
+                Logging.RecordLogEvent("BB");
                 DrawVisualiserControls(controlsHeight);
+                Logging.RecordLogEvent("EE");
             }
-            ImGui.EndTabItem();
         }
 
 
@@ -319,12 +322,13 @@ namespace rgat
                     PlottedGraph.REPLAY_STATE replaystate = graph.ReplayState;
                     string BtnText = replaystate == PlottedGraph.REPLAY_STATE.Playing ? "Pause" : "Play";
 
-                    if (ImGui.Button(BtnText, new Vector2(38, 26)))
+
+                    if (SmallWidgets.DisableableButton(BtnText, graph.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(38, 26)))
                     {
                         graph.PlayPauseClicked();
                     }
                     ImGui.SameLine();
-                    if (ImGui.Button("Reset", new Vector2(38, 26)))
+                    if (SmallWidgets.DisableableButton("Reset", graph.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(38, 26)))
                     {
                         graph.ResetClicked();
                     }
@@ -533,9 +537,9 @@ namespace rgat
                 ImGui.Button("Capture Settings");
                 ImGui.EndChild();
             }
-        }    
-        
-        
+        }
+
+
         private static void DrawCameraPanel(PlottedGraph graph)
         {
             if (ImGui.BeginChild("CameraStatFrame1", new Vector2(130, ImGui.GetContentRegionAvail().Y - 2), true))
@@ -560,62 +564,59 @@ namespace rgat
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
             if (ImGui.BeginChildFrame(ImGui.GetID("##DisasmPreview"), ImGui.GetContentRegionAvail()))
             {
+
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2);
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, new Vector2(0, 0));
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(10, 0));
 
-                if (lastAnimIdx >= 0 && lastAnimIdx < graph.SavedAnimationData.Count)
+                try
                 {
-                    ANIMATIONENTRY lastEntry = graph.SavedAnimationData[lastAnimIdx];
-                    ImGui.Text(lastEntry.entryType.ToString());
-                    switch (lastEntry.entryType)
+                    if (lastAnimIdx >= 0 && lastAnimIdx < graph.SavedAnimationData.Count)
                     {
-                        case eTraceUpdateType.eAnimExecTag:
-                            {
-                                uint blkID = lastEntry.blockID;
-                                ImGui.Text($"Block {blkID} (0x{lastEntry.blockAddr})");
-                                if (blkID < uint.MaxValue)
+                        ANIMATIONENTRY lastEntry = graph.SavedAnimationData[lastAnimIdx];
+                        ImGui.Text(lastEntry.entryType.ToString());
+                        switch (lastEntry.entryType)
+                        {
+                            case eTraceUpdateType.eAnimExecTag:
                                 {
-                                    List<InstructionData>? inslist = graph.ProcessData.getDisassemblyBlock(blockID: blkID);
-                                    if (inslist is not null)
+                                    uint blkID = lastEntry.blockID;
+                                    ImGui.Text($"Block {blkID} (0x{lastEntry.blockAddr})");
+                                    if (blkID < uint.MaxValue)
                                     {
-                                        for (var i = Math.Max(0, inslist.Count - 5); i < inslist.Count; i++)
+                                        List<InstructionData>? inslist = graph.ProcessData.getDisassemblyBlock(blockID: blkID);
+                                        if (inslist is not null)
                                         {
-                                            ImGui.Text(inslist[i].InsText);
+                                            for (var i = Math.Max(0, inslist.Count - 5); i < inslist.Count; i++)
+                                            {
+                                                ImGui.Text(inslist[i].InsText);
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            break;
-                        case eTraceUpdateType.eAnimUnchained:
-                            {
-                                int ucBlkCount = 0;
-                                for (var i = lastAnimIdx; i > 0; i--)
+                                break;
+                            case eTraceUpdateType.eAnimUnchained:
                                 {
-                                    if (graph.SavedAnimationData[i].entryType != eTraceUpdateType.eAnimUnchained)
+                                    int ucBlkCount = 0;
+                                    for (var i = lastAnimIdx; i > 0; i--)
                                     {
-                                        break;
+                                        if (graph.SavedAnimationData[i].entryType != eTraceUpdateType.eAnimUnchained)
+                                        {
+                                            break;
+                                        }
+
+                                        ucBlkCount++;
                                     }
-
-                                    ucBlkCount++;
+                                    ImGui.Text($"Busy area of {ucBlkCount} blocks");
                                 }
-                                ImGui.Text($"Busy area of {ucBlkCount} blocks");
-                            }
-                            break;
-                        case eTraceUpdateType.eAnimUnchainedResults:
-                            break;
+                                break;
+                            case eTraceUpdateType.eAnimUnchainedResults:
+                                break;
 
+                        }
                     }
                 }
-                /*
-                ImGui.Text("0x400000: xor eax, eax");
-                ImGui.Text("0x400001: xor eax, eax");
-                ImGui.Text("0x400002: xor eax, eax");
-                ImGui.Text("0x400003: xor eax, eax");
-                ImGui.Text("0x400004: xor eax, eax");
-                ImGui.Text("0x400005: xor eax, eax");
-                */
+                catch { }
                 ImGui.PopStyleVar(3);
                 ImGui.EndChild();
             }
@@ -630,7 +631,6 @@ namespace rgat
 
         private unsafe void DrawLiveTraceControls(float otherControlsHeight, float width, PlottedGraph graph)
         {
-
             float replayControlsSize = ImGui.GetContentRegionAvail().X;
             if (ImGui.BeginChild(ImGui.GetID("LiveTraceControlPanel"), new Vector2(replayControlsSize, otherControlsHeight)))
             {
@@ -651,7 +651,8 @@ namespace rgat
                     ImGui.EndChild();
                 }
                 ImGui.SameLine();
-                DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.SavedAnimationData.Count - 1);
+                DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.
+                    dAnimationData.Count - 1);
                 ImGui.EndChild();
             }
 
@@ -768,7 +769,7 @@ namespace rgat
             {
                 ImGui.Text($"Edges: {graph.EdgeCount}");
                 ImGui.Text($"Nodes: {graph.NodeList.Count}");
-                ImGui.Text($"Updates: {graph.SavedAnimationData.Count}");
+                ImGui.Text($"Updates: {graph.UpdateCount}");
                 ImGui.Text($"Instructions: {graph.TotalInstructions}");
 
                 ImGui.EndChild();

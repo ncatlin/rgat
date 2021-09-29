@@ -85,7 +85,19 @@ namespace rgat
 
     internal enum BinaryType { EXE, DLL };
 
-    public enum BitWidth { Arch32, Arch64 };
+    /// <summary>
+    /// Arch bitwidth
+    /// </summary>
+    public enum BitWidth { 
+        /// <summary>
+        /// 32 bit (x86)
+        /// </summary>
+        Arch32, 
+        /// <summary>
+        /// 64 bit (x64)
+        /// </summary>
+        Arch64 
+    };
 
     internal class ProcessLaunching
     {

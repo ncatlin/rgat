@@ -216,6 +216,11 @@ namespace rgat
         /// </summary>
         public void ResetAnimation()
         {
+            if (InternalProtoGraph.TraceData.DiscardTraceData)
+            {
+                InternalProtoGraph.SavedAnimationData.Clear();
+            }
+
             ResetAllActiveAnimatedAlphas();
 
             //animInstructionIndex = 0;
@@ -2119,6 +2124,10 @@ namespace rgat
             }
 
             ++updateProcessingIndex;
+            if (InternalProtoGraph.TraceData.DiscardTraceData)
+            {
+                updateProcessingIndex = InternalProtoGraph.PurgeAnimationEntries(updateProcessingIndex);
+            }
             return true;
         }
 

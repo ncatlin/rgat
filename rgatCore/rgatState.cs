@@ -722,8 +722,10 @@ namespace rgat
         /// Serialise all the traces of the the specified target to the trace directory
         /// </summary>
         /// <param name="targ">A binaryTarget to save traces of</param>
-        public static int SaveTarget(BinaryTarget targ)
+        public static int SaveTarget(BinaryTarget? targ)
         {
+            if (targ is null) return 0;
+
             var traceslist = targ.GetTracesUIList();
             int savedCount = 0;
 

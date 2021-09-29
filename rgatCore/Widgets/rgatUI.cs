@@ -66,7 +66,6 @@ namespace rgat
 
         public static double UIDrawFPS = 0;
         private List<double> _lastFrameTimeMS = new List<double>();
-        private int _selectedInstrumentationLevel = 0;
         private readonly List<Tuple<Key, ModifierKeys>> _keyPresses = new List<Tuple<Key, ModifierKeys>>();
         private float _mouseWheelDelta = 0;
         private Vector2 _mouseDragDelta = new Vector2(0, 0);
@@ -389,7 +388,7 @@ namespace rgat
         {
             if (StartupProgress < 1)
             {
-                Logging.WriteConsole($"Startup progress: {StartupProgress}");
+                //Logging.WriteConsole($"Startup progress: {StartupProgress}");
                 return;
             }
 
@@ -803,8 +802,7 @@ namespace rgat
                 }
                 if (ImGui.MenuItem("Open Saved Trace")) { ToggleLoadTraceWindow(); }
                 ImGui.Separator();
-                if (ImGui.MenuItem("Save Thread Trace")) { } //todo
-                if (ImGui.MenuItem("Save Process Traces")) { } //todo
+                if (_rgatState.ActiveTarget is not null && ImGui.MenuItem("Save This Trace")) { rgatState.SaveTarget(_rgatState.ActiveTarget); }
                 if (ImGui.MenuItem("Save All Traces")) { rgatState.SaveAllTargets(); }
                 if (ImGui.MenuItem("Export Pajek"))
                 {
@@ -1359,6 +1357,7 @@ namespace rgat
                 {
                     _currentTab = "TraceSelect";
                     DrawTraceTab(_rgatState.ActiveTarget);
+                    ImGui.EndTabItem();
                 }
                 else
                 {
@@ -1369,8 +1368,10 @@ namespace rgat
                 //is there a better way to do this?
                 if (_SwitchToVisualiserTab)
                 {
+                    tabDrawn = true;
                     tabDrawn = ImGui.BeginTabItem("Visualiser", ref tabDrawn, ImGuiTabItemFlags.SetSelected);
-                    _SwitchToVisualiserTab = false;
+                    if (tabDrawn)
+                        _SwitchToVisualiserTab = false;
                 }
                 else
                 {
@@ -1380,10 +1381,15 @@ namespace rgat
                 if (tabDrawn)
                 {
                     _currentTab = "Visualiser";
+                    Logging.RecordLogEvent("1EE");
                     visualiserTab!.Draw();
+                    Logging.RecordLogEvent("2EE");
+                    ImGui.EndTabItem();
+                    Logging.RecordLogEvent("3EE");
                 }
                 else
                 {
+                    Logging.RecordLogEvent("4EE");
                     if (ShowStatsDialog) ToggleRenderStatsDialog();
                 }
 

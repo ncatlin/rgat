@@ -315,6 +315,12 @@ namespace rgat
             }
             ConstructedTime = timeTok.ToObject<DateTime>();
 
+            if (!graphData.TryGetValue("UpdateCount", out JToken? updateCountTok) || updateCountTok.Type != JTokenType.Integer)
+            {
+                return false;
+            }
+            UpdateCount = updateCountTok.ToObject<ulong>();
+
             return true;
         }
 
@@ -1376,6 +1382,14 @@ namespace rgat
         public void addBlockToGraph(uint blockID, ulong repeats, bool recordEdge = true, bool setLastID = true, uint? customPreviousVert = null)
         {
             List<InstructionData>? block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
+            if (block is null)
+            {
+                if (rgatState.rgatIsExiting is false)
+                {
+                    Logging.RecordError($"Failed to fetch block {blockID}");
+                }
+                return;
+            }
             Debug.Assert(block is not null);
             int numInstructions = block.Count;
 
@@ -1552,15 +1566,39 @@ namespace rgat
             lock (AnimDataLock)
             {
                 SavedAnimationData.Add(entry);
+                UpdateCount += 1;
             }
             LastUpdated = DateTime.Now;
         }
+
+        /// <summary>
+        /// Delete animation entries
+        /// This only activates on a live trace if a certain number are stored
+        /// </summary>
+        /// <param name="maxIndex">index to delete up to</param>
+        /// <returns>New adjusted index</returns>
+        public int PurgeAnimationEntries(int maxIndex)
+        {
+
+            if (this.Terminated is false && SavedAnimationData.Count < 500) return maxIndex;
+            lock(AnimDataLock)
+            {
+                SavedAnimationData.RemoveRange(0, maxIndex);
+                return 0;
+            }
+        }
+
 
         /// <summary>
         /// When an animation entry was last added
         /// </summary>
         public DateTime LastUpdated { get; private set; } = DateTime.Now;
         private readonly object AnimDataLock = new object();
+
+        /// <summary>
+        /// Store how many updates have been recorded (even if animation data is being discarded)
+        /// </summary>
+        public ulong UpdateCount { get; private set; } = 0;
 
         /// <summary>
         /// A list of trace entries which can be replayed
@@ -1704,6 +1742,7 @@ namespace rgat
 
             result.Add("TotalInstructions", TotalInstructions);
             result.Add("ConstructedTime", ConstructedTime);
+            result.Add("UpdateCount", UpdateCount);
 
             JArray replayDataArr = new JArray();
             lock (AnimDataLock)

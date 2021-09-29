@@ -57,7 +57,9 @@ namespace rgat.Threads
             }
             else
             {
-                if (graph.ReplayState == PlottedGraph.REPLAY_STATE.Playing || graph._userSelectedAnimPosition != -1)
+                if (graph.InternalProtoGraph.TraceData.DiscardTraceData is false &&
+                    (graph.ReplayState == PlottedGraph.REPLAY_STATE.Playing || 
+                    graph._userSelectedAnimPosition != -1))
                 {
                     if (--_nextReplayStep <= 0)
                     {

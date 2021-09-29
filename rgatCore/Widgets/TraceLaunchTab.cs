@@ -28,7 +28,6 @@ namespace rgat
                     ImGui.EndGroup();
                 }
             }
-            ImGui.EndTabItem();
         }
 
         private void DrawTraceTab_FileInfo(BinaryTarget activeTarget, float width, float height)
@@ -512,7 +511,6 @@ namespace rgat
 
 
         private bool _recordVideoOnStart;
-        private bool _diagnosticMode;
         private bool _activeTargetRunnable;
 
         byte[] _cmdLineArgData = Array.Empty<byte>();
@@ -526,7 +524,7 @@ namespace rgat
                 ImGui.BeginChildFrame(10, new Vector2(width, ImGui.GetContentRegionAvail().Y - 20));
                 ImGui.Text("Execution Settings");
 
-                ImGui.BeginChildFrame(18, new Vector2(500, 80));
+                ImGui.BeginChildFrame(18, new Vector2(500, 150));
                 //ImGui.AlignTextToFramePadding();
                 /*
                 ImGui.Text("Instrumentation Engine: ");
@@ -537,26 +535,47 @@ namespace rgat
                 ImGui.SameLine();
                 ImGui.RadioButton("IPT", ref _selectedInstrumentationEngine, 2);
                 */
+                /*
                 ImGui.Text("Diagnostic Mode");
                 ImGui.SameLine();
                 if (SmallWidgets.ToggleButton("#DiagnosticModeTog", _diagnosticMode, "Will perform some diagnostic tests to see if pin can run on this"))
                 {
                     _diagnosticMode = !_diagnosticMode;
                 }
+                */
 
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.ChildBg));
+                int _selectedInstrumentationLevel = 1;
                 ImGui.AlignTextToFramePadding();
                 ImGui.Text("Instrumentation Level: ");
                 ImGui.SameLine();
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBgHovered));
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
                 ImGui.RadioButton("Single Shot", ref _selectedInstrumentationLevel, 0);
-                ImGui.SameLine();
-                ImGui.RadioButton("Continuous", ref _selectedInstrumentationLevel, 1);
-                ImGui.SameLine();
-                ImGui.RadioButton("Data", ref _selectedInstrumentationLevel, 2);
                 ImGui.PopStyleColor(1);
+                SmallWidgets.MouseoverText($"Remove instrumenation from previously seen blocks for a quick code stucture overview. This mode is not available in rgat {CONSTANTS.PROGRAMVERSION.RGAT_VERSION}");
+                ImGui.SameLine();
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBgHovered));
+                ImGui.RadioButton("Continuous", ref _selectedInstrumentationLevel, 1);
+                ImGui.PopStyleColor(1);
+                SmallWidgets.MouseoverText($"Perform live control-flow visualisation. Processes large volumes of trace data with a high performance impact.");
+
+                string? startPausedVal = activeTarget.LaunchSettings!.GetInstrumentationSetting("PAUSE_ON_START");
+                bool startPaused = startPausedVal is not null && startPausedVal == "TRUE";
+                if (ImGui.Checkbox("Start Paused", ref startPaused))
+                {
+                    activeTarget.LaunchSettings.SetTraceConfig("PAUSE_ON_START", startPaused ? "TRUE" : "FALSE");
+                }
+                SmallWidgets.MouseoverText("The trace will start in a suspended state which can be resumed in the visualiser pane by pressing continue");
 
 
-
+                bool discardTraceVal = activeTarget.LaunchSettings!.DiscardReplayData;
+                if (ImGui.Checkbox("Discard Animation Data", ref discardTraceVal))
+                {
+                    activeTarget.LaunchSettings.DiscardReplayData = discardTraceVal;
+                }
+                SmallWidgets.MouseoverText("Trace data will be discarded after being used to build and animate the graph.\n" +
+                    "This drastically reduces the memory consumption of long-running traces, but replay will be unavailable.");
+                ImGui.PopStyleColor();
                 ImGui.EndChildFrame();
 
                 ImGui.AlignTextToFramePadding();
@@ -587,14 +606,6 @@ namespace rgat
                 ImGui.PopStyleColor(2);
 
 
-                ImGui.SameLine();
-
-                string? startPausedVal = activeTarget.LaunchSettings!.GetInstrumentationSetting("PAUSE_ON_START");
-                bool startPaused = startPausedVal is not null && startPausedVal == "TRUE";
-                if (ImGui.Checkbox("Start Paused", ref startPaused))
-                {
-                    activeTarget.LaunchSettings.SetTraceConfig("PAUSE_ON_START", startPaused ? "TRUE" : "FALSE");
-                }
                 if (rgatState.VideoRecorder.Loaded)
                 {
                     ImGui.SameLine();
@@ -629,9 +640,12 @@ namespace rgat
                     issues = issues!.Where(i => (i.Item1 == pintoolpath || i.Item1 == pinpath)).ToList();
                     if (issues.Any())
                     {
+                        float height = 70 * issues.Count;
+                        float origY = ImGui.GetCursorPosY();
+                        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y - (height + 15));
                         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
                         ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
-                        if (ImGui.BeginChild("#WarnIssueFrame", new Vector2(600,70 * issues.Count), true, ImGuiWindowFlags.AlwaysAutoResize))
+                        if (ImGui.BeginChild("#WarnIssueFrame", new Vector2(600 , height), true, ImGuiWindowFlags.AlwaysAutoResize))
                         {
                             //todo: be more specific on tooltip, but prevent a potential error dictionary reading race condition
                             ImGui.TextWrapped("Warning: One or more tracing binaries does not have a validated signature");
@@ -643,12 +657,14 @@ namespace rgat
                         }
                         ImGui.PopStyleColor();
                         ImGui.PopStyleVar();
+                        ImGui.SetCursorPosY(origY);
                     }
 
                 }
 
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y - (40 + 5));
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + width - 140);
-                StartButton(activeTarget, pintoolpath);
+                StartButton(activeTarget, pintoolpath, 40);
 
                 ImGui.EndChildFrame();
 
@@ -675,17 +691,17 @@ namespace rgat
             return activeTarget.LaunchSettings;
         }
 
-        private void StartButton(BinaryTarget activeTarget, string pintoolpath)
+        private void StartButton(BinaryTarget activeTarget, string pintoolpath, float height)
         {
 
-            bool runnable = _activeTargetRunnable;
+            bool runnable = _activeTargetRunnable && GlobalConfig.Loaded;
             ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourImGui(ImGuiCol.Button) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
             ImGui.AlignTextToFramePadding();
 
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
             if (
                 (activeTarget.IsRemoteBinary || activeTarget.PEFileObj != null)
-                && ImGui.Button("Start Trace " + ImGuiController.FA_PLAY_CIRCLE, new Vector2(100, 40)) && runnable)
+                && ImGui.Button("Start Trace " + ImGuiController.FA_PLAY_CIRCLE, new Vector2(100, height)) && runnable)
             {
                 _OldTraceCount = rgatState.TotalTraceCount;
 
