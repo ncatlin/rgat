@@ -7832,6 +7832,13 @@
             <param name="trace">The running trace</param>
             <param name="testID">Optional test ID if the trace is a test</param>
         </member>
+        <member name="M:rgat.Threads.ProcessCoordinatorThread.RegisterIncomingChild(System.UInt32,rgat.TraceRecord)">
+            <summary>
+            Note a parent->child process creation relationship for use when the child connects
+            </summary>
+            <param name="child">Child process ID</param>
+            <param name="parent">Parent Trace</param>
+        </member>
         <member name="T:rgat.Threads.ThreadTraceProcessingThread">
             <summary>
             Worker for processing trace data

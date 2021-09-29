@@ -670,8 +670,9 @@ namespace rgat
         {
             foreach (TraceRecord child in tr.Children)
             {
-                string tabs = new string("  ");
-                if (ImGui.Selectable(tabs + "PID " + child.PID, _rgatState.ActiveGraph?.PID == child.PID))
+                string tabs = new string("->");
+                string moduleName = child.Target.FileName;
+                if (ImGui.Selectable($"{tabs} Child {child.PID} ({moduleName})", _rgatState.ActiveGraph?.PID == child.PID))
                 {
                     _rgatState.SelectActiveTrace(child);
                 }
@@ -896,7 +897,13 @@ namespace rgat
                         foreach (var timepid in tracelist)
                         {
                             TraceRecord selectableTrace = timepid.Item2;
-                            if (ImGui.Selectable("PID " + selectableTrace.PID, graph.TraceData.PID == selectableTrace.PID))
+                            bool current = graph.TraceData.PID == selectableTrace.PID && graph.TraceData.randID == selectableTrace.randID;
+                            string label = "PID " + selectableTrace.PID;
+                            if (current is false)
+                            {
+                                label = "Parent: " + label + $" ({selectableTrace.Target.FileName})";
+                            }
+                            if (ImGui.Selectable(label, current))
                             {
                                 _rgatState.SelectActiveTrace(selectableTrace);
                             }

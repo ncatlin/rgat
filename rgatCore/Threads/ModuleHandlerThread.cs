@@ -140,11 +140,42 @@ namespace rgat
             //do same for symbol
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 7);
             string path = fields[1];
-            int localmodnum = int.Parse(fields[2], System.Globalization.NumberStyles.Integer);
-            ulong start = Convert.ToUInt64(fields[3], 16);
-            ulong end = Convert.ToUInt64(fields[4], 16);
-            trace.DisassemblyData.AddModule(localmodnum, path, start, end, fields[5][0]);
+            try
+            {
+                if (int.TryParse(fields[2], System.Globalization.NumberStyles.Integer, null, out int localmodnum))
+                {
+                    ulong start = Convert.ToUInt64(fields[3], 16);
+                    ulong end = Convert.ToUInt64(fields[4], 16);
+                    trace.DisassemblyData.AddModule(localmodnum, path, start, end, fields[5][0]);
+                    return;
+                }
+            }
+            catch { }
+
+
+            Logging.RecordError($"Bad module data from trace {this.trace.PID}");
+            Terminate();
+
         }
+
+        private void HandleChildProcessMapping(byte[] buf)
+        {
+            //todo - these are valid in filenames. b64 encode in client? length field would be better with path at end
+            //do same for symbol
+            string[] fields = Encoding.ASCII.GetString(buf).Split('@', 4);
+            
+            if (uint.TryParse(fields[1], System.Globalization.NumberStyles.Integer, null, out uint parent) &&
+                uint.TryParse(fields[2], System.Globalization.NumberStyles.Integer, null, out uint child))
+            {
+               if (parent == this.trace.PID)
+                {
+                    ProcessCoordinatorThread.RegisterIncomingChild(child, trace);
+                }
+            }
+        }
+
+
+
 
         private void SpawnPipeTraceProcessorThreads(ProtoGraph graph)
         {
@@ -543,6 +574,12 @@ namespace rgat
                 return;
             }
 
+            if (buf[0] == 'c' && buf[1] == 'h')
+            {
+                HandleChildProcessMapping(buf);
+                return;
+            }
+
             if (bytesRead >= 4 && buf[0] == 'D' && buf[1] == 'B' && buf[2] == 'G')
             {
                 char dbgCmd = (char)buf[3];
@@ -772,7 +809,7 @@ namespace rgat
                 eventPipe = new NamedPipeServerStream(eventPipeName, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 4096, 4096);
                 commandPipe = new NamedPipeServerStream(cmdPipeName, PipeDirection.Out, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
                 IAsyncResult res1 = eventPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Events");
-                commandPipe.WaitForConnection();
+                commandPipe.WaitForConnection(); //todo async
             }
             catch (System.IO.IOException e)
             {

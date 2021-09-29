@@ -1583,8 +1583,8 @@ bool ConfigValueMatches(std::string option, std::string optionValue)
 
 BOOL ChildProcess(CHILD_PROCESS chpd, void* v)
 {
-	
-	printf("Child process spawned, todo setup parent process ID and calling node mapping-> %d\n", CHILD_PROCESS_GetId(chpd));
+	printf("Child process spawned, todo setup parent process ID and calling node mapping %d -> %d\n", PIN_GetPid(), CHILD_PROCESS_GetId(chpd));
+	writeEventPipe("ch@%d@%d@", PIN_GetPid(), CHILD_PROCESS_GetId(chpd));
 	return true;
 }
 

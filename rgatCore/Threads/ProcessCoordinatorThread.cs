@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
 using System.Threading;
@@ -13,6 +14,8 @@ namespace rgat.Threads
     {
         private readonly byte[] buf = new byte[1024];
         private NamedPipeServerStream? coordPipe = null;
+        private static readonly object _lock = new();
+        private static Dictionary<uint, TraceRecord> _pendingProcessMappings = new();
 
         /// <summary>
         /// Start work
@@ -237,6 +240,14 @@ namespace rgat.Threads
 
             target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr);
 
+            lock(_lock)
+            {
+                if (_pendingProcessMappings.TryGetValue(PID, out TraceRecord? parent))
+                {
+                    parent.AddChildTrace(tr);
+                }
+            }
+
             if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode)
             {
                 //SpawnTracePipeProxy();
@@ -296,6 +307,20 @@ namespace rgat.Threads
             BlockHandlerThread blockHandler = new BlockHandlerThread(trace.Target, trace);
             trace.ProcessThreads.Register(blockHandler);
             blockHandler.Begin();
+        }
+
+
+        /// <summary>
+        /// Note a parent->child process creation relationship for use when the child connects
+        /// </summary>
+        /// <param name="child">Child process ID</param>
+        /// <param name="parent">Parent Trace</param>
+        public static void RegisterIncomingChild( uint child, TraceRecord parent)
+        {
+            lock(_lock)
+            {
+                _pendingProcessMappings[child] = parent;
+            }
         }
     }
 }
