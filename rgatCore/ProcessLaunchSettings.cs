@@ -65,6 +65,9 @@ namespace rgat
         /// </summary>
         public TracingStrategy TracingMode { get; set; } = 0;
 
+        /// <summary>
+        /// Traces (and their children) will not record replay data
+        /// </summary>
         public bool DiscardReplayData { get; set; }
 
         /// <summary>

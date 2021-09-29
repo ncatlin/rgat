@@ -242,6 +242,9 @@ namespace rgat
         /// </summary>
         public bool WasLoadedFromSave => _loadedFromSave;
 
+        /// <summary>
+        /// This trace (and its children) are not recording replay data
+        /// </summary>
         public bool DiscardTraceData { get; private set; }
 
         private string GetModpathID() { return PID.ToString() + randID.ToString(); }

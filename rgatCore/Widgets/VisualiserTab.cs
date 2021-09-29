@@ -651,8 +651,7 @@ namespace rgat
                     ImGui.EndChild();
                 }
                 ImGui.SameLine();
-                DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.
-                    dAnimationData.Count - 1);
+                DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.SavedAnimationData.Count - 1);
                 ImGui.EndChild();
             }
 
