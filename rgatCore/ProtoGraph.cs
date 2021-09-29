@@ -530,7 +530,7 @@ namespace rgat
         private void run_faulting_BB(TAG tag)
         {
             Logging.RecordLogEvent($"Faulting Block recorded: block:{tag.blockID} 0x{tag.blockaddr:X} lastvid:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}",
-                Logging.LogFilterType.TextError);
+                Logging.LogFilterType.TextAlert);
 
 
             ROUTINE_STRUCT? foundExtern = null;
@@ -1977,6 +1977,12 @@ namespace rgat
                 return exceptionSet.ToArray();
             }
         }
+
+
+        /// <summary>
+        /// Number of exceptions in this thread
+        /// </summary>
+        public int ExceptionCount => exceptionSet.Count;
 
         /// <summary>
         /// Is this thread terminated

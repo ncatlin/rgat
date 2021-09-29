@@ -886,7 +886,6 @@ namespace rgat.Threads
             interruptedBlockTag.blockID = faultingBasicBlock_ID;
             interruptedBlockTag.InstrumentationState = eCodeInstrumentation.eInstrumentedCode;
             interruptedBlockTag.foundExtern = null;
-            interruptedBlockTag.insCount = 0;
             protograph.HandleExceptionTag(interruptedBlockTag);
 
             ANIMATIONENTRY animUpdate;

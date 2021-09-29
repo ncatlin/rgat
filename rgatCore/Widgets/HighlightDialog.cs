@@ -410,9 +410,9 @@ namespace rgat.Widgets
         }
 
 
-        public void DrawExceptionSelectBox(float height)
+        public void DrawExceptionSelectBox(float height, PlottedGraph graph)
         {
-            uint[]? exceptionNodes = _ActiveGraph?.InternalProtoGraph.GetExceptionNodes();
+            uint[]? exceptionNodes = graph.InternalProtoGraph.GetExceptionNodes();
             if (exceptionNodes is null || exceptionNodes.Length == 0)
             {
                 string caption = $"No exceptions recorded in thread ID {_ActiveGraph?.TID}";
@@ -420,29 +420,46 @@ namespace rgat.Widgets
                 return;
             }
 
-            /*
-            if (ImGui.ListBoxHeader("##ExceptionsListbox"))
+            string[] labels = exceptionNodes.Select(x => x.ToString()).ToArray();
+            if (ImGui.BeginTable("##ExceptionsTable", 2))
             {
+                ImGui.TableSetupColumn("Address", ImGuiTableColumnFlags.WidthFixed, 160);
+                ImGui.TableSetupColumn("Module");
+                ImGui.TableHeadersRow();
                 foreach (uint nodeidx in exceptionNodes)
                 {
-                    if (ImGui.Selectable($"{nodeidx}", _activeHighlights.SelectedExceptionNodes.Contains(nodeidx)))
-                    {
-                        if (_activeHighlights.SelectedExceptionNodes.Contains(nodeidx))
-                        {
-                            _activeHighlights.SelectedExceptionNodes.Remove(nodeidx);
-                            _ActiveGraph.RemoveHighlightedNodes(new List<uint> { nodeidx }, eHighlightType.eExceptions);
-                        }
-                        else
-                        {
-                            _activeHighlights.SelectedExceptionNodes.Add(nodeidx);
-                            _ActiveGraph.AddHighlightedNodes(new List<uint> { nodeidx }, eHighlightType.eExceptions);
-                        }
+                    NodeData? n = graph.InternalProtoGraph.GetNode(nodeidx);
 
+                    if (n is not null)
+                    {
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        if(ImGui.Selectable($"0x{n.address:X}", _activeHighlights.SelectedExceptionNodes.Contains(nodeidx), ImGuiSelectableFlags.SpanAllColumns))                        
+                        {
+                            if (_activeHighlights.SelectedExceptionNodes.Contains(nodeidx))
+                            {
+                                _activeHighlights.SelectedExceptionNodes.Remove(nodeidx);
+                                graph.RemoveHighlightedNodes(new List<uint> { nodeidx }, CONSTANTS.HighlightType.Exceptions);
+                            }
+                            else
+                            {
+                                _activeHighlights.SelectedExceptionNodes.Add(nodeidx);
+                                graph.AddHighlightedNodes(new List<uint> { nodeidx }, CONSTANTS.HighlightType.Exceptions);
+                            }
+                        }
+                        ImGui.TableNextColumn();
+                        ImGui.Text(System.IO.Path.GetFileName(graph.InternalProtoGraph.ProcessData.GetModulePath(n.GlobalModuleID)));
+                        
                     }
                 }
+                ImGui.EndTable();
+
+
             }
-            ImGui.ListBoxFooter();
-            */
+
+
+
         }
 
         public void DrawExceptionSelectControls()
@@ -502,7 +519,7 @@ namespace rgat.Widgets
                     if (ImGui.BeginTabItem("Exceptions"))
                     {
                         _activeHighlights.selectedHighlightTab = 2;
-                        DrawExceptionSelectBox(555);
+                        DrawExceptionSelectBox(555, _ActiveGraph);
                         DrawExceptionSelectControls();
                         ImGui.EndTabItem();
                     }

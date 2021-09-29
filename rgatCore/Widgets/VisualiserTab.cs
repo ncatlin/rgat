@@ -770,6 +770,7 @@ namespace rgat
                 ImGui.Text($"Nodes: {graph.NodeList.Count}");
                 ImGui.Text($"Updates: {graph.UpdateCount}");
                 ImGui.Text($"Instructions: {graph.TotalInstructions}");
+                ImGui.Text($"Exceptions: {graph.ExceptionCount}");
 
                 ImGui.EndChild();
             }

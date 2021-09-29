@@ -308,6 +308,7 @@ namespace rgat
             ImGui.Text($"Unique Instructions: {graph.InternalProtoGraph.NodeList.Count}");
             ImGui.Text($"Total Instructions: {graph.InternalProtoGraph.TotalInstructions}");
             ImGui.Text($"Animation Entries: {graph.InternalProtoGraph.UpdateCount}");
+            ImGui.Text($"Exceptions: {graph.InternalProtoGraph.ExceptionCount}");
 
 
             ImGui.Separator();

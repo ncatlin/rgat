@@ -3201,6 +3201,13 @@
             <param name="workerCount">Number of workers to run in parallel</param>
             <param name="cancelToken">token to listen for for cancellation</param>
         </member>
+        <member name="M:rgat.GithubSignatureManager.GetProgress(System.String)">
+            <summary>
+            Get the percentage progress of a download for a given repo
+            </summary>
+            <param name="url">The repos fetch path</param>
+            <returns>The progress percentage if downloading, null if finished/not started or 100 if extracting</returns>
+        </member>
         <member name="M:rgat.GithubSignatureManager.PurgeRepoFiles(rgat.GlobalConfig.SignatureSource)">
             <summary>
             Remove the associated signature download directory for this repo
