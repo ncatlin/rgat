@@ -316,6 +316,6 @@ namespace rgat.Config
         /// <summary>
         /// Root directory of the remote host session
         /// </summary>
-        public static string RootDirectory = "";
+        public static string? RootDirectory = null;
     }
 }

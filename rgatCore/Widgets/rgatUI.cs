@@ -1296,6 +1296,9 @@ namespace rgat
             BinaryTarget? activeTarget = rgatState.ActiveTarget;
             //there shouldn't actually be a way to select a null target once one is loaded
             string activeString = (activeTarget == null) ? "No target selected" : activeTarget.FilePath;
+            if (activeTarget is not null && activeTarget.IsRemoteBinary && activeTarget.RemoteHost is not null)
+                activeString = $"[{activeTarget.RemoteHost}]:{activeString}";
+
             List<string> paths = rgatState.targets.GetTargetPaths();
             ImGuiComboFlags flags = 0;
             float textWidth = Math.Max(ImGui.GetContentRegionAvail().X / 2.5f, ImGui.CalcTextSize(activeString).X + 50);
@@ -1306,7 +1309,10 @@ namespace rgat
                 foreach (string path in paths)
                 {
                     bool is_selected = activeTarget != null && activeTarget.FilePath == path;
-                    if (ImGui.Selectable(path, is_selected))
+                    string label = path;
+                    if (activeTarget is not null && activeTarget.IsRemoteBinary && activeTarget.RemoteHost is not null)
+                        label = $"[{activeTarget.RemoteHost}]:{path}";
+                    if (ImGui.Selectable(label, is_selected))
                     {
                         _rgatState.SetActiveTarget(path);
                     }

@@ -428,7 +428,7 @@ namespace rgat
             {
                 List<string> tracedDirs = moduleChoices.GetTracedDirs();
                 List<string> tracedFiles = moduleChoices.GetTracedFiles();
-
+               
                 if (tracedDirs.Count == 0 && tracedFiles.Count == 0)
                 {
                     Logging.RecordLogEvent("Warning: Exclude mode with nothing included. Nothing will be instrumented.");
@@ -458,6 +458,7 @@ namespace rgat
                 List<string> ignoredDirs = moduleChoices.GetIgnoredDirs();
                 List<string> ignoredFiles = moduleChoices.GetIgnoredFiles();
 
+                Console.WriteLine($"Sending default trace settings: {ignoredDirs} iognored dirs and {ignoredFiles}");
                 foreach (string name in ignoredDirs)
                 {
                     Logging.RecordLogEvent($"Sending ignored dir {name}", Logging.LogFilterType.TextDebug);

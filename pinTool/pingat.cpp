@@ -189,7 +189,9 @@ bool address_is_in_targets_v1(ADDRINT addr)
 {
 	//have to assume IMG_FindByAddress doesnt already have this optimisation. todo:benchmark
 	if (lastBBModule && addr >= lastBBModule->start && addr <= lastBBModule->end)
+	{
 		return lastBBModule->instrumented;
+	}
 
 	IMG foundimage = IMG_FindByAddress(addr);
 	if (IMG_Valid(foundimage))
@@ -409,6 +411,7 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 		//tell rgat about execution of this block and where the branch led to
 		//todo - tag cache
 		//printf("Full Instrumented Add Blockid %d \n", sourceBlock->blockID);
+
 		fprintf(threadObj->threadpipeFILE, TRACE_TAG_MARKER"%lx," PTR_prefix "\x01", sourceBlock->blockID, targblockAddr);
 		fflush(threadObj->threadpipeFILE);
 	}
@@ -1583,7 +1586,6 @@ bool ConfigValueMatches(std::string option, std::string optionValue)
 
 BOOL ChildProcess(CHILD_PROCESS chpd, void* v)
 {
-	printf("Child process spawned, todo setup parent process ID and calling node mapping %d -> %d\n", PIN_GetPid(), CHILD_PROCESS_GetId(chpd));
 	writeEventPipe("ch@%d@%d@", PIN_GetPid(), CHILD_PROCESS_GetId(chpd));
 	return true;
 }

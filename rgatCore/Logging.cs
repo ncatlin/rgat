@@ -774,6 +774,10 @@ namespace rgat
         /// <param name="trace">Trace the error applies to (optional)</param>
         public static void RecordError(string text, ProtoGraph? graph = null, TraceRecord? trace = null)
         {
+            if (rgatState.NetworkBridge.Connected)
+            {
+                rgatState.NetworkBridge.SendLog(text, LogFilterType.TextError);
+            }
             RecordLogEvent(text: text, graph: graph, trace: trace, filter: LogFilterType.TextError);
         }
 

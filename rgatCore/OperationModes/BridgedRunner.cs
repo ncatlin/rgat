@@ -132,8 +132,6 @@ namespace rgat.OperationModes
 
             WaitHandle.WaitAny(new[] { rgatState.NetworkBridge.CancelToken.WaitHandle });
 
-            Logging.WriteConsole("Headless mode complete");
-            rgatState.Shutdown();
         }
 
         private static void InitStartOptions()
@@ -854,13 +852,13 @@ namespace rgat.OperationModes
                 return;
             }
 
-            long testID = -1; string? path = null;
+            long testID = -1; string path = settings.BinaryPath;
             if (paramsObj.TryGetValue("TestID", out JToken? testIDTok) && testIDTok.Type == JTokenType.Integer)
             {
                 testID = testIDTok.ToObject<long>();
             }
 ;
-            if (!File.Exists(settings.BinaryPath))
+            if (!File.Exists(path))
             {
                 Logging.RecordError($"StartHeadlessTrace: Target {path} not found");
                 rgatState.NetworkBridge.Teardown("Target path not found");
@@ -925,7 +923,6 @@ namespace rgat.OperationModes
 
                 RemoteDataMirror.RegisterRemotePipe(pipeID, worker, null);
                 worker.Begin();
-
                 return true;
             }
 
@@ -952,7 +949,7 @@ namespace rgat.OperationModes
             DirectoryInfo dirinfo = new DirectoryInfo(dir);
             data.Add("Current", dir);
             data.Add("CurrentExists", Directory.Exists(dir));
-            data.Add("Parent", (dirinfo.Parent != null) ? dirinfo.Parent.FullName : "");
+            data.Add("Parent", (dirinfo.Parent != null) ? dirinfo.Parent.FullName : null);
             data.Add("ParentExists", dirinfo.Parent != null && Directory.Exists(dirinfo.Parent.FullName));
             data.Add("Contents", GetDirectoryListing(dir, out string? error));
             data.Add("Error", error);

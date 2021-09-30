@@ -14,6 +14,10 @@
     "CmdlineRun": {
       "commandName": "Project",
       "commandLineArgs": " -t C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\Debug\\SimpleLoops32.exe"
+    },
+    "helpcmd": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
     }
   }
 }

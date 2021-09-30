@@ -545,7 +545,9 @@ namespace rgatFilePicker
         public static FilePicker GetRemoteFilePicker(object o, string? searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
             BridgeConnection connection = rgatState.NetworkBridge;
-            if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror != null && (fp._remoteMirror.LastAddress != connection.LastAddress))
+
+
+            if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror == null || (fp._remoteMirror.LastAddress != connection.LastAddress))
             {
                 fp = new FilePicker(remoteMirror: connection);
                 fp.Data.CurrentDirectory = RemoteDataMirror.RootDirectory;
@@ -566,7 +568,7 @@ namespace rgatFilePicker
                     fp.AllowedExtensions.AddRange(searchFilter.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries));
                 }
 
-                _filePickers.Add(o, fp);
+                _filePickers[o] = fp;
             }
 
             return fp;
@@ -585,7 +587,7 @@ namespace rgatFilePicker
         public static FilePicker GetFilePicker(object o, string startingPath, string? searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
 
-            if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror != null)
+            if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror == null)
             {
                 fp = new FilePicker(remoteMirror: null);
                 fp.OnlyAllowFolders = onlyAllowFolders;
@@ -606,7 +608,7 @@ namespace rgatFilePicker
                 fp.AllowMultiSelect = allowMulti;
 
                 fp.SetActiveDirectory(startingPath);
-                _filePickers.Add(o, fp);
+                _filePickers[o] = fp;
             }
 
             return fp;
@@ -755,11 +757,27 @@ namespace rgatFilePicker
             else
             {
                 Data.CurrentDirectory = currentDirTok.ToString();
-                Data.CurrentDirectoryExists = ctokexists.ToObject<bool>();
+                if (Data.CurrentDirectory is "")
+                {
+                    Data.CurrentDirectory = null;
+                    Data.CurrentDirectoryExists = false;
+                }
+                else
+                {
+                    Data.CurrentDirectoryExists = ctokexists.ToObject<bool>();
+                    SetFileSystemEntries(Data.CurrentDirectory, newDirContents.AllPaths(), newDirContents);
+                }
 
                 Data.CurrentDirectoryParent = parentTok.ToString();
-                Data.CurrentDirectoryParentExists = ptokexists.ToObject<bool>();
-                SetFileSystemEntries(Data.CurrentDirectory, newDirContents.AllPaths(), newDirContents);
+                if (Data.CurrentDirectoryParent is "")
+                {
+                    Data.CurrentDirectoryParent = null;
+                    Data.CurrentDirectoryParentExists = false;
+                }
+                else
+                {
+                    Data.CurrentDirectoryParentExists = ptokexists.ToObject<bool>();
+                }
             }
 
 
@@ -1176,13 +1194,13 @@ namespace rgatFilePicker
             }
 
             Data.CurrentDirectoryParentExists = thisdir.Parent != null && Directory.Exists(thisdir.Parent.FullName);
-            if (Data.CurrentDirectoryParentExists && thisdir.Parent is not null)
+            if (Data.CurrentDirectoryParentExists && thisdir.Parent is not null && thisdir.Parent.FullName is not null && thisdir.Parent.FullName.Length > 0)
             {
                 Data.CurrentDirectoryParent = thisdir.Parent.FullName;
             }
             else
             {
-                Data.CurrentDirectoryParent = "";
+                Data.CurrentDirectoryParent = null;
             }
             Data.ErrMsg = "";
 

@@ -47,6 +47,11 @@ namespace ImGuiNET
                         Logging.RecordError($"Exception in outer RunHeadless: {e.Message}");
 
                     }
+                    finally
+                    {
+                        Logging.WriteConsole("Headless mode complete");
+                        rgatState.Shutdown();
+                    }
                     break;
 
                 case LaunchConfig.eRunMode.NoGPUTraceCommand:
@@ -87,7 +92,8 @@ namespace ImGuiNET
                 with.CaseSensitive = true;
                 with.EnableDashDash = false;
             });
-            Parser.Default.ParseArguments<LaunchConfig>(cmdlineParams)
+
+            ParserResult<LaunchConfig> result = Parser.Default.ParseArguments<LaunchConfig>(cmdlineParams)
                .WithParsed(cmdlineOpts =>
                {
                    if (!cmdlineOpts.ExtractJSONOptions(out string? error))
@@ -109,7 +115,7 @@ namespace ImGuiNET
 
 
 
-            return GlobalConfig.StartOptions != null;
+            return result.Tag != ParserResultType.NotParsed && GlobalConfig.StartOptions != null;
         }
 
         private static bool HandleImmediateExitOptions()

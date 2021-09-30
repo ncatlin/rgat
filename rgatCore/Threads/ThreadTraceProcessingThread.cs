@@ -37,6 +37,11 @@ namespace rgat.Threads
         /// </summary>
         public double LastBlockRepeatsTime = 0;
 
+
+        private readonly List<uint> currentUnchainedBlocks = new List<uint>();
+        private bool _ignore_next_tag = false;
+        private uint _ignored_tag_blockID = 0;
+
         private struct NEW_EDGE_BLOCKDATA
         {
             public ulong sourceAddr;
@@ -137,7 +142,9 @@ namespace rgat.Threads
                     brep.blockInslist = block.Item2;
                 }
 
+                //we have to validate that all the data is available before making any changes
                 bool needWait = false;
+
                 foreach (var targblockID_Count in brep.targEdges)
                 {
                     int edgeblock = (int)targblockID_Count.Item1;
@@ -382,8 +389,6 @@ namespace rgat.Threads
             public ulong count;
         };
 
-        private bool _ignore_next_tag = false;
-        private uint _ignored_tag_blockID = 0;
 
         /// <summary>
         /// Handle execution of a basic block
@@ -522,12 +527,12 @@ namespace rgat.Threads
                 dontcountnextedge = false;
             }
 
-
             if (modType is eCodeInstrumentation.eUninstrumentedCode)
             {
                 ProcessExtern(nextBlockAddress, thistag.blockID);
             }
         }
+
 
         private void AddSingleStepUpdate(byte[] entry)
         {
@@ -565,6 +570,7 @@ namespace rgat.Threads
             protograph.PushAnimUpdate(animUpdate);
             Logging.RecordLogEvent($"A REP instruction (blkid {animUpdate.blockID}) has executed at least once. Need to action this as per trello 160");
         }
+
 
         private void ProcessExtern(ulong externAddr, uint callerBlock)
         {
@@ -620,6 +626,7 @@ namespace rgat.Threads
 
         }
 
+
         private void HandleRetVal(byte[] entry)
         {
 
@@ -632,6 +639,7 @@ namespace rgat.Threads
             protograph.CacheIncomingCallArgument(funcpc, sourceBlockID, -1, entries[3], true); //todo look at this causing a dupe arg list to be created
 
         }
+
 
         private void AddReinstrumentedUpdate(byte[] entry)
         {
@@ -679,7 +687,6 @@ namespace rgat.Threads
             currentUnchainedBlocks.Clear(); //todo dont need this
         }
 
-        private readonly List<uint> currentUnchainedBlocks = new List<uint>();
 
         private void AddUnchainedUpdate(byte[] entry)
         {

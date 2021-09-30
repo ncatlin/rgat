@@ -231,6 +231,7 @@ namespace rgat.Widgets
             _cl.Dispose();
         }
 
+
         /// <summary>
         /// Draw the latest rendered visualiser bar
         /// Specified dimensions will be used in the next render
@@ -260,12 +261,15 @@ namespace rgat.Widgets
                 labels = _moduleTexts.ToArray();
             }
 
-            float i = 5;
-            foreach (var mtxt in labels)
+            if (labels.Any())
             {
-                imdp.AddText(pos + new Vector2(i, 0) + new Vector2(mtxt.startX, 30), 0xffffffff, mtxt.name);
-                i += ImGui.CalcTextSize(mtxt.name).X;
-
+                float i = labels[0].startX;
+                foreach (var mtxt in labels)
+                {
+                    if (mtxt.startX < i) continue; //discard instead of overlap
+                    imdp.AddText(pos + new Vector2(mtxt.startX, 30), 0xffffffff, mtxt.name);
+                    i = mtxt.startX + ImGui.CalcTextSize(mtxt.name).X;
+                }
             }
 
 
@@ -412,10 +416,10 @@ namespace rgat.Widgets
 
         private static void DrawAPIEntry(float Xoffset, float Yoffset, float width, int moduleID, string module, string symbol, ref List<Position2DColour> lines)
         {
-            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset, Yoffset) });
-            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset + width, Yoffset + 8) });
-            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset + width, Yoffset) });
-            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Pink), Position = new Vector2(Xoffset, Yoffset + 8) });
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Green), Position = new Vector2(Xoffset + 1, Yoffset) });
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Green), Position = new Vector2(Xoffset + width -1, Yoffset) });
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Green), Position = new Vector2(Xoffset + width - 1, Yoffset + 8) });
+            lines.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.Green), Position = new Vector2(Xoffset + 1, Yoffset + 8) });
         }
 
         private class MODULE_SEGMENT
@@ -489,21 +493,24 @@ namespace rgat.Widgets
                 Xoffset -= scrollOffset;
                 int blkID = (int)ae.blockID;
 
-                if (blkID < 0 || blkID >= graph.BlocksFirstLastNodeList.Count)
+                if (blkID < 0 || blkID >= graph.ProcessData.BasicBlocksList.Count)
                 {
+                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.blockAddr, out int moduleID, out string module, out string symbol);
+                    if (found)
+                    {
+                        CreateRect(new WritableRgbaFloat(Color.LightGreen), Xoffset + 1, 32, pSep+2, 48 - 32, ref triangles);
+                    }
                     continue;
                 }
 
-                var blockFirstLast = graph.BlocksFirstLastNodeList[blkID];
+                var blockInstructions = graph.ProcessData.BasicBlocksList[blkID];
+                if (blockInstructions is null) 
+                    continue;
+                int insCount = blockInstructions.Item2.Count;
 
 
-                if (blockFirstLast == null)
-                {
-                    continue; //happens on .idata jump thunks
-                }
 
-                uint insCount = (blockFirstLast.Item2 - blockFirstLast.Item1) + 1;
-                CreateExecTagSymbol(Xoffset + pSep / 2, insCount, ref lines);
+                CreateExecTagSymbol(Xoffset + pSep / 2, (uint)insCount, ref lines);
 
 
                 switch (ae.entryType)
@@ -557,38 +564,45 @@ namespace rgat.Widgets
 
 
                 //Draw Heatmap visualisation
-                int blockTailIdx = (int)blockFirstLast.Item2;
-                WritableRgbaFloat heatColour;
-                if (graph.NodeList.Count > blockTailIdx)
+                if (blkID < graph.BlocksFirstLastNodeList.Count)
                 {
-                    // colour from heat ranking of final node
-                    NodeData node = graph.NodeList[blockTailIdx];
-                    Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
-
-                    heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.eHeat0Lowest + node.heatRank));
-
-                    CreateRect(heatColour, Xoffset, 15, pSep, 10, ref triangles);
-
-                    // plot line from edge counts
-                    if (graph.BusiestBlockExecCount > 0)
+                    Tuple<uint, uint>? blockFirstLast = graph.BlocksFirstLastNodeList[blkID];
+                    if (blockFirstLast is not null)
                     {
-                        //int blkct = blockTailIdx - (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1;
-                        //Logging.WriteConsole($"NodeID: {node.index} BlockID: {ae.blockID} BlkSz: {blkct} ThisExecCt:{ae.count} TotlExecCount: {node.executionCount} heatrank: {node.heatRank}");
-                        float ecountprop = 1 - (ae.count / (float)graph.BusiestBlockExecCount);
-                        if (busyCountLinePoints.Count > 0)
+                        int blockTailIdx = (int)blockFirstLast.Item2;
+                        WritableRgbaFloat heatColour;
+                        if (graph.NodeList.Count > blockTailIdx)
                         {
-                            busyCountLinePoints.Add(busyCountLinePoints[^1]);
-                            busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 15 + 10 * ecountprop) });
+                            // colour from heat ranking of final node
+                            NodeData node = graph.NodeList[blockTailIdx];
+                            Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
+
+                            heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.eHeat0Lowest + node.heatRank));
+
+                            CreateRect(heatColour, Xoffset, 15, pSep, 10, ref triangles);
+
+                            // plot line from edge counts
+                            if (graph.BusiestBlockExecCount > 0)
+                            {
+                                //int blkct = blockTailIdx - (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1;
+                                //Logging.WriteConsole($"NodeID: {node.index} BlockID: {ae.blockID} BlkSz: {blkct} ThisExecCt:{ae.count} TotlExecCount: {node.executionCount} heatrank: {node.heatRank}");
+                                float ecountprop = 1 - (ae.count / (float)graph.BusiestBlockExecCount);
+                                if (busyCountLinePoints.Count > 0)
+                                {
+                                    busyCountLinePoints.Add(busyCountLinePoints[^1]);
+                                    busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 15 + 10 * ecountprop) });
+                                }
+                                busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 16 + 10 * ecountprop) });
+                                busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
+                                busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
+                                busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep, 16 + 10 * ecountprop) });
+                            }
                         }
-                        busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset, 16 + 10 * ecountprop) });
-                        busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
-                        busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep / 2, 17 + 10 * ecountprop) });
-                        busyCountLinePoints.Add(new Position2DColour() { Color = new WritableRgbaFloat(Color.LightGreen), Position = new Vector2(Xoffset + pSep, 16 + 10 * ecountprop) });
+                        else
+                        {
+                            CreateRect(new WritableRgbaFloat(Color.Green), Xoffset + 2, 13, pSep, 8, ref triangles);
+                        }
                     }
-                }
-                else
-                {
-                    CreateRect(new WritableRgbaFloat(Color.Green), Xoffset + 2, 13, pSep, 8, ref triangles);
                 }
 
 
@@ -644,8 +658,8 @@ namespace rgat.Widgets
                     MODULE_SEGMENT ms = moduleAreas[i];
                     WritableRgbaFloat segColour = new WritableRgbaFloat(Color.GhostWhite);
 
-                    float startX = (ms.firstIdx + 1) * pSep;
-                    float endX = ms.lastIdx * pSep + 1;
+                    float startX = ((float)(ms.firstIdx + 1)) * pSep;
+                    float endX = ((float)ms.lastIdx) * pSep + 1;
                     MODULE_LABEL label = new MODULE_LABEL
                     {
                         startX = (_width - startX) + 2,
@@ -941,38 +955,38 @@ namespace rgat.Widgets
                     }
                 }
 
-            float baseThirdStart = thirdHeight * 2 + 1;
-            float baseThirdEnd = _height - 2;
+                float baseThirdStart = thirdHeight * 2 + 1;
+                float baseThirdEnd = _height - 2;
 
-            //Draw modules
-            foreach (MODULE_SEGMENT seg in modsegs)
-            {
-                WritableRgbaFloat segColour = new WritableRgbaFloat(Color.White);
-                float startX = _width * (seg.firstIdx / (float)graph.UpdateCount);
-                float endX = _width * (seg.lastIdx / (float)graph.UpdateCount);
-
-                //left border
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdStart) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdEnd) });
-                //top
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdStart) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdStart) });
-                //base
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdEnd) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdEnd) });
-                //right border
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdStart) });
-                lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdEnd) });
-
-                MODULE_LABEL label = new MODULE_LABEL
+                //Draw modules
+                foreach (MODULE_SEGMENT seg in modsegs)
                 {
-                    startX = startX + 2,
-                    endX = endX - 2,
-                    modID = seg.modID,
-                    name = seg.name
-                };
-                _moduleTexts.Add(label);
-            }
+                    WritableRgbaFloat segColour = new WritableRgbaFloat(Color.White);
+                    float startX = _width * (seg.firstIdx / (float)graph.UpdateCount);
+                    float endX = _width * (seg.lastIdx / (float)graph.UpdateCount);
+
+                    //left border
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdStart) });
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdEnd) });
+                    //top
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdStart) });
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdStart) });
+                    //base
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdEnd) });
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdEnd) });
+                    //right border
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdStart) });
+                    lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(endX, baseThirdEnd) });
+
+                    MODULE_LABEL label = new MODULE_LABEL
+                    {
+                        startX = startX + 2,
+                        endX = endX - 2,
+                        modID = seg.modID,
+                        name = seg.name
+                    };
+                    _moduleTexts.Add(label);
+                }
 
                 /*
                 for (var i = 1; i < entries.Count + 1; i++)
