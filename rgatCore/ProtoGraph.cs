@@ -291,17 +291,6 @@ namespace rgat
 
         private bool LoadStats(JObject graphData)
         {
-            if (!graphData.TryGetValue("Module", out JToken? jModID) || jModID.Type != JTokenType.Integer)
-            {
-                return false;
-            }
-            exeModuleID = jModID.ToObject<int>();
-
-            if (exeModuleID < 0 || exeModuleID >= TraceData.DisassemblyData.LoadedModuleBounds.Count)
-            {
-                Logging.RecordError($"Loaded graph {this.ThreadID} had moduleID {exeModuleID} with {TraceData.DisassemblyData.LoadedModuleBounds.Count} loaded");
-                return false;
-            }
 
             if (!graphData.TryGetValue("TotalInstructions", out JToken? jTotal) || jTotal.Type != JTokenType.Integer)
             {
@@ -1713,8 +1702,6 @@ namespace rgat
                 result.Add("Exceptions", exceptNodeArray);
             }
 
-            result.Add("Module", exeModuleID);
-
             //todo - lock?
             JArray externCalls = new JArray();
             for (var i = 0; i < SymbolCallRecords.Count; i++)
@@ -1749,10 +1736,10 @@ namespace rgat
             JArray replayDataArr = new JArray();
             lock (AnimDataLock)
             {
-                int eventsToSave = 0;
+                int eventsToSave = SavedAnimationData.Count;
                 if (GlobalConfig.Settings.Tracing.ReplayStorageMax is not null)
                 {
-                    eventsToSave = GlobalConfig.Settings.Tracing.ReplayStorageMax.Value;
+                    eventsToSave = Math.Min(SavedAnimationData.Count, GlobalConfig.Settings.Tracing.ReplayStorageMax.Value);
                 }
 
                 for (int i = 0; i < eventsToSave; i++)
@@ -1922,11 +1909,6 @@ namespace rgat
         /// A count of the total number of instrumented instructions (including repeats) executed in the thread
         /// </summary>
         public ulong TotalInstructions { get; set; } = 0;
-
-        /// <summary>
-        /// The module ID of the thread
-        /// </summary>
-        public int exeModuleID = -1;
 
 
         //important state variables!

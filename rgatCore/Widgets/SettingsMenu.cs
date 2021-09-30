@@ -140,6 +140,7 @@ namespace rgat.Widgets
             }
         }
 
+
         private void InitSettings()
         {
             RegenerateUIThemeJSON();

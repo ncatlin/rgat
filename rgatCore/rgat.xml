@@ -6305,11 +6305,6 @@
             A count of the total number of instrumented instructions (including repeats) executed in the thread
             </summary>
         </member>
-        <member name="F:rgat.ProtoGraph.exeModuleID">
-            <summary>
-            The module ID of the thread
-            </summary>
-        </member>
         <member name="P:rgat.ProtoGraph.ProtoLastVertID">
             <summary>
             The index of the last added node

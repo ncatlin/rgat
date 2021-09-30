@@ -43,7 +43,8 @@ namespace rgat
         /// <summary>
         /// How to center the graph
         /// </summary>
-        public enum CenteringMode {
+        public enum CenteringMode
+        {
             /// <summary>
             /// The graph is not being centered
             /// </summary>
@@ -51,11 +52,11 @@ namespace rgat
             /// <summary>
             /// The graph is being centered until it is centered
             /// </summary>
-            Centering, 
+            Centering,
             /// <summary>
             /// The widget will continue centering the graph to lock it in position even as it grows
             /// </summary>
-            ContinuousCentering 
+            ContinuousCentering
         };
 
         /// <summary>
@@ -177,7 +178,7 @@ namespace rgat
                 SetAnimated(true);
             }
 
-            int NewPosition = (int)(position * InternalProtoGraph.SavedAnimationData.Count);
+            int NewPosition = (int)(position * InternalProtoGraph.UpdateCount);
             _userSelectedAnimPosition = NewPosition;
             Logging.WriteConsole($"Animation set index: {NewPosition}, last: {_lastReplayedIndex}");
 
@@ -244,12 +245,12 @@ namespace rgat
         /// <returns>Progress as a float from 0-1</returns>
         public float GetAnimationProgress()
         {
-            if (InternalProtoGraph.SavedAnimationData.Count == 0)
+            if (InternalProtoGraph.UpdateCount == 0)
             {
                 return 0;
             }
 
-            return (float)((float)AnimationIndex / InternalProtoGraph.SavedAnimationData.Count);
+            return (float)((float)AnimationIndex / InternalProtoGraph.UpdateCount);
         }
 
 
@@ -1137,7 +1138,7 @@ namespace rgat
             }
 
             //create the basic block metadata here for no good reason
-             
+
             CreateBlockMetadataBuf(Math.Min(nodeNeighboursArray.Count, InternalProtoGraph.NodeList.Count), out _blockRenderingMetadata, out int[]? blockMiddles);
 
             var textureSize = indexTextureSize(nodeNeighboursArray.Count);
@@ -2151,9 +2152,9 @@ namespace rgat
             }
 
             double targetAnimIndex = AnimationIndex + stepSize;
-            if (targetAnimIndex >= InternalProtoGraph.SavedAnimationData.Count)
+            if (targetAnimIndex >= InternalProtoGraph.UpdateCount)
             {
-                targetAnimIndex = InternalProtoGraph.SavedAnimationData.Count - 1;
+                targetAnimIndex = InternalProtoGraph.UpdateCount - 1;
             }
 
             for (; AnimationIndex < targetAnimIndex; AnimationIndex += stepSize)
@@ -2170,6 +2171,7 @@ namespace rgat
                     }
                     _lastReplayedIndex = actualIndex;
                 }
+                if (actualIndex >= InternalProtoGraph.SavedAnimationData.Count) break;
             }
 
             if (AnimationIndex >= InternalProtoGraph.SavedAnimationData.Count - 1)
@@ -2182,6 +2184,7 @@ namespace rgat
 
         private void process_replay_update(int replayUpdateIndex)
         {
+            if (replayUpdateIndex >= InternalProtoGraph.SavedAnimationData.Count) return;
             ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[replayUpdateIndex];
 
             double stepSize = AnimationRate;

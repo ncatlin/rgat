@@ -901,7 +901,9 @@ namespace rgat.Widgets
                 // Draw heatmap
                 for (float x = 0; x < _width; x++)
                 {
-                    int entryIdx = (int)Math.Floor((x / _width) * animationData.Count);
+                    int entryIdx = (int)Math.Floor((x / _width) * graph.UpdateCount);
+                    if (entryIdx >= animationData.Count) break;
+
                     ANIMATIONENTRY sample = animationData[entryIdx];
                     if ((int)sample.blockID != -1)
                     {
@@ -946,8 +948,8 @@ namespace rgat.Widgets
             foreach (MODULE_SEGMENT seg in modsegs)
             {
                 WritableRgbaFloat segColour = new WritableRgbaFloat(Color.White);
-                float startX = _width * (seg.firstIdx / (float)animationData.Count);
-                float endX = _width * (seg.lastIdx / (float)animationData.Count);
+                float startX = _width * (seg.firstIdx / (float)graph.UpdateCount);
+                float endX = _width * (seg.lastIdx / (float)graph.UpdateCount);
 
                 //left border
                 lines.Add(new Position2DColour() { Color = segColour, Position = new Vector2(startX, baseThirdStart) });
@@ -1049,6 +1051,17 @@ namespace rgat.Widgets
                 */
 
             }
+
+
+            // Grey out any area of unsaved trace data
+            if ((ulong)graph.SavedAnimationData.Count < graph.UpdateCount)
+            {
+                WritableRgbaFloat discardedColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.eTextDull1));
+                float Xoffset = _width * ((float)graph.SavedAnimationData.Count / (float)graph.UpdateCount);
+                float width = _width - Xoffset;
+                CreateRect(discardedColour, Xoffset, 0, width, _height, ref triangles);
+            }
+
             _pointVerts = points.ToArray();
             _lineVerts = lines.Concat(busyCountLinePoints).ToArray();
             _triangleVerts = triangles.ToArray();
