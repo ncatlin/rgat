@@ -2164,6 +2164,11 @@
             Maximum number of arguments to store for an API, to prevent excess memory usage
             </summary>
         </member>
+        <member name="P:rgat.Config.rgatSettings.TracingSettings.ReplayStorageMax">
+            <summary>
+            Maximum number of replay entries to store when saving a trace, or null if unlimited
+            </summary>
+        </member>
         <member name="T:rgat.Config.rgatSettings.UpdateSettings">
             <summary>
             rgat update config
@@ -2455,6 +2460,11 @@
             <summary>
             Maxmimum number of preview workers to run. 
             Going into the dozens risks exhausing the VK allocator pool
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.UI.DEFAULT_REPLAY_SAVE_LIMIT">
+            <summary>
+            Default suggested limit for number of entries to save to a trace file
             </summary>
         </member>
         <member name="T:rgat.CONSTANTS.Anim_Constants">
@@ -7257,6 +7267,18 @@
             Init a settings menu
             </summary>
             <param name="controller">imgui controller</param>
+        </member>
+        <member name="T:rgat.Widgets.TraceSelector">
+            <summary>
+            Double dropdown for selecting traces/graphs in the active target
+            </summary>
+        </member>
+        <member name="M:rgat.Widgets.TraceSelector.Draw(rgat.TraceRecord)">
+            <summary>
+            Draw a trace selector
+            </summary>
+            <param name="trace">Parent trace</param>
+            <returns>Selected graph or null</returns>
         </member>
         <member name="T:rgat.Widgets.VisualiserBar">
             <summary>

@@ -718,6 +718,7 @@ namespace rgat
             Logging.WriteConsole($"Finished saving {targslist.Count} targets");
         }
 
+
         /// <summary>
         /// Serialise all the traces of the the specified target to the trace directory
         /// </summary>

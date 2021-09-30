@@ -1581,7 +1581,7 @@ namespace rgat
         {
 
             if (this.Terminated is false && SavedAnimationData.Count < 500) return maxIndex;
-            lock(AnimDataLock)
+            lock (AnimDataLock)
             {
                 SavedAnimationData.RemoveRange(0, maxIndex);
                 return 0;
@@ -1717,8 +1717,10 @@ namespace rgat
 
             //todo - lock?
             JArray externCalls = new JArray();
-            foreach (APICALLDATA ecd in SymbolCallRecords)
+            for (var i = 0; i < SymbolCallRecords.Count; i++)
             {
+                APICALLDATA ecd = SymbolCallRecords[i];
+
                 JArray callArgsEntry = new JArray
                 {
                     ecd.edgeIdx.Item1,
@@ -1747,8 +1749,16 @@ namespace rgat
             JArray replayDataArr = new JArray();
             lock (AnimDataLock)
             {
-                foreach (ANIMATIONENTRY repentry in SavedAnimationData)
+                int eventsToSave = 0;
+                if (GlobalConfig.Settings.Tracing.ReplayStorageMax is not null)
                 {
+                    eventsToSave = GlobalConfig.Settings.Tracing.ReplayStorageMax.Value;
+                }
+
+                for (int i = 0; i < eventsToSave; i++)
+                {
+                    ANIMATIONENTRY repentry = SavedAnimationData[i];
+
                     JArray replayItem = new JArray
                     {
                         repentry.entryType,

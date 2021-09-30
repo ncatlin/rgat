@@ -108,7 +108,7 @@ namespace rgat.Widgets
                         }
                         ImGui.EndChildFrame();
                     }
-                    if (ImGui.Button("Close1", new Vector2(65, 25)))
+                    if (ImGui.Button("Close##CloseSettings", new Vector2(65, 25)))
                     {
                         window_shown_flag = false;
                     }
@@ -461,11 +461,11 @@ namespace rgat.Widgets
                                         {
                                             float? progress = _githubSigDownloader.GetProgress(sigset.FetchPath);
                                             if (progress is not null)
-                                            { 
+                                            {
                                                 if (progress == 100)
                                                     ImguiUtils.DrawHorizCenteredText($"Extracting...");
                                                 else
-                                                    ImguiUtils.DrawHorizCenteredText($"Downloading: {progress}%%"); 
+                                                    ImguiUtils.DrawHorizCenteredText($"Downloading: {progress}%%");
                                             }
                                             else
                                                 ImguiUtils.DrawHorizCenteredText("Downloading");
@@ -1447,59 +1447,112 @@ namespace rgat.Widgets
 
         private static void CreateOptionsPane_Miscellaneous()
         {
-            bool debglog = GlobalConfig.Settings.Logs.BulkLogging;
-            if (ImGui.Checkbox("Bulk Debug Logging", ref debglog))
+            if (ImGui.BeginTable("MiscTable", 2, ImGuiTableFlags.ScrollX | ImGuiTableFlags.ScrollY, ImGui.GetContentRegionAvail()))
             {
-                GlobalConfig.Settings.Logs.BulkLogging = debglog;
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                bool debglog = GlobalConfig.Settings.Logs.BulkLogging;
+                if (ImGui.Checkbox("Bulk Debug Logging", ref debglog))
+                {
+                    GlobalConfig.Settings.Logs.BulkLogging = debglog;
+                }
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                float minGraphAlpha = GlobalConfig.AnimatedFadeMinimumAlpha;
+                ImGui.SetNextItemWidth(80);
+                if (ImGui.DragFloat("Graph Minimum Animation Alpha", ref minGraphAlpha, 0.01f, 0, 1))
+                {
+                    GlobalConfig.AnimatedFadeMinimumAlpha = minGraphAlpha;
+                }
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                bool screencapAnim = GlobalConfig.Settings.UI.ScreencapAnimation;
+                if (ImGui.Checkbox("Enable Screen Capture Animation", ref screencapAnim))
+                {
+                    GlobalConfig.Settings.UI.ScreencapAnimation = screencapAnim;
+                }
+                SmallWidgets.MouseoverText("Display an animated rectangle to give feedback for screen captures");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                bool alertAnim = GlobalConfig.Settings.UI.AlertAnimation;
+                if (ImGui.Checkbox("Enable Alert Animation", ref alertAnim))
+                {
+                    GlobalConfig.Settings.UI.AlertAnimation = alertAnim;
+                }
+                SmallWidgets.MouseoverText("Display a shrinking circle to draw the eye to new alert messages");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                bool updateCheckEnable = GlobalConfig.Settings.Updates.DoUpdateCheck;
+                if (ImGui.Checkbox("Check for new releases", ref updateCheckEnable))
+                {
+                    GlobalConfig.Settings.Updates.DoUpdateCheck = alertAnim;
+                }
+                SmallWidgets.MouseoverText("Check for new rgat releases");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                int previewWorkers = GlobalConfig.Settings.UI.PreviewWorkers;
+                ImGui.SetNextItemWidth(100);
+                if (ImGui.InputInt("Preview Workers", ref previewWorkers, 1, 1))
+                {
+                    int count = Math.Max(previewWorkers, CONSTANTS.UI.MINIMUM_PREVIEW_WORKERS);
+                    count = Math.Min(count, CONSTANTS.UI.MAXIMUM_PREVIEW_WORKERS);
+                    GlobalConfig.Settings.UI.PreviewWorkers = count;
+                }
+                SmallWidgets.MouseoverText("How many preview workers to run. Increasing this makes " +
+                    "rendering many previews snappier, but too may cause contention issues." +
+                    $" [Valid range: {UI.MINIMUM_PREVIEW_WORKERS}-{UI.MAXIMUM_PREVIEW_WORKERS}]");
+
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                bool testHarnessEnable = GlobalConfig.Settings.UI.EnableTestHarness;
+                if (ImGui.Checkbox("Enable the test harness", ref testHarnessEnable))
+                {
+                    GlobalConfig.Settings.UI.EnableTestHarness = testHarnessEnable;
+                }
+                SmallWidgets.MouseoverText("Allows use of the test framework from the menu bar");
+
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                int? replayStorageMax = GlobalConfig.Settings.Tracing.ReplayStorageMax;
+                bool isEnabled = replayStorageMax is not null;
+                if (ImGui.Checkbox("Limit Replay Saving", ref isEnabled))
+                {
+                    if (isEnabled)
+                    {
+                        GlobalConfig.Settings.Tracing.ReplayStorageMax = CONSTANTS.UI.DEFAULT_REPLAY_SAVE_LIMIT;
+                    }
+                    else
+                    {
+                        GlobalConfig.Settings.Tracing.ReplayStorageMax = null;
+                    }
+                }
+                SmallWidgets.MouseoverText("If disabled, replay events will not be saved along with graphs.\n" +
+                    "Saving will be a lot faster and generate smaller files, but replay will be unavailable for traces loaded from these files.");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                if (GlobalConfig.Settings.Tracing.ReplayStorageMax is not null)
+                {
+                    ImGui.SameLine();
+                    ImGui.SetNextItemWidth(200);
+                    int saveLimit = GlobalConfig.Settings.Tracing.ReplayStorageMax.Value;
+                    if (ImGui.InputInt("Replay Save Limit", ref saveLimit, 0, 0, ImGuiInputTextFlags.CharsDecimal))
+                    {
+                        GlobalConfig.Settings.Tracing.ReplayStorageMax = saveLimit;
+                    }
+                    SmallWidgets.MouseoverText("Specifiy how many replay events can be saved alongside each thread trace");
+                }
+                ImGui.EndTable();
+
             }
 
-            float minGraphAlpha = GlobalConfig.AnimatedFadeMinimumAlpha;
-            ImGui.SetNextItemWidth(80);
-            if (ImGui.DragFloat("Graph Minimum Animation Alpha", ref minGraphAlpha, 0.01f, 0, 1))
-            {
-                GlobalConfig.AnimatedFadeMinimumAlpha = minGraphAlpha;
-            }
-
-            bool screencapAnim = GlobalConfig.Settings.UI.ScreencapAnimation;
-            if (ImGui.Checkbox("Enable Screen Capture Animation", ref screencapAnim))
-            {
-                GlobalConfig.Settings.UI.ScreencapAnimation = screencapAnim;
-            }
-            SmallWidgets.MouseoverText("Display an animated rectangle to give feedback for screen captures");
-
-            bool alertAnim = GlobalConfig.Settings.UI.AlertAnimation;
-            if (ImGui.Checkbox("Enable Alert Animation", ref alertAnim))
-            {
-                GlobalConfig.Settings.UI.AlertAnimation = alertAnim;
-            }
-            SmallWidgets.MouseoverText("Display a shrinking circle to draw the eye to new alert messages");
-
-            bool updateCheckEnable = GlobalConfig.Settings.Updates.DoUpdateCheck;
-            if (ImGui.Checkbox("Check for new releases", ref updateCheckEnable))
-            {
-                GlobalConfig.Settings.Updates.DoUpdateCheck = alertAnim;
-            }
-            SmallWidgets.MouseoverText("Check for new rgat releases");
-
-            int previewWorkers = GlobalConfig.Settings.UI.PreviewWorkers;
-            ImGui.SetNextItemWidth(100);
-            if (ImGui.InputInt("Preview Workers", ref previewWorkers, 1, 1))
-            {
-                int count = Math.Max(previewWorkers, CONSTANTS.UI.MINIMUM_PREVIEW_WORKERS);
-                count = Math.Min(count, CONSTANTS.UI.MAXIMUM_PREVIEW_WORKERS);
-                GlobalConfig.Settings.UI.PreviewWorkers = count;
-            }
-            SmallWidgets.MouseoverText("How many preview workers to run. Increasing this makes " +
-                "rendering many previews snappier, but too may cause contention issues." +
-                $" [Valid range: {UI.MINIMUM_PREVIEW_WORKERS}-{UI.MAXIMUM_PREVIEW_WORKERS}]");
-
-
-            bool testHarnessEnable = GlobalConfig.Settings.UI.EnableTestHarness;
-            if (ImGui.Checkbox("Enable the test harness", ref testHarnessEnable))
-            {
-                GlobalConfig.Settings.UI.EnableTestHarness = testHarnessEnable;
-            }
-            SmallWidgets.MouseoverText("Allows use of the test framework from the menu bar");
         }
 
         private void CreateJSONEditor()

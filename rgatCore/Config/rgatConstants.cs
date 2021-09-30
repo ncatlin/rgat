@@ -113,6 +113,11 @@ namespace rgat
             /// Going into the dozens risks exhausing the VK allocator pool
             /// </summary>
             public const int MAXIMUM_PREVIEW_WORKERS = 16;
+
+            /// <summary>
+            /// Default suggested limit for number of entries to save to a trace file
+            /// </summary>
+            public const int DEFAULT_REPLAY_SAVE_LIMIT = 10000;
         }
 
         /// <summary>

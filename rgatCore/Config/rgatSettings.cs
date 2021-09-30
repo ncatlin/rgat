@@ -809,6 +809,14 @@ namespace rgat.Config
             /// </summary>
             public int ArgStorageMax { get => _ArgStorageMax; set { _ArgStorageMax = value; MarkDirty(); } }
 
+
+            private int? _replayStrorageMax = 10000;
+            /// <summary>
+            /// Maximum number of replay entries to store when saving a trace, or null if unlimited
+            /// </summary>
+            public int? ReplayStorageMax { get => _replayStrorageMax; set { _replayStrorageMax = value; MarkDirty(); } }
+
+
         }
 
         /// <summary>
