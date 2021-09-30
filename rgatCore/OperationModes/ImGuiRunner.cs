@@ -270,7 +270,7 @@ namespace rgat.OperationModes
 
                 _rgatUI!.GetFrameDimensions(rgatState.VideoRecorder.GetCapturedContent(), out int startX, out int startY, out int width, out int height);
                 System.Drawing.Bitmap videoBmp = MediaDrawing.CreateRecordingFrame(fbuf, startX, startY, width, height);
-                rgatState.VideoRecorder.QueueFrame(videoBmp, _rgatState.ActiveGraph);
+                rgatState.VideoRecorder.QueueFrame(videoBmp, rgatState.ActiveGraph);
             }
 
             if (_rgatUI!.PendingScreenshot != VideoEncoder.CaptureContent.Invalid)
@@ -280,7 +280,7 @@ namespace rgat.OperationModes
                 {
                     _rgatUI.GetFrameDimensions(_rgatUI.PendingScreenshot, out int startX, out int startY, out int width, out int height);
                     System.Drawing.Bitmap screenBmp = MediaDrawing.CreateRecordingFrame(fbuf, startX, startY, width, height);
-                    savePath = rgatState.VideoRecorder.SaveImage(_rgatState.ActiveGraph, screenBmp);
+                    savePath = rgatState.VideoRecorder.SaveImage(rgatState.ActiveGraph, screenBmp);
                 }
                 catch (Exception e)
                 {

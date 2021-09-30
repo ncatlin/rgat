@@ -684,7 +684,7 @@ namespace rgat
             //only continuous instrumentation supported
             //if (_selectedInstrumentationLevel == 0)
             // {
-            //     _rgatState.ActiveTarget!.SetTraceConfig("SINGLE_SHOT_INSTRUMENTATION", "TRUE");
+            //     rgatState.ActiveTarget!.SetTraceConfig("SINGLE_SHOT_INSTRUMENTATION", "TRUE");
             // }
 
 

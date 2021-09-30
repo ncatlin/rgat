@@ -104,7 +104,7 @@ namespace rgat.Threads
             {
                 Thread.Sleep(1000);
 
-                PlottedGraph? graph = _clientState!.ActiveGraph;
+                PlottedGraph? graph = rgatState.ActiveGraph;
                 if (graph == null || graph.InternalProtoGraph.HeatSolvingComplete)
                 {
                     continue;

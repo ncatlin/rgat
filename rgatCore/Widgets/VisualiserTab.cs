@@ -126,7 +126,7 @@ namespace rgat
             //ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, 0));
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
-                MainGraphWidget.Draw(graphSize, _rgatState.ActiveGraph);
+                MainGraphWidget.Draw(graphSize, rgatState.ActiveGraph);
 
                 Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1 * graphSize.Y);
                 MainGraphWidget.DisplayEventMessages(msgpos);
@@ -212,7 +212,7 @@ namespace rgat
 
         private void DrawCameraPopup()
         {
-            PlottedGraph? ActiveGraph = _rgatState.ActiveGraph;
+            PlottedGraph? ActiveGraph = rgatState.ActiveGraph;
             if (ActiveGraph == null)
             {
                 return;
@@ -235,7 +235,7 @@ namespace rgat
 
         private unsafe void DrawPlaybackControls(float otherControlsHeight, float width)
         {
-            PlottedGraph? activeGraph = _rgatState.ActiveGraph;
+            PlottedGraph? activeGraph = rgatState.ActiveGraph;
             if (activeGraph == null)
             {
                 if (ImGui.BeginChild(ImGui.GetID("ReplayControls"), new Vector2(width, otherControlsHeight)))
@@ -654,83 +654,15 @@ namespace rgat
 
         private void SetActiveGraph(PlottedGraph graph)
         {
-            if (_rgatState.ActiveGraph is not null && graph.PID != _rgatState.ActiveGraph.PID)
+            if (rgatState.ActiveGraph is not null && graph.PID != rgatState.ActiveGraph.PID)
             {
                 Logging.WriteConsole("Warning: Graph selected in inactive trace");
                 return;
             }
 
-            _rgatState.SwitchToGraph(graph);
+            rgatState.SwitchToGraph(graph);
             PreviewGraphWidget!.SetSelectedGraph(graph);
             //MainGraphWidget.SetActiveGraph(graph);
-        }
-
-
-        private void CreateTracesDropdown(TraceRecord tr, int level)
-        {
-            foreach (TraceRecord child in tr.Children)
-            {
-                string tabs = new string("->");
-                string moduleName = child.Target.FileName;
-                if (ImGui.Selectable($"{tabs} Child {child.PID} ({moduleName})", _rgatState.ActiveGraph?.PID == child.PID))
-                {
-                    _rgatState.SelectActiveTrace(child);
-                }
-                if (child.Children.Length > 0)
-                {
-                    CreateTracesDropdown(tr, level + 1);
-                }
-            }
-        }
-
-
-        private void DrawThreadSelectorCombo(ProtoGraph graph)
-        {
-            if (_rgatState.ActiveTrace != null)
-            {
-                string selString = $"TID {graph.ThreadID}: {graph.FirstInstrumentedModuleName}";
-                List<PlottedGraph> graphs = _rgatState.ActiveTrace.GetPlottedGraphs();
-                if (ImGui.BeginCombo($"{graphs.Count} Thread{(graphs.Count != 1 ? "s" : "")}", selString))
-                {
-                    foreach (PlottedGraph selectablegraph in graphs)
-                    {
-                        string caption = $"{selectablegraph.TID}: {selectablegraph.InternalProtoGraph.FirstInstrumentedModuleName}";
-                        int nodeCount = selectablegraph.GraphNodeCount();
-                        if (nodeCount == 0)
-                        {
-                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
-                            caption += " [Uninstrumented]";
-                        }
-                        else
-                        {
-                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                            caption += $" [{nodeCount} nodes]";
-                        }
-
-                        if (ImGui.Selectable(caption, graph.ThreadID == selectablegraph.TID) && nodeCount > 0)
-                        {
-                            SetActiveGraph(selectablegraph);
-                        }
-                        if (ImGui.IsItemHovered())
-                        {
-                            ImGui.BeginTooltip();
-                            ImGui.Text($"Thread Start: 0x{graph.StartAddress:X} [{graph.StartModuleName}]");
-                            if (graph.NodeList.Count > 0)
-                            {
-                                NodeData? n = graph.GetNode(0);
-                                if (n is not null)
-                                {
-                                    string insBase = System.IO.Path.GetFileName(graph.ProcessData.GetModulePath(n.GlobalModuleID));
-                                    ImGui.Text($"First Instrumented: 0x{n.address:X} [{insBase}]");
-                                }
-                            }
-                            ImGui.EndTooltip();
-                        }
-                        ImGui.PopStyleColor();
-                    }
-                    ImGui.EndCombo();
-                }
-            }
         }
 
 
@@ -870,66 +802,6 @@ namespace rgat
         }
 
 
-        private void DrawTraceSelector(float frameHeight, float frameWidth)
-        {
-
-            PlottedGraph? plot = _rgatState.ActiveGraph;
-            if (plot == null)
-            {
-                if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth, frameHeight)))
-                {
-                    ImGui.Text($"No selected graph");
-                    ImGui.EndChild();
-                }
-                return;
-            }
-            ProtoGraph graph = plot.InternalProtoGraph;
-
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
-            if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(frameWidth - 15, frameHeight)))
-            {
-                if (_rgatState.ActiveTarget != null)
-                {
-                    var tracelist = _rgatState.ActiveTarget.GetTracesUIList();
-                    string selString = "PID " + graph.TraceData.PID;
-                    if (ImGui.BeginCombo($"{tracelist.Count} Process{(tracelist.Count != 1 ? "es" : "")}", selString))
-                    {
-                        foreach (var timepid in tracelist)
-                        {
-                            TraceRecord selectableTrace = timepid.Item2;
-                            bool current = graph.TraceData.PID == selectableTrace.PID && graph.TraceData.randID == selectableTrace.randID;
-                            string label = "PID " + selectableTrace.PID;
-                            if (current is false)
-                            {
-                                label = "Parent: " + label + $" ({selectableTrace.Target.FileName})";
-                            }
-                            if (ImGui.Selectable(label, current))
-                            {
-                                _rgatState.SelectActiveTrace(selectableTrace);
-                            }
-                            if (selectableTrace.Children.Length > 0)
-                            {
-                                CreateTracesDropdown(selectableTrace, 1);
-                            }
-                        }
-                        ImGui.EndCombo();
-                    }
-                    DrawThreadSelectorCombo(graph);
-                }
-
-                DrawPlotStatColumns(plot);
-
-                ImGui.EndChild();
-            }
-            ImGui.PopStyleColor(1);
-
-            if (rgatUI.ShowStatsDialog)
-            {
-                bool closeClick = true;
-                DrawGraphStatsDialog(ref closeClick);
-                if (closeClick is false) rgatUI.ToggleRenderStatsDialog();
-            }
-        }
 
         private bool _stats_click_hover = false;
 
@@ -937,14 +809,14 @@ namespace rgat
         {
             float vpadding = 10;
 
-            if (_rgatState.ActiveGraph == null)
+            if (rgatState.ActiveGraph == null)
             {
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF222222);
                 if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(ImGui.GetContentRegionAvail().X, controlsHeight - vpadding)))
                 {
                     string caption = "No trace to display";
                     ImguiUtils.DrawRegionCenteredText(caption);
-                    ImGui.Text($"temp: {_rgatState.ActiveGraph?.Temperature}");
+                    ImGui.Text($"temp: {rgatState.ActiveGraph?.Temperature}");
                     ImGui.EndChild();
                 }
                 ImGui.PopStyleColor();
@@ -957,7 +829,7 @@ namespace rgat
 
             if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), new Vector2(controlsWidth - 10, frameHeight)))
             {
-                PlottedGraph activeGraph = _rgatState.ActiveGraph;
+                PlottedGraph activeGraph = rgatState.ActiveGraph;
                 if (activeGraph != null)
                 {
                     if (ImGui.BeginChild("ControlsInner", new Vector2((controlsWidth - UI.PREVIEW_PANE_WIDTH), frameHeight)))
@@ -975,18 +847,30 @@ namespace rgat
                 }
                 ImGui.SameLine();
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 5); //too much item padding
-                DrawTraceSelector(frameHeight, UI.PREVIEW_PANE_WIDTH);
+                ImGui.BeginGroup();
+                PlottedGraph? selectedGraph = TraceSelector.Draw(activeGraph?.InternalProtoGraph.TraceData);
+                if (activeGraph is not null)
+                    DrawPlotStatColumns(activeGraph);
+                ImGui.EndGroup();
                 ImGui.EndChild();
             }
+
+            if (rgatUI.ShowStatsDialog)
+            {
+                bool closeClick = true;
+                DrawGraphStatsDialog(ref closeClick);
+                if (closeClick is false) rgatUI.ToggleRenderStatsDialog();
+            }
+
         }
 
         private void ManageActiveGraph()
         {
-            if (_rgatState.ActiveGraph == null)
+            if (rgatState.ActiveGraph == null)
             {
-                if (_rgatState.ActiveTrace == null)
+                if (rgatState.ActiveTrace == null)
                 {
-                    _rgatState.SelectActiveTrace();
+                    rgatState.SelectActiveTrace();
                 }
 
                 if (PreviewGraphWidget is null)
@@ -1001,8 +885,8 @@ namespace rgat
                         rgatState.VideoRecorder.StartRecording();
                         rgatState.RecordVideoOnNextTrace = false;
                     }
-                    PreviewGraphWidget.SetActiveTrace(_rgatState.ActiveTrace);
-                    PreviewGraphWidget.SetSelectedGraph(_rgatState.ActiveGraph);
+                    PreviewGraphWidget.SetActiveTrace(rgatState.ActiveTrace);
+                    PreviewGraphWidget.SetSelectedGraph(rgatState.ActiveGraph);
                 }
                 else
                 {
@@ -1012,7 +896,7 @@ namespace rgat
                     }
                 }
             }
-            else if (_rgatState.ActiveGraph != MainGraphWidget.ActiveGraph)
+            else if (rgatState.ActiveGraph != MainGraphWidget.ActiveGraph)
             {
 
                 if (rgatState.RecordVideoOnNextTrace)
@@ -1021,8 +905,8 @@ namespace rgat
                     rgatState.RecordVideoOnNextTrace = false;
                 }
 
-                PreviewGraphWidget!.SetActiveTrace(_rgatState.ActiveTrace);
-                PreviewGraphWidget!.SetSelectedGraph(_rgatState.ActiveGraph);
+                PreviewGraphWidget!.SetActiveTrace(rgatState.ActiveTrace);
+                PreviewGraphWidget!.SetSelectedGraph(rgatState.ActiveGraph);
             }
         }
 
@@ -1030,12 +914,12 @@ namespace rgat
 
         public void DrawGraphStatsDialog(ref bool hideme)
         {
-            if (_rgatState.ActiveGraph == null)
+            if (rgatState.ActiveGraph == null)
             {
                 return;
             }
 
-            PlottedGraph graphplot = _rgatState.ActiveGraph;
+            PlottedGraph graphplot = rgatState.ActiveGraph;
             ProtoGraph graph = graphplot.InternalProtoGraph;
 
             ImGui.SetNextWindowSize(new Vector2(800, 500), ImGuiCond.Appearing);

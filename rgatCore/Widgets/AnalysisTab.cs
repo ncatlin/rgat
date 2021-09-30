@@ -48,7 +48,7 @@ namespace rgat
 
 
                 ImGui.TableNextColumn();
-                ImGui.Text("Sandbox View");
+                ImGui.Text("Timeline Graph");
 
                 chart.Draw();
 
@@ -59,6 +59,8 @@ namespace rgat
                 if (ImGui.BeginChild("#SandboxTabtopRightPane", new Vector2(sidePaneWidth, tr_height)))
                 {
                     ImGui.Text("Filters");
+
+                    TraceSelector.Draw(activeTrace);
 
                     if (!APIDetailsWin.Loaded)
                     {

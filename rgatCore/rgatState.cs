@@ -33,15 +33,15 @@ namespace rgat
         /// <summary>
         /// The currently selected binary target in the UI
         /// </summary>
-        public BinaryTarget? ActiveTarget;
+        public static BinaryTarget? ActiveTarget;
         /// <summary>
         /// The trace currently active in the UI
         /// </summary>
-        public TraceRecord? ActiveTrace;
+        public static TraceRecord? ActiveTrace;
         /// <summary>
         /// The graph currently active in the UI
         /// </summary>
-        public PlottedGraph? ActiveGraph { get; private set; }
+        public static PlottedGraph? ActiveGraph { get; private set; }
         /// <summary>
         /// A Veldrid GraphicsDevice reference available for general usage
         /// </summary>
@@ -305,7 +305,7 @@ namespace rgat
         /// <summary>
         /// Deactivate the currently active graph in the UI
         /// </summary>
-        public void ClearActiveGraph()
+        public static void ClearActiveGraph()
         {
             ActiveGraph = null;
         }
@@ -316,7 +316,7 @@ namespace rgat
         /// </summary>
         /// <param name="trace">An optional TraceRecord to set as active</param>
         /// <param name="newest">If true, get the most recently spawned trace. If false get the first in the list (not guaranteed to be the oldest)</param>
-        public void SelectActiveTrace(TraceRecord? trace = null, bool newest = false)
+        public static void SelectActiveTrace(TraceRecord? trace = null, bool newest = false)
         {
             ActiveGraph = null;
 
@@ -371,14 +371,14 @@ namespace rgat
 
         }
 
-        private readonly Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
-        private readonly Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
+        private static readonly Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
+        private static readonly Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
 
         /// <summary>
         /// Causes the UI to switch to displaying a different thread graph
         /// </summary>
         /// <param name="graph">The PlottedGraph object of the graph to switch to. Null to clear the active graph.</param>
-        public void SwitchToGraph(PlottedGraph graph)
+        public static void SwitchToGraph(PlottedGraph graph)
         {
             //valid target or not, we assume current graph is no longer fashionable
             ClearActiveGraph();
@@ -442,7 +442,7 @@ namespace rgat
         /// Activate a graph in the active trace
         /// Selects the last one that was active in this trace, or the first seen
         /// </summary>
-        private void SelectGraphInActiveTrace()
+        private static void SelectGraphInActiveTrace()
         {
             TraceRecord? selectedTrace = ActiveTrace;
             if (selectedTrace == null)
@@ -491,7 +491,7 @@ namespace rgat
         /// </summary>
         /// <param name="graph">A PlottedGraph object of the thread to display</param>
         /// <returns></returns>
-        public bool SetActiveGraph(PlottedGraph graph)
+        public static bool SetActiveGraph(PlottedGraph graph)
         {
             if (ActiveGraph != null && ActiveGraph.BeingDeleted)
             {

@@ -122,10 +122,11 @@ namespace rgat.Widgets
         private void AddThreadItems(ItemNode? parentProcess, TraceRecord trace)
         {
 
-            string nodeName = $"PROCNODE_{trace.randID}";
+            string nodeName = $"PROCNODE_{trace.PID}_{trace.LaunchedTime}";
             ItemNode? startProcess = null;
             lock (_lock)
             {
+                
                 if (!addedNodes.TryGetValue(nodeName, out startProcess))
                 {
                     startProcess = new ItemNode(nodeName, Logging.eTimelineEvent.ProcessStart, trace);
@@ -343,13 +344,27 @@ namespace rgat.Widgets
 
                 }
 
-                foreach (var child in trace.GetChildren())
+                if (startProcess is not null)
                 {
-                    AddThreadItems(startProcess, child);
-                }
+                    foreach (var child in trace.GetChildren())
+                    {
+                        string childName = $"PROCNODE_{child.PID}_{child.LaunchedTime}";
+                        if (!addedNodes.TryGetValue(childName, out ItemNode? childProcess) || childProcess is null)
+                        {
+                            childProcess = new ItemNode(childName, Logging.eTimelineEvent.ProcessStart, child);
+                            sbgraph.AddVertex(childProcess);
+                            addedNodes[childName] = childProcess;
 
+                            sbgraph.AddEdge(new Edge<ItemNode>(startProcess, childProcess));
+
+                        }
+                        AddThreadItems(parentProcess, child);
+                    }
+                }
             }
         }
+
+
 
         private void AddAPIEdge(ItemNode source, ItemNode dest, string? label = "")
         {

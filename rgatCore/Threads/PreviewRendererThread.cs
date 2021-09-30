@@ -47,7 +47,7 @@ namespace rgat.Threads
         {
             lock (_lock)
             {
-                if (graph.InternalProtoGraph.TraceData == _clientState!.ActiveTrace)
+                if (graph.InternalProtoGraph.TraceData == rgatState.ActiveTrace)
                 {
                     priorityQueue.Enqueue(graph);
                 }
@@ -175,14 +175,14 @@ namespace rgat.Threads
                 if (graph is null) continue;
 
 
-                if (graph != _clientState.ActiveGraph)
+                if (graph != rgatState.ActiveGraph)
                 {
                     graph.RenderGraph();
                 }
 
                 if (graph.DrawnEdgesCount > 0)
                 {
-                    if (graph != _rgatState.ActiveGraph)
+                    if (graph != rgatState.ActiveGraph)
                     {
                         _layoutEngine.Compute(cl, graph, -1, false);
                     }

@@ -240,11 +240,18 @@ namespace rgat.Threads
 
             target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr);
 
+
             lock(_lock)
             {
                 if (_pendingProcessMappings.TryGetValue(PID, out TraceRecord? parent))
                 {
+                    Logging.RecordLogEvent($"New Trace: {PID} - {tr.Target.FileName} [parent: {parent.PID} - {parent.Target.FileName}]", Logging.LogFilterType.TextAlert);
                     parent.AddChildTrace(tr);
+                    _pendingProcessMappings.Remove(PID);
+                }
+                else
+                {
+                    Logging.RecordLogEvent($"New Trace: {PID} - {tr.Target.FileName}", Logging.LogFilterType.TextAlert);
                 }
             }
 

@@ -206,7 +206,7 @@ namespace rgat
             _sortedMsgs.Clear();
             if (_LogFilters.Any(f => f == true))
             {
-                var TLmsgs = _rgatState.ActiveTrace?.GetTimeLineEntries();
+                var TLmsgs = rgatState.ActiveTrace?.GetTimeLineEntries();
                 if (TLmsgs != null)
                 {
                     foreach (TIMELINE_EVENT ev in TLmsgs)

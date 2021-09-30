@@ -71,7 +71,7 @@ namespace rgat
         private Vector2 _mouseDragDelta = new Vector2(0, 0);
 
         private static bool DialogOpen => Controller.DialogOpen;
-        public bool MenuBarVisible => (_rgatState.ActiveTarget is not null ||
+        public bool MenuBarVisible => (rgatState.ActiveTarget is not null ||
             _splashHeaderHover ||
             LogsWindow.RecentAlert() ||
             DialogOpen ||
@@ -186,7 +186,7 @@ namespace rgat
                 CheckMissingPaths();
                 _scheduleMissingPathCheck = false;
             }
-            _activeTargetRunnable = _rgatState.ActiveTarget != null && _rgatState.ActiveTarget.IsAccessible;
+            _activeTargetRunnable = rgatState.ActiveTarget != null && rgatState.ActiveTarget.IsAccessible;
 
             if (ExitRequested)
             {
@@ -261,7 +261,7 @@ namespace rgat
         public void DrawMain()
         {
 
-            if (_rgatState?.ActiveTarget == null)
+            if (rgatState.ActiveTarget == null)
             {
                 DrawStartSplash();
             }
@@ -370,7 +370,7 @@ namespace rgat
             {
                 DrawTargetBar();
 
-                BinaryTarget? activeTarget = _rgatState.ActiveTarget;
+                BinaryTarget? activeTarget = rgatState.ActiveTarget;
                 if (activeTarget == null)
                 {
                     DrawStartSplash();
@@ -802,12 +802,12 @@ namespace rgat
                 }
                 if (ImGui.MenuItem("Open Saved Trace")) { ToggleLoadTraceWindow(); }
                 ImGui.Separator();
-                if (_rgatState.ActiveTarget is not null && ImGui.MenuItem("Save This Trace")) { rgatState.SaveTarget(_rgatState.ActiveTarget); }
+                if (rgatState.ActiveTarget is not null && ImGui.MenuItem("Save This Trace")) { rgatState.SaveTarget(rgatState.ActiveTarget); }
                 if (ImGui.MenuItem("Save All Traces")) { rgatState.SaveAllTargets(); }
                 if (ImGui.MenuItem("Export Pajek"))
                 {
-                    TraceRecord? record = _rgatState.ActiveTrace;
-                    PlottedGraph? graph = _rgatState.ActiveGraph;
+                    TraceRecord? record = rgatState.ActiveTrace;
+                    PlottedGraph? graph = rgatState.ActiveGraph;
                     if (record is not null && graph is not null)
                     {
                         rgatState.ExportTraceAsPajek(record, graph.TID);
@@ -1293,7 +1293,7 @@ namespace rgat
                 return false;
             }
 
-            BinaryTarget? activeTarget = _rgatState.ActiveTarget;
+            BinaryTarget? activeTarget = rgatState.ActiveTarget;
             //there shouldn't actually be a way to select a null target once one is loaded
             string activeString = (activeTarget == null) ? "No target selected" : activeTarget.FilePath;
             List<string> paths = rgatState.targets.GetTargetPaths();
@@ -1338,7 +1338,7 @@ namespace rgat
                 _OldTraceCount = -1;
                 _SwitchToVisualiserTab = true;
                 visualiserTab!.ClearPreviewTrace();
-                _rgatState.SelectActiveTrace(newest: true);
+                rgatState.SelectActiveTrace(newest: true);
             }
 
             if (ImGui.BeginTabBar("Primary Tab Bar", tab_bar_flags))
@@ -1356,7 +1356,7 @@ namespace rgat
                 if (tabDrawn)
                 {
                     _currentTab = "TraceSelect";
-                    DrawTraceTab(_rgatState.ActiveTarget);
+                    DrawTraceTab(rgatState.ActiveTarget);
                     ImGui.EndTabItem();
                 }
                 else
@@ -1389,7 +1389,7 @@ namespace rgat
                     if (ShowStatsDialog) ToggleRenderStatsDialog();
                 }
 
-                DrawAnalysisTab(_rgatState.ActiveTrace);
+                DrawAnalysisTab(rgatState.ActiveTrace);
 
 
                 DrawMemDataTab();
@@ -1557,8 +1557,8 @@ namespace rgat
 
             StartTraceDisplayWorkers(trace, _rgatState);
 
-            _rgatState.ActiveTarget = target;
-            _rgatState.SelectActiveTrace(target.GetFirstTrace());
+            rgatState.ActiveTarget = target;
+            rgatState.SelectActiveTrace(target.GetFirstTrace());
 
             //_rgatState.SwitchTrace = trace;
 
@@ -1610,7 +1610,7 @@ namespace rgat
         public void DrawTraceListSelectBox(ref bool shown)
         {
 
-            string? startdir = _rgatState.ActiveTarget != null ? Path.GetDirectoryName(_rgatState.ActiveTarget.FilePath) : null;
+            string? startdir = rgatState.ActiveTarget != null ? Path.GetDirectoryName(rgatState.ActiveTarget.FilePath) : null;
             if (startdir is null || !Directory.Exists(startdir))
             {
                 startdir = Environment.CurrentDirectory;
@@ -1646,7 +1646,7 @@ namespace rgat
 
         public void AddDirectoriesToTracingList(List<string> files)
         {
-            BinaryTarget? activeTarget = _rgatState.ActiveTarget;
+            BinaryTarget? activeTarget = rgatState.ActiveTarget;
             if (activeTarget is not null)
             {
                 TraceChoiceSettings moduleChoices = activeTarget.LaunchSettings.TraceChoices;
@@ -1670,7 +1670,7 @@ namespace rgat
         public void AddFilesToTracingList(List<string> files)
         {
 
-            BinaryTarget? activeTarget = _rgatState.ActiveTarget;
+            BinaryTarget? activeTarget = rgatState.ActiveTarget;
             if (activeTarget is not null)
             {
                 TraceChoiceSettings moduleChoices = activeTarget.LaunchSettings.TraceChoices;
