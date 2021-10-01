@@ -114,8 +114,16 @@ namespace rgat.OperationModes
 
             if (GlobalConfig.StartOptions.NetworkKey == null || GlobalConfig.StartOptions.NetworkKey.Length == 0)
             {
-                Logging.RecordError("A network key (-k) is required");
-                return;
+                if (GlobalConfig.Settings.Network.DefaultNetworkKey is not null && 
+                    GlobalConfig.Settings.Network.DefaultNetworkKey.Length > 0)
+                {
+                    GlobalConfig.StartOptions.NetworkKey = GlobalConfig.Settings.Network.DefaultNetworkKey;
+                }
+                else
+                {
+                    Logging.RecordError("A network key (-k) is required");
+                    return;
+                }
             }
 
             if (GlobalConfig.StartOptions.ListenPort != null)
@@ -323,7 +331,6 @@ namespace rgat.OperationModes
                                 rgatState.NetworkBridge.Teardown($"Bad async data ({name})");
                                 break;
                             }
-                            Logging.WriteConsole($"Delivering async {name}");
                             ProcessAsync(name!, data!);
                         }
                         catch (Exception e)
@@ -561,7 +568,7 @@ namespace rgat.OperationModes
             }
 
             string remotePath = pathTok.ToString();
-            BinaryTarget remoteTarget = rgatState.targets.AddTargetByPath(remotePath, remoteAddr: rgatState.NetworkBridge.LastAddress);
+            BinaryTarget remoteTarget = rgatState.targets.AddTargetByPath(remotePath);
             if (remoteTarget is null)
             {
                 Logging.RecordError("Unable to add remote target with path: "+ remotePath);
@@ -574,7 +581,7 @@ namespace rgat.OperationModes
                 return false;
             }
 
-            Logging.RecordLogEvent("New child binary initialised: " + remotePath);
+            Logging.RecordLogEvent("New child binary initialised: " + remotePath, Logging.LogFilterType.TextAlert);
             return true;
         }
 
@@ -918,7 +925,7 @@ namespace rgat.OperationModes
 
             if (target.PEFileObj == null)
             {
-                Logging.RecordError($"StartHeadlessTrace: Target could not be parsed as a Windows PE binary");
+                Logging.RecordError($"StartHeadlessTrace: Target {settings.BinaryPath} could not be parsed as a Windows PE binary");
                 rgatState.NetworkBridge.Teardown("Bad Target");
                 return;
             }
@@ -1054,10 +1061,12 @@ namespace rgat.OperationModes
             if (pathTok != null && pathTok.Type == JTokenType.String)
             {
                 BinaryTarget target = rgatState.targets.AddTargetByPath(pathTok.ToString());
+                Console.WriteLine("GatherTargetInitData " + pathTok.ToString() + " " +target.GetSHA1Hash());
                 rgatState.YARALib?.StartYARATargetScan(target);
                 rgatState.DIELib?.StartDetectItEasyScan(target);
                 if (target != null)
                 {
+                    Console.WriteLine("Target not null");
                     return target.GetRemoteLoadInitData(requested: true);
                 }
             }
@@ -1127,6 +1136,8 @@ namespace rgat.OperationModes
                 return;
             }
 
+            GlobalConfig.Settings.Network.RecordRecentConnectAddress(GlobalConfig.StartOptions.ConnectModeAddress);
+            GlobalConfig.Settings.Network.DefaultNetworkKey = GlobalConfig.StartOptions.NetworkKey;
             connection.Start(localBinding, address, port, GotData, onConnected);
         }
 
@@ -1249,23 +1260,33 @@ namespace rgat.OperationModes
             {
                 _incomingData.Clear();
             }
+            Stopwatch waitwatch = new Stopwatch();
             NETWORK_MSG[]? incoming = null;
-            while (!rgatState.rgatIsExiting)
+            //everything in this loop is a hot path, must be spinning instead of waiting?
+            while (!rgatState.rgatIsExiting) 
             {
                 try
                 {
+                    //waitwatch.Restart();
                     NewDataEvent.Wait((CancellationToken)cancelToken);
+                    NewDataEvent.Reset();
+                    //waitwatch.Stop();
+                    //Console.WriteLine(waitwatch.ElapsedMilliseconds);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     if (((CancellationToken)cancelToken).IsCancellationRequested)
                     {
                         return;
                     }
+                    else
+                    {
+                        Logging.RecordError($"ResponseHandlerThread non exit exception {e}");
+                    }
                 }
                 lock (_lock)
                 {
-                    if (_incomingData.Any())
+                    if (_incomingData.Any()) 
                     {
                         incoming = _incomingData.ToArray();
                         _incomingData.Clear();

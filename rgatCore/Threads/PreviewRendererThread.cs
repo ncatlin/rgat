@@ -87,6 +87,10 @@ namespace rgat.Threads
                         if (priorityQueue.Count > 0)
                             return priorityQueue.Dequeue();
                     }
+
+                    //Checked all queues, someone else took the task
+                    //Sleep so we don't thrash on locks
+                    Thread.Sleep(50);
                 }
                 _waitEvent.Wait(rgatState.ExitToken);
 

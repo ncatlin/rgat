@@ -37,20 +37,32 @@ namespace rgat
             /// <param name="type">The base type of log</param>
             public LOG_EVENT(eLogFilterBaseType type)
             {
-                _eventTimeMS = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+                _eventTime = DateTimeOffset.Now;
                 _type = type;
             }
             /// <summary>
             /// When the event was recorded
             /// </summary>
-            public long EventTimeMS => _eventTimeMS;
+            public long EventTimeMS
+            {
+                get
+                {
+                    if (_eventTimeMS is null)
+                        _eventTimeMS = _eventTime.ToUnixTimeMilliseconds();
+                    return _eventTimeMS.Value;
+                }
+            }
+
+
+            long? _eventTimeMS;
+
+            private DateTimeOffset _eventTime;
 
             /// <summary>
             /// The base type of log
             /// </summary>
             public eLogFilterBaseType LogType => _type;
 
-            private readonly long _eventTimeMS;
             private readonly eLogFilterBaseType _type;
             /// <summary>
             /// How this log is handled

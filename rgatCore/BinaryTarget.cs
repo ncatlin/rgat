@@ -287,7 +287,7 @@ namespace rgat
             BitWidth = bitWidth_; //overwritten by PE parser if PE
             IsLibrary = isLibrary;
             FileName = Path.GetFileName(FilePath);
-            if (remoteAddr == null && File.Exists(filepath))
+            if ((rgatState.NetworkBridge.ActiveNetworking is false || rgatState.NetworkBridge.HeadlessMode) && File.Exists(filepath))
             {
                 try
                 {

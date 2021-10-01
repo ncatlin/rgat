@@ -704,7 +704,7 @@
             </summary>
             <returns>List of BinaryTargets</returns>
         </member>
-        <member name="M:rgat.BinaryTargets.AddTargetByPath(System.String,System.Boolean,System.Int32,System.String)">
+        <member name="M:rgat.BinaryTargets.AddTargetByPath(System.String,System.Boolean,System.Int32)">
             <summary>
             Initialise and record a BinaryTarget object from a filesystem path
             </summary>

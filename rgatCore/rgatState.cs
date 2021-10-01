@@ -29,7 +29,7 @@ namespace rgat
         /// <summary>
         /// Collection of binary targets that are loaded
         /// </summary>
-        public static BinaryTargets targets = new BinaryTargets();
+        public static BinaryTargets targets = new();
         /// <summary>
         /// The currently selected binary target in the UI
         /// </summary>
@@ -81,6 +81,7 @@ namespace rgat
         /// </summary>
         public static Threads.ProcessCoordinatorThread? processCoordinatorThreadObj = null;
 
+        public static string TargetsAddress => (rgatState.NetworkBridge.ActiveNetworking && rgatState.NetworkBridge.GUIMode) ? rgatState.NetworkBridge.LastAddress : "rgatlocal";
 
         /// <summary>
         /// Set the graphics devicefor widgets to use once it has been created 
@@ -157,6 +158,7 @@ namespace rgat
         /// rgat is shutting down
         /// </summary>
         public static bool rgatIsExiting => _exitTokenSource.IsCancellationRequested;
+
 
         /// <summary>
         /// Get a cancellation token which will be cancelled when rgat is exiting
@@ -256,7 +258,7 @@ namespace rgat
         /// <returns>The BinaryTarget object describing the target</returns>
         public BinaryTarget AddRemoteTargetByPath(string path, string hostAddr, bool isLibrary = false, bool makeActive = true)
         {
-            BinaryTarget targ = targets.AddTargetByPath(path, isLibrary: isLibrary, remoteAddr: hostAddr);
+            BinaryTarget targ = targets.AddTargetByPath(path, isLibrary: isLibrary);
 
             if (makeActive)
             {

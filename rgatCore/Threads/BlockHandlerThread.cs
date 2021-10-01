@@ -140,7 +140,8 @@ namespace rgat
             int globalModNum = trace.DisassemblyData.modIDTranslationVec[(int)localmodnum];
             if (globalModNum < 0 || globalModNum >= trace.DisassemblyData.LoadedModuleBounds.Count)
             {
-                throw new IndexOutOfRangeException($"Bad module ID {globalModNum} not recorded");
+                //todo this can be -1 with super laggy remote tracing. deal with remote trace lag first.
+                throw new IndexOutOfRangeException($"Bad module ID {globalModNum} not recorded"); 
             }
             ulong moduleStart = trace.DisassemblyData.LoadedModuleBounds[globalModNum].Item1;
             ulong modoffset = BlockAddress - moduleStart;
