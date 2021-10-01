@@ -1172,8 +1172,6 @@ namespace rgat
                 return false;
             }
 
-
-
             Logging.GetAlerts(8, out LOG_EVENT[] alerts);
             if (alerts.Length == 0)
             {
@@ -1191,15 +1189,16 @@ namespace rgat
 
             float widestAlert = 0;
 
+
             for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
             {
                 widestAlert = Math.Max(widestAlert, ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[i]).Text).X + 50);
             }
 
             Vector2 windowSize = ImGui.GetWindowSize();
-            float width = Math.Min(widestAlert + 10, windowSize.X / 2f);
+            float width = Math.Min(widestAlert + 10, (windowSize.X / 2f) - 30);
             Vector2 size = new Vector2(width, 38);
-            ImGui.SetCursorScreenPos(new Vector2(windowSize.X - width, 32));
+            ImGui.SetCursorScreenPos(new Vector2(windowSize.X - width - 50, 32));
 
             double boxTimeRemaining = timeSinceLast - lingerTime; //fade out over a second
             uint opacity = 255;
@@ -1233,13 +1232,13 @@ namespace rgat
                     if (item.Filter == LogFilterType.TextAlert)
                     {
                         ImGui.PushStyleColor(ImGuiCol.Text, alertColour.ToUint((uint?)alpha));
-                        ImGui.Text($"{ImGuiController.FA_ICON_WARNING} ");
+                        ImGui.Text($" {ImGuiController.FA_ICON_EYE} ");
                         ImGui.PopStyleColor();
                     }
                     else
                     {
                         ImGui.PushStyleColor(ImGuiCol.Text, errColour.ToUint((uint?)alpha));
-                        ImGui.Text($"{ImGuiController.FA_ICON_EXCLAIM} ");
+                        ImGui.Text($" {ImGuiController.FA_ICON_WARNING} ");
                         ImGui.PopStyleColor();
                     }
                     ImGui.SameLine();

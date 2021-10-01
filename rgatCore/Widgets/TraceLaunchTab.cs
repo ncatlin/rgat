@@ -34,7 +34,7 @@ namespace rgat
         {
             ImGui.BeginChildFrame(22, new Vector2(width, height), ImGuiWindowFlags.AlwaysAutoResize);
 
-            if (activeTarget.RemoteHost != null && !activeTarget.RemoteInitialised)
+            if (activeTarget.RemoteHost != null && !activeTarget.InitialisedFromRemote)
             {
                 if (rgatState.ConnectedToRemote)
                 {

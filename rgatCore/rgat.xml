@@ -432,9 +432,16 @@
             Do we have an active connection to the host this file resides on?
             </summary>
         </member>
-        <member name="P:rgat.BinaryTarget.RemoteInitialised">
+        <member name="P:rgat.BinaryTarget.InitialisedFromRemote">
             <summary>
-            Have we been sent the initialisation data for this file from the remote host?
+            Was the initialisation data for this file sent from the tracing side to the GUI side? 
+            Used by the GUI to see if this data needs requesting
+            </summary>
+        </member>
+        <member name="P:rgat.BinaryTarget.RemoteInitDataSent">
+            <summary>
+            Was the initialisation data for this file sent *to* the GUI side from the tracing side? (Used by the tracer)
+            Used during tracing to see if the GUI needs this sent
             </summary>
         </member>
         <member name="P:rgat.BinaryTarget.IsAccessible">
@@ -522,7 +529,7 @@
             and instrumentation toggles
             </summary>
         </member>
-        <member name="M:rgat.BinaryTarget.GetRemoteLoadInitData">
+        <member name="M:rgat.BinaryTarget.GetRemoteLoadInitData(System.Boolean)">
             <summary>
             This file is on a headless remote tracing host. 
             Fetch some JSON serialised intialisation data to send to the GUI host.

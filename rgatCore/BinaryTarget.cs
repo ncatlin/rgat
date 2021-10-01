@@ -200,9 +200,17 @@ namespace rgat
         /// </summary>
         public bool RemoteAccessible => rgatState.ConnectedToRemote && RemoteHost == rgatState.NetworkBridge.LastAddress;
         /// <summary>
-        /// Have we been sent the initialisation data for this file from the remote host?
+        /// Was the initialisation data for this file sent from the tracing side to the GUI side? 
+        /// Used by the GUI to see if this data needs requesting
         /// </summary>
-        public bool RemoteInitialised { get; private set; } = false;
+        public bool InitialisedFromRemote { get; private set; } = false;
+
+        /// <summary>
+        /// Was the initialisation data for this file sent *to* the GUI side from the tracing side? (Used by the tracer)
+        /// Used during tracing to see if the GUI needs this sent
+        /// </summary>
+        public bool RemoteInitDataSent { get; private set; } = false;
+
         /// <summary>
         /// Is this file accessible at the moment?
         /// </summary>
@@ -318,8 +326,10 @@ namespace rgat
         /// Fetch some JSON serialised intialisation data to send to the GUI host.
         /// </summary>
         /// <returns>JSON serialised initialisation data</returns>
-        public JToken GetRemoteLoadInitData()
+        public JToken GetRemoteLoadInitData(bool requested = false)
         {
+            Debug.Assert(requested is true || RemoteInitDataSent is false, "Init data was already gathered for this target");
+
             JObject result = new JObject
             {
                 { "Size", fileSize }
@@ -355,6 +365,7 @@ namespace rgat
                 result.Add("PEBitWidth", 0);
             }
 
+            RemoteInitDataSent = true;
             return result;
         }
 
@@ -463,7 +474,7 @@ namespace rgat
             }
             LaunchSettings = settings;
 
-            RemoteInitialised = true;
+            InitialisedFromRemote = true;
             return true;
         }
 
@@ -781,7 +792,7 @@ namespace rgat
         /// </summary>
         private void ParseFile()
         {
-            if (RemoteHost != null && RemoteInitialised == false)
+            if (RemoteHost != null && InitialisedFromRemote == false)
             {
                 return;
             }

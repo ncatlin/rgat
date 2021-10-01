@@ -26,6 +26,7 @@ namespace rgat
             }
         }
 
+
         private void DrawSplash(rgatSettings.PathRecord[] recentBins, rgatSettings.PathRecord[] recentTraces)
         {
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);

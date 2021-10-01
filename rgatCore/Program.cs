@@ -109,7 +109,6 @@ namespace ImGuiNET
                        {
                            Logging.WriteConsole($"Error: With GUI disabled and no valid network configuration or target to trace, I could not work out what to do. Quitting.");
                        }
-
                    }
                });
 
@@ -117,6 +116,7 @@ namespace ImGuiNET
 
             return result.Tag != ParserResultType.NotParsed && GlobalConfig.StartOptions != null;
         }
+
 
         private static bool HandleImmediateExitOptions()
         {
@@ -135,6 +135,7 @@ namespace ImGuiNET
 
             return exit;
         }
+
 
         private static void HandleInterfaceParam(string interfaceOption, ref bool exit)
         {

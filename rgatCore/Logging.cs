@@ -636,7 +636,7 @@ namespace rgat
         {
             lock (_messagesLock)
             {
-                alerts = _alertNotifications.Take(Math.Min(max, _alertNotifications.Count)).ToArray();
+                alerts = _alertNotifications.TakeLast(Math.Min(max, _alertNotifications.Count)).ToArray();
                 return _alertNotifications.Count;
             }
         }

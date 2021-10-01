@@ -387,6 +387,10 @@ namespace rgat.OperationModes
                         success = ProcessTraceState(data);
                         break;
 
+                    case "ChildBinary":
+                        success = ProcessChildBinary(data);
+                        break;
+
                     default:
                         Logging.RecordError("Bad async data: " + name);
                         return;
@@ -487,10 +491,11 @@ namespace rgat.OperationModes
 
         private static bool ProcessTraceState(JToken data)
         {
-            Logging.RecordLogEvent("Remote trace state change command received");
+            Logging.RecordLogEvent("Remote trace state change notification received");
 
             if (data.Type is not JTokenType.Object)
             {
+                Logging.RecordError("ProcessTraceState non-object");
                 return false;
             }
 
@@ -506,6 +511,7 @@ namespace rgat.OperationModes
                 stateTok.Type is not JTokenType.String
                 )
             {
+                Logging.RecordError("ProcessTraceState bad data");
                 return false;
             }
 
@@ -516,17 +522,60 @@ namespace rgat.OperationModes
 
             if (targ.GetTraceByIDs(PID, ID, out TraceRecord? traceOut) is false || traceOut is null)
             {
+                Logging.RecordError("ProcessTraceState unknown PID/ID");
                 return false;
             }
 
 
-            if (Enum.TryParse(typeof(TraceRecord.ProcessState), stateTok.ToString(), out object? newState) && newState is not null)
+            if (Enum.TryParse(typeof(TraceRecord.ProcessState), stateTok.ToString(), out object? newState) is false || newState is null)
             {
-                traceOut.SetTraceState((TraceRecord.ProcessState)newState);
-                return true;
+                Logging.RecordError("ProcessTraceState bad state");
+                return false;
             }
-            
-            return false;
+
+            traceOut.SetTraceState((TraceRecord.ProcessState)newState);
+            return true;
+        }
+
+
+        private static bool ProcessChildBinary(JToken data)
+        {
+            Logging.RecordLogEvent("New Child binary notification received");
+
+            if (data.Type is not JTokenType.Object)
+            {
+                Logging.RecordError("ProcessChildBinary non-object");
+                return false;
+            }
+
+            JObject? values = data.ToObject<JObject>();
+            if (values is null ||
+                !values.TryGetValue("Path", out JToken? pathTok) ||
+                pathTok.Type is not JTokenType.String ||
+                !values.TryGetValue("InitData", out JToken? initTok) ||
+                initTok.Type is not JTokenType.Object
+                )
+            {
+                Logging.RecordError("ProcessChildBinary bad data");
+                return false;
+            }
+
+            string remotePath = pathTok.ToString();
+            BinaryTarget remoteTarget = rgatState.targets.AddTargetByPath(remotePath, remoteAddr: rgatState.NetworkBridge.LastAddress);
+            if (remoteTarget is null)
+            {
+                Logging.RecordError("Unable to add remote target with path: "+ remotePath);
+                return false;
+            }
+
+            if (!remoteTarget.InitialiseFromRemoteData(initTok))
+            {
+                Logging.RecordError("Unable to initials remote target with path: " + remotePath);
+                return false;
+            }
+
+            Logging.RecordLogEvent("New child binary initialised: " + remotePath);
+            return true;
         }
 
 
@@ -841,7 +890,7 @@ namespace rgat.OperationModes
             {
                 settings = settingsObj.ToObject<ProcessLaunchSettings>();
             }
-            catch ( Exception e)
+            catch (Exception e)
             {
                 Logging.RecordError($"Bad Launch Settings: {e.Message}");
                 return;
@@ -1009,7 +1058,7 @@ namespace rgat.OperationModes
                 rgatState.DIELib?.StartDetectItEasyScan(target);
                 if (target != null)
                 {
-                    return target.GetRemoteLoadInitData();
+                    return target.GetRemoteLoadInitData(requested: true);
                 }
             }
 

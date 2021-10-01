@@ -258,6 +258,13 @@ namespace rgat.Threads
             if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode)
             {
                 //SpawnTracePipeProxy();
+                if (!target.RemoteInitDataSent)
+                {
+                    Newtonsoft.Json.Linq.JObject newTarget = new();
+                    newTarget.Add("Path", target.FilePath);
+                    newTarget.Add("InitData", target.GetRemoteLoadInitData(requested: false));
+                    rgatState.NetworkBridge.SendAsyncData("ChildBinary", newTarget);
+                }
 
                 string pipename = ModuleHandlerThread.GetEventPipeName(tr.PID, tr.randID);
                 uint eventPipeID = Config.RemoteDataMirror.RegisterPipe(pipename);
