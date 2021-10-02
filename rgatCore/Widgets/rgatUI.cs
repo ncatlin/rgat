@@ -417,6 +417,7 @@ namespace rgat
                     bool MouseInMainWidget = currentTabVisualiser && visualiserTab!.MouseInMainWidget;
                     if (_mouseWheelDelta != 0)
                     {
+
                         visualiserTab!.NotifyMouseWheel(_mouseWheelDelta);
 
                         chart?.ApplyZoom(_mouseWheelDelta);

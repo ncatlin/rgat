@@ -16,13 +16,13 @@ namespace rgat
         }
         // null is local host
         private readonly Dictionary<string, HOSTTARGETS> targets = new Dictionary<string, HOSTTARGETS>();
-        private readonly Dictionary<string, HOSTTARGETS> sha1s = new Dictionary<string, HOSTTARGETS>();
 
         /// <summary>
         /// Number of loaded BinaryTargets
         /// </summary>
         public int Count => targets.Count;
 
+        static string _TargetsAddress => (rgatState.NetworkBridge.ActiveNetworking && rgatState.NetworkBridge.GUIMode) ? rgatState.NetworkBridge.LastAddress : "rgatlocal";
 
         /// <summary>
         /// List of all the paths of loaded BinaryTargets
@@ -55,7 +55,7 @@ namespace rgat
         {
             lock (targetslock)
             {
-                if (targets.TryGetValue(rgatState.TargetsAddress, out HOSTTARGETS? hostTargets) && hostTargets is not null)
+                if (targets.TryGetValue(_TargetsAddress, out HOSTTARGETS? hostTargets) && hostTargets is not null)
                 {
                     if (hostTargets.targetbins.TryGetValue(path, out BinaryTarget? existingEntry) && existingEntry is not null)
                     {
@@ -67,6 +67,7 @@ namespace rgat
                 return false;
             }
         }
+
 
         /// <summary>
         /// Fetch a thread-safe copy of the list of loaded BinaryTargets
@@ -92,13 +93,12 @@ namespace rgat
         /// <param name="path">Filesystem path of the target</param>
         /// <param name="isLibrary">true if a DLL</param>
         /// <param name="arch">32 or 64 bit, or 0 if unknown (remote)</param>
-        /// <param name="remoteAddr">Optional remote address of the system this binary is on</param>
         /// <returns>Created BinaryTarget object</returns>
         public BinaryTarget AddTargetByPath(string path, bool isLibrary = false, int arch = 0)
         {
             lock (targetslock)
             {
-                string addr = rgatState.TargetsAddress;
+                string addr = _TargetsAddress;
                 if (!targets.TryGetValue(addr, out HOSTTARGETS? hostTargs))
                 {
                     hostTargs = new HOSTTARGETS() { sha1s = new(), targetbins = new() };
@@ -122,7 +122,7 @@ namespace rgat
         {
             lock (targetslock)
             {
-                string addr = rgatState.TargetsAddress;
+                string addr = _TargetsAddress;
                 if (!targets.TryGetValue(addr, out HOSTTARGETS? hostTargs))
                 {
                     hostTargs = new HOSTTARGETS() { sha1s = new(), targetbins = new() };
@@ -153,7 +153,7 @@ namespace rgat
             target = null;
             lock (targetslock)
             {
-                if (targets.TryGetValue(rgatState.TargetsAddress, out HOSTTARGETS? hostTargs))
+                if (targets.TryGetValue(_TargetsAddress, out HOSTTARGETS? hostTargs))
                 {
                     return hostTargs.sha1s.TryGetValue(sha1, out target);
                 }

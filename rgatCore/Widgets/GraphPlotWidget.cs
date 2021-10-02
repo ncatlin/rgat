@@ -106,9 +106,16 @@ namespace rgat
             Exiting = true;
         }
 
-        public void ApplyZoom(float delta)
+        /// <summary>
+        /// Apply a delta to the main camera zoom
+        /// If shift is held, multiply by the shift modifier
+        /// If control is held, multiply by the control modifier
+        /// These modifiers are multiplicative
+        /// </summary>
+        /// <param name="wheelClicks">Zoom delta (expressed as mousewheel roll units)</param>
+        public void ApplyZoom(float wheelClicks)
         {
-            ActiveGraph?.ApplyMouseWheelDelta(delta);
+            ActiveGraph?.ApplyMouseWheelDelta(wheelClicks * CONSTANTS.UI.GRAPH_ZOOM_MOUSEWHEEL_MULTIPLIER);
         }
 
         private bool _isInputTarget = false;
@@ -129,7 +136,6 @@ namespace rgat
         }
 
 
-
         public bool MouseInWidget()
         {
             Vector2 MousePos = ImGui.GetMousePos();
@@ -144,9 +150,6 @@ namespace rgat
             }
             return false;
         }
-
-
-
 
 
         /// <summary>
@@ -166,11 +169,18 @@ namespace rgat
                 graph.CenteringSteps += 1;
             }
 
-            GraphLayoutEngine.GetScreenFitOffsets(graph, worldView, WidgetSize,
-                out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
+            if (float.IsInfinity(graph.CameraState.MainCameraZoom))
+            {
+                graph.CameraState.MainCameraZoom = 0;
+                graph.CameraState.MainCameraXOffset = 0;
+                graph.CameraState.MainCameraYOffset= 0;
+            }
+
+            GraphLayoutEngine.GetWidgetFitOffsets(WidgetSize, graph, false,  out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
             float delta;
             float xdelta = 0, ydelta = 0, zdelta = 0;
             float targXpadding = 80, targYpadding = 35;
+            float tolerance = (float)Math.Exp(Math.Log(graph.CenteringSteps));
 
             float graphDepth = zoffsets.Y - zoffsets.X;
 
@@ -179,7 +189,7 @@ namespace rgat
             {
                 delta = Math.Abs(Math.Min(zoffsets.X, zoffsets.Y)) / 2;
                 float maxdelta = Math.Max(delta, 35);
-                graph.CameraZoom -= maxdelta;
+                graph.CameraState.MainCameraZoom -= maxdelta;
                 MaxRemaining = maxdelta;
                 return false;
             }
@@ -195,10 +205,11 @@ namespace rgat
                 {
                     delta = Math.Min(targYpadding / 2, (targYpadding - yoffsets.Y) / 1.3f);
                 }
+                delta += tolerance;
 
                 if (delta > 50)
                 {
-                    graph.CameraZoom -= delta;
+                    graph.CameraState.MainCameraZoom -= delta;// tolerance);
                     MaxRemaining = Math.Abs(delta);
                     return false;
                 }
@@ -213,99 +224,99 @@ namespace rgat
             {
                 if (zoffsets.X > graphDepth)
                 {
-                    zdelta += Math.Max((zoffsets.X - graphDepth) / 8, 50);
+                    zdelta += (zoffsets.X - graphDepth + tolerance) / 8;
                 }
             }
 
             //too far left, move right
-            if (xoffsets.X < targXpadding)
+            if (xoffsets.X < (targXpadding-tolerance))
             {
                 float diff = targXpadding - xoffsets.X;
                 delta = Math.Max(-1 * (diff / 5), 15);
                 delta = Math.Min(delta, diff);
-                xdelta += delta;
+                xdelta += delta + tolerance;
             }
 
             //too far right, move left
-            if (xoffsets.Y < targXpadding)
+            if (xoffsets.Y < (targXpadding - tolerance))
             {
                 float diff = targXpadding - xoffsets.Y;
                 delta = Math.Max(-1 * (diff / 5), 15);
                 delta = Math.Min(delta, diff);
-                xdelta -= delta;
+                xdelta -= delta + tolerance;
             }
 
             //off center, center it
             float XDiff = xoffsets.X - xoffsets.Y;
-            if (Math.Abs(XDiff) > 40)
+            if (Math.Abs(XDiff) > (40 + tolerance))
             {
                 delta = Math.Max(Math.Abs(XDiff / 2), 15);
                 if (XDiff > 0)
                 {
-                    xdelta -= delta;
+                    xdelta -= delta + tolerance;
                 }
                 else
                 {
-                    xdelta += delta;
+                    xdelta += delta + tolerance;
                 }
             }
 
 
-            if (yoffsets.X < targYpadding)
+            if (yoffsets.X < (targYpadding - tolerance))
             {
                 float diff = targYpadding - yoffsets.X;
                 delta = Math.Max(-1 * (diff / 5), 15);
                 delta = Math.Min(delta, diff);
-                ydelta += delta;
+                ydelta += delta + tolerance;
             }
 
-            if (yoffsets.Y < targYpadding)
+            if (yoffsets.Y < (targYpadding - tolerance))
             {
                 float diff = targYpadding - yoffsets.Y;
                 delta = Math.Max(-1 * (diff / 5), 15);
                 delta = Math.Min(delta, diff);
-                ydelta -= delta;
+                ydelta -= delta + tolerance;
             }
 
             float YDiff = yoffsets.X - yoffsets.Y;
-            if (Math.Abs(YDiff) > 40)
+            if (Math.Abs(YDiff) > (40 + tolerance))
             {
                 delta = Math.Max(Math.Abs(YDiff / 2), 15);
                 if (YDiff > 0)
                 {
-                    ydelta -= delta;
+                    ydelta -= delta + tolerance;
                 }
                 else
                 {
-                    ydelta += delta;
+                    ydelta += delta + tolerance;
                 }
             }
 
 
-            float actualXdelta = Math.Min(Math.Abs(xdelta), 150);
+            float actualXdelta = Math.Abs(xdelta);
             if (xdelta > 0)
             {
-                graph.CameraXOffset += actualXdelta;
+                graph.CameraState.MainCameraXOffset += actualXdelta;
             }
             else
             {
-                graph.CameraXOffset -= actualXdelta;
+                graph.CameraState.MainCameraXOffset -= actualXdelta;
             }
 
-            float actualYdelta = Math.Min(Math.Abs(ydelta), 150);
+            float actualYdelta = Math.Abs(ydelta);
             if (ydelta > 0)
             {
-                graph.CameraYOffset += actualYdelta;
+                graph.CameraState.MainCameraYOffset += actualYdelta;
             }
             else
             {
-                graph.CameraYOffset -= actualYdelta;
+                graph.CameraState.MainCameraYOffset -= actualYdelta;
             }
 
-            float actualZdelta = Math.Min(Math.Abs(zdelta), 300);
+            float actualZdelta = Math.Abs(zdelta);
             if (zdelta > 0)
             {
-                graph.CameraZoom += actualZdelta;
+                graph.CameraState.MainCameraZoom += actualZdelta;
             }
             else
             {
@@ -314,16 +325,29 @@ namespace rgat
                     actualZdelta *= 10;
                 }
 
-                graph.CameraZoom -= actualZdelta;
+                graph.CameraState.MainCameraZoom -= actualZdelta;
             }
 
             //weight the offsets higher
             MaxRemaining = Math.Max(Math.Max(Math.Abs(xdelta) * 4, Math.Abs(ydelta) * 4), Math.Abs(zdelta));
 
-            return Math.Abs(xdelta) < 10 && Math.Abs(ydelta) < 10 && Math.Abs(zdelta) < 20;
+            int acceptableDifference = 10 + graph.CenteringSteps;
+            bool isAcceptable = Math.Abs(xdelta) < acceptableDifference && Math.Abs(ydelta) < acceptableDifference && Math.Abs(zdelta) < acceptableDifference;
+
+            //Now the big changes are done and it's pretty good, run again with low tolerances for finer adjustments
+            if (isAcceptable && graph.CenteringSteps > 10)
+            {
+                graph.CenteringSteps = 5;
+                isAcceptable = false;
+            }
+
+            if (isAcceptable)
+                graph.CenteringSteps = 0;
+            return isAcceptable;
         }
 
         public bool QuickMenuActive => _QuickMenu.Expanded == true;
+
         public bool AlertRawKeyPress(Tuple<Key, ModifierKeys> keyModTuple)
         {
             if (_QuickMenu.Expanded)
@@ -418,25 +442,25 @@ namespace rgat
 
                     float delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    graph.CameraYOffset += delta;
+                    graph.CameraState.MainCameraYOffset += delta;
                     break;
 
                 case eKeybind.MoveDown:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    graph.CameraYOffset -= delta;
+                    graph.CameraState.MainCameraYOffset -= delta;
                     break;
 
                 case eKeybind.MoveLeft:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    graph.CameraXOffset -= delta;
+                    graph.CameraState.MainCameraXOffset -= delta;
                     break;
 
                 case eKeybind.MoveRight:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
-                    graph.CameraXOffset += delta;
+                    graph.CameraState.MainCameraXOffset += delta;
                     break;
 
                 case eKeybind.RollGraphZAnti:
@@ -570,10 +594,10 @@ namespace rgat
 
             Matrix4x4 offsetRotation = pitch * yaw * roll;
 
-            world = graph.RotationMatrix * offsetRotation;
+            world = graph.CameraState.RotationMatrix * offsetRotation;
 
-            view = Matrix4x4.CreateTranslation(new Vector3(graph.CameraXOffset, graph.CameraYOffset, graph.CameraZoom));
-            graph.RotationMatrix = world;
+            view = graph.CameraState.MainCameraTranslation;
+            graph.CameraState.RotationMatrix = world;
         }
 
         /// <summary>
@@ -912,12 +936,10 @@ namespace rgat
                 isAnimated = graph.IsAnimated
             };
 
-            Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(new Vector3(graph.CameraXOffset, graph.CameraYOffset, graph.CameraZoom));
-
             shaderParams.proj = projection;
             shaderParams.view = view;
             shaderParams.world = world;
-            shaderParams.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), cameraTranslation);
+            shaderParams.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), graph.CameraState.MainCameraTranslation);
 
             cl.UpdateBuffer(_paramsBuffer, 0, shaderParams);
 

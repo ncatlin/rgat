@@ -132,6 +132,10 @@ namespace rgat
                 MainGraphWidget.DisplayEventMessages(msgpos);
                 ImGui.EndChild();
             }
+            else
+            {
+                Console.WriteLine("Fail1");
+            }
             //ImGui.PopStyleVar();
 
             ImGui.SameLine(0, 0);
@@ -153,6 +157,10 @@ namespace rgat
                     PreviewGraphWidget.ResetClickedGraph();
                 }
                 ImGui.EndChild();
+            }
+            else
+            {
+                Console.WriteLine("Fail2");
             }
             ImGui.PopStyleVar(4);
             ImGui.PopStyleColor();
@@ -223,10 +231,10 @@ namespace rgat
                 ImGui.DragFloat("Field Of View", ref ActiveGraph.CameraFieldOfView, 0.005f, 0.05f, (float)Math.PI, "%f");
                 ImGui.DragFloat("Near Clipping", ref ActiveGraph.CameraClippingNear, 50.0f, 0.1f, 200000f, "%f");
                 ImGui.DragFloat("Far Clipping", ref ActiveGraph.CameraClippingFar, 50.0f, 0.1f, 200000f, "%f");
-                ImGui.DragFloat("X Shift", ref ActiveGraph.CameraXOffset, 1f, -400, 40000, "%f");
-                ImGui.DragFloat("Y Position", ref ActiveGraph.CameraYOffset, 1, -400, 200000, "%f");
+                ImGui.DragFloat("X Shift", ref ActiveGraph.CameraState.MainCameraXOffset, 1f, -400, 40000, "%f");
+                ImGui.DragFloat("Y Position", ref ActiveGraph.CameraState.MainCameraYOffset, 1, -400, 200000, "%f");
 
-                ImGui.DragFloat("Zoom", ref ActiveGraph.CameraZoom, 5, 100, 100000, "%f");
+                ImGui.DragFloat("Zoom", ref ActiveGraph.CameraState.MainCameraZoom, 5, 100, 100000, "%f");
                 //ImGui.DragFloat("Rotation", ref ActiveGraph.PlotZRotation, 0.01f, -10, 10, "%f");
                 ImGui.EndChild();
             }
@@ -258,7 +266,7 @@ namespace rgat
                 {
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
                     ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
-                    if (ImGui.BeginChild("ReplayControls", new Vector2(725, ImGui.GetContentRegionAvail().Y - 2)))
+                    if (ImGui.BeginChild("ReplayControls", new Vector2(650, ImGui.GetContentRegionAvail().Y - 2)))
                     {
 
                         DrawReplayControlsPanel(activeGraph);
@@ -289,46 +297,48 @@ namespace rgat
             string indexPos = "";
             if (graph.AnimationIndex > 0)
             {
-                indexPos = $" ({graph.AnimationIndex:F2}/{graph.InternalProtoGraph.SavedAnimationData.Count})";
-            }
-
-            switch (graph.ReplayState)
-            {
-                case PlottedGraph.REPLAY_STATE.Paused:
-                    ImGui.Text("Trace Replay: Paused" + indexPos);
-                    break;
-                case PlottedGraph.REPLAY_STATE.Ended:
-                    ImGui.Text("Trace Replay: Resetting" + indexPos);
-                    break;
-                case PlottedGraph.REPLAY_STATE.Playing:
-                    ImGui.Text("Trace Replay: Replaying" + indexPos);
-                    break;
-                case PlottedGraph.REPLAY_STATE.Stopped:
-                    ImGui.Text("Trace Replay: Stopped" + indexPos);
-                    break;
+                indexPos = $" ({graph.AnimationIndex}/{graph.InternalProtoGraph.SavedAnimationData.Count})";
             }
 
 
-            if (ImGui.BeginChild("ReplayControlsFrame1", new Vector2(250, ImGui.GetContentRegionAvail().Y - 2), true))
+
+            if (ImGui.BeginChild("ReplayControlsFrame1", new Vector2(220, ImGui.GetContentRegionAvail().Y - 2), true))
             {
+                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(5, 15));
+                switch (graph.ReplayState)
+                {
+                    case PlottedGraph.REPLAY_STATE.Paused:
+                        ImGui.Text("Trace Replay: Paused" + indexPos);
+                        break;
+                    case PlottedGraph.REPLAY_STATE.Ended:
+                        ImGui.Text("Trace Replay: Resetting" + indexPos);
+                        break;
+                    case PlottedGraph.REPLAY_STATE.Playing:
+                        ImGui.Text("Trace Replay: Replaying" + indexPos);
+                        break;
+                    case PlottedGraph.REPLAY_STATE.Stopped:
+                        ImGui.Text("Trace Replay: Stopped");
+                        break;
+                }
+                ImGui.PopStyleVar();
 
                 ImGui.BeginGroup();
                 {
                     PlottedGraph.REPLAY_STATE replaystate = graph.ReplayState;
-                    string BtnText = replaystate == PlottedGraph.REPLAY_STATE.Playing ? "Pause" : "Play";
+                    string BtnText = replaystate == PlottedGraph.REPLAY_STATE.Playing ? $"{ImGuiController.FA_ICON_PAUSE} Pause" : $"{ImGuiController.FA_ICON_PLAY} Play";
 
 
-                    if (SmallWidgets.DisableableButton(BtnText, graph.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(38, 26)))
+                    if (SmallWidgets.DisableableButton(BtnText, graph.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(58, 26)))
                     {
                         graph.PlayPauseClicked();
                     }
                     ImGui.SameLine();
-                    if (SmallWidgets.DisableableButton("Reset", graph.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(38, 26)))
+                    if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_STOP} Reset", graph.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(58, 26)))
                     {
                         graph.ResetClicked();
                     }
                     ImGui.SameLine();
-                    if (replaystate == PlottedGraph.REPLAY_STATE.Paused && ImGui.Button("Step", new Vector2(38, 26)))
+                    if (replaystate == PlottedGraph.REPLAY_STATE.Paused && ImGui.Button($"{ImGuiController.FA_ICON_STEP} Step", new Vector2(58, 26)))
                     {
                         ImGui.SameLine();
                         graph.StepPausedAnimation(1);
@@ -342,7 +352,7 @@ namespace rgat
                 {
                     graph.AnimationRate = speedVal;
                 }
-                SmallWidgets.MouseoverText("The number of trace updates to replay per frame. Double click to set a custom rate.");
+                SmallWidgets.MouseoverText("The number of trace updates to replay per frame.\nDrag or Double click to set a custom rate.");
                 ImGui.SameLine();
 
                 ImGui.SetNextItemWidth(65f);
@@ -475,14 +485,14 @@ namespace rgat
 
         private static void DrawRenderControlPanel(PlottedGraph graph)
         {
-            if (ImGui.BeginChild("GraphRenderControlsFrame1", new Vector2(180, ImGui.GetContentRegionAvail().Y - 2), true))
+            if (ImGui.BeginChild("GraphRenderControlsFrame1", new Vector2(150, ImGui.GetContentRegionAvail().Y - 2), true))
             {
                 if (SmallWidgets.ToggleButton("AnimatedToggle", graph.IsAnimated, "In animated mode the graph is dark with active regions lit up"))
                 {
                     graph.SetAnimated(!graph.IsAnimated);
                 }
                 ImGui.SameLine();
-                ImGui.Text(graph.IsAnimated ? "Animated" : "Static Brightness");
+                ImGui.Text(graph.IsAnimated ? "Animated" : "Full Brightness");
 
                 if (SmallWidgets.ToggleButton("LayoutComputeEnabled", GlobalConfig.LayoutPositionsActive, "Toggle GPU graph layout compuation"))
                 {
@@ -497,7 +507,7 @@ namespace rgat
 
         private static void DrawVideoControlPanel(PlottedGraph graph)
         {
-            if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(130, ImGui.GetContentRegionAvail().Y - 2), true))
+            if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(115, ImGui.GetContentRegionAvail().Y - 2), true))
             {
                 if (rgatState.VideoRecorder.Recording)
                 {
@@ -522,14 +532,17 @@ namespace rgat
                 }
                 else
                 {
-                    if (ImGui.Button("Start Capture"))
+                    if (ImGui.Button($"{ImGuiController.FA_BLANK_CIRCLE} Record", new Vector2(100, 25)))
                     {
                         rgatState.VideoRecorder.StartRecording();
                     }
+                    SmallWidgets.MouseoverText("Record to video, if FFMpeg is configured");
                 }
 
-                ImGui.Button("Add Caption");
-                ImGui.Button("Capture Settings");
+                SmallWidgets.DisableableButton("Add Caption", false, new Vector2(100, 25));
+                SmallWidgets.MouseoverText("Not available in this version of rgat");
+
+                //ImGui.Button("Capture Settings");
                 ImGui.EndChild();
             }
         }
@@ -539,15 +552,19 @@ namespace rgat
         {
             if (ImGui.BeginChild("CameraStatFrame1", new Vector2(130, ImGui.GetContentRegionAvail().Y - 2), true))
             {
-                ImGui.Text($"CameraX: {graph.CameraXOffset}");
-                ImGui.Text($"CameraY: {graph.CameraYOffset}");
-                ImGui.Text($"CameraZ: {graph.CameraZoom}");
+                ImGui.Text($"CameraX: {graph.CameraState.MainCameraXOffset}");
+                ImGui.Text($"CameraY: {graph.CameraState.MainCameraYOffset}");
+                ImGui.Text($"CameraZ: {graph.CameraState.MainCameraZoom}");
                 if (graph.CenteringInFrame is not PlottedGraph.CenteringMode.Inactive)
                 {
                     if (graph.CenteringInFrame is PlottedGraph.CenteringMode.Centering)
                         ImGui.Text("Centering...");
                     else if (graph.CenteringInFrame is PlottedGraph.CenteringMode.ContinuousCentering)
                         ImGui.Text("Centering [locked]");
+                }
+                if (ImGui.Button("Reset Rotation"))
+                {
+                    graph.CameraState.RotationMatrix = Matrix4x4.Identity;
                 }
                 ImGui.EndChild();
             }
@@ -556,8 +573,9 @@ namespace rgat
 
         private static void DrawDiasmPreviewBox(ProtoGraph graph, int lastAnimIdx)
         {
+
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
-            if (ImGui.BeginChildFrame(ImGui.GetID("##DisasmPreview"), ImGui.GetContentRegionAvail()))
+            if (ImGui.BeginChild("##DisasmPreview", ImGui.GetContentRegionAvail()))
             {
 
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2);
@@ -570,22 +588,44 @@ namespace rgat
                     if (lastAnimIdx >= 0 && lastAnimIdx < graph.SavedAnimationData.Count)
                     {
                         ANIMATIONENTRY lastEntry = graph.SavedAnimationData[lastAnimIdx];
-                        ImGui.Text(lastEntry.entryType.ToString());
+                        ImGui.Text($"Trace Tag: {lastEntry.entryType}");
                         switch (lastEntry.entryType)
                         {
                             case eTraceUpdateType.eAnimExecTag:
                                 {
                                     uint blkID = lastEntry.blockID;
-                                    ImGui.Text($"Block {blkID} (0x{lastEntry.blockAddr})");
                                     if (blkID < uint.MaxValue)
                                     {
+
+                                        bool resolved = graph.ProcessData.ResolveSymbolAtAddress(lastEntry.blockAddr, out int moduleID2, out string modulenm, out string symbol);
+                                        string moduleLabel = ((modulenm.Length > 0) ? modulenm : "Unknown module");
+                                        ImGui.TextWrapped($"Location: 0x{lastEntry.blockAddr} (Block {blkID}) - {moduleLabel}");
+
+                                        ImGui.Indent(8);
+                                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
                                         List<InstructionData>? inslist = graph.ProcessData.getDisassemblyBlock(blockID: blkID);
                                         if (inslist is not null)
                                         {
-                                            for (var i = Math.Max(0, inslist.Count - 5); i < inslist.Count; i++)
+                                            const int max = 50;
+                                            for (var i = Math.Max(0, inslist.Count - max); i < inslist.Count; i++)
                                             {
                                                 ImGui.Text(inslist[i].InsText);
                                             }
+                                            if (inslist.Count > max)
+                                                ImGui.Text($"+{inslist.Count - max} more");
+                                        }
+                                        ImGui.PopStyleColor();
+                                        ImGui.Indent(-8);
+                                    }
+                                    else
+                                    {
+                                        if (graph.ProcessData.ResolveSymbolAtAddress(lastEntry.blockAddr, out int moduleID2, out string modulenm, out string symbol))
+                                        {
+                                            ImGui.Text($"Location: {modulenm}::{symbol}");
+                                        }
+                                        else
+                                        {
+                                            ImGui.Text($"Location: {modulenm}::0x{lastEntry.blockAddr:X}");
                                         }
                                     }
                                 }
@@ -606,12 +646,26 @@ namespace rgat
                                 }
                                 break;
                             case eTraceUpdateType.eAnimUnchainedResults:
+                                if (lastEntry.edgeCounts is not null)
+                                {
+                                    if (lastEntry.edgeCounts.Count == 1)
+                                    {
+                                        ImGui.Text($"Block executed in a region of {lastEntry.count} times");
+                                    }
+                                    else
+                                    {
+                                        ImGui.Text($"{lastEntry.count} block executions in a region of {lastEntry.edgeCounts.Count} blocks");
+                                    }
+                                }
                                 break;
 
                         }
                     }
                 }
-                catch { }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"disas box exc {e}");
+                }
                 ImGui.PopStyleVar(3);
                 ImGui.EndChild();
             }
@@ -631,9 +685,9 @@ namespace rgat
             {
 
                 _visualiserBar!.Draw(width, 50);
-                ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
-
-                if (ImGui.BeginChild("LiveControlsPane", new Vector2(500, ImGui.GetContentRegionAvail().Y - 2)))
+                //ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
+                ImGui.Indent(6);
+                if (ImGui.BeginChild("LiveControlsPane", new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y - 2)))
                 {
                     ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX(), ImGui.GetCursorPosY() + 6));
                     DrawActiveTraceControlPanel(graph);
@@ -643,10 +697,14 @@ namespace rgat
                     DrawVideoControlPanel(graph);
                     ImGui.SameLine();
                     DrawCameraPanel(graph);
+                    ImGui.SameLine();
+                    DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.SavedAnimationData.Count - 1);
                     ImGui.EndChild();
                 }
-                ImGui.SameLine();
-                DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.SavedAnimationData.Count - 1);
+                else
+                {
+                    Console.WriteLine("Fail4");
+                }
                 ImGui.EndChild();
             }
 
@@ -844,6 +902,10 @@ namespace rgat
                         }
                         ImGui.EndChild();
                     }
+                    else
+                    {
+                        Console.WriteLine("Fail3");
+                    }
                 }
                 ImGui.SameLine();
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 5); //too much item padding
@@ -863,6 +925,7 @@ namespace rgat
             }
 
         }
+
 
         private void ManageActiveGraph()
         {

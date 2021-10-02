@@ -173,13 +173,13 @@ namespace rgat
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
 
-                    if (DrawPreviewGraph(graph, xPadding, captionHeight, captionBackgroundcolor))
+                    if (DrawPreviewGraph(graph, xPadding, captionHeight, captionBackgroundcolor, out bool canHover))
                     {
                         var MainGraphs = graph.InternalProtoGraph.TraceData.GetPlottedGraphs();
                         HandleClickedGraph(MainGraphs[graphIdx]);
                     }
 
-                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.None) && !(ImGui.IsMouseDown(ImGuiMouseButton.Left)))
+                    if (canHover && ImGui.IsItemHovered(ImGuiHoveredFlags.None) && !(ImGui.IsMouseDown(ImGuiMouseButton.Left)))
                     {
                         latestHoverGraph = graph;
                         showToolTip = true;
@@ -461,11 +461,13 @@ namespace rgat
         /// <param name="xPadding">horizontal padding</param>
         /// <param name="captionHeight">height of the caption</param>
         /// <param name="captionBackgroundcolor">contrast background colour of the caption</param>
+        /// <param name="canHover">output flag states if we can safely draw a mouseover tooltip</param>
         /// <returns>The graph was clicked</returns>
-        private bool DrawPreviewGraph(PlottedGraph graph, float xPadding, float captionHeight, uint captionBackgroundcolor)
+        private bool DrawPreviewGraph(PlottedGraph graph, float xPadding, float captionHeight, uint captionBackgroundcolor, out bool canHover)
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             bool clicked = false;
+            canHover = false;
             if (graph == null)
             {
                 return clicked;
@@ -484,7 +486,7 @@ namespace rgat
             }
 
             bool isSelected = graph.TID == selectedGraphTID;
-
+            canHover = true;
 
             //copy in the actual rendered graph
             ImGui.SetCursorPosY(ImGui.GetCursorPosY());
@@ -548,6 +550,8 @@ namespace rgat
                 }
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, captionBackgroundcolor);
                 ImGui.PlotLines("", ref values[0], values.Length, 0, "", 0, maxVal, new Vector2(40, captionHeight));
+                if (ImGui.IsItemHovered()) 
+                    canHover = false; //The PlotLines widget doesn't allow disabling the mouseover, so have to prevent our mousover to avoid a merged tooltip
                 ImGui.PopStyleColor();
             }
 

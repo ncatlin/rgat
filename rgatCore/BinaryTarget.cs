@@ -58,7 +58,7 @@ namespace rgat
         [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
         public int TraceFilesCount => TraceFiles.Count;
 
-        
+
         /// <summary>
         /// Binaries in these directories will be ignored in default trace mode
         /// </summary>
@@ -302,8 +302,10 @@ namespace rgat
                     Logging.RecordError($"BinaryTarget.Parse threw exception {e.Message}");
                 }
             }
-
-            RemoteHost = remoteAddr;
+            else
+            {
+                RemoteHost = remoteAddr;
+            }
 
             ProcessLaunchSettings? settings;
             if (!GlobalConfig.Settings.GetPreviousLaunchSettings(_sha1hash, out settings) || settings is null)

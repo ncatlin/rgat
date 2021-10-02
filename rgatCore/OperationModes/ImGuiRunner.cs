@@ -109,8 +109,9 @@ namespace rgat.OperationModes
             bool loadSuccess = false;
             try
             {
+                string windowTitle = $"rgat {CONSTANTS.PROGRAMVERSION.RGAT_VERSION_LONG}";
                 Veldrid.StartupUtilities.VeldridStartup.CreateWindowAndGraphicsDevice(
-                    new Veldrid.StartupUtilities.WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, "rgat"),
+                    new Veldrid.StartupUtilities.WindowCreateInfo(50, 50, 1800, 900, WindowState.Normal, windowTitle),
                     //new GraphicsDeviceOptions(true, null, true, ResourceBindingModel.Improved, true, true),
                     options,
                     preferredBackend: GraphicsBackend.Vulkan,
@@ -442,16 +443,20 @@ namespace rgat.OperationModes
 
         public void AlertMouseWheel(MouseWheelEventArgs mw)
         {
-            float thisDelta = mw.WheelDelta;
-            if (ImGui.GetIO().KeyShift) { thisDelta *= 10; }
-            _rgatUI!.AddMouseWheelDelta(thisDelta);
+            float shiftMultiplier = ImGui.GetIO().KeyShift ? CONSTANTS.UI.MOUSEWHEEL_SHIFTKEY_MULTIPLIER : 1;
+            float ctrlMultiplier = ImGui.GetIO().KeyCtrl ? CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER : 1;
+
+            _rgatUI!.AddMouseWheelDelta(mw.WheelDelta * shiftMultiplier * ctrlMultiplier);
         }
 
         public void AlertMouseMove(MouseMoveEventArgs mm, Vector2 delta)
         {
             if (mm.State.IsButtonDown(MouseButton.Left) || mm.State.IsButtonDown(MouseButton.Right))
             {
-                if (ImGui.GetIO().KeyShift) { delta = new Vector2(delta.X * 10, delta.Y * 10); }
+                float shiftMultiplier = ImGui.GetIO().KeyShift ? CONSTANTS.UI.MOUSEWHEEL_SHIFTKEY_MULTIPLIER : 1;
+                float ctrlMultiplier = ImGui.GetIO().KeyCtrl ? CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER : 1;
+
+                delta = new Vector2(delta.X * shiftMultiplier * ctrlMultiplier, delta.Y * shiftMultiplier * ctrlMultiplier);
                 _rgatUI!.AddMouseDragDelta(delta);
             }
             _lastMousePos = mm.MousePosition;

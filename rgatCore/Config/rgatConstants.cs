@@ -28,12 +28,20 @@ namespace rgat
             /// Optional, non-unique name for the given version (preview, release, bugfix, etc)
             /// Other values must still be unique (eg: '1.1.1 Preview' and '1.1.1 Release' cannot both exist)
             /// </summary>
-            public const string PATCHNAME = null;
+            public const string PATCHNAME = "Preview";
 
             /// <summary>
             /// The simple major.minorpath version of this rgat build. should probably reference the assembly instead. todo
             /// </summary>
             public static string RGAT_VERSION => $"{PROGRAMVERSION.MAJOR}.{PROGRAMVERSION.MINOR}.{PROGRAMVERSION.PATCH}";
+            
+            /// <summary>
+            /// The version with the patch name appended
+            /// </summary>
+            public static string RGAT_VERSION_LONG => $"{RGAT_VERSION}{((PATCHNAME.Length > 0) ? (" " + PATCHNAME) : "")}";
+
+
+
             /// <summary>
             /// The SemVer version of rgat
             /// </summary>
@@ -118,6 +126,21 @@ namespace rgat
             /// Default suggested limit for number of entries to save to a trace file
             /// </summary>
             public const int DEFAULT_REPLAY_SAVE_LIMIT = 10000;
+
+            /// <summary>
+            /// How much to multiply the zoom value when holding shift and mousewheel zooming
+            /// </summary>
+            public const float MOUSEWHEEL_SHIFTKEY_MULTIPLIER = 5;
+
+            /// <summary>
+            /// How much to multiply the zoom value when holding ctrl and mousewheel zooming
+            /// </summary>
+            public const float MOUSEWHEEL_CTRLKEY_MULTIPLIER = 15;
+
+            /// <summary>
+            /// How much to multiply mousewheel clicks by to get the amount to zoom
+            /// </summary>
+            public const float GRAPH_ZOOM_MOUSEWHEEL_MULTIPLIER = 120;
         }
 
         /// <summary>

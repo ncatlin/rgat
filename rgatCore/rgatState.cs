@@ -81,8 +81,6 @@ namespace rgat
         /// </summary>
         public static Threads.ProcessCoordinatorThread? processCoordinatorThreadObj = null;
 
-        public static string TargetsAddress => (rgatState.NetworkBridge.ActiveNetworking && rgatState.NetworkBridge.GUIMode) ? rgatState.NetworkBridge.LastAddress : "rgatlocal";
-
         /// <summary>
         /// Set the graphics devicefor widgets to use once it has been created 
         /// </summary>

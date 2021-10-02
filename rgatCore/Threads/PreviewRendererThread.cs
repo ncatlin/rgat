@@ -343,7 +343,7 @@ namespace rgat.Threads
         private static bool CenterGraphInFrameStep(out float MaxRemaining, GraphLayoutEngine computeEngine, PlottedGraph graph)
         {
             Vector2 size = new Vector2(PreviewGraphsWidget.EachGraphWidth, PreviewGraphsWidget.EachGraphHeight);
-            if (!computeEngine.GetPreviewFitOffsets(size, graph, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets))
+            if (!GraphLayoutEngine.GetWidgetFitOffsets(size, graph, isPreview:true, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets))
             {
                 MaxRemaining = 0;
                 return false;
@@ -351,23 +351,27 @@ namespace rgat.Threads
 
             float delta;
             float xdelta = 0, ydelta = 0, zdelta = 0;
-            float targXpadding = 80, targYpadding = 35;
+            float targXpadding = 10, targYpadding = 8;
 
             float graphDepth = zoffsets.Y - zoffsets.X;
 
             //graph being behind camera causes problems, deal with zoom first
-            if (zoffsets.X < graphDepth)
+            if (zoffsets.X < 0)
             {
-                delta = Math.Abs(Math.Min(zoffsets.X, zoffsets.Y)) / 2;
-                float maxdelta = Math.Max(delta, 35);
-                graph.PreviewCameraZoom -= maxdelta;
-                MaxRemaining = maxdelta;
+               // Console.WriteLine("CPG- Zoom to foreground");
+                //delta = Math.Abs(Math.Min(zoffsets.X, zoffsets.Y)) / 2;
+                //float maxdelta = Math.Max(delta, 35);
+                //graph.PreviewCameraZoom -= maxdelta;
+                //MaxRemaining = maxdelta;
+                MaxRemaining = 1;
+                graph.CameraState.PreviewCameraZoom = -1 * graphDepth;
                 return false;
             }
 
             //too zoomed in, zoom out
             if ((xoffsets.X < targXpadding && xoffsets.Y < targXpadding) || (yoffsets.X < targYpadding && yoffsets.Y < targYpadding))
             {
+                //Console.WriteLine("CPG- Zoom out");
                 if (xoffsets.X < targXpadding)
                 {
                     delta = Math.Min(targXpadding / 2, (targXpadding - xoffsets.X) / 3f);
@@ -377,9 +381,11 @@ namespace rgat.Threads
                     delta = Math.Min(targYpadding / 2, (targYpadding - yoffsets.Y) / 1.3f);
                 }
 
-                if (delta > 50)
+                //graph.PreviewCameraZoom = -1 * graphDepth;
+                
+                if (delta > 1)
                 {
-                    graph.PreviewCameraZoom -= delta;
+                    graph.CameraState.PreviewCameraZoom -= graphDepth;
                     MaxRemaining = Math.Abs(delta);
                     return false;
                 }
@@ -392,15 +398,18 @@ namespace rgat.Threads
             //too zoomed out, zoom in
             if ((xoffsets.X > targXpadding && xoffsets.Y > targXpadding) && (yoffsets.X > targYpadding && yoffsets.Y > targYpadding))
             {
+                //Console.WriteLine("CPG- Zoom in");
                 if (zoffsets.X > graphDepth)
                 {
-                    zdelta += Math.Max((zoffsets.X - graphDepth) / 8, 50);
+                    float distance = zoffsets.X - graphDepth;
+                    zdelta += Math.Max(distance / 8, 50);
                 }
             }
 
             //too far left, move right
             if (xoffsets.X < targXpadding)
             {
+                Console.WriteLine("CPG- move right");
                 float diff = targXpadding - xoffsets.X;
                 delta = Math.Max(-1 * (diff / 5), 15);
                 delta = Math.Min(delta, diff);
@@ -410,6 +419,7 @@ namespace rgat.Threads
             //too far right, move left
             if (xoffsets.Y < targXpadding)
             {
+                Console.WriteLine("CPG- move left");
                 float diff = targXpadding - xoffsets.Y;
                 delta = Math.Max(-1 * (diff / 5), 15);
                 delta = Math.Min(delta, diff);
@@ -420,6 +430,7 @@ namespace rgat.Threads
             float XDiff = xoffsets.X - xoffsets.Y;
             if (Math.Abs(XDiff) > 40)
             {
+                //Console.WriteLine("CPG- offcenter x1");
                 delta = Math.Max(Math.Abs(XDiff / 2), 15);
                 if (XDiff > 0)
                 {
@@ -434,6 +445,7 @@ namespace rgat.Threads
 
             if (yoffsets.X < targYpadding)
             {
+                //Console.WriteLine("CPG- offcenter x2");
                 float diff = targYpadding - yoffsets.X;
                 delta = Math.Max(-1 * (diff / 5), 15);
                 delta = Math.Min(delta, diff);
@@ -442,6 +454,7 @@ namespace rgat.Threads
 
             if (yoffsets.Y < targYpadding)
             {
+//Console.WriteLine("CPG- offcenter y1");
                 float diff = targYpadding - yoffsets.Y;
                 delta = Math.Max(-1 * (diff / 5), 15);
                 delta = Math.Min(delta, diff);
@@ -451,6 +464,7 @@ namespace rgat.Threads
             float YDiff = yoffsets.X - yoffsets.Y;
             if (Math.Abs(YDiff) > 40)
             {
+                //Console.WriteLine("CPG- offcenter y2");
                 delta = Math.Max(Math.Abs(YDiff / 2), 15);
                 if (YDiff > 0)
                 {
@@ -463,35 +477,37 @@ namespace rgat.Threads
             }
 
 
-            float actualXdelta = Math.Min(Math.Abs(xdelta), 150);
+            float actualXdelta = Math.Abs(xdelta);
             if (xdelta > 0)
             {
-                graph.PreviewCameraXOffset += actualXdelta;
+                graph.CameraState.PreviewCameraXOffset += actualXdelta;
             }
             else
             {
-                graph.PreviewCameraXOffset -= actualXdelta;
+                graph.CameraState.PreviewCameraXOffset -= actualXdelta;
             }
 
-            float actualYdelta = Math.Min(Math.Abs(ydelta), 150);
+            float actualYdelta = Math.Abs(ydelta);
             if (ydelta > 0)
             {
-                graph.PreviewCameraYOffset += actualYdelta;
+                graph.CameraState.PreviewCameraYOffset += actualYdelta;
             }
             else
             {
-                graph.PreviewCameraYOffset -= actualYdelta;
+                graph.CameraState.PreviewCameraYOffset -= actualYdelta;
             }
 
-            float actualZdelta = Math.Min(Math.Abs(zdelta), 300);
+            float actualZdelta = Math.Abs(zdelta);
             if (zdelta > 0)
             {
-                graph.PreviewCameraZoom += actualZdelta;
+                graph.CameraState.PreviewCameraZoom += actualZdelta;
             }
             else
             {
-                graph.PreviewCameraZoom -= actualZdelta;
+                graph.CameraState.PreviewCameraZoom -= actualZdelta;
             }
+
+           
 
             //weight the offsets higher
             MaxRemaining = Math.Max(Math.Max(Math.Abs(xdelta) * 4, Math.Abs(ydelta) * 4), Math.Abs(zdelta));
@@ -566,13 +582,10 @@ namespace rgat.Threads
                 isAnimated = false
             };
 
-            Matrix4x4 cameraTranslation = Matrix4x4.CreateTranslation(new Vector3(graph.PreviewCameraXOffset, graph.PreviewCameraYOffset, graph.PreviewCameraZoom));
-
-
             shaderParams.nonRotatedView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
             shaderParams.proj = PreviewGraphsWidget.PreviewProjection;
-            shaderParams.world = graph.RotationMatrix;
-            shaderParams.view = cameraTranslation;
+            shaderParams.world = graph.CameraState.RotationMatrix;
+            shaderParams.view = graph.CameraState.PreviewCameraTranslation;
 
 
             cl.UpdateBuffer(_paramsBuffer, 0, shaderParams);

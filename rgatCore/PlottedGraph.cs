@@ -138,7 +138,8 @@ namespace rgat
         public PlottedGraph(ProtoGraph protoGraph, GraphicsDevice device)
         {
             InternalProtoGraph = protoGraph;
-            LayoutState = new GraphLayoutState(this, device, LayoutStyles.Style.ForceDirected3DNodes);
+            LayoutStyles.Style initialStyle = LayoutStyles.Style.ForceDirected3DNodes;
+            LayoutState = new GraphLayoutState(this, device, initialStyle);
 
 
             IsAnimated = !InternalProtoGraph.Terminated;
@@ -147,9 +148,66 @@ namespace rgat
             InitGraphColours();
 
             CameraClippingFar = 60000f;
-            CameraZoom = -6000f;
-            CameraXOffset = -400;
+            CameraState.MainCameraZoom = -6000f;
+            CameraState.MainCameraXOffset = -400;
+            CameraState.MainCameraYOffset = 0;
+            CameraState.RotationMatrix = Matrix4x4.Identity;
+
+            _layoutCameraStates[initialStyle] = CameraState;
         }
+
+
+        /// <summary>
+        /// Camera position for main and preview cameras
+        /// </summary>
+        public struct CAMERA_STATE
+        {
+            /// <summary>
+            /// X position of the graph on the main renderer widget
+            /// </summary>
+            public float MainCameraXOffset;
+            /// <summary>
+            /// Y position of the graph on the main renderer widget
+            /// </summary>
+            public float MainCameraYOffset;
+            /// <summary>
+            /// Z position of the graph on the main renderer widget
+            /// </summary>
+            public float MainCameraZoom;
+            /// <summary>
+            /// Main renderer widget graph translation matrix
+            /// </summary>
+            public Matrix4x4 MainCameraTranslation => Matrix4x4.CreateTranslation(new Vector3(MainCameraXOffset, MainCameraYOffset, MainCameraZoom));
+
+            /// <summary>
+            /// Rotation matrix for the main camera
+            /// </summary>
+            public Matrix4x4 RotationMatrix;
+
+            /// <summary>
+            /// X position of the graph on the preview renderer widget
+            /// </summary>
+            public float PreviewCameraXOffset;
+            /// <summary>
+            /// Y position of the graph on the preview renderer widget
+            /// </summary>
+            public float PreviewCameraYOffset;
+            /// <summary>
+            /// Z position of the graph on the preview renderer widget
+            /// </summary>
+            public float PreviewCameraZoom;
+            /// <summary>
+            /// Preview renderer widget graph translation matrix
+            /// </summary>
+            public Matrix4x4 PreviewCameraTranslation => Matrix4x4.CreateTranslation(new Vector3(PreviewCameraXOffset, PreviewCameraYOffset, PreviewCameraZoom));
+        }
+
+
+        /// <summary>
+        /// Camera position for main and preview cameras
+        /// </summary>
+        public CAMERA_STATE CameraState;
+        Dictionary<LayoutStyles.Style, CAMERA_STATE> _layoutCameraStates = new();
 
 
         /// <summary>
@@ -1415,6 +1473,18 @@ namespace rgat
         /// </summary>
         public void BeginNewLayout()
         {
+            lock (_renderLock)
+            {
+                if (_layoutCameraStates.TryGetValue(this.LayoutState.PresetStyle, out CAMERA_STATE savedState))
+                {
+                    this.CameraState = savedState;
+                }
+                else
+                {
+                    this.CameraState = new CAMERA_STATE();
+                    this.CameraState.RotationMatrix = Matrix4x4.Identity;
+                }
+            }
             ResetLayoutStats();
             IncreaseTemperature(100f);
         }
@@ -2159,7 +2229,6 @@ namespace rgat
 
             for (; AnimationIndex < targetAnimIndex; AnimationIndex += stepSize)
             {
-                Logging.WriteConsole($"Anim Step {AnimationIndex}");
                 int actualIndex = (int)Math.Floor(AnimationIndex);
 
 
@@ -2300,7 +2369,7 @@ namespace rgat
         /// <param name="delta">How far the mousewheel moved</param>
         public void ApplyMouseWheelDelta(float delta)
         {
-            CameraZoom += delta * 120;
+            CameraState.MainCameraZoom += delta;
         }
 
 
@@ -2310,8 +2379,8 @@ namespace rgat
         /// <param name="delta">How far the mouse was dragged</param>
         public void ApplyMouseDragDelta(Vector2 delta)
         {
-            CameraXOffset -= delta.X;
-            CameraYOffset += delta.Y;
+            CameraState.MainCameraXOffset -= delta.X;
+            CameraState.MainCameraYOffset += delta.Y;
         }
 
 
@@ -2325,17 +2394,13 @@ namespace rgat
             return Matrix4x4.CreatePerspectiveFieldOfView(CameraFieldOfView, aspectRatio, CameraClippingNear, CameraClippingFar);
         }
 
+
         /// <summary>
         /// Get the view matrix of the current camera position
         /// </summary>
         /// <returns>View Matrix</returns>
-        public Matrix4x4 GetViewMatrix()
-        {
-            Vector3 translation = new Vector3(CameraXOffset, CameraYOffset, CameraZoom);
-            Matrix4x4 viewMatrix = Matrix4x4.CreateTranslation(translation);
-            viewMatrix = Matrix4x4.Multiply(viewMatrix, RotationMatrix);
-            return viewMatrix;
-        }
+        public Matrix4x4 GetViewMatrix() => Matrix4x4.Multiply(CameraState.MainCameraTranslation, CameraState.RotationMatrix);
+
 
         /// <summary>
         /// Get the view matrix of the preview camera
@@ -2343,9 +2408,9 @@ namespace rgat
         /// <returns>View Matrix</returns>
         public Matrix4x4 GetPreviewViewMatrix()
         {
-            Vector3 translation = new Vector3(PreviewCameraXOffset, PreviewCameraYOffset, PreviewCameraZoom);
+            Vector3 translation = new Vector3(CameraState.PreviewCameraXOffset, CameraState.PreviewCameraYOffset, CameraState.PreviewCameraZoom);
             Matrix4x4 viewMatrix = Matrix4x4.CreateTranslation(translation);
-            viewMatrix = Matrix4x4.Multiply(viewMatrix, RotationMatrix);
+            viewMatrix = Matrix4x4.Multiply(viewMatrix, CameraState.RotationMatrix);
             return viewMatrix;
         }
 
@@ -2729,6 +2794,10 @@ namespace rgat
                 return false;
             }
 
+            lock(_renderLock)
+            {
+                _layoutCameraStates[LayoutState.Style] = CameraState;
+            }
             LayoutState.TriggerLayoutChange(newStyle);
             return true;
         }
@@ -2901,13 +2970,12 @@ namespace rgat
         {
 
             Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, graphWidgetSize.X / graphWidgetSize.Y, CameraClippingNear, CameraClippingFar);
-            Matrix4x4 world = RotationMatrix;
-            Matrix4x4 view = Matrix4x4.CreateTranslation(new Vector3(CameraXOffset, CameraYOffset, CameraZoom));
+            Matrix4x4 world = CameraState.RotationMatrix;
 
             Matrix4x4.Invert(proj, out Matrix4x4 invProj);
-            Matrix4x4.Invert(world * view, out Matrix4x4 invWV);
+            Matrix4x4.Invert(world * CameraState.MainCameraTranslation, out Matrix4x4 invWV);
 
-            Vector4 ClipAfterProj = Vector4.Transform(new Vector3(0, 0, CameraZoom), proj);
+            Vector4 ClipAfterProj = Vector4.Transform(new Vector3(0, 0, CameraState.MainCameraZoom), proj);
             Vector3 NDC = Vector3.Divide(new Vector3(ClipAfterProj.X, ClipAfterProj.Y, ClipAfterProj.Z), ClipAfterProj.W);
 
             _unprojWorldCoordTL = GraphicsMaths.ScreenToWorldCoord(new Vector2(0, 0), NDC.Z, ClipAfterProj.W, invWV, invProj, graphWidgetSize);
@@ -2926,9 +2994,8 @@ namespace rgat
         {
             //Vector2 PrevWidgetSize = new Vector2(290, 150);
 
-            Matrix4x4 worldP = RotationMatrix;
-            Matrix4x4 viewP = Matrix4x4.CreateTranslation(new Vector3(PreviewCameraXOffset, PreviewCameraYOffset, PreviewCameraZoom));
-            Matrix4x4 worldviewP = worldP * viewP;
+            Matrix4x4 worldP = CameraState.RotationMatrix;
+            Matrix4x4 worldviewP = worldP * CameraState.PreviewCameraTranslation;
 
             TopLeft = GraphicsMaths.WorldToScreenCoord(_unprojWorldCoordTL, worldviewP, previewProjection, PrevWidgetSize);
             BaseRight = GraphicsMaths.WorldToScreenCoord(_unprojWorldCoordBR, worldviewP, previewProjection, PrevWidgetSize);
@@ -2948,17 +3015,17 @@ namespace rgat
         /// <param name="previewProjection">Projection matrix for the preview graph</param>
         public void MoveCameraToPreviewClick(Vector2 pos, Vector2 previewSize, Vector2 mainGraphWidgetSize, Matrix4x4 previewProjection)
         {
-            Vector4 ClipAfterProj = Vector4.Transform(new Vector3(0, 0, PreviewCameraZoom), previewProjection);
+            Vector4 ClipAfterProj = Vector4.Transform(new Vector3(0, 0, CameraState.PreviewCameraZoom), previewProjection);
             Vector3 NDC = Vector3.Divide(new Vector3(ClipAfterProj.X, ClipAfterProj.Y, ClipAfterProj.Z), ClipAfterProj.W);
 
-            Matrix4x4 worldP = RotationMatrix;
-            Matrix4x4 viewP = Matrix4x4.CreateTranslation(new Vector3(PreviewCameraXOffset, PreviewCameraYOffset, PreviewCameraZoom));
+            Matrix4x4 worldP = CameraState.RotationMatrix;
+            Matrix4x4 viewP = CameraState.PreviewCameraTranslation;
             Matrix4x4.Invert(worldP * viewP, out Matrix4x4 invVWP);
             Matrix4x4.Invert(previewProjection, out Matrix4x4 invPrevProj);
 
             Matrix4x4 projMain = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, mainGraphWidgetSize.X / mainGraphWidgetSize.Y, CameraClippingNear, CameraClippingFar);
-            Matrix4x4 worldMain = RotationMatrix;
-            Matrix4x4 viewMain = Matrix4x4.CreateTranslation(new Vector3(CameraXOffset, CameraYOffset, CameraZoom));
+            Matrix4x4 worldMain = CameraState.RotationMatrix;
+            Matrix4x4 viewMain = CameraState.MainCameraTranslation;
 
             Vector3 clickWorldCoord = GraphicsMaths.ScreenToWorldCoord(pos, NDC.Z, ClipAfterProj.W, invVWP, invPrevProj, previewSize);
             Vector2 clickMainViewCoord = GraphicsMaths.WorldToScreenCoord(clickWorldCoord, worldMain * viewMain, projMain, mainGraphWidgetSize);
@@ -2966,8 +3033,8 @@ namespace rgat
             float XDiff = (mainGraphWidgetSize.X / 2f) - clickMainViewCoord.X;
             float YDiff = (mainGraphWidgetSize.Y / 2f) - clickMainViewCoord.Y;
 
-            CameraXOffset += XDiff;
-            CameraYOffset += YDiff;
+            CameraState.MainCameraXOffset += XDiff;
+            CameraState.MainCameraYOffset += YDiff;
         }
 
         /// <summary>
@@ -3146,7 +3213,7 @@ namespace rgat
         public long AttributeNodes { get; private set; } = 0;
 
 
-
+        /*
         /// <summary>
         /// The current main camera zoom
         /// </summary>
@@ -3172,6 +3239,7 @@ namespace rgat
         /// The current preview camera Y offset
         /// </summary>
         public float PreviewCameraZoom = -4000;
+        */
         /// <summary>
         /// Field of view value for the main camera
         /// </summary>
@@ -3184,10 +3252,6 @@ namespace rgat
         /// Near clipping limit for the main camera
         /// </summary>
         public float CameraClippingNear = 1;
-        /// <summary>
-        /// Rotation matrix for the main camera
-        /// </summary>
-        public Matrix4x4 RotationMatrix = Matrix4x4.Identity;
         /// <summary>
         /// Process ID of this graph
         /// </summary>

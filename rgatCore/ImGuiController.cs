@@ -652,8 +652,10 @@ namespace ImGuiNET
         /// </summary>
         public void RecreateFontDeviceTexture(GraphicsDevice gd)
         {
+            _gd.WaitForIdle();
             ImGuiIOPtr io = ImGui.GetIO();
             // Build
+            //had a crash here on start up once, don't know why. added a waitforidle above in the hope it was just the earlier buffer operations being incomplete
             io.Fonts.GetTexDataAsRGBA32(out IntPtr pixels, out int width, out int height, out int bytesPerPixel);
             // Store our identifier
             io.Fonts.SetTexID(_fontAtlasID);
@@ -988,18 +990,27 @@ namespace ImGuiNET
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         public static readonly char FA_ICON_COG = '\uf013';
         public static readonly char FA_ICON_LOCK = '\uf023';
+        public static readonly char FA_ICON_PLAY = '\uf04b';
+        public static readonly char FA_ICON_PAUSE = '\uf04c';
+        public static readonly char FA_ICON_STOP = '\uf04d';
+        public static readonly char FA_ICON_STEP = '\uf051';
         public static readonly char FA_ICON_LEFT = '\uf060';
         public static readonly char FA_ICON_RIGHT = '\uf061';
         public static readonly char FA_ICON_UP = '\uf062';
         public static readonly char FA_ICON_DOWN = '\uf063';
+
         public static readonly char FA_ICON_NETWORK = '\uf6ff';
         public static readonly char FA_ICON_LOCALCODE = '\uf5fc';
         public static readonly char FA_ICON_SAMPLE = '\ue05a';
         public static readonly char FA_ICON_COGS = '\uf085';
 
+        public static readonly char FA_ICON_MOVEMENT = '\uf31e';
+        public static readonly char FA_ICON_ROTATION = '\uf2ea';
+
         public static readonly char FA_ICON_SQUAREGRID = '\uf00a';
         public static readonly char FA_ICON_CLOCK = '\uf017';
         public static readonly char FA_PLAY_CIRCLE = '\uf144';
+        public static readonly char FA_BLANK_CIRCLE = '\uf111';
         public static readonly char FA_VIDEO_CAMERA = '\uf03d';
         public static readonly char FA_STILL_CAMERA = '\uf030';
         public static readonly char FA_ICON_WARNING = '\uf071';

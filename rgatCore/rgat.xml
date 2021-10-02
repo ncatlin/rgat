@@ -711,7 +711,6 @@
             <param name="path">Filesystem path of the target</param>
             <param name="isLibrary">true if a DLL</param>
             <param name="arch">32 or 64 bit, or 0 if unknown (remote)</param>
-            <param name="remoteAddr">Optional remote address of the system this binary is on</param>
             <returns>Created BinaryTarget object</returns>
         </member>
         <member name="M:rgat.BinaryTargets.RegisterTarget(rgat.BinaryTarget)">
@@ -2380,6 +2379,11 @@
             The simple major.minorpath version of this rgat build. should probably reference the assembly instead. todo
             </summary>
         </member>
+        <member name="P:rgat.CONSTANTS.PROGRAMVERSION.RGAT_VERSION_LONG">
+            <summary>
+            The version with the patch name appended
+            </summary>
+        </member>
         <member name="P:rgat.CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC">
             <summary>
             The SemVer version of rgat
@@ -2472,6 +2476,21 @@
         <member name="F:rgat.CONSTANTS.UI.DEFAULT_REPLAY_SAVE_LIMIT">
             <summary>
             Default suggested limit for number of entries to save to a trace file
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.UI.MOUSEWHEEL_SHIFTKEY_MULTIPLIER">
+            <summary>
+            How much to multiply the zoom value when holding shift and mousewheel zooming
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER">
+            <summary>
+            How much to multiply the zoom value when holding ctrl and mousewheel zooming
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.UI.GRAPH_ZOOM_MOUSEWHEEL_MULTIPLIER">
+            <summary>
+            How much to multiply mousewheel clicks by to get the amount to zoom
             </summary>
         </member>
         <member name="T:rgat.CONSTANTS.Anim_Constants">
@@ -3255,27 +3274,17 @@
             The unique name of the layout engine
             </summary>
         </member>
-        <member name="M:rgat.GraphLayoutEngine.GetScreenFitOffsets(rgat.PlottedGraph,System.Numerics.Matrix4x4,System.Numerics.Vector2,System.Numerics.Vector2@,System.Numerics.Vector2@,System.Numerics.Vector2@)">
+        <member name="M:rgat.GraphLayoutEngine.GetWidgetFitOffsets(System.Numerics.Vector2,rgat.PlottedGraph,System.Boolean,System.Numerics.Vector2@,System.Numerics.Vector2@,System.Numerics.Vector2@)">
             <summary>
-            Iterates over the position of every node, translating it to a screen position
-            Returns the offsets of the furthest nodes of the edges of the screen
+            Iterates over the position of every node, translating it to a widget position
+            Returns the offsets of the furthest nodes of the edges of the widget
             To fit the graph in the screen, each offset needs to be as small as possible above 0
             
             Acquires reader lock
             </summary>
-            <param name="graph">The graph being measured</param>
-            <param name="worldView">The world view matrix of the active graph</param>
-            <param name="graphWidgetSize">Size of the graph widget</param>
-            <param name="xoffsets">xoffsets.X = distance of furthest left node from left of the widget. Ditto xoffsets.Y for right node/side</param>
-            <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
-            <param name="zoffsets">zoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
-        </member>
-        <member name="M:rgat.GraphLayoutEngine.GetPreviewFitOffsets(System.Numerics.Vector2,rgat.PlottedGraph,System.Numerics.Vector2@,System.Numerics.Vector2@,System.Numerics.Vector2@)">
-            <summary>
-            Iterate over all the nodes and figure out how far they are from the edges of the screen in each dimension
-            </summary>
             <param name="graphWidgetSize">Size of the rendering widget</param>
             <param name="graph">Graph being displayed in the widget</param>
+            <param name="isPreview">True if preview widget, false if main</param>
             <param name="xoffsets">Furthest from the left and right sides of the widget</param>
             <param name="yoffsets">Furthest from the top and bottom of the widget</param>
             <param name="zoffsets">Furthest from in front of/behind the camera lens in the Z direction</param>
@@ -4548,6 +4557,61 @@
             <param name="protoGraph">ProtoGraph of the thread</param>
             <param name="device">GraphicsDevice of the GPU this thread is being rendered on</param>
         </member>
+        <member name="T:rgat.PlottedGraph.CAMERA_STATE">
+            <summary>
+            Camera position for main and preview cameras
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CAMERA_STATE.MainCameraXOffset">
+            <summary>
+            X position of the graph on the main renderer widget
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CAMERA_STATE.MainCameraYOffset">
+            <summary>
+            Y position of the graph on the main renderer widget
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CAMERA_STATE.MainCameraZoom">
+            <summary>
+            Z position of the graph on the main renderer widget
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.CAMERA_STATE.MainCameraTranslation">
+            <summary>
+            Main renderer widget graph translation matrix
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CAMERA_STATE.RotationMatrix">
+            <summary>
+            Rotation matrix for the main camera
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CAMERA_STATE.PreviewCameraXOffset">
+            <summary>
+            X position of the graph on the preview renderer widget
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CAMERA_STATE.PreviewCameraYOffset">
+            <summary>
+            Y position of the graph on the preview renderer widget
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CAMERA_STATE.PreviewCameraZoom">
+            <summary>
+            Z position of the graph on the preview renderer widget
+            </summary>
+        </member>
+        <member name="P:rgat.PlottedGraph.CAMERA_STATE.PreviewCameraTranslation">
+            <summary>
+            Preview renderer widget graph translation matrix
+            </summary>
+        </member>
+        <member name="F:rgat.PlottedGraph.CameraState">
+            <summary>
+            Camera position for main and preview cameras
+            </summary>
+        </member>
         <member name="M:rgat.PlottedGraph.RenderGraph">
             <summary>
             Takes edges that have been through the trace processor worker and
@@ -5205,36 +5269,6 @@
             Total nodes the attribute shader has been run on
             </summary>
         </member>
-        <member name="F:rgat.PlottedGraph.CameraZoom">
-            <summary>
-            The current main camera zoom
-            </summary>
-        </member>
-        <member name="F:rgat.PlottedGraph.CameraXOffset">
-            <summary>
-            Main camera X offset
-            </summary>
-        </member>
-        <member name="F:rgat.PlottedGraph.CameraYOffset">
-            <summary>
-            Main camera Y offset
-            </summary>
-        </member>
-        <member name="F:rgat.PlottedGraph.PreviewCameraXOffset">
-            <summary>
-            The currentt preview camera zoom
-            </summary>
-        </member>
-        <member name="F:rgat.PlottedGraph.PreviewCameraYOffset">
-            <summary>
-            The current preview camera X offset
-            </summary>
-        </member>
-        <member name="F:rgat.PlottedGraph.PreviewCameraZoom">
-            <summary>
-            The current preview camera Y offset
-            </summary>
-        </member>
         <member name="F:rgat.PlottedGraph.CameraFieldOfView">
             <summary>
             Field of view value for the main camera
@@ -5248,11 +5282,6 @@
         <member name="F:rgat.PlottedGraph.CameraClippingNear">
             <summary>
             Near clipping limit for the main camera
-            </summary>
-        </member>
-        <member name="F:rgat.PlottedGraph.RotationMatrix">
-            <summary>
-            Rotation matrix for the main camera
             </summary>
         </member>
         <member name="P:rgat.PlottedGraph.PID">
@@ -9033,6 +9062,15 @@
             </summary>
             <param name="action">Function to call when dialog is opened/closed. Param is open/closed state.</param>
         </member>
+        <member name="M:rgat.GraphPlotWidget.ApplyZoom(System.Single)">
+            <summary>
+            Apply a delta to the main camera zoom
+            If shift is held, multiply by the shift modifier
+            If control is held, multiply by the control modifier
+            These modifiers are multiplicative
+            </summary>
+            <param name="wheelClicks">Zoom delta (expressed as mousewheel roll units)</param>
+        </member>
         <member name="M:rgat.GraphPlotWidget.CenterGraphInFrameStep(System.Numerics.Matrix4x4,System.Single@)">
             <summary>
             Adjust the camera offset and zoom so that every node of the graph is in the frame
@@ -9268,7 +9306,7 @@
             The preview graph the mouse is hovering over
             </summary>
         </member>
-        <member name="M:rgat.PreviewGraphsWidget.DrawPreviewGraph(rgat.PlottedGraph,System.Single,System.Single,System.UInt32)">
+        <member name="M:rgat.PreviewGraphsWidget.DrawPreviewGraph(rgat.PlottedGraph,System.Single,System.Single,System.UInt32,System.Boolean@)">
             <summary>
             Draw a preview graph texture on the preview pane
             </summary>
@@ -9276,6 +9314,7 @@
             <param name="xPadding">horizontal padding</param>
             <param name="captionHeight">height of the caption</param>
             <param name="captionBackgroundcolor">contrast background colour of the caption</param>
+            <param name="canHover">output flag states if we can safely draw a mouseover tooltip</param>
             <returns>The graph was clicked</returns>
         </member>
         <member name="P:rgat.PreviewGraphsWidget.PreviewProjection">

@@ -206,6 +206,7 @@ namespace rgat
         /// </summary>
         public void IncrementVersion() => _VRAMBuffers.RenderVersion++;
 
+
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
         /// <summary>
         /// Get the VRAM buffer lock
@@ -361,6 +362,7 @@ namespace rgat
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMetadata);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMiddles);
         }
+
 
         /// <summary>
         /// Retrieve the current node postitions from VRAM

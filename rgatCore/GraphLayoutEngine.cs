@@ -53,107 +53,33 @@ namespace rgat
 
 
         /// <summary>
-        /// Iterates over the position of every node, translating it to a screen position
-        /// Returns the offsets of the furthest nodes of the edges of the screen
+        /// Iterates over the position of every node, translating it to a widget position
+        /// Returns the offsets of the furthest nodes of the edges of the widget
         /// To fit the graph in the screen, each offset needs to be as small as possible above 0
         /// 
         /// Acquires reader lock
         /// </summary>
-        /// <param name="graph">The graph being measured</param>
-        /// <param name="worldView">The world view matrix of the active graph</param>
-        /// <param name="graphWidgetSize">Size of the graph widget</param>
-        /// <param name="xoffsets">xoffsets.X = distance of furthest left node from left of the widget. Ditto xoffsets.Y for right node/side</param>
-        /// <param name="yoffsets">yoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
-        /// <param name="zoffsets">zoffsets.X = distance of furthest bottom node from base of the widget. Ditto yoffsets.Y for top node/side</param>
-        public static void GetScreenFitOffsets(PlottedGraph graph, Matrix4x4 worldView, Vector2 graphWidgetSize,
-            out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
-        {
-            Logging.RecordLogEvent($"GetScreenFitOffsets ", Logging.LogFilterType.BulkDebugLogFile);
-            float aspectRatio = graphWidgetSize.X / graphWidgetSize.Y;
-            Matrix4x4 projectionMatrix = graph.GetProjectionMatrix(aspectRatio);
-
-            Vector2 xlimits = new Vector2(float.MaxValue, float.MinValue);
-            Vector2 ylimits = new Vector2(float.MaxValue, float.MinValue);
-            Vector2 zlimits = new Vector2(float.MaxValue, float.MinValue);
-            Vector2 ev = new Vector2(0, 0);
-            Vector2 xmin = ev, xmax = ev, ymin = ev, ymax = ev;//, zmin = ev, zmax = ev;
-            float maxWorldX = 0, maxWorldY = 0, maxWorldZ = 0;
-            //int fZ1, fZ2;
-
-            float[] positions = graph.LayoutState.DownloadVRAMPositions();
-
-
-            if (positions.Length < 4)
-            {
-                xoffsets = new Vector2(0, 0);
-                yoffsets = new Vector2(0, 0);
-                zoffsets = new Vector2(0, 0);
-            }
-            else
-            {
-                for (int idx = 0; idx < positions.Length; idx += 4)
-                {
-                    if (positions[idx + 3] == -1)
-                    {
-                        break;
-                    }
-
-                    float x = positions[idx];
-                    float y = positions[idx + 1];
-                    float z = positions[idx + 2];
-
-                    maxWorldX = Math.Max(maxWorldX, Math.Abs(x));
-                    maxWorldY = Math.Max(maxWorldY, Math.Abs(y));
-                    maxWorldZ = Math.Max(maxWorldZ, Math.Abs(z));
-                    Vector3 worldpos = new Vector3(x, y, z);
-
-                    Vector2 ndcPos = GraphicsMaths.WorldToNDCPos(worldpos, worldView, projectionMatrix);
-
-                    if (ndcPos.X < xlimits.X) { xlimits = new Vector2(ndcPos.X, xlimits.Y); xmin = ndcPos; }
-                    if (ndcPos.X > xlimits.Y) { xlimits = new Vector2(xlimits.X, ndcPos.X); xmax = ndcPos; }
-                    if (ndcPos.Y < ylimits.X) { ylimits = new Vector2(ndcPos.Y, ylimits.Y); ymin = ndcPos; }
-                    if (ndcPos.Y > ylimits.Y) { ylimits = new Vector2(ylimits.X, ndcPos.Y); ymax = ndcPos; }
-                    if (worldpos.Z < zlimits.X) { zlimits = new Vector2(worldpos.Z, zlimits.Y); }// zmin = ndcPos; fZ1 = (idx / 4); }
-                    if (worldpos.Z > zlimits.Y) { zlimits = new Vector2(zlimits.X, worldpos.Z); }// zmax = ndcPos; fZ2 = (idx / 4); }
-                }
-
-                Vector2 minxS = GraphicsMaths.NdcToScreenPos(xmin, graphWidgetSize);
-                Vector2 maxxS = GraphicsMaths.NdcToScreenPos(xmax, graphWidgetSize);
-                Vector2 minyS = GraphicsMaths.NdcToScreenPos(ymin, graphWidgetSize);
-                Vector2 maxyS = GraphicsMaths.NdcToScreenPos(ymax, graphWidgetSize);
-                xoffsets = new Vector2(minxS.X, graphWidgetSize.X - maxxS.X);
-                yoffsets = new Vector2(minyS.Y, graphWidgetSize.Y - maxyS.Y);
-                zoffsets = new Vector2(zlimits.X - graph.CameraZoom, zlimits.Y - graph.CameraZoom);
-            }
-        }
-
-
-        /// <summary>
-        /// Iterate over all the nodes and figure out how far they are from the edges of the screen in each dimension
-        /// </summary>
         /// <param name="graphWidgetSize">Size of the rendering widget</param>
         /// <param name="graph">Graph being displayed in the widget</param>
+        /// <param name="isPreview">True if preview widget, false if main</param>
         /// <param name="xoffsets">Furthest from the left and right sides of the widget</param>
         /// <param name="yoffsets">Furthest from the top and bottom of the widget</param>
         /// <param name="zoffsets">Furthest from in front of/behind the camera lens in the Z direction</param>
         /// <returns>true if a meaningful result was returned</returns>
-        public bool GetPreviewFitOffsets(Vector2 graphWidgetSize, PlottedGraph graph, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
+        public static bool GetWidgetFitOffsets(Vector2 graphWidgetSize, PlottedGraph graph, bool isPreview,
+            out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
         {
-            Logging.RecordLogEvent($"GetPreviewFitOffsets Start {graph.TID} layout {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-            float zoom;
+            Logging.RecordLogEvent($"GetWidgetFitOffsets Start {graph.TID} layout", Logging.LogFilterType.BulkDebugLogFile);
             xoffsets = new Vector2(0, 0);
             yoffsets = new Vector2(0, 0);
             zoffsets = new Vector2(0, 0);
+            float zoom = isPreview ? graph.CameraState.PreviewCameraZoom : graph.CameraState.MainCameraZoom;
 
-            zoom = graph.PreviewCameraZoom;
-
-            float[] positions = graph.LayoutState.DownloadVRAMPositions();
             float aspectRatio = graphWidgetSize.X / graphWidgetSize.Y;
 
-            //todo: difference is here, merge to make one function?
-            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, aspectRatio, 1, 50000);
-            Vector3 translation = new Vector3(graph.PreviewCameraXOffset, graph.PreviewCameraYOffset, graph.PreviewCameraZoom);
-            Matrix4x4 worldView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0) * Matrix4x4.CreateTranslation(translation);
+            Matrix4x4 translation = isPreview ? graph.CameraState.PreviewCameraTranslation : graph.CameraState.MainCameraTranslation;
+            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, aspectRatio, 1, 9999999999);
+            Matrix4x4 worldView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0) * translation;
 
             Vector2 xlimits = new Vector2(float.MaxValue, float.MinValue);
             Vector2 ylimits = new Vector2(float.MaxValue, float.MinValue);
@@ -161,6 +87,7 @@ namespace rgat
             Vector2 ev = new Vector2(0, 0);
             Vector2 xmin = ev, xmax = ev, ymin = ev, ymax = ev;
 
+            float[] positions = graph.LayoutState.DownloadVRAMPositions();
 
             bool result;
             if (positions.Length < 4)
@@ -172,7 +99,8 @@ namespace rgat
                 result = true;
                 for (int idx = 0; idx < positions.Length; idx += 4)
                 {
-                    if (positions[idx + 3] == -1)
+                    float guard = positions[idx + 3];
+                    if (guard is not 1)
                     {
                         break;
                     }
@@ -180,8 +108,8 @@ namespace rgat
                     float x = positions[idx];
                     float y = positions[idx + 1];
                     float z = positions[idx + 2];
-                    Vector3 worldpos = new Vector3(x, y, z);
 
+                    Vector3 worldpos = new Vector3(x, y, z);
 
                     Vector2 ndcPos = GraphicsMaths.WorldToNDCPos(worldpos, worldView, projection);
                     if (ndcPos.X < xlimits.X) { xlimits = new Vector2(ndcPos.X, xlimits.Y); xmin = ndcPos; }
@@ -194,16 +122,20 @@ namespace rgat
 
                 Vector2 minxS = GraphicsMaths.NdcToScreenPos(xmin, graphWidgetSize);
                 Vector2 maxxS = GraphicsMaths.NdcToScreenPos(xmax, graphWidgetSize);
-                xoffsets = new Vector2(minxS.X, graphWidgetSize.X - maxxS.X);
-
                 Vector2 minyS = GraphicsMaths.NdcToScreenPos(ymin, graphWidgetSize);
                 Vector2 maxyS = GraphicsMaths.NdcToScreenPos(ymax, graphWidgetSize);
-                yoffsets = new Vector2(minyS.Y, graphWidgetSize.Y - maxyS.Y);
 
+                xoffsets = new Vector2(minxS.X, graphWidgetSize.X - maxxS.X);
+                yoffsets = new Vector2(minyS.Y, graphWidgetSize.Y - maxyS.Y);
                 zoffsets = new Vector2(zlimits.X - zoom, zlimits.Y - zoom);
             }
 
-            Logging.RecordLogEvent($"GetPreviewFitOffsets exit", Logging.LogFilterType.BulkDebugLogFile);
+            if (isPreview is false)
+            {
+                Console.WriteLine($"xmin: {xmin}, xmax:{xmax} xoffsets:{xoffsets}");
+                Console.WriteLine($"ymin: {ymin}, ymax:{ymax} yoffsets:{yoffsets}");
+            }
+            Logging.RecordLogEvent($"GetWidgetFitOffsets exit", Logging.LogFilterType.BulkDebugLogFile);
             return result;
         }
 
