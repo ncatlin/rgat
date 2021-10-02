@@ -184,10 +184,8 @@ namespace rgat
         {
             _exitTokenSource.Cancel();
 
-            if (rgatState.ConnectedToRemote)
-            {
-                rgatState.NetworkBridge.Teardown("Exiting");
-            }
+            rgatState.NetworkBridge.Teardown("Exiting");
+
 
             DIELib?.CancelAllScans();
             YARALib?.CancelAllScans();

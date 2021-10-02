@@ -152,6 +152,7 @@ namespace rgat
             CameraState.MainCameraXOffset = -400;
             CameraState.MainCameraYOffset = 0;
             CameraState.RotationMatrix = Matrix4x4.Identity;
+            CameraState.PreviewCameraZoom = -6000f;
 
             _layoutCameraStates[initialStyle] = CameraState;
         }
@@ -1066,6 +1067,8 @@ namespace rgat
                 _graphStructureLinear.Add(new List<int>());
                 _graphStructureBalanced.Add(new List<int>());
             }
+
+            Temperature += 0.3f;
             textureLock.ExitReadLock();
         }
 

@@ -236,7 +236,7 @@ namespace rgat.Threads
                     {
                         if (graph.InternalProtoGraph.EdgeCount > 0)
                         {
-                            lock(_lock)
+                            lock (_lock)
                             {
                                 _emptyGraphList.Remove(graph);
                             }
@@ -249,7 +249,7 @@ namespace rgat.Threads
                 {
                     System.Threading.Tasks.Task.Delay(50, rgatState.ExitToken);
                 }
-                catch{ }
+                catch { }
             }
             _emptyGraphList.Clear();
         }
@@ -562,8 +562,6 @@ namespace rgat.Threads
             {
                 graph.CameraState.PreviewCameraZoom -= actualZdelta;
             }
-
-
 
             //weight the offsets higher
             MaxRemaining = Math.Max(Math.Max(Math.Abs(xdelta) * 4, Math.Abs(ydelta) * 4), Math.Abs(zdelta));

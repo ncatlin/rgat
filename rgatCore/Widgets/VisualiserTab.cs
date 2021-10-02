@@ -833,15 +833,15 @@ namespace rgat
                     }
                 }
 
-                if (graph.PerformingUnchainedExecution)
+                if (graph.TraceData.ProcessThreads.BBthread is not null && graph.TraceData.ProcessThreads.BBthread.QueueSize > 0)
                 {
-                    ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"Busy: True");
+                    ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"BlockQ: {graph.TraceData.ProcessThreads.BBthread.QueueSize}");
                 }
                 else
                 {
-                    ImGui.Text("Busy: False");
+                    ImGui.Text("BlockQ: 0");
                 }
-                SmallWidgets.MouseoverText("Busy if the thread is in a lightly instrumented high-CPU usage area");
+                SmallWidgets.MouseoverText("The number of blocks of instructions awaiting disassembly");
 
                 ThreadTraceProcessingThread? traceProcessor = graph.TraceProcessor;
                 if (traceProcessor != null)

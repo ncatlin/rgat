@@ -26,6 +26,7 @@ namespace rgat
 
         private delegate void ProcessPipeMessageAction(byte[] buf, int bytesRead);
 
+        Thread? NonRemoteIngestThread;
 
         /// <summary>
         /// Create a basic block processing worker
@@ -70,13 +71,15 @@ namespace rgat
                 {
                     if (rgatState.NetworkBridge.HeadlessMode)
                     {
+                        //Spawn a thread to receive (and cache) blocks from the trace and send them over the network
                         WorkerThread = new Thread(LocalListener);
                         param = MirrorMessageToUI;
                     }
                     else
                     {
-                        WorkerThread = new Thread(RemoteListener);
-                        param = IngestBlockLocal;
+                        //Spawn a thread to process blocks from the network
+                        WorkerThread = new Thread(BlockProcessor);
+                        param = DissasembleBlock;
                     }
                     WorkerThread.Name = $"TraceModuleHandler_Remote_{_remotePipeID}";
                 }
@@ -85,16 +88,29 @@ namespace rgat
                     Logging.RecordLogEvent("Refusing to start block handler with remote pipe without being connected", filter: Logging.LogFilterType.TextError);
                     return;
                 }
+
+
+                base.Begin();
+                WorkerThread.Start(param);
+
             }
             else
             {
-                param = IngestBlockLocal;
-                WorkerThread = new Thread(LocalListener);
-                WorkerThread.Name = $"TraceModuleHandler_{trace.PID}_{trace.randID}";
+
+                //Spawn a thread to receive blocks from the trace and add them to the queue
+                NonRemoteIngestThread = new Thread(LocalListener);
+                NonRemoteIngestThread.Name = $"TraceBlockHandlerListen_{trace.PID}_{trace.randID}";
+
+                //Spawn a thread to process blocks from the queue
+                WorkerThread = new Thread(BlockProcessor);
+                WorkerThread.Name = $"TraceBlockHandlerProcess_{trace.PID}_{trace.randID}";
+
+                base.Begin();
+                NonRemoteIngestThread.Start((ProcessPipeMessageAction)EnqueueBlockDataLocally);
+                WorkerThread.Start((ProcessPipeMessageAction)DissasembleBlock);
+
             }
 
-            base.Begin();
-            WorkerThread.Start(param);
         }
 
         private void ConnectCallback(IAsyncResult ar)
@@ -115,9 +131,20 @@ namespace rgat
             //Logging.WriteConsole($"Mirrormsg len {bytesRead}/{buf.Length} to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(buf, 0, bytesRead));
             Debug.Assert(_remotePipeID is not null);
             rgatState.NetworkBridge.SendRawTraceData(_remotePipeID.Value, buf, bytesRead);
+        }        
+        
+
+        private void EnqueueBlockDataLocally(byte[] buf, int bytesRead)
+        {
+            lock (_lock)
+            {
+                _incomingRemoteBlockData.Enqueue(buf);
+                NewDataEvent.Set();
+            }
         }
 
-        private void IngestBlockLocal(byte[] buf, int bytesRead)
+
+        private void DissasembleBlock(byte[] buf, int bytesRead)
         {
             //buf[bytesRead] = 0;
             if (buf[0] != 'B')
@@ -297,13 +324,20 @@ namespace rgat
         private readonly ManualResetEventSlim NewDataEvent = new ManualResetEventSlim(false);
         private readonly object _lock = new object();
 
-        private void RemoteListener(object? ProcessMessageobj)
+        /// <summary>
+        /// How many items of basic block data are waiting for disassembly
+        /// </summary>
+        public int QueueSize => _incomingRemoteBlockData.Count + _processingItems;
+        int _processingItems = 0;
+
+        private void BlockProcessor(object? ProcessMessageobj)
         {
             byte[][] newItems;
             while (!rgatState.rgatIsExiting)
             {
                 try
                 {
+                    _processingItems = 0;
                     NewDataEvent.Wait(rgatState.NetworkBridge.CancelToken);
                 }
                 catch (Exception e)
@@ -316,12 +350,13 @@ namespace rgat
                     newItems = _incomingRemoteBlockData.ToArray();
                     _incomingRemoteBlockData.Clear();
                     NewDataEvent.Reset();
+                    _processingItems = newItems.Length;
                 }
                 foreach (byte[] item in newItems)
                 {
                     //try
                     {
-                        IngestBlockLocal(item, item.Length);
+                        DissasembleBlock(item, item.Length);
                     }
                     /*
                     catch (Exception e)
@@ -332,6 +367,7 @@ namespace rgat
                         return;
                     }*/
                 }
+
 
                 //todo: remote trace termination -> loop exit condition
             }

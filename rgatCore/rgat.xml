@@ -7807,6 +7807,11 @@
             </summary>
             <param name="data">Basic block data from the instrumentation</param>
         </member>
+        <member name="P:rgat.BlockHandlerThread.QueueSize">
+            <summary>
+            How many items of basic block data are waiting for disassembly
+            </summary>
+        </member>
         <member name="T:rgat.Threads.HeatRankingThread">
             <summary>
             Iterates over all the instructions in a thread ranking them by execution count

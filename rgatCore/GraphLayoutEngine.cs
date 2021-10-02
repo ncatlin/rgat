@@ -135,6 +135,21 @@ namespace rgat
                 Console.WriteLine($"xmin: {xmin}, xmax:{xmax} xoffsets:{xoffsets}");
                 Console.WriteLine($"ymin: {ymin}, ymax:{ymax} yoffsets:{yoffsets}");
             }
+
+            //Sometimes the position buffer is full of terrible data.
+            //Seems to just be for the preview graph? Only happens at the start so must have gotten hold of uninitialised data
+            if (zoffsets.X > 100000000000 || zoffsets.X < -100000000000)
+            {
+                if (isPreview)
+                {
+                    graph.CameraState.PreviewCameraZoom = -60000;
+                }
+                else
+                {
+                    graph.CameraState.MainCameraZoom = -60000;
+                }
+                return false;
+            }
             Logging.RecordLogEvent($"GetWidgetFitOffsets exit", Logging.LogFilterType.BulkDebugLogFile);
             return result;
         }
