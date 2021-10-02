@@ -7863,6 +7863,13 @@
             The worker thread entry point
             </summary>
         </member>
+        <member name="M:rgat.Threads.PreviewRendererThread.EmptyGraphTask">
+            <summary>
+            Graphs with no processing to do cause horrible spinning, so have a sleepy 
+            task queue them occasionally. If they gain some instrumented code they will enter
+            regular rotation
+            </summary>
+        </member>
         <member name="M:rgat.Threads.PreviewRendererThread.CenterGraphInFrameStep(System.Single@,rgat.GraphLayoutEngine,rgat.PlottedGraph)">
             <summary>
             Adjust the camera offset and zoom so that every node of the graph is in the frame

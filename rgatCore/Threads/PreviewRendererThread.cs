@@ -19,6 +19,7 @@ namespace rgat.Threads
 
         private readonly static Queue<PlottedGraph> renderQueue = new Queue<PlottedGraph>();
         private readonly static Queue<PlottedGraph> priorityQueue = new Queue<PlottedGraph>();
+        private readonly static List<PlottedGraph> _emptyGraphList = new List<PlottedGraph>();
 
         private readonly static object _lock = new();
         private readonly static ManualResetEventSlim _waitEvent = new();
@@ -47,7 +48,7 @@ namespace rgat.Threads
         {
             lock (_lock)
             {
-                if (graph.InternalProtoGraph.TraceData == rgatState.ActiveTrace)
+                if (graph.InternalProtoGraph.TraceData == rgatState.ActiveTrace && graph.InternalProtoGraph.EdgeCount > 0)
                 {
                     priorityQueue.Enqueue(graph);
                 }
@@ -74,7 +75,9 @@ namespace rgat.Threads
                     if (background is false)
                     {
                         if (priorityQueue.Count > 0)
+                        {
                             return priorityQueue.Dequeue();
+                        }
                     }
 
                     if (renderQueue.Count > 0)
@@ -85,8 +88,11 @@ namespace rgat.Threads
                     if (background is true)
                     {
                         if (priorityQueue.Count > 0)
+                        {
                             return priorityQueue.Dequeue();
+                        }
                     }
+
 
                     //Checked all queues, someone else took the task
                     //Sleep so we don't thrash on locks
@@ -170,6 +176,8 @@ namespace rgat.Threads
                 Thread.Sleep(50);
             }
 
+            System.Threading.Tasks.Task.Run(() => EmptyGraphTask());
+
             while (!rgatState.rgatIsExiting && _stopFlag is false)
             {
                 PlottedGraph? graph = FetchRenderTask(_background);
@@ -189,10 +197,61 @@ namespace rgat.Threads
                     }
                     RenderPreview(cl, graph);
                 }
+                else
+                {
+                    if (graph.InternalProtoGraph.EdgeCount == 0)
+                    {
+                        Console.WriteLine("Preview skip noEdge");
+                        lock (_lock)
+                        {
+                            _emptyGraphList.Add(graph);
+                        }
+                        continue; //don't add this graph back to the queue, nothing to render
+                    }
+                }
 
                 AddGraphToPreviewRenderQueue(graph);
             }
             Finished();
+        }
+
+
+        /// <summary>
+        /// Graphs with no processing to do cause horrible spinning, so have a sleepy 
+        /// task queue them occasionally. If they gain some instrumented code they will enter
+        /// regular rotation
+        /// </summary>
+        private void EmptyGraphTask()
+        {
+            while (_stopFlag is false && !rgatState.rgatIsExiting)
+            {
+                PlottedGraph[] graphs;
+                if (_emptyGraphList.Count > 0)
+                {
+                    lock (_lock)
+                    {
+                        graphs = _emptyGraphList.ToArray();
+                    }
+                    foreach (PlottedGraph graph in graphs)
+                    {
+                        if (graph.InternalProtoGraph.EdgeCount > 0)
+                        {
+                            lock(_lock)
+                            {
+                                _emptyGraphList.Remove(graph);
+                            }
+                            AddGraphToPreviewRenderQueue(graph);
+                        }
+                    }
+                }
+
+                try
+                {
+                    System.Threading.Tasks.Task.Delay(50, rgatState.ExitToken);
+                }
+                catch{ }
+            }
+            _emptyGraphList.Clear();
         }
 
 
@@ -340,7 +399,7 @@ namespace rgat.Threads
         private static bool CenterGraphInFrameStep(out float MaxRemaining, GraphLayoutEngine computeEngine, PlottedGraph graph)
         {
             Vector2 size = new Vector2(PreviewGraphsWidget.EachGraphWidth, PreviewGraphsWidget.EachGraphHeight);
-            if (!GraphLayoutEngine.GetWidgetFitOffsets(size, graph, isPreview:true, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets))
+            if (!GraphLayoutEngine.GetWidgetFitOffsets(size, graph, isPreview: true, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets))
             {
                 MaxRemaining = 0;
                 return false;
@@ -355,7 +414,7 @@ namespace rgat.Threads
             //graph being behind camera causes problems, deal with zoom first
             if (zoffsets.X < 0)
             {
-               // Console.WriteLine("CPG- Zoom to foreground");
+                // Console.WriteLine("CPG- Zoom to foreground");
                 //delta = Math.Abs(Math.Min(zoffsets.X, zoffsets.Y)) / 2;
                 //float maxdelta = Math.Max(delta, 35);
                 //graph.PreviewCameraZoom -= maxdelta;
@@ -379,7 +438,7 @@ namespace rgat.Threads
                 }
 
                 //graph.PreviewCameraZoom = -1 * graphDepth;
-                
+
                 if (delta > 1)
                 {
                     graph.CameraState.PreviewCameraZoom -= graphDepth;
@@ -406,7 +465,7 @@ namespace rgat.Threads
             //too far left, move right
             if (xoffsets.X < targXpadding)
             {
-                Console.WriteLine("CPG- move right");
+                //Console.WriteLine("CPG- move right");
                 float diff = targXpadding - xoffsets.X;
                 delta = Math.Max(-1 * (diff / 5), 15);
                 delta = Math.Min(delta, diff);
@@ -416,7 +475,7 @@ namespace rgat.Threads
             //too far right, move left
             if (xoffsets.Y < targXpadding)
             {
-                Console.WriteLine("CPG- move left");
+                //Console.WriteLine("CPG- move left");
                 float diff = targXpadding - xoffsets.Y;
                 delta = Math.Max(-1 * (diff / 5), 15);
                 delta = Math.Min(delta, diff);
@@ -451,7 +510,7 @@ namespace rgat.Threads
 
             if (yoffsets.Y < targYpadding)
             {
-//Console.WriteLine("CPG- offcenter y1");
+                //Console.WriteLine("CPG- offcenter y1");
                 float diff = targYpadding - yoffsets.Y;
                 delta = Math.Max(-1 * (diff / 5), 15);
                 delta = Math.Min(delta, diff);
@@ -504,7 +563,7 @@ namespace rgat.Threads
                 graph.CameraState.PreviewCameraZoom -= actualZdelta;
             }
 
-           
+
 
             //weight the offsets higher
             MaxRemaining = Math.Max(Math.Max(Math.Abs(xdelta) * 4, Math.Abs(ydelta) * 4), Math.Abs(zdelta));
@@ -544,10 +603,10 @@ namespace rgat.Threads
                     frontFace: FrontFace.Clockwise,
                     depthClipEnabled: false,
                     scissorTestEnabled: false),
-                    ResourceLayouts = new[] { _coreRsrcLayout, _nodesEdgesRsrclayout },
-                    ShaderSet = SPIRVShaders.CreateNodeShaders(_gdev, out _NodeVertexBuffer, out _NodeIndexBuffer
+                ResourceLayouts = new[] { _coreRsrcLayout, _nodesEdgesRsrclayout },
+                ShaderSet = SPIRVShaders.CreateNodeShaders(_gdev, out _NodeVertexBuffer, out _NodeIndexBuffer
                     )
-                };
+            };
 
             OutputAttachmentDescription[] oads = { new OutputAttachmentDescription(PixelFormat.R32_G32_B32_A32_Float) };
             pipelineDescription.Outputs = new OutputDescription

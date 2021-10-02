@@ -899,6 +899,13 @@ namespace rgat
                 {
                     rgatUI.ToggleRenderStatsDialog();
                 }
+                /*
+                //Doesn't work - software cursor rendering not set?
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                }
+                */
             }
             if (_stats_click_hover)
             {
@@ -1198,7 +1205,7 @@ namespace rgat
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Velocity %");
+                        ImGui.Text($"Velocity Time Share");
                         ImGui.TableNextColumn();
                         double velpc = ((graphplot.VelocitySetupTime + graphplot.VelocityShaderTime)) / accountedComputeTime;
                         ImGui.Text($"{velpc * 100.0:0.#}%%");
@@ -1239,7 +1246,7 @@ namespace rgat
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Position Time %");
+                        ImGui.Text($"Position Time Share");
                         ImGui.TableNextColumn();
                         double pospc = ((graphplot.PositionSetupTime + graphplot.PositionShaderTime)) / accountedComputeTime;
                         ImGui.Text($"{pospc * 100.0:0.#}%%");
@@ -1281,7 +1288,7 @@ namespace rgat
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Attribute Time %");
+                        ImGui.Text($"Attribute Time Share");
                         ImGui.TableNextColumn();
                         double attpc = ((graphplot.AttributeSetupTime + graphplot.AttributeShaderTime)) / accountedComputeTime;
                         ImGui.Text($"{attpc * 100.0:0.#}%%");
