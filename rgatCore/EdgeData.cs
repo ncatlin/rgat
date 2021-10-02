@@ -13,7 +13,7 @@ namespace rgat
         /// <param name="index">Index of the edge in the edge list</param>
         /// <param name="sourceType">Type of soure node (jump, etc)</param>
         /// <param name="execCount">Number of edge executions</param>
-        public EdgeData(int index, CONSTANTS.eEdgeNodeType sourceType, ulong execCount = 0)
+        public EdgeData(int index, CONSTANTS.EdgeNodeType sourceType, ulong execCount = 0)
         {
             EdgeListIndex = index;
             sourceNodeType = sourceType;
@@ -27,10 +27,10 @@ namespace rgat
         /// <param name="serialised">JArray of edge data items</param>
         /// <param name="index">Index of the edge in the edge list</param>
         /// <param name="sourceType">Type of soure node (jump, etc)</param>
-        public EdgeData(JArray serialised, int index, CONSTANTS.eEdgeNodeType sourceType)
+        public EdgeData(JArray serialised, int index, CONSTANTS.EdgeNodeType sourceType)
         {
             EdgeListIndex = index;
-            edgeClass = (CONSTANTS.eEdgeNodeType)serialised[2].ToObject<uint>();
+            edgeClass = (CONSTANTS.EdgeNodeType)serialised[2].ToObject<uint>();
             ExecutionCount = serialised[3].ToObject<ulong>();
             sourceNodeType = sourceType;
         }
@@ -58,11 +58,11 @@ namespace rgat
         /// <summary>
         /// The type of edge (call,extern,etc)
         /// </summary>
-        public CONSTANTS.eEdgeNodeType edgeClass;
+        public CONSTANTS.EdgeNodeType edgeClass;
         /// <summary>
         /// The type of source node
         /// </summary>
-        public CONSTANTS.eEdgeNodeType sourceNodeType;
+        public CONSTANTS.EdgeNodeType sourceNodeType;
 
         /// <summary>
         /// How many time this edge has executed

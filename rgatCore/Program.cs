@@ -20,9 +20,9 @@ namespace ImGuiNET
 
             InitialSetup();
 
-            switch (GlobalConfig.StartOptions!.RunMode)
+            switch (GlobalConfig.StartOptions!.ActiveRunMode)
             {
-                case LaunchConfig.eRunMode.GUI:
+                case LaunchConfig.RunMode.GUI:
                     rgatState.NetworkBridge.GUIMode = true;
                     ImGuiRunner Ui = new ImGuiRunner(_rgatState);
                     try
@@ -35,7 +35,7 @@ namespace ImGuiNET
                     }
                     break;
 
-                case LaunchConfig.eRunMode.Bridged:
+                case LaunchConfig.RunMode.Bridged:
                     rgatState.NetworkBridge.GUIMode = false;
                     BridgedRunner bridge = new BridgedRunner();
                     try
@@ -54,7 +54,7 @@ namespace ImGuiNET
                     }
                     break;
 
-                case LaunchConfig.eRunMode.NoGPUTraceCommand:
+                case LaunchConfig.RunMode.NoGPUTraceCommand:
                     if (GlobalConfig.StartOptions.TargetPath is null)
                     {
                         Logging.RecordError("No target path"); return;
@@ -65,7 +65,7 @@ namespace ImGuiNET
                     CommandLineRunner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: false);
                     break;
 
-                case LaunchConfig.eRunMode.GPURenderCommand:
+                case LaunchConfig.RunMode.GPURenderCommand:
                     rgatState.NetworkBridge.GUIMode = false;
                     Logging.RecordError("Command line media output not yet implemented");
                     return;
@@ -76,7 +76,7 @@ namespace ImGuiNET
 
 
                 default:
-                    Logging.RecordError($"Bad Run Mode: {GlobalConfig.StartOptions.RunMode}");
+                    Logging.RecordError($"Bad Run Mode: {GlobalConfig.StartOptions.ActiveRunMode}");
                     break;
             }
         }
@@ -94,7 +94,7 @@ namespace ImGuiNET
             });
 
             ParserResult<LaunchConfig> result = Parser.Default.ParseArguments<LaunchConfig>(cmdlineParams)
-               .WithParsed(cmdlineOpts =>
+               .WithParsed((Action<LaunchConfig>)(cmdlineOpts =>
                {
                    if (!cmdlineOpts.ExtractJSONOptions(out string? error))
                    {
@@ -105,12 +105,12 @@ namespace ImGuiNET
                        cmdlineOpts.Init(cmdlineParams);
 
                        GlobalConfig.StartOptions = cmdlineOpts;
-                       if (GlobalConfig.StartOptions.RunMode == LaunchConfig.eRunMode.Invalid)
+                       if (GlobalConfig.StartOptions.ActiveRunMode == LaunchConfig.RunMode.Invalid)
                        {
                            Logging.WriteConsole($"Error: With GUI disabled and no valid network configuration or target to trace, I could not work out what to do. Quitting.");
                        }
                    }
-               });
+               }));
 
 
 
@@ -161,7 +161,7 @@ namespace ImGuiNET
 
                 case "all":
                 case "any":
-                    if (startOpts.RunMode == LaunchConfig.eRunMode.Bridged)
+                    if (startOpts.ActiveRunMode == LaunchConfig.RunMode.Bridged)
                     {
                         startOpts.Interface = "0.0.0.0";
                     }
@@ -169,7 +169,7 @@ namespace ImGuiNET
 
                 default:
                     {
-                        if (startOpts.RunMode != LaunchConfig.eRunMode.Bridged)
+                        if (startOpts.ActiveRunMode != LaunchConfig.RunMode.Bridged)
                         {
                             return;
                         }

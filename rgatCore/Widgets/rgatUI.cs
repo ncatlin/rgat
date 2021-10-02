@@ -468,11 +468,11 @@ namespace rgat
                     }
 
 
-                    bool isKeybind = GlobalConfig.Settings.Keybinds.Active.TryGetValue(KeyModifierTuple, out eKeybind boundAction);
+                    bool isKeybind = GlobalConfig.Settings.Keybinds.Active.TryGetValue(KeyModifierTuple, out KeybindAction boundAction);
                     if (isKeybind)
                     {
                         //cancel any open dialogs
-                        if (boundAction == eKeybind.Cancel)
+                        if (boundAction == KeybindAction.Cancel)
                         {
                             CloseDialogs();
                         }
@@ -494,7 +494,7 @@ namespace rgat
 
                         switch (boundAction)
                         {
-                            case eKeybind.ToggleVideo:
+                            case KeybindAction.ToggleVideo:
 
                                 ActivateNotification();
                                 if (rgatState.VideoRecorder.Recording)
@@ -507,7 +507,7 @@ namespace rgat
                                 }
                                 continue;
 
-                            case eKeybind.PauseVideo:
+                            case KeybindAction.PauseVideo:
 
                                 ActivateNotification();
                                 if (rgatState.VideoRecorder.Recording)
@@ -516,15 +516,15 @@ namespace rgat
                                 }
                                 continue;
 
-                            case eKeybind.CaptureGraphImage:
+                            case KeybindAction.CaptureGraphImage:
                                 PendingScreenshot = VideoEncoder.CaptureContent.Graph;
                                 continue;
 
-                            case eKeybind.CaptureGraphPreviewImage:
+                            case KeybindAction.CaptureGraphPreviewImage:
                                 PendingScreenshot = VideoEncoder.CaptureContent.GraphAndPreviews;
                                 continue;
 
-                            case eKeybind.CaptureWindowImage:
+                            case KeybindAction.CaptureWindowImage:
                                 PendingScreenshot = VideoEncoder.CaptureContent.Window;
                                 continue;
 

@@ -63,6 +63,10 @@ namespace rgat
         //data for the most recent layout retrieved from VRAM, for serialisation and caching to disk to free up VRAM
         private readonly Dictionary<LayoutStyles.Style, CPUBuffers> SavedStates = new Dictionary<LayoutStyles.Style, CPUBuffers>();
 
+
+        Random _rng = new Random();
+
+
         /// <summary>
         /// Active graph layout in VRAM
         /// </summary>
@@ -932,7 +936,7 @@ namespace rgat
         public unsafe void AddNode(uint nodeIdx, uint futureCount, uint bufferWidth, EdgeData? edge = null)
         {
 
-            var bounds = Math.Min(1000, (nodeIdx * 2) + 500);
+            var bounds = Math.Max(1000, (nodeIdx * 12) + 500);
             var bounds_half = bounds / 2;
 
             PlottedGraph graph = GraphPlot;
@@ -969,11 +973,10 @@ namespace rgat
             Debug.Assert(bufs.PresetPositions.Length == bufs.PositionsArray.Length);
 
             //possible todo here - shift Y down as the index increases
-            Random rnd = new Random();
             float[] nodePositionEntry = {
-                ((float)rnd.NextDouble() * bounds) - bounds_half,
-                ((float)rnd.NextDouble() * bounds) - bounds_half,
-                ((float)rnd.NextDouble() * bounds) - bounds_half, 1 };
+                ((float)_rng.NextDouble() * bounds) - bounds_half,
+                ((float)_rng.NextDouble() * bounds) - bounds_half,
+                ((float)_rng.NextDouble() * bounds) - bounds_half, 1 };
 
 
             bufs.PositionsArray[currentOffset] = nodePositionEntry[0];      //X

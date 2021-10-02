@@ -53,7 +53,7 @@ namespace rgat.Widgets
             public PendingKeybind() { }
             public bool active;
             public string actionText = "";
-            public eKeybind action;
+            public KeybindAction action;
             public int bindIndex;
             public string currentKey = "";
             public bool IsResponsive;
@@ -1247,30 +1247,30 @@ namespace rgat.Widgets
                 ImGui.TableSetupColumn("Alternate Keybind", ImGuiTableColumnFlags.None);
                 ImGui.TableHeadersRow();
 
-                CreateKeybindInput("Move Graph Up", eKeybind.MoveUp, index++);
-                CreateKeybindInput("Move Graph Down", eKeybind.MoveDown, index++);
-                CreateKeybindInput("Move Graph Left", eKeybind.MoveLeft, index++);
-                CreateKeybindInput("Move Graph Right", eKeybind.MoveRight, index++);
-                CreateKeybindInput("Graph Pitch + (X axis)", eKeybind.PitchXFwd, index++);
-                CreateKeybindInput("Graph Pitch - (X axis)", eKeybind.PitchXBack, index++);
-                CreateKeybindInput("Graph Roll +  (Y axis)", eKeybind.RollGraphZClock, index++);
-                CreateKeybindInput("Graph Roll -  (Y axis)", eKeybind.RollGraphZAnti, index++);
-                CreateKeybindInput("Graph Yaw +   (Z axis)", eKeybind.YawYRight, index++);
-                CreateKeybindInput("Graph Yaw -   (Z axis)", eKeybind.YawYLeft, index++);
-                CreateKeybindInput("Toggle Heatmap", eKeybind.ToggleHeatmap, index++, "Toggle heatmap mode, illustrating how busy different areas of the graph are");
-                CreateKeybindInput("Toggle Conditionals", eKeybind.ToggleConditionals, index++, "Toggle conditional instruction mode, showing the status of conditional jumps");
-                CreateKeybindInput("Force Direction Temperature +", eKeybind.RaiseForceTemperature, index++, "Increase the temperature of a force directed graph, increasing the rate of layout");
-                CreateKeybindInput("Center Graph In View", eKeybind.CenterFrame, index++, "Move the camera so the entire graph centered in the visualiser pane");
-                CreateKeybindInput("Lock Graph Centered", eKeybind.LockCenterFrame, index++, "Keep the entire graph centered in the visualiser pane");
-                CreateKeybindInput("Toggle All Text", eKeybind.ToggleAllText, index++, "Toggle all text in the graph visualiser (eg: instructions, API calls)");
-                CreateKeybindInput("Toggle Instruction Text", eKeybind.ToggleInsText, index++, "Toggle instruction text in the graph visualiser");
-                CreateKeybindInput("Toggle Dynamic Text", eKeybind.ToggleLiveText, index++, "Toggle dynamic text in the graph visualiser (eg: API calls)");
-                CreateKeybindInput("Graph QuickMenu", eKeybind.QuickMenu, index++, "Toggle the graph visualiser quickmenu");
-                CreateKeybindInput("Capture Window", eKeybind.CaptureWindowImage, index++, "Save an image of the window contents to the media directory");
-                CreateKeybindInput("Capture Graph", eKeybind.CaptureGraphImage, index++, "Save an image of the visualiser graph to the media directory");
-                CreateKeybindInput("Capture Graph & Previews", eKeybind.CaptureGraphPreviewImage, index++, "Save an image of the visualiser graph and preview graphs to the media directory");
-                CreateKeybindInput("Toggle Video Capture", eKeybind.ToggleVideo, index++, "Begin recording a new video, or finish recording the current one");
-                CreateKeybindInput("Pause Video Capture", eKeybind.PauseVideo, index++, "Stop sending frames to be recorded");
+                CreateKeybindInput("Move Graph Up", KeybindAction.MoveUp, index++);
+                CreateKeybindInput("Move Graph Down", KeybindAction.MoveDown, index++);
+                CreateKeybindInput("Move Graph Left", KeybindAction.MoveLeft, index++);
+                CreateKeybindInput("Move Graph Right", KeybindAction.MoveRight, index++);
+                CreateKeybindInput("Graph Pitch + (X axis)", KeybindAction.PitchXFwd, index++);
+                CreateKeybindInput("Graph Pitch - (X axis)", KeybindAction.PitchXBack, index++);
+                CreateKeybindInput("Graph Roll +  (Y axis)", KeybindAction.RollGraphZClock, index++);
+                CreateKeybindInput("Graph Roll -  (Y axis)", KeybindAction.RollGraphZAnti, index++);
+                CreateKeybindInput("Graph Yaw +   (Z axis)", KeybindAction.YawYRight, index++);
+                CreateKeybindInput("Graph Yaw -   (Z axis)", KeybindAction.YawYLeft, index++);
+                CreateKeybindInput("Toggle Heatmap", KeybindAction.ToggleHeatmap, index++, "Toggle heatmap mode, illustrating how busy different areas of the graph are");
+                CreateKeybindInput("Toggle Conditionals", KeybindAction.ToggleConditionals, index++, "Toggle conditional instruction mode, showing the status of conditional jumps");
+                CreateKeybindInput("Force Direction Temperature +", KeybindAction.RaiseForceTemperature, index++, "Increase the temperature of a force directed graph, increasing the rate of layout");
+                CreateKeybindInput("Center Graph In View", KeybindAction.CenterFrame, index++, "Move the camera so the entire graph centered in the visualiser pane");
+                CreateKeybindInput("Lock Graph Centered", KeybindAction.LockCenterFrame, index++, "Keep the entire graph centered in the visualiser pane");
+                CreateKeybindInput("Toggle All Text", KeybindAction.ToggleAllText, index++, "Toggle all text in the graph visualiser (eg: instructions, API calls)");
+                CreateKeybindInput("Toggle Instruction Text", KeybindAction.ToggleInsText, index++, "Toggle instruction text in the graph visualiser");
+                CreateKeybindInput("Toggle Dynamic Text", KeybindAction.ToggleLiveText, index++, "Toggle dynamic text in the graph visualiser (eg: API calls)");
+                CreateKeybindInput("Graph QuickMenu", KeybindAction.QuickMenu, index++, "Toggle the graph visualiser quickmenu");
+                CreateKeybindInput("Capture Window", KeybindAction.CaptureWindowImage, index++, "Save an image of the window contents to the media directory");
+                CreateKeybindInput("Capture Graph", KeybindAction.CaptureGraphImage, index++, "Save an image of the visualiser graph to the media directory");
+                CreateKeybindInput("Capture Graph & Previews", KeybindAction.CaptureGraphPreviewImage, index++, "Save an image of the visualiser graph and preview graphs to the media directory");
+                CreateKeybindInput("Toggle Video Capture", KeybindAction.ToggleVideo, index++, "Begin recording a new video, or finish recording the current one");
+                CreateKeybindInput("Pause Video Capture", KeybindAction.PauseVideo, index++, "Stop sending frames to be recorded");
                 ImGui.EndTable();
             }
             ImGui.Text("Valid key modifiers are: Ctrl, Shift and Alt");
@@ -1817,7 +1817,7 @@ namespace rgat.Widgets
         private static void ActivateUIThemePreset(string name) => Themes.LoadTheme(name);
 
 
-        private void CreateKeybindInput(string caption, eKeybind keyAction, int rowIndex, string? tooltip = null)
+        private void CreateKeybindInput(string caption, KeybindAction keyAction, int rowIndex, string? tooltip = null)
         {
             uint bindFramecol = ((rowIndex % 2) == 0) ? 0xafcc3500 : 0xafdc4500;
             ImGui.PushStyleColor(ImGuiCol.FrameBg, bindFramecol);
@@ -1896,7 +1896,7 @@ namespace rgat.Widgets
         }
 
 
-        private void DoClickToSetKeybind(string caption, eKeybind action, int bindIndex)
+        private void DoClickToSetKeybind(string caption, KeybindAction action, int bindIndex)
         {
             _pendingKeybind.active = true;
             _pendingKeybind.actionText = caption;

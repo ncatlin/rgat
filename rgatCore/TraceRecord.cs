@@ -47,7 +47,7 @@ namespace rgat
         /// <summary>
         /// Flow control type of the instruction
         /// </summary>
-        public CONSTANTS.eNodeType itype;
+        public CONSTANTS.NodeType itype;
         /// <summary>
         /// Is the instruction a conditional jump
         /// </summary>
@@ -653,7 +653,7 @@ namespace rgat
                 return DisassemblyData.ModuleTraceStates[localmodID];
             }
 
-            // Todo: the issue here is either code that hasn't been disasembled (full trace buffers?) or code executing in a buffer 
+            // Todo: the issue here is usually either code that hasn't been disasembled (full trace buffers?) or code executing in a buffer 
 
             localmodID = -1;
             Logging.WriteConsole($"Warning: Unknown module in traceRecord::FindContainingModule for address 0x{address:X}");
@@ -669,8 +669,7 @@ namespace rgat
                     break;
                 }
             }
-
-            Debug.Assert(found);
+            if (!found) return eCodeInstrumentation.eInvalid;
             return DisassemblyData.ModuleTraceStates[localmodID!];
         }
 
@@ -1255,7 +1254,7 @@ namespace rgat
 
             NodeData? n = graph.GetNode(nodes[^1]);
             Debug.Assert(n is not null);
-            if (n.ins!.itype != CONSTANTS.eNodeType.eInsCall)
+            if (n.ins!.itype != CONSTANTS.NodeType.eInsCall)
             {
                 SendDebugStep(graph);
                 return;

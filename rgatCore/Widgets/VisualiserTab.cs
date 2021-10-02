@@ -78,13 +78,13 @@ namespace rgat
              * Always create a background worker that prioritises low priority threads so
              * traces that are not selected in the visualiser are not starved of rendering
              */
-            PreviewRendererThread prev = new PreviewRendererThread(0, PreviewGraphWidget, _controller, _rgatState, background: true);
+            PreviewRendererThread prev = new PreviewRendererThread(0, PreviewGraphWidget, _controller, background: true);
             previewRenderers.Add(prev);
             prev.Begin();
 
             for (var i = 1; i < count; i++)
             {
-                prev = new PreviewRendererThread(i, PreviewGraphWidget, _controller, _rgatState, background: false);
+                prev = new PreviewRendererThread(i, PreviewGraphWidget, _controller, background: false);
                 previewRenderers.Add(prev);
                 prev.Begin();
                 progress.Report(0.2f + ((float)i / (float)count));
@@ -202,7 +202,7 @@ namespace rgat
 
         public bool AlertRawKeyPress(Tuple<Key, ModifierKeys> KeyModifierTuple) => MainGraphWidget.AlertRawKeyPress(KeyModifierTuple);
 
-        public bool AlertKeybindPressed(eKeybind action, Tuple<Key, ModifierKeys> KeyModifierTuple)
+        public bool AlertKeybindPressed(KeybindAction action, Tuple<Key, ModifierKeys> KeyModifierTuple)
         {
             /*
             if (action == eKeybind.Cancel && _show_stats_dialog)
@@ -218,7 +218,7 @@ namespace rgat
 
         public void ClearPreviewTrace() => PreviewGraphWidget?.SetActiveTrace(null);
 
-        private void DrawCameraPopup()
+        private static void DrawCameraPopup()
         {
             PlottedGraph? ActiveGraph = rgatState.ActiveGraph;
             if (ActiveGraph == null)
@@ -548,27 +548,78 @@ namespace rgat
         }
 
 
-        private static void DrawCameraPanel(PlottedGraph graph)
+        private void DrawCameraPanel(PlottedGraph graph)
         {
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(8, 4));
             if (ImGui.BeginChild("CameraStatFrame1", new Vector2(130, ImGui.GetContentRegionAvail().Y - 2), true))
             {
-                ImGui.Text($"CameraX: {graph.CameraState.MainCameraXOffset}");
-                ImGui.Text($"CameraY: {graph.CameraState.MainCameraYOffset}");
-                ImGui.Text($"CameraZ: {graph.CameraState.MainCameraZoom}");
+                if (ImGui.BeginTable("#CameraStateTable", 3))
+                {
+                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 20);
+                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 15);
+                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 80);
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"X");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{(int)graph.CameraState.MainCameraXOffset}");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{ImGuiController.FA_ICON_MOVEMENT}");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"Y");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{(int)graph.CameraState.MainCameraYOffset}");
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"Z");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{(int)graph.CameraState.MainCameraZoom}");
+
+
+                    ImGui.EndTable();
+                }
+
+
+                if (ImGui.BeginTable("#CameraRotationStateTable", 3))
+                {
+                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 20);
+                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 6);
+                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 110);
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.AlignTextToFramePadding();
+                    ImGui.Text($"{ImGuiController.FA_ICON_ROTATION}");
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    if (ImGui.Button("Reset", new Vector2(60, 25)))
+                    {
+                        graph.CameraState.RotationMatrix = Matrix4x4.Identity;
+                    }
+                    SmallWidgets.MouseoverText("Reset the rotation of the graph");
+                    ImGui.EndTable();
+                }
+
                 if (graph.CenteringInFrame is not PlottedGraph.CenteringMode.Inactive)
                 {
                     if (graph.CenteringInFrame is PlottedGraph.CenteringMode.Centering)
                         ImGui.Text("Centering...");
                     else if (graph.CenteringInFrame is PlottedGraph.CenteringMode.ContinuousCentering)
+                    {
                         ImGui.Text("Centering [locked]");
-                }
-                if (ImGui.Button("Reset Rotation"))
-                {
-                    graph.CameraState.RotationMatrix = Matrix4x4.Identity;
+                        SmallWidgets.MouseoverText("The graph is in lock-centering mode. Use the keybind to deactivate it.");
+                    }
                 }
                 ImGui.EndChild();
             }
+            ImGui.PopStyleVar();
         }
+
 
 
         private static void DrawDiasmPreviewBox(ProtoGraph graph, int lastAnimIdx)

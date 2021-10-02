@@ -587,7 +587,7 @@ namespace rgatFilePicker
         public static FilePicker GetFilePicker(object o, string startingPath, string? searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
 
-            if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror == null)
+            if (!_filePickers.TryGetValue(o, out FilePicker? fp) || (rgatState.NetworkBridge.ActiveNetworking && fp._remoteMirror == null))
             {
                 fp = new FilePicker(remoteMirror: null);
                 fp.OnlyAllowFolders = onlyAllowFolders;

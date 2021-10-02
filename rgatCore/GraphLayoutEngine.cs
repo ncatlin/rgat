@@ -78,7 +78,7 @@ namespace rgat
             float aspectRatio = graphWidgetSize.X / graphWidgetSize.Y;
 
             Matrix4x4 translation = isPreview ? graph.CameraState.PreviewCameraTranslation : graph.CameraState.MainCameraTranslation;
-            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, aspectRatio, 1, 9999999999);
+            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(1.0f, aspectRatio, 1, 80000);
             Matrix4x4 worldView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0) * translation;
 
             Vector2 xlimits = new Vector2(float.MaxValue, float.MinValue);
@@ -662,7 +662,7 @@ namespace rgat
             {
                 delta = delta,
                 attractionK =  GlobalConfig.AttractionK,
-                temperature = Math.Min(temperature, GlobalConfig.NodeSpeedLimit),
+                temperature = Math.Min(temperature, GlobalConfig.CurrentNodeTemperature),
                 repulsionK = GlobalConfig.RepulsionK,
                 fixedInternalNodes = 0,
                 snappingToPreset = (uint)(graph.LayoutState.ActivatingPreset ? 1 : 0),
@@ -694,7 +694,7 @@ namespace rgat
                 delta = delta,
                 attractionK = GlobalConfig.AttractionK,
                 repulsionK = GlobalConfig.RepulsionK,
-                temperature = Math.Min(temperature, GlobalConfig.NodeSpeedLimit),
+                temperature = Math.Min(temperature, GlobalConfig.CurrentNodeTemperature),
                 fixedInternalNodes = 1,
                 snappingToPreset = 0,
                 nodeCount = (uint)graph.LayoutState.BlockMiddles!.SizeInBytes / 4

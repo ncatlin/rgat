@@ -240,42 +240,42 @@ namespace rgat
         /// The control flow type of this node
         /// </summary>
         /// <returns>An eEdgeNodeType value</returns>
-        public eEdgeNodeType VertType()
+        public EdgeNodeType VertType()
         {
-            if (_nodeType != eEdgeNodeType.eENLAST)
+            if (_nodeType != EdgeNodeType.eENLAST)
             {
                 return _nodeType;
             }
 
             if (IsExternal)
             {
-                return eEdgeNodeType.eNodeExternal;
+                return EdgeNodeType.eNodeExternal;
             }
 
             switch (ins!.itype)
             {
-                case eNodeType.eInsUndefined:
+                case NodeType.eInsUndefined:
                     {
 
                         if (ins.conditional)
                         {
-                            _nodeType = eEdgeNodeType.eNodeJump;
+                            _nodeType = EdgeNodeType.eNodeJump;
                         }
                         else
                         {
-                            _nodeType = eEdgeNodeType.eNodeNonFlow;
+                            _nodeType = EdgeNodeType.eNodeNonFlow;
                         }
 
                         break;
                     }
-                case eNodeType.eInsJump:
-                    _nodeType = eEdgeNodeType.eNodeJump;
+                case NodeType.eInsJump:
+                    _nodeType = EdgeNodeType.eNodeJump;
                     break;
-                case eNodeType.eInsReturn:
-                    _nodeType = eEdgeNodeType.eNodeReturn;
+                case NodeType.eInsReturn:
+                    _nodeType = EdgeNodeType.eNodeReturn;
                     break;
-                case eNodeType.eInsCall:
-                    _nodeType = eEdgeNodeType.eNodeCall;
+                case NodeType.eInsCall:
+                    _nodeType = EdgeNodeType.eNodeCall;
                     break;
                 default:
                     Logging.WriteConsole("[rgat]Error: render_node unknown itype " + ins.itype);
@@ -677,7 +677,7 @@ namespace rgat
         /// The node has a symbol associated with it
         /// </summary>
         public bool HasSymbol;
-        private eEdgeNodeType _nodeType = eEdgeNodeType.eENLAST;
+        private EdgeNodeType _nodeType = EdgeNodeType.eENLAST;
         private string? _label;
         /// <summary>
         /// Get the node label text

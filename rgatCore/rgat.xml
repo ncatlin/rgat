@@ -1241,7 +1241,7 @@
             Toggle attribute (animation brightness+size) computation
             </summary>
         </member>
-        <member name="F:rgat.GlobalConfig.NodeSpeedLimit">
+        <member name="F:rgat.GlobalConfig.CurrentNodeTemperature">
             <summary>
             Maximum temperature that will be applied to force-directed nodes. Fast nodes will layout quickly but wobble
             in their low energy position.
@@ -1533,39 +1533,39 @@
             The network interface being used for listening or connecting
             </summary>
         </member>
-        <member name="T:rgat.Config.LaunchConfig.eRunMode">
+        <member name="T:rgat.Config.LaunchConfig.RunMode">
             <summary>
             Modes rgat can operate in
             </summary>
         </member>
-        <member name="F:rgat.Config.LaunchConfig.eRunMode.GUI">
+        <member name="F:rgat.Config.LaunchConfig.RunMode.GUI">
             <summary>
             Full GPU rendered GUI mode
             </summary>
         </member>
-        <member name="F:rgat.Config.LaunchConfig.eRunMode.GPURenderCommand">
+        <member name="F:rgat.Config.LaunchConfig.RunMode.GPURenderCommand">
             <summary>
             Performs a full trace + graph rendering, without the UI. 
             Results drawn to an image and/or video
             </summary>
         </member>
-        <member name="F:rgat.Config.LaunchConfig.eRunMode.Bridged">
+        <member name="F:rgat.Config.LaunchConfig.RunMode.Bridged">
             <summary>
             Lightweight proxy mode which does little more than spawn processes and feed results back to
             a connected rgat instance
             </summary>
         </member>
-        <member name="F:rgat.Config.LaunchConfig.eRunMode.NoGPUTraceCommand">
+        <member name="F:rgat.Config.LaunchConfig.RunMode.NoGPUTraceCommand">
             <summary>
             Generates a trace file that can be read by rgat in GUI mode
             </summary>
         </member>
-        <member name="F:rgat.Config.LaunchConfig.eRunMode.Invalid">
+        <member name="F:rgat.Config.LaunchConfig.RunMode.Invalid">
             <summary>
             The provided command line arguments were not valid for any supported mode of operation
             </summary>
         </member>
-        <member name="F:rgat.Config.LaunchConfig.RunMode">
+        <member name="F:rgat.Config.LaunchConfig.ActiveRunMode">
             <summary>
             The basic mode of operation for this rgat run
             </summary>
@@ -2071,7 +2071,7 @@
             Enable user keybinds
             </summary>
         </member>
-        <member name="M:rgat.Config.rgatSettings.KeybindSettings.SetKeybind(rgat.CONSTANTS.eKeybind,System.Int32,Veldrid.Key,Veldrid.ModifierKeys,System.Boolean)">
+        <member name="M:rgat.Config.rgatSettings.KeybindSettings.SetKeybind(rgat.CONSTANTS.KeybindAction,System.Int32,Veldrid.Key,Veldrid.ModifierKeys,System.Boolean)">
             <summary>
             Set a keybind to an action
             </summary>
@@ -2601,102 +2601,102 @@
             The file extension for test description data files
             </summary>
         </member>
-        <member name="T:rgat.CONSTANTS.eNodeType">
+        <member name="T:rgat.CONSTANTS.NodeType">
             <summary>
             Node control flow type
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eNodeType.eInsUndefined">
+        <member name="F:rgat.CONSTANTS.NodeType.eInsUndefined">
             <summary>
             Unknown or no control flow
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eNodeType.eInsJump">
+        <member name="F:rgat.CONSTANTS.NodeType.eInsJump">
             <summary>
             Performs  ajump
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eNodeType.eInsReturn">
+        <member name="F:rgat.CONSTANTS.NodeType.eInsReturn">
             <summary>
             Performs a return
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eNodeType.eInsCall">
+        <member name="F:rgat.CONSTANTS.NodeType.eInsCall">
             <summary>
             Performs a call
             </summary>
         </member>
-        <member name="T:rgat.CONSTANTS.eEdgeNodeType">
+        <member name="T:rgat.CONSTANTS.EdgeNodeType">
             <summary>
             Types for nodes edges which control how they are laid out or rendered
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eEdgeCall">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eEdgeCall">
             <summary>
             Edge to a call instruction
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eEdgeOld">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eEdgeOld">
             <summary>
             Edge to an instruction that has already been visited from another instruction
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eEdgeReturn">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eEdgeReturn">
             <summary>
             Edge from a return instruction
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eEdgeLib">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eEdgeLib">
             <summary>
             Edge of an API call
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eEdgeNew">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eEdgeNew">
             <summary>
             Edge to an instruction that has not been executed before
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eEdgeException">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eEdgeException">
             <summary>
             Edge to an exception node
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eNodeNonFlow">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eNodeNonFlow">
             <summary>
             Edge to another instruction in the same basic block
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eNodeJump">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eNodeJump">
             <summary>
             An unconditional jump instruction
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eNodeCall">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eNodeCall">
             <summary>
             A call instruction
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eNodeReturn">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eNodeReturn">
             <summary>
             A return instruction
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eNodeExternal">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eNodeExternal">
             <summary>
             An API call
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eNodeException">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eNodeException">
             <summary>
             An exception source
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eENLAST">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eENLAST">
             <summary>
             Invalid
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eEdgeNodeType.eFIRST_IN_THREAD">
+        <member name="F:rgat.CONSTANTS.EdgeNodeType.eFIRST_IN_THREAD">
             <summary>
             The first instruction in a thread
             </summary>
@@ -2826,142 +2826,142 @@
             The conditional jump was taken and fell though in the same trace
             </summary>
         </member>
-        <member name="T:rgat.CONSTANTS.eKeybind">
+        <member name="T:rgat.CONSTANTS.KeybindAction">
             <summary>
             Available keybind actions
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.MoveLeft">
+        <member name="F:rgat.CONSTANTS.KeybindAction.MoveLeft">
             <summary>
             Shift the graph left (actually moves the camera right)
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.MoveRight">
+        <member name="F:rgat.CONSTANTS.KeybindAction.MoveRight">
             <summary>
             Shift the graph right (actually moves the camera left)
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.MoveUp">
+        <member name="F:rgat.CONSTANTS.KeybindAction.MoveUp">
             <summary>
             Shift the graph up (actually moves the camera down)
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.MoveDown">
+        <member name="F:rgat.CONSTANTS.KeybindAction.MoveDown">
             <summary>
             Shift the graph down (actually moves the camera up)
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.ZoomIn">
+        <member name="F:rgat.CONSTANTS.KeybindAction.ZoomIn">
             <summary>
             Move the camera forward towards the graph
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.ZoomOut">
+        <member name="F:rgat.CONSTANTS.KeybindAction.ZoomOut">
             <summary>
             Move the camera back away from the graph
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.PitchXFwd">
+        <member name="F:rgat.CONSTANTS.KeybindAction.PitchXFwd">
             <summary>
             Tilt the plot forwards on the X axis
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.PitchXBack">
+        <member name="F:rgat.CONSTANTS.KeybindAction.PitchXBack">
             <summary>
             Tilt the plot back on the X axis
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.YawYLeft">
+        <member name="F:rgat.CONSTANTS.KeybindAction.YawYLeft">
             <summary>
             Turn the plot anticlockwise on the Y axis
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.YawYRight">
+        <member name="F:rgat.CONSTANTS.KeybindAction.YawYRight">
             <summary>
             Turn the plot clockwise on the Y axis
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.RollGraphZAnti">
+        <member name="F:rgat.CONSTANTS.KeybindAction.RollGraphZAnti">
             <summary>
             Roll the graph anti clockwise on the Z axis
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.RollGraphZClock">
+        <member name="F:rgat.CONSTANTS.KeybindAction.RollGraphZClock">
             <summary>
             Roll the graph clockwise on the Z axis
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.CenterFrame">
+        <member name="F:rgat.CONSTANTS.KeybindAction.CenterFrame">
             <summary>
             Center the graph so all nodes are in the frame
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.LockCenterFrame">
+        <member name="F:rgat.CONSTANTS.KeybindAction.LockCenterFrame">
             <summary>
             Keep centering the graph so all nodes are in the frame
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.Cancel">
+        <member name="F:rgat.CONSTANTS.KeybindAction.Cancel">
             <summary>
             Close the open dialog/menu
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.ToggleHeatmap">
+        <member name="F:rgat.CONSTANTS.KeybindAction.ToggleHeatmap">
             <summary>
             Toggle heatmap rendering on or off
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.ToggleConditionals">
+        <member name="F:rgat.CONSTANTS.KeybindAction.ToggleConditionals">
             <summary>
             Toggle conditional rendering on or off
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.RaiseForceTemperature">
+        <member name="F:rgat.CONSTANTS.KeybindAction.RaiseForceTemperature">
             <summary>
             Raise the force directed layout activity
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.ToggleAllText">
+        <member name="F:rgat.CONSTANTS.KeybindAction.ToggleAllText">
             <summary>
             Toggle the display of all text on or off
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.ToggleInsText">
+        <member name="F:rgat.CONSTANTS.KeybindAction.ToggleInsText">
             <summary>
             Toggle the display of instruction text on or off
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.ToggleLiveText">
+        <member name="F:rgat.CONSTANTS.KeybindAction.ToggleLiveText">
             <summary>
             Toggle the display of animated text on or off
             </summary> 
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.QuickMenu">
+        <member name="F:rgat.CONSTANTS.KeybindAction.QuickMenu">
             <summary>
             Toggle the quickmenu
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.CaptureGraphImage">
+        <member name="F:rgat.CONSTANTS.KeybindAction.CaptureGraphImage">
             <summary>
             Write an image of the graph to disk
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.CaptureGraphPreviewImage">
+        <member name="F:rgat.CONSTANTS.KeybindAction.CaptureGraphPreviewImage">
             <summary>
             Write an image of the graph and previews to disk
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.CaptureWindowImage">
+        <member name="F:rgat.CONSTANTS.KeybindAction.CaptureWindowImage">
             <summary>
             Write an image of the window to disk
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.ToggleVideo">
+        <member name="F:rgat.CONSTANTS.KeybindAction.ToggleVideo">
             <summary>
             Toggle video recording
             </summary>
         </member>
-        <member name="F:rgat.CONSTANTS.eKeybind.PauseVideo">
+        <member name="F:rgat.CONSTANTS.KeybindAction.PauseVideo">
             <summary>
             Pause video recording without ending the video
             </summary>
@@ -3129,7 +3129,7 @@
             Data for a Node -> Node Edge
             </summary>
         </member>
-        <member name="M:rgat.EdgeData.#ctor(System.Int32,rgat.CONSTANTS.eEdgeNodeType,System.UInt64)">
+        <member name="M:rgat.EdgeData.#ctor(System.Int32,rgat.CONSTANTS.EdgeNodeType,System.UInt64)">
             <summary>
             Create a new edge
             </summary>
@@ -3137,7 +3137,7 @@
             <param name="sourceType">Type of soure node (jump, etc)</param>
             <param name="execCount">Number of edge executions</param>
         </member>
-        <member name="M:rgat.EdgeData.#ctor(Newtonsoft.Json.Linq.JArray,System.Int32,rgat.CONSTANTS.eEdgeNodeType)">
+        <member name="M:rgat.EdgeData.#ctor(Newtonsoft.Json.Linq.JArray,System.Int32,rgat.CONSTANTS.EdgeNodeType)">
             <summary>
             Create an edge from serialised edge data
             </summary>
@@ -5843,6 +5843,11 @@
             Instructions are not instrumented, will be marked as an API call
             </summary>
         </member>
+        <member name="F:rgat.eCodeInstrumentation.eInvalid">
+            <summary>
+            The instruction couldn't be looked up
+            </summary>
+        </member>
         <member name="T:rgat.ROUTINE_STRUCT">
             <summary>
             Description of entries into uninstrumented code, usually APi calls
@@ -7837,7 +7842,7 @@
             </summary>
             <returns></returns>
         </member>
-        <member name="M:rgat.Threads.PreviewRendererThread.#ctor(System.Int32,rgat.PreviewGraphsWidget,ImGuiNET.ImGuiController,rgat.rgatState,System.Boolean)">
+        <member name="M:rgat.Threads.PreviewRendererThread.#ctor(System.Int32,rgat.PreviewGraphsWidget,ImGuiNET.ImGuiController,System.Boolean)">
             <summary>
             Create a preview renderer
             </summary>

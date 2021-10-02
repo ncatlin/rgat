@@ -413,7 +413,7 @@ namespace rgat
         }
 
 
-        public void AlertKeybindPressed(Tuple<Key, ModifierKeys> keyPressed, eKeybind boundAction)
+        public void AlertKeybindPressed(Tuple<Key, ModifierKeys> keyPressed, KeybindAction boundAction)
         {
             _graphLock.EnterReadLock();
 
@@ -428,42 +428,42 @@ namespace rgat
             float shiftModifier = ImGui.GetIO().KeyShift ? 1 : 0;
             switch (boundAction)
             {
-                case eKeybind.ToggleHeatmap:
+                case KeybindAction.ToggleHeatmap:
                     ToggleRenderingMode(eRenderingMode.eHeatmap);
                     resultText = _renderingMode == eRenderingMode.eHeatmap ? "Activated" : "Deactivated";
                     break;
 
-                case eKeybind.ToggleConditionals:
+                case KeybindAction.ToggleConditionals:
                     ToggleRenderingMode(eRenderingMode.eConditionals);
                     resultText = _renderingMode == eRenderingMode.eConditionals ? "Activated" : "Deactivated";
                     break;
 
-                case eKeybind.MoveUp:
+                case KeybindAction.MoveUp:
 
                     float delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
                     graph.CameraState.MainCameraYOffset += delta;
                     break;
 
-                case eKeybind.MoveDown:
+                case KeybindAction.MoveDown:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
                     graph.CameraState.MainCameraYOffset -= delta;
                     break;
 
-                case eKeybind.MoveLeft:
+                case KeybindAction.MoveLeft:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
                     graph.CameraState.MainCameraXOffset -= delta;
                     break;
 
-                case eKeybind.MoveRight:
+                case KeybindAction.MoveRight:
                     delta = 50;
                     delta += (50 * (shiftModifier * 1.5f));
                     graph.CameraState.MainCameraXOffset += delta;
                     break;
 
-                case eKeybind.RollGraphZAnti:
+                case KeybindAction.RollGraphZAnti:
                     {
                         delta = 0.07f;
                         delta += (shiftModifier * 0.13f);
@@ -471,7 +471,7 @@ namespace rgat
                         break;
                     }
 
-                case eKeybind.RollGraphZClock:
+                case KeybindAction.RollGraphZClock:
                     {
                         delta = 0.07f;
                         delta += (shiftModifier * 0.13f);
@@ -479,63 +479,63 @@ namespace rgat
                         break;
                     }
 
-                case eKeybind.YawYRight:
+                case KeybindAction.YawYRight:
                     {
                         _yawDelta += 0.04f + (shiftModifier * 0.13f);
                         break;
                     }
 
-                case eKeybind.YawYLeft:
+                case KeybindAction.YawYLeft:
                     {
                         _yawDelta += -1 * (0.04f + (shiftModifier * 0.13f));
                         break;
                     }
 
-                case eKeybind.PitchXBack:
+                case KeybindAction.PitchXBack:
                     {
                         _pitchDelta += 0.06f + (shiftModifier * 0.13f);
                         break;
                     }
-                case eKeybind.PitchXFwd:
+                case KeybindAction.PitchXFwd:
                     {
                         _pitchDelta += -1 * (0.06f + (shiftModifier * 0.13f));
                         break;
                     }
 
-                case eKeybind.CenterFrame:
+                case KeybindAction.CenterFrame:
                     graph.ToggleCentering(false);
                     resultText = graph.CenteringInFrame is not PlottedGraph.CenteringMode.Inactive ? "Activated" : "Deactivated";
                     break;
 
-                case eKeybind.LockCenterFrame:
+                case KeybindAction.LockCenterFrame:
                     graph.ToggleCentering(true);
                     resultText = graph.CenteringInFrame is not PlottedGraph.CenteringMode.Inactive ? "Activated" : "Deactivated";
                     break;
 
-                case eKeybind.RaiseForceTemperature:
+                case KeybindAction.RaiseForceTemperature:
                     graph.IncreaseTemperature();
                     break;
 
-                case eKeybind.ToggleAllText:
+                case KeybindAction.ToggleAllText:
                     graph.Opt_TextEnabled = !graph.Opt_TextEnabled;
                     resultText = graph.Opt_TextEnabled ? "Visible" : "Hidden";
                     break;
 
-                case eKeybind.ToggleInsText:
+                case KeybindAction.ToggleInsText:
                     graph.Opt_TextEnabledIns = !graph.Opt_TextEnabledIns;
                     resultText = graph.Opt_TextEnabledIns ? "Visible" : "Hidden";
                     break;
 
-                case eKeybind.ToggleLiveText:
+                case KeybindAction.ToggleLiveText:
                     graph.Opt_TextEnabledLive = !graph.Opt_TextEnabledLive;
                     resultText = graph.Opt_TextEnabledLive ? "Visible" : "Hidden";
                     break;
 
-                case eKeybind.Cancel:
+                case KeybindAction.Cancel:
                     _QuickMenu.CancelPressed();
                     break;
 
-                case eKeybind.QuickMenu:
+                case KeybindAction.QuickMenu:
                     {
                         _QuickMenu.MenuPressed();
                         break;

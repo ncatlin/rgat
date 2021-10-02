@@ -268,7 +268,7 @@ namespace rgat
         /// <summary>
         /// Node control flow type
         /// </summary>
-        public enum eNodeType
+        public enum NodeType
         {
             /// <summary>
             /// Unknown or no control flow
@@ -291,7 +291,7 @@ namespace rgat
         /// <summary>
         /// Types for nodes edges which control how they are laid out or rendered
         /// </summary>
-        public enum eEdgeNodeType
+        public enum EdgeNodeType
         {
             /// <summary>
             /// Edge to a call instruction
@@ -469,7 +469,7 @@ namespace rgat
         /// <summary>
         /// Available keybind actions
         /// </summary>
-        public enum eKeybind
+        public enum KeybindAction
         {
             /// <summary>
             /// Shift the graph left (actually moves the camera right)

@@ -389,18 +389,18 @@ namespace rgat.Config
             /// </summary>
             public KeybindSettings()
             {
-                ResponsiveHeldActions = new List<eKeybind>
+                ResponsiveHeldActions = new List<KeybindAction>
                 {
-                    eKeybind.MoveRight,
-                    eKeybind.MoveLeft,
-                    eKeybind.MoveDown,
-                    eKeybind.MoveUp,
-                    eKeybind.PitchXBack,
-                    eKeybind.PitchXFwd,
-                    eKeybind.YawYLeft,
-                    eKeybind.YawYRight,
-                    eKeybind.RollGraphZAnti,
-                    eKeybind.RollGraphZClock
+                    KeybindAction.MoveRight,
+                    KeybindAction.MoveLeft,
+                    KeybindAction.MoveDown,
+                    KeybindAction.MoveUp,
+                    KeybindAction.PitchXBack,
+                    KeybindAction.PitchXFwd,
+                    KeybindAction.YawYLeft,
+                    KeybindAction.YawYRight,
+                    KeybindAction.RollGraphZAnti,
+                    KeybindAction.RollGraphZClock
                 };
 
                 InitDefaultKeybinds();
@@ -415,7 +415,7 @@ namespace rgat.Config
                 /// <summary>
                 /// The action the keybind triggers
                 /// </summary>
-                public eKeybind Action { get; set; }
+                public KeybindAction Action { get; set; }
                 /// <summary>
                 /// Primary or secondary keybind for this action
                 /// </summary>
@@ -449,39 +449,39 @@ namespace rgat.Config
             public void InitDefaultKeybinds()
             {
 
-                SetKeybind(action: eKeybind.MoveUp, bindIndex: 1, Key.W, ModifierKeys.None);
-                SetKeybind(action: eKeybind.MoveUp, bindIndex: 2, Key.Up, ModifierKeys.None);
-                SetKeybind(action: eKeybind.MoveDown, bindIndex: 1, Key.S, ModifierKeys.None);
-                SetKeybind(action: eKeybind.MoveDown, bindIndex: 2, Key.Down, ModifierKeys.None);
-                SetKeybind(action: eKeybind.MoveLeft, bindIndex: 1, Key.A, ModifierKeys.None);
-                SetKeybind(action: eKeybind.MoveLeft, bindIndex: 2, Key.Left, ModifierKeys.None);
-                SetKeybind(action: eKeybind.MoveRight, bindIndex: 1, Key.D, ModifierKeys.None);
-                SetKeybind(action: eKeybind.MoveRight, bindIndex: 2, Key.Right, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.MoveUp, bindIndex: 1, Key.W, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.MoveUp, bindIndex: 2, Key.Up, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.MoveDown, bindIndex: 1, Key.S, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.MoveDown, bindIndex: 2, Key.Down, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.MoveLeft, bindIndex: 1, Key.A, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.MoveLeft, bindIndex: 2, Key.Left, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.MoveRight, bindIndex: 1, Key.D, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.MoveRight, bindIndex: 2, Key.Right, ModifierKeys.None);
 
-                SetKeybind(action: eKeybind.PitchXFwd, bindIndex: 1, Key.PageUp, ModifierKeys.None);
-                SetKeybind(action: eKeybind.PitchXBack, bindIndex: 1, Key.PageDown, ModifierKeys.None);
-                SetKeybind(action: eKeybind.YawYLeft, bindIndex: 1, Key.Delete, ModifierKeys.None);
-                SetKeybind(action: eKeybind.YawYRight, bindIndex: 1, Key.End, ModifierKeys.None);
-                SetKeybind(action: eKeybind.RollGraphZAnti, bindIndex: 1, Key.Insert, ModifierKeys.None);
-                SetKeybind(action: eKeybind.RollGraphZClock, bindIndex: 1, Key.Home, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.PitchXFwd, bindIndex: 1, Key.PageUp, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.PitchXBack, bindIndex: 1, Key.PageDown, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.YawYLeft, bindIndex: 1, Key.Delete, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.YawYRight, bindIndex: 1, Key.End, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.RollGraphZAnti, bindIndex: 1, Key.Insert, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.RollGraphZClock, bindIndex: 1, Key.Home, ModifierKeys.None);
 
-                SetKeybind(action: eKeybind.Cancel, bindIndex: 1, Key.Escape, ModifierKeys.None);
-                SetKeybind(action: eKeybind.CenterFrame, bindIndex: 1, Key.Q, ModifierKeys.None);
-                SetKeybind(action: eKeybind.LockCenterFrame, bindIndex: 1, Key.Q, ModifierKeys.Shift);
-                SetKeybind(action: eKeybind.RaiseForceTemperature, bindIndex: 1, Key.V, ModifierKeys.None);
-                SetKeybind(action: eKeybind.ToggleHeatmap, bindIndex: 1, Key.X, ModifierKeys.None);
-                SetKeybind(action: eKeybind.ToggleConditionals, bindIndex: 1, Key.C, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.Cancel, bindIndex: 1, Key.Escape, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.CenterFrame, bindIndex: 1, Key.Q, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.LockCenterFrame, bindIndex: 1, Key.Q, ModifierKeys.Shift);
+                SetKeybind(action: KeybindAction.RaiseForceTemperature, bindIndex: 1, Key.V, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.ToggleHeatmap, bindIndex: 1, Key.X, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.ToggleConditionals, bindIndex: 1, Key.C, ModifierKeys.None);
 
-                SetKeybind(action: eKeybind.ToggleAllText, bindIndex: 1, Key.I, ModifierKeys.None);
-                SetKeybind(action: eKeybind.ToggleInsText, bindIndex: 1, Key.I, ModifierKeys.Shift);
-                SetKeybind(action: eKeybind.ToggleLiveText, bindIndex: 1, Key.I, ModifierKeys.Control);
-                SetKeybind(action: eKeybind.QuickMenu, bindIndex: 1, Key.M, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.ToggleAllText, bindIndex: 1, Key.I, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.ToggleInsText, bindIndex: 1, Key.I, ModifierKeys.Shift);
+                SetKeybind(action: KeybindAction.ToggleLiveText, bindIndex: 1, Key.I, ModifierKeys.Control);
+                SetKeybind(action: KeybindAction.QuickMenu, bindIndex: 1, Key.M, ModifierKeys.None);
 
-                SetKeybind(action: eKeybind.CaptureWindowImage, bindIndex: 1, Key.P, ModifierKeys.None);
-                SetKeybind(action: eKeybind.CaptureGraphImage, bindIndex: 1, Key.P, ModifierKeys.Shift);
-                SetKeybind(action: eKeybind.CaptureGraphPreviewImage, bindIndex: 1, Key.P, ModifierKeys.Control);
-                SetKeybind(action: eKeybind.ToggleVideo, bindIndex: 1, Key.U, ModifierKeys.None);
-                SetKeybind(action: eKeybind.PauseVideo, bindIndex: 1, Key.U, ModifierKeys.Shift);
+                SetKeybind(action: KeybindAction.CaptureWindowImage, bindIndex: 1, Key.P, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.CaptureGraphImage, bindIndex: 1, Key.P, ModifierKeys.Shift);
+                SetKeybind(action: KeybindAction.CaptureGraphPreviewImage, bindIndex: 1, Key.P, ModifierKeys.Control);
+                SetKeybind(action: KeybindAction.ToggleVideo, bindIndex: 1, Key.U, ModifierKeys.None);
+                SetKeybind(action: KeybindAction.PauseVideo, bindIndex: 1, Key.U, ModifierKeys.Shift);
             }
 
 
@@ -515,7 +515,7 @@ namespace rgat.Config
             /// <param name="k">The keybind key</param>
             /// <param name="mod">Modifier keys</param>
             /// <param name="userSpecified">Is a user specified keybind</param>
-            public void SetKeybind(eKeybind action, int bindIndex, Key k, ModifierKeys mod, bool userSpecified = false)
+            public void SetKeybind(KeybindAction action, int bindIndex, Key k, ModifierKeys mod, bool userSpecified = false)
             {
                 lock (_lock)
                 {
@@ -577,15 +577,15 @@ namespace rgat.Config
             /// <summary>
             /// All active keybinds
             /// </summary>
-            public Dictionary<Tuple<Key, ModifierKeys>, eKeybind> Active = new Dictionary<Tuple<Key, ModifierKeys>, eKeybind>();
+            public Dictionary<Tuple<Key, ModifierKeys>, KeybindAction> Active = new Dictionary<Tuple<Key, ModifierKeys>, KeybindAction>();
             /// <summary>
             /// The first set of keybinds
             /// </summary>
-            public Dictionary<eKeybind, Tuple<Key, ModifierKeys>> PrimaryKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
+            public Dictionary<KeybindAction, Tuple<Key, ModifierKeys>> PrimaryKeybinds = new Dictionary<KeybindAction, Tuple<Key, ModifierKeys>>();
             /// <summary>
             /// The second set of keybinds
             /// </summary>
-            public Dictionary<eKeybind, Tuple<Key, ModifierKeys>> AlternateKeybinds = new Dictionary<eKeybind, Tuple<Key, ModifierKeys>>();
+            public Dictionary<KeybindAction, Tuple<Key, ModifierKeys>> AlternateKeybinds = new Dictionary<KeybindAction, Tuple<Key, ModifierKeys>>();
         }
 
 

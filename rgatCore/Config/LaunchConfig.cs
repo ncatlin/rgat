@@ -134,7 +134,7 @@ namespace rgat.Config
         /// <summary>
         /// Modes rgat can operate in
         /// </summary>
-        public enum eRunMode
+        public enum RunMode
         {
             /// <summary>
             /// Full GPU rendered GUI mode
@@ -163,7 +163,7 @@ namespace rgat.Config
         /// <summary>
         /// The basic mode of operation for this rgat run
         /// </summary>
-        public eRunMode RunMode = eRunMode.GUI;
+        public RunMode ActiveRunMode = RunMode.GUI;
 
         /// <summary>
         /// Initialise the configuration
@@ -204,7 +204,7 @@ namespace rgat.Config
 
             if (ListenPort != null || ConnectModeAddress != null)
             {
-                RunMode = eRunMode.Bridged;
+                ActiveRunMode = RunMode.Bridged;
                 return;
             }
 
@@ -212,16 +212,16 @@ namespace rgat.Config
             {
                 if (RecordVideoLive || RecordVideoReplay || DrawImage)
                 {
-                    RunMode = eRunMode.GPURenderCommand;
+                    ActiveRunMode = RunMode.GPURenderCommand;
                 }
                 else
                 {
-                    RunMode = eRunMode.NoGPUTraceCommand;
+                    ActiveRunMode = RunMode.NoGPUTraceCommand;
                 }
                 return;
             }
 
-            RunMode = eRunMode.GUI;
+            ActiveRunMode = RunMode.GUI;
         }
 
         private bool ParseConfigJSON(JObject jsn, out string? error)

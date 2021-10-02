@@ -25,10 +25,10 @@ namespace rgat.Threads
         private readonly int _idNum;
         private readonly bool _background;
 
-        private readonly rgatState _rgatState;
         private readonly GraphLayoutEngine _layoutEngine;
+        private readonly GraphicsDevice _gdev;
 
-        private ResourceFactory? _factory;
+        private readonly ResourceFactory? _factory;
         private ResourceLayout? _coreRsrcLayout, _nodesEdgesRsrclayout;
         private DeviceBuffer? _paramsBuffer;
         private DeviceBuffer? _EdgeVertBuffer, _EdgeIndexBuffer;
@@ -108,18 +108,15 @@ namespace rgat.Threads
             return null;
         }
 
-        GraphicsDevice _gdev;
 
         /// <summary>
         /// Create a preview renderer
         /// </summary>
-        public PreviewRendererThread(int workerID, PreviewGraphsWidget widget, ImGuiNET.ImGuiController controller, 
-            rgatState clientState,  bool background)
+        public PreviewRendererThread(int workerID, PreviewGraphsWidget widget, ImGuiNET.ImGuiController controller, bool background)
         {
             _idNum = workerID;
             _graphWidget = widget;
             _background = background;
-            _rgatState = clientState;
             _gdev = controller.GraphicsDevice;
             _NodeCircleSpriteview = controller.IconTexturesView;
             _factory = _gdev.ResourceFactory;

@@ -126,7 +126,7 @@ namespace rgat
         private readonly ReaderWriterLockSlim textureLock = new ReaderWriterLockSlim();
         private int latestWrittenTexture = 1;
 
-
+        private readonly Random _rng = new Random();
 
 
 
@@ -471,8 +471,8 @@ namespace rgat
             float force;
             switch (edge.edgeClass)
             {
-                case eEdgeNodeType.eEdgeNew:
-                    if (edge.sourceNodeType == eEdgeNodeType.eNodeJump)
+                case EdgeNodeType.eEdgeNew:
+                    if (edge.sourceNodeType == EdgeNodeType.eNodeJump)
                     {
                         force = 0.4f;
                     }
@@ -482,19 +482,19 @@ namespace rgat
                     }
 
                     break;
-                case eEdgeNodeType.eEdgeLib:
+                case EdgeNodeType.eEdgeLib:
                     force = 1f;
                     break;
-                case eEdgeNodeType.eEdgeCall:
+                case EdgeNodeType.eEdgeCall:
                     force = 0.4f;
                     break;
-                case eEdgeNodeType.eEdgeOld:
+                case EdgeNodeType.eEdgeOld:
                     force = 0.3f;
                     break;
-                case eEdgeNodeType.eEdgeReturn:
+                case EdgeNodeType.eEdgeReturn:
                     force = 0.2f;
                     break;
-                case eEdgeNodeType.eEdgeException:
+                case EdgeNodeType.eEdgeException:
                     force = 2f;
                     break;
                 default:
@@ -592,11 +592,11 @@ namespace rgat
                 {
                     switch (firstParent.VertType())
                     {
-                        case eEdgeNodeType.eNodeNonFlow:
+                        case EdgeNodeType.eNodeNonFlow:
                             b += B_BETWEEN_BLOCKNODES;
                             break;
 
-                        case eEdgeNodeType.eNodeJump:
+                        case EdgeNodeType.eNodeJump:
 
                             if (firstParent.IsConditional && n.address == firstParent.ins!.condDropAddress)
                             {
@@ -608,12 +608,12 @@ namespace rgat
                             break;
 
 
-                        case eEdgeNodeType.eNodeException:
+                        case EdgeNodeType.eNodeException:
                             a += JUMPA;
                             b += JUMPB;
                             break;
 
-                        case eEdgeNodeType.eNodeCall:
+                        case EdgeNodeType.eNodeCall:
                             a += CALLA;
                             if (b < callCeiling)
                             {
@@ -623,8 +623,8 @@ namespace rgat
                             b += CALLB;
                             break;
 
-                        case eEdgeNodeType.eNodeReturn:
-                        case eEdgeNodeType.eNodeExternal: //treat all externs as if they end in a return
+                        case EdgeNodeType.eNodeReturn:
+                        case EdgeNodeType.eNodeExternal: //treat all externs as if they end in a return
 
                             Tuple<float, float>? callerPos = null;
                             for (var stackI = callStack.Count - 1; stackI >= 0; stackI--)
@@ -656,13 +656,13 @@ namespace rgat
                 usedCoords.Add(new Tuple<float, float>(a, b), true);
 
                 //record return address
-                if (n.VertType() == eEdgeNodeType.eNodeCall)
+                if (n.VertType() == EdgeNodeType.eNodeCall)
                 {
                     callStack.Add(new Tuple<Tuple<float, float>, ulong>(new Tuple<float, float>(a, b), n.address + (ulong)n.ins!.NumBytes));
                 }
 
                 //if returning from a function, limit drawing any new functions to below this one
-                if (n.VertType() == eEdgeNodeType.eNodeReturn)
+                if (n.VertType() == EdgeNodeType.eNodeReturn)
                 {
                     callCeiling = b + 8;
                 }
@@ -927,13 +927,13 @@ namespace rgat
             {
                 if (_LingeringActiveNodes.Count > 0)
                 {
-                    node = _LingeringActiveNodes[new Random().Next(0, _LingeringActiveNodes.Count)];
+                    node = _LingeringActiveNodes[_rng.Next(0, _LingeringActiveNodes.Count)];
                 }
                 else
                 {
                     if (_PulseActiveNodes.Count > 0)
                     {
-                        node = _PulseActiveNodes[new Random().Next(0, _PulseActiveNodes.Count)];
+                        node = _PulseActiveNodes[_rng.Next(0, _PulseActiveNodes.Count)];
                     }
                 }
 
@@ -1443,14 +1443,13 @@ namespace rgat
 
             var bounds = 1000;
             var bounds_half = bounds / 2;
-            Random rnd = new Random();
             for (var i = 0; i < positions.Length; i += 4)
             {
                 if (i < _graphStructureLinear.Count * 4)
                 {
-                    positions[i] = ((float)rnd.NextDouble() * bounds) - bounds_half;
-                    positions[i + 1] = ((float)rnd.NextDouble() * bounds) - bounds_half;
-                    positions[i + 2] = ((float)rnd.NextDouble() * bounds) - bounds_half;
+                    positions[i] = ((float)_rng.NextDouble() * bounds) - bounds_half;
+                    positions[i + 1] = ((float)_rng.NextDouble() * bounds) - bounds_half;
+                    positions[i + 2] = ((float)_rng.NextDouble() * bounds) - bounds_half;
                     positions[i + 3] = 1;
                 }
                 else
@@ -2452,7 +2451,7 @@ namespace rgat
         /// <param name="edgesCount"></param>
         public void AddNewEdgesToLayoutBuffers(int edgesCount)
         {
-            if (edgesCount > RenderedEdgeCount || (new Random()).Next(0, 100) == 1) //todo this is a hack from when things were less reliable. disable and look for issues
+            if (edgesCount > RenderedEdgeCount || _rng.Next(0, 100) == 1) //todo this is a hack from when things were less reliable. disable and look for issues
             {
                 LayoutState.Lock.EnterWriteLock();
                 LayoutState.RegenerateEdgeDataBuffers(this);

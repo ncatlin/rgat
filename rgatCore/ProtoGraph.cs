@@ -40,7 +40,11 @@ namespace rgat
         /// <summary>
         /// Instructions are not instrumented, will be marked as an API call
         /// </summary>
-        eUninstrumentedCode = 1
+        eUninstrumentedCode = 1,
+        /// <summary>
+        /// The instruction couldn't be looked up
+        /// </summary>
+        eInvalid = 2
     };
 
     /// <summary>
@@ -416,7 +420,7 @@ namespace rgat
                 return;
             }
 
-            if (lastNodeType == eEdgeNodeType.eFIRST_IN_THREAD)
+            if (lastNodeType == EdgeNodeType.eFIRST_IN_THREAD)
             {
                 return;
             }
@@ -438,29 +442,29 @@ namespace rgat
 
                 if (instructionIndex > 0)
                 {
-                    newEdge.edgeClass = alreadyExecuted ? eEdgeNodeType.eEdgeOld : eEdgeNodeType.eEdgeNew;
+                    newEdge.edgeClass = alreadyExecuted ? EdgeNodeType.eEdgeOld : EdgeNodeType.eEdgeNew;
                 }
                 else
                 {
                     if (alreadyExecuted)
                     {
-                        newEdge.edgeClass = eEdgeNodeType.eEdgeOld;
+                        newEdge.edgeClass = EdgeNodeType.eEdgeOld;
                     }
                     else
                     {
                         switch (lastNodeType)
                         {
-                            case eEdgeNodeType.eNodeReturn:
-                                newEdge.edgeClass = eEdgeNodeType.eEdgeReturn;
+                            case EdgeNodeType.eNodeReturn:
+                                newEdge.edgeClass = EdgeNodeType.eEdgeReturn;
                                 break;
-                            case eEdgeNodeType.eNodeException:
-                                newEdge.edgeClass = eEdgeNodeType.eEdgeException;
+                            case EdgeNodeType.eNodeException:
+                                newEdge.edgeClass = EdgeNodeType.eEdgeException;
                                 break;
-                            case eEdgeNodeType.eNodeCall:
-                                newEdge.edgeClass = eEdgeNodeType.eEdgeCall;
+                            case EdgeNodeType.eNodeCall:
+                                newEdge.edgeClass = EdgeNodeType.eEdgeCall;
                                 break;
                             default:
-                                newEdge.edgeClass = eEdgeNodeType.eEdgeNew;
+                                newEdge.edgeClass = EdgeNodeType.eEdgeNew;
                                 break;
                         }
                     }
@@ -544,7 +548,7 @@ namespace rgat
             {
                 InstructionData instruction = block[instructionIndex];
 
-                if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD && !NodeExists(ProtoLastVertID))
+                if (lastNodeType != EdgeNodeType.eFIRST_IN_THREAD && !NodeExists(ProtoLastVertID))
                 {
                     Logging.WriteConsole("\t\t[rgat]ERROR: RunBB- Last vert {lastVertID} not found");
                     Debug.Assert(false);
@@ -568,11 +572,11 @@ namespace rgat
                 //setup conditions for next instruction
                 if ((ulong)instructionIndex < tag.insCount)
                 {
-                    lastNodeType = eEdgeNodeType.eNodeNonFlow;
+                    lastNodeType = EdgeNodeType.eNodeNonFlow;
                 }
                 else
                 {
-                    lastNodeType = eEdgeNodeType.eNodeException;
+                    lastNodeType = EdgeNodeType.eNodeException;
                     lock (highlightsLock)
                     {
                         if (!exceptionSet.Contains(targVertID))
@@ -715,11 +719,11 @@ namespace rgat
 
             EdgeData newEdge = new EdgeData(index: EdgeList.Count, sourceType: sourceNode.VertType(), execCount: repeats)
             {
-                edgeClass = eEdgeNodeType.eEdgeLib
+                edgeClass = EdgeNodeType.eEdgeLib
             };
             AddEdge(newEdge, sourceNode, targetNode);
             //cout << "added external edge from " << lastVertID << "->" << targVertID << endl;
-            lastNodeType = eEdgeNodeType.eNodeExternal;
+            lastNodeType = EdgeNodeType.eNodeExternal;
             ProtoLastLastVertID = ProtoLastVertID;
             ProtoLastVertID = newTargNode.Index;
             // ProtoLastLastVertID = ProtoLastVertID;
@@ -1117,19 +1121,19 @@ namespace rgat
 
             if (targNode.IsExternal)
             {
-                newEdge.edgeClass = eEdgeNodeType.eEdgeLib;
+                newEdge.edgeClass = EdgeNodeType.eEdgeLib;
             }
-            else if (sourceNode.ins!.itype == eNodeType.eInsCall)
+            else if (sourceNode.ins!.itype == NodeType.eInsCall)
             {
-                newEdge.edgeClass = eEdgeNodeType.eEdgeCall;
+                newEdge.edgeClass = EdgeNodeType.eEdgeCall;
             }
-            else if (sourceNode.ins.itype == eNodeType.eInsReturn)
+            else if (sourceNode.ins.itype == NodeType.eInsReturn)
             {
-                newEdge.edgeClass = eEdgeNodeType.eEdgeReturn;
+                newEdge.edgeClass = EdgeNodeType.eEdgeReturn;
             }
             else
             {
-                newEdge.edgeClass = eEdgeNodeType.eEdgeOld;
+                newEdge.edgeClass = EdgeNodeType.eEdgeOld;
             }
 
             AddEdge(newEdge, sourceNode, targNode);
@@ -1400,7 +1404,7 @@ namespace rgat
                 InstructionData instruction = block[instructionIndex];
                 //Logging.WriteConsole($"\t{blockID}:InsIdx{instructionIndex} -> '{instruction.ins_text}'");
                 //start possible #ifdef DEBUG  candidate
-                if (lastNodeType != eEdgeNodeType.eFIRST_IN_THREAD)
+                if (lastNodeType != EdgeNodeType.eFIRST_IN_THREAD)
                 {
                     if (!NodeExists(ProtoLastVertID))
                     {
@@ -1435,20 +1439,20 @@ namespace rgat
                 //setup conditions for next instruction
                 switch (instruction.itype)
                 {
-                    case eNodeType.eInsCall:
-                        lastNodeType = eEdgeNodeType.eNodeCall;
+                    case NodeType.eInsCall:
+                        lastNodeType = EdgeNodeType.eNodeCall;
                         break;
 
-                    case eNodeType.eInsJump:
-                        lastNodeType = eEdgeNodeType.eNodeJump;
+                    case NodeType.eInsJump:
+                        lastNodeType = EdgeNodeType.eNodeJump;
                         break;
 
-                    case eNodeType.eInsReturn:
-                        lastNodeType = eEdgeNodeType.eNodeReturn;
+                    case NodeType.eInsReturn:
+                        lastNodeType = EdgeNodeType.eNodeReturn;
                         break;
 
                     default:
-                        lastNodeType = eEdgeNodeType.eNodeNonFlow;
+                        lastNodeType = EdgeNodeType.eNodeNonFlow;
                         break;
                 }
 
@@ -1944,7 +1948,7 @@ namespace rgat
         /// The index of the node before the last added node
         /// </summary>
         public uint ProtoLastLastVertID = 0;
-        private eEdgeNodeType lastNodeType = eEdgeNodeType.eFIRST_IN_THREAD;
+        private EdgeNodeType lastNodeType = EdgeNodeType.eFIRST_IN_THREAD;
 
         /// <summary>
         /// Exec count of the busiest block in the graph

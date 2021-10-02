@@ -827,17 +827,17 @@ namespace rgat
                 {
                     insdata.branchAddress = 0;
                 }
-                insdata.itype = CONSTANTS.eNodeType.eInsCall;
+                insdata.itype = CONSTANTS.NodeType.eInsCall;
             }
 
             else if (insdata.Mnemonic == "ret") //todo: iret
             {
-                insdata.itype = CONSTANTS.eNodeType.eInsReturn;
+                insdata.itype = CONSTANTS.NodeType.eInsReturn;
             }
             else if (insdata.Mnemonic == "jmp")
             {
 
-                insdata.itype = CONSTANTS.eNodeType.eInsJump;
+                insdata.itype = CONSTANTS.NodeType.eInsJump;
 
                 if (insn.Operand.Contains("["))
                 {
@@ -861,12 +861,12 @@ namespace rgat
 
                 if (insdata.branchAddress == (address + (ulong)insdata.NumBytes))
                 {
-                    insdata.itype = CONSTANTS.eNodeType.eInsUndefined; //junp to next address is nop
+                    insdata.itype = CONSTANTS.NodeType.eInsUndefined; //junp to next address is nop
                 }
             }
             else
             {
-                insdata.itype = CONSTANTS.eNodeType.eInsUndefined;
+                insdata.itype = CONSTANTS.NodeType.eInsUndefined;
                 //assume all j+ instructions aside from jmp are conditional (todo: bother to check)
                 if (insdata.Mnemonic[0] == 'j')
                 {

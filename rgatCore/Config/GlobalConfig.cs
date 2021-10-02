@@ -258,7 +258,7 @@ namespace rgat
         /// Maximum temperature that will be applied to force-directed nodes. Fast nodes will layout quickly but wobble
         /// in their low energy position.
         /// </summary>
-        public static float NodeSpeedLimit = 3000f;
+        public static float CurrentNodeTemperature = 1500;
 
         /// <summary>
         /// Maximum speed limit available on the GUI
@@ -279,6 +279,7 @@ namespace rgat
         /// A new rgat release is available to download
         /// </summary>
         public static bool NewVersionAvailable = false;
+
 
         /// <summary>
         /// Record the details of a new rgat version
@@ -650,7 +651,7 @@ namespace rgat
         /// <summary>
         /// Keybinds triggered by responsive keys
         /// </summary>
-        public static List<eKeybind> ResponsiveHeldActions = new List<eKeybind>();
+        public static List<KeybindAction> ResponsiveHeldActions = new List<KeybindAction>();
 
         /// <summary>
         /// how many frame timing values to store for calculating UI performance statistics

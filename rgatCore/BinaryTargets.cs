@@ -22,7 +22,7 @@ namespace rgat
         /// </summary>
         public int Count => targets.Count;
 
-        static string _TargetsAddress => (rgatState.NetworkBridge.ActiveNetworking && rgatState.NetworkBridge.GUIMode) ? rgatState.NetworkBridge.LastAddress : "rgatlocal";
+        static string _targetsAddress => (rgatState.NetworkBridge.ActiveNetworking && rgatState.NetworkBridge.GUIMode) ? rgatState.NetworkBridge.LastAddress : "rgatlocal";
 
         /// <summary>
         /// List of all the paths of loaded BinaryTargets
@@ -55,7 +55,7 @@ namespace rgat
         {
             lock (targetslock)
             {
-                if (targets.TryGetValue(_TargetsAddress, out HOSTTARGETS? hostTargets) && hostTargets is not null)
+                if (targets.TryGetValue(_targetsAddress, out HOSTTARGETS? hostTargets) && hostTargets is not null)
                 {
                     if (hostTargets.targetbins.TryGetValue(path, out BinaryTarget? existingEntry) && existingEntry is not null)
                     {
@@ -98,7 +98,7 @@ namespace rgat
         {
             lock (targetslock)
             {
-                string addr = _TargetsAddress;
+                string addr = _targetsAddress;
                 if (!targets.TryGetValue(addr, out HOSTTARGETS? hostTargs))
                 {
                     hostTargs = new HOSTTARGETS() { sha1s = new(), targetbins = new() };
@@ -122,7 +122,7 @@ namespace rgat
         {
             lock (targetslock)
             {
-                string addr = _TargetsAddress;
+                string addr = _targetsAddress;
                 if (!targets.TryGetValue(addr, out HOSTTARGETS? hostTargs))
                 {
                     hostTargs = new HOSTTARGETS() { sha1s = new(), targetbins = new() };
@@ -153,7 +153,7 @@ namespace rgat
             target = null;
             lock (targetslock)
             {
-                if (targets.TryGetValue(_TargetsAddress, out HOSTTARGETS? hostTargs))
+                if (targets.TryGetValue(_targetsAddress, out HOSTTARGETS? hostTargs))
                 {
                     return hostTargs.sha1s.TryGetValue(sha1, out target);
                 }

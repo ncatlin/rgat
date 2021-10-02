@@ -459,6 +459,7 @@ namespace rgat.Threads
 
             //this messy bit of code deals with unistrumented APi code that has been called from a "jmp ptr [addr]" instruction
             eCodeInstrumentation modType = protograph.TraceData.FindContainingModule(nextBlockAddress, out int modnum);
+
             if (modType == eCodeInstrumentation.eUninstrumentedCode)
             {
                 List<InstructionData>? preExternBlock = protograph.TraceData.DisassemblyData.getDisassemblyBlock(thistag.blockID);
@@ -520,6 +521,7 @@ namespace rgat.Threads
                     return;
                 }
             }
+
 
             protograph.HandleTag(thistag, dontcountnextedge);
             if (dontcountnextedge)

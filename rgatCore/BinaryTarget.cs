@@ -307,8 +307,7 @@ namespace rgat
                 RemoteHost = remoteAddr;
             }
 
-            ProcessLaunchSettings? settings;
-            if (!GlobalConfig.Settings.GetPreviousLaunchSettings(_sha1hash, out settings) || settings is null)
+            if (!GlobalConfig.Settings.GetPreviousLaunchSettings(_sha1hash, out ProcessLaunchSettings? settings) || settings is null)
             {
                 settings = new ProcessLaunchSettings(filepath);
                 settings.TraceChoices.InitDefaultExclusions();
@@ -389,7 +388,7 @@ namespace rgat
             }
 
             bool success = true;
-            JToken? sizeTok = null, snipTok, sha1Tok = null, sha256Tok = null, bitTok = null;
+            JToken? sizeTok = null, sha1Tok = null, sha256Tok = null, bitTok = null;
             success = success && data.TryGetValue("Size", out sizeTok) && sizeTok is not null && sizeTok.Type == JTokenType.Integer;
             success = success && data.TryGetValue("SHA1", out sha1Tok) && (sha1Tok.Type == JTokenType.String || sha1Tok == null);
             success = success && data.TryGetValue("SHA256", out sha256Tok) && (sha256Tok.Type == JTokenType.String || sha256Tok == null);
@@ -440,7 +439,7 @@ namespace rgat
 
             fileSize = sizeTok!.ToObject<long>();
 
-            if (data.TryGetValue("StartBytes", out snipTok) && snipTok is not null && snipTok.Type == JTokenType.String)
+            if (data.TryGetValue("StartBytes", out JToken? snipTok) && snipTok is not null && snipTok.Type == JTokenType.String)
             {
                 string? b64snippet = snipTok!.ToObject<string>();
                 StartBytes = b64snippet is not null ? Convert.FromBase64String(b64snippet) : Array.Empty<byte>();
@@ -468,8 +467,7 @@ namespace rgat
 
             BitWidth = bitTok!.ToObject<int>();
 
-            ProcessLaunchSettings? settings;
-            if (!GlobalConfig.Settings.GetPreviousLaunchSettings(_sha1hash, out settings) || settings is null)
+            if (!GlobalConfig.Settings.GetPreviousLaunchSettings(_sha1hash, out ProcessLaunchSettings? settings) || settings is null)
             {
                 settings = new ProcessLaunchSettings(this.FilePath);
                 settings.TraceChoices.InitDefaultExclusions();

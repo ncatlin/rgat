@@ -866,13 +866,13 @@ namespace rgat.Widgets
         }
 
 
-        public void AlertKeybindPressed(Tuple<Veldrid.Key, Veldrid.ModifierKeys> keyPressed, CONSTANTS.eKeybind boundAction)
+        public void AlertKeybindPressed(Tuple<Veldrid.Key, Veldrid.ModifierKeys> keyPressed, CONSTANTS.KeybindAction boundAction)
         {
 
             float shiftModifier = ImGui.GetIO().KeyShift ? 1 : 0;
             switch (boundAction)
             {
-                case CONSTANTS.eKeybind.CenterFrame:
+                case CONSTANTS.KeybindAction.CenterFrame:
                     //ResetLayout();
                     FitNodesToChart();
                     break;
