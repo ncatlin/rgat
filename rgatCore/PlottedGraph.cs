@@ -1093,10 +1093,15 @@ namespace rgat
                 return false;
             }
 
+            long v1 = 0, v2 = 0, v3 = 0, v4 = 0, v5 = 0;
+            Stopwatch st = new();
+
+            st.Start();
             int nodeCount = InternalProtoGraph.NodeCount;
             edgeTargetIndexes = new int[textureSize];
             edgeStrengths = new float[textureSize];
 
+            
             List<List<int>>? nodeNeighboursArray = null;
             lock (animationLock)
             {
@@ -1104,6 +1109,8 @@ namespace rgat
             }
             var textureSize2 = indexTextureSize(nodeCount * 2);
             edgeIndexLookups = new int[textureSize2 * textureSize2];// * textureSize2 * 2];
+
+            st.Stop(); v1 = st.ElapsedMilliseconds; st.Restart();
 
             int currentNodeIndex;
             int edgeIndex = 0;
@@ -1158,6 +1165,7 @@ namespace rgat
                 edgeIndexLookups[currentNodeIndex * 2 + 1] = edgeIndex;
             }
 
+            st.Stop(); v2 = st.ElapsedMilliseconds; st.Restart();
 
             for (var i = edgeIndex; i < edgeTargetIndexes.Length; i++)
             {
@@ -1165,12 +1173,18 @@ namespace rgat
                 edgeTargetIndexes[i] = -1;
                 edgeStrengths[edgeIndex] = -1;
             }
+            st.Stop(); v3 = st.ElapsedMilliseconds; st.Restart();
+
 
             for (var i = InternalProtoGraph.NodeList.Count * 2; i < edgeIndexLookups.Length; i++)
             {
                 //fill unused RGBA slots with -1
                 edgeIndexLookups[i] = -1;
             }
+            st.Stop(); v4 = st.ElapsedMilliseconds; st.Restart();
+
+            Console.WriteLine($"GetEdgeRenderingData: v1:{v1}, v2:{v2}, v3:{v3}, v4:{v4}");
+
             return true;
         }
 
@@ -2098,17 +2112,19 @@ namespace rgat
         /// <summary>
         /// Process more animation updates from a live trace
         /// </summary>
-        public void ProcessLiveAnimationUpdates()
+        public void ProcessLiveAnimationUpdates(out int processedCount)
         {
             //too many updates at a time damages interactivity
             //too few creates big backlogs which delays the animation (can still see realtime in static mode though)
             int updateLimit = GlobalConfig.LiveAnimationUpdatesPerFrame;
+            processedCount = 0;
             while (updateProcessingIndex < InternalProtoGraph.SavedAnimationData.Count && (updateLimit-- > 0))
             {
                 if (!process_live_update())
                 {
                     break;
                 }
+                processedCount += 1;
             }
 
         }
@@ -2450,23 +2466,40 @@ namespace rgat
         /// <param name="edgesCount"></param>
         public void AddNewEdgesToLayoutBuffers(int edgesCount)
         {
+            Stopwatch st = new();
+            long v1 = 0, v2 = 0, v3 = 0;
+            bool doneRegen = false;
             if (edgesCount > RenderedEdgeCount || _rng.Next(0, 100) == 1) //todo this is a hack from when things were less reliable. disable and look for issues
             {
+                st.Start();
                 LayoutState.Lock.EnterWriteLock();
                 LayoutState.RegenerateEdgeDataBuffers(this);
                 RenderedEdgeCount = (uint)edgesCount;
                 LayoutState.Lock.ExitWriteLock();
+                st.Stop();
+                doneRegen = true;
+                v1 = st.ElapsedMilliseconds;
             }
 
             int graphNodeCount = RenderedNodeCount();
             if (ComputeBufferNodeCount < graphNodeCount)
             {
+                st.Restart();
                 LayoutState.AddNewNodesToComputeBuffers(graphNodeCount, this);
+                st.Stop();
+                v2 = st.ElapsedMilliseconds;
 
-                LayoutState.Lock.EnterWriteLock();
-                LayoutState.RegenerateEdgeDataBuffers(this); //todo change to upgradread
-                LayoutState.Lock.ExitWriteLock();
+                if (!doneRegen)
+                {
+                    st.Restart();
+                    LayoutState.Lock.EnterWriteLock();
+                    LayoutState.RegenerateEdgeDataBuffers(this); //todo change to upgradread
+                    LayoutState.Lock.ExitWriteLock();
+                    st.Stop();
+                    v3 = st.ElapsedMilliseconds;
+                }
             }
+            //Console.WriteLine($"Addnewedgestolayout took regen1: {v1}, addnodes:{v2} regen2:{v3}");
 
         }
 

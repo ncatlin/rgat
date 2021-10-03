@@ -52,7 +52,12 @@ namespace rgat.Threads
             {
                 if (graph.IsAnimated)
                 {
-                    graph.ProcessLiveAnimationUpdates();
+                    System.Diagnostics.Stopwatch st = new();
+                    st.Start();
+                    graph.ProcessLiveAnimationUpdates(out int doneCount);
+                    st.Stop();
+                    if (doneCount > 0 && st.ElapsedMilliseconds > 5)
+                        System.Console.WriteLine($"Live updates processed {doneCount} in {st.ElapsedMilliseconds} ms (avg: {st.ElapsedMilliseconds / doneCount:f})");
                 }
             }
             else
@@ -75,6 +80,7 @@ namespace rgat.Threads
 
         public void ThreadProc()
         {
+            System.Diagnostics.Stopwatch st = new();
             PlottedGraph? activeGraph;
 
             Veldrid.CommandList cl = _clientState!._GraphicsDevice!.ResourceFactory.CreateCommandList();
@@ -94,9 +100,16 @@ namespace rgat.Threads
                     continue;
                 }
 
-                update_rendering(activeGraph);
 
+                st.Restart();
+                update_rendering(activeGraph);
+                st.Stop(); 
+                //if (st.ElapsedMilliseconds > 0) System.Console.WriteLine($"u_R took {st.ElapsedMilliseconds} ms");
+
+                //st.Restart();
                 _graphWidget.GenerateMainGraph(cl);
+                st.Stop();
+                //if (st.ElapsedMilliseconds > 0) System.Console.WriteLine($"gmg took {st.ElapsedMilliseconds} ms");
 
                 //todo get rid of this 1000 after testing
                 if (GlobalConfig.MainGraphRenderDelay > 0)

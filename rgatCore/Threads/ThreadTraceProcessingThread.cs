@@ -93,6 +93,11 @@ namespace rgat.Threads
             IrregularActionTimer.Start();
         }
 
+        DateTime _lastTimerFired = DateTime.Now;
+        ulong _lastDataPending = 0;
+        ulong _lastDataProcessed = 0;
+
+
         private void PerformIrregularActions()
         {
             if (rgatState.rgatIsExiting)
@@ -921,6 +926,8 @@ namespace rgat.Threads
                 return;
             }
 
+            Stopwatch s = new Stopwatch();
+
             //process traces until program exits or the trace ingest stops + the queues are empty
             while (!rgatState.rgatIsExiting && (!protograph.TraceReader.StopFlag || protograph.TraceReader.HasPendingData))
             {
@@ -946,7 +953,7 @@ namespace rgat.Threads
 
                 //if (msg[0] != 'A') Logging.WriteConsole("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                 //Logging.RecordLogEvent("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length), filter: Logging.LogFilterType.BulkDebugLogFile);
-
+                s.Restart();
                 lock (debug_tag_lock) //todo dont forget to remove this
                 {
                     switch (msg[0])
@@ -991,9 +998,15 @@ namespace rgat.Threads
                             break;
                     }
                 }
+                s.Stop();
+                if (s.ElapsedMilliseconds > 3)
+                {
+                    Console.WriteLine($"Tag {(char)msg[0]} took {s.ElapsedMilliseconds}ms to process");
+                }
 
                 if (IrregularTimerFired)
                 {
+                    IrregularTimerFired = false;
                     PerformIrregularActions();
                 }
             }

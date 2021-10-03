@@ -126,6 +126,7 @@ namespace rgat
 
                 nextMessage = ReadingQueue[readIndex++];
 
+                IncreaseProcessedCount();
                 QueueSize -= 1;
                 PendingDataSize -= (ulong)nextMessage.Length;
                 ProcessedDataSize += (ulong)nextMessage.Length;
@@ -176,6 +177,7 @@ namespace rgat
                 TagDataReadyEvent.Set();
             }
         }
+
 
         /*
          * It's very important that we clear data from the named pipe as fast as possible 
@@ -256,7 +258,7 @@ namespace rgat
 
 
 
-        //thread handler to build graph for a thread
+        //This reads data from a locally running trace and queues it
         private async void Reader()
         {
             if (!threadpipe.IsConnected)

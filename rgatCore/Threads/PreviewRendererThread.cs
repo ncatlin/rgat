@@ -137,7 +137,6 @@ namespace rgat.Threads
         /// </summary>
         public override void Begin()
         {
-
             base.Begin();
             WorkerThread = new Thread(ThreadProc)
             {

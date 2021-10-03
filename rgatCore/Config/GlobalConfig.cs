@@ -143,11 +143,12 @@ namespace rgat
         /// Milliseconds to wait between frames of Main (displayed) Graph rendering
         /// </summary>
         public static int MainGraphRenderDelay = 0;
+
         /// <summary>
         /// How many items of trace data to use to plot the graph per frame
         /// Lower for interactivity, increase for throughput
         /// </summary>
-        public static int LiveAnimationUpdatesPerFrame = 500;
+        public static int LiveAnimationUpdatesPerFrame = 800;
 
         /// <summary>
         /// Animate a rising caption of API nodes when they are animated

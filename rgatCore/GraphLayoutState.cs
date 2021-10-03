@@ -524,17 +524,25 @@ namespace rgat
         public void RegenerateEdgeDataBuffers(PlottedGraph graph)
         {
             Logging.RecordLogEvent($"RegenerateEdgeDataBuffers start", Logging.LogFilterType.BulkDebugLogFile);
+            long v1 = 0, v2 = 0, v3 = 0;
 
+            Stopwatch st = new();
 
+            st.Restart();
             CreateEdgeDataBuffers(graph);
+            st.Stop(); v1 = st.ElapsedMilliseconds;
+            st.Restart();
             CreateBlockMetadataBuffer(graph);
+            st.Stop(); v2 = st.ElapsedMilliseconds;
+            st.Restart();
             RegeneratePresetBuffer(graph);
+            st.Stop(); v3 = st.ElapsedMilliseconds;
             if (!LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle))//todo and not done
             {
                 ActivatingPreset = true;
             }
             //}
-
+            Console.WriteLine($"Regen took: edged:{v1}ms, blockmd:{v2}ms, preset:{v3}ms");
             Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {graph.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
         }
 
@@ -599,6 +607,8 @@ namespace rgat
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnectionIndexes);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeStrengths);
 
+            Stopwatch st = new Stopwatch();
+            st.Start();
             if (!graph.GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargets, out int[] edgeMetaOffsets))
             {
                 Logging.RecordLogEvent($"CreateEdgeDataBuffers zerobuf", Logging.LogFilterType.BulkDebugLogFile);
@@ -607,7 +617,8 @@ namespace rgat
                 _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeOffsets_T{graph.TID}");
                 return false;
             }
-
+            st.Stop();
+            Console.WriteLine($"GetEdgeRenderingdata took {st.ElapsedMilliseconds} ms");
 
             _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeTargets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeTargetsBuf_T{graph.TID}");
             _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeStrengths.Length * sizeof(float), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeStrengthsBuf_T{graph.TID}");
@@ -631,7 +642,7 @@ namespace rgat
                         cl.UpdateBuffer(_VRAMBuffers.EdgeConnectionIndexes, 0, (IntPtr)offsetsPtr, (uint)edgeMetaOffsets.Length * sizeof(int));
                         cl.End();
                         _gd.SubmitCommands(cl);
-                        _gd.WaitForIdle();
+                        //_gd.WaitForIdle();
                         cl.Dispose();
 
                     }

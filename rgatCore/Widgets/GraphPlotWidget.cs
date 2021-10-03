@@ -600,6 +600,8 @@ namespace rgat
             graph.CameraState.RotationMatrix = world;
         }
 
+        Stopwatch st = new();
+
         /// <summary>
         /// Write the rendered graph/HUD items to the draw list
         /// </summary>
@@ -607,7 +609,12 @@ namespace rgat
         /// <param name="graph">The graph being drawn</param>
         public void Draw(Vector2 graphSize, PlottedGraph? graph)
         {
+            st.Restart();
             _graphLock.EnterReadLock();
+            st.Stop();
+            if (st.ElapsedMilliseconds > 0)
+                Console.WriteLine($"Lock contended for {st.ElapsedMilliseconds} ms");
+
 
             if (graph != ActiveGraph)
             {
@@ -620,10 +627,8 @@ namespace rgat
             }
 
             DrawHUD(graphSize, ActiveGraph);
-
             _graphLock.ExitReadLock();
         }
-
 
 
         /// <summary>
@@ -647,6 +652,7 @@ namespace rgat
             _graphLock.ExitWriteLock();
         }
 
+
         /// <summary>
         /// Drawing is complete. Release the write lock so it can be displayed on the screen
         /// The other framebuffer will become locked for writing
@@ -659,6 +665,7 @@ namespace rgat
 
             _graphLock.ExitWriteLock();
         }
+
 
         /// <summary>
         /// Get the most recently drawn framebuffer for displaying to the user
@@ -766,6 +773,7 @@ namespace rgat
             _fontPipeline = factory.CreateGraphicsPipeline(fontpd);
         }
 
+
         /// <summary>
         /// Re-initialise graphics resources, for use when the size of the widget has changed
         /// </summary>
@@ -856,6 +864,7 @@ namespace rgat
                 SetRenderingMode(newMode);
             }
         }
+
 
         /// <summary>
         /// Set the rendering mode to the specified mode
@@ -1719,13 +1728,20 @@ namespace rgat
                 return;
             }
 
+            Stopwatch st = new Stopwatch();
+            long v1 = 0, v2 = 0, v3 = 0, v4 = 0;
+
+            st.Start();
             HandleGraphUpdates();
+            st.Stop(); v1 = st.ElapsedMilliseconds; st.Restart();
 
             _layoutEngine.Compute(cl, graph, _mouseoverNodeID, graph.IsAnimated);
+            st.Stop(); v2 = st.ElapsedMilliseconds; st.Restart();
 
             if (_controller.DialogOpen is false)
             {
                 DoMouseNodePicking(_gd!);
+                st.Stop(); v3 = st.ElapsedMilliseconds; st.Restart();
             }
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
@@ -1763,7 +1779,13 @@ namespace rgat
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, attribBuf));
 
             Logging.RecordLogEvent("GenerateMainGraph Starting rendergraph", filter: Logging.LogFilterType.BulkDebugLogFile);
+
             DrawGraph(cl, graph);
+
+            st.Stop(); v4 = st.ElapsedMilliseconds; st.Restart();
+
+            if (v4 > 200)
+                Console.WriteLine($"GMG: v1:{v1}, v1:{v2}, v3:{v3}, v4:{v4}");
 
             Logging.RecordLogEvent("GenerateMainGraph upd then done", filter: Logging.LogFilterType.BulkDebugLogFile);
             graph.UpdatePreviewVisibleRegion(WidgetSize);

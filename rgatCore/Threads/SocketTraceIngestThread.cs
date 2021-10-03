@@ -60,6 +60,7 @@ namespace rgat.Threads
             IncreaseMessageCount();
         }
 
+
         public override byte[]? DeQueueData()
         {
             if (InQueue.Count == 0)
@@ -70,6 +71,7 @@ namespace rgat.Threads
             lock (_lock)
             {
                 byte[] nextMessage = InQueue.Dequeue();
+                IncreaseProcessedCount();
                 PendingDataSize -= (ulong)nextMessage.Length;
                 ProcessedDataSize += (ulong)nextMessage.Length;
                 QueueSize -= 1;

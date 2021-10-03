@@ -29,6 +29,7 @@ namespace rgat.Threads
         public ulong QueueSize { get; protected set; } = 0;
 
         private long _recentMsgCount = 0;
+        private long _recentProcessedCount = 0;
 
 
         /// <summary>
@@ -58,7 +59,7 @@ namespace rgat.Threads
         /// </summary>
         protected TraceIngestWorker()
         {
-            _updateRates = Enumerable.Repeat(0.0f, _StatCacheSize).ToList();
+            _incomingRates = Enumerable.Repeat(0.0f, _StatCacheSize).ToList();
 
             StatsTimer = new System.Timers.Timer(1000.0 / GlobalConfig.IngestStatsPerSecond);
             StatsTimer.Elapsed += StatsTimerFired;
@@ -67,9 +68,13 @@ namespace rgat.Threads
         }
 
         /// <summary>
-        /// count a new message
+        /// count a new message being received
         /// </summary>
         protected void IncreaseMessageCount() => _recentMsgCount += 1;
+        /// <summary>
+        /// Count a queued message being collected
+        /// </summary>
+        protected void IncreaseProcessedCount() => _recentProcessedCount += 1;
 
 
         /// <summary>
@@ -100,18 +105,32 @@ namespace rgat.Threads
         private readonly object _statsLock = new object();
         private readonly System.Timers.Timer StatsTimer;
         private DateTime _lastStatsUpdate = DateTime.Now;
-        private readonly List<float> _updateRates = new List<float>();
+        private readonly List<float> _incomingRates = new List<float>();
+        private readonly List<float> _outgoingRates = new List<float>();
         private readonly int _StatCacheSize = (int)Math.Floor(GlobalConfig.IngestStatWindow * GlobalConfig.IngestStatsPerSecond);
 
+
         /// <summary>
-        /// Get recnt messages/second ingest rates
+        /// Get recent message ingest rates
         /// </summary>
         /// <returns></returns>
-        public float[] RecentMessageRates()
+        public void RecentMessageRates(out float[] _incoming)
         {
             lock (_statsLock)
             {
-                return _updateRates.ToArray();
+                _incoming = _incomingRates.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// Get recent message ingest/processing rates
+        /// </summary>
+        /// <returns></returns>
+        public void RecentProcessingRates(out float[] _outgoing)
+        {
+            lock (_statsLock)
+            {
+                _outgoing = _outgoingRates.ToArray();
             }
         }
 
@@ -122,27 +141,31 @@ namespace rgat.Threads
          */
         private void StatsTimerFired(object sender, System.Timers.ElapsedEventArgs e)
         {
-            long messagesSinceLastUpdate = _recentMsgCount;
             DateTime lastUpdate = _lastStatsUpdate;
 
             _lastStatsUpdate = DateTime.Now;
-            _recentMsgCount = 0;
 
             float elapsedTimeS = (DateTime.Now - lastUpdate).Milliseconds / 1000.0f;
 
-            float updateRate = messagesSinceLastUpdate / elapsedTimeS;
             lock (_statsLock)
             {
-                if (_updateRates.Count > _StatCacheSize)
+                float incomingRate = _recentMsgCount / elapsedTimeS;
+                float outgoingRate = _recentProcessedCount / elapsedTimeS;
+                _recentMsgCount = 0;
+                _recentProcessedCount = 0;
+
+                if (_incomingRates.Count > _StatCacheSize)
                 {
-                    _updateRates.RemoveAt(0);
+                    _incomingRates.RemoveAt(0);
+                    _outgoingRates.RemoveAt(0);
                 }
-                _updateRates.Add(updateRate);
+                _incomingRates.Add(incomingRate);
+                _outgoingRates.Add(outgoingRate);
 
                 if (StopFlag)
                 {
                     //stop updating once all activity has gone
-                    if (_updateRates.Max() == 0)
+                    if (_incomingRates.Max() == 0)
                     {
                         StatsTimer.Stop();
                     }

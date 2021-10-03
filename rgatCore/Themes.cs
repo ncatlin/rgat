@@ -1198,8 +1198,8 @@ namespace rgat
             if (ThemeColoursStandard.Count == 0)
             {
                 InitFallbackTheme();
-                InitUnsetCustomColours();
             }
+            InitUnsetCustomColours();
         }
 
     }

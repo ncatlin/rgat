@@ -4888,7 +4888,7 @@
             <param name="newnodelist"></param>
             <returns></returns>
         </member>
-        <member name="M:rgat.PlottedGraph.ProcessLiveAnimationUpdates">
+        <member name="M:rgat.PlottedGraph.ProcessLiveAnimationUpdates(System.Int32@)">
             <summary>
             Process more animation updates from a live trace
             </summary>
@@ -7994,7 +7994,12 @@
         </member>
         <member name="M:rgat.Threads.TraceIngestWorker.IncreaseMessageCount">
             <summary>
-            count a new message
+            count a new message being received
+            </summary>
+        </member>
+        <member name="M:rgat.Threads.TraceIngestWorker.IncreaseProcessedCount">
+            <summary>
+            Count a queued message being collected
             </summary>
         </member>
         <member name="M:rgat.Threads.TraceIngestWorker.Terminate">
@@ -8014,9 +8019,15 @@
             </summary>
             <returns></returns>
         </member>
-        <member name="M:rgat.Threads.TraceIngestWorker.RecentMessageRates">
+        <member name="M:rgat.Threads.TraceIngestWorker.RecentMessageRates(System.Single[]@)">
             <summary>
-            Get recnt messages/second ingest rates
+            Get recent message ingest rates
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:rgat.Threads.TraceIngestWorker.RecentProcessingRates(System.Single[]@)">
+            <summary>
+            Get recent message ingest/processing rates
             </summary>
             <returns></returns>
         </member>

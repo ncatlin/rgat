@@ -512,10 +512,10 @@ namespace rgat.Widgets
             _currentGraph = graph;
 
             Texture btnIcon = _controller.GetImage("Menu");
-            _iconSize = new Vector2(btnIcon.Width * scale, btnIcon.Height * scale);
 
             if (_expandProgress == 0)
             {
+                _iconSize = new Vector2(btnIcon.Width * scale, btnIcon.Height * scale);
                 IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd!.ResourceFactory, btnIcon, "QuickMenuButton");
                 Vector2 padding = new Vector2(16f, 6f);
                 Vector2 mainIconPos = new Vector2((position.X) + padding.X, ((position.Y - _iconSize.Y) - 4) - padding.Y);

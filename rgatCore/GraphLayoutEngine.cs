@@ -574,6 +574,7 @@ namespace rgat
             newversion = layout.RenderVersion;
 
             _stepTimer.Stop();
+            Console.WriteLine($"Compute step took: {_stepTimer.ElapsedMilliseconds}ms");
 
             _lastComputeMS.Add(_stepTimer.Elapsed.TotalMilliseconds);
             if (_lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)

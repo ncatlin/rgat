@@ -516,7 +516,7 @@ namespace rgat
             }
 
             //write the caption
-            string Caption = $"TID:{graph.TID} {graphNodeCount}nodes {(isSelected ? "[Selected]" : "")}";
+            string Caption = $"TID:{graph.TID} {graphNodeCount} nodes {(isSelected ? "[Selected]" : "")}";
             ImGui.SetCursorPosX(ImGui.GetCursorPosX());
             Vector2 captionBGStart = subGraphPosition + new Vector2(borderThickness, borderThickness);
             Vector2 captionBGEnd = new Vector2((captionBGStart.X + EachGraphWidth - borderThickness * 2), captionBGStart.Y + captionHeight);
@@ -534,22 +534,22 @@ namespace rgat
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() - captionHeight);
 
                 float maxVal;
-                float[]? values = null;
+                float[]? invalues = null;
                 if (graph.InternalProtoGraph.TraceReader != null)
                 {
-                    values = graph.InternalProtoGraph.TraceReader.RecentMessageRates();
+                    graph.InternalProtoGraph.TraceReader.RecentMessageRates(out invalues);
                 }
-                if (values == null || values.Length == 0)
+                if (invalues == null || invalues.Length == 0)
                 {
-                    values = new List<float>() { 0, 0, 0, 0, 0 }.ToArray();
+                    invalues = new List<float>() { 0, 0, 0, 0, 0 }.ToArray();
                     maxVal = 100;
                 }
                 else
                 {
-                    maxVal = values.Max(); // should instead do the max of all the values from all the threads?
+                    maxVal = invalues.Max(); 
                 }
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, captionBackgroundcolor);
-                ImGui.PlotLines("", ref values[0], values.Length, 0, "", 0, maxVal, new Vector2(40, captionHeight));
+                ImGui.PlotLines("", ref invalues[0], invalues.Length, 0, "", 0, maxVal, new Vector2(40, captionHeight));
                 if (ImGui.IsItemHovered()) 
                     canHover = false; //The PlotLines widget doesn't allow disabling the mouseover, so have to prevent our mousover to avoid a merged tooltip
                 ImGui.PopStyleColor();
