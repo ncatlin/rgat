@@ -144,7 +144,7 @@ namespace rgat
 
             IsAnimated = !InternalProtoGraph.Terminated;
 
-            graphColours = new WritableRgbaFloat[] { }; //squash "needs value" warning
+            graphColours = Array.Empty<WritableRgbaFloat>(); //squash "needs value" warning
             InitGraphColours();
 
             CameraClippingFar = 60000f;
@@ -1665,7 +1665,7 @@ namespace rgat
         /// <param name="captions">Node caption texts</param>
         /// <returns>Node drawing data</returns>
         public Position2DColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode,
-            out List<uint> nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string?, uint>> captions)
+            out uint[] nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string?, uint>> captions)
         {
             bool createNewLabels = false;
             if (renderingMode != lastRenderingMode || _newLabels)
@@ -1690,7 +1690,6 @@ namespace rgat
             nodePickingColors = new Position2DColour[textureSize * textureSize];
             captions = new List<Tuple<string?, uint>>();
 
-            nodeIndices = new List<uint>();
             int nodeCount = RenderedNodeCount();
 
 
@@ -1707,11 +1706,10 @@ namespace rgat
                 Vector2 texturePosition = new Vector2(x, y);
 
                 if (index >= nodeCount || index >= InternalProtoGraph.NodeCount)
-                {
+                {   
+                    nodeIndices = Enumerable.Range(0, nodeVerts.Length).Select(x => (uint)x).ToArray();
                     return nodeVerts;
                 }
-
-                nodeIndices.Add(index);
 
                 WritableRgbaFloat nodeColour = GetNodeColor((int)index, renderingMode, graphColoursCopy);
                 nodeVerts[index] = new Position2DColour
@@ -1735,6 +1733,7 @@ namespace rgat
                     }
                 }
             }
+            nodeIndices = Enumerable.Range(0, nodeVerts.Length).Select(x => (uint)x).ToArray();
             return nodeVerts;
         }
 
@@ -1814,13 +1813,12 @@ namespace rgat
         /// <param name="graphDrawnEdgeCount">The number of edges being drawn</param>
         /// <returns></returns>
         public Position2DColour[] GetEdgeLineVerts(eRenderingMode renderingMode,
-            out List<uint> edgeIndices, out int vertCount, out int graphDrawnEdgeCount)
+            out uint[] edgeIndices, out int vertCount, out int graphDrawnEdgeCount)
         {
             uint evTexWidth = EdgeVertsTextureWidth();
             Position2DColour[] EdgeLineVerts = new Position2DColour[evTexWidth * evTexWidth * 16];
 
             vertCount = 0;
-            edgeIndices = new List<uint>();
             uint textureSize = LinearIndexTextureSize();
 
             //var edgeList = InternalProtoGraph.GetEdgelistCopy();
@@ -1835,23 +1833,22 @@ namespace rgat
                 int destNodeIdx = (int)edgeNodes.Item2;
                 WritableRgbaFloat ecol = GetEdgeColor(edgeNodes, edges[i], renderingMode);
 
-                EdgeLineVerts[vertCount] =
+                EdgeLineVerts[i*2] =
                         new Position2DColour
                         {
                             Position = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
                             Color = ecol
                         };
-                edgeIndices.Add((uint)vertCount); vertCount++;
 
-                EdgeLineVerts[vertCount] =
+                EdgeLineVerts[i*2+1] =
                     new Position2DColour
                     {
                         Position = new Vector2(destNodeIdx % textureSize, (float)Math.Floor((float)(destNodeIdx / textureSize))),
                         Color = ecol
                     };
-                edgeIndices.Add((uint)vertCount); vertCount++;
-
             }
+            vertCount = lastEdgeIdx*2;
+            edgeIndices = Enumerable.Range(0, vertCount).Select(i => (uint)i).ToArray();
             graphDrawnEdgeCount = DrawnEdgesCount;
             return EdgeLineVerts;
         }

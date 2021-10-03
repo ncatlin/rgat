@@ -4827,7 +4827,8 @@
             <summary>
             Get the colour of this edge in the specified mode
             </summary>
-            <param name="edge">The nodeIndex->nodeIndex description of the edge</param>
+            <param name="nodePair">The nodeIndex->nodeIndex description of the edge</param>
+            <param name="e">The EdgeData edge object</param>
             <param name="renderingMode">The rendering mode</param>
             <returns>The colour of the edge</returns>
         </member>
@@ -4836,7 +4837,7 @@
             Get the currently selected rendering mode of the graph (heatmap, etc)
             </summary>
         </member>
-        <member name="M:rgat.PlottedGraph.GetMaingraphNodeVerts(rgat.CONSTANTS.eRenderingMode,System.Collections.Generic.List{System.UInt32}@,rgat.VeldridGraphBuffers.Position2DColour[]@,System.Collections.Generic.List{System.Tuple{System.String,System.UInt32}}@)">
+        <member name="M:rgat.PlottedGraph.GetMaingraphNodeVerts(rgat.CONSTANTS.eRenderingMode,System.UInt32[]@,rgat.VeldridGraphBuffers.Position2DColour[]@,System.Collections.Generic.List{System.Tuple{System.String,System.UInt32}}@)">
             <summary>
             Get the node drawing data for the preview version of this graph
             </summary>
@@ -4854,7 +4855,7 @@
             <param name="nodeIndices">Output node index list</param>
             <returns>Node geometry array</returns>
         </member>
-        <member name="M:rgat.PlottedGraph.GetEdgeLineVerts(rgat.CONSTANTS.eRenderingMode,System.Collections.Generic.List{System.UInt32}@,System.Int32@,System.Int32@)">
+        <member name="M:rgat.PlottedGraph.GetEdgeLineVerts(rgat.CONSTANTS.eRenderingMode,System.UInt32[]@,System.Int32@,System.Int32@)">
             <summary>
             Get the geometry and colour of every edge
             </summary>
@@ -6103,13 +6104,12 @@
             <param name="edged">The edge, if found</param>
             <returns>An edge was found</returns>
         </member>
-        <member name="M:rgat.ProtoGraph.GetEdgelistCopy">
+        <member name="M:rgat.ProtoGraph.GetEdgelistSpans(System.Span{System.Tuple{System.UInt32,System.UInt32}}@,System.Span{rgat.EdgeData}@)">
             <summary>
-            Get a thread-safe copy of the nodepair edge list
+            Get readonly references to the nodepair edge list and full edgelist
             </summary>
             <returns>The list of nodepairs</returns>
         </member>
-        <!-- Badly formed XML comment ignored for member "M:rgat.ProtoGraph.GetEdgelistSpans(System.Span{System.Tuple{System.UInt32,System.UInt32}}@,System.Span{rgat.EdgeData}@)" -->
         <member name="M:rgat.ProtoGraph.GetEdgeObjListCopy">
             <summary>
             Get a thread-safe copy of the EdgeData edge list
@@ -6596,7 +6596,7 @@
             <param name="graph">A PlottedGraph object of the thread to display</param>
             <returns></returns>
         </member>
-        <member name="M:rgat.rgatState.getActiveGraph">
+        <member name="M:rgat.rgatState.GetActiveGraph">
             <summary>
             Get the currently active thread graph being shown by the UI
             </summary>
@@ -9175,6 +9175,7 @@
             </summary>
             <param name="inputString">Text to display</param>
             <param name="nodeIdx">Node associated with the text - used for positioning</param>
+            <param name="arrayIdx">Where in the glyphs array to insert this string</param>
             <param name="fontScale">Text scaling factor</param>
             <param name="font">Font glyphs to use</param>
             <param name="stringVerts">Working list of glyph descriptors to add the generated fontStrucs to</param>

@@ -221,8 +221,9 @@ namespace rgat.Threads
         /// task queue them occasionally. If they gain some instrumented code they will enter
         /// regular rotation
         /// </summary>
-        private void EmptyGraphTask()
+        private async void EmptyGraphTask()
         {
+            Stopwatch s = new Stopwatch();
             while (_stopFlag is false && !rgatState.rgatIsExiting)
             {
                 PlottedGraph[] graphs;
@@ -247,7 +248,7 @@ namespace rgat.Threads
 
                 try
                 {
-                    System.Threading.Tasks.Task.Delay(50, rgatState.ExitToken);
+                    await System.Threading.Tasks.Task.Delay(50, rgatState.ExitToken);
                 }
                 catch { }
             }
@@ -286,7 +287,7 @@ namespace rgat.Threads
             }
 
             Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow,
-                out List<uint> edgeDrawIndexes,
+                out uint[] edgeDrawIndexes,
                 out int edgeVertCount,
                 out int drawnEdgeCount);
             if (drawnEdgeCount == 0 || !graph.LayoutState.Initialised)
@@ -320,7 +321,7 @@ namespace rgat.Threads
             cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
 
             if (((edgeVertCount * Position2DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes) ||
-                (edgeDrawIndexes.Count * sizeof(uint)) > _EdgeIndexBuffer!.SizeInBytes)
+                (edgeDrawIndexes.Length * sizeof(uint)) > _EdgeIndexBuffer!.SizeInBytes)
             {
                 Logging.RecordLogEvent("disposeremake edgeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
 
@@ -328,14 +329,14 @@ namespace rgat.Threads
                 _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewEdgeVertexBuffer");
 
                 VeldridGraphBuffers.VRAMDispose(_EdgeIndexBuffer);
-                _EdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewEdgeIndexBuffer");
+                _EdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)edgeDrawIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewEdgeIndexBuffer");
             }
 
             Debug.Assert(((edgeVertCount * sizeof(uint)) <= _EdgeIndexBuffer!.SizeInBytes));
 
             Logging.RecordLogEvent("render preview 3", filter: Logging.LogFilterType.BulkDebugLogFile);
             cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
-            cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
+            cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes);
 
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gdev.PointSampler,
                 graph.LayoutState.PositionsVRAM1, graph.LayoutState.AttributesVRAM1);
@@ -564,6 +565,7 @@ namespace rgat.Threads
             }
 
             //weight the offsets higher
+            MaxRemaining = Math.Max(Math.Max(Math.Abs(xdelta) * 4, Math.Abs(ydelta) * 4), Math.Abs(zdelta));
             MaxRemaining = Math.Max(Math.Max(Math.Abs(xdelta) * 4, Math.Abs(ydelta) * 4), Math.Abs(zdelta));
 
 

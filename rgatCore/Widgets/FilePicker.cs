@@ -191,7 +191,7 @@ namespace rgatFilePicker
 
                     foreach (string dir in dirData.Keys.Where(dn => !dirs.Contains(dn)))
                     {
-                        if (lostDirs.Count(m => m.filename == dir) == 0)
+                        if (lostDirs.Any(m => m.filename == dir) is false)
                         {
                             FileMetadata m = dirData[dir];
                             m.path = dir;
@@ -233,7 +233,7 @@ namespace rgatFilePicker
                     //flag removed files
                     foreach (string file in fileData.Keys.Where(fn => !files.Contains(fn)))
                     {
-                        if (lostFiles.Count(m => m.filename == file) == 0)
+                        if (lostFiles.Any(m => m.filename == file) is false)
                         {
                             FileMetadata m = fileData[file];
                             if (!m.expired)

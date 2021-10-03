@@ -39,7 +39,7 @@ namespace rgat.Threads
             float current = decile;
 
 
-            System.Collections.Generic.List<ulong> EdgeHeatThresholds = Enumerable.Repeat((ulong)0, 9).ToList();
+            ulong[] EdgeHeatThresholds = new ulong[9];
             for (var i = 0; i < 9; i++)
             {
                 EdgeHeatThresholds[i] = allEdgeExecutions.ElementAt((int)current);
@@ -50,7 +50,7 @@ namespace rgat.Threads
             {
                 ulong execCount = e.ExecutionCount;
                 int threshold = 0;
-                while (threshold < EdgeHeatThresholds.Count && execCount > EdgeHeatThresholds[threshold])
+                while (threshold < EdgeHeatThresholds.Length && execCount > EdgeHeatThresholds[threshold])
                 {
                     threshold++;
                 }

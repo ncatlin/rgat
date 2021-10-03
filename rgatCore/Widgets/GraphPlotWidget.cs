@@ -1018,7 +1018,7 @@ namespace rgat
 
         private readonly List<RISINGEXTTXT> _activeRisings = new List<RISINGEXTTXT>();
 
-        private void UploadFontVerts(fontStruc[] stringVerts1, fontStruc[] stringVerts2)
+        private void UploadFontVerts(fontStruc[] stringVerts1, fontStruc[] stringVerts2, CommandList cl)
         {
             Debug.Assert(_gd is not null);
             int vertsCount = stringVerts1.Length + stringVerts2.Length;
@@ -1032,17 +1032,11 @@ namespace rgat
                 _FontIndexBufferAll = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)charIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: _FontIndexBufferAll!.Name);
             }
 
-            CommandList cl = _factory!.CreateCommandList();
-            cl.Begin();
             if (stringVerts1.Any())
                 cl.UpdateBuffer(_FontVertBuffer, 0, stringVerts1);
             if (stringVerts2.Any())
                 cl.UpdateBuffer(_FontVertBuffer, (uint)(stringVerts1.Length * fontStruc.SizeInBytes), stringVerts2);
             cl.UpdateBuffer(_FontIndexBufferAll, 0, charIndexes);
-            cl.End();
-            _gd.SubmitCommands(cl);
-            _gd.WaitForIdle();
-            cl.Dispose();
         }
 
         private fontStruc[] RenderHighlightedNodeText(List<Tuple<string?, uint>> captions, int nodeIdx = -1)
@@ -1183,10 +1177,6 @@ namespace rgat
             return glyphVerts;
         }
 
-        private void MaintainCaptions(List<fontStruc> stringVerts)
-        {
-
-        }
 
         private ulong _lastThemeVersion = 0;
 
@@ -1197,7 +1187,7 @@ namespace rgat
         /// <param name="graph">The PlottedGraph to draw</param>
         public void DrawGraph(CommandList cl, PlottedGraph graph)
         {
-            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out List<uint> edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
+            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out uint[] edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
             if (drawnEdgeCount == 0 || Exiting)
             {
                 return;
@@ -1233,13 +1223,13 @@ namespace rgat
             ResourceSet crs_core = _factory.CreateResourceSet(crs_core_rsd);
 
             Position2DColour[] NodeVerts = graph.GetMaingraphNodeVerts(_renderingMode,
-            out List<uint> nodeIndices, out Position2DColour[] nodePickingColors,
+            out uint[] nodeIndices, out Position2DColour[] nodePickingColors,
             out List<Tuple<string?, uint>> captions);
 
             //_layoutEngine.GetScreenFitOffsets(WidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 
             if (_NodeVertexBuffer!.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
-                (_NodeIndexBuffer!.SizeInBytes < nodeIndices.Count * sizeof(uint)))
+                (_NodeIndexBuffer!.SizeInBytes < nodeIndices.Length * sizeof(uint)))
             {
                 VRAMDispose(_NodeVertexBuffer);
                 VRAMDispose(_NodePickingBuffer);
@@ -1247,25 +1237,25 @@ namespace rgat
 
                 _NodeVertexBuffer = TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "NodeVertexBuffer");
                 _NodePickingBuffer = TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "NodePickingVertexBuffer");
-                _NodeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "NodeIndexBuffer");
+                _NodeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)nodeIndices.Length * sizeof(uint), BufferUsage.IndexBuffer, name: "NodeIndexBuffer");
             }
 
             //todo - only do this on changes
             cl.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
             cl.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
-            cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
+            cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices);
 
             if (((edgeVertCount * 4) > _EdgeIndexBuffer!.SizeInBytes))
             {
                 VRAMDispose(_EdgeVertBuffer);
                 _EdgeVertBuffer = TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
                 VRAMDispose(_EdgeIndexBuffer);
-                _EdgeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)edgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "EdgeIndexBuffer");
+                _EdgeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)edgeDrawIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: "EdgeIndexBuffer");
             }
 
             //todo - only do this on changes
             cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
-            cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
+            cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes);
 
             Logging.RecordLogEvent("render graph 4", filter: Logging.LogFilterType.BulkDebugLogFile);
             fontStruc[] stringVerts;
@@ -1280,10 +1270,10 @@ namespace rgat
 
             List<fontStruc> risingTextVerts = new List<fontStruc>();
             MaintainRisingTexts(GlobalConfig.InsTextScale, ref risingTextVerts);
-            UploadFontVerts(stringVerts, risingTextVerts.ToArray());
+            UploadFontVerts(stringVerts, risingTextVerts.ToArray(), cl);
 
-            Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / 4));
-            int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / 4));
+            Debug.Assert(nodeIndices.Length <= (_NodeIndexBuffer.SizeInBytes / 4));
+            int nodesToDraw = Math.Min(nodeIndices.Length, (int)(_NodeIndexBuffer.SizeInBytes / 4));
 
             GetOutputFramebuffer(out Framebuffer drawtarget);
 
@@ -1364,7 +1354,7 @@ namespace rgat
 
             cl.ClearColorTarget(0, new RgbaFloat(0f, 0f, 0f, 0f));
             cl.SetViewport(0, new Viewport(0, 0, WidgetSize.X, WidgetSize.Y, -2200, 1000));
-            cl.DrawIndexed(indexCount: (uint)nodeIndices.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            cl.DrawIndexed(indexCount: (uint)nodeIndices.Length, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
             cl.CopyTexture(_testPickingTexture, _pickingStagingTexture);
 

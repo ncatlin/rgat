@@ -26,6 +26,9 @@ namespace rgat
 
         public double UIFrameAverage = 0;
 
+        readonly List<PreviewRendererThread> previewRenderers = new();
+
+
         public VisualiserTab(rgatState state, ImGuiController controller)
         {
             _rgatState = state;
@@ -35,7 +38,6 @@ namespace rgat
         }
 
 
-        List<PreviewRendererThread> previewRenderers = new();
 
         public void Init(GraphicsDevice gd, IProgress<float> progress)
         {
@@ -81,7 +83,6 @@ namespace rgat
             PreviewRendererThread prev = new PreviewRendererThread(0, PreviewGraphWidget, _controller, background: true);
             previewRenderers.Add(prev);
             prev.Begin();
-
             for (var i = 1; i < count; i++)
             {
                 prev = new PreviewRendererThread(i, PreviewGraphWidget, _controller, background: false);
@@ -999,7 +1000,7 @@ namespace rgat
                     return;
                 }
 
-                if (_rgatState.ChooseActiveGraph())
+                if (rgatState.ChooseActiveGraph())
                 {
                     if (rgatState.RecordVideoOnNextTrace)
                     {

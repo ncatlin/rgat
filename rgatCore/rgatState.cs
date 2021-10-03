@@ -229,7 +229,7 @@ namespace rgat
         /// <param name="isLibrary">The target is a DLL</param>
         /// <param name="makeActive">Set this as active in the UI</param>
         /// <returns>The BinaryTarget object describing the target</returns>
-        public BinaryTarget AddTargetByPath(string path, int arch = 0, bool isLibrary = false, bool makeActive = true)
+        public static BinaryTarget AddTargetByPath(string path, int arch = 0, bool isLibrary = false, bool makeActive = true)
         {
             BinaryTarget targ = targets.AddTargetByPath(path, isLibrary: isLibrary, arch: arch);
             DIELib?.StartDetectItEasyScan(targ);
@@ -268,7 +268,7 @@ namespace rgat
         /// Set the binary target active in the UI
         /// </summary>
         /// <param name="path">Path of the target to activate</param>
-        public void SetActiveTarget(string? path)
+        public static void SetActiveTarget(string? path)
         {
             if (path == null)
             {
@@ -292,7 +292,7 @@ namespace rgat
         /// Set the binary target active in the UI
         /// </summary>
         /// <param name="newTarget">BinaryTarget object to activate</param>
-        public void SetActiveTarget(BinaryTarget newTarget)
+        public static void SetActiveTarget(BinaryTarget newTarget)
         {
             if (newTarget != null && newTarget != ActiveTarget)
             {
@@ -410,7 +410,7 @@ namespace rgat
         /// Cause the UI to choose an active graph to display, used when no graph is active
         /// </summary>
         /// <returns>If a graph is now active</returns>
-        public bool ChooseActiveGraph()
+        public static bool ChooseActiveGraph()
         {
             if (ActiveGraph != null)
             {
@@ -513,7 +513,7 @@ namespace rgat
         /// Get the currently active thread graph being shown by the UI
         /// </summary>
         /// <returns>The PlottedGraph object of the active thread graph</returns>
-        public PlottedGraph? getActiveGraph()
+        public static PlottedGraph? GetActiveGraph()
         {
             if (ActiveGraph != null && ActiveGraph.BeingDeleted)
             {

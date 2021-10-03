@@ -225,7 +225,7 @@ namespace rgat.Threads
             BinaryTarget? target;
             if (!rgatState.targets.GetTargetByPath(path: programName, out target) || target is null)
             {
-                target = _clientState!.AddTargetByPath(path: programName, arch: arch, isLibrary: isLibrary, makeActive: true);
+                target = rgatState.AddTargetByPath(path: programName, arch: arch, isLibrary: isLibrary, makeActive: true);
             }
 
             if (target.BitWidth != arch)

@@ -368,7 +368,7 @@ namespace rgat.Widgets
 
         private bool ActivateAction(ActionName actionName, bool hotKey)
         {
-            return ActivateAction(actionName, hotKey, out string? ignored);
+            return ActivateAction(actionName, hotKey, out string? _);
         }
 
         private void PopulateMenuActionsList(MenuEntry entry)

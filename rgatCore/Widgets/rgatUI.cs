@@ -1314,7 +1314,7 @@ namespace rgat
                         label = $"[{activeTarget.RemoteHost}]:{path}";
                     if (ImGui.Selectable(label, is_selected))
                     {
-                        _rgatState.SetActiveTarget(path);
+                        rgatState.SetActiveTarget(path);
                     }
 
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -1469,9 +1469,9 @@ namespace rgat
                 }
                 else
                 {
-                    _rgatState.SetActiveTarget(path: null);
+                    rgatState.SetActiveTarget(path: null);
                     GlobalConfig.Settings.RecentPaths.RecordRecentPath(rgatSettings.PathType.Binary, path);
-                    _rgatState.AddTargetByPath(path);
+                    rgatState.AddTargetByPath(path);
                     _SwitchToTraceSelectTab = true;
                 }
             }
@@ -1492,7 +1492,7 @@ namespace rgat
                 return false;
             }
 
-            _rgatState.SetActiveTarget(path: null);
+            rgatState.SetActiveTarget(path: null);
             BinaryTarget target = _rgatState.AddRemoteTargetByPath(path, rgatState.NetworkBridge.LastAddress);
             rgatState.NetworkBridge.SendCommand("LoadTarget", "GUI", target.InitialiseFromRemoteData, path);
 

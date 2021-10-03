@@ -239,16 +239,16 @@ namespace rgat
             /// <param name="style">The style of the layout</param>
             public CPUBuffers(LayoutStyles.Style style)
             {
-                PositionsArray = new float[] { };
-                VelocityArray = new float[] { };
-                NodeAttribArray = new float[] { };
+                PositionsArray = Array.Empty<float>();
+                VelocityArray = Array.Empty<float>();
+                NodeAttribArray = Array.Empty<float>();
 
-                PresetPositions = new float[] { };
-                EdgeConnections = new int[] { };
-                EdgeConnectionIndexes = new int[] { };
-                EdgeStrengths = new float[] { };
-                BlockMetadata = new int[] { };
-                BlockMiddles = new int[] { };
+                PresetPositions = Array.Empty<float>();
+                EdgeConnections = Array.Empty<int>();
+                EdgeConnectionIndexes = Array.Empty<int>();
+                EdgeStrengths = Array.Empty<float>();
+                BlockMetadata = Array.Empty<int>();
+                BlockMiddles = Array.Empty<int>();
 
                 RenderVersion = 0;
                 Style = style;

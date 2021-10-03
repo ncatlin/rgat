@@ -32,7 +32,7 @@ namespace rgat.Threads
             PlottedGraph? activeGraph;
             while (!rgatState.rgatIsExiting)
             {
-                activeGraph = _clientState!.getActiveGraph();
+                activeGraph = rgatState.GetActiveGraph();
                 while (activeGraph == null)
                 {
                     Thread.Sleep(50);
@@ -41,7 +41,7 @@ namespace rgat.Threads
                         Finished();
                         return;
                     }
-                    activeGraph = _clientState.getActiveGraph();
+                    activeGraph = rgatState.GetActiveGraph();
                     continue;
                 }
 
