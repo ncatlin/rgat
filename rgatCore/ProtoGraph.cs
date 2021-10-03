@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using static rgat.CONSTANTS;
 
 namespace rgat
@@ -1000,18 +1001,23 @@ namespace rgat
             }
         }
 
+
+
         /// <summary>
-        /// Get a thread-safe copy of the nodepair edge list
+        /// Get readonly references to the nodepair edge list and full edgelist
         /// </summary>
         /// <returns>The list of nodepairs</returns>
-        public List<Tuple<uint, uint>> GetEdgelistCopy()
+        public void GetEdgelistSpans(out Span<Tuple<uint,uint>> nodesList, out Span<EdgeData> edgesList )
         {
 
             lock (edgeLock)
             {
-                return EdgeList.ToList();
+                nodesList = CollectionsMarshal.AsSpan(EdgeList);
+                edgesList = CollectionsMarshal.AsSpan(edgeObjList);
             }
         }
+
+
 
         /// <summary>
         /// Get a thread-safe copy of the EdgeData edge list
@@ -1024,6 +1030,7 @@ namespace rgat
                 return edgeObjList.ToList();
             }
         }
+
 
         /// <summary>
         /// Get a thread-safe copy of the nodedata list
@@ -1277,6 +1284,7 @@ namespace rgat
         /// Ordered list of executing edges
         /// </summary>
         private readonly List<Tuple<uint, uint>> EdgeList = new List<Tuple<uint, uint>>();
+
         /// <summary>
         /// How many edges have been recorded
         /// </summary>

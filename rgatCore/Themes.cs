@@ -265,9 +265,9 @@ namespace rgat
                     ImGui.PushStyleColor(kvp.Key, kvp.Value);
                 }
                 _appliedThemeCount = themes.Count;
-                ThemeVersion++;
             }
         }
+
 
         /// <summary>
         /// Must be called every time the UI is drawn using ApplyThemeColours

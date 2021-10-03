@@ -173,10 +173,10 @@ namespace rgat
             {
                 graph.CameraState.MainCameraZoom = 0;
                 graph.CameraState.MainCameraXOffset = 0;
-                graph.CameraState.MainCameraYOffset= 0;
+                graph.CameraState.MainCameraYOffset = 0;
             }
 
-            GraphLayoutEngine.GetWidgetFitOffsets(WidgetSize, graph, false,  out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
+            GraphLayoutEngine.GetWidgetFitOffsets(WidgetSize, graph, false, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets);
             float delta;
             float xdelta = 0, ydelta = 0, zdelta = 0;
             float targXpadding = 80, targYpadding = 35;
@@ -229,7 +229,7 @@ namespace rgat
             }
 
             //too far left, move right
-            if (xoffsets.X < (targXpadding-tolerance))
+            if (xoffsets.X < (targXpadding - tolerance))
             {
                 float diff = targXpadding - xoffsets.X;
                 delta = Math.Max(-1 * (diff / 5), 15);
@@ -866,7 +866,7 @@ namespace rgat
             _renderingMode = newMode;
         }
 
-        private static readonly Dictionary<string, List<fontStruc>> _cachedStrings = new Dictionary<string, List<fontStruc>>();
+        private static readonly Dictionary<string, fontStruc[]> _cachedStrings = new();
 
 
         /// <summary>
@@ -882,7 +882,7 @@ namespace rgat
         /// <param name="yOff">Vertical offset for the glyphs</param> //todo think caching wrecks this
         private static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, List<fontStruc> stringVerts, uint colour, float yOff = 0)
         {
-            if (_cachedStrings.TryGetValue(inputString, out List<fontStruc>? cached))
+            if (_cachedStrings.TryGetValue(inputString, out fontStruc[]? cached) && cached is not null)
             {
                 stringVerts.AddRange(cached);
                 return;
@@ -892,7 +892,7 @@ namespace rgat
             float yPos = 50;
             float glyphYClip = 10;
             WritableRgbaFloat fcolour = new WritableRgbaFloat(colour);
-            List<fontStruc> result = new List<fontStruc>();
+            fontStruc[] result = new fontStruc[6 * inputString.Length];
             for (var i = 0; i < inputString.Length; i++)
             {
                 ImFontGlyphPtr glyph = font.FindGlyph(inputString[i]);
@@ -904,16 +904,75 @@ namespace rgat
                 float yBase = yPos + (glyphYClip - glyph.Y1) * fontScale;
                 float yTop = yBase + charHeight;
 
-                result.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yTop, 0), fontCoord = new Vector2(glyph.U0, glyph.V0), yOffset = yOff, fontColour = fcolour });
-                result.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yBase, 0), fontCoord = new Vector2(glyph.U0, glyph.V1), yOffset = yOff, fontColour = fcolour });
-                result.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yBase, 0), fontCoord = new Vector2(glyph.U1, glyph.V1), yOffset = yOff, fontColour = fcolour });
-                result.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yTop, 0), fontCoord = new Vector2(glyph.U0, glyph.V0), yOffset = yOff, fontColour = fcolour });
-                result.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yBase, 0), fontCoord = new Vector2(glyph.U1, glyph.V1), yOffset = yOff, fontColour = fcolour });
-                result.Add(new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yTop, 0), fontCoord = new Vector2(glyph.U1, glyph.V0), yOffset = yOff, fontColour = fcolour });
+                Vector2 uv0 = new Vector2(glyph.U0, glyph.V0);
+                Vector2 uv1 = new Vector2(glyph.U1, glyph.V1);
+                Vector3 topLeft = new Vector3(xPos, yTop, 0);
+                Vector3 baseRight = new Vector3(xEnd, yBase, 0);
+                result[i * 6] = new fontStruc { nodeIdx = nodeIdx, screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
+                result[i * 6 + 1] = new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yBase, 0), fontCoord = new Vector2(glyph.U0, glyph.V1), yOffset = yOff, fontColour = fcolour };
+                result[i * 6 + 2] = new fontStruc { nodeIdx = nodeIdx, screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
+                result[i * 6 + 3] = new fontStruc { nodeIdx = nodeIdx, screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
+                result[i * 6 + 4] = new fontStruc { nodeIdx = nodeIdx, screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
+                result[i * 6 + 5] = new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yTop, 0), fontCoord = new Vector2(glyph.U1, glyph.V0), yOffset = yOff, fontColour = fcolour };
                 xPos += charWidth;
             }
             _cachedStrings.Add(inputString, result);
             stringVerts.AddRange(result);
+        }
+
+
+        /// <summary>
+        /// Convert a string to a List of fontStrucs describing the font glyphs to display the string
+        /// The output is cached so this is not performed every frame
+        /// </summary>
+        /// <param name="inputString">Text to display</param>
+        /// <param name="nodeIdx">Node associated with the text - used for positioning</param>
+        /// <param name="arrayIdx">Where in the glyphs array to insert this string</param>
+        /// <param name="fontScale">Text scaling factor</param>
+        /// <param name="font">Font glyphs to use</param>
+        /// <param name="stringVerts">Working list of glyph descriptors to add the generated fontStrucs to</param>
+        /// <param name="colour">Text colour</param>
+        /// <param name="yOff">Vertical offset for the glyphs</param> //todo think caching wrecks this
+        private static void RenderStringToArray(string inputString, uint nodeIdx, int arrayIdx, float fontScale, ImFontPtr font, fontStruc[] stringVerts, uint colour, float yOff = 0)
+        {
+            if (!_cachedStrings.TryGetValue(inputString, out fontStruc[]? cached) || cached is null)
+            {
+                cached = new fontStruc[inputString.Length * 6];
+
+                float xPos = 0;
+                float yPos = 50;
+                float glyphYClip = 10;
+                WritableRgbaFloat fcolour = new WritableRgbaFloat(colour);
+                for (var i = 0; i < inputString.Length; i++)
+                {
+                    ImFontGlyphPtr glyph = font.FindGlyph(inputString[i]);
+                    float charWidth = glyph.AdvanceX * fontScale;
+                    float charHeight = fontScale * (glyph.Y1 - glyph.Y0);
+
+
+                    float xEnd = xPos + charWidth;
+                    float yBase = yPos + (glyphYClip - glyph.Y1) * fontScale;
+                    float yTop = yBase + charHeight;
+
+                    Vector2 uv0 = new Vector2(glyph.U0, glyph.V0);
+                    Vector2 uv1 = new Vector2(glyph.U1, glyph.V1);
+                    Vector3 topLeft = new Vector3(xPos, yTop, 0);
+                    Vector3 baseRight = new Vector3(xEnd, yBase, 0);
+                    cached[i * 6] = new fontStruc { nodeIdx = nodeIdx, screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
+                    cached[i * 6 + 1] = new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yBase, 0), fontCoord = new Vector2(glyph.U0, glyph.V1), yOffset = yOff, fontColour = fcolour };
+                    cached[i * 6 + 2] = new fontStruc { nodeIdx = nodeIdx, screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
+                    cached[i * 6 + 3] = new fontStruc { nodeIdx = nodeIdx, screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
+                    cached[i * 6 + 4] = new fontStruc { nodeIdx = nodeIdx, screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
+                    cached[i * 6 + 5] = new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yTop, 0), fontCoord = new Vector2(glyph.U1, glyph.V0), yOffset = yOff, fontColour = fcolour };
+                    xPos += charWidth;
+                }
+                _cachedStrings.Add(inputString, cached);
+            }
+
+            for (var i = 0; i < cached.Length; i++)
+            {
+                stringVerts[arrayIdx + i] = cached[i];
+            }
         }
 
 
@@ -959,22 +1018,26 @@ namespace rgat
 
         private readonly List<RISINGEXTTXT> _activeRisings = new List<RISINGEXTTXT>();
 
-        private void uploadFontVerts(List<fontStruc> stringVerts)
+        private void UploadFontVerts(fontStruc[] stringVerts1, fontStruc[] stringVerts2)
         {
             Debug.Assert(_gd is not null);
-            uint[] charIndexes = Enumerable.Range(0, stringVerts.Count).Select(i => (uint)i).ToArray();
+            int vertsCount = stringVerts1.Length + stringVerts2.Length;
+            uint[] charIndexes = Enumerable.Range(0, vertsCount).Select(i => (uint)i).ToArray();
 
-            if (stringVerts.Count * fontStruc.SizeInBytes > _FontVertBuffer!.SizeInBytes)
+            if (vertsCount * fontStruc.SizeInBytes > _FontVertBuffer!.SizeInBytes)
             {
                 VeldridGraphBuffers.VRAMDispose(_FontVertBuffer);
-                _FontVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)stringVerts.Count * fontStruc.SizeInBytes, BufferUsage.VertexBuffer, name: _FontVertBuffer.Name);
+                _FontVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)vertsCount * fontStruc.SizeInBytes, BufferUsage.VertexBuffer, name: _FontVertBuffer.Name);
                 VeldridGraphBuffers.VRAMDispose(_FontIndexBufferAll);
                 _FontIndexBufferAll = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)charIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: _FontIndexBufferAll!.Name);
             }
 
             CommandList cl = _factory!.CreateCommandList();
             cl.Begin();
-            cl.UpdateBuffer(_FontVertBuffer, 0, stringVerts.ToArray());
+            if (stringVerts1.Any())
+                cl.UpdateBuffer(_FontVertBuffer, 0, stringVerts1);
+            if (stringVerts2.Any())
+                cl.UpdateBuffer(_FontVertBuffer, (uint)(stringVerts1.Length * fontStruc.SizeInBytes), stringVerts2);
             cl.UpdateBuffer(_FontIndexBufferAll, 0, charIndexes);
             cl.End();
             _gd.SubmitCommands(cl);
@@ -982,27 +1045,26 @@ namespace rgat
             cl.Dispose();
         }
 
-        private List<fontStruc> RenderHighlightedNodeText(List<Tuple<string?, uint>> captions, int nodeIdx = -1)
+        private fontStruc[] RenderHighlightedNodeText(List<Tuple<string?, uint>> captions, int nodeIdx = -1)
         {
             const float fontScale = 8f;
-            List<fontStruc> stringVerts = new List<fontStruc>();
+            fontStruc[] higlightNodeVerts = Array.Empty<fontStruc>();
 
             if (captions.Count > nodeIdx)
             {
+
                 var caption = captions[nodeIdx];
                 if (caption != null && caption.Item1 is not null)
                 {
-                    RenderString(caption.Item1, (uint)nodeIdx, fontScale, _controller._unicodeFont, stringVerts: stringVerts, colour: caption.Item2);
+                    higlightNodeVerts = new fontStruc[(int)(caption.Item1.Length * fontStruc.SizeInBytes)];
+                    RenderStringToArray(caption.Item1, (uint)nodeIdx, 0, fontScale, _controller._unicodeFont, stringVerts: higlightNodeVerts, colour: caption.Item2);
                 }
             }
 
-            maintainRisingTexts(fontScale, ref stringVerts);
-            uploadFontVerts(stringVerts);
-
-            return stringVerts;
+            return higlightNodeVerts;
         }
 
-        private void maintainRisingTexts(float fontScale, ref List<fontStruc> stringVerts)
+        private void MaintainRisingTexts(float fontScale, ref List<fontStruc> stringVerts)
         {
             _activeRisings.RemoveAll(x => x.remainingFrames == 0);
             PlottedGraph? graph = ActiveGraph;
@@ -1081,37 +1143,49 @@ namespace rgat
             }
         }
 
-        private List<fontStruc> renderGraphText(List<Tuple<string?, uint>> captions, float scale)
+        private fontStruc[] renderGraphText(List<Tuple<string?, uint>> captions, float scale)
         {
             List<fontStruc> stringVerts = new List<fontStruc>();
             PlottedGraph? graph = ActiveGraph;
             if (graph == null)
             {
-                return stringVerts;
+                return Array.Empty<fontStruc>();
             }
 
             if (!graph.Opt_TextEnabled)
             {
-                return stringVerts;
+                return Array.Empty<fontStruc>();
             }
 
+            int charCount = 0;
             for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
             {
                 var caption = captions[nodeIdx];
                 if (caption is not null && caption.Item1 is not null)
                 {
-                    RenderString(caption.Item1, (uint)nodeIdx, scale, _controller._unicodeFont, stringVerts, captions[nodeIdx].Item2);
+                    charCount += caption.Item1.Length;
+                }
+            }
+
+            fontStruc[] glyphVerts = new fontStruc[6 * charCount];
+            int glyphIndex = 0;
+            for (int nodeIdx = 0; nodeIdx < captions.Count; nodeIdx++)
+            {
+                var caption = captions[nodeIdx];
+                if (caption is not null && caption.Item1 is not null)
+                {
+                    RenderStringToArray(caption.Item1, (uint)nodeIdx, glyphIndex, scale, _controller._unicodeFont, glyphVerts, captions[nodeIdx].Item2);
+                    glyphIndex += 6 * caption.Item1.Length;
                 }
             }
 
 
-            return stringVerts;
+            return glyphVerts;
         }
 
         private void MaintainCaptions(List<fontStruc> stringVerts)
         {
-            maintainRisingTexts(GlobalConfig.InsTextScale, ref stringVerts);
-            uploadFontVerts(stringVerts);
+
         }
 
         private ulong _lastThemeVersion = 0;
@@ -1133,7 +1207,7 @@ namespace rgat
             Logging.RecordLogEvent("rendergraph start", filter: Logging.LogFilterType.BulkDebugLogFile);
 
             //theme changed, purged cached text in case its colour changed
-            ulong themeVersion = Themes.ThemeVersion;
+            ulong themeVersion = Themes.ThemeVariant;
             bool newColours = _lastThemeVersion < themeVersion;
             if (newColours)
             {
@@ -1141,7 +1215,6 @@ namespace rgat
                 _lastThemeVersion = themeVersion;
             }
 
-            //todo - thread safe persistent commandlist
             cl.Begin();
 
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _imageTextureView);
@@ -1195,17 +1268,19 @@ namespace rgat
             cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes.ToArray());
 
             Logging.RecordLogEvent("render graph 4", filter: Logging.LogFilterType.BulkDebugLogFile);
-            List<fontStruc> stringVerts;
+            fontStruc[] stringVerts;
             if (_mouseoverNodeID == -1)
             {
                 stringVerts = renderGraphText(captions, GlobalConfig.InsTextScale);
             }
             else
             {
-                stringVerts = RenderHighlightedNodeText(captions, _mouseoverNodeID);
+                stringVerts = RenderHighlightedNodeText(captions, _mouseoverNodeID).ToArray();
             }
 
-            MaintainCaptions(stringVerts);
+            List<fontStruc> risingTextVerts = new List<fontStruc>();
+            MaintainRisingTexts(GlobalConfig.InsTextScale, ref risingTextVerts);
+            UploadFontVerts(stringVerts, risingTextVerts.ToArray());
 
             Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / 4));
             int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / 4));
@@ -1274,7 +1349,7 @@ namespace rgat
                 cl.SetGraphicsResourceSet(0, crs_core);
                 cl.SetGraphicsResourceSet(1, _crs_font);
 
-                cl.DrawIndexed(indexCount: (uint)stringVerts.Count, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+                cl.DrawIndexed(indexCount: (uint)(stringVerts.Length + risingTextVerts.Count), instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             }
 
 

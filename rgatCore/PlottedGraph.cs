@@ -1576,17 +1576,12 @@ namespace rgat
         /// <summary>
         /// Get the colour of this edge in the specified mode
         /// </summary>
-        /// <param name="edge">The nodeIndex->nodeIndex description of the edge</param>
+        /// <param name="nodePair">The nodeIndex->nodeIndex description of the edge</param>
+        /// <param name="e">The EdgeData edge object</param>
         /// <param name="renderingMode">The rendering mode</param>
         /// <returns>The colour of the edge</returns>
-        public WritableRgbaFloat GetEdgeColor(Tuple<uint, uint> edge, eRenderingMode renderingMode)
+        public WritableRgbaFloat GetEdgeColor(Tuple<uint, uint> nodePair, EdgeData e, eRenderingMode renderingMode)
         {
-
-            if (!InternalProtoGraph.EdgeExists(edge, out EdgeData? e) || e is null)
-            {
-                return new WritableRgbaFloat(0f, 0f, 0f, 1);
-            }
-
             switch (renderingMode)
             {
                 case eRenderingMode.eStandardControlFlow:
@@ -1601,22 +1596,22 @@ namespace rgat
                     return new WritableRgbaFloat(0.8f, 0.8f, 0.8f, 1);
 
                 case eRenderingMode.eDegree:
-                    if (InternalProtoGraph.NodeList[(int)edge.Item1].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                    if (InternalProtoGraph.NodeList[(int)nodePair.Item1].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
                     {
                         return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
                     }
 
-                    if (InternalProtoGraph.NodeList[(int)edge.Item1].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                    if (InternalProtoGraph.NodeList[(int)nodePair.Item1].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
                     {
                         return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
                     }
 
-                    if (InternalProtoGraph.NodeList[(int)edge.Item2].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                    if (InternalProtoGraph.NodeList[(int)nodePair.Item2].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
                     {
                         return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
                     }
 
-                    if (InternalProtoGraph.NodeList[(int)edge.Item2].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                    if (InternalProtoGraph.NodeList[(int)nodePair.Item2].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
                     {
                         return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
                     }
@@ -1828,13 +1823,17 @@ namespace rgat
             edgeIndices = new List<uint>();
             uint textureSize = LinearIndexTextureSize();
 
-            var edgeList = InternalProtoGraph.GetEdgelistCopy();
+            //var edgeList = InternalProtoGraph.GetEdgelistCopy();
+            InternalProtoGraph.GetEdgelistSpans(out Span<Tuple<uint, uint>> nodePairs, out Span<EdgeData> edges);
+            int lastEdgeIdx = Math.Min(nodePairs.Length, edges.Length);
 
-            foreach (Tuple<uint, uint> edge in edgeList)
+            for ( var i = 0; i < lastEdgeIdx; i++) 
             {
-                int srcNodeIdx = (int)edge.Item1;
-                int destNodeIdx = (int)edge.Item2;
-                WritableRgbaFloat ecol = GetEdgeColor(edge, renderingMode);
+                Tuple<uint, uint> edgeNodes = nodePairs[i];
+                
+                int srcNodeIdx = (int)edgeNodes.Item1;
+                int destNodeIdx = (int)edgeNodes.Item2;
+                WritableRgbaFloat ecol = GetEdgeColor(edgeNodes, edges[i], renderingMode);
 
                 EdgeLineVerts[vertCount] =
                         new Position2DColour

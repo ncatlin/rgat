@@ -4823,7 +4823,7 @@
             <param name="themeGraphColours">Array of theme colours</param>
             <returns>The node colour</returns>
         </member>
-        <member name="M:rgat.PlottedGraph.GetEdgeColor(System.Tuple{System.UInt32,System.UInt32},rgat.CONSTANTS.eRenderingMode)">
+        <member name="M:rgat.PlottedGraph.GetEdgeColor(System.Tuple{System.UInt32,System.UInt32},rgat.EdgeData,rgat.CONSTANTS.eRenderingMode)">
             <summary>
             Get the colour of this edge in the specified mode
             </summary>
@@ -6109,6 +6109,7 @@
             </summary>
             <returns>The list of nodepairs</returns>
         </member>
+        <!-- Badly formed XML comment ignored for member "M:rgat.ProtoGraph.GetEdgelistSpans(System.Span{System.Tuple{System.UInt32,System.UInt32}}@,System.Span{rgat.EdgeData}@)" -->
         <member name="M:rgat.ProtoGraph.GetEdgeObjListCopy">
             <summary>
             Get a thread-safe copy of the EdgeData edge list
@@ -9155,6 +9156,19 @@
             <param name="newMode">Mode to activate</param>
         </member>
         <member name="M:rgat.GraphPlotWidget.RenderString(System.String,System.UInt32,System.Single,ImGuiNET.ImFontPtr,System.Collections.Generic.List{rgat.GraphPlotWidget.fontStruc},System.UInt32,System.Single)">
+            <summary>
+            Convert a string to a List of fontStrucs describing the font glyphs to display the string
+            The output is cached so this is not performed every frame
+            </summary>
+            <param name="inputString">Text to display</param>
+            <param name="nodeIdx">Node associated with the text - used for positioning</param>
+            <param name="fontScale">Text scaling factor</param>
+            <param name="font">Font glyphs to use</param>
+            <param name="stringVerts">Working list of glyph descriptors to add the generated fontStrucs to</param>
+            <param name="colour">Text colour</param>
+            <param name="yOff">Vertical offset for the glyphs</param> //todo think caching wrecks this
+        </member>
+        <member name="M:rgat.GraphPlotWidget.RenderStringToArray(System.String,System.UInt32,System.Int32,System.Single,ImGuiNET.ImFontPtr,rgat.GraphPlotWidget.fontStruc[],System.UInt32,System.Single)">
             <summary>
             Convert a string to a List of fontStrucs describing the font glyphs to display the string
             The output is cached so this is not performed every frame
