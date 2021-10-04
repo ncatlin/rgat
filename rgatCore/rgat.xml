@@ -1267,6 +1267,11 @@
             A new rgat release is available to download
             </summary>
         </member>
+        <member name="P:rgat.GlobalConfig.BulkLog">
+            <summary>
+            Is bulk logging active
+            </summary>
+        </member>
         <member name="M:rgat.GlobalConfig.RecordAvailableUpdateDetails(System.Version,System.String,System.String)">
             <summary>
             Record the details of a new rgat version
@@ -4785,10 +4790,11 @@
             </summary>
             <returns>Positions of the preset nodes</returns>
         </member>
-        <member name="M:rgat.PlottedGraph.BeginNewLayout">
+        <member name="M:rgat.PlottedGraph.BeginNewLayout(System.Boolean)">
             <summary>
             Reset the layout tracking statistics and reset the temperature to a high value
             </summary>
+            <param name="keepCamera">If set to true then the camera will not be reset</param>
         </member>
         <member name="M:rgat.PlottedGraph.LinearIndexTextureSize">
             <summary>
@@ -4837,32 +4843,34 @@
             Get the currently selected rendering mode of the graph (heatmap, etc)
             </summary>
         </member>
-        <member name="M:rgat.PlottedGraph.GetMaingraphNodeVerts(rgat.CONSTANTS.eRenderingMode,System.UInt32[]@,rgat.VeldridGraphBuffers.Position2DColour[]@,System.Collections.Generic.List{System.Tuple{System.String,System.UInt32}}@)">
+        <member name="M:rgat.PlottedGraph.GetMaingraphNodeVerts(rgat.CONSTANTS.eRenderingMode,System.Int32,System.UInt32[]@,rgat.VeldridGraphBuffers.Position2DColour[]@,System.Collections.Generic.List{System.Tuple{System.String,System.UInt32}}@,System.Int32@)">
             <summary>
             Get the node drawing data for the preview version of this graph
             </summary>
             <param name="renderingMode">Rendering mode (heatmap, etc)</param>
+            <param name="textureWidth">Float width of the square vertex texture</param>
             <param name="nodeIndices">Output node indexes</param>
             <param name="nodePickingColors">Output node mouse hover picking data</param>
             <param name="captions">Node caption texts</param>
+            <param name="nodeCount">Number of nodes in the output buffers</param>
             <returns>Node drawing data</returns>
         </member>
-        <member name="M:rgat.PlottedGraph.GetPreviewgraphNodeVerts(rgat.CONSTANTS.eRenderingMode,System.Collections.Generic.List{System.UInt32}@)">
+        <member name="M:rgat.PlottedGraph.GetPreviewgraphNodeVerts(rgat.CONSTANTS.eRenderingMode,System.UInt32[]@,System.Int32@)">
             <summary>
             Get the node drawing data for the preview version of this graph
             </summary>
             <param name="renderingMode">Rendering mode of the preview</param>
             <param name="nodeIndices">Output node index list</param>
+            <param name="nodeCount">Number of nodes rendered</param>
             <returns>Node geometry array</returns>
         </member>
-        <member name="M:rgat.PlottedGraph.GetEdgeLineVerts(rgat.CONSTANTS.eRenderingMode,System.UInt32[]@,System.Int32@,System.Int32@)">
+        <member name="M:rgat.PlottedGraph.GetEdgeLineVerts(rgat.CONSTANTS.eRenderingMode,System.UInt32[]@,System.Int32@)">
             <summary>
             Get the geometry and colour of every edge
             </summary>
             <param name="renderingMode">Rendering mode (standard, heatmap, etc)</param>
             <param name="edgeIndices">Output list of edge indexes for drawing</param>
             <param name="vertCount">Output number of edge vertics to draw</param>
-            <param name="graphDrawnEdgeCount">The number of edges being drawn</param>
             <returns></returns>
         </member>
         <member name="M:rgat.PlottedGraph.dataTextureSize(System.Int32)">
@@ -6116,9 +6124,9 @@
             </summary>
             <returns>The list of EdgeData</returns>
         </member>
-        <member name="M:rgat.ProtoGraph.GetNodeObjlistCopy">
+        <member name="M:rgat.ProtoGraph.GetNodeObjlistSpan">
             <summary>
-            Get a thread-safe copy of the nodedata list
+            Get a readonly span of the nodedata list
             </summary>
             <returns>The list of NodeData</returns>
         </member>
@@ -7936,7 +7944,7 @@
             Begin processing
             </summary>
         </member>
-        <member name="M:rgat.Threads.ThreadTraceProcessingThread.ProcessTraceTag(System.Byte[])">
+        <member name="M:rgat.Threads.ThreadTraceProcessingThread.ProcessTraceTag(System.ReadOnlySpan{System.Byte})">
             <summary>
             Handle execution of a basic block
             </summary>
@@ -7944,7 +7952,8 @@
         </member>
         <member name="T:rgat.Threads.TraceIngestWorker">
             <summary>
-            A worker for ingesting trace data
+            An abstract worker for ingesting trace data
+            Inherited by local named pipe and remote socket ingest workers
             </summary>
         </member>
         <member name="P:rgat.Threads.TraceIngestWorker.StopFlag">

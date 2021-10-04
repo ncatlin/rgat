@@ -69,7 +69,7 @@ namespace rgat
         public static bool GetWidgetFitOffsets(Vector2 graphWidgetSize, PlottedGraph graph, bool isPreview,
             out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets)
         {
-            Logging.RecordLogEvent($"GetWidgetFitOffsets Start {graph.TID} layout", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"GetWidgetFitOffsets Start {graph.TID} layout", Logging.LogFilterType.BulkDebugLogFile);
             xoffsets = new Vector2(0, 0);
             yoffsets = new Vector2(0, 0);
             zoffsets = new Vector2(0, 0);
@@ -150,7 +150,7 @@ namespace rgat
                 }
                 return false;
             }
-            Logging.RecordLogEvent($"GetWidgetFitOffsets exit", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"GetWidgetFitOffsets exit", Logging.LogFilterType.BulkDebugLogFile);
             return result;
         }
 
@@ -276,7 +276,7 @@ namespace rgat
         private float FindHighXYZ(DeviceBuffer buf, int nodeCount, out int highIndex)
         {
 
-            Logging.RecordLogEvent($"FindHighXYZ  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"FindHighXYZ  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd!, buf);
             MappedResourceView<float> destinationReadView = _gd!.Map<float>(destinationReadback, MapMode.Read);
             float highest = 0f;
@@ -340,7 +340,7 @@ namespace rgat
                 return newversion;
             }
 
-            Logging.RecordLogEvent($"Marker Compute start {EngineID} graph {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Marker Compute start {EngineID} graph {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
 
             _stepTimer.Restart();
 
@@ -552,7 +552,25 @@ namespace rgat
                     }
                 }
             }
+
+
+            _stepTimer.Stop();
+            if (_stepTimer.ElapsedMilliseconds > 100)
+                Console.WriteLine($"Compute step took: {_stepTimer.ElapsedMilliseconds}ms");
+
             graph.LayoutState.Lock.ExitUpgradeableReadLock();
+
+            lock (_lock)
+            {
+                _lastComputeMS.Add(_stepTimer.Elapsed.TotalMilliseconds);
+                if (_lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
+                {
+                    _lastComputeMS = _lastComputeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
+                }
+
+                AverageComputeTime = _lastComputeMS.Average();
+            }
+
 
 
             //should we be dispose/recreating these? probably not. todo
@@ -573,16 +591,6 @@ namespace rgat
 
             newversion = layout.RenderVersion;
 
-            _stepTimer.Stop();
-            Console.WriteLine($"Compute step took: {_stepTimer.ElapsedMilliseconds}ms");
-
-            _lastComputeMS.Add(_stepTimer.Elapsed.TotalMilliseconds);
-            if (_lastComputeMS.Count > GlobalConfig.StatisticsTimeAvgWindow)
-            {
-                _lastComputeMS = _lastComputeMS.TakeLast(GlobalConfig.StatisticsTimeAvgWindow).ToList();
-            }
-
-            AverageComputeTime = _lastComputeMS.Average();
 
             if (GlobalConfig.LayoutPositionsActive)
             {
@@ -592,7 +600,7 @@ namespace rgat
                     attributeSetupTime: attributeSetupTime, attributeShaderTime: attributeTime);
             }
 
-            Logging.RecordLogEvent($"Marker Compute end {EngineID} graph {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Marker Compute end {EngineID} graph {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
 
             return newversion;
         }
@@ -634,7 +642,7 @@ namespace rgat
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, velocities));
 
 
-            Logging.RecordLogEvent($"RenderPosition  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderPosition  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             var textureSize = graph.LinearIndexTextureSize();
 
             uint fixedNodes = 0;
@@ -672,7 +680,7 @@ namespace rgat
         /// <param name="temperature">The activity level of the layout state. Higher balues => bigger movements</param>
         private unsafe double RenderVelocityStandard(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
         {
-            Logging.RecordLogEvent($"RenderVelocity  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
 
             VelocityShaderParams parms = new VelocityShaderParams
             {
@@ -685,7 +693,7 @@ namespace rgat
                 nodeCount = (uint)graph.RenderedNodeCount()
             };
 
-            Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
 
             cl.UpdateBuffer(_velocityParamsBuffer, 0, parms);
             cl.SetPipeline(_velocityComputePipeline);
@@ -695,7 +703,7 @@ namespace rgat
             watch.Start();
             cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.VelocitiesVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
             watch.Stop();
-            Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done in {watch.ElapsedMilliseconds} MS", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done in {watch.ElapsedMilliseconds} MS", Logging.LogFilterType.BulkDebugLogFile);
             return watch.Elapsed.TotalMilliseconds;
         }
 
@@ -703,7 +711,7 @@ namespace rgat
 
         private unsafe double RenderVelocityBlocks(CommandList cl, PlottedGraph graph, ResourceSet resources, float delta, float temperature)
         {
-            Logging.RecordLogEvent($"RenderVelocityBlocks  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocityBlocks  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
 
             VelocityShaderParams parms = new VelocityShaderParams
             {
@@ -716,7 +724,7 @@ namespace rgat
                 nodeCount = (uint)graph.LayoutState.BlockMiddles!.SizeInBytes / 4
             };
 
-            Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
 
             cl.UpdateBuffer(_velocityParamsBuffer, 0, parms);
             cl.SetPipeline(_velocityBlockComputePipeline);
@@ -726,7 +734,7 @@ namespace rgat
             watch.Start();
             cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.VelocitiesVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
             watch.Stop();
-            Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done in {watch.ElapsedMilliseconds} MS", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done in {watch.ElapsedMilliseconds} MS", Logging.LogFilterType.BulkDebugLogFile);
             return watch.Elapsed.TotalMilliseconds;
         }
 
@@ -770,7 +778,7 @@ namespace rgat
         private unsafe void RenderNodeAttribs(CommandList cl, PlottedGraph graph, DeviceBuffer inputAttributes,
             ResourceSet resources, float delta, int mouseoverNodeID, bool useAnimAttribs)
         {
-            Logging.RecordLogEvent($"RenderNodeAttribs  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderNodeAttribs  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
             AttribShaderParams parms = new AttribShaderParams
             {
                 delta = delta,
@@ -784,7 +792,7 @@ namespace rgat
 
             graph.GetActiveNodeIndexes(out List<uint> pulseNodes, out List<uint> lingerNodes, out uint[] deactivatedNodes);
 
-            Logging.RecordLogEvent($"RenderNodeAttribs creaters  {this.EngineID} updating attribsbuf {inputAttributes.Name}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderNodeAttribs {this.EngineID} updating attribsbuf {inputAttributes.Name}", Logging.LogFilterType.BulkDebugLogFile);
 
             cl.UpdateBuffer(_attribsParamsBuffer, 0, parms);
 

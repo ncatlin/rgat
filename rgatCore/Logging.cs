@@ -723,6 +723,7 @@ namespace rgat
 
             lock (_messagesLock)
             {
+                //write all logs to the logfile in bulk logging mode
                 if (GlobalConfig.Settings.Logs.BulkLogging)
                 {
                     try
@@ -736,6 +737,7 @@ namespace rgat
                     }
                 }
 
+                //write non-bulklog files to the UI log pane
                 if (filter != LogFilterType.BulkDebugLogFile)
                 {
                     _logMessages.Add(log);
@@ -746,6 +748,7 @@ namespace rgat
                         _lastAlert = DateTime.Now;
                     }
                     MessageCounts[(int)filter] += 1;
+                    
                 }
             }
 

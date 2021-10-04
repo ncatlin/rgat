@@ -6,7 +6,8 @@ using System.Threading;
 namespace rgat.Threads
 {
     /// <summary>
-    /// A worker for ingesting trace data
+    /// An abstract worker for ingesting trace data
+    /// Inherited by local named pipe and remote socket ingest workers
     /// </summary>
     public abstract class TraceIngestWorker : TraceProcessorWorker
     {

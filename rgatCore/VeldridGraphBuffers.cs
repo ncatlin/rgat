@@ -101,13 +101,14 @@ namespace rgat
         {
             lock (b_lock)
             {
+                AllocatedBuffers -= 1;
                 if (db != null && db.IsDisposed == false)
                 {
-                    AllocatedBytes -= db.SizeInBytes;
-                    AllocatedBuffers -= 1;
+                    //Console.WriteLine($"VRamDe-Alloc! {db.SizeInBytes} name:{db.Name}");
                     //Logging.RecordLogEvent($"DEALLOC! Disposing devicebuff of size {db.SizeInBytes} name {db.Name}  totl[{total_1}]");
                     db.Dispose();
                     _allocatedBufs.Remove(db.Name);
+                    AllocatedBytes -= db.SizeInBytes;
                 }
             }
         }
@@ -130,7 +131,8 @@ namespace rgat
             {
                 AllocatedBytes += size;
                 AllocatedBuffers += 1;
-                //Logging.RecordLogEvent($"ALLOC! {size} name:{name} totl[{total_1}]", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"VRamAlloc! {size} name:{name}", Logging.LogFilterType.BulkDebugLogFile);
+                //Console.WriteLine($"VRamAlloc! {size} name:{name}");
                 DeviceBuffer result = gd.ResourceFactory.CreateBuffer(new BufferDescription(size, usage, stride));
                 result.Name = name;
                 _allocatedBufs.Add(result.Name);

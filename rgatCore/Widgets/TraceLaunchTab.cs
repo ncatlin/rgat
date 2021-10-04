@@ -691,10 +691,11 @@ namespace rgat
             return activeTarget.LaunchSettings;
         }
 
+
         private void StartButton(BinaryTarget activeTarget, string pintoolpath, float height)
         {
 
-            bool runnable = _activeTargetRunnable && GlobalConfig.Loaded;
+            bool runnable = _activeTargetRunnable && GlobalConfig.Loaded && rgatUI.StartupProgress >= 1;
             ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourImGui(ImGuiCol.Button) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
             ImGui.AlignTextToFramePadding();
 

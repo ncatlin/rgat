@@ -67,8 +67,9 @@ namespace rgat.Threads
                 return;
             }
 
-            var nodeList = graph.GetNodeObjlistCopy();
-            var allNodeExecutions = nodeList.Select(n => n.executionCount).ToList();
+            var nodeSpan = graph.GetNodeObjlistSpan();
+            
+            var allNodeExecutions = nodeSpan.ToArray().Select(n => n.executionCount).ToList();
             allNodeExecutions.Sort();
 
 
@@ -81,7 +82,7 @@ namespace rgat.Threads
                 current += decile;
             }
 
-            foreach (NodeData n in nodeList)
+            foreach (NodeData n in nodeSpan)
             {
                 ulong execCount = n.executionCount;
                 int threshold = 0;

@@ -1093,7 +1093,7 @@ namespace rgat
                 return false;
             }
 
-            long v1 = 0, v2 = 0, v3 = 0, v4 = 0, v5 = 0;
+            long v1 = 0, v2 = 0, v3 = 0, v4 = 0;
             Stopwatch st = new();
 
             st.Start();
@@ -1101,7 +1101,7 @@ namespace rgat
             edgeTargetIndexes = new int[textureSize];
             edgeStrengths = new float[textureSize];
 
-            
+
             List<List<int>>? nodeNeighboursArray = null;
             lock (animationLock)
             {
@@ -1183,7 +1183,8 @@ namespace rgat
             }
             st.Stop(); v4 = st.ElapsedMilliseconds; st.Restart();
 
-            Console.WriteLine($"GetEdgeRenderingData: v1:{v1}, v2:{v2}, v3:{v3}, v4:{v4}");
+            if (v4 > 80)
+                Console.WriteLine($"GetEdgeRenderingData: v1:{v1}, v2:{v2}, v3:{v3}, v4:{v4}");
 
             return true;
         }
@@ -1487,7 +1488,8 @@ namespace rgat
         /// <summary>
         /// Reset the layout tracking statistics and reset the temperature to a high value
         /// </summary>
-        public void BeginNewLayout()
+        /// <param name="keepCamera">If set to true then the camera will not be reset</param>
+        public void BeginNewLayout(bool keepCamera = false)
         {
             lock (_renderLock)
             {
@@ -1497,8 +1499,11 @@ namespace rgat
                 }
                 else
                 {
-                    this.CameraState = new CAMERA_STATE();
-                    this.CameraState.RotationMatrix = Matrix4x4.Identity;
+                    if (keepCamera is false)
+                    {
+                        this.CameraState = new CAMERA_STATE();
+                        this.CameraState.RotationMatrix = Matrix4x4.Identity;
+                    }
                 }
             }
             ResetLayoutStats();
@@ -1669,17 +1674,26 @@ namespace rgat
 
         private ulong lastThemeVersion = 0;
 
-        //important todo - cacheing!  once the result is good
+
+
+        Position2DColour[] _cachedNodeVerts = Array.Empty<Position2DColour>();
+        Position2DColour[] _cachedNodePickingVerts = Array.Empty<Position2DColour>();
+        uint[] _cachedNodeIndexes = Array.Empty<uint>();
+        int _cachedNodeVertCount = 0;
+
+
         /// <summary>
         /// Get the node drawing data for the preview version of this graph
         /// </summary>
         /// <param name="renderingMode">Rendering mode (heatmap, etc)</param>
+        /// <param name="textureWidth">Float width of the square vertex texture</param>
         /// <param name="nodeIndices">Output node indexes</param>
         /// <param name="nodePickingColors">Output node mouse hover picking data</param>
         /// <param name="captions">Node caption texts</param>
+        /// <param name="nodeCount">Number of nodes in the output buffers</param>
         /// <returns>Node drawing data</returns>
-        public Position2DColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode,
-            out uint[] nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string?, uint>> captions)
+        public Position2DColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode, int textureWidth,
+            out uint[] nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string?, uint>> captions, out int nodeCount)
         {
             bool createNewLabels = false;
             if (renderingMode != lastRenderingMode || _newLabels)
@@ -1688,6 +1702,8 @@ namespace rgat
                 _newLabels = false;
                 lastRenderingMode = renderingMode;
             }
+
+            nodeCount = RenderedNodeCount();
 
             //theme changed, read in new colours
             ulong themeVersion = Themes.ThemeVersion;
@@ -1698,13 +1714,23 @@ namespace rgat
                 lastThemeVersion = themeVersion;
             }
 
-            uint textureSize = LinearIndexTextureSize();
-            Position2DColour[] nodeVerts = new Position2DColour[textureSize * textureSize];
+            int textureSize = textureWidth * textureWidth;
 
-            nodePickingColors = new Position2DColour[textureSize * textureSize];
+            if (textureSize > _cachedNodeVerts.Length)
+            {
+                Position2DColour[] NodeVerts = new Position2DColour[textureSize];
+                _cachedNodeVerts = NodeVerts;
+
+                Position2DColour[] NodePickingVerts = new Position2DColour[textureSize];
+                _cachedNodePickingVerts = NodePickingVerts;
+                _cachedNodeVertCount = 0;
+                _cachedNodeIndexes = Enumerable.Range(0, NodeVerts.Length).Select(i => (uint)i).ToArray();
+                _edgeTexturiseRequired = true;
+            }
+
+            nodePickingColors = _cachedNodePickingVerts;
             captions = new List<Tuple<string?, uint>>();
-
-            int nodeCount = RenderedNodeCount();
+            nodeIndices = _cachedNodeIndexes;
 
 
             WritableRgbaFloat[] graphColoursCopy;
@@ -1713,42 +1739,48 @@ namespace rgat
                 graphColoursCopy = graphColours.ToArray();
             }
 
-            for (uint index = 0; index < nodeCount; index++)
+            for (int index = _cachedNodeVertCount; index < _cachedNodeVerts.Length; index++)
             {
-                float x = index % textureSize;
-                float y = index / textureSize;
+                float x = index % textureWidth;
+                float y = index / textureWidth;
                 Vector2 texturePosition = new Vector2(x, y);
 
-                if (index >= nodeCount || index >= InternalProtoGraph.NodeCount)
-                {   
-                    nodeIndices = Enumerable.Range(0, nodeVerts.Length).Select(x => (uint)x).ToArray();
-                    return nodeVerts;
+                if (index >= _cachedNodeVerts.Length || index >= InternalProtoGraph.NodeCount)
+                {
+                    nodeCount = _cachedNodeVertCount;
+                    break;
                 }
 
-                WritableRgbaFloat nodeColour = GetNodeColor((int)index, renderingMode, graphColoursCopy);
-                nodeVerts[index] = new Position2DColour
+                _cachedNodeVertCount += 1;
+                WritableRgbaFloat nodeColour = GetNodeColor(index, renderingMode, graphColoursCopy);
+                _cachedNodeVerts[index] = new Position2DColour
                 {
                     Position = texturePosition,
                     Color = nodeColour
                 };
 
-                nodePickingColors[index] = new Position2DColour
+                _cachedNodePickingVerts[index] = new Position2DColour
                 {
                     Position = texturePosition,
                     Color = new WritableRgbaFloat(index, 0, 0, 1)
                 };
+            }
 
-                if (Opt_TextEnabled)
+
+            if (Opt_TextEnabled)
+            {
+                for (int index = 0; index < nodeCount; index++)
                 {
-                    if (!IsAnimated || nodeColour.A > 0)
+                    if (!IsAnimated || _cachedNodeVerts[index].Color.A > 0)
                     {
                         var caption = CreateNodeLabel((int)index, renderingMode, createNewLabels);
                         captions.Add(caption);
                     }
                 }
             }
-            nodeIndices = Enumerable.Range(0, nodeVerts.Length).Select(x => (uint)x).ToArray();
-            return nodeVerts;
+
+            nodeCount = _cachedNodeVertCount;
+            return _cachedNodeVerts;
         }
 
         private void InitGraphColours()
@@ -1774,19 +1806,35 @@ namespace rgat
 
 
 
+
+
+        Position2DColour[] _cachedPreviewNodeVerts = Array.Empty<Position2DColour>();
+        Position2DColour[] _cachedPreviewNodePickingVerts = Array.Empty<Position2DColour>();
+        uint[] _cachedPreviewNodeIndexes = Array.Empty<uint>();
+        int _cachedPreviewNodeVertCount = 0;
+
         /// <summary>
         /// Get the node drawing data for the preview version of this graph
         /// </summary>
         /// <param name="renderingMode">Rendering mode of the preview</param>
         /// <param name="nodeIndices">Output node index list</param>
+        /// <param name="nodeCount">Number of nodes rendered</param>
         /// <returns>Node geometry array</returns>
-        public Position2DColour[] GetPreviewgraphNodeVerts(eRenderingMode renderingMode, out List<uint> nodeIndices)
+        public Position2DColour[] GetPreviewgraphNodeVerts(eRenderingMode renderingMode, out uint[] nodeIndices, out int nodeCount)
         {
-            uint textureSize = LinearIndexTextureSize();
-            Position2DColour[] NodeVerts = new Position2DColour[textureSize * textureSize];
+            
+            int maxNodes = InternalProtoGraph.NodeCount;
+            int textureWidth = (int)LinearIndexTextureSize();
+            int textureSize = textureWidth * textureWidth * 4;
 
-            nodeIndices = new List<uint>();
-            int nodeCount = RenderedNodeCount();
+            if (textureSize > _cachedPreviewNodeVerts.Length)
+            {
+                _cachedPreviewNodeVerts = new Position2DColour[textureSize];
+                _cachedPreviewNodeIndexes = Enumerable.Range(0, textureSize).Select(i => (uint)i).ToArray();
+                _edgeTexturiseRequired = true;
+                _cachedPreviewNodeVertCount = 0;
+            }
+
 
             WritableRgbaFloat[] graphColoursCopy;
             lock (textureLock)
@@ -1794,28 +1842,40 @@ namespace rgat
                 graphColoursCopy = graphColours.ToArray();
             }
 
-            for (uint y = 0; y < textureSize; y++)
+
+            for (int index = _cachedPreviewNodeVertCount; index < _cachedPreviewNodeVerts.Length; index++)
             {
-                for (uint x = 0; x < textureSize; x++)
+                float x = index % textureWidth;
+                float y = index / textureWidth;
+                Vector2 texturePosition = new Vector2(x, y);
+
+                if (index >= maxNodes)
                 {
-                    var index = y * textureSize + x;
-                    if (index >= nodeCount)
-                    {
-                        return NodeVerts;
-                    }
-
-                    nodeIndices.Add(index);
-
-                    NodeVerts[index] = new Position2DColour
-                    {
-                        Position = new Vector2(x, y),
-                        Color = GetNodeColor((int)index, renderingMode, graphColoursCopy)
-                    };
+                    nodeCount = _cachedPreviewNodeVertCount;
+                    Debug.Assert(nodeCount <= _cachedPreviewNodeVerts.Length);
+                    nodeIndices = _cachedPreviewNodeIndexes;
+                    return _cachedPreviewNodeVerts;
                 }
+
+                _cachedPreviewNodeVertCount += 1;
+                _cachedPreviewNodeVerts[index] = new Position2DColour
+                {
+                    Position = new Vector2(x, y),
+                    Color = GetNodeColor((int)index, renderingMode, graphColoursCopy)
+                };
+
             }
-            return NodeVerts;
+            nodeCount = _cachedPreviewNodeVertCount;
+            Debug.Assert(nodeCount <= _cachedPreviewNodeVerts.Length);
+            nodeIndices = _cachedPreviewNodeIndexes;
+            return _cachedPreviewNodeVerts;
         }
 
+
+        int _cachedELVertIndex = 0;
+        Position2DColour[] _cachedEdgeLineVerts = Array.Empty<Position2DColour>();
+        uint[] _cachedEdgeIndexBuffer = Array.Empty<uint>();
+        bool _edgeTexturiseRequired = false;
 
 
         /// <summary>
@@ -1824,47 +1884,64 @@ namespace rgat
         /// <param name="renderingMode">Rendering mode (standard, heatmap, etc)</param>
         /// <param name="edgeIndices">Output list of edge indexes for drawing</param>
         /// <param name="vertCount">Output number of edge vertics to draw</param>
-        /// <param name="graphDrawnEdgeCount">The number of edges being drawn</param>
         /// <returns></returns>
-        public Position2DColour[] GetEdgeLineVerts(eRenderingMode renderingMode,
-            out uint[] edgeIndices, out int vertCount, out int graphDrawnEdgeCount)
+        public Position2DColour[] GetEdgeLineVerts(eRenderingMode renderingMode, out uint[] edgeIndices, out int vertCount)
         {
             uint evTexWidth = EdgeVertsTextureWidth();
-            Position2DColour[] EdgeLineVerts = new Position2DColour[evTexWidth * evTexWidth * 16];
+            uint evTexSize = evTexWidth * evTexWidth * 16;
+            if (evTexSize > _cachedEdgeLineVerts.Length || _edgeTexturiseRequired)
+            {
+                _cachedEdgeLineVerts = new Position2DColour[evTexSize];
+                _cachedEdgeIndexBuffer = Enumerable.Range(0, _cachedEdgeLineVerts.Length).Select(i => (uint)i).ToArray();
+                _cachedELVertIndex = 0;
+                _edgeTexturiseRequired = false;
+                //GC.Collect();
+            }
 
             vertCount = 0;
             uint textureSize = LinearIndexTextureSize();
+
+            Stopwatch sw = new();
+            sw.Start();
 
             //var edgeList = InternalProtoGraph.GetEdgelistCopy();
             InternalProtoGraph.GetEdgelistSpans(out Span<Tuple<uint, uint>> nodePairs, out Span<EdgeData> edges);
             int lastEdgeIdx = Math.Min(nodePairs.Length, edges.Length);
 
-            for ( var i = 0; i < lastEdgeIdx; i++) 
+            sw.Stop();
+            if (sw.ElapsedMilliseconds > 60)
+                Console.WriteLine($"gelv GetEdgelistSpans took {sw.ElapsedMilliseconds}ms ");
+            sw.Restart();
+
+            for (var i = _cachedELVertIndex; i < lastEdgeIdx; i++)
             {
                 Tuple<uint, uint> edgeNodes = nodePairs[i];
-                
+
                 int srcNodeIdx = (int)edgeNodes.Item1;
                 int destNodeIdx = (int)edgeNodes.Item2;
                 WritableRgbaFloat ecol = GetEdgeColor(edgeNodes, edges[i], renderingMode);
-
-                EdgeLineVerts[i*2] =
+                _cachedEdgeLineVerts[i * 2] =
                         new Position2DColour
                         {
                             Position = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
                             Color = ecol
                         };
 
-                EdgeLineVerts[i*2+1] =
+                _cachedEdgeLineVerts[i * 2 + 1] =
                     new Position2DColour
                     {
                         Position = new Vector2(destNodeIdx % textureSize, (float)Math.Floor((float)(destNodeIdx / textureSize))),
                         Color = ecol
                     };
             }
-            vertCount = lastEdgeIdx*2;
-            edgeIndices = Enumerable.Range(0, vertCount).Select(i => (uint)i).ToArray();
-            graphDrawnEdgeCount = DrawnEdgesCount;
-            return EdgeLineVerts;
+            vertCount = lastEdgeIdx * 2;
+            _cachedELVertIndex = lastEdgeIdx;
+
+            edgeIndices = _cachedEdgeIndexBuffer;
+            sw.Stop();
+            if (sw.ElapsedMilliseconds > 60)
+                Console.WriteLine($"GetEdgeLineVertsloop took {sw.ElapsedMilliseconds}ms over {vertCount} verts ({sw.ElapsedMilliseconds / vertCount} avg)");
+            return _cachedEdgeLineVerts;
         }
 
         /// <summary>
@@ -2118,13 +2195,25 @@ namespace rgat
             //too few creates big backlogs which delays the animation (can still see realtime in static mode though)
             int updateLimit = GlobalConfig.LiveAnimationUpdatesPerFrame;
             processedCount = 0;
+            Stopwatch sw = new();
             while (updateProcessingIndex < InternalProtoGraph.SavedAnimationData.Count && (updateLimit-- > 0))
             {
+                sw.Restart();
+                ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[updateProcessingIndex];
                 if (!process_live_update())
                 {
                     break;
                 }
+                sw.Stop();
+                if (sw.ElapsedMilliseconds > 50)
+                    Console.WriteLine($"ProcessLiveAnimationUpdates took {sw.ElapsedMilliseconds}ms with entry type {entry.entryType}");
                 processedCount += 1;
+            }
+
+            if (InternalProtoGraph.TraceData.DiscardTraceData)
+            {
+                updateProcessingIndex = InternalProtoGraph.PurgeAnimationEntries(updateProcessingIndex);
+                //GC.Collect();
             }
 
         }
@@ -2138,22 +2227,13 @@ namespace rgat
                 return false;
             }
 
-            //todo: eliminate need for competing with the trace handler for the lock using spsc ringbuffer
-            //internalProtoGraph.animationListsRWLOCK_.lock_shared();
+            // Stopwatch sw = new Stopwatch();
             ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[updateProcessingIndex];
-            //internalProtoGraph.animationListsRWLOCK_.unlock_shared();
-
-            /*
-            if (entry.entryType == eTraceUpdateType.eAnimLoopLast)
-            {
-                Logging.WriteConsole("Live update: eAnimLoopLast");
-                ++updateProcessingIndex;
-                return true;
-            }*/
 
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
             {
-                Logging.RecordLogEvent($"Live update: eAnimUnchainedResults. Block {entry.blockID} executed {entry.count} times",
+                //sw.Start();
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Live update: eAnimUnchainedResults. Block {entry.blockID} executed {entry.count} times",
                     Logging.LogFilterType.BulkDebugLogFile);
                 ++updateProcessingIndex;
                 return true;
@@ -2161,7 +2241,7 @@ namespace rgat
 
             if (entry.entryType == eTraceUpdateType.eAnimReinstrument)
             {
-                Logging.RecordLogEvent($"Live update: eAnimReinstrument.", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Live update: eAnimReinstrument.", Logging.LogFilterType.BulkDebugLogFile);
                 end_unchained(entry);
                 ++updateProcessingIndex;
                 return true;
@@ -2179,7 +2259,7 @@ namespace rgat
                     }
                 }
 
-                Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.blockID}: " + s, Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.blockID}: " + s, Logging.LogFilterType.BulkDebugLogFile);
                 brightTime = (int)Anim_Constants.BRIGHTNESS.KEEP_BRIGHT;
             }
             else
@@ -2209,10 +2289,7 @@ namespace rgat
             }
 
             ++updateProcessingIndex;
-            if (InternalProtoGraph.TraceData.DiscardTraceData)
-            {
-                updateProcessingIndex = InternalProtoGraph.PurgeAnimationEntries(updateProcessingIndex);
-            }
+
             return true;
         }
 
@@ -2825,7 +2902,7 @@ namespace rgat
                 return false;
             }
 
-            lock(_renderLock)
+            lock (_renderLock)
             {
                 _layoutCameraStates[LayoutState.Style] = CameraState;
             }

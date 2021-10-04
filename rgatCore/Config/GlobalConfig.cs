@@ -281,6 +281,10 @@ namespace rgat
         /// </summary>
         public static bool NewVersionAvailable = false;
 
+        /// <summary>
+        /// Is bulk logging active
+        /// </summary>
+        public static bool BulkLog => Settings.Logs.BulkLogging;
 
         /// <summary>
         /// Record the details of a new rgat version

@@ -94,9 +94,6 @@ namespace rgat.Threads
         }
 
         DateTime _lastTimerFired = DateTime.Now;
-        ulong _lastDataPending = 0;
-        ulong _lastDataProcessed = 0;
-
 
         private void PerformIrregularActions()
         {
@@ -312,7 +309,7 @@ namespace rgat.Threads
                             }
                             else
                             {
-                                Logging.WriteConsole($"No callers for node 0x{n.address:X}");
+                                Logging.WriteConsole($"No callers for node 0x{n.address:X} A");
                                 needWait = true;
                                 break;
                             }
@@ -327,7 +324,7 @@ namespace rgat.Threads
                             }
                             else
                             {
-                                Logging.WriteConsole($"No callers for node 0x{altIns?.Address:X}");
+                                Logging.WriteConsole($"No callers for node 0x{altIns?.Address:X} B");
                                 needWait = true;
                                 break;
                             }
@@ -354,7 +351,8 @@ namespace rgat.Threads
                     {
                         EdgeData? edge = protograph.GetEdge(n.Index, targNodeID);
                         Debug.Assert(edge is not null);
-                        Logging.RecordLogEvent($"Blockrepeat increasing execs of edge {n.Index},{targNodeID} from {edge.ExecutionCount} to {edge.ExecutionCount + execCount}",
+                        if (GlobalConfig.BulkLog)
+                            Logging.RecordLogEvent($"Blockrepeat increasing execs of edge {n.Index},{targNodeID} from {edge.ExecutionCount} to {edge.ExecutionCount + execCount}",
                            Logging.LogFilterType.BulkDebugLogFile);
                         increaseEdges.Add(new Tuple<EdgeData, ulong>(edge, execCount));
                     }
@@ -394,15 +392,14 @@ namespace rgat.Threads
             public ulong count;
         };
 
-
+        Stopwatch sw = new Stopwatch();
         /// <summary>
         /// Handle execution of a basic block
         /// </summary>
         /// <param name="entry">A trace tag entry from instrumentation</param>
-        public void ProcessTraceTag(byte[] entry)
+        public void ProcessTraceTag(ReadOnlySpan<byte> entry)
         {
             TAG thistag;
-            ulong nextBlockAddress;
             int tokenpos = 0;
             for (; tokenpos < entry.Length; tokenpos++)
             {
@@ -412,12 +409,15 @@ namespace rgat.Threads
                 }
             }
 
-            thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry, 1, tokenpos - 1), NumberStyles.HexNumber);
+            thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry[1..(1+(tokenpos - 1))]), NumberStyles.HexNumber);
+
+            sw.Restart();
+
             //this may be a bad idea, could just be running faster than the dissassembler thread
             int waits = 0;
             while (thistag.blockID >= protograph.ProcessData.BasicBlocksList.Count)
             {
-                Thread.Sleep(50);
+                Thread.Sleep(4);
                 waits += 1;
                 if (waits > 5)
                 {
@@ -433,6 +433,12 @@ namespace rgat.Threads
                 return;
             }
 
+            sw.Stop();
+            if (sw.ElapsedMilliseconds > 64)
+            {
+                Console.WriteLine($"TP::Block wait took {sw.ElapsedMilliseconds}ms");
+            }
+
             ANIMATIONENTRY animUpdate = new ANIMATIONENTRY
             {
                 entryType = eTraceUpdateType.eAnimExecTag,
@@ -442,8 +448,19 @@ namespace rgat.Threads
             protograph.PushAnimUpdate(animUpdate);
 
             int addrstart = ++tokenpos;
-            string result = ASCIIEncoding.ASCII.GetString(entry);
-            nextBlockAddress = ulong.Parse(Encoding.ASCII.GetString(entry, addrstart, entry.Length - addrstart), NumberStyles.HexNumber);
+            //string result = ASCIIEncoding.ASCII.GetString(entry);
+            if (!ulong.TryParse(Encoding.ASCII.GetString(entry[addrstart..entry.Length]), NumberStyles.HexNumber, null, out ulong nextBlockAddress))
+            {
+                Logging.RecordError("Bad next block address from trace data");
+                protograph.TraceReader!.Terminate();
+                return;
+            }
+
+            if (nextBlockAddress is 0x7A6D9457 || thistag.blockaddr is 0x7A6D9457 ||
+                nextBlockAddress is 0x754a74b0 || thistag.blockaddr is 0x754a74b0)
+            {
+                Console.Write("here");
+            }
 
             thistag.InstrumentationState = eCodeInstrumentation.eInstrumentedCode;
             thistag.foundExtern = null;
@@ -461,82 +478,118 @@ namespace rgat.Threads
                 return;
             }
 
-
-            //this messy bit of code deals with unistrumented APi code that has been called from a "jmp ptr [addr]" instruction
+            sw.Restart();
+            //this messy bit of code deals with uninstrumented APi code that has been called from a "jmp ptr [addr]" instruction
             eCodeInstrumentation modType = protograph.TraceData.FindContainingModule(nextBlockAddress, out int modnum);
 
-            if (modType == eCodeInstrumentation.eUninstrumentedCode)
+            sw.Stop();
+            if (sw.ElapsedMilliseconds > 4)
             {
-                List<InstructionData>? preExternBlock = protograph.TraceData.DisassemblyData.getDisassemblyBlock(thistag.blockID);
-                if (preExternBlock is not null &&
-                    preExternBlock.Count == 1 &&
-                    preExternBlock[0].PossibleidataThunk)
+                Console.WriteLine($"TP::FindContainingModule took {sw.ElapsedMilliseconds}ms");
+            }
+
+            /*
+             Deal with a special case where a call is made to an intermediary instruction which then jumps to uninstrumented code
+             We hide the existance of the intermediary (.idata thunk) to make it look like a call to extern
+             This is much clearer and less messy than calls to thunks but is a horrid source of errors            
+             */
+            if (modType == eCodeInstrumentation.eUninstrumentedCode && protograph.NodeList.Count < protograph.ProtoLastLastVertID)
+            {
+                if (protograph.NodeList[(int)protograph.ProtoLastLastVertID].VertType() == CONSTANTS.EdgeNodeType.eNodeCall)
                 {
-                    InstructionData thunkInstruction = preExternBlock[0];
-                    ProcessExtern(nextBlockAddress, thistag.blockID);
-
-                    bool firstCallByThisNode = false;
-                    if (ApiThunks.TryGetValue((int)thistag.blockID, out APITHUNK? thunkinfo))
+                    sw.Restart();
+                    List<InstructionData>? preExternBlock = protograph.TraceData.DisassemblyData.getDisassemblyBlock(thistag.blockID);
+                    if (preExternBlock is not null &&
+                        preExternBlock.Count == 1 &&
+                        preExternBlock[0].PossibleidataThunk)
                     {
-                        if (!thunkinfo.callerNodes.ContainsKey((int)protograph.ProtoLastLastVertID))
+                        InstructionData thunkInstruction = preExternBlock[0];
+                        ProcessExtern(nextBlockAddress, thistag.blockID);
+
+                        bool firstCallByThisNode = false;
+                        if (ApiThunks.TryGetValue((int)thistag.blockID, out APITHUNK? thunkinfo))
                         {
-                            firstCallByThisNode = true;
-                            thunkinfo.callerNodes.Add((int)protograph.ProtoLastLastVertID, (int)protograph.ProtoLastVertID);
-                        }
-                    }
-                    else
-                    {
-                        firstCallByThisNode = true;
-                        APITHUNK thunkData = new APITHUNK();
-                        thunkData.callerNodes.Add((int)protograph.ProtoLastLastVertID, (int)protograph.ProtoLastVertID);
-                        ApiThunks.Add((int)thistag.blockID, thunkData);
-                    }
-
-                    if (firstCallByThisNode)
-                    {
-
-                        thunkInstruction.AddThreadVert(protograph.ThreadID, protograph.ProtoLastVertID);
-                        //todo this can be bad idx
-                        if (protograph.ProtoLastLastVertID < protograph.NodeList.Count)
-                        {
-                            protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller = true;
+                            if (!thunkinfo.callerNodes.ContainsKey((int)protograph.ProtoLastLastVertID))
+                            {
+                                firstCallByThisNode = true;
+                                thunkinfo.callerNodes.Add((int)protograph.ProtoLastLastVertID, (int)protograph.ProtoLastVertID);
+                            }
                         }
                         else
                         {
-                            Logging.RecordLogEvent($"Error - thunk caller index {protograph.ProtoLastLastVertID} not available", Logging.LogFilterType.TextError);
+                            firstCallByThisNode = true;
+                            APITHUNK thunkData = new APITHUNK();
+                            thunkData.callerNodes.Add((int)protograph.ProtoLastLastVertID, (int)protograph.ProtoLastVertID);
+                            ApiThunks.Add((int)thistag.blockID, thunkData);
                         }
-                    }
 
-                    uint calleridx = protograph.ProtoLastLastVertID;
-                    NodeData apinode = protograph.NodeList[(int)protograph.ProtoLastVertID];
-                    if (!apinode.IncomingNeighboursSet.Contains(calleridx))
-                    {
-                        apinode.IncomingNeighboursSet.Add(calleridx);
-                    }
+                        if (firstCallByThisNode)
+                        {
 
-                    if (thistag.blockID == protograph.BlocksFirstLastNodeList.Count)
-                    {
-                        protograph.BlocksFirstLastNodeList.Add(null);
-                    }
-                    else if (thistag.blockID < protograph.BlocksFirstLastNodeList.Count && protograph.BlocksFirstLastNodeList[(int)thistag.blockID] != null)
-                    {
-                        Debug.Assert(false, "Panik"); //todo: exceptions
-                    }
+                            thunkInstruction.AddThreadVert(protograph.ThreadID, protograph.ProtoLastVertID);
+                            //todo this can be bad idx
+                            if (protograph.ProtoLastLastVertID < protograph.NodeList.Count)
+                            {
+                                protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller = true;
+                            }
+                            else
+                            {
+                                Logging.RecordLogEvent($"Error - thunk caller index {protograph.ProtoLastLastVertID} not available", Logging.LogFilterType.TextError);
+                            }
+                        }
 
-                    return;
+                        uint calleridx = protograph.ProtoLastLastVertID;
+                        NodeData apinode = protograph.NodeList[(int)protograph.ProtoLastVertID];
+                        if (!apinode.IncomingNeighboursSet.Contains(calleridx))
+                        {
+                            apinode.IncomingNeighboursSet.Add(calleridx);
+                        }
+
+                        if (thistag.blockID == protograph.BlocksFirstLastNodeList.Count)
+                        {
+                            protograph.BlocksFirstLastNodeList.Add(null);
+                        }
+                        else if (thistag.blockID < protograph.BlocksFirstLastNodeList.Count && protograph.BlocksFirstLastNodeList[(int)thistag.blockID] != null)
+                        {
+                            //Debug.Assert(false, "Panik"); //todo: exceptions
+                        }
+
+                        sw.Stop();
+                        if (sw.ElapsedMilliseconds > 4)
+                        {
+                            Console.WriteLine($"TP::Uninstru1 took {sw.ElapsedMilliseconds}ms");
+                        }
+                        return;
+                    }
+                    sw.Stop();
+                    if (sw.ElapsedMilliseconds > 4)
+                    {
+                        Console.WriteLine($"TP::Uninstru2 took {sw.ElapsedMilliseconds}ms");
+                    }
                 }
             }
 
 
+            sw.Restart();
             protograph.HandleTag(thistag, dontcountnextedge);
             if (dontcountnextedge)
             {
                 dontcountnextedge = false;
             }
-
+            sw.Stop();
+            if (sw.ElapsedMilliseconds > 40)
+            {
+                Console.WriteLine($"TP::handletag took {sw.ElapsedMilliseconds}ms (state:{thistag.InstrumentationState})");
+            }
             if (modType is eCodeInstrumentation.eUninstrumentedCode)
             {
+                sw.Restart();
                 ProcessExtern(nextBlockAddress, thistag.blockID);
+                sw.Stop();
+                if (sw.ElapsedMilliseconds > 84)
+                {
+                    Console.WriteLine($"TP::ProcessExtern took {sw.ElapsedMilliseconds}ms");
+                }
             }
         }
 
@@ -575,7 +628,7 @@ namespace rgat.Threads
                 blockID = uint.Parse(entries[1], NumberStyles.HexNumber)
             };
             protograph.PushAnimUpdate(animUpdate);
-            Logging.RecordLogEvent($"A REP instruction (blkid {animUpdate.blockID}) has executed at least once. Need to action this as per trello 160");
+            Logging.RecordLogEvent($"A REP instruction (blkid {animUpdate.blockID}) has executed at least once. Need to action this as per trello 160", Logging.LogFilterType.TextDebug);
         }
 
 
@@ -627,7 +680,7 @@ namespace rgat.Threads
             char moreArgsFlag = entries[4][0];
             string argstring = entries[5];
 
-            Logging.WriteConsole($"Handling arg index {argIdx} of symbol address 0x{funcpc:x} from source block {sourceBlockID} :'{argstring}'");
+            //Logging.WriteConsole($"Handling arg index {argIdx} of symbol address 0x{funcpc:x} from source block {sourceBlockID} :'{argstring}'");
 
             protograph.CacheIncomingCallArgument(funcpc, sourceBlockID, argpos: argIdx, contents: argstring, isLastArgInCall: moreArgsFlag == 'E');
 
@@ -999,7 +1052,7 @@ namespace rgat.Threads
                     }
                 }
                 s.Stop();
-                if (s.ElapsedMilliseconds > 3)
+                if (s.ElapsedMilliseconds > 75)
                 {
                     Console.WriteLine($"Tag {(char)msg[0]} took {s.ElapsedMilliseconds}ms to process");
                 }

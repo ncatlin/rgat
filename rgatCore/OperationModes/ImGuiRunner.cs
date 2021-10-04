@@ -318,20 +318,20 @@ namespace rgat.OperationModes
         {
 
             Logging.RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug);
-            double currentUIProgress = _rgatUI!.StartupProgress;
+            double currentUIProgress = rgatUI.StartupProgress;
 
             Stopwatch timer = new(), timerTotal = new();
             timer.Start();
             timerTotal.Start();
 
             float configProgress = 0, widgetProgress = 0;
-            void UpdateProgressConfWidgets() { _rgatUI.StartupProgress = Math.Max(_rgatUI.StartupProgress, currentUIProgress + 0.2 * configProgress + 0.5 * widgetProgress); };
+            void UpdateProgressConfWidgets() { rgatUI.StartupProgress = Math.Max(rgatUI.StartupProgress, currentUIProgress + 0.2 * configProgress + 0.5 * widgetProgress); };
 
             Progress<float> IProgressConfig = new(progress => { configProgress = progress; UpdateProgressConfWidgets(); });
             Progress<float> IProgressWidgets = new(progress => { widgetProgress = progress; UpdateProgressConfWidgets(); });
 
             Task confloader = Task.Run(() => GlobalConfig.LoadConfig(GUI: true, progress: IProgressConfig)); // 900ms~ depending on themes
-            Task widgetLoader = Task.Run(() => _rgatUI.InitWidgets(IProgressWidgets)); //2000ms~ fairly flat
+            Task widgetLoader = Task.Run(() => _rgatUI!.InitWidgets(IProgressWidgets)); //2000ms~ fairly flat
 
             await Task.WhenAll(widgetLoader, confloader);
 
@@ -340,11 +340,11 @@ namespace rgat.OperationModes
             Logging.RecordLogEvent($"Startup: Widgets+config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
 
-            _rgatUI.StartupProgress = 0.85;
-            currentUIProgress = _rgatUI.StartupProgress;
+            rgatUI.StartupProgress = 0.85;
+            currentUIProgress = rgatUI.StartupProgress;
 
             rgatState.VideoRecorder.Load(); //0 ms
-            _rgatUI.InitSettingsMenu(); //50ms ish
+            _rgatUI!.InitSettingsMenu(); //50ms ish
 
             Logging.RecordLogEvent($"Startup: Settings menu loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             timer.Restart();
@@ -355,11 +355,11 @@ namespace rgat.OperationModes
             rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
             rgatState.processCoordinatorThreadObj.Begin();
 
-            _rgatUI.StartupProgress = 0.86;
-            currentUIProgress = _rgatUI.StartupProgress;
+            rgatUI.StartupProgress = 0.86;
+            currentUIProgress = rgatUI.StartupProgress;
 
             float apiProgress = 0, sigProgress = 0;
-            void UpdateProgressAPISig() { _rgatUI.StartupProgress = currentUIProgress + 0.07 * sigProgress + 0.7f * apiProgress; };
+            void UpdateProgressAPISig() { rgatUI.StartupProgress = currentUIProgress + 0.07 * sigProgress + 0.7f * apiProgress; };
             Progress<float> IProgressAPI = new(progress => { apiProgress = progress; UpdateProgressAPISig(); });
             Progress<float> IProgressSigs = new(progress => { sigProgress = progress; UpdateProgressAPISig(); });
 
@@ -399,7 +399,7 @@ namespace rgat.OperationModes
 
             Logging.RecordLogEvent($"Startup: Signatures + API info inited in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
             Logging.RecordLogEvent($"Startup: Loading thread took {timerTotal.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
-            _rgatUI.StartupProgress = 1;
+            rgatUI.StartupProgress = 1;
             Logging.WriteConsole("Starup progress 1");
 
         }
@@ -408,7 +408,7 @@ namespace rgat.OperationModes
         {
             if (GlobalConfig.Settings.Logs.BulkLogging)
             {
-                Logging.RecordLogEvent("rgat Exit() triggered", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("rgat Exit() triggered", Logging.LogFilterType.BulkDebugLogFile);
             }
 
             rgatState.Shutdown();

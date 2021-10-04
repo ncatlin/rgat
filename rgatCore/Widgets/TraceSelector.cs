@@ -30,7 +30,7 @@ namespace rgat.Widgets
                 return null;
             }
 
-            PlottedGraph? result = null;
+            PlottedGraph? selectedGraph = null;
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
             if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(ImGui.GetContentRegionAvail().X - 15, 52)))
             {
@@ -58,13 +58,16 @@ namespace rgat.Widgets
                     }
                     ImGui.EndCombo();
                 }
-                DrawThreadSelectorCombo(trace, out result);
+                DrawThreadSelectorCombo(trace, out selectedGraph);
 
 
                 ImGui.EndChild();
             }
             ImGui.PopStyleColor(1);
-            return result;
+
+            if (selectedGraph is not null)
+                rgatState.SetActiveGraph(selectedGraph);
+            return selectedGraph;
         }
 
 

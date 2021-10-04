@@ -27,7 +27,7 @@ namespace rgat
             GraphPlot = graph;
             _VRAMBuffers.Style = style;
             _gd = device;
-            Logging.RecordLogEvent($"Layout state {GraphPlot.TID} inited", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Layout state {GraphPlot.TID} inited", Logging.LogFilterType.BulkDebugLogFile);
         }
 
         /// <summary>
@@ -35,7 +35,7 @@ namespace rgat
         /// </summary>
         ~GraphLayoutState()
         {
-            Logging.RecordLogEvent($"Layout state {GraphPlot.TID} disposed", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Layout state {GraphPlot.TID} disposed", Logging.LogFilterType.BulkDebugLogFile);
         }
 
         /// <summary>
@@ -305,7 +305,7 @@ namespace rgat
 
         private void LockedUploadStateToVRAM(LayoutStyles.Style style)
         {
-            Logging.RecordLogEvent($"UploadGraphDataToVRAMA Start {GraphPlot.TID} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"UploadGraphDataToVRAMA Start {GraphPlot.TID} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
             if (!SavedStates.TryGetValue(style, out CPUBuffers? sourceBuffers))
             {
                 sourceBuffers = new CPUBuffers(style);
@@ -321,7 +321,7 @@ namespace rgat
         /// <param name="sourceBuffers">CPUBuffers stored graph layout data to upload</param>
         private void LockedUploadStateToVRAM(CPUBuffers sourceBuffers)
         {
-            Logging.RecordLogEvent($"UploadGraphDataToVRAMB Start {GraphPlot.TID} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"UploadGraphDataToVRAMB Start {GraphPlot.TID} layout {Thread.CurrentThread.Name}", Logging.LogFilterType.BulkDebugLogFile);
 
 
             var bufferPair = VeldridGraphBuffers.CreateFloatsDeviceBufferPair(sourceBuffers.VelocityArray, _gd, $"_AvelBuf_{GraphPlot.TID}_");
@@ -344,7 +344,7 @@ namespace rgat
             RegenerateEdgeDataBuffers(GraphPlot);
 
             _VRAMBuffers.Initialised = true;
-            Logging.RecordLogEvent($"UploadGraphDataToVRAM copied", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"UploadGraphDataToVRAM copied", Logging.LogFilterType.BulkDebugLogFile);
 
         }
 
@@ -392,7 +392,7 @@ namespace rgat
                 destbuffer[i] = destinationReadView[i];
             }
             _gd.Unmap(destinationReadback);
-            destinationReadback.Dispose();
+            VeldridGraphBuffers.VRAMDispose(destinationReadback);
 
             _lock.ExitReadLock();
 
@@ -460,7 +460,7 @@ namespace rgat
                 Download_NodePositions_VRAM_to_Graph(destbuffers);
                 Download_NodeVelocity_VRAM_to_Graph(destbuffers);
                 destbuffers.RenderVersion = _VRAMBuffers.RenderVersion;
-                Logging.RecordLogEvent($"{GraphPlot.TID} layout version updated", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"{GraphPlot.TID} layout version updated", Logging.LogFilterType.BulkDebugLogFile);
 
             }
         }
@@ -468,14 +468,14 @@ namespace rgat
         private void Download_NodePositions_VRAM_to_Graph(CPUBuffers destbuffers)
         {
             Debug.Assert(PositionsVRAM1 is not null);
-            Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph fetching {GraphPlot.TID} posbufs {PositionsVRAM1.Name}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph fetching {GraphPlot.TID} posbufs {PositionsVRAM1.Name}", Logging.LogFilterType.BulkDebugLogFile);
 
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, PositionsVRAM1);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
             CopyMappedVRAMBufferToFloatArray(destinationReadView, ref destbuffers.PositionsArray);
             _gd.Unmap(destinationReadback);
             VeldridGraphBuffers.VRAMDispose(destinationReadback);
-            Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph finished", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Download_NodePositions_VRAM_to_Graph finished", Logging.LogFilterType.BulkDebugLogFile);
 
         }
 
@@ -489,7 +489,7 @@ namespace rgat
             int floatCount = VRAMBuf.Count;//xyzw
             if (destbuffer.Length < floatCount)
             {
-                Logging.RecordLogEvent($"UpdateNodePositions called changing grp_{GraphPlot.TID} size from {destbuffer.Length} to {VRAMBuf.Count}", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"UpdateNodePositions called changing grp_{GraphPlot.TID} size from {destbuffer.Length} to {VRAMBuf.Count}", Logging.LogFilterType.BulkDebugLogFile);
                 destbuffer = new float[floatCount]; //todo should be lots bigger
             }
 
@@ -502,17 +502,17 @@ namespace rgat
         private void Download_NodeVelocity_VRAM_to_Graph(CPUBuffers destbuffers)
         {
 
-            Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph {GraphPlot.TID} layout", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph {GraphPlot.TID} layout", Logging.LogFilterType.BulkDebugLogFile);
             Debug.Assert(VelocitiesVRAM1 is not null);
 
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd, VelocitiesVRAM1);
 
-            Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph readview map buf size {destinationReadback.SizeInBytes}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph readview map buf size {destinationReadback.SizeInBytes}", Logging.LogFilterType.BulkDebugLogFile);
             MappedResourceView<float> destinationReadView = _gd.Map<float>(destinationReadback, MapMode.Read);
             //uint floatCount = Math.Min(textureSize * textureSize * 4, (uint)destinationReadView.Count);
             uint floatCount = (uint)destinationReadView.Count;
             CopyMappedVRAMBufferToFloatArray(destinationReadView, ref destbuffers.VelocityArray);
-            Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph done updatenode", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Download_NodeVelocity_VRAM_to_Graph done updatenode", Logging.LogFilterType.BulkDebugLogFile);
             _gd.Unmap(destinationReadback);
             VeldridGraphBuffers.VRAMDispose(destinationReadback);
         }
@@ -523,7 +523,7 @@ namespace rgat
         /// </summary>
         public void RegenerateEdgeDataBuffers(PlottedGraph graph)
         {
-            Logging.RecordLogEvent($"RegenerateEdgeDataBuffers start", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RegenerateEdgeDataBuffers start", Logging.LogFilterType.BulkDebugLogFile);
             long v1 = 0, v2 = 0, v3 = 0;
 
             Stopwatch st = new();
@@ -542,8 +542,10 @@ namespace rgat
                 ActivatingPreset = true;
             }
             //}
-            Console.WriteLine($"Regen took: edged:{v1}ms, blockmd:{v2}ms, preset:{v3}ms");
-            Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {graph.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
+
+            if (v1 > 80 || v2 > 80 || v3 > 80)
+                Console.WriteLine($"Regen took: edged:{v1}ms, blockmd:{v2}ms, preset:{v3}ms");
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {graph.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
         }
 
 
@@ -602,7 +604,7 @@ namespace rgat
         /// <returns></returns>
         private unsafe bool CreateEdgeDataBuffers(PlottedGraph graph)
         {
-            Logging.RecordLogEvent($"CreateEdgeDataBuffers  {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateEdgeDataBuffers  {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnections);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnectionIndexes);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeStrengths);
@@ -611,14 +613,15 @@ namespace rgat
             st.Start();
             if (!graph.GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargets, out int[] edgeMetaOffsets))
             {
-                Logging.RecordLogEvent($"CreateEdgeDataBuffers zerobuf", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateEdgeDataBuffers zerobuf", Logging.LogFilterType.BulkDebugLogFile);
                 _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeTargets_T{graph.TID}");
                 _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeStrengths_T{graph.TID}");
                 _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeOffsets_T{graph.TID}");
                 return false;
             }
             st.Stop();
-            Console.WriteLine($"GetEdgeRenderingdata took {st.ElapsedMilliseconds} ms");
+            if (st.ElapsedMilliseconds > 80)
+                Console.WriteLine($"GetEdgeRenderingdata took {st.ElapsedMilliseconds} ms");
 
             _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeTargets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeTargetsBuf_T{graph.TID}");
             _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeStrengths.Length * sizeof(float), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeStrengthsBuf_T{graph.TID}");
@@ -655,7 +658,7 @@ namespace rgat
                 _VRAMBuffers.PresetPositions = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, stride: 4, "DummyPresetAlloc");
             }
 
-            Logging.RecordLogEvent($"CreateEdgeDataBuffers done", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateEdgeDataBuffers done", Logging.LogFilterType.BulkDebugLogFile);
             //PrintBufferArray(textureArray, "Created data texture:");
             return true;
         }
@@ -665,7 +668,7 @@ namespace rgat
         private unsafe void CreateBlockMetadataBuffer(PlottedGraph graph)
         {
 
-            Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
 
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMetadata);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMiddles);
@@ -702,7 +705,7 @@ namespace rgat
 
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, newBuffer));
 
-            Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
             //PrintBufferArray(textureArray, "Created data texture:");
         }
 
@@ -717,7 +720,7 @@ namespace rgat
         /// <param name="graph">The graph with new nodes</param>
         public unsafe void AddNewNodesToComputeBuffers(int finalCount, PlottedGraph graph)
         {
-            Logging.RecordLogEvent($"AddNewNodesToComputeBuffers <{finalCount - graph.ComputeBufferNodeCount}?  {graph.TID} start", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"AddNewNodesToComputeBuffers <{finalCount - graph.ComputeBufferNodeCount}?  {graph.TID} start", Logging.LogFilterType.BulkDebugLogFile);
             int newNodeCount = finalCount - graph.ComputeBufferNodeCount;
             if (newNodeCount == 0)
             {
@@ -756,7 +759,7 @@ namespace rgat
                     ResizeComputeBuffers(graph, bufferSize, cl, ref disposals);
                 }
                 _lock.ExitWriteLock();
-                Logging.RecordLogEvent($"AddNewNodesToComputeBuffers  {graph.TID} done", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"AddNewNodesToComputeBuffers  {graph.TID} done", Logging.LogFilterType.BulkDebugLogFile);
             }
 
             Debug.Assert(VelocitiesVRAM1 is not null);
@@ -764,7 +767,7 @@ namespace rgat
 
             uint endOfComputeBufferOffset = (uint)graph.ComputeBufferNodeCount * 4;
             float[] newPositions = RAMbufs.PositionsArray;
-            Logging.RecordLogEvent($"Writing new nodes from {offset / 16} to {offset / 16 + updateSize / 16} -> finalcount {finalCount}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Writing new nodes from {offset / 16} to {offset / 16 + updateSize / 16} -> finalcount {finalCount}", Logging.LogFilterType.BulkDebugLogFile);
             fixed (float* dataPtr = newPositions)
             {
                 cl.UpdateBuffer(_VRAMBuffers.Positions1, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
@@ -863,7 +866,7 @@ namespace rgat
         /// <param name="_gd">Veldrid GraphicsDevice</param>
         public void ResetNodeAttributes(GraphicsDevice _gd)
         {
-            Logging.RecordLogEvent($"ResetNodeAttributes ", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"ResetNodeAttributes ", Logging.LogFilterType.BulkDebugLogFile);
 
             uint bufferSize = AttributesVRAM1?.SizeInBytes ?? 1024;
             BufferDescription bd = new BufferDescription(bufferSize, BufferUsage.StructuredBufferReadWrite, 4);

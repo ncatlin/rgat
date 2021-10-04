@@ -4,6 +4,7 @@ using rgat.Threads;
 using rgat.Widgets;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
@@ -110,28 +111,48 @@ namespace rgat
 
         public void Draw()
         {
-            long ms1, ms2;
+            Stopwatch sw = new Stopwatch();
             if (MainGraphWidget != null && PreviewGraphWidget != null)
             {
                 ManageActiveGraph();
 
                 float controlsHeight = 230;
-
+                sw.Start();
+                
                 DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y - 16) - controlsHeight);
+                sw.Stop();
+                if (sw.ElapsedMilliseconds > 40)
+                    Console.WriteLine($"DrawVisualiserGraphs took {sw.ElapsedMilliseconds}ms");
+
+                sw.Restart();
                 DrawVisualiserControls(controlsHeight);
+                sw.Stop();
+                if (sw.ElapsedMilliseconds > 40)
+                    Console.WriteLine($"DrawVisualiserControls took {sw.ElapsedMilliseconds}ms");
             }
         }
 
 
+        Stopwatch swdbg2 = new();
         private void DrawVisualiserGraphs(float height)
         {
+
             Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X - UI.PREVIEW_PANE_WIDTH, height);
             //ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, 0));
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
+                swdbg2.Restart();
                 MainGraphWidget.Draw(graphSize, rgatState.ActiveGraph);
+                swdbg2.Stop();
+                if (swdbg2.ElapsedMilliseconds > 52)
+                    Console.WriteLine($"MainGraphWidget.Draw took {swdbg2.ElapsedMilliseconds}ms");
+
                 Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1 * graphSize.Y);
+                swdbg2.Restart();
                 MainGraphWidget.DisplayEventMessages(msgpos);
+                swdbg2.Stop();
+                if (swdbg2.ElapsedMilliseconds > 42)
+                    Console.WriteLine($"MainGraphWidget.DisplayEventMessages took {swdbg2.ElapsedMilliseconds}ms");
                 ImGui.EndChild();
             }
             //ImGui.PopStyleVar();
@@ -148,12 +169,16 @@ namespace rgat
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
             if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, false, ImGuiWindowFlags.NoScrollbar))
             {
+                swdbg2.Restart();
                 PreviewGraphWidget!.DrawWidget();
                 if (PreviewGraphWidget.clickedGraph != null)
                 {
                     SetActiveGraph(PreviewGraphWidget.clickedGraph);
                     PreviewGraphWidget.ResetClickedGraph();
                 }
+                swdbg2.Stop();
+                if (swdbg2.ElapsedMilliseconds > 62)
+                    Console.WriteLine($"PreviewGraphWidget.DrawWidget took {swdbg2.ElapsedMilliseconds}ms");
                 ImGui.EndChild();
             }
             ImGui.PopStyleVar(4);
@@ -425,12 +450,21 @@ namespace rgat
                     if (ImGui.Button("Kill"))
                     {
                         graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
+                        // Sometimes the pintool doesn't respond
+                        // This terminates our end of the connection after a reasonable wait
+                        System.Threading.Tasks.Task.Run(async () => { 
+                            await System.Threading.Tasks.Task.Delay(800); 
+                            if (graph.InternalProtoGraph.TraceData.TraceState is not TraceRecord.ProcessState.eTerminated) 
+                                graph.InternalProtoGraph.TraceReader?.Terminate(); }
+                        );
                     }
                     SmallWidgets.MouseoverText("Terminate the process running the current thread");
 
                     if (ImGui.Button("Kill All"))
                     {
-                        Logging.WriteConsole("Kill All clicked");
+                        foreach (var child in graph.InternalProtoGraph.TraceData.Children)
+                            child.SendDebugCommand(0, "EXIT");
+                        graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
                     }
 
                     ImGui.EndGroup();
@@ -633,7 +667,7 @@ namespace rgat
                     if (lastAnimIdx >= 0 && lastAnimIdx < graph.SavedAnimationData.Count)
                     {
                         ANIMATIONENTRY lastEntry = graph.SavedAnimationData[lastAnimIdx];
-                        ImGui.Text($"Trace Tag: {lastEntry.entryType}");
+                        ImGui.Text($"Trace Tag: {lastEntry.entryType} Location: 0x{lastEntry.blockAddr} (Block {lastEntry.blockID})");
                         switch (lastEntry.entryType)
                         {
                             case eTraceUpdateType.eAnimExecTag:
@@ -644,7 +678,7 @@ namespace rgat
 
                                         bool resolved = graph.ProcessData.ResolveSymbolAtAddress(lastEntry.blockAddr, out int moduleID2, out string modulenm, out string symbol);
                                         string moduleLabel = ((modulenm.Length > 0) ? modulenm : "Unknown module");
-                                        ImGui.TextWrapped($"Location: 0x{lastEntry.blockAddr} (Block {blkID}) - {moduleLabel}");
+                                        ImGui.TextWrapped($"{moduleLabel}");
 
                                         ImGui.Indent(8);
                                         ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
@@ -883,12 +917,12 @@ namespace rgat
                 */
                 if (plot.ComputeLayoutSteps > 0)
                 {
-                    ImGui.Text($"Layout MS: {(plot.ComputeLayoutTime / plot.ComputeLayoutSteps):0.#}");
+                    ImGui.Text($"Layout: {(plot.ComputeLayoutTime / plot.ComputeLayoutSteps):0.#}ms");
                     if (ImGui.IsItemHovered())
                     {
                         ImGui.BeginTooltip();
                         ImGui.Text("How long it takes to complete a step of graph layout");
-                        ImGui.Text($"Layout Cumulative Time: {plot.ComputeLayoutTime} MS - ({plot.ComputeLayoutSteps} steps");
+                        ImGui.Text($"Layout Cumulative Time: {plot.ComputeLayoutTime:f1}ms - ({plot.ComputeLayoutSteps} steps");
                         ImGui.EndTooltip();
                     }
                 }
@@ -969,7 +1003,8 @@ namespace rgat
                 ImGui.SameLine();
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 5); //too much item padding
                 ImGui.BeginGroup();
-                PlottedGraph? selectedGraph = TraceSelector.Draw(activeGraph?.InternalProtoGraph.TraceData);
+                TraceSelector.Draw(activeGraph?.InternalProtoGraph.TraceData);
+
                 if (activeGraph is not null)
                     DrawPlotStatColumns(activeGraph);
                 ImGui.EndGroup();

@@ -51,8 +51,8 @@ namespace rgat
         private bool _show_remote_dialog = false;
         public static bool ShowStatsDialog { get; private set; } = false;
 
-        private double _StartupProgress = 0;
-        public double StartupProgress
+        private static double _StartupProgress = 0;
+        public static double StartupProgress
         {
             get => _StartupProgress; set
             {

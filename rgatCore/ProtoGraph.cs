@@ -816,7 +816,7 @@ namespace rgat
                 //every edge that has this extern as a target
                 if (!lookup_extern_func_calls(arg.calledAddress, out List<Tuple<uint, uint>>? threadCalls) || threadCalls is null)
                 {
-                    Logging.WriteConsole($"\tProcessIncomingCallArguments - Failed to find *any* callers of 0x{arg.calledAddress:X} in current thread. Leaving until it appears.");
+                    //Logging.WriteConsole($"\n---\tProcessIncomingCallArguments - Failed to find *any* callers of 0x{arg.calledAddress:X} in current thread. Leaving until it appears.\n---");
                     RemoveProcessedArgsFromCache(completecount);
                     return;
                 }
@@ -837,13 +837,11 @@ namespace rgat
                     Debug.Assert(functionNode is not null);
 
                     //each node can only have a certain number of arguments to prevent simple denial of service
-                    if (functionNode.callRecordsIndexs.Count >= GlobalConfig.Settings.Tracing.ArgStorageMax)
+                    if (functionNode.callRecordsIndexs.Count < GlobalConfig.Settings.Tracing.ArgStorageMax)
                     {
-                        //todo: blacklist this callee from future processing
-                        Logging.RecordLogEvent($"Warning, dropping args to extern 0x{currentTarget:X} because the storage limit is {GlobalConfig.Settings.Tracing.ArgStorageMax}");
-                    }
-                    else
-                    {
+                        if (functionNode.callRecordsIndexs.Count >= (GlobalConfig.Settings.Tracing.ArgStorageMax - 1))
+                            Logging.RecordLogEvent($"Warning, dropping future args to extern 0x{currentTarget:X} because the storage limit is {GlobalConfig.Settings.Tracing.ArgStorageMax}");
+
                         List<Tuple<int, string>> argStringsList = new List<Tuple<int, string>>();
                         for (var aI = 0; aI <= cacheI; aI++)
                         {
@@ -857,7 +855,7 @@ namespace rgat
 
                         functionNode.callRecordsIndexs.Add((ulong)SymbolCallRecords.Count);
                         SymbolCallRecords.Add(callRecord);
-                        RecordSystemInteraction(functionNode, callRecord);
+                        //RecordSystemInteraction(functionNode, callRecord);
 
                         // this toggle isn't thread safe so slight chance for renderer to not notice the final arg
                         // not worth faffing around with locks though - maybe just re-read at tracereader thread termination
@@ -898,8 +896,6 @@ namespace rgat
             //int  moduleEnum = ProcessData.ModuleAPIReferences[node.GlobalModuleID];
 
             ProcessData.GetSymbol(node.GlobalModuleID, node.address, out string? symbol);
-            Logging.WriteConsole($"Node {node.Index} is system interaction {node.IsExternal}");
-
         }
 
 
@@ -915,7 +911,7 @@ namespace rgat
         /// <param name="isLastArgInCall">Is this the last argument being recorded for this call?</param>
         public void CacheIncomingCallArgument(ulong funcpc, ulong sourceBlockID, int argpos, string contents, bool isLastArgInCall)
         {
-
+            //return; //todo restore this 
             INCOMING_CALL_ARGUMENT argstruc = new INCOMING_CALL_ARGUMENT()
             {
                 argIndex = argpos,
@@ -940,7 +936,7 @@ namespace rgat
 
         private bool lookup_extern_func_calls(ulong called_function_address, out List<Tuple<uint, uint>>? callEdges)
         {
-            Logging.RecordLogEvent($"lookup_extern_func_calls looking for 0x{called_function_address:x}");
+            if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"lookup_extern_func_calls looking for 0x{called_function_address:x}", Logging.LogFilterType.BulkDebugLogFile);
             lock (ProcessData.ExternCallerLock)
             {
                 if (TraceData.DisassemblyData.externdict.TryGetValue(called_function_address, out ROUTINE_STRUCT rtn))
@@ -1007,14 +1003,22 @@ namespace rgat
         /// Get readonly references to the nodepair edge list and full edgelist
         /// </summary>
         /// <returns>The list of nodepairs</returns>
-        public void GetEdgelistSpans(out Span<Tuple<uint,uint>> nodesList, out Span<EdgeData> edgesList )
+        public void GetEdgelistSpans(out Span<Tuple<uint, uint>> nodesList, out Span<EdgeData> edgesList)
         {
-
+            Stopwatch st = new Stopwatch();
+            st.Start();
             lock (edgeLock)
             {
+                st.Stop();
+                if (st.ElapsedMilliseconds > 60)
+                    Console.WriteLine($"GetEdgelistSpans edgelog was contended for {st.ElapsedMilliseconds}ms ");
+                st.Restart();
                 nodesList = CollectionsMarshal.AsSpan(EdgeList);
                 edgesList = CollectionsMarshal.AsSpan(edgeObjList);
             }
+            st.Stop();
+            if (st.ElapsedMilliseconds > 60)
+                Console.WriteLine($"GetEdgelistSpans marshalling took {st.ElapsedMilliseconds}ms ");
         }
 
 
@@ -1033,14 +1037,14 @@ namespace rgat
 
 
         /// <summary>
-        /// Get a thread-safe copy of the nodedata list
+        /// Get a readonly span of the nodedata list
         /// </summary>
         /// <returns>The list of NodeData</returns>
-        public List<NodeData> GetNodeObjlistCopy()
+        public ReadOnlySpan<NodeData> GetNodeObjlistSpan()
         {
             lock (nodeLock)
             {
-                return NodeList.ToList();
+                return CollectionsMarshal.AsSpan<NodeData>(NodeList);
             }
         }
 
@@ -1244,11 +1248,15 @@ namespace rgat
         /// <param name="skipFirstEdge">If we are expecting this and have already recorded the edge that leads to this</param> //messy
         public void HandleTag(TAG thistag, bool skipFirstEdge = false)
         {
+            Stopwatch sw = new();
             if (thistag.InstrumentationState == eCodeInstrumentation.eInstrumentedCode)
             {
                 //Logging.WriteConsole($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} [BLOCKID: {thistag.blockID}] inscount {thistag.insCount}");
-
+                sw.Start();
                 addBlockToGraph(thistag.blockID, 1, !skipFirstEdge);
+                sw.Stop();
+                if (sw.ElapsedMilliseconds > 70)
+                    Console.WriteLine($"HandleTag::addblock to graph took {sw.ElapsedMilliseconds} ms");
             }
 
             else if (thistag.InstrumentationState == eCodeInstrumentation.eUninstrumentedCode)
@@ -1256,9 +1264,20 @@ namespace rgat
                 //if (ProtoLastVertID == 0) return;
 
                 //find caller,external vertids if old + add node to graph if new
+                sw.Start();
                 if (RunExternal(thistag.blockaddr, 1, out Tuple<uint, uint>? resultPair)) //todo skipfirstedge
                 {
-                    ProcessIncomingCallArguments(); //todo - does this ever achieve anything here?
+                    sw.Stop();
+                    if (sw.ElapsedMilliseconds > 60)
+                        Console.WriteLine($"HandleTag::RunExternal (ret true) took {sw.ElapsedMilliseconds} ms");
+                    ProcessIncomingCallArguments();
+                }
+                else
+                {
+
+                    sw.Stop();
+                    if (sw.ElapsedMilliseconds > 40)
+                        Console.WriteLine($"RunExternal (ret false) took {sw.ElapsedMilliseconds} ms");
                 }
             }
             else
@@ -1346,11 +1365,23 @@ namespace rgat
             thisnode.HasSymbol = instruction.hasSymbol;
 
             Debug.Assert(!NodeExists(targVertID));
-            InsertNode(targVertID, thisnode);
 
+            Stopwatch st = new Stopwatch();
+            st.Start();
+            InsertNode(targVertID, thisnode);
+            st.Stop(); if (st.ElapsedMilliseconds > 100)
+            {
+                Console.WriteLine($"!!!!!!InsertNode nodelock is contended for {st.ElapsedMilliseconds}");
+            }
+
+            st.Restart();
             lock (TraceData.DisassemblyData.InstructionsLock)
             {
                 instruction.AddThreadVert(ThreadID, targVertID);
+            }
+            st.Stop(); if (st.ElapsedMilliseconds > 100)
+            {
+                Console.WriteLine($"!!!!!!AddThreadVert InstructionsLock is contended for {st.ElapsedMilliseconds}");
             }
 
             //lastVertID = targVertID;
@@ -1382,6 +1413,8 @@ namespace rgat
         /// <param name="customPreviousVert">Add a custom node to set as the last executed node</param>
         public void addBlockToGraph(uint blockID, ulong repeats, bool recordEdge = true, bool setLastID = true, uint? customPreviousVert = null)
         {
+            Stopwatch st = new();
+            st.Start();
             List<InstructionData>? block = TraceData.DisassemblyData.getDisassemblyBlock(blockID);
             if (block is null)
             {
@@ -1393,6 +1426,9 @@ namespace rgat
             }
             Debug.Assert(block is not null);
             int numInstructions = block.Count;
+            st.Stop();
+            if (st.ElapsedMilliseconds > 100)
+                Console.WriteLine($"abg getDisassemblyBlock took {st.ElapsedMilliseconds}");
 
             if (GlobalConfig.Settings.Logs.BulkLogging)
             {
@@ -1405,6 +1441,7 @@ namespace rgat
 
             TotalInstructions += ((ulong)numInstructions * repeats);
 
+            st.Start();
             uint firstVert = 0;
             //Logging.WriteConsole($"addBlockLineToGraph adding block addr 0x{block[0].address:X} with {block.Count} instructions");
             for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
@@ -1473,6 +1510,11 @@ namespace rgat
             }
 
 
+            st.Stop();
+            if (st.ElapsedMilliseconds > 100)
+                Console.WriteLine($"abg loop took {st.ElapsedMilliseconds} over {numInstructions} instructions");
+
+
             lock (edgeLock)
             {
                 while (BlocksFirstLastNodeList.Count <= (int)blockID)
@@ -1507,11 +1549,11 @@ namespace rgat
         /// Thread safe list of external node indexes
         /// </summary>
         /// <returns>Array of external node indexes</returns>
-        public uint[] copyExternalNodeList()
+        public ReadOnlySpan<uint> copyExternalNodeList()
         {
             lock (nodeLock)
             {
-                return externalNodeList.ToArray();
+                return CollectionsMarshal.AsSpan<uint>(externalNodeList);
             }
         }
 
@@ -1580,7 +1622,6 @@ namespace rgat
         /// <returns>New adjusted index</returns>
         public int PurgeAnimationEntries(int maxIndex)
         {
-
             if (this.Terminated is false && SavedAnimationData.Count < 500) return maxIndex;
             lock (AnimDataLock)
             {
@@ -1896,13 +1937,16 @@ namespace rgat
         public int GetRecentAnimationEntries(int count, out List<ANIMATIONENTRY> result)
         {
             result = new List<ANIMATIONENTRY>();
-            int sz = Math.Min(count, SavedAnimationData.Count - 1);
-            int index = SavedAnimationData.Count - 1;
-            for (var i = 0; i < sz; i++)
+            lock (AnimDataLock)
             {
-                result.Add(SavedAnimationData[index - i]);
+                int sz = Math.Min(count, SavedAnimationData.Count - 1);
+                int index = SavedAnimationData.Count - 1;
+                for (var i = 0; i < sz; i++)
+                {
+                    result.Add(SavedAnimationData[index - i]);
+                }
+                return index;
             }
-            return index;
         }
 
 

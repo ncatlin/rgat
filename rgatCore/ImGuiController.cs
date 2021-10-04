@@ -926,6 +926,7 @@ namespace ImGuiNET
             }
         }
 
+
         private void RenderImDrawData(ImDrawDataPtr draw_data, GraphicsDevice gd, CommandList cl)
         {
             if (draw_data.CmdListsCount == 0)

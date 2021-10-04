@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Veldrid;
 using static rgat.VeldridGraphBuffers;
 
@@ -36,6 +37,7 @@ namespace rgat.Threads
         private DeviceBuffer? _NodeVertexBuffer, _NodeIndexBuffer;
         private readonly TextureView _NodeCircleSpriteview;
         private Pipeline? _edgesPipeline, _pointsPipeline;
+        private static Task? _emptyGraphMonitor;
 
 
         /// <summary>
@@ -48,6 +50,10 @@ namespace rgat.Threads
         {
             lock (_lock)
             {
+                Debug.Assert(priorityQueue.Contains(graph) is false);
+                Debug.Assert(renderQueue.Contains(graph) is false);
+                Debug.Assert(_emptyGraphList.Contains(graph) is false);
+
                 if (graph.InternalProtoGraph.TraceData == rgatState.ActiveTrace && graph.InternalProtoGraph.EdgeCount > 0)
                 {
                     priorityQueue.Enqueue(graph);
@@ -93,11 +99,10 @@ namespace rgat.Threads
                         }
                     }
 
-
-                    //Checked all queues, someone else took the task
-                    //Sleep so we don't thrash on locks
-                    Thread.Sleep(50);
                 }
+                //Checked all queues, someone else took the task
+                //Sleep so we don't thrash on locks
+                Thread.Sleep(50);
                 _waitEvent.Wait(rgatState.ExitToken);
 
                 lock (_lock)
@@ -161,12 +166,13 @@ namespace rgat.Threads
             }
         }
 
+
         /// <summary>
         /// The worker thread entry point
         /// </summary>
         public void ThreadProc()
         {
-            Logging.RecordLogEvent($"PreviewRenderThread ThreadProc START", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"PreviewRenderThread ThreadProc START", Logging.LogFilterType.BulkDebugLogFile);
 
             Veldrid.CommandList cl = _clientState!._GraphicsDevice!.ResourceFactory.CreateCommandList();
 
@@ -174,13 +180,22 @@ namespace rgat.Threads
             {
                 Thread.Sleep(50);
             }
-
-            System.Threading.Tasks.Task.Run(() => EmptyGraphTask());
+            lock (_lock)
+            {
+                if (_emptyGraphMonitor is null)
+                {
+                    _emptyGraphMonitor = System.Threading.Tasks.Task.Run(() => EmptyGraphTask());
+                }
+            }
 
             while (!rgatState.rgatIsExiting && _stopFlag is false)
             {
                 PlottedGraph? graph = FetchRenderTask(_background);
                 if (graph is null) continue;
+
+                Debug.Assert(priorityQueue.Contains(graph) is false);
+                Debug.Assert(renderQueue.Contains(graph) is false);
+                Debug.Assert(_emptyGraphList.Contains(graph) is false);
 
 
                 if (graph != rgatState.ActiveGraph)
@@ -200,7 +215,6 @@ namespace rgat.Threads
                 {
                     if (graph.InternalProtoGraph.EdgeCount == 0)
                     {
-                        Console.WriteLine("Preview skip noEdge");
                         lock (_lock)
                         {
                             _emptyGraphList.Add(graph);
@@ -210,6 +224,7 @@ namespace rgat.Threads
                 }
 
                 AddGraphToPreviewRenderQueue(graph);
+
             }
             Finished();
         }
@@ -255,7 +270,7 @@ namespace rgat.Threads
         }
 
 
-        private void RenderPreview(CommandList cl, PlottedGraph graph)
+        private unsafe void RenderPreview(CommandList cl, PlottedGraph graph)
         {
             if (graph == null || _stopFlag)
             {
@@ -267,8 +282,7 @@ namespace rgat.Threads
                 graph.InitPreviewTexture(new Vector2(PreviewGraphsWidget.EachGraphWidth, CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT), _gdev);
             }
 
-
-            Logging.RecordLogEvent("render preview 1", filter: Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("render preview 1", filter: Logging.LogFilterType.BulkDebugLogFile);
             bool needsCentering = true;
             if (!_graphWidget.IsCenteringRequired(graph))
             {
@@ -287,9 +301,8 @@ namespace rgat.Threads
 
             Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow,
                 out uint[] edgeDrawIndexes,
-                out int edgeVertCount,
-                out int drawnEdgeCount);
-            if (drawnEdgeCount == 0 || !graph.LayoutState.Initialised)
+                out int edgeVertCount);
+            if (edgeVertCount == 0 || !graph.LayoutState.Initialised)
             {
                 return;
             }
@@ -300,29 +313,42 @@ namespace rgat.Threads
             var textureSize = graph.LinearIndexTextureSize();
             updateShaderParams(textureSize, graph, cl);
 
-            Position2DColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(CONSTANTS.eRenderingMode.eStandardControlFlow, out List<uint> nodeIndices);
+            Position2DColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(CONSTANTS.eRenderingMode.eStandardControlFlow, out uint[] nodeIndices, out int nodeCount);
+            Debug.Assert(nodeIndices.Length >= nodeCount);
 
             Debug.Assert(_NodeVertexBuffer!.IsDisposed is false);
 
             if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
-                (_NodeIndexBuffer!.SizeInBytes < nodeIndices.Count * sizeof(uint)))
+                (_NodeIndexBuffer!.SizeInBytes < nodeIndices.Length * sizeof(uint)))
             {
+                Debug.Assert(nodeIndices.Length >= nodeCount);
                 VeldridGraphBuffers.VRAMDispose(_NodeVertexBuffer);
                 _NodeVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewNodeVertexBuffer");
 
                 VeldridGraphBuffers.VRAMDispose(_NodeIndexBuffer);
-                _NodeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)nodeIndices.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewNodeIndexBuffer");
+                _NodeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)nodeIndices.Length * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewNodeIndexBuffer");
             }
             Debug.Assert((_NodeVertexBuffer.SizeInBytes >= NodeVerts.Length * Position2DColour.SizeInBytes) &&
-                (_NodeIndexBuffer!.SizeInBytes >= nodeIndices.Count * sizeof(uint)));
+                (_NodeIndexBuffer!.SizeInBytes >= nodeIndices.Length * sizeof(uint)));
 
-            cl.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
-            cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices.ToArray());
+            Debug.Assert(nodeIndices.Length >= nodeCount);
+
+            //todo only on change
+            fixed (Position2DColour* vertsPtr = NodeVerts)
+            {
+                cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)nodeCount * Position2DColour.SizeInBytes);
+            }
+
+            Debug.Assert(nodeIndices.Length >= nodeCount);
+            fixed (uint* indxPtr = nodeIndices)
+            {
+                cl.UpdateBuffer(_NodeIndexBuffer, 0, (IntPtr)indxPtr, (uint)nodeCount * sizeof(uint));
+            }
 
             if (((edgeVertCount * Position2DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes) ||
                 (edgeDrawIndexes.Length * sizeof(uint)) > _EdgeIndexBuffer!.SizeInBytes)
             {
-                Logging.RecordLogEvent("disposeremake edgeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("disposeremake edgeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
 
                 VeldridGraphBuffers.VRAMDispose(_EdgeVertBuffer);
                 _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewEdgeVertexBuffer");
@@ -333,23 +359,33 @@ namespace rgat.Threads
 
             Debug.Assert(((edgeVertCount * sizeof(uint)) <= _EdgeIndexBuffer!.SizeInBytes));
 
-            Logging.RecordLogEvent("render preview 3", filter: Logging.LogFilterType.BulkDebugLogFile);
-            cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
-            cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("render preview 3", filter: Logging.LogFilterType.BulkDebugLogFile);
+
+
+            //todo - only do this on changes
+            fixed (Position2DColour* vertsPtr = EdgeLineVerts)
+            {
+                _gdev.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position2DColour.SizeInBytes);
+                //cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position2DColour.SizeInBytes);
+            }
+
+
+            fixed (uint* indexPtr = edgeDrawIndexes)
+            {
+                _gdev.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)indexPtr, (uint)edgeVertCount * sizeof(uint));
+                //cl.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)indexPtr, (uint)edgeVertCount * sizeof(uint));
+            }
 
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gdev.PointSampler,
                 graph.LayoutState.PositionsVRAM1, graph.LayoutState.AttributesVRAM1);
             ResourceSet crscore = _factory!.CreateResourceSet(crs_core_rsd);
 
 
-            Logging.RecordLogEvent($"render preview {graph.TID} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"render preview {graph.TID} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _NodeCircleSpriteview);
             ResourceSet crsnodesedge = _factory.CreateResourceSet(crs_nodesEdges_rsd);
 
-
-
-            Debug.Assert(nodeIndices.Count <= (_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
-            int nodesToDraw = Math.Min(nodeIndices.Count, (int)(_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
+            Debug.Assert(nodeIndices.Length <= (_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
 
             graph.GetPreviewFramebuffer(out Framebuffer drawtarget);
 
@@ -364,7 +400,8 @@ namespace rgat.Threads
             cl.SetGraphicsResourceSet(1, crsnodesedge);
             cl.SetVertexBuffer(0, _NodeVertexBuffer);
             cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
-            cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            cl.DrawIndexed(indexCount: (uint)nodeCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+
             //draw edges
             cl.SetPipeline(_edgesPipeline);
             cl.SetVertexBuffer(0, _EdgeVertBuffer);
@@ -374,9 +411,9 @@ namespace rgat.Threads
             cl.End();
             if (!_stopFlag)
             {
-                Logging.RecordLogEvent($"render preview start commands {graph.TID}. Pos{graph.LayoutState.PositionsVRAM1!.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"render preview start commands {graph.TID}. Pos{graph.LayoutState.PositionsVRAM1!.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
                 _gdev.SubmitCommands(cl);
-                Logging.RecordLogEvent($"render preview finished commands {graph.TID}", filter: Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"render preview finished commands {graph.TID}", filter: Logging.LogFilterType.BulkDebugLogFile);
                 _gdev.WaitForIdle(); //needed?
             }
 
@@ -388,7 +425,7 @@ namespace rgat.Threads
             //Logging.RecordLogEvent($"render preview {graph.TID} disposing rsrcset {nodeAttributesBuffer.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
             crsnodesedge.Dispose();
 
-            Logging.RecordLogEvent("render preview Done", filter: Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("render preview Done", filter: Logging.LogFilterType.BulkDebugLogFile);
         }
 
 

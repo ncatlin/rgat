@@ -185,7 +185,7 @@ namespace rgat
             NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
 
             Logging.WriteConsole("Waiting for thread connection... ");
-            threadListener.WaitForConnection();
+            threadListener.WaitForConnection(); //todo make async
             Logging.WriteConsole("Trace thread connected");
 
 
@@ -377,7 +377,8 @@ namespace rgat
                 try
                 {
                     Logging.WriteConsole($"controlPipe.BeginWrite with {cmd.Length} bytes {Encoding.ASCII.GetString(cmd)}");
-                    commandPipe.Write(cmd, 0, cmd.Length);
+                    //This is async because the commandPipe can block, hanging the caller
+                    System.Threading.Tasks.Task.Run(() => commandPipe.WriteAsync(cmd, 0, cmd.Length, rgatState.ExitToken));
                 }
                 catch (Exception e)
                 {
@@ -458,7 +459,7 @@ namespace rgat
                 List<string> ignoredDirs = moduleChoices.GetIgnoredDirs();
                 List<string> ignoredFiles = moduleChoices.GetIgnoredFiles();
 
-                Console.WriteLine($"Sending default trace settings: {ignoredDirs} iognored dirs and {ignoredFiles}");
+                Console.WriteLine($"Sending default trace settings: {ignoredDirs.Count} ignored dirs and {ignoredFiles.Count} ignored files");
                 foreach (string name in ignoredDirs)
                 {
                     Logging.RecordLogEvent($"Sending ignored dir {name}", Logging.LogFilterType.TextDebug);
@@ -896,6 +897,14 @@ namespace rgat
             }
 
             trace.RecordTimelineEvent(Logging.eTimelineEvent.ProcessEnd, trace);
+
+
+            if (this._remoteEventPipeID is not null)
+            {
+                string termString = $"PX@{this.trace.PID}@";
+                MirrorMessageToUI(Encoding.ASCII.GetBytes(termString),2);
+            }
+
 
             bool alldone = false;
             while (!rgatState.rgatIsExiting && !alldone)

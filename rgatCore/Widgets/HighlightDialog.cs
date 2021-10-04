@@ -54,7 +54,7 @@ namespace rgat.Widgets
         private ThreadHighlightSettings _activeHighlights = new ThreadHighlightSettings();
         private Vector2 _initialSize = new Vector2(600, 300);
 
-        private void RefreshExternHighlightData(uint[] externNodes)
+        private void RefreshExternHighlightData(System.ReadOnlySpan<uint> externNodes)
         {
             ProtoGraph? graph = _ActiveGraph?.InternalProtoGraph;
             ProcessRecord? processrec = graph?.ProcessData;
@@ -114,6 +114,7 @@ namespace rgat.Widgets
 
             graph.LayoutState.Lock.EnterUpgradeableReadLock();
             graph.LayoutState.GetAttributes(graph.ActiveLayoutStyle, out float[]? attribsArray);
+
 
             if (syminfo.selected)
             {

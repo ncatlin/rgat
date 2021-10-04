@@ -276,7 +276,6 @@ namespace rgat
             Logging.RecordLogEvent("\tactioning it", Logging.LogFilterType.TextDebug);
             if (newState != ProcessState.eSuspended)
             {
-
                 lock (GraphListLock)
                 {
                     Logging.RecordLogEvent($"\t\t {_protoGraphs.Count} graphs", Logging.LogFilterType.TextDebug);
@@ -287,8 +286,6 @@ namespace rgat
                     }
                 }
             }
-            TraceState = newState;
-
         }
 
         /// <summary>

@@ -329,7 +329,7 @@ namespace rgat
                     return modsymsPlain[GlobalModuleNumber].TryGetValue(offset, out symbol);
                 }
             }
-            symbol = "";
+            symbol = null;
             return false;
         }
 

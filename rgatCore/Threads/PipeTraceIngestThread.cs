@@ -75,7 +75,7 @@ namespace rgat
 
             if (_remotePipe.HasValue)
             {
-                queueFunction = MirrorMessageToUI;
+                queueFunction = MirrorMessageToRemoteUI;
             }
             else
             {
@@ -85,7 +85,7 @@ namespace rgat
             splittingThread.Start(queueFunction);
         }
 
-        private void MirrorMessageToUI(byte[] buf)
+        private void MirrorMessageToRemoteUI(byte[] buf)
         {
             rgatState.NetworkBridge.SendRawTraceData(_remotePipe!.Value, buf, buf.Length);
         }
@@ -322,6 +322,7 @@ namespace rgat
                 Thread.Sleep(25);
             }
             Terminate();
+
 
             RawIngestCompleteEvent.Set();
             TagDataReadyEvent.Set();

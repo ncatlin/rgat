@@ -612,8 +612,8 @@ namespace rgat
             st.Restart();
             _graphLock.EnterReadLock();
             st.Stop();
-            if (st.ElapsedMilliseconds > 0)
-                Console.WriteLine($"Lock contended for {st.ElapsedMilliseconds} ms");
+            if (st.ElapsedMilliseconds > 5)
+                Console.WriteLine($"gpw:Draw _graphLock contended for {st.ElapsedMilliseconds} ms");
 
 
             if (graph != ActiveGraph)
@@ -623,10 +623,18 @@ namespace rgat
 
             if (ActiveGraph != null)
             {
+                st.Restart();
                 DrawGraphImage();
+                st.Stop();
+                if (st.ElapsedMilliseconds > 5)
+                    Console.WriteLine($"drawgraphimage took {st.ElapsedMilliseconds} ms");
             }
 
+            st.Restart();
             DrawHUD(graphSize, ActiveGraph);
+            st.Stop();
+            if (st.ElapsedMilliseconds > 5)
+                Console.WriteLine($"DrawHUD took {st.ElapsedMilliseconds} ms");
             _graphLock.ExitReadLock();
         }
 
@@ -641,12 +649,12 @@ namespace rgat
             _graphLock.EnterWriteLock();
             if (latestWrittenTexture == 1)
             {
-                Logging.RecordLogEvent($"GetLatestTexture setting draw target to texture 2 --->", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"GetLatestTexture setting draw target to texture 2 --->", Logging.LogFilterType.BulkDebugLogFile);
                 drawtarget = _outputFramebuffer2!;
             }
             else
             {
-                Logging.RecordLogEvent("GetLatestTexture setting draw target to texture 1 --->", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.BulkLog) Logging.RecordLogEvent("GetLatestTexture setting draw target to texture 1 --->", Logging.LogFilterType.BulkDebugLogFile);
                 drawtarget = _outputFramebuffer1!;
             }
             _graphLock.ExitWriteLock();
@@ -661,7 +669,7 @@ namespace rgat
         {
             _graphLock.EnterWriteLock();
             latestWrittenTexture = (latestWrittenTexture == 1) ? 2 : 1;
-            Logging.RecordLogEvent($"ReleaseOutputFramebuffer set latest written graph texture to {latestWrittenTexture} <----", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"ReleaseOutputFramebuffer set latest written graph texture to {latestWrittenTexture} <----", Logging.LogFilterType.BulkDebugLogFile);
 
             _graphLock.ExitWriteLock();
         }
@@ -675,12 +683,12 @@ namespace rgat
         {
             if (latestWrittenTexture == 1)
             {
-                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph?.TID}  Returning latest written graph texture 1", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph?.TID}  Returning latest written graph texture 1", Logging.LogFilterType.BulkDebugLogFile);
                 graphtexture = _outputTexture1!;
             }
             else
             {
-                Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph?.TID}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph?.TID}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
                 graphtexture = _outputTexture2!;
             }
         }
@@ -782,7 +790,7 @@ namespace rgat
             Debug.Assert(_gd is not null, "Init not called");
             ResourceFactory factory = _gd.ResourceFactory;
 
-            Logging.RecordLogEvent("RecreateOutputTextures DISPOSING ALL", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.BulkLog) Logging.RecordLogEvent("RecreateOutputTextures DISPOSING ALL", Logging.LogFilterType.BulkDebugLogFile);
             _graphLock.EnterWriteLock();
             VeldridGraphBuffers.DoDispose(_outputTexture1);
             VeldridGraphBuffers.DoDispose(_outputFramebuffer1);
@@ -813,7 +821,7 @@ namespace rgat
                     Veldrid.PixelFormat.R32_G32_B32_A32_Float,
                     TextureUsage.Staging));
             _graphLock.ExitWriteLock();
-            Logging.RecordLogEvent("RecreateOutputTextures recreated", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.BulkLog) Logging.RecordLogEvent("RecreateOutputTextures recreated", Logging.LogFilterType.BulkDebugLogFile);
         }
 
 
@@ -1194,16 +1202,21 @@ namespace rgat
         /// </summary>
         /// <param name="cl">A veldrid commandlist, for use by this thread only</param>
         /// <param name="graph">The PlottedGraph to draw</param>
-        public void DrawGraph(CommandList cl, PlottedGraph graph)
+        public unsafe void DrawGraph(CommandList cl, PlottedGraph graph)
         {
-            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out uint[] edgeDrawIndexes, out int edgeVertCount, out int drawnEdgeCount);
-            if (drawnEdgeCount == 0 || Exiting)
+            Stopwatch st = new();
+            st.Start();
+            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out uint[] edgeDrawIndexes, out int edgeVertCount);
+            if (graph.LayoutState.Initialised is false || edgeVertCount == 0 || Exiting)
             {
                 return;
             }
+            st.Stop();
+            if (st.ElapsedMilliseconds > 100)
+                Console.WriteLine($"DGGetEdgeLineVerts took {st.ElapsedMilliseconds}");
 
             Debug.Assert(_gd is not null);
-            Logging.RecordLogEvent("rendergraph start", filter: Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("rendergraph start", filter: Logging.LogFilterType.BulkDebugLogFile);
 
             //theme changed, purged cached text in case its colour changed
             ulong themeVersion = Themes.ThemeVariant;
@@ -1216,9 +1229,9 @@ namespace rgat
 
             cl.Begin();
 
+            st.Restart();
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _imageTextureView);
 
-            //VeldridGraphBuffers.DoDispose(_crs_nodesEdges);
             ResourceSet crs_nodesEdges = _factory!.CreateResourceSet(crs_nodesEdges_rsd);
 
             //rotval += 0.01f; //autorotate
@@ -1231,9 +1244,13 @@ namespace rgat
                 _gd.PointSampler, graph.LayoutState.PositionsVRAM1, graph.LayoutState.AttributesVRAM1);
             ResourceSet crs_core = _factory.CreateResourceSet(crs_core_rsd);
 
-            Position2DColour[] NodeVerts = graph.GetMaingraphNodeVerts(_renderingMode,
+            Position2DColour[] NodeVerts = graph.GetMaingraphNodeVerts(_renderingMode, (int)textureSize,
             out uint[] nodeIndices, out Position2DColour[] nodePickingColors,
-            out List<Tuple<string?, uint>> captions);
+            out List<Tuple<string?, uint>> captions, out int nodeCount);
+
+            st.Stop();
+            if (st.ElapsedMilliseconds > 100)
+                Console.WriteLine($"DGGetMaingraphNodeVerts took {st.ElapsedMilliseconds}");
 
             //_layoutEngine.GetScreenFitOffsets(WidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 
@@ -1249,12 +1266,26 @@ namespace rgat
                 _NodeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)nodeIndices.Length * sizeof(uint), BufferUsage.IndexBuffer, name: "NodeIndexBuffer");
             }
 
-            //todo - only do this on changes
-            cl.UpdateBuffer(_NodeVertexBuffer, 0, NodeVerts);
-            cl.UpdateBuffer(_NodePickingBuffer, 0, nodePickingColors);
-            cl.UpdateBuffer(_NodeIndexBuffer, 0, nodeIndices);
 
-            if (((edgeVertCount * 4) > _EdgeIndexBuffer!.SizeInBytes))
+            //todo - only do this on changes
+
+            fixed (Position2DColour* vertsPtr = NodeVerts, pickingVertsPtr = nodePickingColors)
+            {
+                cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)nodeCount * Position2DColour.SizeInBytes);
+                cl.UpdateBuffer(_NodePickingBuffer, 0, (IntPtr)pickingVertsPtr, (uint)nodeCount * Position2DColour.SizeInBytes);
+            }
+
+
+            fixed (uint* indxPtr = nodeIndices)
+            {
+                cl.UpdateBuffer(_NodeIndexBuffer, 0, (IntPtr)indxPtr, (uint)nodeCount * sizeof(uint));
+            }
+
+
+
+
+
+            if ((EdgeLineVerts.Length * Position2DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes)
             {
                 VRAMDispose(_EdgeVertBuffer);
                 _EdgeVertBuffer = TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
@@ -1262,11 +1293,31 @@ namespace rgat
                 _EdgeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)edgeDrawIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: "EdgeIndexBuffer");
             }
 
-            //todo - only do this on changes
-            cl.UpdateBuffer(_EdgeVertBuffer, 0, EdgeLineVerts);
-            cl.UpdateBuffer(_EdgeIndexBuffer, 0, edgeDrawIndexes);
 
-            Logging.RecordLogEvent("render graph 4", filter: Logging.LogFilterType.BulkDebugLogFile);
+
+            ReadOnlySpan<Position2DColour> elvSpan = new ReadOnlySpan<Position2DColour>(EdgeLineVerts, 0, (int)(edgeVertCount));
+            fixed (Position2DColour* vertsPtr = elvSpan)
+            {
+                //This causes a huge memory leak
+                //cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(elvSpan.Length * Position2DColour.SizeInBytes));
+
+                _gd.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(elvSpan.Length * Position2DColour.SizeInBytes));
+            }
+
+
+
+            ReadOnlySpan<uint> nidxsSpan = new ReadOnlySpan<uint>(edgeDrawIndexes, 0, edgeVertCount);
+            fixed (uint* nindexPtr = nidxsSpan)
+            {
+                //This causes a huge memory leak
+                //cl.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)nindexPtr, (uint)(nidxsSpan.Length * sizeof(uint)));
+
+                _gd.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)nindexPtr, (uint)(nidxsSpan.Length * sizeof(uint)));
+            }
+
+
+            st.Restart();
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("render graph 4", filter: Logging.LogFilterType.BulkDebugLogFile);
             fontStruc[] stringVerts;
             if (_mouseoverNodeID == -1)
             {
@@ -1277,9 +1328,16 @@ namespace rgat
                 stringVerts = RenderHighlightedNodeText(captions, _mouseoverNodeID).ToArray();
             }
 
+
             List<fontStruc> risingTextVerts = new List<fontStruc>();
             MaintainRisingTexts(GlobalConfig.InsTextScale, ref risingTextVerts);
             UploadFontVerts(stringVerts, risingTextVerts.ToArray(), cl);
+
+
+            st.Stop();
+            if (st.ElapsedMilliseconds > 100)
+                Console.WriteLine($"DGtexts took {st.ElapsedMilliseconds}");
+
 
             Debug.Assert(nodeIndices.Length <= (_NodeIndexBuffer.SizeInBytes / 4));
             int nodesToDraw = Math.Min(nodeIndices.Length, (int)(_NodeIndexBuffer.SizeInBytes / 4));
@@ -1290,6 +1348,7 @@ namespace rgat
             cl.SetFramebuffer(drawtarget);
             cl.ClearColorTarget(0, Themes.GetThemeColourWRF(Themes.eThemeColour.GraphBackground).ToRgbaFloat());
 
+
             if (graph.Opt_NodesVisible)
             {
                 cl.SetPipeline(_pointsPipeline);
@@ -1298,7 +1357,6 @@ namespace rgat
                 cl.SetVertexBuffer(0, _NodeVertexBuffer);
                 cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
                 cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
-
             }
 
             if (graph.Opt_EdgesVisible)
@@ -1309,7 +1367,6 @@ namespace rgat
                 cl.SetVertexBuffer(0, _EdgeVertBuffer);
                 cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
                 cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
-
             }
 
             GeomPositionColour[] IllustrationEdges = graph.GetIllustrationEdges(out List<uint> illusEdgeDrawIndexes);
@@ -1352,6 +1409,7 @@ namespace rgat
             }
 
 
+
             //update the picking framebuffer 
             //todo - not every frame?
             cl.SetPipeline(_pickingPipeline);
@@ -1366,16 +1424,21 @@ namespace rgat
             cl.DrawIndexed(indexCount: (uint)nodeIndices.Length, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
 
             cl.CopyTexture(_testPickingTexture, _pickingStagingTexture);
+            st.Restart();
 
             cl.End();
-            _gd.SubmitCommands(cl);
+            _gd.SubmitCommands(cl); //had a same key error here
             _gd.WaitForIdle();
+
+            st.Stop();
+            if (st.ElapsedMilliseconds > 100)
+                Console.WriteLine($"DG WaitForIdle took {st.ElapsedMilliseconds}");
 
             ReleaseOutputFramebuffer();
 
             crs_core.Dispose();
             crs_nodesEdges.Dispose();
-            Logging.RecordLogEvent("rendergraph end", filter: Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("rendergraph end", filter: Logging.LogFilterType.BulkDebugLogFile);
         }
 
 
@@ -1385,6 +1448,9 @@ namespace rgat
         /// <returns>The texture for the drawn framebuffer. Useful for screenshots/videos</returns>
         public Texture DrawGraphImage()
         {
+
+            Stopwatch sw = new();
+            sw.Start();
             Vector2 currentRegionSize = ImGui.GetContentRegionAvail();
             if (currentRegionSize != WidgetSize)
             {
@@ -1397,19 +1463,36 @@ namespace rgat
             WidgetPos = ImGui.GetCursorScreenPos();
             _MousePos = ImGui.GetMousePos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
+            sw.Stop();
+            if (sw.ElapsedMilliseconds > 40)
+                Console.WriteLine($"DGI W?HAT 1 {sw.ElapsedMilliseconds}");
 
+            sw.Restart();
             GetLatestTexture(out Texture outputTexture);
 
+            sw.Stop();
+            if (sw.ElapsedMilliseconds > 40)
+                Console.WriteLine($"DGI W?HAT 2 {sw.ElapsedMilliseconds}");
+
+            sw.Restart();
             IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd!.ResourceFactory, outputTexture, "GraphMainPlot" + outputTexture.Name);
 
             Debug.Assert(!outputTexture.IsDisposed);
 
+            sw.Stop();
+            if (sw.ElapsedMilliseconds > 40)
+                Console.WriteLine($"DGI W?HAT 3 {sw.ElapsedMilliseconds}");
+
+            sw.Restart();
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: WidgetPos,
                 p_max: new Vector2(WidgetPos.X + outputTexture.Width, WidgetPos.Y + outputTexture.Height),
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
 
             _isInputTarget = ImGui.IsItemActive();
 
+            sw.Stop();
+            if (sw.ElapsedMilliseconds > 40)
+                Console.WriteLine($"DGI W?HAT 4 {sw.ElapsedMilliseconds}");
             return outputTexture;
         }
 
@@ -1489,6 +1572,16 @@ namespace rgat
             }
         }
 
+
+
+        struct EVTLABEL
+        {
+            public string text;
+            public System.Drawing.Color colour;
+            public double alpha;
+            public float height;
+        }
+
         /// <summary>
         /// Display trace events (process/thread stop/start) in the visualiser widget which are
         /// important but not important enough to be an application alert
@@ -1508,11 +1601,13 @@ namespace rgat
             float maxWidth = 200;
 
             TraceRecord trace = graph.InternalProtoGraph.TraceData;
-
+            Stopwatch st = new Stopwatch();
+            st.Start();
             Logging.TIMELINE_EVENT[] evts = trace.GetTimeLineEntries(oldest: timenow - GlobalConfig.VisMessageMaxLingerTime, max: 5);
+            st.Stop(); if (st.ElapsedMilliseconds > 60) Console.WriteLine($"Get tlentres ({evts.Length}) took {st.ElapsedMilliseconds} ms");
 
-            float currentY = depth;
-            ImGui.SetCursorScreenPos(new Vector2(pos.X - maxWidth, pos.Y + currentY));
+            List<EVTLABEL> events = new();
+
             for (var i = 0; i < evts.Length; i++)
             {
                 Logging.TIMELINE_EVENT evt = evts[i];
@@ -1526,6 +1621,7 @@ namespace rgat
                     double fadetime = GlobalConfig.VisMessageFadeStartTime - displayTimeRemaining;
                     alpha *= 1.0 - (fadetime / GlobalConfig.VisMessageFadeStartTime);
                 }
+
 
                 System.Drawing.Color textCol;
                 string msg;
@@ -1547,16 +1643,38 @@ namespace rgat
                         textCol = System.Drawing.Color.OrangeRed;
                         msg = $"Thread {evt.ID} ended";
                         break;
+                    case Logging.eTimelineEvent.APICall:
+                        textCol = System.Drawing.Color.White;
+                        Logging.APICALL item = ((Logging.APICALL)evt.Item);
+                        if (item.APIDetails.HasValue)
+                        {
+                            msg = $"API: {item.APIDetails.Value.ModuleName}::{item.APIDetails.Value.Symbol}";
+                        }
+                        else
+                            continue;
+                        break;
                     default:
                         textCol = System.Drawing.Color.Gray;
                         msg = "Unknown Timeline event" + evt.TimelineEventType.ToString();
                         break;
-                }
 
-                ImGui.PushStyleColor(ImGuiCol.Text, new WritableRgbaFloat(textCol).ToUint((uint)alpha));
-                ImGui.TextWrapped(msg);
-                ImGui.PopStyleColor();
+                }
+                Vector2 textSz = ImGui.CalcTextSize(msg);
+                if (textSz.X > maxWidth) maxWidth = textSz.X;
+                events.Add(new EVTLABEL() { text = msg, colour = textCol, alpha = alpha, height = textSz.Y });
+
             }
+
+            float currentY = depth;
+            foreach (var eventLabel in events)
+            {
+                ImGui.SetCursorScreenPos(new Vector2((pos.X - maxWidth) - 6, currentY));
+                ImGui.PushStyleColor(ImGuiCol.Text, new WritableRgbaFloat(eventLabel.colour).ToUint((uint)eventLabel.alpha));
+                ImGui.TextWrapped(eventLabel.text);
+                ImGui.PopStyleColor();
+                currentY += eventLabel.height + 4;
+            }
+
         }
 
 
@@ -1778,16 +1896,16 @@ namespace rgat
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, positionBuf));
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, attribBuf));
 
-            Logging.RecordLogEvent("GenerateMainGraph Starting rendergraph", filter: Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("GenerateMainGraph Starting rendergraph", filter: Logging.LogFilterType.BulkDebugLogFile);
 
             DrawGraph(cl, graph);
 
             st.Stop(); v4 = st.ElapsedMilliseconds; st.Restart();
 
             if (v4 > 200)
-                Console.WriteLine($"GMG: v1:{v1}, v1:{v2}, v3:{v3}, v4:{v4}");
+                Console.WriteLine($"---------\n-----------\nGMG: v1:{v1}, v1:{v2}, v3:{v3}, DrawGraph:{v4}\n--------------\n---------------");
 
-            Logging.RecordLogEvent("GenerateMainGraph upd then done", filter: Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("GenerateMainGraph upd then done", filter: Logging.LogFilterType.BulkDebugLogFile);
             graph.UpdatePreviewVisibleRegion(WidgetSize);
             _graphLock.ExitUpgradeableReadLock();
         }

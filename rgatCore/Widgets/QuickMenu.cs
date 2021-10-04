@@ -984,7 +984,7 @@ private void DrawScalePopup()
             if (_currentGraph is not null)
             {
                 _currentGraph.LayoutState.ResetForceLayout(resetMethod: resetStyle, spread);
-                _currentGraph.BeginNewLayout();
+                _currentGraph.BeginNewLayout(keepCamera: true);
             }
         }
 
