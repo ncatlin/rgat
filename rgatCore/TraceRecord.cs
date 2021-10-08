@@ -218,7 +218,6 @@ namespace rgat
             }
 
             DisassemblyData = new ProcessRecord(binary.BitWidth);
-            TraceState = ProcessState.eRunning;
             DiscardTraceData = binary.LaunchSettings.DiscardReplayData;
 
             //_tlFilterCounts[Logging.LogFilterType.TimelineProcess] = 0;
@@ -272,6 +271,7 @@ namespace rgat
             {
                 return;
             }
+            TraceState = newState;
 
             Logging.RecordLogEvent("\tactioning it", Logging.LogFilterType.Debug);
             if (newState != ProcessState.eSuspended)
@@ -470,6 +470,7 @@ namespace rgat
                         }
                     }
                     break;
+
                 case Logging.eTimelineEvent.ProcessEnd:
                     {
                         Debug.Assert(trace != null);

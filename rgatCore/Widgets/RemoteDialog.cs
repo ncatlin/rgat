@@ -206,23 +206,23 @@ namespace rgat.Widgets
                     IPEndPoint? endpoint = rgatState.NetworkBridge.RemoteEndPoint;
                     if (endpoint is not null && rgatState.ConnectedToRemote)
                     {
-                        ImguiUtils.DrawRegionCenteredText($"Connected to {endpoint}");
+                        ImGuiUtils.DrawRegionCenteredText($"Connected to {endpoint}");
                     }
                     else
                     {
                         if (ListenMode)
                         {
-                            ImguiUtils.DrawRegionCenteredText($"Listening for connections");
+                            ImGuiUtils.DrawRegionCenteredText($"Listening for connections");
                         }
                         else
                         {
-                            ImguiUtils.DrawRegionCenteredText($"Attempting to connect to {GlobalConfig.StartOptions.ConnectModeAddress}");
+                            ImGuiUtils.DrawRegionCenteredText($"Attempting to connect to {GlobalConfig.StartOptions.ConnectModeAddress}");
                         }
                     }
                 }
                 else
                 {
-                    ImguiUtils.DrawRegionCenteredText($"Remote Tracing Inactive");
+                    ImGuiUtils.DrawRegionCenteredText($"Remote Tracing Inactive");
                 }
                 ImGui.EndChild();
             }
@@ -753,7 +753,7 @@ namespace rgat.Widgets
 
             if (_syncingSigs)
             {
-                ImguiUtils.DrawRegionCenteredText("Sync in progress");
+                ImGuiUtils.DrawRegionCenteredText("Sync in progress");
             }
             else
             {

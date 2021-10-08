@@ -377,14 +377,14 @@ namespace rgat.Widgets
                                     ImGui.Text($"{sigset.OrgName}/{sigset.RepoName}{(sigset.SubDir.Any() ? ("/" + sigset.SubDir) : "")}");
                                     SmallWidgets.MouseoverText(sigset.FetchPath);
                                     ImGui.TableNextColumn();
-                                    ImguiUtils.DrawHorizCenteredText(sigset.RuleCount == -1 ? "-" : sigset.RuleCount.ToString());
+                                    ImGuiUtils.DrawHorizCenteredText(sigset.RuleCount == -1 ? "-" : sigset.RuleCount.ToString());
                                     ImGui.TableNextColumn();
                                     bool newAvailable = sigset.LastFetch < sigset.LastUpdate;
 
 
                                     if (_githubSigDownloader.Running && _githubSigDownloader.TaskType == "Refresh" && activeRepoTasks.Contains(sigset.FetchPath))
                                     {
-                                        ImguiUtils.DrawHorizCenteredText("Updating");
+                                        ImGuiUtils.DrawHorizCenteredText("Updating");
                                     }
                                     else
                                     {
@@ -395,12 +395,12 @@ namespace rgat.Widgets
                                             ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff000030);
                                             if (refreshError.Length > 22)
                                             {
-                                                ImguiUtils.DrawHorizCenteredText(refreshError.Substring(0, 22) + "..");
+                                                ImGuiUtils.DrawHorizCenteredText(refreshError.Substring(0, 22) + "..");
                                                 SmallWidgets.MouseoverText("Error checking for update: " + refreshError);
                                             }
                                             else
                                             {
-                                                ImguiUtils.DrawHorizCenteredText(refreshError);
+                                                ImGuiUtils.DrawHorizCenteredText(refreshError);
                                             }
                                         }
                                         else
@@ -409,7 +409,7 @@ namespace rgat.Widgets
                                             {
                                                 ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff004000);
                                             }
-                                            ImguiUtils.DrawHorizCenteredText(sigset.LastUpdate == DateTime.MinValue ? "Never Checked" :
+                                            ImGuiUtils.DrawHorizCenteredText(sigset.LastUpdate == DateTime.MinValue ? "Never Checked" :
                                                 Humanizer.TimeSpanHumanizeExtensions.Humanize(DateTime.Now - sigset.LastUpdate) + " ago");
                                             string mouseoverText = "";
                                             if (sigset.LastUpdate == DateTime.MinValue)
@@ -446,12 +446,12 @@ namespace rgat.Widgets
                                         ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff000030);
                                         if (downloadError.Length > 22)
                                         {
-                                            ImguiUtils.DrawHorizCenteredText(downloadError.Substring(0, 22) + "..");
+                                            ImGuiUtils.DrawHorizCenteredText(downloadError.Substring(0, 22) + "..");
                                             SmallWidgets.MouseoverText("Error downloading signatures: " + downloadError);
                                         }
                                         else
                                         {
-                                            ImguiUtils.DrawHorizCenteredText(downloadError);
+                                            ImGuiUtils.DrawHorizCenteredText(downloadError);
                                         }
                                     }
                                     else
@@ -464,16 +464,16 @@ namespace rgat.Widgets
                                             if (progress is not null)
                                             {
                                                 if (progress == 100)
-                                                    ImguiUtils.DrawHorizCenteredText($"Extracting...");
+                                                    ImGuiUtils.DrawHorizCenteredText($"Extracting...");
                                                 else
-                                                    ImguiUtils.DrawHorizCenteredText($"Downloading: {progress}%%");
+                                                    ImGuiUtils.DrawHorizCenteredText($"Downloading: {progress}%%");
                                             }
                                             else
-                                                ImguiUtils.DrawHorizCenteredText("Downloading");
+                                                ImGuiUtils.DrawHorizCenteredText("Downloading");
                                         }
                                         else
                                         {
-                                            ImguiUtils.DrawHorizCenteredText(sigset.LastFetch == DateTime.MinValue ? "Never Downloaded" :
+                                            ImGuiUtils.DrawHorizCenteredText(sigset.LastFetch == DateTime.MinValue ? "Never Downloaded" :
                                                 Humanizer.TimeSpanHumanizeExtensions.Humanize(DateTime.Now - sigset.LastFetch) + " ago");
 
                                             if (sigset.LastFetch != DateTime.MinValue)

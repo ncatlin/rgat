@@ -99,7 +99,7 @@ namespace rgat
                     Widgets.SmallWidgets.MouseoverText("Load an executable or DLL for examination. It will not be executed at this stage.");
                     ImGui.PopFont();
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
-                    ImguiUtils.DrawHorizCenteredText("Load Binary");
+                    ImGuiUtils.DrawHorizCenteredText("Load Binary");
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (LargeIconSize.X / 2));
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTitleYSep);
 
@@ -178,7 +178,7 @@ namespace rgat
                     Widgets.SmallWidgets.MouseoverText("Load a previously generated trace");
                     ImGui.PopFont();
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetItemRectSize().Y);
-                    ImguiUtils.DrawHorizCenteredText("Load Trace");
+                    ImGuiUtils.DrawHorizCenteredText("Load Trace");
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconColumnWidth / 2) - (LargeIconSize.X / 2) + 8); //shift a bit to the right to balance it 
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTitleYSep);
 

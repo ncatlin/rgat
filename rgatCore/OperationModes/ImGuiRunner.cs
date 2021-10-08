@@ -443,9 +443,16 @@ namespace rgat.OperationModes
 
         public void AlertMouseWheel(MouseWheelEventArgs mw)
         {
-            float shiftMultiplier = ImGui.GetIO().KeyShift ? CONSTANTS.UI.MOUSEWHEEL_SHIFTKEY_MULTIPLIER : 1;
-            float ctrlMultiplier = ImGui.GetIO().KeyCtrl ? CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER : 1;
-
+            bool shift = ImGui.GetIO().KeyShift;
+            bool ctrl = ImGui.GetIO().KeyCtrl;
+            float shiftMultiplier = shift ? CONSTANTS.UI.MOUSEWHEEL_SHIFTKEY_MULTIPLIER : 1;
+            float ctrlMultiplier = ctrl ? CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER : 1;
+            if (shift && ctrl)
+            {
+                shiftMultiplier = 1;
+                float mainzoom = rgatState.ActiveGraph?.CameraState.MainCameraZoom ?? 1f;
+                ctrlMultiplier = Math.Max(CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER,  mainzoom / 7); //nuclear option - if zoom levels are really big, zoom a proportion of the way
+            }
             _rgatUI!.AddMouseWheelDelta(mw.WheelDelta * shiftMultiplier * ctrlMultiplier);
         }
 

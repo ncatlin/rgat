@@ -663,7 +663,7 @@ namespace ImGuiNET
             TextureDescription td = TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled);
             _fontTexture = gd.ResourceFactory.CreateTexture(td);
             _fontTexture.Name = "ImGui.NET Font Texture";
-            //Crashes on veldrid versions before 2019 with 4096**2 textures
+
             gd.UpdateTexture(
                 texture: _fontTexture, source: pixels, sizeInBytes: (uint)(bytesPerPixel * width * height),
                 x: 0, y: 0, z: 0, width: (uint)width,
@@ -990,6 +990,7 @@ namespace ImGuiNET
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         public static readonly char FA_ICON_COG = '\uf013';
+        public static readonly char FA_ICON_REFRESH = '\uf021';
         public static readonly char FA_ICON_LOCK = '\uf023';
         public static readonly char FA_ICON_PLAY = '\uf04b';
         public static readonly char FA_ICON_PAUSE = '\uf04c';

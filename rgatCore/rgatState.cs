@@ -91,6 +91,10 @@ namespace rgat
         }
 
         readonly object _stateLock = new object();
+
+        /// <summary>
+        /// The current state of any load or save operation - or null if none
+        /// </summary>
         public static SERIALISE_PROGRESS? SerialisationProgress { get; private set; } = null;
 
 
@@ -334,10 +338,14 @@ namespace rgat
                     trace = ActiveTarget.GetFirstTrace();
                 }
 
-                if (trace is not null && trace.ProtoGraphs.Count > 0)
+                if (trace is not null)
                 {
-                    ActiveTrace = trace;
-                    SelectGraphInActiveTrace();
+                    double secondsSinceLaunch = (DateTime.Now - trace.LaunchedTime).TotalSeconds;
+                    if ((trace.ProtoGraphs.Count > 0 || secondsSinceLaunch < 3))
+                    {
+                        ActiveTrace = trace;
+                        SelectGraphInActiveTrace();
+                    }
                 }
             }
 

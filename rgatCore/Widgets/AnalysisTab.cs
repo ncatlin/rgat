@@ -34,7 +34,7 @@ namespace rgat
             SandboxChart.ItemNode? selectedNode = chart.GetSelectedNode;
             if (ImGui.BeginTable("#TaTTable", 3, ImGuiTableFlags.Resizable))
             {
-                ImGui.TableSetupColumn("#TaTTEntryList", ImGuiTableColumnFlags.None, sidePaneWidth);
+                ImGui.TableSetupColumn("#TaTTEntryList", ImGuiTableColumnFlags.None, sidePaneWidth * 2f );
                 ImGui.TableSetupColumn("#TaTTChart", ImGuiTableColumnFlags.NoDirectResize, width - 2 * sidePaneWidth);
                 ImGui.TableSetupColumn("#TaTTControlsFocus", ImGuiTableColumnFlags.NoDirectResize, sidePaneWidth);
 
@@ -58,7 +58,7 @@ namespace rgat
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x5f88705f);
                 if (ImGui.BeginChild("#SandboxTabtopRightPane", new Vector2(sidePaneWidth, tr_height)))
                 {
-                    ImGui.Text("Filters");
+                    //ImGui.Text("Filters");
 
                     TraceSelector.Draw(activeTrace);
 

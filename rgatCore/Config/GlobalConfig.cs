@@ -269,12 +269,12 @@ namespace rgat
         /// <summary>
         /// Velocity shader attraction constant
         /// </summary>
-        public static float AttractionK = 100f;
+        public static float AttractionK = 500f;
 
         /// <summary>
         /// Velocity shader repulsion constant
         /// </summary>
-        public static float RepulsionK = 100f;
+        public static float RepulsionK = 400f;
 
         /// <summary>
         /// A new rgat release is available to download

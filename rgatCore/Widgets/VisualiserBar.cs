@@ -354,7 +354,7 @@ namespace rgat.Widgets
             Draw(progressBarSize.X, height);
 
 
-            ImguiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(),
+            ImGuiUtils.RenderArrowsForHorizontalBar(ImGui.GetForegroundDrawList(),
                 SliderArrowDrawPos,
                 new Vector2(3, 7), progressBarSize.Y, 240f);
         }

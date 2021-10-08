@@ -553,7 +553,7 @@ namespace rgat
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
 
-                ImguiUtils.DrawHorizCenteredText("Video Settings");
+                ImGuiUtils.DrawHorizCenteredText("Video Settings");
 
                 ImGui.SetNextItemWidth(180);
                 if (ImGui.BeginCombo("Quality", GlobalConfig.Settings.Media.VideoCodec_Quality.ToString()))
@@ -586,7 +586,7 @@ namespace rgat
                 ImGui.SetNextItemWidth(180);
                 double min = 0, max = 500;
                 double current = GlobalConfig.Settings.Media.VideoCodec_FPS;
-                if (ImguiUtils.DragDouble("Framerate", ref current, 0.25f, ref min, ref max))
+                if (ImGuiUtils.DragDouble("Framerate", ref current, 0.25f, ref min, ref max))
                 {
                     GlobalConfig.Settings.Media.VideoCodec_FPS = current;
                 }
@@ -612,7 +612,7 @@ namespace rgat
 
                 ImGui.TableNextColumn();
 
-                ImguiUtils.DrawHorizCenteredText("Image Settings");
+                ImGuiUtils.DrawHorizCenteredText("Image Settings");
 
                 if (ImGui.BeginCombo("Image Format", GlobalConfig.Settings.Media.ImageCapture_Format))
                 {

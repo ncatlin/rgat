@@ -38,11 +38,11 @@ namespace rgat
             {
                 if (rgatState.ConnectedToRemote)
                 {
-                    ImguiUtils.DrawRegionCenteredText("Initialising from remote host");
+                    ImGuiUtils.DrawRegionCenteredText("Initialising from remote host");
                 }
                 else
                 {
-                    ImguiUtils.DrawRegionCenteredText("Disconnected from remote host before metadata could be retrieved");
+                    ImGuiUtils.DrawRegionCenteredText("Disconnected from remote host before metadata could be retrieved");
                 }
 
                 ImGui.EndChildFrame();
@@ -355,7 +355,7 @@ namespace rgat
                     ImGui.AlignTextToFramePadding();
                     ImGui.Text("Module Selection Mode");
                     ImGui.SameLine();
-                    ImguiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
+                    ImGuiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
                     ImGui.SameLine();
                     string TraceLabel = $"Default Trace [{moduleChoices.TraceDirCount + moduleChoices.TraceFilesCount}]";
 
@@ -365,7 +365,7 @@ namespace rgat
                         moduleChoices.TracingMode = (ModuleTracingMode)traceModeRef;
                     };
                     ImGui.SameLine();
-                    ImguiUtils.HelpMarker("Only specified libraries will be traced");
+                    ImGuiUtils.HelpMarker("Only specified libraries will be traced");
                     ImGui.SameLine();
                     string IgnoreLabel = $"Default Ignore [{moduleChoices.IgnoreDirsCount + moduleChoices.IgnoreFilesCount}]";
                     if (ImGui.RadioButton(IgnoreLabel, ref traceModeRef, 1))
@@ -373,7 +373,7 @@ namespace rgat
                         moduleChoices.TracingMode = (ModuleTracingMode)traceModeRef;
                     };
                     ImGui.SameLine();
-                    ImguiUtils.HelpMarker("All libraries will be traced except for those on the ignore list");
+                    ImGuiUtils.HelpMarker("All libraries will be traced except for those on the ignore list");
                     ImGui.EndChild();
                 }
 
@@ -593,7 +593,7 @@ namespace rgat
 
                 ImGui.Text("Command Line");
                 ImGui.SameLine();
-                ImguiUtils.HelpMarker("Command line arguments passed to the program being executed");
+                ImGuiUtils.HelpMarker("Command line arguments passed to the program being executed");
                 ImGui.SameLine();
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBgHovered));
 

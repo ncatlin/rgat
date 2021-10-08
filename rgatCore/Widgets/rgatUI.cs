@@ -300,11 +300,11 @@ namespace rgat
             if (ImGui.BeginPopupModal("LoadSaveDLG", ref isOpen, flags))//##" + rgatState.SerialisationProgress.Operation))
             {
                 ImGui.SetWindowPos(ImGui.GetMainViewport().Size / 2 - ImGui.GetWindowSize() / 2);
-                ImguiUtils.DrawHorizCenteredText(progress.Operation);
+                ImGuiUtils.DrawHorizCenteredText(progress.Operation);
 
                 if (path is not null)
                 {
-                    ImguiUtils.DrawHorizCenteredText(path);
+                    ImGuiUtils.DrawHorizCenteredText(path);
                 }
 
                 if (progress.SectionsTotal > 0)
@@ -312,14 +312,14 @@ namespace rgat
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 12);
                     if (progress.SectionName is not null)
                     {
-                        ImguiUtils.DrawHorizCenteredText($"Section {progress.SectionsComplete}/{progress.SectionsTotal}: " + progress.SectionName);
+                        ImGuiUtils.DrawHorizCenteredText($"Section {progress.SectionsComplete}/{progress.SectionsTotal}: " + progress.SectionName);
                     }
 
                     if (progress.SectionProgress > 0)
                     {
                         ImGui.SetCursorPosX((ImGui.GetWindowSize().X / 2) - 100);
-                        SmallWidgets.ProgressBar("#SecProgress", $"{progress.SectionProgress * 100:F1}%", progress.SectionProgress, 
-                            new Vector2(200,28), barColour: 0xff999999, BGColour: 0xff222222);
+                        SmallWidgets.ProgressBar("#SecProgress", $"{progress.SectionProgress * 100:F1}%", progress.SectionProgress,
+                            new Vector2(200, 28), barColour: 0xff999999, BGColour: 0xff222222);
                     }
                 }
 
@@ -864,7 +864,8 @@ namespace rgat
 
                 ImGui.Separator();
 
-                if (rgatState.ActiveTarget is not null && ImGui.MenuItem("Save This Trace") && rgatState.SerialisationProgress is null) {
+                if (rgatState.ActiveTarget is not null && ImGui.MenuItem("Save This Trace") && rgatState.SerialisationProgress is null)
+                {
                     System.Threading.Tasks.Task.Run(() => rgatState.SaveTarget(rgatState.ActiveTarget));
                 }
 
@@ -1229,6 +1230,7 @@ namespace rgat
             ImGui.SetCursorPosY(origy);
         }
 
+
         private bool DrawAlerts(Vector2 logMenuPosition)
         {
 
@@ -1256,18 +1258,6 @@ namespace rgat
                 ImGui.GetForegroundDrawList().AddCircle(logMenuPosition, radius, color);
             }
 
-            float widestAlert = 0;
-
-
-            for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
-            {
-                widestAlert = Math.Max(widestAlert, ImGui.CalcTextSize(((TEXT_LOG_EVENT)alerts[i]).Text).X + 50);
-            }
-
-            Vector2 windowSize = ImGui.GetWindowSize();
-            float width = Math.Min(widestAlert + 10, (windowSize.X / 2f) - 30);
-            Vector2 size = new Vector2(width, 38);
-            ImGui.SetCursorScreenPos(new Vector2(windowSize.X - width - 50, 32));
 
             double boxTimeRemaining = timeSinceLast - lingerTime; //fade out over a second
             uint opacity = 255;
@@ -1276,51 +1266,78 @@ namespace rgat
                 opacity = ((uint)(boxTimeRemaining / (float)fadeThreshold));
             }
 
+            uint textColour = Themes.GetThemeColourImGui(ImGuiCol.Text);
+            WritableRgbaFloat errColour = Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour);
+            WritableRgbaFloat alertColour = Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1);
+
+            List<Tuple<TEXT_LOG_EVENT, uint>> displayItems = new();
+
+            long nowTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            for (var i = 0; i < alerts.Length; i++)
+            {
+                TEXT_LOG_EVENT item = (TEXT_LOG_EVENT)alerts[i];
+                long alertAge = nowTime - item.EventTimeMS;
+                long timeRemaining = (long)lingerTime - alertAge;
+                int alpha = 255;
+                if (timeRemaining < fadeThreshold) //fade out over a second
+                {
+                    float fade = (timeRemaining / (float)fadeThreshold);
+                    alpha = (int)(Math.Min(255f, 255f * fade));
+                    alpha = Math.Max(alpha, 0);
+                }
+                if (alpha > 0)
+                    displayItems.Add(new Tuple<TEXT_LOG_EVENT, uint>(item, (uint)alpha));
+            }
+
+            displayItems = displayItems.TakeLast(2).ToList();
+
+
+            float widestAlert = 0;
+            float height = 5;
+            foreach (var item in displayItems)
+            {
+                Vector2 logSize = ImGui.CalcTextSize(item.Item1.Text);
+                widestAlert = Math.Max(widestAlert, logSize.X + 50);
+                height += logSize.Y;
+            }
+
+            Vector2 windowSize = ImGui.GetWindowSize();
+            float width = Math.Min(widestAlert + 10, (windowSize.X / 2f) - 30);
+            Vector2 size = new Vector2(width, height);
+            ImGui.SetCursorScreenPos(new Vector2(windowSize.X - width - 50, 32));
+
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourWRF(Themes.eThemeColour.eAlertWindowBg).ToUint(customAlpha: opacity));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
             if (ImGui.BeginChild("##alertpopchildfrm", size))
             {
-                uint textColour = Themes.GetThemeColourImGui(ImGuiCol.Text);
-                WritableRgbaFloat errColour = Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour);
-                WritableRgbaFloat alertColour = Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1);
-
-                long nowTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-                for (var i = Math.Max(alerts.Length - 2, 0); i < alerts.Length; i++)
+                foreach (Tuple<TEXT_LOG_EVENT, uint> item in displayItems)
                 {
-                    TEXT_LOG_EVENT item = (TEXT_LOG_EVENT)alerts[i];
-                    long alertAge = nowTime - item.EventTimeMS;
-                    long timeRemaining = (long)lingerTime - alertAge;
-                    int alpha = 255;
-                    if (timeRemaining < fadeThreshold) //fade out over a second
+                    TEXT_LOG_EVENT logItem = item.Item1;
+                    uint alpha = item.Item2;
+                    if (logItem.Filter == LogFilterType.Alert)
                     {
-                        float fade = (timeRemaining / (float)fadeThreshold);
-                        alpha = (int)(Math.Min(255f, 255f * fade));
-                        alpha = Math.Max(alpha, 0);
-                    }
-                    if (item.Filter == LogFilterType.Alert)
-                    {
-                        ImGui.PushStyleColor(ImGuiCol.Text, alertColour.ToUint((uint?)alpha));
+                        ImGui.PushStyleColor(ImGuiCol.Text, alertColour.ToUint(alpha));
                         ImGui.Text($" {ImGuiController.FA_ICON_EYE} ");
                         ImGui.PopStyleColor();
                     }
                     else
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, errColour.ToUint((uint?)alpha));
+                        ImGui.PushStyleColor(ImGuiCol.Text, errColour.ToUint(alpha));
                         ImGui.Text($" {ImGuiController.FA_ICON_WARNING} ");
                         ImGui.PopStyleColor();
                     }
                     ImGui.SameLine();
-                    textColour = new WritableRgbaFloat(textColour).ToUint((uint?)alpha);
+                    textColour = new WritableRgbaFloat(textColour).ToUint(alpha);
                     ImGui.PushStyleColor(ImGuiCol.Text, textColour);
-                    ImGui.Text(item.Text);
+                    ImGui.Text(logItem.Text);
                     ImGui.PopStyleColor();
-
                 }
                 ImGui.EndChild();
+
             }
-            ImGui.PopStyleVar();
-            ImGui.PopStyleVar();
+
+            ImGui.PopStyleVar(2);
             ImGui.PopStyleColor();
 
             return true;

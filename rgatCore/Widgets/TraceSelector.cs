@@ -22,7 +22,7 @@ namespace rgat.Widgets
         {
             if (trace is null)
             {
-                if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(ImGui.GetContentRegionAvail().X, 52)))
+                if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(ImGui.GetContentRegionAvail().X - 4, 52)))
                 {
                     ImGui.Text($"No selected trace");
                     ImGui.EndChild();
@@ -31,44 +31,61 @@ namespace rgat.Widgets
             }
 
             PlottedGraph? selectedGraph = null;
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF552120);
-            if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(ImGui.GetContentRegionAvail().X - 15, 52)))
+            if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(ImGui.GetContentRegionAvail().X - 4, 52)))
             {
-                var tracelist = trace.Target.GetTracesUIList();
-                string selString = "PID " + trace.PID;
-                if (ImGui.BeginCombo($"{tracelist.Length} Process{(tracelist.Length != 1 ? "es" : "")}", selString))
+                ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(1, 1));
+                if (ImGui.BeginTable("#TraceSelectorTable",2))
                 {
-                    foreach (var selectableTrace in tracelist)
-                    {
-                        bool current = trace.PID == selectableTrace.PID && trace.randID == selectableTrace.randID;
-                        string label = "PID " + selectableTrace.PID;
-                        if (current is false)
-                        {
-                            label = "Parent: " + label + $" ({selectableTrace.Target.FileName})";
-                        }
-                        if (ImGui.Selectable(label, current))
-                        {
-                            rgatState.SelectActiveTrace(selectableTrace);
-                        }
-                        if (selectableTrace.Children.Length > 0)
-                        {
-                            CreateTracesDropdown(selectableTrace, 1);
-                        }
-                    }
-                    ImGui.EndCombo();
+                    ImGui.TableSetupColumn("#IconsTraceSel", ImGuiTableColumnFlags.WidthFixed, 55);
+                    ImGui.TableNextRow();
+                    DrawTraceCombo(trace);
+
+                    ImGui.TableNextRow();
+                    DrawThreadSelectorCombo(trace, out selectedGraph);
+                    ImGui.EndTable();
                 }
-                DrawThreadSelectorCombo(trace, out selectedGraph);
-
-
+                ImGui.PopStyleVar();
                 ImGui.EndChild();
             }
-            ImGui.PopStyleColor(1);
 
             if (selectedGraph is not null)
                 rgatState.SetActiveGraph(selectedGraph);
             return selectedGraph;
         }
 
+        private static void DrawTraceCombo(TraceRecord trace)
+        {
+            ImGui.TableNextColumn();
+            var tracelist = trace.Target.GetTracesUIList();
+            string selString = "PID " + trace.PID;
+            ImGui.AlignTextToFramePadding();
+            ImGuiUtils.DrawHorizCenteredText($"{tracelist.Length}x {ImGuiController.FA_ICON_COGS}");
+            SmallWidgets.MouseoverText($"This target binary has {tracelist.Length} loaded trace{(tracelist.Length != 1 ? 's' : "")} associated with it");
+
+            ImGui.TableNextColumn();
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            if (ImGui.BeginCombo("##ProcessTraceCombo", selString))
+            {
+                foreach (var selectableTrace in tracelist)
+                {
+                    bool current = trace.PID == selectableTrace.PID && trace.randID == selectableTrace.randID;
+                    string label = "PID " + selectableTrace.PID;
+                    if (current is false)
+                    {
+                        label = "Parent: " + label + $" ({selectableTrace.Target.FileName})";
+                    }
+                    if (ImGui.Selectable(label, current))
+                    {
+                        rgatState.SelectActiveTrace(selectableTrace);
+                    }
+                    if (selectableTrace.Children.Length > 0)
+                    {
+                        CreateTracesDropdown(selectableTrace, 1);
+                    }
+                }
+                ImGui.EndCombo();
+            }
+        }
 
 
         private static void CreateTracesDropdown(TraceRecord tr, int level)
@@ -95,9 +112,15 @@ namespace rgat.Widgets
             ProtoGraph? graph = rgatState.ActiveGraph?.InternalProtoGraph;
             if (trace is not null && graph is not null)
             {
+                ImGui.TableNextColumn();
                 string selString = $"TID {graph.ThreadID}: {graph.FirstInstrumentedModuleName}";
                 List<PlottedGraph> graphs = trace.GetPlottedGraphs();
-                if (ImGui.BeginCombo($"{graphs.Count} Thread{(graphs.Count != 1 ? "s" : "")}", selString))
+                ImGuiUtils.DrawHorizCenteredText($"{graphs.Count}x {ImGuiController.FA_ICON_COG}");
+                SmallWidgets.MouseoverText($"This trace has {graphs.Count} thread{(graphs.Count != 1 ? 's' : "")} with instrumented trace data");
+
+                ImGui.TableNextColumn();
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                if (ImGui.BeginCombo("##SelectorThreadCombo", selString))
                 {
                     foreach (PlottedGraph selectablegraph in graphs)
                     {
@@ -121,10 +144,10 @@ namespace rgat.Widgets
                         if (ImGui.IsItemHovered())
                         {
                             ImGui.BeginTooltip();
-                            ImGui.Text($"Thread Start: 0x{graph.StartAddress:X} [{graph.StartModuleName}]");
-                            if (graph.NodeList.Count > 0)
+                            ImGui.Text($"Thread Start: 0x{selectablegraph.InternalProtoGraph.StartAddress:X} [{selectablegraph.InternalProtoGraph.StartModuleName}]");
+                            if (selectablegraph.InternalProtoGraph.NodeList.Count > 0)
                             {
-                                NodeData? n = graph.GetNode(0);
+                                NodeData? n = selectablegraph.InternalProtoGraph.GetNode(0);
                                 if (n is not null)
                                 {
                                     string insBase = System.IO.Path.GetFileName(graph.ProcessData.GetModulePath(n.GlobalModuleID));

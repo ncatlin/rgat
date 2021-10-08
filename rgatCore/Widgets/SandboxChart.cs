@@ -66,7 +66,7 @@ namespace rgat.Widgets
                     addedNodes.Clear();
                 }
 
-                bool needLayout = trace.TimelineItemsCount != timelineItemsOnChartDraw || trace.TimelineItemsCount < this.layout.VerticesPositions.Count;
+                bool needLayout = trace.TimelineItemsCount != timelineItemsOnChartDraw;
                 if (needLayout && !_layoutActive)
                 {
 
@@ -422,7 +422,7 @@ namespace rgat.Widgets
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eSandboxChartBG));
 
 
-            Vector2 cursorPos = ImGui.GetCursorScreenPos();
+            Vector2 cursorPos = ImGui.GetCursorPos();
             Vector2 chartPos = cursorPos + chartOffset + new Vector2(padding, padding);
             if (ImGui.BeginChild("ChartFrame", chartSize, false, ImGuiWindowFlags.NoScrollbar))
             {
@@ -466,19 +466,33 @@ namespace rgat.Widgets
                 }
 
 
-                ImGui.SetCursorScreenPos(cursorPos + chartSize - new Vector2(30, 30));
+
+
+                ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button, 255));
+                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 5));
+
+                ImGui.SetCursorPos(chartSize - new Vector2(60,30));
+                ImGui.BeginGroup();
+                if (ImGui.Button($"{ImGuiController.FA_ICON_REFRESH}", new Vector2(26, 27))) //refresh button
+                {
+                    timelineItemsOnChartDraw = 0;
+                }
+                SmallWidgets.MouseoverText("Force Replot");
+
 
                 if (!_fittingActive)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button, 255));
-                    ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5,5));
+                    ImGui.SameLine(30);
                     if (ImGui.Button($"{ImGuiController.FA_ICON_MOVEMENT}", new Vector2(26,27))) //centering button
                     {
                         FitNodesToChart();
                     }
-                    ImGui.PopStyleVar();
                     SmallWidgets.MouseoverText("Center graph");
                 }
+                ImGui.EndGroup();
+                ImGui.PopStyleColor();
+                ImGui.PopStyleVar();
+
                 ImGui.SetCursorScreenPos(cursorPos);
                 ImGui.EndChild();
             }

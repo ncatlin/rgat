@@ -86,7 +86,7 @@ namespace rgat.Threads
             if (!StopFlag)
             {
                 StopFlag = true;
-                cancelTokens.Cancel();
+                cancelTokens.Cancel();                
             }
         }
 

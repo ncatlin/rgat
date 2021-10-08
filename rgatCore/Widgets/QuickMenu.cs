@@ -781,7 +781,7 @@ private void DrawScalePopup()
             {
                 if (ImGui.BeginChild("#CircMsg", new Vector2(360, 50)))
                 {
-                    ImguiUtils.DrawRegionCenteredText("There are no configuration settings for circle layout");
+                    ImGuiUtils.DrawRegionCenteredText("There are no configuration settings for circle layout");
                     ImGui.EndChild();
                 }
                 return;

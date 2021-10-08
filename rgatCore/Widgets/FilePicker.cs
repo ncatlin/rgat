@@ -1232,7 +1232,7 @@ namespace rgatFilePicker
                         $"{ImGuiController.FA_ICON_WARNING} Not Found",
                         $"Directory '{Data.CurrentDirectory}' does not exist"
                     };
-                    ImguiUtils.DrawRegionCenteredText(msgs);
+                    ImGuiUtils.DrawRegionCenteredText(msgs);
                 }
                 else
                 {
@@ -1241,7 +1241,7 @@ namespace rgatFilePicker
                     if (Data.ErrMsg != null && Data.ErrMsg.Length > 0)
                     {
                         string[] msgs = new string[] { $"{ImGuiController.FA_ICON_WARNING} Error", Data.ErrMsg };
-                        ImguiUtils.DrawRegionCenteredText(msgs);
+                        ImGuiUtils.DrawRegionCenteredText(msgs);
                     }
                     else
                     {

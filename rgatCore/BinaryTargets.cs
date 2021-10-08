@@ -167,7 +167,7 @@ namespace rgat
         /// <summary>
         /// Initialise a loaded target binary from a trace save object
         /// </summary>
-        /// <param name="saveJSON">A Newtonsoft JObject for the saved trace</param>
+        /// <param name="metadata">A metadata object found at the start of the file, describing the target</param>
         /// <param name="targetResult">The created BinaryTarget object</param>
         /// <returns></returns>
         public bool LoadSavedTarget(JObject metadata, out BinaryTarget? targetResult)
@@ -198,6 +198,16 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// This is called when a new section is expected, containing data that describes
+        /// the section. It should have a 'Field' property with the name and any count
+        /// values used for reading
+        /// </summary>
+        /// <param name="jsnReader">A JsonReader for the trace file</param>
+        /// <param name="serializer">A JsonSerializer</param>
+        /// <param name="expectedFieldName">Name of the field for the expected section</param>
+        /// <param name="metadataObj">Output metadata object</param>
+        /// <returns>True if the expected metadata section was found</returns>
         public static bool ValidateSavedMetadata(JsonReader jsnReader, JsonSerializer serializer, string expectedFieldName, out JObject? metadataObj)
         {
             metadataObj = null;

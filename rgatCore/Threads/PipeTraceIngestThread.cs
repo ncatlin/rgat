@@ -134,6 +134,7 @@ namespace rgat
             }
         }
 
+
         private void EnqueueData(byte[] datamsg)
         {
             lock (QueueSwitchLock)
@@ -241,7 +242,7 @@ namespace rgat
 
 
         /// <summary>
-        /// Terminate the ingest worker
+        /// Terminate the ingest worker, remove any queued items
         /// </summary>
         public override void Terminate()
         {
@@ -253,6 +254,12 @@ namespace rgat
                 }
                 catch { }
                 base.Terminate();
+                lock (QueueSwitchLock)
+                {
+                    FirstQueue.Clear();
+                    SecondQueue.Clear();
+                    QueueSize = 0;
+                }
             }
         }
 

@@ -1695,7 +1695,30 @@ namespace rgat
             }
             else
             {
-                msg = "No active graph to display";
+                TraceRecord? activeTrace = rgatState.ActiveTrace;
+                if (activeTrace is not null)
+                {
+                    if (activeTrace.TraceState == TraceRecord.ProcessState.eRunning)
+                    {
+                        msg = $"Target is running ({activeTrace.ProtoGraphs.Count} threads) - waiting for instrumented trace data";
+                    }
+                    else
+                    {
+                        double secondsSinceLaunch = (DateTime.Now - activeTrace.LaunchedTime).TotalSeconds;
+                        if (secondsSinceLaunch < 5)
+                        {
+                            msg = "Target is starting - waiting for trace data";
+                        }
+                        else
+                        {
+                            msg = "Target is not running and produced no instrumented trace data";
+                        }
+                    }
+                }
+                else
+                {
+                    msg = "No active graph to display";
+                }
                 Vector2 screenMiddle = new Vector2(bottomLeft.X + ((widgetSize.X / 2) - (ImGui.CalcTextSize(msg).X / 2)), bottomLeft.Y - (widgetSize.Y / 2));
                 ImGui.SetCursorScreenPos(screenMiddle);
                 ImGui.Text(msg);
@@ -1715,6 +1738,7 @@ namespace rgat
         }
 
         private bool _showLayoutSelectorPopup;
+
 
         private IntPtr GetLayoutIcon(LayoutStyles.Style layout)
         {
@@ -1740,6 +1764,7 @@ namespace rgat
             IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd!.ResourceFactory, iconTex, "LayoutIcon");
             return CPUframeBufferTextureId;
         }
+
 
         private void DrawLayoutSelector(PlottedGraph graph, Vector2 position, float scale, LayoutStyles.Style layout)
         {
@@ -1791,6 +1816,7 @@ namespace rgat
             }
             if (snappingToPreset) { ImGui.PopStyleColor(); }
         }
+
 
         private void DrawLayoutSelectorIcons(Vector2 iconSize, bool snappingToPreset)
         {

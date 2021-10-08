@@ -186,6 +186,10 @@ namespace rgat
             /// How much to reduce the temperature with every step
             /// </summary>
             public const float TemperatureStepMultiplier = 0.99f;
+            /// <summary>
+            /// This is multiplied by the node count to get the radius of the preset circle layout
+            /// </summary>
+            public const float CircleLayoutRadiusMultiplier = 50f;
         }
 
         /// <summary>

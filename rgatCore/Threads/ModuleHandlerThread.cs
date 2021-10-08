@@ -328,6 +328,7 @@ namespace rgat
 
         }
 
+
         private void HandleTerminatedThread(byte[] buf)
         {
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 3);
@@ -352,6 +353,7 @@ namespace rgat
 
             Logging.RecordLogEvent($"Thread {TID} terminated (no plotted graph)");
         }
+
 
         private void HandleTerminatedProcess(byte[] buf)
         {
@@ -401,6 +403,7 @@ namespace rgat
             return false;
         }
 
+
         private bool CommandWrite(string msg)
         {
             if (_remoteCommandPipeID != null)
@@ -424,6 +427,7 @@ namespace rgat
             commandPipe.Flush();
             return true;
         }
+
 
         private void SendIncludeLists()
         {
@@ -493,6 +497,7 @@ namespace rgat
             CommandWrite($"@XX@0@@\n\x00");
         }
 
+
         private void SendConfiguration()
         {
             Dictionary<string, string> config = target.LaunchSettings.GetCurrentTraceConfiguration();
@@ -510,11 +515,13 @@ namespace rgat
             }
         }
 
+
         private void SendTraceSettings()
         {
             SendIncludeLists();
             SendConfiguration();
         }
+
 
         private void ConnectCallback(IAsyncResult ar)
         {
@@ -537,10 +544,12 @@ namespace rgat
             }
         }
 
+
         private void MirrorMessageToUI(byte[] buf, int bytesRead)
         {
             rgatState.NetworkBridge.SendRawTraceData(_remoteEventPipeID!.Value, buf, bytesRead);
         }
+
 
         private void ProcessMessageLocal(byte[] buf, int bytesRead)
         {
@@ -632,6 +641,7 @@ namespace rgat
 
         //There is scope to randomise these in case it becomes a detection method, but 
         //there are so many other potential ones I'll wait and see if its needed first
+
 
         /// <summary>
         /// Get the pipe that the instrumentation tool will listen on for commands
@@ -854,6 +864,7 @@ namespace rgat
             {
                 SendTraceSettings();
             }
+            trace.SetTraceState(ProcessState.eRunning);
 
 
             byte[]? pendingBuf = null;

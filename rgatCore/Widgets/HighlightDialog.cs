@@ -418,7 +418,7 @@ namespace rgat.Widgets
             if (exceptionNodes is null || exceptionNodes.Length == 0)
             {
                 string caption = $"No exceptions recorded in thread ID {_ActiveGraph?.TID}";
-                ImguiUtils.DrawRegionCenteredText(caption);
+                ImGuiUtils.DrawRegionCenteredText(caption);
                 return;
             }
 

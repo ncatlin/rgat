@@ -688,7 +688,7 @@ namespace rgat
         /// <summary>
         /// Size of a cylinder plot
         /// </summary>
-        public float OPT_CYLINDER_RADIUS = 5000f;
+        public float OPT_CYLINDER_RADIUS = 80000f;
         /// <summary>
         /// Vertical separation of nodes on a cylinder plot
         /// </summary>
@@ -696,7 +696,7 @@ namespace rgat
         /// <summary>
         /// Horizonal separation of nodes on a cylinder plot
         /// </summary>
-        public float OPT_CYLINDER_PIXELS_PER_A = 60f;
+        public float OPT_CYLINDER_PIXELS_PER_A = 160f;
         /// <summary>
         /// Alpha value of plot wireframes
         /// </summary>
@@ -966,12 +966,10 @@ namespace rgat
         }
 
 
-
-
         //Adapted from analytics textureGenerator.js 
         private float[] GenerateCircleLayout()
         {
-
+            
             int nodeCount = _graphStructureLinear.Count;
             uint textureSize = LinearIndexTextureSize();
 
@@ -981,7 +979,7 @@ namespace rgat
             }
             float increase = ((float)Math.PI * 2.0f) / _graphStructureLinear.Count;
             float angle = 0;
-            float radius = nodeCount * 4f * 2f;
+            float radius = nodeCount * CONSTANTS.Layout_Constants.CircleLayoutRadiusMultiplier;
 
             var textureArray = new float[textureSize * textureSize * 4];
 
@@ -990,7 +988,6 @@ namespace rgat
 
                 if (i < nodeCount * 4)
                 {
-                    // modify to change the radius and position of a circle
                     float x = radius * (float)Math.Cos(angle);
                     float y = radius * (float)Math.Sin(angle);
                     float z = 0;
@@ -1002,7 +999,6 @@ namespace rgat
                     textureArray[i + 3] = w;
 
                     angle += increase;
-
                 }
                 else
                 {
@@ -1011,12 +1007,11 @@ namespace rgat
                     textureArray[i + 1] = -1.0f;
                     textureArray[i + 2] = -1.0f;
                     textureArray[i + 3] = -1.0f;
-
                 }
-
             }
             return textureArray;
         }
+
 
         /// <summary>
         /// Increase the activity level of a force directed plot
@@ -1542,7 +1537,7 @@ namespace rgat
 
             NodeData n = InternalProtoGraph.NodeList[nodeIndex];
 
-            if (n.Highlighted)
+            if (n is null || n.Highlighted)
             {
                 return new WritableRgbaFloat(0, 1, 1, 1f);
             }
@@ -2475,7 +2470,15 @@ namespace rgat
         /// <param name="delta">How far the mousewheel moved</param>
         public void ApplyMouseWheelDelta(float delta)
         {
-            CameraState.MainCameraZoom += delta;
+            float resultAfter = CameraState.MainCameraZoom + delta;
+            float absFurthest = Math.Abs(_furthestNodeDimension);
+
+            //Safeguard to stop the camera zooming pointlessly into oblivion
+            if (resultAfter < 0 || Math.Abs(resultAfter) < absFurthest)
+                CameraState.MainCameraZoom = resultAfter;
+
+            if (absFurthest > 1000 && CameraState.MainCameraZoom < -10 * absFurthest)
+                CameraState.MainCameraZoom = -10 * absFurthest;
         }
 
 
