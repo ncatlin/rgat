@@ -1482,8 +1482,7 @@ namespace rgat
 
                 DrawAnalysisTab(rgatState.ActiveTrace);
 
-
-                DrawMemDataTab();
+                //DrawMemDataTab();
                 ImGui.EndTabBar();
             }
 

@@ -126,7 +126,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\veldridfix\src\Veldrid\Veldrid.csproj" />
+    <ProjectReference Include="..\TemporaryVeldrid\src\Veldrid\Veldrid.csproj" />
   </ItemGroup>
 
 </Project>
