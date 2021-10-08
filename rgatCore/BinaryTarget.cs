@@ -275,6 +275,13 @@ namespace rgat
         public List<Tuple<string?, ushort>> Exports = new List<Tuple<string?, ushort>>();
 
         /// <summary>
+        /// Settings for launching this binary including module tracing options
+        /// and instrumentation toggles
+        /// </summary>
+        public ProcessLaunchSettings LaunchSettings { get; private set; }
+
+
+        /// <summary>
         /// Create a BinaryTarget object for a binary that rgat can trace
         /// </summary>
         /// <param name="filepath">The filesystem path of the binary</param>
@@ -315,11 +322,8 @@ namespace rgat
             LaunchSettings = settings;
         }
 
-        /// <summary>
-        /// Settings for launching this binary including module tracing options
-        /// and instrumentation toggles
-        /// </summary>
-        public ProcessLaunchSettings LaunchSettings { get; private set; }
+
+
 
 
         /// <summary>
@@ -375,7 +379,7 @@ namespace rgat
             Logging.WriteConsole("Initing from remote");
             if (dataTok.Type != JTokenType.Object)
             {
-                Logging.RecordLogEvent($"Got non-obj InitialiseFromRemoteData param <{dataTok.Type}>", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"Got non-obj InitialiseFromRemoteData param <{dataTok.Type}>", Logging.LogFilterType.Error);
                 return false;
             }
 
@@ -383,7 +387,7 @@ namespace rgat
             JObject? data = dataTok.ToObject<JObject>();
             if (data is null)
             {
-                Logging.RecordLogEvent($"InitialiseFromRemoteData missing or bad data", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"InitialiseFromRemoteData missing or bad data", Logging.LogFilterType.Error);
                 return false;
             }
 
@@ -395,7 +399,7 @@ namespace rgat
             success = success && data.TryGetValue("PEBitWidth", out bitTok) && bitTok is not null && bitTok.Type == JTokenType.Integer;
             if (!success)
             {
-                Logging.RecordLogEvent($"InitialiseFromRemoteData bad or missing field", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"InitialiseFromRemoteData bad or missing field", Logging.LogFilterType.Error);
                 return false;
             }
 
@@ -455,7 +459,7 @@ namespace rgat
                 }
                 else
                 {
-                    Logging.RecordLogEvent($"InitialiseFromRemoteData invalid SHA1", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"InitialiseFromRemoteData invalid SHA1", Logging.LogFilterType.Error);
                     return false;
                 }
             }
@@ -661,14 +665,14 @@ namespace rgat
 
 
         private readonly object tracesLock = new object();
-        private readonly Dictionary<DateTime, TraceRecord> RecordedTraces = new Dictionary<DateTime, TraceRecord>();
-        private readonly Dictionary<string, TraceRecord> RecordedTraceIDs = new Dictionary<string, TraceRecord>();
-        private readonly List<TraceRecord> TraceRecordsList = new List<TraceRecord>();
+        private readonly Dictionary<DateTime, TraceRecord> RecordedTracesByTime = new Dictionary<DateTime, TraceRecord>();
+        //private readonly Dictionary<string, TraceRecord> RecordedTraceIDs = new Dictionary<string, TraceRecord>();
+        private readonly List<TraceRecord> RecordedTraces = new List<TraceRecord>();
 
         /// <summary>
         /// The number of traces that have been generated for this target
         /// </summary>
-        public int TracesCount => TraceRecordsList.Count;
+        public int TracesCount => RecordedTraces.Count;
 
         /// <summary>
         /// Delete a trace record
@@ -678,9 +682,10 @@ namespace rgat
         {
             lock (tracesLock)
             {
-                if (RecordedTraces.ContainsKey(timestarted))
+                if (RecordedTracesByTime.TryGetValue(timestarted, out TraceRecord? record) && record is not null)
                 {
-                    RecordedTraces.Remove(timestarted);
+                    RecordedTracesByTime.Remove(timestarted);
+                    RecordedTraces.Remove(record);
                 }
             }
         }
@@ -697,7 +702,7 @@ namespace rgat
             result = null;
             lock (tracesLock)
             {
-                result = TraceRecordsList.Find(x => x.PID == pid && x.randID == ID);
+                result = RecordedTraces.Find(x => x.PID == pid && x.randID == ID);
                 return (result != null);
             }
         }
@@ -714,7 +719,7 @@ namespace rgat
             result = null;
             lock (tracesLock)
             {
-                result = TraceRecordsList.Find(x => x.LaunchedTime == time && x.randID == ID);
+                result = RecordedTraces.Find(x => x.LaunchedTime == time && x.randID == ID);
                 return (result != null);
             }
         }
@@ -724,17 +729,12 @@ namespace rgat
         /// Get a list of start time/tracerecord pairs for thread-safe iteration
         /// </summary>
         /// <returns>A list of times and trace records</returns>
-        public List<Tuple<DateTime, TraceRecord>> GetTracesUIList()
+        public TraceRecord[] GetTracesUIList()
         {
-            List<Tuple<DateTime, TraceRecord>> uilist = new List<Tuple<DateTime, TraceRecord>>();
             lock (tracesLock)
             {
-                foreach (var rec in RecordedTraces)
-                {
-                    uilist.Add(new Tuple<DateTime, TraceRecord>(rec.Key, rec.Value));
-                }
+                return RecordedTraces.ToArray();
             }
-            return uilist;
         }
 
         /// <summary>
@@ -745,7 +745,7 @@ namespace rgat
         {
             lock (tracesLock)
             {
-                return RecordedTraces.Values.ToList();
+                return RecordedTracesByTime.Values.ToList();
             }
         }
 
@@ -880,7 +880,7 @@ namespace rgat
                 return _cachedFileSize;
             }
 
-            _cachedFileSize = fileSize.Bytes().ToString();
+            _cachedFileSize = fileSize.Bytes().ToString("0.00");
             return _cachedFileSize;
         }
 
@@ -899,14 +899,14 @@ namespace rgat
         {
             lock (tracesLock)
             {
-                if (RecordedTraces.TryGetValue(key: timeStarted, value: out TraceRecord? found))
+                if (RecordedTracesByTime.TryGetValue(key: timeStarted, value: out TraceRecord? found))
                 {
                     newRecord = found;
                     return false;
                 }
                 newRecord = new TraceRecord(PID, ID, this, timeStarted);
-                RecordedTraces.Add(timeStarted, newRecord);
-                TraceRecordsList.Add(newRecord);
+                RecordedTracesByTime.Add(timeStarted, newRecord);
+                RecordedTraces.Add(newRecord);
                 rgatState.IncreaseLoadedTraceCount();
                 return true;
             }
@@ -920,12 +920,12 @@ namespace rgat
         {
             lock (tracesLock)
             {
-                if (TraceRecordsList.Count == 0)
+                if (RecordedTraces.Count == 0)
                 {
                     return null;
                 }
 
-                return TraceRecordsList[0];
+                return RecordedTraces[0];
             }
         }
 
@@ -937,12 +937,12 @@ namespace rgat
         {
             lock (tracesLock)
             {
-                if (TraceRecordsList.Count == 0)
+                if (RecordedTraces.Count == 0)
                 {
                     return null;
                 }
 
-                return TraceRecordsList[^1];
+                return RecordedTraces[^1];
             }
         }
     }

@@ -33,7 +33,7 @@ namespace rgat.OperationModes
         private void LoadingThreadCommandLine()
         {
 
-            Logging.RecordLogEvent("Initing/Loading Config", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent("Initing/Loading Config", Logging.LogFilterType.Debug);
 
             System.Diagnostics.Stopwatch timer = new();
             timer.Start();
@@ -44,7 +44,7 @@ namespace rgat.OperationModes
 
             //InitEventHandlers();
 
-            Logging.RecordLogEvent($"Startup: config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Startup: config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Restart();
 
             //rgatState.VideoRecorder.Load(); //0 ms

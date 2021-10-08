@@ -85,7 +85,7 @@ namespace rgat
                 }
                 else
                 {
-                    Logging.RecordLogEvent("Refusing to start block handler with remote pipe without being connected", filter: Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent("Refusing to start block handler with remote pipe without being connected", filter: Logging.LogFilterType.Error);
                     return;
                 }
 
@@ -262,9 +262,9 @@ namespace rgat
 
 
                     //need to move this out of the lock
-                    if (ProcessRecord.DisassembleIns(disassembler, insaddr, ref instruction) < 1)
+                    if (ProcessRecord.DisassembleIns(disassembler, insaddr, instruction) < 1)
                     {
-                        Logging.RecordLogEvent($"[rgat]ERROR: Bad dissasembly in PID {trace.PID}. Corrupt trace?", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"[rgat]ERROR: Bad dissasembly in PID {trace.PID}. Corrupt trace?", Logging.LogFilterType.Error);
                         return;
                     }
 

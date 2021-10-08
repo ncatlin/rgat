@@ -534,8 +534,8 @@ namespace rgat
             //_gd!.WaitForIdle();
 
             //DebugPrintOutputIntBuffer(layout.BlockMiddles!, "Middles", 100);
-            //DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 5000);
-            //DebugPrintOutputFloatBuffer(layout.AttributesVRAM1, "Atts1", 32);
+            //DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 68);
+            //DebugPrintOutputFloatBuffer(layout.PositionsVRAM1!, "pos", 68);
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM2, "Atts2", 32);
 
             if (layout.ActivatingPreset && layout.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
@@ -716,9 +716,9 @@ namespace rgat
             VelocityShaderParams parms = new VelocityShaderParams
             {
                 delta = delta,
+                temperature = Math.Min(temperature, GlobalConfig.CurrentNodeTemperature),
                 attractionK = GlobalConfig.AttractionK,
                 repulsionK = GlobalConfig.RepulsionK,
-                temperature = Math.Min(temperature, GlobalConfig.CurrentNodeTemperature),
                 fixedInternalNodes = 1,
                 snappingToPreset = 0,
                 nodeCount = (uint)graph.LayoutState.BlockMiddles!.SizeInBytes / 4
@@ -932,9 +932,12 @@ namespace rgat
             };
             foreach (uint nidx in nodeIdxs)
             {
-                fixed (float* dataPtr = val)
+                if ((nidx * 4 * sizeof(float)) < attribsBuf.SizeInBytes)
                 {
-                    cl.UpdateBuffer(attribsBuf, nidx * 4 * sizeof(float) + (0 * sizeof(float)), (IntPtr)dataPtr, (uint)val.Length * sizeof(float));
+                    fixed (float* dataPtr = val)
+                    {
+                        cl.UpdateBuffer(attribsBuf, nidx * 4 * sizeof(float) + (0 * sizeof(float)), (IntPtr)dataPtr, (uint)val.Length * sizeof(float));
+                    }
                 }
             }
         }
@@ -954,9 +957,12 @@ namespace rgat
             };
             foreach (uint nidx in nodeIdxs)
             {
-                fixed (float* dataPtr = val)
+                if ((nidx * 4 * sizeof(float)) < attribsBuf.SizeInBytes)
                 {
-                    cl.UpdateBuffer(attribsBuf, nidx * 4 * sizeof(float) + (0 * sizeof(float)), (IntPtr)dataPtr, (uint)val.Length * sizeof(float));
+                    fixed (float* dataPtr = val)
+                    {
+                        cl.UpdateBuffer(attribsBuf, nidx * 4 * sizeof(float) + (0 * sizeof(float)), (IntPtr)dataPtr, (uint)val.Length * sizeof(float));
+                    }
                 }
             }
         }
@@ -1019,7 +1025,7 @@ namespace rgat
                 {
                     break;
                 }
-                if (sourceData[i + 3] != 181) continue;
+                //if (sourceData[i + 3] != 181) continue;
                 Console.Write($"{i / 4}({sourceData[i]:f3},{sourceData[i + 1]:f3},{sourceData[i + 2]:f3},{sourceData[i + 3]:f3})");
                 printed = true;
             }

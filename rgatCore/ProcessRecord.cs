@@ -1,5 +1,6 @@
 ﻿using Gee.External.Capstone;
 using Gee.External.Capstone.X86;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -51,58 +52,6 @@ namespace rgat
                     externdict.Add(address, RTN);
                 }
             }
-        }
-
-
-        //public void save(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
-        /// <summary>
-        /// Deserialise the process record
-        /// </summary>
-        /// <param name="tracejson">JSON processrecord</param>
-        /// <returns>If successful</returns>
-        public bool Load(JObject tracejson)
-        {
-
-            var processDataJSON = tracejson.GetValue("ProcessData");
-
-            if (processDataJSON == null)
-            {
-                Logging.WriteConsole("[rgat]ERROR: Process data load failed");
-                return false;
-            }
-
-            if (!LoadModules((JObject)processDataJSON))
-            {
-                Logging.WriteConsole("[rgat]ERROR: Failed to load module paths");
-                return false;
-            }
-
-            if (!LoadSymbols((JObject)processDataJSON))
-            {
-                Logging.WriteConsole("[rgat]ERROR: Failed to load symbols");
-                return false;
-            }
-
-            if (!LoadDisassembly((JObject)processDataJSON))
-            {
-                Logging.WriteConsole("[rgat]ERROR: Disassembly reconstruction failed");
-                return false;
-            }
-
-            if (!LoadBlockData((JObject)processDataJSON))
-            {
-                Logging.WriteConsole("[rgat]ERROR: Basic block reconstruction failed");
-                return false;
-            }
-
-            if (!loadExterns((JObject)processDataJSON))
-            {
-                Logging.WriteConsole("[rgat]ERROR: Extern call loading failed");
-                return false;
-            }
-
-            return true;
-
         }
 
 
@@ -274,7 +223,7 @@ namespace rgat
                     attempts -= 1;
                     if (attempts == 0)
                     {
-                        Logging.RecordLogEvent($"Failed to translate module ID {localModnum}", filter: Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Failed to translate module ID {localModnum}", filter: Logging.LogFilterType.Error);
                         return;
                     }
                 }
@@ -670,113 +619,6 @@ namespace rgat
 
 
 
-        private bool LoadSymbols(JObject processJSON)
-        {
-            Logging.RecordLogEvent("Loading Module Symbols", Logging.LogFilterType.TextDebug);
-            //display_only_status_message(symLoadMsg.str(), clientState);
-
-            if (!processJSON.TryGetValue("ModuleSymbols", out JToken? symbolslist) || symbolslist.Type != JTokenType.Array)
-            {
-                Logging.RecordLogEvent("Failed to find valid ModuleSymbols in trace", Logging.LogFilterType.TextError);
-                return false;
-            }
-
-            ulong totalSyms = 0;
-            foreach (JObject item in symbolslist.Children())
-            {
-                if (!item.TryGetValue("ModuleID", out JToken? modID) || modID.Type != JTokenType.Integer)
-                {
-                    Logging.RecordLogEvent("ERROR: Symbols load failed: No valid module ID", Logging.LogFilterType.TextError);
-                    return false;
-                }
-                modsymsPlain.Add(modID.ToObject<int>(), new Dictionary<ulong, string?>());
-
-                if (!item.TryGetValue("Symbols", out JToken? syms) || syms.Type != JTokenType.Array)
-                {
-                    Logging.RecordLogEvent("[rgat]ERROR: Symbols load failed: No valid symbols list", Logging.LogFilterType.TextError);
-                    return false;
-                }
-                foreach (JArray sym in syms.Children())
-                {
-                    if (sym.Count != 2 || sym[0].Type != JTokenType.Integer || sym[1].Type != JTokenType.String)
-                    {
-                        Logging.RecordLogEvent("[rgat]ERROR: Symbols load failed: Bad symbol in list", Logging.LogFilterType.TextError);
-                        return false;
-                    }
-                    ulong SymAddress = sym[0].ToObject<ulong>();
-                    string? SymName = sym[1].ToObject<string>();
-
-                    modsymsPlain[modID.ToObject<int>()][SymAddress] = SymName;
-                    totalSyms += 1;
-
-                }
-            }
-
-            Logging.RecordLogEvent("Finished loading " + totalSyms + " symbols", Logging.LogFilterType.TextDebug);
-            return true;
-        }
-
-        private bool LoadModules(JObject processJSON)
-        {
-            //display_only_status_message("Loading Modules", clientState);
-
-            Logging.RecordLogEvent("LoadModules() Loading Module Paths");
-            if (!processJSON.TryGetValue("ModulePaths", out JToken? moduleslist))
-            {
-                Logging.RecordLogEvent("LoadModules() Failed to find ModulePaths in trace", Logging.LogFilterType.TextError);
-                return false;
-            }
-
-            var modulesArray = moduleslist.ToObject<List<string>>();
-            if (modulesArray is null)
-            {
-                return false;
-            }
-
-            Logging.RecordLogEvent("Loading " + modulesArray.Count + " modules", Logging.LogFilterType.TextDebug);
-            foreach (string b64entry in modulesArray)
-            {
-                string plainpath = Encoding.Unicode.GetString(Convert.FromBase64String(b64entry));
-                LoadedModulePaths.Add(plainpath);
-            }
-
-            if (!processJSON.TryGetValue("ModuleBounds", out JToken? modulebounds))
-            {
-                Logging.RecordLogEvent("Failed to find ModuleBounds in trace", Logging.LogFilterType.TextError);
-                return false;
-            }
-            var modsBoundArray = modulebounds.ToObject<List<List<ulong>>>();
-            if (modsBoundArray is null)
-            {
-                return false;
-            }
-
-            LoadedModuleBounds.Clear();
-
-            foreach (List<ulong> entry in modsBoundArray)
-            {
-                LoadedModuleBounds.Add(new Tuple<ulong, ulong>(entry[0], entry[1]));
-            }
-
-
-            if (!processJSON.TryGetValue("ModuleTraceStates", out JToken? modtracestatesTkn) || modtracestatesTkn is null)
-            {
-                Logging.RecordLogEvent("Failed to find ModuleTraceStates in trace", Logging.LogFilterType.TextError);
-                return false;
-            }
-
-            ModuleTraceStates.Clear();
-
-
-            int[]? intstates = modtracestatesTkn.ToObject<List<int>>()?.ToArray();
-            if (intstates is null)
-            {
-                return false;
-            }
-
-            ModuleTraceStates = Array.ConvertAll(intstates, value => (eCodeInstrumentation)value).ToList();
-            return true;
-        }
 
         private struct ADDRESS_DATA
         {
@@ -788,21 +630,20 @@ namespace rgat
 
 
         /// <summary>
-        /// 
         /// for disassembling saved instructions
         /// takes a capstone context, opcode string, target instruction data struct and the address of the instruction
         /// </summary>
         /// <param name="disassembler">capstone disassembler instance</param>
         /// <param name="address">instruction address</param>
         /// <param name="insdata">partially initialsed instruction data with the bytes</param>
-        /// <returns></returns>
-        public static int DisassembleIns(CapstoneX86Disassembler disassembler, ulong address, ref InstructionData insdata) //todo not a ref?
+        /// <returns>Number of bytes disassembled</returns>
+        public static int DisassembleIns(CapstoneX86Disassembler disassembler, ulong address, InstructionData insdata)
         {
             X86Instruction[] instructions = disassembler.Disassemble(insdata.Opcodes, (long)address);
             //todo: catch some kind of exception, since i cant see any way of getting error codes
             if (instructions.Length != 1)
             {
-                Logging.RecordLogEvent("ERROR: Failed disassembly for opcodes: " + insdata.Opcodes, Logging.LogFilterType.TextError);// << " error: " << cs_errno(hCapstone) << endl;
+                Logging.RecordLogEvent("Failed disassembly for opcodes: " + insdata.Opcodes);
                 return 0;
             }
 
@@ -867,15 +708,17 @@ namespace rgat
             else
             {
                 insdata.itype = CONSTANTS.NodeType.eInsUndefined;
-                //assume all j+ instructions aside from jmp are conditional (todo: bother to check)
+                //assume all j+ instructions aside from jmp are conditional (are they?)
                 if (insdata.Mnemonic[0] == 'j')
                 {
                     insdata.conditional = true;
                     try
                     {
                         insdata.branchAddress = Convert.ToUInt64(insdata.OpStr, 16);
-                    } //todo: not a great idea actually... just point to the outgoing neighbours for labels
-                    catch { insdata.branchAddress = 0; }
+                    } 
+                    catch {
+                        insdata.branchAddress = 0;
+                    }
                     insdata.condDropAddress = insdata.Address + (ulong)insdata.NumBytes;
                 }
 
@@ -883,317 +726,363 @@ namespace rgat
             return instructions.Length;
         }
 
-        private static bool UnpackOpcodes(JArray mutationData, CapstoneX86Disassembler disassembler, ADDRESS_DATA addressData, out List<InstructionData>? opcodeVariants)
-        {
-            opcodeVariants = new List<InstructionData>();
-            foreach (JArray mutation in mutationData)
-            {
-                if (mutation.Count != 2 || mutation[0].Type != JTokenType.String || mutation[1].Type != JTokenType.Array)
-                {
-                    Logging.RecordLogEvent("Load Error: Bad mutation entry", Logging.LogFilterType.TextError);
-                    opcodeVariants = null;
-                    return false;
-                }
-
-                string? mutationStr = mutation[0].ToObject<string>();
-                if (mutationStr is null)
-                {
-                    return false;
-                }
-
-                InstructionData ins = new InstructionData
-                {
-                    GlobalModNum = addressData.moduleID,
-                    hasSymbol = addressData.hasSym,
-                    Opcodes = System.Convert.FromBase64String(mutationStr),
-                    Address = addressData.address,
-                    BlockBoundary = addressData.blockBoundary
-                };
-
-                if (ins.NumBytes == 0)
-                {
-                    Logging.RecordLogEvent("Load Error: Empty opcode string", Logging.LogFilterType.TextError);
-                    opcodeVariants = null;
-                    return false;
-                }
-
-                DisassembleIns(disassembler, addressData.address, ref ins);
-
-                JArray threadNodes = (JArray)mutation[1];
-
-                foreach (JArray entry in threadNodes.Children())
-                {
-                    if (entry.Count != 2 || entry[0].Type != JTokenType.Integer || entry[1].Type != JTokenType.Integer)
-                    {
-                        Logging.RecordLogEvent("Load Error: Bad thread nodes entry", Logging.LogFilterType.TextError);
-                        return false;
-                    }
-
-                    uint excutingThread = entry[0].ToObject<uint>();
-                    uint GraphVertID = entry[1].ToObject<uint>();
-                    ins.AddThreadVert(excutingThread, GraphVertID);
-                }
-
-                opcodeVariants.Add(ins);
-            }
-            return true;
-        }
-
-        private bool UnpackAddress(JArray entry, CapstoneX86Disassembler disassembler)
-        {
-            if (entry.Type != JTokenType.Array || entry.Count != 4 ||
-                       entry[0].Type != JTokenType.Integer ||
-                       entry[1].Type != JTokenType.Integer ||
-                       entry[2].Type != JTokenType.Integer ||
-                       entry[3].Type != JTokenType.Array
-                       )
-            {
-                Logging.RecordLogEvent("Invalid disassembly entry in saved trace", Logging.LogFilterType.TextError);
-                return false;
-            }
-
-            ADDRESS_DATA addrData = new ADDRESS_DATA
-            {
-                address = entry[0].ToObject<ulong>(),
-                moduleID = entry[1].ToObject<int>(),
-                blockBoundary = entry[2].ToObject<int>() == 1
-            };
-
-            addrData.hasSym = (modsymsPlain.ContainsKey(addrData.moduleID) &&
-                                modsymsPlain[addrData.moduleID].ContainsKey(addrData.address));
-
-
-            JArray mutationData = (JArray)entry[3];
-
-            if (!UnpackOpcodes(mutationData, disassembler, addrData, out List<InstructionData>? opcodeVariants) || opcodeVariants is null)
-            {
-                Logging.RecordLogEvent("Invalid disassembly for opcodes in trace", Logging.LogFilterType.TextError);
-                return false;
-            }
-            disassembly.Add(addrData.address, opcodeVariants);
-            return true;
-        }
-
-        private bool LoadDisassembly(JObject processJSON)
-        {
-            if (!processJSON.TryGetValue("BitWidth", out JToken? tBitWidth) || tBitWidth.Type != JTokenType.Integer)
-            {
-                Logging.RecordLogEvent("Failed to find valid BitWidth in trace", Logging.LogFilterType.TextError);
-                return false;
-            }
-            BitWidth = tBitWidth.ToObject<int>();
-            if (BitWidth != 32 && BitWidth != 64)
-            {
-                Logging.RecordLogEvent("Invalid BitWidth " + BitWidth, Logging.LogFilterType.TextError);
-                return false;
-            }
-
-            if (!processJSON.TryGetValue("Disassembly", out JToken? disassemblyList) || disassemblyList.Type != JTokenType.Array)
-            {
-                Logging.RecordLogEvent("Failed to find valid Disassembly in trace", Logging.LogFilterType.TextError);
-                return false;
-            }
-            JArray DisassemblyArray = (JArray)disassemblyList;
-
-            Logging.RecordLogEvent("Loading Disassembly for " + DisassemblyArray.Count + " addresses", Logging.LogFilterType.TextDebug);
-            //display_only_status_message("", clientState);
-
-            X86DisassembleMode disasMode = (BitWidth == 32) ? X86DisassembleMode.Bit32 : X86DisassembleMode.Bit64;
-            using (CapstoneX86Disassembler disassembler = CapstoneDisassembler.CreateX86Disassembler(disasMode))
-            {
-                foreach (JArray entry in DisassemblyArray)
-                {
-                    if (!UnpackAddress(entry, disassembler))
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
-        }
 
 
 
-        private bool LoadBlockData(JObject processJSON)
-        {
-            if (!processJSON.TryGetValue("BasicBlocks", out JToken? tBBLocks) || tBBLocks.Type != JTokenType.Array)
-            {
-                Logging.RecordLogEvent("Failed to find valid BasicBlocks in trace", Logging.LogFilterType.TextError);
-                return false;
-            }
-            JArray BBlocksArray = (JArray)tBBLocks;
-
-            Logging.RecordLogEvent("Loading " + BBlocksArray.Count + " basic blocks", Logging.LogFilterType.TextDebug);
-            //display_only_status_message(BBLoadMsg.str(), clientState);
-            uint blockID = 0;
-            foreach (JArray blockEntry in BBlocksArray)
-            {
-                if (blockEntry.Count != 2 || blockEntry[0].Type != JTokenType.Integer || blockEntry[1].Type != JTokenType.Array)
-                {
-                    Logging.RecordLogEvent("Error in saved trace: Bad basic block descriptor", Logging.LogFilterType.TextError);
-                    return false;
-                }
-                JArray insAddresses = (JArray)blockEntry[1];
-                List<InstructionData> blkInstructions = new List<InstructionData>();
-                ulong blockaddress = blockEntry[0].ToObject<ulong>();
-
-                for (var i = 0; i < insAddresses.Count; i++)
-                {
-                    JToken insItem = insAddresses[i];
-                    if (insItem is null)
-                    {
-                        return false;
-                    }
-
-                    ulong? insAddress = insItem[0]?.ToObject<ulong>();
-                    int? mutationIndex = insItem[1]?.ToObject<int>();
-                    if (insAddress is null || mutationIndex is null)
-                    {
-                        return false;
-                    }
-
-                    InstructionData ins = disassembly[insAddress.Value][mutationIndex.Value];
-                    blkInstructions.Add(ins);
-                    if (ins.ContainingBlockIDs == null)
-                    {
-                        ins.ContainingBlockIDs = new List<uint>();
-                    }
-
-                    ins.ContainingBlockIDs.Add(blockID);
-                    disassembly[insAddress.Value][mutationIndex.Value] = ins;
-
-                }
-                blockID += 1;
-
-
-                BasicBlocksList.Add(new Tuple<ulong, List<InstructionData>>(blockaddress, blkInstructions));
-            }
-
-            return true;
-        }
-
-        private bool UnpackExtern(JObject externEntry)
-        {
-            if (!externEntry.TryGetValue("A", out JToken? Addr) || Addr.Type != JTokenType.Integer)
-            {
-                Logging.RecordLogEvent("Error, address not found in extern entry", Logging.LogFilterType.TextError);
-                return false;
-            }
-            ulong externAddr = Addr.ToObject<ulong>();
-
-            ROUTINE_STRUCT BBEntry = new ROUTINE_STRUCT();
-
-
-            if (!externEntry.TryGetValue("M", out JToken? ModID) || ModID.Type != JTokenType.Integer)
-            {
-                Logging.RecordLogEvent("[rgat]Error: module ID not found in extern entry", Logging.LogFilterType.TextError);
-                return false;
-            }
-            BBEntry.Module = ModID.ToObject<int>();
-
-            if (!externEntry.TryGetValue("S", out JToken? hasSym) || hasSym.Type != JTokenType.Boolean)
-            {
-                Logging.RecordLogEvent("[rgat]Error: Symbol presence not found in extern entry", Logging.LogFilterType.TextError);
-                return false;
-            }
-            BBEntry.HasSymbol = ModID.ToObject<bool>();
-
-
-            if (externEntry.TryGetValue("C", out JToken? callers) && callers.Type == JTokenType.Array)
-            {
-                BBEntry.ThreadCallers = new Dictionary<uint, List<Tuple<uint, uint>>>();
-                JArray CallersArray = (JArray)callers;
-
-                foreach (JArray caller in CallersArray)
-                {
-                    List<Tuple<uint, uint>> ThreadExternCalls = new List<Tuple<uint, uint>>();
-
-                    uint threadID = caller[0].ToObject<uint>();
-                    JArray edges = (JArray)caller[1];
-
-                    foreach (JArray edge in edges)
-                    {
-                        uint source = edge[0].ToObject<uint>();
-                        uint target = edge[1].ToObject<uint>();
-                        ThreadExternCalls.Add(new Tuple<uint, uint>(source, target));
-                    }
-
-                    BBEntry.ThreadCallers.Add(threadID, ThreadExternCalls);
-
-                }
-            }
-
-            externdict.Add(externAddr, BBEntry);
-            return true;
-        }
-
-        private bool loadExterns(JObject processJSON)
-        {
-            if (!processJSON.TryGetValue("Externs", out JToken? jExterns) || jExterns.Type != JTokenType.Array)
-            {
-                Logging.WriteConsole("[rgat] Failed to find valid Externs in trace");
-                return false;
-            }
-            JArray ExternsArray = (JArray)jExterns;
-
-
-            Logging.RecordLogEvent("Loading " + ExternsArray.Count + " externs", Logging.LogFilterType.TextDebug);
-            //display_only_status_message(externLoadMsg.str(), clientState);
-
-            foreach (JObject externObj in ExternsArray.Children())
-            {
-                if (!UnpackExtern(externObj))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
 
         /// <summary>
         /// Serialise this process data to JSON
         /// </summary>
         /// <returns>JObject of the process data</returns>
-        public JObject Serialise()
+        public bool Serialise(JsonWriter writer, rgatState.SERIALISE_PROGRESS progress)
         {
             JObject result = new JObject();
-            SerialiseMetaData(ref result);
+
+            progress.SectionsTotal = 6;
+            progress.SectionsComplete = 0;
+
+            JObject? metadata = SerialiseMetaData();
+            if (metadata is null) return false;
+
+            metadata.WriteTo(writer);
+
+            progress.SectionsComplete += 1;
+            SerialiseModules(writer, progress);
+            progress.SectionsComplete += 1;
+            SerialiseSymbols(writer, progress);
+            progress.SectionsComplete += 1;
+
             lock (InstructionsLock)
             {
-                SerialiseDisassembly(ref result);
-                SerialiseBlockData(ref result);
+                SerialiseDisassembly(writer, progress);
+                progress.SectionsComplete += 1;
+                SerialiseBlockData(writer, progress);
+                progress.SectionsComplete += 1;
             }
-            SerialiseModules(ref result);
-            SerialiseSymbols(ref result);
             lock (ExternCallerLock)
             {
-                SerialiseExternDict(ref result);
+                SerialiseExternDict(writer, progress);
+                progress.SectionsComplete += 1;
             }
-            return result;
+            return true;
         }
 
 
-        private void SerialiseMetaData(ref JObject saveObject)
+        //public void save(rapidjson::Writer<rapidjson::FileWriteStream>& writer);
+        /// <summary>
+        /// Deserialise the process record from JSON
+        /// </summary>
+        /// <param name="tracejson">JSON processrecord</param>
+        /// <returns>If successful</returns>
+        public bool Load(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
         {
+            progress.SectionsTotal = 6;
+            progress.SectionsComplete = 0;
+            progress.SectionName = "Process Metadata";
+
+            if (DeserialiseMetaData(jsnReader, serializer) is false)
+            {
+                Logging.RecordLogEvent("Failed to load process metadata");
+                return false;
+            }
+
+            progress.SectionsComplete += 1;
+            progress.SectionName = "Modules";
+            if (LoadModules(jsnReader, serializer, progress) is false)
+            {
+                Logging.RecordLogEvent("ERROR: Failed to load module paths");
+                return false;
+            }
+
+            progress.SectionsComplete += 1;
+            progress.SectionName = "Symbols";
+            if (LoadSymbols(jsnReader, serializer, progress) is false)
+            {
+                Logging.RecordLogEvent("ERROR: Failed to load symbols");
+                return false;
+            }
+
+            progress.SectionsComplete += 1;
+            if (LoadDisassembly(jsnReader, serializer, progress) is false)
+            {
+                Logging.RecordLogEvent("Disassembly reconstruction failed");
+                return false;
+            }
+
+            progress.SectionsComplete += 1;
+            if (LoadBlockData(jsnReader, serializer, progress) is false)
+            {
+                Logging.RecordLogEvent("Basic block reconstruction failed");
+                return false;
+            }
+
+            progress.SectionsComplete += 1;
+            if (LoadExterns(jsnReader, serializer, progress) is false)
+            {
+                Logging.RecordLogEvent("Extern call loading failed");
+                return false;
+            }
+            progress.SectionsComplete += 1;
+
+            return true;
+
+        }
+
+
+        private JObject? SerialiseMetaData()
+        {
+            JObject metadata = new JObject();
+            metadata.Add("Field", "ProcessRecord");
+
             if (BitWidth == 32 || BitWidth == 64)
             {
-                saveObject.Add("BitWidth", BitWidth);
+                metadata.Add("BitWidth", BitWidth);
             }
             else
             {
-                Logging.RecordLogEvent($"Error: Serialise() - Invalid bitwidth {BitWidth}", Logging.LogFilterType.TextError);
-                return;
+                Logging.RecordLogEvent($"Error: Serialise() - Invalid bitwidth {BitWidth}", Logging.LogFilterType.Error);
+                return null;
             }
 
-            saveObject.Add("RGATVersionMaj", CONSTANTS.PROGRAMVERSION.MAJOR);
-            saveObject.Add("RGATVersionMin", CONSTANTS.PROGRAMVERSION.MINOR);
-            saveObject.Add("RGATVersionPatch", CONSTANTS.PROGRAMVERSION.PATCH);
+            return metadata;
         }
 
-        private void SerialiseDisassembly(ref JObject saveObject)
+
+
+        private bool DeserialiseMetaData(JsonReader jsnReader, JsonSerializer serializer)
         {
-            JArray disasarray = new JArray();
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "ProcessRecord", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No process data metadata in trace file");
+                return false;
+            }
+
+            if (!mdObj.TryGetValue("BitWidth", out JToken? tBitWidth) || tBitWidth.Type != JTokenType.Integer)
+            {
+                Logging.RecordLogEvent("Failed to find valid BitWidth in trace", Logging.LogFilterType.Error);
+                return false;
+            }
+
+            BitWidth = tBitWidth.ToObject<int>();
+            if (BitWidth != 32 && BitWidth != 64)
+            {
+                Logging.RecordLogEvent("Invalid BitWidth " + BitWidth, Logging.LogFilterType.Error);
+                return false;
+            }
+            return true;
+        }
+
+
+
+        private void SerialiseModules(JsonWriter writer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionProgress = 0;
+            progress.SectionName = "Modules";
+
+            JObject meta = new JObject();
+            meta.Add("Field", "Modules");
+            meta.WriteTo(writer);
+
+            JArray ModulePaths = new JArray();
+            foreach (string path in LoadedModulePaths)
+            {
+                ModulePaths.Add(Convert.ToBase64String(Encoding.Unicode.GetBytes(path)));
+            }
+            ModulePaths.WriteTo(writer);
+
+            progress.SectionProgress = 0.3f;
+
+            writer.WriteStartArray();
+            foreach (Tuple<ulong, ulong> start_end in LoadedModuleBounds)
+            {
+                writer.WriteValue(start_end.Item1);
+                writer.WriteValue(start_end.Item2);
+            }
+            writer.WriteEndArray();
+
+            progress.SectionProgress = 0.6f;
+
+
+            JArray ModuleTraceStatesArr = new JArray();
+            foreach (eCodeInstrumentation tState in ModuleTraceStates)
+            {
+                ModuleTraceStatesArr.Add(tState);
+            }
+            ModuleTraceStatesArr.WriteTo(writer);
+            progress.SectionProgress = 1f;
+
+        }
+
+
+        private bool LoadModules(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Modules", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No module metadata in trace file");
+                return false;
+            }
+
+            jsnReader.Read();
+            var modulesArray = serializer.Deserialize<List<string>>(jsnReader);
+            if (modulesArray is null)
+            {
+                Logging.RecordLogEvent("No module path list in trace file");
+                return false;
+            }
+
+            progress.SectionProgress = 0.3f;
+            if (progress.Cancelled) return false;
+
+            foreach (string b64entry in modulesArray)
+            {
+                string plainpath = Encoding.Unicode.GetString(Convert.FromBase64String(b64entry));
+                LoadedModulePaths.Add(plainpath);
+            }
+
+            if (jsnReader.Read() is false || jsnReader.TokenType is not JsonToken.StartArray)
+            {
+                Logging.RecordLogEvent("Failed to find ModuleBounds array ", Logging.LogFilterType.Error);
+                return false;
+            }
+
+            LoadedModuleBounds.Clear();
+
+            while (jsnReader.Read() && jsnReader.TokenType == JsonToken.Integer && jsnReader.Value is not null)
+            {
+                ulong startBound = (ulong)((long)jsnReader.Value);
+                if (jsnReader.Read() && jsnReader.TokenType == JsonToken.Integer && jsnReader.Value is not null)
+                {
+                    ulong endBound = (ulong)((long)jsnReader.Value);
+                    LoadedModuleBounds.Add(new Tuple<ulong, ulong>(startBound, endBound));
+                }
+                else
+                {
+                    Logging.RecordLogEvent("Bad module bounds entry");
+                    return false;
+                }
+            }
+            if (jsnReader.TokenType is not JsonToken.EndArray)
+            {
+                Logging.RecordLogEvent("Expected ModuleBounds array termination");
+                return false;
+            }
+
+            progress.SectionProgress = 0.6f;
+            if (progress.Cancelled) return false;
+
+            jsnReader.Read();
+            List<eCodeInstrumentation>? ilist = serializer.Deserialize<List<eCodeInstrumentation>>(jsnReader);
+            if (ilist is not null && ilist.Count == LoadedModulePaths.Count)
+            {
+                ModuleTraceStates = ilist;
+                LoadedModuleCount = LoadedModulePaths.Count;
+            }
+            else
+            {
+                Logging.RecordLogEvent("Failed to load ModuleTraceStates");
+                return false;
+            }
+
+            progress.SectionProgress = 1f;
+            return true;
+        }
+
+
+
+        private void SerialiseSymbols(JsonWriter writer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionProgress = 0;
+            progress.SectionName = "Symbols";
+
+            JObject meta = new JObject();
+            meta.Add("Field", "Symbols");
+            meta.Add("ModuleCount", modsymsPlain.Count);
+            meta.Add("TotalSymbols", modsymsPlain.Values.Sum(x => x.Count));
+            meta.WriteTo(writer);
+
+            int doneCount = 0;
+            foreach (var modID_symsdict in modsymsPlain)
+            {
+                writer.WriteStartArray();
+                writer.WriteValue(modID_symsdict.Key); //module ID
+                writer.WriteValue(modID_symsdict.Value.Count); //symbol count
+
+                foreach (var address_symstring in modID_symsdict.Value)
+                {
+                    writer.WriteValue(address_symstring.Key); //address
+                    writer.WriteValue(address_symstring.Value); //name
+                }
+                writer.WriteEndArray();
+                doneCount += 1;
+                progress.SectionProgress = (float)doneCount / (float)modsymsPlain.Count;
+                if (progress.Cancelled) return;
+            }
+        }
+
+
+
+        private bool LoadSymbols(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Symbols", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No module metadata in trace file");
+                return false;
+            }
+
+            if (!mdObj.TryGetValue("ModuleCount", out JToken? countTok) || countTok.Type != JTokenType.Integer)
+            {
+                Logging.RecordLogEvent("Failed to find valid ModuleCount in trace symbols list");
+                return false;
+            }
+            progress.SectionProgress = 0;
+
+            int modulesToLoad = countTok.ToObject<int>();
+            int loaded = 0;
+            while (loaded < modulesToLoad && jsnReader.Read() && jsnReader.TokenType == JsonToken.StartArray)
+            {
+                if (jsnReader.Read() is false || jsnReader.TokenType is not JsonToken.Integer) return false;
+                int modID = (int)((long)jsnReader.Value);
+
+                modsymsPlain.Add(modID, new Dictionary<ulong, string?>());
+
+                if (jsnReader.Read() is false || jsnReader.TokenType is not JsonToken.Integer) return false;
+                int symCount = (int)((long)jsnReader.Value);
+                jsnReader.Read();
+
+                for (var symI = 0; symI < symCount; symI++)
+                {
+                    ulong SymAddress = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
+                    string? SymName = serializer.Deserialize<string>(jsnReader); jsnReader.Read();
+
+                    modsymsPlain[modID][SymAddress] = SymName;
+                }
+
+                if (jsnReader.TokenType is not JsonToken.EndArray)
+                {
+                    Logging.RecordLogEvent("Bad symbol entry");
+                    return false;
+                }
+                loaded += 1;
+
+                progress.SectionProgress = (float)loaded / (float)modulesToLoad;
+                if (progress.Cancelled) return false;
+            }
+            return true;
+        }
+
+
+
+        private void SerialiseDisassembly(JsonWriter writer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionProgress = 0;
+            progress.SectionName = "Code";
+
+            JObject meta = new JObject();
+            meta.Add("Field", "Disassembly");
+            meta.Add("Count", disassembly.Count);
+            meta.WriteTo(writer);
+
+            int doneCount = 0;
             foreach (KeyValuePair<ulong, List<InstructionData>> addr_inslist in disassembly)
             {
                 JArray insentry = new JArray
@@ -1203,179 +1092,349 @@ namespace rgat
                     addr_inslist.Value[0].BlockBoundary ? 1 : 0
                 };
 
-                JArray opcodesMutationsList = new JArray();
+                List<InstructionData> addrinstructions = addr_inslist.Value;
+                insentry.Add(addrinstructions.Count);
+
                 foreach (var mutation in addr_inslist.Value)
                 {
-                    JArray mutationData = new JArray();
                     string opcodestring = System.Convert.ToBase64String(mutation.Opcodes!);
-                    mutationData.Add(opcodestring);
+                    insentry.Add(opcodestring);
 
-                    JArray threadsUsingInstruction = new JArray();
                     List<Tuple<uint, uint>> threadVerts = mutation.ThreadVerts;
-                    if (threadVerts != null)
+
+                    insentry.Add(threadVerts.Count);
+                    foreach (Tuple<uint, uint> thread_node in threadVerts)
                     {
-                        foreach (Tuple<uint, uint> thread_node in threadVerts)
-                        {
-                            JArray threadNodeMappings = new JArray
-                            {
-                                thread_node.Item1,
-                                thread_node.Item2
-                            };
-                            threadsUsingInstruction.Add(threadNodeMappings);
-                        }
+                        insentry.Add(thread_node.Item1); // thread ID
+                        insentry.Add(thread_node.Item2); // node index f instruction on thread graph
                     }
-                    else
-                    {
-                        Logging.WriteConsole($"Null thread verts: 0x{mutation.Address:X} => {mutation.InsText}, {mutation.GlobalModNum}[{GetModulePath(mutation.GlobalModNum)}]");
-                    }
-                    mutationData.Add(threadsUsingInstruction);
-                    opcodesMutationsList.Add(mutationData);
+
                 }
-                insentry.Add(opcodesMutationsList);
-                disasarray.Add(insentry);
+                insentry.WriteTo(writer);
+                doneCount += 1;
+                progress.SectionProgress = (float)doneCount / (float)disassembly.Count;
+                if (progress.Cancelled) return;
             }
-            saveObject.Add("Disassembly", disasarray);
         }
 
 
-        private void SerialiseModules(ref JObject saveObject)
+
+
+        private bool LoadDisassembly(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
         {
-            JArray ModulePaths = new JArray();
-            foreach (string path in LoadedModulePaths)
+            progress.SectionName = "Disassembly";
+            progress.SectionProgress = 0;
+
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Disassembly", out JObject? mdObj) is false || mdObj is null)
             {
-                ModulePaths.Add(Convert.ToBase64String(Encoding.Unicode.GetBytes(path)));
+                Logging.RecordLogEvent("No Disassembly metadata in trace file");
+                return false;
             }
-            saveObject.Add("ModulePaths", ModulePaths);
 
-            JArray ModuleBounds = new JArray();
-            foreach (Tuple<ulong, ulong> start_end in LoadedModuleBounds)
+            if (!mdObj.TryGetValue("Count", out JToken? countTok) || countTok.Type != JTokenType.Integer)
             {
-                JArray BoundsTuple = new JArray
-                {
-                    start_end.Item1,
-                    start_end.Item2
-                };
-                ModuleBounds.Add(BoundsTuple);
+                Logging.RecordLogEvent("Failed to find valid Count in LoadDisassembly");
+                return false;
             }
-            saveObject.Add("ModuleBounds", ModuleBounds);
 
-            JArray ModuleTraceStatesArr = new JArray();
-            foreach (eCodeInstrumentation tState in ModuleTraceStates)
+            X86DisassembleMode disasMode = (BitWidth == 32) ? X86DisassembleMode.Bit32 : X86DisassembleMode.Bit64;
+            using CapstoneX86Disassembler disassembler = CapstoneDisassembler.CreateX86Disassembler(disasMode);
+            
+            int insCount = countTok.ToObject<int>();
+            for (int i = 0; i < insCount; i++)
             {
-                ModuleTraceStatesArr.Add(tState);
-            }
-            saveObject.Add("ModuleTraceStates", ModuleTraceStatesArr);
-        }
-
-
-        private void SerialiseSymbols(ref JObject saveObject)
-        {
-            JArray ModuleSymbols = new JArray();
-
-            foreach (var modID_symsdict in modsymsPlain)
-            {
-                JObject modSymsObj = new JObject
+                if (jsnReader.Read() is false || jsnReader.TokenType is not JsonToken.StartArray)
                 {
-                    { "ModuleID", modID_symsdict.Key }
-                };
-
-                JArray modSymsArr = new JArray();
-                foreach (var address_symstring in modID_symsdict.Value)
-                {
-                    JArray modSymEntry = new JArray
-                    {
-                        address_symstring.Key,
-                        address_symstring.Value
-                    };
-                    modSymsArr.Add(modSymEntry);
+                    Logging.RecordLogEvent("Bad disassembly array");
+                    return false;
                 }
-                modSymsObj.Add("Symbols", modSymsArr);
-                ModuleSymbols.Add(modSymsObj);
+
+                JArray? entry = serializer.Deserialize<JArray>(jsnReader);
+                if (entry is null || entry.Count is 0)
+                {
+                    Logging.RecordLogEvent("No instructions in LoadDisassembly");
+                    return false;
+                }
+                if (!UnpackAddress(entry, disassembler))
+                {
+                    return false;
+                }
+                progress.SectionProgress = (float)i / (float)insCount;
+                if (progress.Cancelled) return false;
             }
 
-            saveObject.Add("ModuleSymbols", ModuleSymbols);
+            return true;
         }
 
 
-        private void SerialiseBlockData(ref JObject saveObject)
+        private bool UnpackAddress(JArray entry, CapstoneX86Disassembler disassembler)
         {
-            JArray BasicBlocksArray = new JArray();
+            if (entry.Type != JTokenType.Array || entry.Count < 4 ||
+                       entry[0].Type != JTokenType.Integer ||
+                       entry[1].Type != JTokenType.Integer ||
+                       entry[2].Type != JTokenType.Integer ||
+                       entry[3].Type != JTokenType.Integer
+                       )
+            {
+                Logging.RecordLogEvent("Invalid disassembly entry in saved trace", Logging.LogFilterType.Error);
+                return false;
+            }
 
+            ADDRESS_DATA addressData = new ADDRESS_DATA
+            {
+                address = entry[0].ToObject<ulong>(),
+                moduleID = entry[1].ToObject<int>(),
+                blockBoundary = entry[2].ToObject<int>() == 1
+            };
+
+            addressData.hasSym = (modsymsPlain.ContainsKey(addressData.moduleID) &&
+                                modsymsPlain[addressData.moduleID].ContainsKey(addressData.address));
+
+
+            int mutationCount = (int)entry[3];
+            int entryIndex = 4;
+
+            List<InstructionData> opcodeVariants = new List<InstructionData>();
+            for (var mi = 0; mi < mutationCount; mi++)
+            {
+                string opcodeB64 = entry[entryIndex + mi].ToString();
+                entryIndex += 1;
+
+                InstructionData ins = new InstructionData
+                {
+                    GlobalModNum = addressData.moduleID,
+                    hasSymbol = addressData.hasSym,
+                    Opcodes = System.Convert.FromBase64String(opcodeB64),
+                    Address = addressData.address,
+                    BlockBoundary = addressData.blockBoundary
+                };
+
+                if (DisassembleIns(disassembler, addressData.address, ins) is 0)
+                    return false;
+
+                int threadvertCount = (int)entry[entryIndex + mi];
+                entryIndex += 1;
+
+                for (var vertI = 0; vertI < threadvertCount; vertI++)
+                {
+                    uint thread = (uint)entry[entryIndex + mi];
+                    entryIndex += 1;
+                    uint vertIndex = (uint)entry[entryIndex + mi];
+                    entryIndex += 1;
+
+                    ins.ThreadVerts.Add(new Tuple<uint, uint>(thread, vertIndex));
+                }
+                opcodeVariants.Add(ins);
+            }
+
+            disassembly.Add(addressData.address, opcodeVariants);
+            return true;
+        }
+
+
+
+        private void SerialiseBlockData(JsonWriter writer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionProgress = 0;
+            progress.SectionName = "Blocks";
+
+            JObject meta = new JObject();
+            meta.Add("Field", "BasicBlocks");
+            meta.Add("Count", BasicBlocksList.Count);
+            meta.WriteTo(writer);
+
+            int doneCount = 0;
             foreach (var addr_inslist in BasicBlocksList)
             {
                 if (addr_inslist is null)
                 {
+                    writer.WriteNull();
                     continue;
                 }
 
                 JArray blockArray = new JArray
                 {
-                    addr_inslist.Item1
+                    addr_inslist.Item1,
+                    addr_inslist.Item2.Count
                 };
-
-                JArray inslist = new JArray();
                 foreach (InstructionData i in addr_inslist.Item2)
                 {
-                    JArray insentry = new JArray
-                    {
-                        i.Address,
-                        i.MutationIndex
-                    };
-                    inslist.Add(insentry);
+                    blockArray.Add(i.Address);
+                    blockArray.Add(i.MutationIndex);
                 }
-                blockArray.Add(inslist);
-                BasicBlocksArray.Add(blockArray);
+
+                blockArray.WriteTo(writer);
+                doneCount += 1;
+                progress.SectionProgress = (float)doneCount / (float)BasicBlocksList.Count;
+                if (progress.Cancelled) return;
             }
-            saveObject.Add("BasicBlocks", BasicBlocksArray);
         }
 
 
-        private void SerialiseExternDict(ref JObject saveObject)
+        private bool LoadBlockData(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
         {
-            JArray externsArray = new JArray();
+            progress.SectionName = "Blocks";
+            progress.SectionProgress = 0;
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "BasicBlocks", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No BasicBlocks metadata in trace file");
+                return false;
+            }
 
+            if (mdObj.TryGetValue("Count", out JToken? countTok) is false || countTok is null)
+            {
+                Logging.RecordLogEvent("No BasicBlocks count in LoadBlockData");
+                return false;
+            }
+            int blockCount = countTok.ToObject<int>();
+
+
+            BasicBlocksList.Capacity = blockCount; //kindof want to sanity check this but Int.MaxValue is not unrealistic for genuine data
+
+            for (int blockID = 0; blockID < blockCount; blockID++)
+            {
+                if (!jsnReader.Read()) return false;
+                if (jsnReader.TokenType == JsonToken.Null)
+                {
+                    jsnReader.Read();
+                    BasicBlocksList[blockID] = null;
+                    continue;
+                }
+                if (jsnReader.TokenType == JsonToken.StartArray)
+                {
+                    jsnReader.Read();
+                    ulong blockAddress = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
+                    List<InstructionData> blkInstructions = new List<InstructionData>();
+                    int insCount = serializer.Deserialize<int>(jsnReader); jsnReader.Read();
+                    for (var insI = 0; insI < insCount; insI++)
+                    {
+                        ulong insAddress = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
+                        int mutationIndex = serializer.Deserialize<int>(jsnReader); jsnReader.Read();
+
+                        InstructionData ins = disassembly[insAddress][mutationIndex];
+                        blkInstructions.Add(ins);
+                        if (ins.ContainingBlockIDs == null)
+                        {
+                            ins.ContainingBlockIDs = new List<uint>();
+                        }
+
+                        ins.ContainingBlockIDs.Add((uint)blockID);
+                    }
+                    BasicBlocksList.Add(new Tuple<ulong, List<InstructionData>>(blockAddress, blkInstructions));
+                }
+                progress.SectionProgress = (float)blockID / (float)blockCount;
+                if (progress.Cancelled) return false;
+            }
+
+            return true;
+        }
+
+
+        private void SerialiseExternDict(JsonWriter writer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionName = "Externals";
+            progress.SectionProgress = 0;
+
+            JObject meta = new JObject();
+            meta.Add("Field", "Externs");
+            meta.Add("Count", externdict.Count);
+            meta.WriteTo(writer);
+
+            int doneCount = 0;
             foreach (var addr_rtnstruct in externdict)
             {
-                JObject externObj = new JObject
+                ROUTINE_STRUCT externStruc = addr_rtnstruct.Value;
+                JArray externArr = new JArray
                 {
-                    { "A", addr_rtnstruct.Key }
+                     addr_rtnstruct.Key, //address
+                     externStruc.Module,
+                     externStruc.HasSymbol
                 };
 
-                ROUTINE_STRUCT externStruc = addr_rtnstruct.Value;
-                externObj.Add("M", externStruc.Module);
-                externObj.Add("S", externStruc.HasSymbol);
+                externArr.Add(externStruc.ThreadCallers.Count);
 
                 if (externStruc.ThreadCallers.Count > 0)
                 {
-                    JArray callersArr = new JArray();
-
                     foreach (var thread_edgelist in externStruc.ThreadCallers)
                     {
-                        JArray callerCalls = new JArray
-                        {
-                            thread_edgelist.Key
-                        };
+                        externArr.Add(thread_edgelist.Key);
+                        externArr.Add(thread_edgelist.Value.Count);
 
-                        JArray edgeList = new JArray();
                         foreach (var edge in thread_edgelist.Value)
                         {
-                            JArray threadEdge = new JArray
-                            {
-                                edge.Item1,
-                                edge.Item2
-                            };
-                            edgeList.Add(threadEdge);
+                            externArr.Add(edge.Item1);
+                            externArr.Add(edge.Item2);
                         }
-
-                        callerCalls.Add(edgeList);
-                        callersArr.Add(callerCalls);
                     }
-
-                    externObj.Add("C", callersArr);
                 }
-                externsArray.Add(externObj);
+                externArr.WriteTo(writer);
+                doneCount += 1;
+                progress.SectionProgress = (float)doneCount / (float)externdict.Count;
+                if (progress.Cancelled) return;
             }
-            saveObject.Add("Externs", externsArray);
+        }
+
+
+
+        private bool LoadExterns(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionName = "Externals";
+            progress.SectionProgress = 0;
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Externs", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No Externs metadata in trace file");
+                return false;
+            }
+
+            if (mdObj.TryGetValue("Count", out JToken? countTok) is false || countTok is null)
+            {
+                Logging.RecordLogEvent("No Externs count in LoadExterns");
+                return false;
+            }
+            int count = countTok.ToObject<int>(); 
+
+            for (var externI = 0; externI < count; externI++)
+            {
+                jsnReader.Read();
+                JArray? extArr = serializer.Deserialize<JArray>(jsnReader);
+                if (extArr is null || extArr.Count < 4)
+                {
+                    Logging.RecordLogEvent("Bad extern item");
+                    return false;
+                }
+
+                ulong externAddr = (ulong)extArr[0];
+                ROUTINE_STRUCT externStruc = new ROUTINE_STRUCT()
+                {
+                    Module = (int)extArr[1],
+                    HasSymbol = (bool)extArr[2],
+                };
+
+                int threadCount = (int)extArr[3];
+                if (threadCount > 0)
+                {
+                    int arrayIndex = 4;
+                    externStruc.ThreadCallers = new();
+                    for (var threadI = 0; threadI < threadCount; threadI++)
+                    {
+                        uint thread = (uint)extArr[arrayIndex]; arrayIndex++;
+                        uint callerCount = (uint)extArr[arrayIndex]; arrayIndex++;
+
+                        List<Tuple<uint, uint>> threadCallers = new();
+                        for (var callerI = 0; callerI < callerCount; callerI++)
+                        {
+                            uint src = (uint)extArr[arrayIndex]; arrayIndex++;
+                            uint targ = (uint)extArr[arrayIndex]; arrayIndex++;
+                            threadCallers.Add(new Tuple<uint, uint>(src, targ));
+                        }
+                        externStruc.ThreadCallers.Add(thread, threadCallers);
+                    }
+                }
+                externdict[externAddr] = externStruc;
+                progress.SectionProgress = (float)externI / (float)count;
+                if (progress.Cancelled) return false;
+            }
+            return true;
         }
     }
 }

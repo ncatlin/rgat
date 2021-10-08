@@ -69,7 +69,7 @@ namespace rgat.Threads
 
             if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.HeadlessMode)
             {
-                Logging.RecordLogEvent("Error: Trace processor created in headless mode", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Error: Trace processor created in headless mode", Logging.LogFilterType.Error);
                 rgatState.NetworkBridge.Teardown("TraceProcessor created in wrong mode");
             }
         }
@@ -211,9 +211,9 @@ namespace rgat.Threads
                             ulong execCount = addr_Count.Item2;
 
                             bool found = false;
-                            foreach (var x in lastNode.OutgoingNeighboursSet)
+                            for (var outI = 0; outI < lastNode.OutgoingNeighboursSet.Count; outI++)
                             {
-                                NodeData? outn = protograph.GetNode(x);
+                                NodeData? outn = protograph.GetNode(lastNode.OutgoingNeighboursSet[outI]);
                                 if (outn == null)
                                 {
                                     continue;
@@ -421,7 +421,7 @@ namespace rgat.Threads
                 waits += 1;
                 if (waits > 5)
                 {
-                    Logging.WriteConsole($"Waiting for block {thistag.blockID} to appear ({protograph.ProcessData.BasicBlocksList.Count} available)");
+                    Logging.WriteConsole($"TID {this.protograph.ThreadID} Waiting for block {thistag.blockID} to appear ({protograph.ProcessData.BasicBlocksList.Count} available)");
                 }
             }
             Debug.Assert(thistag.blockID < protograph.ProcessData.BasicBlocksList.Count, "ProcessTraceTag tried to process block that hasn't been disassembled");
@@ -480,7 +480,7 @@ namespace rgat.Threads
 
             sw.Restart();
             //this messy bit of code deals with uninstrumented APi code that has been called from a "jmp ptr [addr]" instruction
-            eCodeInstrumentation modType = protograph.TraceData.FindContainingModule(nextBlockAddress, out int modnum);
+            eCodeInstrumentation targetCodeType = protograph.TraceData.FindContainingModule(nextBlockAddress, out int modnum);
 
             sw.Stop();
             if (sw.ElapsedMilliseconds > 4)
@@ -493,13 +493,14 @@ namespace rgat.Threads
              We hide the existance of the intermediary (.idata thunk) to make it look like a call to extern
              This is much clearer and less messy than calls to thunks but is a horrid source of errors            
              */
-            if (modType == eCodeInstrumentation.eUninstrumentedCode && protograph.NodeList.Count < protograph.ProtoLastLastVertID)
+            if (targetCodeType == eCodeInstrumentation.eUninstrumentedCode)// && protograph.NodeList.Count < protograph.ProtoLastLastVertID)
             {
-                if (protograph.NodeList[(int)protograph.ProtoLastLastVertID].VertType() == CONSTANTS.EdgeNodeType.eNodeCall)
+                if (protograph.NodeList[(int)protograph.ProtoLastVertID].VertType() == CONSTANTS.EdgeNodeType.eNodeCall)
                 {
                     sw.Restart();
                     List<InstructionData>? preExternBlock = protograph.TraceData.DisassemblyData.getDisassemblyBlock(thistag.blockID);
-                    if (preExternBlock is not null &&
+                    if (this.protograph.TraceData.Target.LaunchSettings.HideAPIThunks is true && //todo trace specific
+                        preExternBlock is not null &&
                         preExternBlock.Count == 1 &&
                         preExternBlock[0].PossibleidataThunk)
                     {
@@ -534,7 +535,7 @@ namespace rgat.Threads
                             }
                             else
                             {
-                                Logging.RecordLogEvent($"Error - thunk caller index {protograph.ProtoLastLastVertID} not available", Logging.LogFilterType.TextError);
+                                Logging.RecordLogEvent($"Error - thunk caller index {protograph.ProtoLastLastVertID} not available", Logging.LogFilterType.Error);
                             }
                         }
 
@@ -581,7 +582,7 @@ namespace rgat.Threads
             {
                 Console.WriteLine($"TP::handletag took {sw.ElapsedMilliseconds}ms (state:{thistag.InstrumentationState})");
             }
-            if (modType is eCodeInstrumentation.eUninstrumentedCode)
+            if (targetCodeType is eCodeInstrumentation.eUninstrumentedCode)
             {
                 sw.Restart();
                 ProcessExtern(nextBlockAddress, thistag.blockID);
@@ -628,7 +629,7 @@ namespace rgat.Threads
                 blockID = uint.Parse(entries[1], NumberStyles.HexNumber)
             };
             protograph.PushAnimUpdate(animUpdate);
-            Logging.RecordLogEvent($"A REP instruction (blkid {animUpdate.blockID}) has executed at least once. Need to action this as per trello 160", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"A REP instruction (blkid {animUpdate.blockID}) has executed at least once. Need to action this as per trello 160", Logging.LogFilterType.Debug);
         }
 
 
@@ -798,7 +799,7 @@ namespace rgat.Threads
                     else
                     {
                         Logging.RecordLogEvent($"Error: AddUnchainedUpdate for missing edge {protograph.ProtoLastLastVertID},{blockNodes.Item1}",
-                            filter: Logging.LogFilterType.TextError);
+                            filter: Logging.LogFilterType.Error);
                     }
                     protograph.PerformingUnchainedExecution = true;
                 }
@@ -1044,7 +1045,7 @@ namespace rgat.Threads
                         default:
                             Logging.RecordLogEvent($"Bad trace tag {(char)msg[0]}", filter: Logging.LogFilterType.BulkDebugLogFile);
 
-                            Logging.RecordLogEvent($"Bad trace tag: {msg[0]} - likely a corrupt trace", Logging.LogFilterType.TextError);
+                            Logging.RecordLogEvent($"Bad trace tag: {msg[0]} - likely a corrupt trace", Logging.LogFilterType.Error);
                             Logging.WriteConsole($"Handle unknown tag {(char)msg[0]}");
                             Logging.WriteConsole("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
                             protograph.TraceReader.Terminate();
@@ -1069,7 +1070,7 @@ namespace rgat.Threads
             //final pass
             PerformIrregularActions();
 
-
+            
             Logging.WriteConsole($"{WorkerThread?.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
             Debug.Assert(blockRepeatQueue.Count == 0 || rgatState.rgatIsExiting || protograph.TraceReader.StopFlag);
 

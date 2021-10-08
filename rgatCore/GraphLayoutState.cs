@@ -726,13 +726,14 @@ namespace rgat
             {
                 return;
             }
+            LayoutStyles.Style graphStyle = graph.LayoutState.Style;
+            if (SavedStates.TryGetValue(graphStyle, out CPUBuffers? RAMbufs) == false || RAMbufs is null) return;
 
             Debug.Assert(graph.ActiveLayoutStyle == _VRAMBuffers.Style);
 
             uint offset = (uint)graph.ComputeBufferNodeCount * 4 * sizeof(float);
             uint updateSize = 4 * sizeof(float) * (uint)newNodeCount;
             List<DeviceBuffer?> disposals = new List<DeviceBuffer?>();
-            CPUBuffers RAMbufs = SavedStates[graph.LayoutState.Style];
 
             CommandList cl = _gd.ResourceFactory.CreateCommandList();
             cl.Begin();
@@ -750,11 +751,11 @@ namespace rgat
 
                     if (_VRAMBuffers.Initialised)
                     {
-                        Logging.RecordLogEvent($"Recreating buffers as {bufferSize} > {VelocitiesVRAM1!.SizeInBytes}", Logging.LogFilterType.TextDebug);
+                        Logging.RecordLogEvent($"Recreating buffers as {bufferSize} > {VelocitiesVRAM1!.SizeInBytes}", Logging.LogFilterType.Debug);
                     }
                     else
                     {
-                        Logging.RecordLogEvent($"Creating VRAM buffers size {bufferSize} for graph {graph.TID}", Logging.LogFilterType.TextDebug);
+                        Logging.RecordLogEvent($"Creating VRAM buffers size {bufferSize} for graph {graph.TID}", Logging.LogFilterType.Debug);
                     }
                     ResizeComputeBuffers(graph, bufferSize, cl, ref disposals);
                 }
@@ -979,7 +980,7 @@ namespace rgat
             {
                 _lock.EnterWriteLock();
                 uint newSize = Math.Max(currentOffset + 4, bufferFloatCount);
-                Logging.RecordLogEvent($"Recreating graph RAM buffers as {newSize} > {oldVelocityArraySize}", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Recreating graph RAM buffers as {newSize} > {oldVelocityArraySize}", Logging.LogFilterType.Debug);
                 EnlargeRAMDataBuffers(newSize, bufs);
                 _lock.ExitWriteLock();
             }
@@ -1181,14 +1182,21 @@ namespace rgat
             int endLength = layoutRAMBuffers.PositionsArray.Length;
             for (var i = 0; i < endLength; i += 4)
             {
-                layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);
-                layoutRAMBuffers.VelocityArray[i + 1] = rnd.Next(100);
-                layoutRAMBuffers.VelocityArray[i + 2] = rnd.Next(100);
+
+                if (layoutRAMBuffers.PositionsArray[i + 3] == 0)
+                {
+                    break;
+                }
+
+                layoutRAMBuffers.VelocityArray[i] = 0;// rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 1] = 0;// rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 2] = 0;// rnd.Next(100);
 
                 getPoint(rnd, radius, out float x, out float y, out float z);
-                layoutRAMBuffers.PositionsArray[i] = x;
-                layoutRAMBuffers.PositionsArray[i + 1] = y;
-                layoutRAMBuffers.PositionsArray[i + 2] = z;
+                layoutRAMBuffers.PositionsArray[i] = 2;// x;
+                layoutRAMBuffers.PositionsArray[i + 1] = 2;// y;
+                layoutRAMBuffers.PositionsArray[i + 2] =2 ;// z;
+                layoutRAMBuffers.PositionsArray[i + 3] = 1 ;// w;
             }
         }
 
@@ -1233,6 +1241,7 @@ namespace rgat
                 layoutRAMBuffers.PositionsArray[i] = RandomFloat(rnd, MinDimension, MaxDimension);
                 layoutRAMBuffers.PositionsArray[i + 1] = RandomFloat(rnd, MinDimension, MaxDimension);
                 layoutRAMBuffers.PositionsArray[i + 2] = RandomFloat(rnd, MinDimension, MaxDimension);
+                layoutRAMBuffers.PositionsArray[i + 3] = 1;// w;
             }
         }
 

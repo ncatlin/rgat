@@ -71,6 +71,11 @@ namespace rgat
         public bool DiscardReplayData { get; set; }
 
         /// <summary>
+        /// idata thunks will be written out of the graph to make API calls look cleaner
+        /// </summary>
+        public bool HideAPIThunks { get; set; } = true;
+
+        /// <summary>
         /// Settings for which modules are instrumented/ignored
         /// </summary>
         public TraceChoiceSettings TraceChoices { get; set; } = new TraceChoiceSettings();

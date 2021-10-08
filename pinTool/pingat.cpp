@@ -150,8 +150,11 @@ THREADID GetPINThreadID(OS_THREAD_ID tid) {
 }
 
 void RegisterThreadID(OS_THREAD_ID tid, THREADID PinID) {
+	writeEventPipe("!T1E%d 32", tid);
 	PIN_MutexLock(&dataMutex);
+	writeEventPipe("!T1F%d 32", tid);
 	ThreadIDs[tid] = PinID;
+	writeEventPipe("!T1G%d 32", tid);
 	PIN_MutexUnlock(&dataMutex);
 }
 
@@ -833,11 +836,10 @@ void AssignBlockIndex(threadObject* tdata)
 */
 VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 {
-	std::cout << "in thread start " << threadIndex << std::endl;
+	wprintf(L"%s", "[pingat]in thread start 32\n");
 	threadCount++;
 	threadObject* tdata = new threadObject(threadCount);
 	OS_GetTid(&tdata->osthreadid);
-
 
 	ADDRINT startAddr = PIN_GetContextReg(ctxt, REG::REG_INST_PTR);
 
@@ -857,22 +859,29 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 	{
 		if (tdata->threadpipeHandle == -1)
 		{
-			tdata->threadpipeHandle = (NATIVE_FD)WINDOWS::CreateFileA(pname,
-				GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0,
-				NULL);
+			writeEventPipe("!T6%d Opening pipe %s", tdata->osthreadid, pname);
+			tdata->threadpipeHandle = (NATIVE_FD)WINDOWS::CreateFileA(pname, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
+			writeEventPipe("!T6%d A", tdata->osthreadid);
 			if (tdata->threadpipeHandle == -1 && time > 1600 && (time % 600 == 0))
 			{
-				std::cout << "Failing to connect to thread pipe [" << std::string(pname) << "]. Error:";
+				writeEventPipe("!T6%d B", tdata->osthreadid);
+				std::stringstream errstr;
+				errstr << "Failing to connect to thread pipe [" << std::string(pname) << "]. Error:";
 				int err = WINDOWS::GetLastError();
-				if (err == 2) std::cout << " Pipe not found" << std::endl;
-				else if (err == 5) std::cout << " Access Denied" << std::endl;
-				else std::cout << err << std::endl;
+				if (err == 2) errstr << " Pipe not found" << std::endl;
+				else if (err == 5)errstr << " Access Denied" << std::endl;
+				else errstr << err << std::endl;
+
+				writeEventPipe("! %s", errstr.str().c_str());
 			}
+			writeEventPipe("!T6%d C1", tdata->osthreadid);
 		}
 
+		writeEventPipe("!T6%d D1", tdata->osthreadid);
 		if (tdata->threadpipeHandle != -1)
 		{
+			writeEventPipe("!T7%d", tdata->osthreadid);
 			std::cout << "thread pipe connected!" << std::endl;
 
 			int fd = _open_osfhandle(tdata->threadpipeHandle, _O_APPEND);
@@ -907,6 +916,7 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 			return;
 		}
 
+		writeEventPipe("!T8%d", tdata->osthreadid);
 		OS_Sleep(15);
 		time += 15;
 	}

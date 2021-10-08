@@ -195,7 +195,7 @@ namespace rgat.Widgets
                                                 {
                                                     string error = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [LinkReference] didn't have correct parameters. The instrumentation library or apidata file may not match.";
                                                     timelineEvent.MetaError = error;
-                                                    Logging.RecordLogEvent(error, Logging.LogFilterType.TextDebug);
+                                                    Logging.RecordLogEvent(error, Logging.LogFilterType.Debug);
                                                     break;
                                                 }
 
@@ -255,7 +255,7 @@ namespace rgat.Widgets
                                                 if (referenceParamLoggedIndex == -1)
                                                 {
                                                     timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [UseReference] didn't have correct parameters";
-                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
+                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.Debug);
                                                     break;
                                                 }
 
@@ -282,7 +282,7 @@ namespace rgat.Widgets
                                                 if (!resolvedReference)
                                                 {
                                                     timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [UseReference] reference was not linked to an entity ({referenceString})";
-                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
+                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.Debug);
                                                 }
                                                 break;
                                             }
@@ -296,7 +296,7 @@ namespace rgat.Widgets
                                                 if (referenceParamLoggedIndex == -1)
                                                 {
                                                     timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [DestroyReference] didn't have correct parameters";
-                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
+                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.Debug);
                                                     break;
                                                 }
 
@@ -324,7 +324,7 @@ namespace rgat.Widgets
                                                 if (!resolvedReference)
                                                 {
                                                     timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol} [DestroyReference] reference was not linked to an entity ({referenceString})";
-                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
+                                                    Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.Debug);
                                                 }
 
                                                 break;
@@ -332,7 +332,7 @@ namespace rgat.Widgets
 
                                         default:
                                             timelineEvent.MetaError = $"API call record for {apiinfo.ModuleName}:{apiinfo.Symbol}: had invalid effect {effectBase}";
-                                            Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.TextDebug);
+                                            Logging.RecordLogEvent(timelineEvent.MetaError, Logging.LogFilterType.Debug);
                                             break;
 
                                     }
@@ -470,10 +470,13 @@ namespace rgat.Widgets
 
                 if (!_fittingActive)
                 {
-                    if (ImGui.Button("[C]"))
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button, 255));
+                    ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5,5));
+                    if (ImGui.Button($"{ImGuiController.FA_ICON_MOVEMENT}", new Vector2(26,27))) //centering button
                     {
                         FitNodesToChart();
                     }
+                    ImGui.PopStyleVar();
                     SmallWidgets.MouseoverText("Center graph");
                 }
                 ImGui.SetCursorScreenPos(cursorPos);
@@ -848,7 +851,7 @@ namespace rgat.Widgets
                 if (fittingAttempts > 50)
                 {
                     _fittingActive = false;
-                    Logging.RecordLogEvent($"Ending chart zoom to frame after {fittingAttempts} cycles. XDifference: {Xleft}, YDifference: {yTop}", Logging.LogFilterType.TextDebug);
+                    Logging.RecordLogEvent($"Ending chart zoom to frame after {fittingAttempts} cycles. XDifference: {Xleft}, YDifference: {yTop}", Logging.LogFilterType.Debug);
                 }
             }
         }

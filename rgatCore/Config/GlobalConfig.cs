@@ -316,7 +316,7 @@ namespace rgat
         /// </summary>
         public static void LoadThemesFromResource()
         {
-            Logging.RecordLogEvent($"Loading Resources", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Loading Resources", Logging.LogFilterType.Debug);
 
             System.Reflection.Assembly assembly = typeof(ImGuiController).Assembly;
             System.IO.Stream? fs;
@@ -652,7 +652,7 @@ namespace rgat
         /// These keys trigger actions that need to be reacted to repeatedly and immediately (mainly graphical actions like rotation)
         /// </summary>
         public static List<Key> ResponsiveKeys = new List<Key>();
-
+        
         /// <summary>
         /// Keybinds triggered by responsive keys
         /// </summary>
@@ -780,7 +780,7 @@ namespace rgat
 
             progress?.Report(0.9f);
 
-            Logging.RecordLogEvent($"Startup: Config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Startup: Config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Stop();
             progress?.Report(1f);
 

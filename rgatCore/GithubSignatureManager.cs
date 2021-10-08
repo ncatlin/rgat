@@ -220,7 +220,7 @@ namespace rgat
 
         private static bool PurgeDirectory(string repoDirectory)
         {
-            Logging.RecordLogEvent($"Deleting existing contents of directory {repoDirectory}", filter: Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Deleting existing contents of directory {repoDirectory}", filter: Logging.LogFilterType.Debug);
             try
             {
                 System.IO.DirectoryInfo di = new DirectoryInfo(repoDirectory);

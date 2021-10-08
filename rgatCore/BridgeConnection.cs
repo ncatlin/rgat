@@ -265,13 +265,13 @@ namespace rgat
             }
             catch (OperationCanceledException)
             {
-                Logging.RecordLogEvent($"User cancelled connection attempt", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"User cancelled connection attempt", Logging.LogFilterType.Debug);
                 Teardown();
                 return;
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Exception {e} in StartConnectOut", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"Exception {e} in StartConnectOut", Logging.LogFilterType.Error);
                 Teardown();
                 return;
             }
@@ -536,11 +536,11 @@ namespace rgat
             }
             catch (System.IO.IOException e)
             {
-                Logging.RecordLogEvent($"\t! IO exception reading from client\n {e.InnerException}\n {e.Message}", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"\t! IO exception reading from client\n {e.InnerException}\n {e.Message}", Logging.LogFilterType.Error);
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Exception during send: {e.Message}", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"Exception during send: {e.Message}", Logging.LogFilterType.Error);
                 if (write != null && write.IsCanceled)
                 {
                     Logging.WriteConsole("Cancellation during send data");
@@ -696,13 +696,13 @@ namespace rgat
                 if (AuthenticateIncomingConnection(client))
                 {
                     AddNetworkDisplayLogMessage("Connected to rgat", Themes.eThemeColour.eGoodStateColour);
-                    Logging.RecordLogEvent($"New connection from {clientEndpoint}", Logging.LogFilterType.TextAlert);
+                    Logging.RecordLogEvent($"New connection from {clientEndpoint}", Logging.LogFilterType.Alert);
                     ServeAuthenticatedConnection(connectCallback);
                 }
                 else
                 {
                     Teardown();
-                    Logging.RecordLogEvent($"Failed connection from {clientEndpoint}", Logging.LogFilterType.TextAlert);
+                    Logging.RecordLogEvent($"Failed connection from {clientEndpoint}", Logging.LogFilterType.Alert);
                     _ActiveClient = null;
                     return;
                 }
@@ -1013,7 +1013,7 @@ namespace rgat
                 _registeredIncomingDataCallback(newdata.Value);
 
             }
-            Logging.RecordLogEvent("ReceiveIncomingTraffic ServeClientIncoming dropout", filter: Logging.LogFilterType.TextError);
+            Logging.RecordLogEvent("ReceiveIncomingTraffic ServeClientIncoming dropout", filter: Logging.LogFilterType.Error);
             Teardown("ReceiveIncomingTraffic dropout");
         }
 
@@ -1088,7 +1088,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Exception {e} parsing auth response", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"Exception {e} parsing auth response", Logging.LogFilterType.Error);
                 return false;
             }
             string expectedConnectResponse = GUIMode ? connectResponseHeadless : connectResponseGUI;
@@ -1112,14 +1112,14 @@ namespace rgat
                         AddNetworkDisplayLogMessage("Cmdline<->Cmdline Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
                     }
 
-                    Logging.RecordLogEvent($"Bad prelude response. Connection can only be made between rgat in GUI and command-line modes", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"Bad prelude response. Connection can only be made between rgat in GUI and command-line modes", Logging.LogFilterType.Error);
                 }
                 else
                 {
                     if (client.Client.RemoteEndPoint is not null)
                     {
                         Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(client.Client.RemoteEndPoint)} - response did not decrypt to the expected value",
-                            Logging.LogFilterType.TextError);
+                            Logging.LogFilterType.Error);
                     }
                     AddNetworkDisplayLogMessage("Authentication failed - Bad Key", Themes.eThemeColour.eAlertWindowBg);
                 }
@@ -1148,7 +1148,7 @@ namespace rgat
             {
                 AddNetworkDisplayLogMessage("Authentication failed - no vald data", Themes.eThemeColour.eBadStateColour);
                 Logging.WriteConsole($"AuthenticateIncomingConnection No prelude from {client}, ignoring");
-                Logging.RecordLogEvent($"No prelude from {client}, ignoring", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"No prelude from {client}, ignoring", Logging.LogFilterType.Debug);
                 return false;
             }
 
@@ -1171,7 +1171,7 @@ namespace rgat
                         AddNetworkDisplayLogMessage("Cmdline<->Cmdline Connection Unsupported", Themes.eThemeColour.eWarnStateColour);
                     }
 
-                    Logging.RecordLogEvent($"Connection refused - Connection can only be made between rgat in GUI and command-line modes", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"Connection refused - Connection can only be made between rgat in GUI and command-line modes", Logging.LogFilterType.Error);
                     RawSendData(MsgType.Meta, "Bad Mode");
                 }
                 else
@@ -1180,7 +1180,7 @@ namespace rgat
 
                     if (client.Client.RemoteEndPoint is not null)
                     {
-                        Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(client.Client.RemoteEndPoint)} - prelude did not decrypt to the expected value", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Authentication failed for {(IPEndPoint)(client.Client.RemoteEndPoint)} - prelude did not decrypt to the expected value", Logging.LogFilterType.Error);
                     }
                 }
                 return false;

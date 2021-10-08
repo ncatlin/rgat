@@ -760,7 +760,7 @@ namespace rgat.Config
                         SetPath(setting, path);
                         break;
                     default:
-                        Logging.RecordLogEvent($"Bad directory path setting: {setting} => {path}", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Bad directory path setting: {setting} => {path}", Logging.LogFilterType.Error);
                         return;
                 }
             }
@@ -812,7 +812,7 @@ namespace rgat.Config
 
             private int? _replayStrorageMax = 10000;
             /// <summary>
-            /// Maximum number of replay entries to store when saving a trace, or null if unlimited
+            /// Maximum number of replay entries to store or load when saving/loading a trace, or null if unlimited
             /// </summary>
             public int? ReplayStorageMax { get => _replayStrorageMax; set { _replayStrorageMax = value; MarkDirty(); } }
 

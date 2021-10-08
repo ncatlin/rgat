@@ -551,10 +551,9 @@ namespace rgat.Widgets
                     ImGui.EndTable();
                 }
 
-                if (tabType == 2 && ImGui.BeginTable("#SigDownloadControls", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX))
+                if (tabType == 2 && ImGui.BeginTable("#SigDownloadControls", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.NoHostExtendX))
                 {
                     ImGui.TableSetupColumn("SigDLBtns", ImGuiTableColumnFlags.WidthFixed, 85);
-                    ImGui.TableSetupColumn("SigDLProgressBar", ImGuiTableColumnFlags.WidthFixed, 85);
                     ImGui.TableSetupColumn("SigDLProgressTxt");
 
                     uint formatCellColour = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg)).ToUint(0xd0);
@@ -603,8 +602,6 @@ namespace rgat.Widgets
                             SmallWidgets.MouseoverText("Cancel signature refresh");
 
                             ImGui.TableNextColumn();
-                            ImGui.ProgressBar(progress, btnSize);
-                            ImGui.TableNextColumn();
                             ImGui.Text($"Refreshing");
                         }
                         else
@@ -626,8 +623,6 @@ namespace rgat.Widgets
 
                             SmallWidgets.MouseoverText("Cancel signature download");
 
-                            ImGui.TableNextColumn();
-                            ImGui.ProgressBar(progress, btnSize);
                             ImGui.TableNextColumn();
                             ImGui.Text($"Downloading");
                         }
@@ -1132,7 +1127,7 @@ namespace rgat.Widgets
                     GlobalConfig.SetDirectoryPath(CONSTANTS.PathKey.MediaCapturePath, path);
                     break;
                 default:
-                    Logging.RecordLogEvent("Bad path setting " + setting, Logging.LogFilterType.TextAlert);
+                    Logging.RecordLogEvent("Bad path setting " + setting, Logging.LogFilterType.Alert);
                     break;
             }
         }
@@ -1672,7 +1667,7 @@ namespace rgat.Widgets
             }
             else
             {
-                Logging.RecordLogEvent("Cannot delete theme, no builtin theme to revert to", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Cannot delete theme, no builtin theme to revert to", Logging.LogFilterType.Error);
                 return;
             }
 

@@ -267,21 +267,21 @@ namespace rgat
                 rgatState.NetworkBridge.SendAsyncData("TraceState", state);
             }
 
-            Logging.RecordLogEvent($"Set trace state {newState}", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Set trace state {newState}", Logging.LogFilterType.Debug);
             if (TraceState == newState)
             {
                 return;
             }
 
-            Logging.RecordLogEvent("\tactioning it", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent("\tactioning it", Logging.LogFilterType.Debug);
             if (newState != ProcessState.eSuspended)
             {
                 lock (GraphListLock)
                 {
-                    Logging.RecordLogEvent($"\t\t {_protoGraphs.Count} graphs", Logging.LogFilterType.TextDebug);
+                    Logging.RecordLogEvent($"\t\t {_protoGraphs.Count} graphs", Logging.LogFilterType.Debug);
                     foreach (ProtoGraph graph in _protoGraphs.Values)
                     {
-                        Logging.RecordLogEvent("\t\t clearing flag step", Logging.LogFilterType.TextDebug);
+                        Logging.RecordLogEvent("\t\t clearing flag step", Logging.LogFilterType.Debug);
                         graph.ClearRecentStep();
                     }
                 }
@@ -394,27 +394,24 @@ namespace rgat
         /// <param name="saveJSON">The JObject of the trace</param>
         /// <param name="device">A GraphicsDevice to start rendering the graphs with</param>
         /// <returns></returns>
-        public bool Load(Newtonsoft.Json.Linq.JObject saveJSON, Veldrid.GraphicsDevice device)
+        public bool Load(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress, Veldrid.GraphicsDevice device)
         {
             try
             {
-                if (!DisassemblyData.Load(saveJSON)) //todo - get the relevant dynamic bit for this trace
+                if (!DisassemblyData.Load(jsnReader, serializer, progress))
                 {
-                    Logging.RecordLogEvent("ERROR: Process data load failed", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent("Process data load failed");
                     return false;
                 }
 
-                Logging.RecordLogEvent("Loaded process data. Loading graphs...", Logging.LogFilterType.TextDebug);
-
-
-                if (!LoadProcessGraphs(saveJSON, device))//, colours))//.. &config.graphColours))
+                if (!LoadGraphs(jsnReader, serializer, device, progress))//, colours))//.. &config.graphColours))
                 {
-                    Logging.RecordLogEvent("Process Graph load failed", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent("Process Graph load failed");
                     return false;
                 }
 
-
-                if (!LoadTimeline(saveJSON))
+                
+                if (!LoadTimeline(jsnReader, serializer, progress))
 
                 {
                     Logging.WriteConsole("[rgat]Timeline load failed");
@@ -431,6 +428,9 @@ namespace rgat
                 return false;
             }
         }
+
+
+
 
         private void KillTraceProcess() { if (IsRunning) { killed = true; } }
 
@@ -749,7 +749,7 @@ namespace rgat
         /// <param name="trace">Child process trace record</param>
         public void AddChildTrace(TraceRecord trace)
         {
-            lock(GraphListLock)
+            lock (GraphListLock)
             {
                 _children.Add(trace);
             }
@@ -897,57 +897,51 @@ namespace rgat
             return GraphCount;
         }
 
-        private bool LoadProcessGraphs(JObject processJSON, Veldrid.GraphicsDevice device)
+
+
+        private bool LoadGraph(JsonReader jsnReader, JsonSerializer serializer, Veldrid.GraphicsDevice device, rgatState.SERIALISE_PROGRESS progress)
         {
-            if (!processJSON.TryGetValue("Threads", out JToken? jThreads) || jThreads.Type != JTokenType.Array)
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Thread", out JObject? mdObj) is false || mdObj is null)
             {
-                Logging.RecordLogEvent("Failed to find valid Threads in trace", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Thread missing metadata in trace file");
                 return false;
             }
 
-            JArray ThreadsArray = (JArray)jThreads;
-            Logging.RecordLogEvent("Loading " + ThreadsArray.Count + " thread graphs", Logging.LogFilterType.TextDebug);
-            //display_only_status_message(graphLoadMsg.str(), clientState);
 
-            foreach (JObject threadObj in ThreadsArray)
+            if (!mdObj.TryGetValue("ThreadID", out JToken? tTID) || tTID.Type != JTokenType.Integer)
             {
-                if (!LoadGraph(threadObj, device))
-                {
-                    Logging.RecordLogEvent("Failed to load graph", Logging.LogFilterType.TextError);
-                    return false;
-                }
-            }
-
-            return true;
-
-        }
-
-        private bool LoadGraph(JObject jThreadObj, Veldrid.GraphicsDevice device)
-        {
-            if (!jThreadObj.TryGetValue("ThreadID", out JToken? tTID) || tTID.Type != JTokenType.Integer)
-            {
-                Logging.RecordLogEvent("Failed to find valid ThreadID in thread", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Failed to find valid ThreadID in thread", Logging.LogFilterType.Error);
                 return false;
             }
             uint GraphThreadID = tTID.ToObject<uint>();
 
-            if (!jThreadObj.TryGetValue("StartAddress", out JToken? tAddr) || tAddr.Type != JTokenType.Integer)
+            if (!mdObj.TryGetValue("StartAddress", out JToken? tAddr) || tAddr.Type != JTokenType.Integer)
             {
-                Logging.RecordLogEvent("Failed to find valid StartAddress in thread", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Failed to find valid StartAddress in thread", Logging.LogFilterType.Error);
                 return false;
             }
             ulong startAddr = tAddr.ToObject<ulong>();
 
-            Logging.RecordLogEvent("Loading thread ID " + GraphThreadID.ToString(), Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent("Loading thread ID " + GraphThreadID.ToString(), Logging.LogFilterType.Debug);
             //display_only_status_message("Loading graph for thread ID: " + tidstring, clientState);
 
             ProtoGraph protograph = new ProtoGraph(this, GraphThreadID, startAddr, terminated: true);
 
             try
             {
-                if (!protograph.Deserialise(jThreadObj, DisassemblyData))
+                if (!protograph.Deserialise(mdObj, jsnReader, serializer, DisassemblyData, progress))
                 {
                     return false;
+                }
+                var NodeList = protograph.GetNodeObjlistSpan();
+                for (var i = 0; i < NodeList.Length; i++)
+                {
+                    NodeData n = NodeList[i];
+                    InstructionData? ins = n.ins;
+                    if (ins is not null)
+                    {
+                        ins.AddThreadVert(protograph.ThreadID, n.Index);
+                    }
                 }
             }
             catch (Exception e)
@@ -983,7 +977,7 @@ namespace rgat
         /// <param name="traceStartedTime">The time the run was started</param>
         /// <param name="savePath">The filesystem path the trace was saved to</param>
         /// <returns>The path the trace was saved to</returns>
-        public bool Save(DateTime traceStartedTime, out string? savePath)
+        public bool Save(rgatState.SERIALISE_PROGRESS? progress, out string? savePath)
         {
             savePath = null;
             Logging.RecordLogEvent($"Saving trace {Target.FilePath} -> PID {PID}");
@@ -993,43 +987,74 @@ namespace rgat
                 return false;
             }
 
-            JsonTextWriter? wr = CreateSaveFile(traceStartedTime, out savePath);
-            if (wr == null || savePath is null)
+            JsonTextWriter? outfileWriter = CreateSaveFile(out savePath);
+            if (outfileWriter == null || savePath is null)
             {
-                Logging.RecordLogEvent("\tSaving Failed: Unable to create filestream", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("\tSaving Failed: Unable to create filestream", Logging.LogFilterType.Error);
                 return false;
             }
 
-            JObject traceSaveObject = new JObject
-            {
-                { "PID", PID },
-                { "PID_ID", randID },
-                { "IsLibrary", Target.IsLibrary },
-                { "ProcessData", DisassemblyData.Serialise() },
-                { "BinaryPath", Target.FilePath },
-                { "StartTime", traceStartedTime },
-                { "Threads", SerialiseGraphs() },
-                { "Timeline", SerialiseTimeline() }
-            };
 
-            JArray childPathsArray = new JArray();
-            int saveCount = 0;
-            foreach (TraceRecord trace in Children)
+            if (progress is not null)
             {
-                if (trace.Save(trace.LaunchedTime, out string? childpath) && childpath is not null)
-                {
-                    if (childpath.Length > 0)
-                    {
-                        childPathsArray.Add(childpath);
-                    }
-
-                    saveCount += 1;
-                }
+                progress.FilePath = savePath;
+                progress.SectionsTotal = 5;
+                progress.SectionsComplete = 0;
+                progress.SectionName = "Metadata";
             }
-            traceSaveObject.Add("Children", childPathsArray);
 
-            traceSaveObject.WriteTo(wr);
-            wr.Close();
+            outfileWriter.WriteStartArray();
+
+            //Item 1 = metadata
+            JObject metaDataObj = SerialiseMetadata();
+            metaDataObj.WriteTo(outfileWriter);
+
+            if (progress is not null)
+            {
+                progress.SectionsComplete = 1;
+                progress.SectionName = "Disassembly";
+            }
+
+            //Item 2 - Disassembly data
+            DisassemblyData.Serialise(outfileWriter, progress);
+
+            if (progress is not null)
+            {
+                progress.SectionsComplete = 2;
+                progress.SectionName = "Threads";
+            }
+
+            //Item 3 - Individual threads
+            SerialiseGraphs(outfileWriter, progress);
+
+            if (progress is not null)
+            {
+                progress.SectionsComplete = 3;
+                progress.SectionName = "Timeline";
+            }
+
+            //Item 4 = Timeline
+            Newtonsoft.Json.JsonSerializer serializer = new Newtonsoft.Json.JsonSerializer();
+            SerialiseTimeline(outfileWriter, serializer, progress);
+
+            if (progress is not null)
+            {
+                progress.SectionsComplete = 4;
+                progress.SectionName = "Child Paths";
+            }
+
+            //Item 5 - Children
+            SerialiseChildrenFilenames(outfileWriter);
+
+            if (progress is not null)
+            {
+                progress.SectionsComplete = 5;
+            }
+
+            outfileWriter.WriteEndArray();
+            outfileWriter.Close();
+
+            SerialiseChildren(progress);
 
             if (GlobalConfig.Settings.Logs.StoreSavedTracesAsRecent)
             {
@@ -1038,96 +1063,189 @@ namespace rgat
             return true;
         }
 
-        private JArray SerialiseGraphs()
-        {
-            JArray graphsList = new JArray();
 
+        void SerialiseChildrenFilenames(JsonWriter writer)
+        {
+            JObject childrenNames = new JObject();
+            childrenNames.Add("Field", "Children");
+            childrenNames.Add("Count", Children.Length);
+            childrenNames.WriteTo(writer);
+
+            JArray paths = new();
+            Array.ForEach(Children, trace => paths.Add(trace.SaveFileName));
+            paths.WriteTo(writer);
+        }
+
+
+        /// <summary>
+        /// Get a list of child trace processes from a saved trace
+        /// </summary>
+        /// <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
+        /// <param name="childrenFiles">A list of relative filesystem paths of child traces</param>
+        public static bool ExtractChildTraceFilenames(JsonReader jsnReader, JsonSerializer serializer, out List<string>? childrenFiles)
+        {
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Children", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No child trace metadata in trace file");
+                childrenFiles = null;
+                return false;
+            }
+
+            childrenFiles = new List<string>();
+            if (mdObj.TryGetValue("Count", out JToken? countTok) && countTok.Type == JTokenType.Integer )
+            {
+                int loadMax = countTok.ToObject<int>();
+                if (loadMax > 0)
+                {
+                    JArray? namesArray = serializer.Deserialize<JArray>(jsnReader);
+                    if (namesArray is not null)
+                    {
+                        foreach (JToken fname in namesArray)
+                        {
+                            childrenFiles.Add(fname.ToString());
+                            if (childrenFiles.Count > loadMax) break;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+
+        JObject SerialiseMetadata()
+        {
+            JObject metadata = new JObject();
+            metadata.Add("Field", "Metadata");
+            metadata.Add("PID", PID);
+            metadata.Add("PID_ID", randID);
+            metadata.Add("BinaryPath", Target.FilePath);
+            metadata.Add("IsLibrary", Target.IsLibrary);
+            metadata.Add("rgatVersion", CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC.ToString());
+            metadata.Add("LaunchedTime", this.LaunchedTime);
+            return metadata;
+        }
+
+
+        void SerialiseChildren(rgatState.SERIALISE_PROGRESS? progress)
+        {
+            foreach (TraceRecord trace in Children)
+            {
+                try
+                {
+                    if (trace.Save(progress, out string? childpath))
+                    {
+                        Logging.RecordLogEvent($"Saved trace {trace.PID} to {childpath}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Error saving child trace {trace.PID}: {e.Message}");
+                }
+            }
+
+        }
+
+
+        private void SerialiseGraphs(JsonWriter writer, rgatState.SERIALISE_PROGRESS progress)
+        {
             lock (GraphListLock)
             {
+                JObject metadata = new JObject();
+                metadata.Add("Field", "Threads");
+                metadata.Add("Count", PlottedGraphs.Values.Count);
+                metadata.WriteTo(writer);
+
                 foreach (var tid_graph in PlottedGraphs)
                 {
                     ProtoGraph protograph = tid_graph.Value.InternalProtoGraph;
-                    graphsList.Add(protograph.Serialise());
+                    protograph.Serialise(writer, progress);
+                }
+            }
+        }
+
+
+
+        private bool LoadGraphs(JsonReader jsnReader, JsonSerializer serializer, Veldrid.GraphicsDevice device, rgatState.SERIALISE_PROGRESS progress)
+        {
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Threads", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No thread metadata in trace file");
+                return false;
+            }
+
+            if (!mdObj.TryGetValue("Count", out JToken? countTok) || countTok.Type != JTokenType.Integer)
+            {
+                Logging.RecordLogEvent("Failed to find valid Count in graphs list");
+                return false;
+            }
+
+            int graphsToLoad = countTok.ToObject<int>();
+            progress.SectionsTotal += graphsToLoad;
+
+            for (var i = 0; i < graphsToLoad; i++)
+            {
+                if (!LoadGraph(jsnReader, serializer, device, progress))
+                {
+                    Logging.RecordLogEvent("Failed to load graph", Logging.LogFilterType.Error);
+                    return false;
                 }
             }
 
-            return graphsList;
+            return true;
+
         }
 
-        private JArray SerialiseTimeline()
+
+        private void SerialiseTimeline(JsonWriter writer, Newtonsoft.Json.JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
         {
+            progress.SectionsTotal += 1;
+            progress.SectionProgress = 0;
+            progress.SectionName = "Timeline Events";
 
-            JArray timeline = new JArray();
+            int count = _timeline.Count;
+            JObject metadata = new JObject();
+            metadata.Add("Field", "Timeline");
+            metadata.Add("Count", count);
+            metadata.WriteTo(writer);
 
-            for (var i = 0; i < _timeline.Count; i++)
+            for (var i = 0; i < count; i++)
             {
-                TIMELINE_EVENT evt = _timeline[i];
-                timeline.Add(evt.Serialise());
+                _timeline[i].Serialise(writer, serializer);
+                progress.SectionProgress = (float)i / (float)_timeline.Count;
+                if (progress.Cancelled) return;
             }
-
-            return timeline;
         }
 
-        private JsonTextWriter? CreateSaveFile(DateTime startedTime, out string? path)
+
+        private bool LoadTimeline(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
         {
-            string saveFilename = $"{Target.FileName}-{PID}-{startedTime:MMM-dd__HH-mm-ss}.rgat";
-            string saveDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);
-            if (!Directory.Exists(saveDir))
-            {
-                Logging.RecordLogEvent($"\tWarning: Failed to save - directory {saveDir} does not exist", Logging.LogFilterType.TextInfo);
-                path = null;
-                return null;
-            }
+            progress.SectionsTotal += 1;
+            progress.SectionProgress = 0;
+            progress.SectionName = "Timeline Events";
 
-            path = Path.Join(saveDir, saveFilename);
-            try
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Timeline", out JObject? mdObj) is false || mdObj is null)
             {
-                StreamWriter sw = File.CreateText(path);
-
-                return (new JsonTextWriter(sw));
-            }
-            catch (UnauthorizedAccessException)
-            {
-                Logging.RecordLogEvent($"\tWarning: Unauthorized to open {path} for writing", Logging.LogFilterType.TextInfo);
-            }
-            catch
-            {
-                Logging.RecordLogEvent($"\tWarning: Failed to open {path} for writing", Logging.LogFilterType.TextInfo);
-            }
-            return null;
-        }
-
-        private bool LoadTimeline(JObject saveJSON)
-        {
-            if (!saveJSON.TryGetValue("Timeline", out JToken? arrTok) || arrTok.Type != JTokenType.Array)
-            {
-                Logging.RecordLogEvent($"\tWarning: Missing or bad timeline in trace save", Logging.LogFilterType.TextInfo);
+                Logging.RecordLogEvent("No Timeline metadata in trace file");
                 return false;
             }
+
+            if (!mdObj.TryGetValue("Count", out JToken? countTok) || countTok.Type != JTokenType.Integer)
+            {
+                Logging.RecordLogEvent("Failed to find valid Count in Timeline metadata");
+                return false;
+            }
+
+            int timelineEntries = countTok.ToObject<int>();
+
             _timeline = new List<TIMELINE_EVENT>();
-            JArray? arr = arrTok.ToObject<JArray>();
-            if (arr is null)
-            {
-                return false;
-            }
+            _timeline.Capacity = timelineEntries;
 
-            foreach (JToken tlTok in arr)
+            for (var i = 0; i < timelineEntries; i++)
             {
-                if (tlTok.Type != JTokenType.Object)
-                {
-                    Logging.RecordLogEvent($"\tWarning: Bad timeline item in trace save", Logging.LogFilterType.TextInfo);
-                    return false;
-                }
-                JObject? tlObj = tlTok.ToObject<JObject>();
-                if (tlObj is null)
-                {
-                    Logging.RecordLogEvent($"\tWarning: Invalid timeline object in trace save", Logging.LogFilterType.TextInfo);
-                    return false;
-                }
-                Logging.TIMELINE_EVENT evt = new Logging.TIMELINE_EVENT(tlObj, this);
+                Logging.TIMELINE_EVENT evt = new Logging.TIMELINE_EVENT(jsnReader, serializer, this);
                 if (!evt.Inited)
                 {
-                    Logging.RecordLogEvent($"\tWarning: Invalid timeline object data in trace save", Logging.LogFilterType.TextInfo);
+                    Logging.RecordLogEvent($"\tWarning: Invalid timeline object data in trace save", Logging.LogFilterType.Info);
                     return false;
                 }
 
@@ -1190,11 +1308,43 @@ namespace rgat
                 {
                     Debug.Assert(false, "Should not have this event type here");
                 }
-
+                progress.SectionProgress = (float)i / (float)timelineEntries;
+                if (progress.Cancelled) return false;
             }
             return true;
         }
 
+
+
+        public string SaveFileName => $"{Target.FileName}-{PID}-{LaunchedTime:MMM-dd__HH-mm-ss}.rgat";
+
+        private JsonTextWriter? CreateSaveFile(out string? path)
+        {
+            string saveDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.TraceSaveDirectory);
+            if (!Directory.Exists(saveDir))
+            {
+                Logging.RecordLogEvent($"\tWarning: Failed to save - directory {saveDir} does not exist", Logging.LogFilterType.Info);
+                path = null;
+                return null;
+            }
+
+            path = Path.Join(saveDir, SaveFileName);
+            try
+            {
+                StreamWriter sw = File.CreateText(path);
+
+                return (new JsonTextWriter(sw));
+            }
+            catch (UnauthorizedAccessException)
+            {
+                Logging.RecordLogEvent($"\tWarning: Unauthorized to open {path} for writing", Logging.LogFilterType.Info);
+            }
+            catch
+            {
+                Logging.RecordLogEvent($"\tWarning: Failed to open {path} for writing", Logging.LogFilterType.Info);
+            }
+            return null;
+        }
 
         /// <summary>
         /// Export the current trace in the pajek format, a simple graph serialisation format that other graph layout programs accept
@@ -1293,14 +1443,14 @@ namespace rgat
 
             if (ProcessThreads.modThread == null)
             {
-                Logging.RecordLogEvent("Error: DBG command send to trace with no active module thread", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Error: DBG command send to trace with no active module thread", Logging.LogFilterType.Error);
                 return;
             }
 
             byte[] buf = System.Text.Encoding.ASCII.GetBytes(cmd);
             if (!ProcessThreads.modThread.SendCommand(buf))
             {
-                Logging.RecordLogEvent("Error sending command to control pipe", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Error sending command to control pipe", Logging.LogFilterType.Error);
             }
         }
 
@@ -1369,7 +1519,7 @@ namespace rgat
                         compareValueString = $"{_protoGraphs.Count}";
                         break;
                     default:
-                        Logging.RecordLogEvent("Invalid process test requirement: " + req.Name, Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent("Invalid process test requirement: " + req.Name, Logging.LogFilterType.Error);
                         break;
                 }
                 TestResultCommentary comment = new TestResultCommentary(req)
@@ -1387,7 +1537,7 @@ namespace rgat
                     {
                         string errmsg = $"Testing Error evaluating Process requirement {req.Name}: {error}";
                         results.ProcessResults.Errors.Add(new Tuple<TestRequirement, string>(req, errmsg));
-                        Logging.RecordLogEvent(errmsg, Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent(errmsg, Logging.LogFilterType.Error);
                     }
                     results.ProcessResults.Failed.Add(comment);
                 }

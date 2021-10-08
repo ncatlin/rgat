@@ -17,6 +17,7 @@ namespace rgat.Widgets
 
         //true if menu is expanded or in the process of expanding.
 
+        int opens = 0;
         private bool _expanded
         {
             get
@@ -28,6 +29,8 @@ namespace rgat.Widgets
                 if (value != _baseMenuEntry.active && stateChangeCallback != null)
                 {
                     stateChangeCallback(value);
+                    opens += value ? 1 : -1;
+                    Debug.Assert(opens == 1 || opens == 0);
                 }
                 _baseMenuEntry.active = value;
             }
@@ -685,19 +688,14 @@ namespace rgat.Widgets
 
         private void DrawPopups()
         {
-            ImGui.SetNextWindowPos(_popupPos, ImGuiCond.Appearing);
 
-            if (_activeMenuPopupName == "VisibilityMenuPopup" && ImGui.BeginPopup("VisibilityMenuPopup"))
-            {
-                DrawVisibilityFrame();
-                ImGui.EndPopup();
-            }
 
             if (HighlightDialogWidget.PopoutHighlight)
             {
-                ImGui.SetNextWindowSize(new Vector2(500, 300), ImGuiCond.Appearing);
-                ImGui.SetNextWindowSizeConstraints(new Vector2(500, 300), new Vector2(800, 700));
-                if (ImGui.Begin("Search/Highlighting", ref HighlightDialogWidget.PopoutHighlight))
+                //ImGui.SetNextWindowSize(new Vector2(500, 300), ImGuiCond.Appearing);
+                //ImGui.SetNextWindowSizeConstraints(new Vector2(500, 300), new Vector2(800, 700));
+                
+                if (ImGui.Begin("Search/Highlighting", ref HighlightDialogWidget.PopoutHighlight, ImGuiWindowFlags.NoCollapse))
                 {
                     DrawSearchHighlightFrame();
                     ImGui.End();
@@ -720,6 +718,13 @@ namespace rgat.Widgets
                 }
             }
 
+            ImGui.SetNextWindowPos(_popupPos, ImGuiCond.Appearing);
+
+            if (_activeMenuPopupName == "VisibilityMenuPopup" && ImGui.BeginPopup("VisibilityMenuPopup"))
+            {
+                DrawVisibilityFrame();
+                ImGui.EndPopup();
+            }
 
             if ((_activeMenuPopupName == "GraphLayoutMenu") && ImGui.BeginPopup("GraphLayoutMenu"))
             {

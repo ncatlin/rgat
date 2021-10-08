@@ -211,12 +211,12 @@ namespace rgat.Config
                         success = cb(response);
                         if (!success)
                         {
-                            Logging.RecordLogEvent($"Invocation of callback for request {commandID} ({cmdref}) failed", Logging.LogFilterType.TextError);
+                            Logging.RecordLogEvent($"Invocation of callback for request {commandID} ({cmdref}) failed", Logging.LogFilterType.Error);
                         }
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Exception invoking callback for request {commandID} ({cmdref}): {e}", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Exception invoking callback for request {commandID} ({cmdref}): {e}", Logging.LogFilterType.Error);
                     }
                     if (!success)
                     {
@@ -253,14 +253,14 @@ namespace rgat.Config
         {
             if (dataTok.Type != JTokenType.Array)
             {
-                Logging.RecordLogEvent($"HandleRecentBinariesList: Non-array recent binaries list", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"HandleRecentBinariesList: Non-array recent binaries list", Logging.LogFilterType.Error);
                 return false;
             }
 
             JArray? bintoks = dataTok.ToObject<JArray>();
             if (bintoks is null)
             {
-                Logging.RecordLogEvent($"HandleRecentBinariesList: Bad recent binaries list", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"HandleRecentBinariesList: Bad recent binaries list", Logging.LogFilterType.Error);
                 return false;
             }
 
@@ -270,7 +270,7 @@ namespace rgat.Config
             {
                 if (recentbinTok is null || recentbinTok.Type != JTokenType.Object)
                 {
-                    Logging.RecordLogEvent("HandleRecentBinariesList: Bad PathRecord", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent("HandleRecentBinariesList: Bad PathRecord", Logging.LogFilterType.Error);
                     return false;
                 }
                 JObject? binJsn = recentbinTok.ToObject<JObject>();

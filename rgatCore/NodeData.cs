@@ -15,7 +15,7 @@ namespace rgat
         /// Serialise this node to JSON for saving
         /// </summary>
         /// <returns>A JArray of ndoe data</returns>
-        public JArray Serialise()
+        public void Serialise(Newtonsoft.Json.JsonWriter writer)
         {
             JArray nodearr = new JArray();
 
@@ -61,7 +61,7 @@ namespace rgat
             }
 
             nodearr.Add(unreliableCount);
-            return nodearr;
+            nodearr.WriteTo(writer);
         }
 
         /// <summary>
@@ -163,7 +163,6 @@ namespace rgat
                 {
                     return ErrorAtIndex(jsnArrIdx);
                 }
-
                 OutgoingNeighboursSet.Add(outgoingIdx.ToObject<uint>());
             }
             jsnArrIdx++;

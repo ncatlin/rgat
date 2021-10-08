@@ -9,7 +9,7 @@ Diff with the December 2015 commit to see rgat modifications
 See included licence: METASTACK ANALYTICS LICENSE
 */
 /*
-C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\Shaders\SPIR-V\sim-velocity.glsl -o sim-velocity.spv -S comp
+C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\Shaders\SPIR-V\sim-blockVelocity.glsl -o sim-blockVelocity.spv -S comp
 */
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
@@ -153,17 +153,7 @@ void main()	{
         const float speedLimit = 100000.0;
         float attct = 0;
         float outputDebug = -100;
-     
-         /*
-         .w presetLayoutPosition values
-     
-            -1 = not a node
-             0 = internal block node, fixed position from parent
-             1 = preset, simple attraction towards target
-             2 = free body subject to standard forces
-         */
-
-  
+      
         int index = blockMiddles[midListIndex];
         ivec4 selfBlockData = blockData[index];
         vec3 velocity = velocities[index].xyz;
@@ -176,13 +166,13 @@ void main()	{
             int compareNodeMidIndex = blockMiddles[nodeIdx];
             if (compareNodeMidIndex != midListIndex)
             {
-            vec4 compareNodePosition = positions[compareNodeMidIndex];
+                vec4 compareNodePosition = positions[compareNodeMidIndex];
             
-            //if distance below threshold, repel every node from every single node
-            //if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
-            //{
-                velocity += addRepulsion(selfPosition, compareNodePosition);
-            //}
+                //if distance below threshold, repel every node from every single node
+                //if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
+                //{
+                    velocity += addRepulsion(selfPosition, compareNodePosition);
+                //}
            }
 		}
             

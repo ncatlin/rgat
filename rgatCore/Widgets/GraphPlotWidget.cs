@@ -57,6 +57,13 @@ namespace rgat
         private DeviceBuffer? _paramsBuffer;
         private int latestWrittenTexture = 1;
 
+        public Vector2 WidgetPos { get; private set; }
+
+        private Vector2 _MousePos;
+
+        public int MouseoverNodeID { get; private set; } = -1;
+
+
         /// <summary>
         /// A widget for displaying a rendered graph plot
         /// </summary>
@@ -413,7 +420,7 @@ namespace rgat
         }
 
 
-        public void AlertKeybindPressed(Tuple<Key, ModifierKeys> keyPressed, KeybindAction boundAction)
+        public void AlertKeybindPressed(Tuple<Key, ModifierKeys>? keyPressed, KeybindAction boundAction)
         {
             _graphLock.EnterReadLock();
 
@@ -552,7 +559,8 @@ namespace rgat
                     caption += $": {resultText}";
                 }
 
-                DisplayKeyPress(keyPressed, caption);
+                if (keyPressed is not null)
+                    DisplayKeyPress(keyPressed, caption);
             }
 
             _graphLock.ExitReadLock();
@@ -1008,7 +1016,7 @@ namespace rgat
             GraphShaderParams shaderParams = new GraphShaderParams
             {
                 TexWidth = textureSize,
-                pickingNode = _mouseoverNodeID,
+                pickingNode = MouseoverNodeID,
                 isAnimated = graph.IsAnimated
             };
 
@@ -1271,6 +1279,8 @@ namespace rgat
 
             fixed (Position2DColour* vertsPtr = NodeVerts, pickingVertsPtr = nodePickingColors)
             {
+                if ((uint)nodeCount * Position2DColour.SizeInBytes > _NodeVertexBuffer.SizeInBytes) Console.WriteLine("PROBLEM1");
+                if ((uint)nodeCount * Position2DColour.SizeInBytes > _NodePickingBuffer!.SizeInBytes) Console.WriteLine("PROBLE2");
                 cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)nodeCount * Position2DColour.SizeInBytes);
                 cl.UpdateBuffer(_NodePickingBuffer, 0, (IntPtr)pickingVertsPtr, (uint)nodeCount * Position2DColour.SizeInBytes);
             }
@@ -1278,54 +1288,45 @@ namespace rgat
 
             fixed (uint* indxPtr = nodeIndices)
             {
+                if ((uint)nodeCount * sizeof(uint) > _NodeIndexBuffer.SizeInBytes) Console.WriteLine("PROBLEM3");
                 cl.UpdateBuffer(_NodeIndexBuffer, 0, (IntPtr)indxPtr, (uint)nodeCount * sizeof(uint));
             }
 
 
-
-
-
-            if ((EdgeLineVerts.Length * Position2DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes)
+            int edgeIndexBufSize = edgeDrawIndexes.Length;
+            if (((EdgeLineVerts.Length * Position2DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes) ||
+                (edgeIndexBufSize * sizeof(uint)) > _EdgeIndexBuffer!.SizeInBytes)
             {
                 VRAMDispose(_EdgeVertBuffer);
                 _EdgeVertBuffer = TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
                 VRAMDispose(_EdgeIndexBuffer);
-                _EdgeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)edgeDrawIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: "EdgeIndexBuffer");
+                _EdgeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)edgeIndexBufSize * sizeof(uint), BufferUsage.IndexBuffer, name: "EdgeIndexBuffer");
             }
 
-
-
-            ReadOnlySpan<Position2DColour> elvSpan = new ReadOnlySpan<Position2DColour>(EdgeLineVerts, 0, (int)(edgeVertCount));
+            ReadOnlySpan<Position2DColour> elvSpan = new ReadOnlySpan<Position2DColour>(EdgeLineVerts, 0, edgeVertCount);
             fixed (Position2DColour* vertsPtr = elvSpan)
             {
-                //This causes a huge memory leak
-                //cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(elvSpan.Length * Position2DColour.SizeInBytes));
-
-                _gd.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(elvSpan.Length * Position2DColour.SizeInBytes));
+                if ((uint)(elvSpan.Length * Position2DColour.SizeInBytes) > _EdgeVertBuffer.SizeInBytes) Console.WriteLine("PROBLEM4");
+                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(edgeVertCount * Position2DColour.SizeInBytes));
             }
 
-
-
-            ReadOnlySpan<uint> nidxsSpan = new ReadOnlySpan<uint>(edgeDrawIndexes, 0, edgeVertCount);
-            fixed (uint* nindexPtr = nidxsSpan)
+            ReadOnlySpan<uint> eidxsSpan = new ReadOnlySpan<uint>(edgeDrawIndexes, 0, edgeIndexBufSize);
+            fixed (uint* eindexPtr = eidxsSpan)
             {
-                //This causes a huge memory leak
-                //cl.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)nindexPtr, (uint)(nidxsSpan.Length * sizeof(uint)));
-
-                _gd.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)nindexPtr, (uint)(nidxsSpan.Length * sizeof(uint)));
+                if ((uint)eidxsSpan.Length * sizeof(uint) > _EdgeIndexBuffer!.SizeInBytes) Console.WriteLine("PROBLEM5");
+                cl.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)eindexPtr, (uint)(edgeIndexBufSize * sizeof(uint)));
             }
-
 
             st.Restart();
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("render graph 4", filter: Logging.LogFilterType.BulkDebugLogFile);
             fontStruc[] stringVerts;
-            if (_mouseoverNodeID == -1)
+            if (MouseoverNodeID == -1)
             {
                 stringVerts = renderGraphText(captions, GlobalConfig.InsTextScale);
             }
             else
             {
-                stringVerts = RenderHighlightedNodeText(captions, _mouseoverNodeID).ToArray();
+                stringVerts = RenderHighlightedNodeText(captions, MouseoverNodeID).ToArray();
             }
 
 
@@ -1343,11 +1344,10 @@ namespace rgat
             int nodesToDraw = Math.Min(nodeIndices.Length, (int)(_NodeIndexBuffer.SizeInBytes / 4));
 
             GetOutputFramebuffer(out Framebuffer drawtarget);
-
+       
             //draw nodes and edges
             cl.SetFramebuffer(drawtarget);
             cl.ClearColorTarget(0, Themes.GetThemeColourWRF(Themes.eThemeColour.GraphBackground).ToRgbaFloat());
-
 
             if (graph.Opt_NodesVisible)
             {
@@ -1430,15 +1430,16 @@ namespace rgat
             _gd.SubmitCommands(cl); //had a same key error here
             _gd.WaitForIdle();
 
-            st.Stop();
-            if (st.ElapsedMilliseconds > 100)
-                Console.WriteLine($"DG WaitForIdle took {st.ElapsedMilliseconds}");
+          st.Stop();
+          if (st.ElapsedMilliseconds > 100)
+              Console.WriteLine($"DG WaitForIdle took {st.ElapsedMilliseconds}");
 
-            ReleaseOutputFramebuffer();
+          ReleaseOutputFramebuffer();
 
-            crs_core.Dispose();
-            crs_nodesEdges.Dispose();
-            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("rendergraph end", filter: Logging.LogFilterType.BulkDebugLogFile);
+          crs_core.Dispose();
+          crs_nodesEdges.Dispose();
+          if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("rendergraph end", filter: Logging.LogFilterType.BulkDebugLogFile);
+
         }
 
 
@@ -1476,8 +1477,6 @@ namespace rgat
 
             sw.Restart();
             IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd!.ResourceFactory, outputTexture, "GraphMainPlot" + outputTexture.Name);
-
-            Debug.Assert(!outputTexture.IsDisposed);
 
             sw.Stop();
             if (sw.ElapsedMilliseconds > 40)
@@ -1853,7 +1852,16 @@ namespace rgat
             HandleGraphUpdates();
             st.Stop(); v1 = st.ElapsedMilliseconds; st.Restart();
 
-            _layoutEngine.Compute(cl, graph, _mouseoverNodeID, graph.IsAnimated);
+            try
+            {
+                _layoutEngine.Compute(cl, graph, MouseoverNodeID, graph.IsAnimated);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordError($"Maingraph Compute error: {e.Message}");
+                return;
+            }
+
             st.Stop(); v2 = st.ElapsedMilliseconds; st.Restart();
 
             if (_controller.DialogOpen is false)
@@ -1966,10 +1974,6 @@ namespace rgat
         }
 
 
-        public Vector2 WidgetPos { get; private set; }
-
-        private Vector2 _MousePos;
-        private int _mouseoverNodeID = -1;
 
 
         /// <summary>
@@ -2000,11 +2004,10 @@ namespace rgat
                 {
                     if (f.A == 1) //mouse is over a node
                     {
-                        if (f.R != _mouseoverNodeID && f.R < graph.InternalProtoGraph.NodeList.Count) //mouse is over a different node
+                        if (f.R != MouseoverNodeID && f.R < graph.InternalProtoGraph.NodeList.Count) //mouse is over a different node
                         {
                             NodeData n = graph.InternalProtoGraph.NodeList[(int)f.R];
-                            Logging.WriteConsole($"Mouse: {mouseX},{mouseY} on node {f.R} -> 0x{n.address:X}. Out:{n.OutgoingNeighboursSet.Count} In:{n.IncomingNeighboursSet.Count}");
-                            _mouseoverNodeID = (int)f.R;
+                            MouseoverNodeID = (int)f.R;
                         }
                         hit = true;
                     }
@@ -2012,7 +2015,7 @@ namespace rgat
             }
             if (!hit) //mouse is not over a node
             {
-                _mouseoverNodeID = -1;
+                MouseoverNodeID = -1;
             }
 
         }

@@ -317,20 +317,20 @@ namespace rgat
                 [eThemeColour.InternalSymbol] = new WritableRgbaFloat(Color.DarkGray).ToUint(),
                 [eThemeColour.SymbolRising] = new WritableRgbaFloat(Color.ForestGreen).ToUint(),
                 [eThemeColour.InstructionText] = new WritableRgbaFloat(Color.White).ToUint(),
-                [eThemeColour.WireFrame] = new WritableRgbaFloat(180f / 255f, 180f / 255f, 180f / 255f, 0.3f).ToUint(),
+                [eThemeColour.WireFrame] = new WritableRgbaFloat(180, 180, 180, 76).ToUint(),
 
-                [eThemeColour.eHeat0Lowest] = new WritableRgbaFloat(0, 0, 155f / 255f, 0.7f).ToUint(),
-                [eThemeColour.eHeat1] = new WritableRgbaFloat(46f / 255f, 28f / 255f, 155f / 255f, 1).ToUint(),
-                [eThemeColour.eHeat2] = new WritableRgbaFloat(95f / 255f, 104f / 255f, 226f / 255f, 1).ToUint(),
-                [eThemeColour.eHeat3] = new WritableRgbaFloat(117f / 255f, 143f / 255f, 223f / 255f, 1).ToUint(),
-                [eThemeColour.eHeat4] = new WritableRgbaFloat(255f / 255f, 255f / 225f, 255f / 255f, 1).ToUint(),
-                [eThemeColour.eHeat5] = new WritableRgbaFloat(252f / 255f, 196f / 255f, 180f / 255f, 1).ToUint(),
-                [eThemeColour.eHeat6] = new WritableRgbaFloat(242f / 255f, 152f / 255f, 152f / 255f, 1).ToUint(),
-                [eThemeColour.eHeat7] = new WritableRgbaFloat(249f / 255f, 107f / 255f, 107f / 255f, 1).ToUint(),
-                [eThemeColour.eHeat8] = new WritableRgbaFloat(255f / 255f, 64f / 255f, 64f / 255f, 1).ToUint(),
-                [eThemeColour.eHeat9Highest] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint(),
+                [eThemeColour.eHeat0Lowest] = new WritableRgbaFloat(0, 0, 155, 178).ToUint(),
+                [eThemeColour.eHeat1] = new WritableRgbaFloat(46, 28, 155, 255).ToUint(),
+                [eThemeColour.eHeat2] = new WritableRgbaFloat(95, 104, 226, 255).ToUint(),
+                [eThemeColour.eHeat3] = new WritableRgbaFloat(117, 143, 223, 255).ToUint(),
+                [eThemeColour.eHeat4] = new WritableRgbaFloat(255, 255, 255, 255).ToUint(),
+                [eThemeColour.eHeat5] = new WritableRgbaFloat(252, 196, 180, 255).ToUint(),
+                [eThemeColour.eHeat6] = new WritableRgbaFloat(242, 152, 152, 255).ToUint(),
+                [eThemeColour.eHeat7] = new WritableRgbaFloat(249, 107, 107, 255).ToUint(),
+                [eThemeColour.eHeat8] = new WritableRgbaFloat(255, 64, 64, 255).ToUint(),
+                [eThemeColour.eHeat9Highest] = new WritableRgbaFloat(255, 0, 0, 255).ToUint(),
 
-                [eThemeColour.eVisBarPlotLine] = new WritableRgbaFloat(1, 0f, 0f, 1).ToUint(),
+                [eThemeColour.eVisBarPlotLine] = new WritableRgbaFloat(1f, 0f, 0f, 1f).ToUint(),
                 [eThemeColour.eVisBarBg] = new WritableRgbaFloat(Color.Black).ToUint(),
                 [eThemeColour.eAlertWindowBg] = new WritableRgbaFloat(Color.SlateBlue).ToUint(),
                 [eThemeColour.eAlertWindowBorder] = new WritableRgbaFloat(Color.GhostWhite).ToUint(),
@@ -338,7 +338,7 @@ namespace rgat
                 [eThemeColour.eWarnStateColour] = new WritableRgbaFloat(Color.Yellow).ToUint(),
                 [eThemeColour.eGoodStateColour] = new WritableRgbaFloat(Color.Green).ToUint(),
                 [eThemeColour.GraphBackground] = new WritableRgbaFloat(Color.Black).ToUint(),
-                [eThemeColour.eSandboxChartBG] = new WritableRgbaFloat(1, 1, 1, 1).ToUint()
+                [eThemeColour.eSandboxChartBG] = new WritableRgbaFloat(1f, 1f, 1f, 1f).ToUint()
             };
 
 
@@ -421,6 +421,7 @@ namespace rgat
                     ThemeColoursStandard[col] = new WritableRgbaFloat(ced4vec).ToUint();
                 }
                 ThemeColoursStandard[ImGuiCol.TableRowBgAlt] = new WritableRgbaFloat(0xff222222).ToUint();
+                ThemeColoursStandard[ImGuiCol.Text] = new WritableRgbaFloat(0xffffffff).ToUint();
                 ThemeVersion++;
             }
         }
@@ -468,7 +469,7 @@ namespace rgat
         /// </summary>
         /// <param name="item">Am imGui style colour</param>
         /// <returns>uint colour</returns>
-        public static uint GetThemeColourImGui(ImGuiCol item)
+        public static uint GetThemeColourImGui(ImGuiCol item, uint? customAlpha = null)
         {
             lock (_lock)
             {
@@ -478,7 +479,9 @@ namespace rgat
                 }
                 Debug.Assert(ThemeColoursStandard.ContainsKey(item));
                 Debug.Assert((uint)item < ThemeColoursStandard.Count);
-                return ThemeColoursStandard[item];
+                if (customAlpha is null)
+                    return ThemeColoursStandard[item];
+                return WritableRgbaFloat.ToUint(ThemeColoursStandard[item], customAlpha.Value);
             }
         }
 
@@ -1086,7 +1089,7 @@ namespace rgat
                 ActivateThemeObject(CustomThemes[themename]);
                 return;
             }
-            Logging.RecordLogEvent($"Tried to load unknown theme {themename}", Logging.LogFilterType.TextError);
+            Logging.RecordLogEvent($"Tried to load unknown theme {themename}", Logging.LogFilterType.Error);
         }
 
 
@@ -1110,7 +1113,7 @@ namespace rgat
         /// <param name="themesArray">JArray of builtin themes</param>
         public static void LoadBuiltinThemes(JArray themesArray)
         {
-            Logging.RecordLogEvent($"Loading {themesArray.Count} builtin themes", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Loading {themesArray.Count} builtin themes", Logging.LogFilterType.Debug);
             for (var i = 0; i < themesArray.Count; i++)
             {
                 JObject? theme = themesArray[i].Value<JObject>();
@@ -1127,7 +1130,7 @@ namespace rgat
                     continue;
                 }
 
-                Logging.RecordLogEvent($"Loaded builtin theme " + themeName, Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Loaded builtin theme " + themeName, Logging.LogFilterType.Debug);
                 BuiltinThemes[themeName] = theme;
                 ThemesMetadataCatalogue[themeName] = metadata;
             }

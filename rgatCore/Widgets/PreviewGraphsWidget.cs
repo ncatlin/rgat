@@ -278,9 +278,9 @@ namespace rgat
             }
             else
             {
-                if (graph.InternalProtoGraph.SavedAnimationData.Count > 0)
+                if (graph.InternalProtoGraph.NodeCount > 0)
                 {
-                    ulong blockaddr = graph.InternalProtoGraph.SavedAnimationData[0].blockAddr;
+                    ulong blockaddr = graph.InternalProtoGraph.NodeList[0].address;
                     bool found = graph.InternalProtoGraph.ProcessData.FindContainingModule(blockaddr, out int? module);
                     if (found)
                     {

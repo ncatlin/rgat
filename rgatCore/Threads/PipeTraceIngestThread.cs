@@ -263,7 +263,7 @@ namespace rgat
         {
             if (!threadpipe.IsConnected)
             {
-                Logging.RecordLogEvent("Error - ThreadTraceIngestThread expected a connected thread pipe", filter: Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("Error - ThreadTraceIngestThread expected a connected thread pipe", filter: Logging.LogFilterType.Error);
                 return;
             }
 

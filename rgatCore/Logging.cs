@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -138,72 +139,38 @@ namespace rgat
             /// <param name="trace">The trace the call belongs to</param>
             /// <param name="apiObj">The resulting API object</param>
             /// <returns></returns>
-            public static bool TryDeserialise(JToken apiTok, TraceRecord trace, out APICALL? apiObj)
+            public static bool TryDeserialise(JArray apiArr, TraceRecord trace, out APICALL? apiObj)
             {
-                JObject? jobj = null;
                 apiObj = null;
 
-                if (apiTok.Type is JTokenType.Object)
-                {
-                    jobj = apiTok.ToObject<JObject>();
-                }
-
-                if (jobj is null)
+                if (apiArr[0].Type is not JTokenType.Date)
                 {
                     return false;
                 }
+                DateTime graphConstructed = apiArr[0].ToObject<DateTime>();
 
-                if (!jobj.TryGetValue("Graph", out JToken? graphTimeTok))
-                {
-                    return false;
-                }
-
-                DateTime graphTime = graphTimeTok.ToObject<DateTime>();
-                ProtoGraph? graph = trace.GetProtoGraphByTime(graphTime);
+                ProtoGraph? graph = trace.GetProtoGraphByTime(graphConstructed);
                 if (graph is null)
                 {
                     return false;
                 }
 
-                apiObj = new APICALL(graph);
-
-                if (!jobj.TryGetValue("CallIdx", out JToken? cidxTok))
+                apiObj = new APICALL(graph)
                 {
-                    return false;
-                }
+                    Node = graph.NodeList[apiArr[1].ToObject<int>()],
+                    Index = apiArr[2].ToObject<int>(),
+                    Repeats = apiArr[3].ToObject<ulong>(),
+                    UniqID = apiArr[4].ToObject<uint>()
+                };
 
-                apiObj.Index = cidxTok.ToObject<int>();
-                if (!jobj.TryGetValue("Repeats", out JToken? repTok))
+                if (apiArr[5] is not null)
                 {
-                    return false;
-                }
-
-                apiObj.Repeats = repTok.ToObject<ulong>();
-                if (!jobj.TryGetValue("uniqID", out JToken? idTok))
-                {
-                    return false;
-                }
-
-                apiObj.UniqID = idTok.ToObject<ulong>();
-
-                if (!jobj.TryGetValue("Node", out JToken? nidxTok))
-                {
-                    return false;
-                }
-
-                int nodeIdx = nidxTok.ToObject<int>();
-                if (nodeIdx < apiObj.Graph.NodeList.Count)
-                {
-                    apiObj.Node = apiObj.Graph.NodeList[nodeIdx];
-                }
-
-                if (jobj.TryGetValue("Details", out JToken? deTok))
-                {
-                    if (!DeserialiseEffects(deTok, apiObj))
+                    if (!DeserialiseEffects(apiArr[5], apiObj))
                     {
                         return false;
                     }
                 }
+
                 return true;
             }
 
@@ -246,8 +213,8 @@ namespace rgat
                                 {
                                     case "Link":
                                         {
-                                            JToken? entityIdx = effectObj["entityIndex"];
-                                            JToken? refIdx = effectObj["referenceIndex"];
+                                            JToken? entityIdx = effectObj["EntityIndex"];
+                                            JToken? refIdx = effectObj["ReferenceIndex"];
                                             if (entityIdx is null || refIdx is null)
                                             {
                                                 return false;
@@ -262,7 +229,7 @@ namespace rgat
                                         }
                                     case "Use":
                                         {
-                                            JToken? refIdx = effectObj["referenceIndex"];
+                                            JToken? refIdx = effectObj["ReferenceIndex"];
                                             if (refIdx is null)
                                             {
                                                 return false;
@@ -273,7 +240,7 @@ namespace rgat
                                         }
                                     case "Destroy":
                                         {
-                                            JToken? refIdx = effectObj["referenceIndex"];
+                                            JToken? refIdx = effectObj["ReferenceIndex"];
                                             if (refIdx is null)
                                             {
                                                 return false;
@@ -300,23 +267,25 @@ namespace rgat
             /// Serialise an API event to JSON
             /// </summary>
             /// <returns>JObject of the event</returns>
-            public JObject Serialise()
+            public void Serialise(Newtonsoft.Json.JsonWriter writer, Newtonsoft.Json.JsonSerializer serializer)
             {
+                writer.WriteStartArray();
 
-                JObject result = new JObject
-                {
-                    { "Node", (int)Node!.Index },
-                    { "CallIdx", Index },
-                    { "Repeats", Repeats },
-                    { "uniqID", UniqID },
-                    { "Graph", Graph!.ConstructedTime }
-                };
+                writer.WriteValue(Graph!.ConstructedTime);
+                writer.WriteValue(Node!.Index);
+                writer.WriteValue(Index);
+                writer.WriteValue(Repeats);
+                writer.WriteValue(UniqID);
 
                 if (APIDetails.HasValue)
                 {
-                    result.Add("Details", JObject.FromObject(APIDetails));
+                    serializer.Serialize(writer, APIDetails);
                 }
-                return result;
+                else
+                {
+                    writer.WriteNull();
+                }
+                writer.WriteEndArray();
             }
 
         }
@@ -398,55 +367,51 @@ namespace rgat
             /// </summary>
             /// <param name="jobj">A json timeline obj</param>
             /// <param name="trace">The trace assocated with the timeline event</param>
-            public TIMELINE_EVENT(JObject jobj, TraceRecord trace) : base(eLogFilterBaseType.TimeLine)
+            public TIMELINE_EVENT(JsonReader jsnReader, JsonSerializer serializer, TraceRecord trace) : base(eLogFilterBaseType.TimeLine)
             {
-                _item = new object();
+                jsnReader.Read();
+                JArray? itemMeta = serializer.Deserialize<JArray>(jsnReader);
+                if (itemMeta is null || itemMeta.Count != 3) return;
 
-                if (!jobj.TryGetValue("EvtType", out JToken? evtType) || evtType.Type != JTokenType.Integer)
-                {
-                    Logging.RecordError("Bad timeline event type in saved timeline");
-                    return;
-                }
+                _eventType = itemMeta[0].ToObject<eTimelineEvent>();
+                JToken idTok = itemMeta[1];
+                JToken pIdTok = itemMeta[2];
 
-                _eventType = evtType.ToObject<eTimelineEvent>();
-
-                if (!jobj.TryGetValue("ID", out JToken? idtok) || idtok.Type != JTokenType.Integer ||
-                    !jobj.TryGetValue("PARENT", out JToken? pidtok) || pidtok.Type != JTokenType.Integer)
-                {
-                    Logging.RecordError("Bad timeline id/parent id in saved timeline");
-                    return;
-                }
 
                 //_item = item;
                 switch (_eventType)
                 {
                     case eTimelineEvent.ProcessStart:
                     case eTimelineEvent.ProcessEnd:
-                        SetIDs(ID: idtok.ToObject<ulong>(), parentID: pidtok.ToObject<ulong>());
+                        SetIDs(ID: idTok.ToObject<ulong>(), parentID: pIdTok.ToObject<ulong>());
                         _item = trace.GetTraceByID(ID)!;
                         Inited = true;
                         break;
+
                     case eTimelineEvent.ThreadStart:
                     case eTimelineEvent.ThreadEnd:
-                        Debug.Assert(trace.ParentTrace == null || idtok.ToObject<ulong>() == trace.ParentTrace.PID);
-                        SetIDs(ID: idtok.ToObject<ulong>());
+                        Debug.Assert(trace.ParentTrace == null || idTok.ToObject<ulong>() == trace.ParentTrace.PID);
+                        SetIDs(ID: idTok.ToObject<ulong>());
                         _item = trace.GetProtoGraphByTID(ID)!;
                         Inited = true;
                         break;
 
                     case eTimelineEvent.APICall:
-                        if (!jobj.TryGetValue("API", out JToken? apiTok))
+
+                        jsnReader.Read();
+                        JArray? apiArr = serializer.Deserialize<JArray>(jsnReader);
+                        if (apiArr is null)
                         {
                             Logging.RecordError("No APICALL data in timeline api event");
                             return;
                         }
-                        if (!APICALL.TryDeserialise(apiTok, trace, out APICALL? apiObj) || apiObj is null)
+                        if (!APICALL.TryDeserialise(apiArr, trace, out APICALL? apiObj) || apiObj is null)
                         {
                             Logging.RecordError("Bad APICALL data in timeline api event");
                             return;
                         }
 
-                        SetIDs(ID: idtok.ToObject<ulong>(), parentID: pidtok.ToObject<ulong>());
+                        SetIDs(ID: idTok.ToObject<ulong>(), parentID: pIdTok.ToObject<ulong>());
                         _item = apiObj;
                         Inited = true;
                         break;
@@ -461,24 +426,27 @@ namespace rgat
             /// <summary>
             /// Serialise the timeline event to JSON
             /// </summary>
-            /// <returns>The JSON value</returns>
-            public JObject Serialise()
+            public void Serialise(Newtonsoft.Json.JsonWriter writer, Newtonsoft.Json.JsonSerializer serializer)
             {
-                JObject obj = new JObject
+                JArray meta = new JArray
                 {
-                    { "EvtType", (int)TimelineEventType },
-                    { "ID", ID },
-                    { "PARENT", Parent }
+                   TimelineEventType,
+                   ID,
+                   Parent
                 };
-                if (_eventType == eTimelineEvent.APICall)
+                meta.WriteTo(writer);
+
+                if (TimelineEventType == eTimelineEvent.APICall)
                 {
                     APICALL apic = (Logging.APICALL)_item;
-                    obj.Add("API", apic.Serialise());
-                    //obj.Add("Filter", apic.APIType());
+                    apic.Serialise(writer, serializer);
                 }
-
-                return obj;
             }
+
+
+
+
+
 
             private List<Tuple<string, WritableRgbaFloat>>? _cachedLabel = null;
             private ulong _cachedLabelTheme = 0;
@@ -591,19 +559,19 @@ namespace rgat
             /// <summary>
             /// Uninteresting events which may be useful for debugging
             /// </summary>
-            TextDebug,
+            Debug,
             /// <summary>
             /// Events a user might want to know about if they check the logs
             /// </summary>
-            TextInfo,
+            Info,
             /// <summary>
             /// Something bad happened. Alert the user
             /// </summary>
-            TextError,
+            Error,
             /// <summary>
             /// Something interesting happened. Alert the user
             /// </summary>
-            TextAlert,
+            Alert,
             /// <summary>
             /// Something very common and routine happened. Log it to a file if bulk debug logging is enabled.
             /// </summary>
@@ -629,10 +597,10 @@ namespace rgat
             Dictionary<LogFilterType, int> result = new Dictionary<LogFilterType, int>();
             lock (_messagesLock)
             {
-                result[LogFilterType.TextError] = MessageCounts[(int)LogFilterType.TextError];
-                result[LogFilterType.TextAlert] = MessageCounts[(int)LogFilterType.TextAlert];
-                result[LogFilterType.TextDebug] = MessageCounts[(int)LogFilterType.TextDebug];
-                result[LogFilterType.TextInfo] = MessageCounts[(int)LogFilterType.TextInfo];
+                result[LogFilterType.Error] = MessageCounts[(int)LogFilterType.Error];
+                result[LogFilterType.Alert] = MessageCounts[(int)LogFilterType.Alert];
+                result[LogFilterType.Debug] = MessageCounts[(int)LogFilterType.Debug];
+                result[LogFilterType.Info] = MessageCounts[(int)LogFilterType.Info];
                 return result;
             }
         }
@@ -715,7 +683,7 @@ namespace rgat
         /// <param name="graph">Graph this applies to. If aimed at a trace, just use any graph of the trace</param>
         /// <param name="trace">Process this applies to</param>     
 
-        public static void RecordLogEvent(string text, LogFilterType filter = LogFilterType.TextInfo, ProtoGraph? graph = null, TraceRecord? trace = null)
+        public static void RecordLogEvent(string text, LogFilterType filter = LogFilterType.Info, ProtoGraph? graph = null, TraceRecord? trace = null)
         {
             TEXT_LOG_EVENT log = new TEXT_LOG_EVENT(filter: filter, text: text);
             if (graph != null) { log.SetAssociatedGraph(graph); }
@@ -741,19 +709,19 @@ namespace rgat
                 if (filter != LogFilterType.BulkDebugLogFile)
                 {
                     _logMessages.Add(log);
-                    if (log.Filter == LogFilterType.TextAlert || log.Filter == LogFilterType.TextError)
+                    if (log.Filter == LogFilterType.Alert || log.Filter == LogFilterType.Error)
                     {
                         UnseenAlerts += 1;
                         _alertNotifications.Add(log);
                         _lastAlert = DateTime.Now;
                     }
                     MessageCounts[(int)filter] += 1;
-                    
+
                 }
             }
 
             //todo remove after debug done
-            if (filter == LogFilterType.TextError)
+            if (filter == LogFilterType.Error)
             {
                 WriteConsole(text, ConsoleColor.Yellow);
             }
@@ -791,9 +759,9 @@ namespace rgat
         {
             if (rgatState.NetworkBridge.Connected)
             {
-                rgatState.NetworkBridge.SendLog(text, LogFilterType.TextError);
+                rgatState.NetworkBridge.SendLog(text, LogFilterType.Error);
             }
-            RecordLogEvent(text: text, graph: graph, trace: trace, filter: LogFilterType.TextError);
+            RecordLogEvent(text: text, graph: graph, trace: trace, filter: LogFilterType.Error);
         }
 
         private static System.IO.StreamWriter? _logFile = null;

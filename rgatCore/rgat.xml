@@ -514,6 +514,12 @@
             List of (name,ordinal) tuples of library exports
             </summary>
         </member>
+        <member name="P:rgat.BinaryTarget.LaunchSettings">
+            <summary>
+            Settings for launching this binary including module tracing options
+            and instrumentation toggles
+            </summary>
+        </member>
         <member name="M:rgat.BinaryTarget.#ctor(System.String,System.Int32,System.String,System.Boolean)">
             <summary>
             Create a BinaryTarget object for a binary that rgat can trace
@@ -522,12 +528,6 @@
             <param name="bitWidth_">32 or 64</param>
             <param name="remoteAddr">The address of the remote rgat instance where this target is being traced</param>
             <param name="isLibrary">if the target is a library or not. This value will be used if the binary cannot be found and parsed</param>
-        </member>
-        <member name="P:rgat.BinaryTarget.LaunchSettings">
-            <summary>
-            Settings for launching this binary including module tracing options
-            and instrumentation toggles
-            </summary>
         </member>
         <member name="M:rgat.BinaryTarget.GetRemoteLoadInitData(System.Boolean)">
             <summary>
@@ -726,6 +726,14 @@
             <param name="sha1">SHA1 hash to find</param>
             <param name="target">BinaryTarget, if found</param>
             <returns>true if found</returns>
+        </member>
+        <member name="M:rgat.BinaryTargets.LoadSavedTarget(Newtonsoft.Json.Linq.JObject,rgat.BinaryTarget@)">
+            <summary>
+            Initialise a loaded target binary from a trace save object
+            </summary>
+            <param name="saveJSON">A Newtonsoft JObject for the saved trace</param>
+            <param name="targetResult">The created BinaryTarget object</param>
+            <returns></returns>
         </member>
         <member name="T:rgat.BridgeConnection">
             <summary>
@@ -2177,7 +2185,7 @@
         </member>
         <member name="P:rgat.Config.rgatSettings.TracingSettings.ReplayStorageMax">
             <summary>
-            Maximum number of replay entries to store when saving a trace, or null if unlimited
+            Maximum number of replay entries to store or load when saving/loading a trace, or null if unlimited
             </summary>
         </member>
         <member name="T:rgat.Config.rgatSettings.UpdateSettings">
@@ -3142,7 +3150,7 @@
             <param name="sourceType">Type of soure node (jump, etc)</param>
             <param name="execCount">Number of edge executions</param>
         </member>
-        <member name="M:rgat.EdgeData.#ctor(Newtonsoft.Json.Linq.JArray,System.Int32,rgat.CONSTANTS.EdgeNodeType)">
+        <member name="M:rgat.EdgeData.#ctor(rgat.CONSTANTS.EdgeNodeType,System.UInt64,System.Int32,rgat.CONSTANTS.EdgeNodeType)">
             <summary>
             Create an edge from serialised edge data
             </summary>
@@ -3150,13 +3158,12 @@
             <param name="index">Index of the edge in the edge list</param>
             <param name="sourceType">Type of soure node (jump, etc)</param>
         </member>
-        <member name="M:rgat.EdgeData.Serialise(System.UInt32,System.UInt32)">
+        <member name="M:rgat.EdgeData.Serialise(System.Tuple{System.UInt32,System.UInt32},Newtonsoft.Json.JsonWriter)">
             <summary>
-            Convert the edge to JSON that can be saved
+            Output the edge tuple and data to the json writer
             </summary>
-            <param name="src">Source node index</param>
-            <param name="targ">Target node index</param>
-            <returns></returns>
+            <param name="srctarg">Source/Target node indexes</param>
+            <param name="writer">Json Writer</param>
         </member>
         <member name="F:rgat.EdgeData.edgeClass">
             <summary>
@@ -3955,7 +3962,7 @@
             </summary>
             <returns>The name of the category</returns>
         </member>
-        <member name="M:rgat.Logging.APICALL.TryDeserialise(Newtonsoft.Json.Linq.JToken,rgat.TraceRecord,rgat.Logging.APICALL@)">
+        <member name="M:rgat.Logging.APICALL.TryDeserialise(Newtonsoft.Json.Linq.JArray,rgat.TraceRecord,rgat.Logging.APICALL@)">
             <summary>
             Deserialise an API call from JSON
             </summary>
@@ -3972,7 +3979,7 @@
             <param name="apiObj">APICALL being deserialised</param>
             <returns>success</returns>
         </member>
-        <member name="M:rgat.Logging.APICALL.Serialise">
+        <member name="M:rgat.Logging.APICALL.Serialise(Newtonsoft.Json.JsonWriter,Newtonsoft.Json.JsonSerializer)">
             <summary>
             Serialise an API event to JSON
             </summary>
@@ -4020,18 +4027,17 @@
             <param name="timelineEventType">The base category</param>
             <param name="item">The event data</param>
         </member>
-        <member name="M:rgat.Logging.TIMELINE_EVENT.#ctor(Newtonsoft.Json.Linq.JObject,rgat.TraceRecord)">
+        <member name="M:rgat.Logging.TIMELINE_EVENT.#ctor(Newtonsoft.Json.JsonReader,Newtonsoft.Json.JsonSerializer,rgat.TraceRecord)">
             <summary>
             Deserialise a timeline event from JSON
             </summary>
             <param name="jobj">A json timeline obj</param>
             <param name="trace">The trace assocated with the timeline event</param>
         </member>
-        <member name="M:rgat.Logging.TIMELINE_EVENT.Serialise">
+        <member name="M:rgat.Logging.TIMELINE_EVENT.Serialise(Newtonsoft.Json.JsonWriter,Newtonsoft.Json.JsonSerializer)">
             <summary>
             Serialise the timeline event to JSON
             </summary>
-            <returns>The JSON value</returns>
         </member>
         <member name="M:rgat.Logging.TIMELINE_EVENT.Label">
             <summary>
@@ -4082,22 +4088,22 @@
             Categories of log event
             </summary>
         </member>
-        <member name="F:rgat.Logging.LogFilterType.TextDebug">
+        <member name="F:rgat.Logging.LogFilterType.Debug">
             <summary>
             Uninteresting events which may be useful for debugging
             </summary>
         </member>
-        <member name="F:rgat.Logging.LogFilterType.TextInfo">
+        <member name="F:rgat.Logging.LogFilterType.Info">
             <summary>
             Events a user might want to know about if they check the logs
             </summary>
         </member>
-        <member name="F:rgat.Logging.LogFilterType.TextError">
+        <member name="F:rgat.Logging.LogFilterType.Error">
             <summary>
             Something bad happened. Alert the user
             </summary>
         </member>
-        <member name="F:rgat.Logging.LogFilterType.TextAlert">
+        <member name="F:rgat.Logging.LogFilterType.Alert">
             <summary>
             Something interesting happened. Alert the user
             </summary>
@@ -4209,7 +4215,7 @@
             An object representing an executed instruction on the graph
             </summary>
         </member>
-        <member name="M:rgat.NodeData.Serialise">
+        <member name="M:rgat.NodeData.Serialise(Newtonsoft.Json.JsonWriter)">
             <summary>
             Serialise this node to JSON for saving
             </summary>
@@ -4864,7 +4870,7 @@
             <param name="nodeCount">Number of nodes rendered</param>
             <returns>Node geometry array</returns>
         </member>
-        <member name="M:rgat.PlottedGraph.GetEdgeLineVerts(rgat.CONSTANTS.eRenderingMode,System.UInt32[]@,System.Int32@)">
+        <member name="M:rgat.PlottedGraph.GetEdgeLineVerts(rgat.CONSTANTS.eRenderingMode,System.UInt32[]@,System.Int32@,System.Boolean)">
             <summary>
             Get the geometry and colour of every edge
             </summary>
@@ -5473,6 +5479,11 @@
             Traces (and their children) will not record replay data
             </summary>
         </member>
+        <member name="P:rgat.ProcessLaunchSettings.HideAPIThunks">
+            <summary>
+            idata thunks will be written out of the graph to make API calls look cleaner
+            </summary>
+        </member>
         <member name="P:rgat.ProcessLaunchSettings.TraceChoices">
             <summary>
             Settings for which modules are instrumented/ignored
@@ -5520,13 +5531,6 @@
             <param name="address">Address of uninstrumented code</param>
             <param name="moduleNum">Module the address is in </param>
             <param name="RTN">ROUTINE_STRUCT output</param>
-        </member>
-        <member name="M:rgat.ProcessRecord.Load(Newtonsoft.Json.Linq.JObject)">
-            <summary>
-            Deserialise the process record
-            </summary>
-            <param name="tracejson">JSON processrecord</param>
-            <returns>If successful</returns>
         </member>
         <member name="M:rgat.ProcessRecord.getDisassemblyBlock(System.UInt32)">
             <summary>
@@ -5724,22 +5728,28 @@
             This process is 32 or 64 bit
             </summary>
         </member>
-        <member name="M:rgat.ProcessRecord.DisassembleIns(Gee.External.Capstone.X86.CapstoneX86Disassembler,System.UInt64,rgat.InstructionData@)">
+        <member name="M:rgat.ProcessRecord.DisassembleIns(Gee.External.Capstone.X86.CapstoneX86Disassembler,System.UInt64,rgat.InstructionData)">
             <summary>
-            
             for disassembling saved instructions
             takes a capstone context, opcode string, target instruction data struct and the address of the instruction
             </summary>
             <param name="disassembler">capstone disassembler instance</param>
             <param name="address">instruction address</param>
             <param name="insdata">partially initialsed instruction data with the bytes</param>
-            <returns></returns>
+            <returns>Number of bytes disassembled</returns>
         </member>
-        <member name="M:rgat.ProcessRecord.Serialise">
+        <member name="M:rgat.ProcessRecord.Serialise(Newtonsoft.Json.JsonWriter,rgat.rgatState.SERIALISE_PROGRESS)">
             <summary>
             Serialise this process data to JSON
             </summary>
             <returns>JObject of the process data</returns>
+        </member>
+        <member name="M:rgat.ProcessRecord.Load(Newtonsoft.Json.JsonReader,Newtonsoft.Json.JsonSerializer,rgat.rgatState.SERIALISE_PROGRESS)">
+            <summary>
+            Deserialise the process record from JSON
+            </summary>
+            <param name="tracejson">JSON processrecord</param>
+            <returns>If successful</returns>
         </member>
         <member name="T:rgat.Properties.Resources">
             <summary>
@@ -6302,6 +6312,11 @@
             Store how many updates have been recorded (even if animation data is being discarded)
             </summary>
         </member>
+        <member name="P:rgat.ProtoGraph.StoredUpdateCount">
+            <summary>
+            Store how many updates have been recorded (even if animation data is being discarded)
+            </summary>
+        </member>
         <member name="F:rgat.ProtoGraph.SavedAnimationData">
             <summary>
             A list of trace entries which can be replayed
@@ -6317,13 +6332,13 @@
             The first instrumented module, or if failing that the start module
             </summary>
         </member>
-        <member name="M:rgat.ProtoGraph.Serialise">
+        <member name="M:rgat.ProtoGraph.Serialise(Newtonsoft.Json.JsonWriter,rgat.rgatState.SERIALISE_PROGRESS)">
             <summary>
             Serialise this thread to JSON for writing to disk
             </summary>
             <returns>The JObject of the thread</returns>
         </member>
-        <member name="M:rgat.ProtoGraph.Deserialise(Newtonsoft.Json.Linq.JObject,rgat.ProcessRecord)">
+        <member name="M:rgat.ProtoGraph.Deserialise(Newtonsoft.Json.Linq.JObject,Newtonsoft.Json.JsonReader,Newtonsoft.Json.JsonSerializer,rgat.ProcessRecord,rgat.rgatState.SERIALISE_PROGRESS)">
             <summary>
             Restore a thread ProtoGraph from a JObject
             </summary>
@@ -6339,9 +6354,10 @@
             <param name="result"></param>
             <returns></returns>
         </member>
-        <member name="M:rgat.ProtoGraph.GetSavedAnimationData">
+        <member name="M:rgat.ProtoGraph.GetSavedAnimationDataReference">
             <summary>
             Get the list of thread animation entries
+            ReleaseSavedAnimationDataReference() must be called after being finished with the list
             </summary>
             <returns>The original list of entries</returns>
         </member>
@@ -6571,14 +6587,6 @@
             <param name="trace">An optional TraceRecord to set as active</param>
             <param name="newest">If true, get the most recently spawned trace. If false get the first in the list (not guaranteed to be the oldest)</param>
         </member>
-        <member name="M:rgat.rgatState.InitialiseTarget(Newtonsoft.Json.Linq.JObject,rgat.BinaryTarget@)">
-            <summary>
-            Initialise a loaded target binary from a trace save object
-            </summary>
-            <param name="saveJSON">A Newtonsoft JObject for the saved trace</param>
-            <param name="targetResult">The created BinaryTarget object</param>
-            <returns></returns>
-        </member>
         <member name="M:rgat.rgatState.SwitchToGraph(rgat.PlottedGraph)">
             <summary>
             Causes the UI to switch to displaying a different thread graph
@@ -6627,14 +6635,12 @@
             <param name="trace">The loaded TraceRecord object</param>
             <returns></returns>
         </member>
-        <member name="M:rgat.rgatState.ExtractChildTraceFilenames(Newtonsoft.Json.Linq.JObject,System.Collections.Generic.List{System.String}@)">
+        <member name="M:rgat.rgatState.CancelSerialization">
             <summary>
-            Get a list of child trace processes from a saved trace
+            Cancel an active load/save operation
             </summary>
-            <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
-            <param name="childrenFiles">A list of relative filesystem paths of child traces</param>
         </member>
-        <member name="M:rgat.rgatState.LoadChildTraces(System.Collections.Generic.List{System.String},rgat.TraceRecord)">
+        <member name="M:rgat.rgatState.LoadChildTraces(System.Collections.Generic.List{System.String},rgat.TraceRecord,rgat.rgatState.SERIALISE_PROGRESS)">
             <summary>
             Loads child traces into a trace record
             </summary>
@@ -7667,7 +7673,7 @@
             <param name="item">A theme attribute</param>
             <returns>WritableRgbaFloat colour</returns>
         </member>
-        <member name="M:rgat.Themes.GetThemeColourImGui(ImGuiNET.ImGuiCol)">
+        <member name="M:rgat.Themes.GetThemeColourImGui(ImGuiNET.ImGuiCol,System.Nullable{System.UInt32})">
             <summary>
             Get a uint colour value of a specified imgui style colour item
             </summary>
@@ -8427,7 +8433,7 @@
             </summary>
             <returns>The latest PlottedGraph with nodes</returns>
         </member>
-        <member name="M:rgat.TraceRecord.Load(Newtonsoft.Json.Linq.JObject,Veldrid.GraphicsDevice)">
+        <member name="M:rgat.TraceRecord.Load(Newtonsoft.Json.JsonReader,Newtonsoft.Json.JsonSerializer,rgat.rgatState.SERIALISE_PROGRESS,Veldrid.GraphicsDevice)">
             <summary>
             Deserialise a TraceRecord from JSON
             </summary>
@@ -8575,7 +8581,7 @@
             </summary>
             <returns>Threads in this and child processes</returns>
         </member>
-        <member name="M:rgat.TraceRecord.Save(System.DateTime,System.String@)">
+        <member name="M:rgat.TraceRecord.Save(rgat.rgatState.SERIALISE_PROGRESS,System.String@)">
             <summary>
             Save all the data needed to reconstruct a process run and all its thread graphs
             Recursively saves child processes
@@ -8583,6 +8589,13 @@
             <param name="traceStartedTime">The time the run was started</param>
             <param name="savePath">The filesystem path the trace was saved to</param>
             <returns>The path the trace was saved to</returns>
+        </member>
+        <member name="M:rgat.TraceRecord.ExtractChildTraceFilenames(Newtonsoft.Json.JsonReader,Newtonsoft.Json.JsonSerializer,System.Collections.Generic.List{System.String}@)">
+            <summary>
+            Get a list of child trace processes from a saved trace
+            </summary>
+            <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
+            <param name="childrenFiles">A list of relative filesystem paths of child traces</param>
         </member>
         <member name="M:rgat.TraceRecord.ExportPajek(System.UInt32)">
             <summary>
@@ -9432,12 +9445,22 @@
         </member>
         <member name="M:rgat.WritableRgbaFloat.#ctor(System.Single,System.Single,System.Single,System.Single)">
             <summary>
-            Create a colour float colour values (0-1)
+            Create a colour from float colour values (0-1)
+            Values higher than 1 can be specified for non-colour rendering usage
             </summary>
             <param name="Rf">red</param>
             <param name="Gf">green</param>
             <param name="Bf">blue</param>
             <param name="Af">alpha</param>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.#ctor(System.UInt32,System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Create a colour from uint colour values (0-255)
+            </summary>
+            <param name="Ru">red</param>
+            <param name="Gu">green</param>
+            <param name="Bu">blue</param>
+            <param name="Au">alpha</param>
         </member>
         <member name="M:rgat.WritableRgbaFloat.#ctor(System.Numerics.Vector4)">
             <summary>
@@ -9452,6 +9475,13 @@
             <param name="col">uint colour</param>
         </member>
         <member name="M:rgat.WritableRgbaFloat.ToUint(System.Nullable{System.UInt32})">
+            <summary>
+            Get the uint value of this colour required by ImGui
+            </summary>
+            <param name="customAlpha">An optional alpha value</param>
+            <returns>This colour as a uint</returns>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.ToUint(System.UInt32,System.UInt32)">
             <summary>
             Get the uint value of this colour required by ImGui
             </summary>
@@ -9477,6 +9507,13 @@
             </summary>
             <param name="col"></param>
             <returns>RgbaFloat</returns>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.ToUint(System.Drawing.Color)">
+            <summary>
+            Convert a .NET Colour to a uint
+            </summary>
+            <param name="col">Input Colour</param>
+            <returns>output uint</returns>
         </member>
         <member name="M:rgat.WritableRgbaFloat.CreateUint(System.Single,System.Single,System.Single,System.Single)">
             <summary>

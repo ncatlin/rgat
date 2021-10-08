@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -159,6 +161,84 @@ namespace rgat
                 }
                 return false;
             }
+        }
+
+
+        /// <summary>
+        /// Initialise a loaded target binary from a trace save object
+        /// </summary>
+        /// <param name="saveJSON">A Newtonsoft JObject for the saved trace</param>
+        /// <param name="targetResult">The created BinaryTarget object</param>
+        /// <returns></returns>
+        public bool LoadSavedTarget(JObject metadata, out BinaryTarget? targetResult)
+        {
+            targetResult = null;
+            string? binaryPath = metadata.GetValue("BinaryPath")?.ToString();
+            if (binaryPath is null)
+            {
+                Logging.RecordLogEvent("No binary path in metadata");
+                return false;
+            }
+
+            BinaryTarget? target;
+            if (!GetTargetByPath(binaryPath, out target))
+            {
+                bool isLibrary = false;
+                if (metadata.TryGetValue("IsLibrary", out JToken? isLibTok) && isLibTok.Type == JTokenType.Boolean)
+                {
+                    isLibrary = isLibTok.ToObject<bool>();
+                }
+
+                target = AddTargetByPath(binaryPath, isLibrary: isLibrary);
+            }
+
+            targetResult = target;
+            return true;
+
+        }
+
+
+        public static bool ValidateSavedMetadata(JsonReader jsnReader, JsonSerializer serializer, string expectedFieldName, out JObject? metadataObj)
+        {
+            metadataObj = null;
+            if (jsnReader.Read() is false || jsnReader.TokenType is not JsonToken.StartObject)
+            {
+                Logging.RecordLogEvent("Metadata token is not an object");
+                return false;
+            }
+
+            JToken? mdTok = serializer.Deserialize<JObject>(jsnReader);
+            if (mdTok is null || mdTok.Type is not JTokenType.Object)
+            {
+                Logging.RecordLogEvent("Metadata token is still not an object");
+                return false;
+            }
+
+            metadataObj = mdTok.ToObject<JObject>();
+            if (metadataObj is null)
+            {
+                Logging.RecordLogEvent("Metadata token could not be convertd to an object");
+                return false;
+            }
+
+
+            if (metadataObj is null ||
+                metadataObj.TryGetValue("Field", out JToken? fieldVal) is false ||
+                fieldVal is null ||
+                fieldVal.Type is not JTokenType.String)
+            {
+                Logging.RecordLogEvent($"Metadata field could not be validated");
+                return false;
+            }
+
+            string fieldname = fieldVal.ToString();
+            if (fieldname != expectedFieldName)
+            {
+                Logging.RecordLogEvent($"Metadata field {expectedFieldName} not found - {fieldname} found instead");
+                return false;
+            }
+
+            return true;
         }
 
         private readonly object targetslock = new object();

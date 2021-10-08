@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using rgat.Testing;
 using rgat.Threads;
 using System;
@@ -261,135 +262,8 @@ namespace rgat
         }
 
 
-        private bool LoadNodes(JArray NodesArray, ProcessRecord processinfo)
-        {
-            foreach (JArray nodeItem in NodesArray)
-            {
-                NodeData n = new NodeData();//can't this be done at start?
-                if (!n.Deserialise(nodeItem, processinfo))
-                {
-                    Logging.WriteConsole("Failed to deserialise node");
-                    return false;
-                }
-
-                InsertNode(n.Index, n);
-            }
-
-            return true;
-        }
 
 
-        private bool LoadExceptions(JArray exceptionsArray)
-        {
-            foreach (JToken entry in exceptionsArray)
-            {
-                if (entry.Type != JTokenType.Integer)
-                {
-                    return false;
-                }
-
-                ExceptionNodeIndexes.Add(entry.ToObject<uint>());
-            }
-            return true;
-        }
-
-
-        private bool LoadStats(JObject graphData)
-        {
-
-            if (!graphData.TryGetValue("TotalInstructions", out JToken? jTotal) || jTotal.Type != JTokenType.Integer)
-            {
-                return false;
-            }
-            TotalInstructions = jTotal.ToObject<ulong>();
-
-            if (!graphData.TryGetValue("ConstructedTime", out JToken? timeTok) || timeTok.Type != JTokenType.Date)
-            {
-                return false;
-            }
-            ConstructedTime = timeTok.ToObject<DateTime>();
-
-            if (!graphData.TryGetValue("UpdateCount", out JToken? updateCountTok) || updateCountTok.Type != JTokenType.Integer)
-            {
-                return false;
-            }
-            UpdateCount = updateCountTok.ToObject<ulong>();
-
-            return true;
-        }
-
-        private bool LoadAnimationData(JArray animationArray)
-        {
-            Logging.RecordLogEvent($"LoadAnimationData Loading {animationArray.Count} trace entries for graph {ThreadID}");
-            foreach (JArray animFields in animationArray)
-            {
-                if (animFields.Count != 7)
-                {
-                    return false;
-                }
-
-                ANIMATIONENTRY entry = new ANIMATIONENTRY
-                {
-                    entryType = (eTraceUpdateType)animFields[0].ToObject<uint>(),
-                    blockAddr = animFields[1].ToObject<ulong>(),
-                    blockID = animFields[2].ToObject<uint>(),
-                    count = animFields[3].ToObject<ulong>(),
-                    targetAddr = animFields[4].ToObject<ulong>(),
-                    targetID = animFields[5].ToObject<uint>()
-                };
-                JArray edgecounts = (JArray)animFields[6];
-                if (edgecounts.Count > 0)
-                {
-                    entry.edgeCounts = new List<Tuple<uint, ulong>>();
-                    for (int i = 0; i < edgecounts.Count; i += 2)
-                    {
-                        entry.edgeCounts.Add(new Tuple<uint, ulong>(edgecounts[i].ToObject<uint>(), edgecounts[i + 1].ToObject<ulong>()));
-                    }
-                }
-                else
-                {
-                    entry.edgeCounts = null;
-                }
-                SavedAnimationData.Add(entry);
-            }
-
-            return true;
-        }
-
-        private bool LoadCallData(JArray callarray)
-        {
-            foreach (JArray entry in callarray)
-            {
-                if (entry.Count != 3 || entry[0].Type != JTokenType.Integer ||
-                    entry[1].Type != JTokenType.Integer || entry[2].Type != JTokenType.Array)
-                {
-                    Logging.WriteConsole("Error: Bad entry in LoadCallData");
-                    return false;
-                }
-
-                Tuple<uint, uint> edge = new Tuple<uint, uint>(entry[0].ToObject<uint>(), entry[1].ToObject<uint>());
-                List<Tuple<int, string>> CallArgList = new List<Tuple<int, string>>();
-
-                foreach (JArray argEntry in (JArray)entry[2])
-                {
-                    if (argEntry.Count != 2 || argEntry[0].Type != JTokenType.Integer || argEntry[1].Type != JTokenType.String)
-                    {
-                        return false;
-                    }
-
-                    Tuple<int, string> argData = new Tuple<int, string>(argEntry[0].ToObject<int>(), argEntry[1].ToString());
-                    CallArgList.Add(argData);
-                }
-
-                APICALLDATA callDat = new APICALLDATA
-                {
-                    argList = CallArgList,
-                    edgeIdx = edge
-                };
-                SymbolCallRecords.Add(callDat);
-            }
-            return true;
-        }
 
 
         private bool SetTargetInstruction(InstructionData instruction)
@@ -524,7 +398,7 @@ namespace rgat
         private void run_faulting_BB(TAG tag)
         {
             Logging.RecordLogEvent($"Faulting Block recorded: block:{tag.blockID} 0x{tag.blockaddr:X} lastvid:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}",
-                Logging.LogFilterType.TextAlert);
+                Logging.LogFilterType.Alert);
 
 
             ROUTINE_STRUCT? foundExtern = null;
@@ -708,7 +582,7 @@ namespace rgat
             newTargNode.HasSymbol = true;
 
 
-            InsertNode(targVertID, newTargNode);
+            InsertNode(newTargNode);
 
             TraceData.RecordAPICall(newTargNode, this, 0, repeats);
 
@@ -785,7 +659,7 @@ namespace rgat
                 INCOMING_CALL_ARGUMENT arg = _unprocessedCallArguments[cacheI];
                 if (arg.calledAddress != currentTarget)
                 {
-                    Logging.RecordLogEvent($"Breakdown of API argument processing between {_unprocessedCallArguments[cacheI - 1].argstring} and {_unprocessedCallArguments[cacheI].argstring}Check the 'M' and 'E' fields of any recently added API wrapper in the instrumentation tool", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"Breakdown of API argument processing between {_unprocessedCallArguments[cacheI - 1].argstring} and {_unprocessedCallArguments[cacheI].argstring}Check the 'M' and 'E' fields of any recently added API wrapper in the instrumentation tool", Logging.LogFilterType.Error);
 
                     _unprocessedCallArguments.RemoveRange(0, cacheI);
                     return;
@@ -949,11 +823,11 @@ namespace rgat
             return false;
         }
 
-        private void InsertNode(uint targVertID, NodeData node)
+        private void InsertNode(NodeData node)
         {
             lock (nodeLock)
             {
-                Debug.Assert((NodeList.Count == 0) || (targVertID == NodeList[^1].Index + 1));
+                Debug.Assert((NodeList.Count == 0) || (node.Index == NodeList[^1].Index + 1));
 
                 if (node.IsExternal)
                 {
@@ -1162,13 +1036,6 @@ namespace rgat
             Tuple<uint, uint> edgePair = new Tuple<uint, uint>(source.Index, target.Index);
             //Logging.WriteConsole($"\t\tAddEdge {source.index} -> {target.index}");
 
-
-            if (!source.OutgoingNeighboursSet.Contains(edgePair.Item2))
-            {
-                source.OutgoingNeighboursSet.Add(edgePair.Item2);
-            }
-
-
             if (source.IsConditional && source.conditional != ConditionalType.CONDCOMPLETE)
             {
                 if (source.ins!.condDropAddress == target.address)
@@ -1188,16 +1055,20 @@ namespace rgat
                 }
             }
 
-            lock (nodeLock)
-            {
-                if (!target.IncomingNeighboursSet.Contains(edgePair.Item1))
-                {
-                    target.IncomingNeighboursSet.Add(edgePair.Item1);
-                }
-            }
-
             lock (edgeLock)
             {
+                lock (nodeLock)
+                {
+                    if (!target.IncomingNeighboursSet.Contains(edgePair.Item1))
+                    {
+                        target.IncomingNeighboursSet.Add(edgePair.Item1);
+                    }
+                    if (!source.OutgoingNeighboursSet.Contains(edgePair.Item2))
+                    {
+                        source.OutgoingNeighboursSet.Add(edgePair.Item2);
+                    }
+                }
+
                 _edgeDict.Add(edgePair, e);
                 EdgeList.Add(edgePair);
                 edgeObjList.Add(e);
@@ -1368,7 +1239,7 @@ namespace rgat
 
             Stopwatch st = new Stopwatch();
             st.Start();
-            InsertNode(targVertID, thisnode);
+            InsertNode(thisnode);
             st.Stop(); if (st.ElapsedMilliseconds > 100)
             {
                 Console.WriteLine($"!!!!!!InsertNode nodelock is contended for {st.ElapsedMilliseconds}");
@@ -1577,26 +1448,6 @@ namespace rgat
 
         }
 
-        private bool LoadEdges(JArray EdgeArray)
-        {
-            foreach (JArray entry in EdgeArray.Children())
-            {
-                uint source = entry[0].ToObject<uint>();
-                uint target = entry[1].ToObject<uint>();
-                NodeData? srcNode = GetNode(source);
-                NodeData? targNode = GetNode(target);
-
-                if (srcNode is null || targNode is null)
-                {
-                    return false;
-                }
-
-                EdgeData edge = new EdgeData(serialised: entry, index: EdgeList.Count, sourceType: srcNode.VertType());
-                //todo: edge count?
-                AddEdge(edge, srcNode, targNode);
-            }
-            return true;
-        }
 
 
         /// <summary>
@@ -1625,8 +1476,12 @@ namespace rgat
             if (this.Terminated is false && SavedAnimationData.Count < 500) return maxIndex;
             lock (AnimDataLock)
             {
-                SavedAnimationData.RemoveRange(0, maxIndex);
-                return 0;
+                if (animDataRefs == 0)
+                {
+                    SavedAnimationData.RemoveRange(0, maxIndex);
+                    return 0;
+                }
+                return maxIndex;
             }
         }
 
@@ -1643,9 +1498,14 @@ namespace rgat
         public ulong UpdateCount { get; private set; } = 0;
 
         /// <summary>
+        /// Store how many updates have been recorded (even if animation data is being discarded)
+        /// </summary>
+        public int StoredUpdateCount => SavedAnimationData.Count;
+
+        /// <summary>
         /// A list of trace entries which can be replayed
         /// </summary>
-        public List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
+        private List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
         private readonly List<uint> ExceptionNodeIndexes = new List<uint>();
 
         /// <summary>
@@ -1705,28 +1565,73 @@ namespace rgat
         /// Serialise this thread to JSON for writing to disk
         /// </summary>
         /// <returns>The JObject of the thread</returns>
-        public JObject Serialise()
+        public void Serialise(JsonWriter writer, rgatState.SERIALISE_PROGRESS progress)
         {
-            JObject result = new JObject
-            {
+            JObject metadata = new JObject {
+                { "Field", "Thread"},
                 { "ThreadID", ThreadID },
-                { "StartAddress", StartAddress }
+                { "StartAddress", StartAddress },
+                { "TotalInstructions", this.TotalInstructions },
+                { "ConstructedTime", ConstructedTime },
+                { "UpdateCount", UpdateCount}
             };
 
+            metadata.WriteTo(writer);
+
+            progress.SectionsTotal = 6;
+            progress.SectionsComplete = 0;
+
+            //Section 1: nodes
+            progress.SectionName = $"Thread {ThreadID} nodes";
+            progress.SectionProgress = 0;
             lock (nodeLock)
             {
-                JArray nodesArray = new JArray();
-                NodeList.ForEach(node => nodesArray.Add(node.Serialise()));
-                result.Add("Nodes", nodesArray);
+                JObject nodesMeta = new JObject();
+                nodesMeta.Add("Field", "Nodes");
+                nodesMeta.Add("Count", NodeList.Count);
+                nodesMeta.WriteTo(writer);
+                for (var i = 0; i < NodeList.Count; i++)
+                {
+                    NodeList[i].Serialise(writer);
+                    progress.SectionProgress = (float)i / (float)NodeList.Count;
+                    if (progress.Cancelled) return;
+                }
             }
+            progress.SectionsComplete += 1;
 
+            //Section 2: edges
+            progress.SectionName = $"Thread {ThreadID} edges";
+            progress.SectionProgress = 0;
             lock (edgeLock)
             {
-                JArray edgeArray = new JArray();
-                EdgeList.ForEach(edgetuple => edgeArray.Add(_edgeDict[edgetuple].Serialise(edgetuple.Item1, edgetuple.Item2)));
-                result.Add("Edges", edgeArray);
 
-                JArray blockBounds = new JArray();
+                JObject edgesMeta = new JObject();
+                edgesMeta.Add("Field", "Edges");
+                edgesMeta.Add("Count", EdgeList.Count);
+                edgesMeta.Add("ItemSize", 4);
+                edgesMeta.WriteTo(writer);
+
+                writer.WriteStartArray();
+                for (var ei = 0; ei < EdgeList.Count; ei++)
+                {
+                    edgeObjList[ei].Serialise(EdgeList[ei], writer);
+                    progress.SectionProgress = (float)ei / (float)EdgeList.Count;
+                    if (progress.Cancelled) return;
+                }
+                writer.WriteEndArray();
+
+                progress.SectionsComplete += 1;
+
+
+                //Section 3: blocks
+                progress.SectionName = $"Thread {ThreadID} blocks";
+                progress.SectionProgress = 0;
+                JObject blocksMeta = new JObject();
+                blocksMeta.Add("Field", "Blocks");
+                blocksMeta.Add("Count", BlocksFirstLastNodeList.Count);
+                blocksMeta.WriteTo(writer);
+
+                writer.WriteStartArray();
                 for (var i = 0; i < BlocksFirstLastNodeList.Count; i++)
                 {
                     var blocktuple = BlocksFirstLastNodeList[i];
@@ -1736,97 +1641,118 @@ namespace rgat
                         Debug.Assert(block is not null);
                         block.Item2[0].GetThreadVert(ThreadID, out uint startVert);
                         block.Item2[^1].GetThreadVert(ThreadID, out uint endVert);
-                        blockBounds.Add(startVert);
-                        blockBounds.Add(endVert);
+                        writer.WriteValue(startVert);
+                        writer.WriteValue(endVert);
                     }
                     else
                     {
-                        blockBounds.Add(blocktuple.Item1);
-                        blockBounds.Add(blocktuple.Item2);
+                        writer.WriteValue(blocktuple.Item1);
+                        writer.WriteValue(blocktuple.Item2);
                     }
+                    progress.SectionProgress = (float)i / (float)BlocksFirstLastNodeList.Count;
+                    if (progress.Cancelled) return;
                 }
-                result.Add("BlockBounds", blockBounds);
+                writer.WriteEndArray();
+
             }
 
+            progress.SectionsComplete += 1;
+
+            //Section 4: exceptions
+            progress.SectionName = $"Thread {ThreadID} exceptions";
+            progress.SectionProgress = 0;
             lock (highlightsLock)
             {
-                JArray exceptNodeArray = new JArray();
-                exceptionSet.ForEach(exc_node_idx => exceptNodeArray.Add(exc_node_idx));
-                result.Add("Exceptions", exceptNodeArray);
+                JObject exceptionsMeta = new JObject();
+                exceptionsMeta.Add("Field", "Exceptions");
+                exceptionsMeta.Add("Count", exceptionSet.Count);
+                exceptionsMeta.WriteTo(writer);
+                JArray exceptNodeArray;
+                exceptNodeArray = JArray.FromObject(exceptionSet);
+                exceptNodeArray.WriteTo(writer);
             }
 
-            //todo - lock?
-            JArray externCalls = new JArray();
+            progress.SectionsComplete += 1;
+
+
+            //Section 5: externs
+            progress.SectionName = $"Thread {ThreadID} API calls";
+            progress.SectionProgress = 0;
+
+            JObject symCallsMeta = new JObject();
+            symCallsMeta.Add("Field", "SymbolCalls");
+            symCallsMeta.Add("Count", SymbolCallRecords.Count);
+            symCallsMeta.WriteTo(writer);
+
+            writer.WriteStartArray();
             for (var i = 0; i < SymbolCallRecords.Count; i++)
             {
                 APICALLDATA ecd = SymbolCallRecords[i];
 
-                JArray callArgsEntry = new JArray
-                {
-                    ecd.edgeIdx.Item1,
-                    ecd.edgeIdx.Item2
-                };
+                writer.WriteValue(ecd.edgeIdx.Item1); // caller idx
+                writer.WriteValue(ecd.edgeIdx.Item2); // api node idx
+                writer.WriteValue(ecd.argList.Count); // arg count
 
-                JArray argsArray = new JArray();
                 foreach (var arg in ecd.argList)
                 {
-                    JArray ecdEntryArgs = new JArray
-                    {
-                        arg.Item1,
-                        arg.Item2
-                    };
-                    argsArray.Add(ecdEntryArgs);
+                    writer.WriteValue(arg.Item1); // arg idx
+                    writer.WriteValue(arg.Item2); // arg
                 }
-                callArgsEntry.Add(argsArray);
-                externCalls.Add(callArgsEntry);
+                progress.SectionProgress = (float)i / (float)SymbolCallRecords.Count;
+                if (progress.Cancelled) return;
             }
-            result.Add("ExternCalls", externCalls);
+            writer.WriteEndArray();
 
-            result.Add("TotalInstructions", TotalInstructions);
-            result.Add("ConstructedTime", ConstructedTime);
-            result.Add("UpdateCount", UpdateCount);
+            progress.SectionsComplete += 1;
 
-            JArray replayDataArr = new JArray();
+
+            //Section 6: replay
+            progress.SectionName = $"Thread {ThreadID} repaly data";
             lock (AnimDataLock)
             {
-                int eventsToSave = SavedAnimationData.Count;
-                if (GlobalConfig.Settings.Tracing.ReplayStorageMax is not null)
+                JObject replayMeta = new JObject();
+                replayMeta.Add("Field", "ReplayData");
+                replayMeta.Add("Disabled", this.TraceData.DiscardTraceData);
+
+                int eventsToSave = this.TraceData.DiscardTraceData ? 0 : SavedAnimationData.Count;
+                if (eventsToSave > 0 && GlobalConfig.Settings.Tracing.ReplayStorageMax is not null)
                 {
                     eventsToSave = Math.Min(SavedAnimationData.Count, GlobalConfig.Settings.Tracing.ReplayStorageMax.Value);
                 }
+                replayMeta.Add("Count", eventsToSave);
+                replayMeta.WriteTo(writer);
 
+                writer.WriteStartArray();
                 for (int i = 0; i < eventsToSave; i++)
                 {
                     ANIMATIONENTRY repentry = SavedAnimationData[i];
 
-                    JArray replayItem = new JArray
-                    {
-                        repentry.entryType,
-                        repentry.blockAddr,
-                        repentry.blockID,
-                        repentry.count,
-                        repentry.targetAddr,
-                        repentry.targetID
-                    };
+                    writer.WriteValue(repentry.entryType);
+                    writer.WriteValue(repentry.blockAddr);
+                    writer.WriteValue(repentry.blockID);
+                    writer.WriteValue(repentry.count);
+                    writer.WriteValue(repentry.targetAddr);
+                    writer.WriteValue(repentry.targetID);
 
-                    JArray edgeCounts = new JArray();
-                    if (repentry.edgeCounts != null)
+                    if (repentry.edgeCounts is null)
                     {
+                        writer.WriteValue(0);
+                    }
+                    else
+                    {
+                        writer.WriteValue(repentry.edgeCounts.Count);
                         foreach (var targCount in repentry.edgeCounts) //todo actually use blockID
                         {
-                            edgeCounts.Add(targCount.Item1);
-                            edgeCounts.Add(targCount.Item2);
+                            writer.WriteValue(targCount.Item1);
+                            writer.WriteValue(targCount.Item2);
                         }
                     }
-                    replayItem.Add(edgeCounts);
-
-                    replayDataArr.Add(replayItem);
+                    progress.SectionProgress = (float)i / (float)SavedAnimationData.Count;
+                    if (progress.Cancelled) return;
                 }
+                writer.WriteEndArray();
             }
-            result.Add("ReplayData", replayDataArr);
-
-
-            return result;
+            progress.SectionsComplete += 1;
         }
 
 
@@ -1836,91 +1762,386 @@ namespace rgat
         /// <param name="graphData">The serialised ProtoGraph JObject</param>
         /// <param name="processinfo">The processdata associated with the thread</param>
         /// <returns>The deserialised ProtoGraph</returns>
-        public bool Deserialise(JObject graphData, ProcessRecord processinfo)
+        public bool Deserialise(JObject metadata, JsonReader jsnReader, JsonSerializer serializer, ProcessRecord processinfo, rgatState.SERIALISE_PROGRESS progress)
         {
-            if (!graphData.TryGetValue("Nodes", out JToken? jNodes) || jNodes.Type != JTokenType.Array)
+            progress.SectionsTotal = 7;
+            progress.SectionsComplete = 0;
+            progress.SectionName = $"Thread {this.ThreadID} Stats";
+            if (LoadStats(metadata) is false)
             {
-                Logging.WriteConsole("[rgat] Failed to find valid Nodes in trace");
-                return false;
-            }
-            JArray NodesArray = (JArray)jNodes;
-            if (!LoadNodes(NodesArray, processinfo))
-            {
-                Logging.WriteConsole("[rgat]ERROR: Failed to load nodes");
+                Logging.RecordLogEvent("Failed to load graph stats");
                 return false;
             }
 
-            if (!graphData.TryGetValue("Edges", out JToken? jEdges) || jEdges.Type != JTokenType.Array)
+            progress.SectionsComplete += 1;
+            if (LoadNodes(jsnReader, serializer, progress) is false)
             {
-                Logging.WriteConsole("[rgat] Failed to find valid Edges in trace");
+                Logging.WriteConsole("Failed to find valid Nodes in trace");
                 return false;
             }
 
-            JArray EdgeArray = (JArray)jEdges;
-            if (!LoadEdges(EdgeArray))
+            progress.SectionsComplete += 1;
+            if (LoadEdges(jsnReader, serializer, progress) is false)
             {
-                Logging.WriteConsole("[rgat]ERROR: Failed to load edges");
+                Logging.WriteConsole("Failed to find valid Nodes in trace");
                 return false;
             }
 
-            if (!graphData.TryGetValue("BlockBounds", out JToken? blockbounds) || blockbounds.Type != JTokenType.Array)
+            progress.SectionsComplete += 1;
+            if (LoadBlocks(jsnReader, serializer, progress) is false)
             {
-                Logging.WriteConsole("[rgat] Failed to find valid BlockBounds array in trace");
+                Logging.WriteConsole("Failed to load block bounds");
                 return false;
             }
 
-            BlocksFirstLastNodeList = new List<Tuple<uint, uint>?>();
-            JArray blockBoundsArray = (JArray)blockbounds;
-            for (int i = 0; i < blockBoundsArray.Count; i += 2)
+            progress.SectionsComplete += 1;
+            if (LoadExceptions(jsnReader, serializer, progress) is false)
             {
-                Tuple<uint, uint> blockFirstLast = new Tuple<uint, uint>(blockBoundsArray[i].ToObject<uint>(), blockBoundsArray[i + 1].ToObject<uint>());
-                BlocksFirstLastNodeList.Add(blockFirstLast);
-                //Debug.Assert((int)blockFirstLast.Item1 <= (int)blockFirstLast.Item2); //todo this may be needed still
-            }
-
-
-            if (!graphData.TryGetValue("Exceptions", out JToken? jExcepts) || jEdges.Type != JTokenType.Array)
-            {
-                Logging.WriteConsole("[rgat] Failed to find valid Exceptions in trace");
-                return false;
-            }
-            JArray ExceptionArray = (JArray)jExcepts;
-            if (!LoadExceptions(ExceptionArray))
-            {
-                Logging.WriteConsole("[rgat]ERROR: Failed to load Exceptions");
+                Logging.WriteConsole("Failed to load Exceptions");
                 return false;
             }
 
-            if (!graphData.TryGetValue("ExternCalls", out JToken? jExternCalls) || jExternCalls.Type != JTokenType.Array)
+            progress.SectionsComplete += 1;
+            if (LoadCallData(jsnReader, serializer, progress) is false)
             {
-                Logging.WriteConsole("[rgat] Failed to find valid ExternCalls in trace");
-                return false;
-            }
-            JArray ExternCallsArray = (JArray)jExternCalls;
-            if (!LoadCallData(ExternCallsArray))
-            {
-                Logging.WriteConsole("[rgat]ERROR: Failed to load ExternCalls");
+                Logging.WriteConsole("Failed to load ExternCalls");
                 return false;
             }
 
-            if (!graphData.TryGetValue("ReplayData", out JToken? jReplayData) || jExternCalls.Type != JTokenType.Array)
+
+            progress.SectionsComplete += 1;
+            progress.SectionName = $"Thread {this.ThreadID} Replay Data";
+            if (LoadReplayData(jsnReader, serializer, progress) is false)
             {
-                Logging.WriteConsole("[rgat] Failed to find valid ReplayData in trace");
-                return false;
-            }
-            JArray ReplayDataArray = (JArray)jReplayData;
-            if (!LoadAnimationData(ReplayDataArray))
-            {
-                Logging.WriteConsole("[rgat]ERROR: Failed to load ReplayData");
+                Logging.WriteConsole("Failed to load ReplayData");
                 return false;
             }
 
-            if (!LoadStats(graphData))
-            {
-                Logging.RecordLogEvent("ERROR: Failed to load graph stats", Logging.LogFilterType.TextError);
-                return false;
-            }
+            progress.SectionsComplete += 1;
             return true;
+        }
+
+
+
+        private bool LoadStats(JObject graphData)
+        {
+
+            if (!graphData.TryGetValue("TotalInstructions", out JToken? jTotal) || jTotal.Type != JTokenType.Integer)
+            {
+                return false;
+            }
+            TotalInstructions = jTotal.ToObject<ulong>();
+
+            if (!graphData.TryGetValue("ConstructedTime", out JToken? timeTok) || timeTok.Type != JTokenType.Date)
+            {
+                return false;
+            }
+            ConstructedTime = timeTok.ToObject<DateTime>();
+
+            if (!graphData.TryGetValue("UpdateCount", out JToken? updateCountTok) || updateCountTok.Type != JTokenType.Integer)
+            {
+                return false;
+            }
+            UpdateCount = updateCountTok.ToObject<ulong>();
+
+            return true;
+        }
+
+
+        bool LoadNodes(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionName = $"Thread {this.ThreadID} Nodes";
+            progress.SectionProgress = 0;
+
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Nodes", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No node metadata in trace file");
+                return false;
+            }
+
+            if (!mdObj.TryGetValue("Count", out JToken? countTok) || countTok.Type != JTokenType.Integer)
+            {
+                Logging.RecordLogEvent("Failed to find valid node count in graph");
+                return false;
+            }
+            int nodeCount = countTok.ToObject<int>();
+
+            NodeList.Capacity = nodeCount;
+            for (var i = 0; i < nodeCount; i++)
+            {
+                if (jsnReader.Read() is false || jsnReader.TokenType is not JsonToken.StartArray)
+                {
+                    Logging.RecordLogEvent("Bad node entry");
+                    return false;
+                }
+                JArray? nodeitem = serializer.Deserialize<JArray>(jsnReader);
+                if (nodeitem is null)
+                {
+                    Logging.RecordLogEvent("Bad node entry");
+                    return false;
+                }
+
+                NodeData n = new NodeData();
+                n.Deserialise(nodeitem, processinfo: this.ProcessData);
+                InsertNode(n);
+                progress.SectionProgress = (float)i / (float)nodeCount;
+                if (progress.Cancelled) return false;
+            }
+
+
+            return true;
+        }
+
+
+        private bool LoadEdges(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionName = $"Thread {this.ThreadID} Edges";
+            progress.SectionProgress = 0;
+
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Edges", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No edge metadata in trace file");
+                return false;
+            }
+
+            if (!mdObj.TryGetValue("Count", out JToken? countTok) || countTok.Type != JTokenType.Integer)
+            {
+                Logging.RecordLogEvent("Failed to find valid edge count in graph");
+                return false;
+            }
+
+            int edgeCount = countTok.ToObject<int>();
+            EdgeList.Capacity = edgeCount;
+
+
+            if (!mdObj.TryGetValue("ItemSize", out JToken? sizetok) || sizetok.Type != JTokenType.Integer || sizetok.ToObject<int>() is not 4)
+            {
+                Logging.RecordLogEvent("Edge array didn't have an item size of 4");
+                return false;
+            }
+
+            jsnReader.Read();
+            if (jsnReader.TokenType is not JsonToken.StartArray) return false;
+            jsnReader.Read();
+
+            for (var i = 0; i < edgeCount; i++)
+            {
+                uint source = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                uint target = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                NodeData? srcNode = GetNode(source);
+                NodeData? targNode = GetNode(target);
+
+                if (srcNode is null || targNode is null)
+                {
+                    return false;
+                }
+
+                EdgeNodeType edgeType = serializer.Deserialize<EdgeNodeType>(jsnReader); jsnReader.Read();
+                ulong execCount = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
+
+                EdgeData edge = new EdgeData(edgeType, execCount, index: EdgeList.Count, sourceType: srcNode.VertType());
+                AddEdge(edge, srcNode, targNode);
+                progress.SectionProgress = (float)i / (float)edgeCount;
+                if (progress.Cancelled) return false;
+            }
+
+            return jsnReader.TokenType is JsonToken.EndArray;
+        }
+
+
+        private bool LoadBlocks(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionName = $"Thread {this.ThreadID} Blocks";
+            progress.SectionProgress = 0;
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Blocks", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No Blocks metadata in trace file");
+                return false;
+            }
+
+            if (!mdObj.TryGetValue("Count", out JToken? countTok) || countTok.Type != JTokenType.Integer)
+            {
+                Logging.RecordLogEvent("Failed to find valid Blocks count in graph");
+                return false;
+            }
+
+            int blockCount = countTok.ToObject<int>();
+            BlocksFirstLastNodeList.Capacity = blockCount;
+
+            jsnReader.Read();
+            if (jsnReader.TokenType is not JsonToken.StartArray) return false;
+            jsnReader.Read();
+
+            for (var i = 0; i < blockCount; i++)
+            {
+                uint firstNode = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                uint lastNode = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                BlocksFirstLastNodeList.Add(new Tuple<uint, uint>(firstNode, lastNode));
+                progress.SectionProgress = (float)i / (float)blockCount;
+                if (progress.Cancelled) return false;
+            }
+
+            return jsnReader.TokenType is JsonToken.EndArray;
+        }
+
+
+        private bool LoadExceptions(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionName = $"Thread {this.ThreadID} Exceptions";
+            progress.SectionProgress = 0;
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Exceptions", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No Exceptions data in trace file");
+                return false;
+            }
+
+            if (!mdObj.TryGetValue("Count", out JToken? countTok) || countTok.Type != JTokenType.Integer)
+            {
+                Logging.RecordLogEvent("Failed to find valid node count in graph");
+                return false;
+            }
+
+            int excCount = countTok.ToObject<int>();
+            exceptionSet.Capacity = excCount;
+
+            jsnReader.Read();
+            if (jsnReader.TokenType is not JsonToken.StartArray) return false;
+            jsnReader.Read();
+
+            for (var i = 0; i < excCount; i++)
+            {
+                uint nodeIdx = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                exceptionSet.Add(nodeIdx);
+                progress.SectionProgress = (float)i / (float)excCount;
+                if (progress.Cancelled) return false;
+            }
+
+            return jsnReader.TokenType is JsonToken.EndArray;
+        }
+
+
+        private bool LoadCallData(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionName = $"Thread {this.ThreadID} API Calls";
+            progress.SectionProgress = 0;
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "SymbolCalls", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No SymbolCalls metadata in trace file");
+                return false;
+            }
+
+            if (!mdObj.TryGetValue("Count", out JToken? countTok) || countTok.Type != JTokenType.Integer)
+            {
+                Logging.RecordLogEvent("Failed to find valid node count in graph");
+                return false;
+            }
+            int count = countTok.ToObject<int>();
+
+            jsnReader.Read();
+            if (jsnReader.TokenType is not JsonToken.StartArray) return false;
+            jsnReader.Read();
+
+            SymbolCallRecords.Capacity = count;
+            for (var calli = 0; calli < count; calli++)
+            {
+
+                uint callerIdx = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                uint targetIdx = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                uint argCount = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+
+                APICALLDATA symcall = new APICALLDATA()
+                {
+                    edgeIdx = new Tuple<uint, uint>(callerIdx, targetIdx),
+                    argList = new()
+                };
+
+                for (var argi = 0; argi < argCount; argi++)
+                {
+                    int argIdx = serializer.Deserialize<int>(jsnReader); jsnReader.Read();
+                    string? arg = serializer.Deserialize<string>(jsnReader); jsnReader.Read();
+                    if (arg is not null)
+                        symcall.argList.Add(new Tuple<int, string>(argIdx, arg));
+                }
+                SymbolCallRecords.Add(symcall);
+                progress.SectionProgress = (float)calli / (float)count;
+                if (progress.Cancelled) return false;
+            }
+
+            return jsnReader.TokenType is JsonToken.EndArray;
+        }
+
+
+        private bool LoadReplayData(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
+        {
+            progress.SectionName = $"Thread {this.ThreadID} Replay Data";
+            progress.SectionProgress = 0;
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "ReplayData", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No ReplayData metadata in trace file");
+                return false;
+            }
+
+            if (!mdObj.TryGetValue("Count", out JToken? countTok) || countTok.Type != JTokenType.Integer)
+            {
+                Logging.RecordLogEvent("Failed to find valid node count in graph");
+                return false;
+            }
+            int entryCount = countTok.ToObject<int>();
+
+
+            jsnReader.Read();
+            if (jsnReader.TokenType is not JsonToken.StartArray) return false;
+            jsnReader.Read();
+
+            bool skipPastSkipped = false;
+            if (GlobalConfig.Settings.Tracing.ReplayStorageMax is not null)
+            {
+                skipPastSkipped = true;
+                if (GlobalConfig.Settings.Tracing.ReplayStorageMax.Value < entryCount)
+                {
+                    entryCount = GlobalConfig.Settings.Tracing.ReplayStorageMax.Value;
+                    skipPastSkipped = true;
+                }
+            }
+            SavedAnimationData.Capacity = entryCount;
+
+            for (var entryi = 0; entryi < entryCount; entryi++)
+            {
+                ANIMATIONENTRY entry = new ANIMATIONENTRY();
+                entry.entryType = serializer.Deserialize<eTraceUpdateType>(jsnReader); jsnReader.Read();
+                entry.blockAddr = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
+                entry.blockID = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                entry.count = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
+                entry.targetAddr = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
+                entry.targetID = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+
+                int edgeRepCount = serializer.Deserialize<int>(jsnReader); jsnReader.Read();
+                if (edgeRepCount is 0)
+                {
+                    entry.edgeCounts = null;
+                }
+                else
+                {
+                    entry.edgeCounts = new();
+                    for (var repi = 0; repi < edgeRepCount; repi++)
+                    {
+                        uint blockID = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                        ulong repeatCount = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
+                        entry.edgeCounts.Add(new Tuple<uint, ulong>(blockID, repeatCount));
+                    }
+                }
+                SavedAnimationData.Add(entry);
+                progress.SectionProgress = (float)entryi / (float)entryCount;
+                if (progress.Cancelled) return false;
+            }
+
+            if (skipPastSkipped is true)
+            {
+                progress.SectionName = $"Thread {this.ThreadID} Skipping Excess Replay Data";
+                while (jsnReader.TokenType is not JsonToken.EndArray && jsnReader.Read()) { }
+            }
+
+            return jsnReader.TokenType is JsonToken.EndArray;
         }
 
 
@@ -1952,9 +2173,47 @@ namespace rgat
 
         /// <summary>
         /// Get the list of thread animation entries
+        /// ReleaseSavedAnimationDataReference() must be called after being finished with the list
         /// </summary>
         /// <returns>The original list of entries</returns>
-        public List<ANIMATIONENTRY> GetSavedAnimationData() => SavedAnimationData;
+        public List<ANIMATIONENTRY> GetSavedAnimationDataReference()
+        {
+            lock (AnimDataLock)
+            {
+                animDataRefs += 1;
+                return SavedAnimationData;
+            }
+        }
+
+        public void ReleaseSavedAnimationDataReference()
+        {
+            lock (AnimDataLock)
+            {
+                animDataRefs -= 1;
+                if (_requireAnimationDataPurge && animDataRefs == 0)
+                {
+                    SavedAnimationData.Clear();
+                    _requireAnimationDataPurge = false;
+                }
+            }
+        }
+        private int animDataRefs = 0;
+        private bool _requireAnimationDataPurge = false;
+
+        public void PurgeSavedAnimationData()
+        {
+            lock (AnimDataLock)
+            {
+                if (animDataRefs == 0)
+                {
+                    SavedAnimationData.Clear();
+                }
+                else
+                {
+                    _requireAnimationDataPurge = true;
+                }
+            }
+        }
 
         /// <summary>
         /// The API calls made by the thread
@@ -2105,7 +2364,7 @@ namespace rgat
                     if (error != null)
                     {
                         results.Errors.Add(new Tuple<TestRequirement, string>(req, error));
-                        Logging.RecordLogEvent(error, Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent(error, Logging.LogFilterType.Error);
                     }
                 }
             }
@@ -2118,7 +2377,7 @@ namespace rgat
             {
                 if (testedge.Type != JTokenType.Object)
                 {
-                    Logging.RecordLogEvent($"Bad object in 'Edges' list of test case: {testedge}", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"Bad object in 'Edges' list of test case: {testedge}", Logging.LogFilterType.Error);
                     failedComparison = "Bad edge test object";
                     return false;
                 }
@@ -2133,7 +2392,7 @@ namespace rgat
                 if (!edgeTestObj.TryGetValue("Source", out JToken? srcTok) || srcTok.Type != JTokenType.Integer ||
                     !edgeTestObj.TryGetValue("Target", out JToken? targTok) || targTok.Type != JTokenType.Integer)
                 {
-                    Logging.RecordLogEvent($"'Edges' test values require int Source and Target values: {testedge}", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"'Edges' test values require int Source and Target values: {testedge}", Logging.LogFilterType.Error);
                     failedComparison = "Bad Test";
                     return false;
                 }
@@ -2176,7 +2435,7 @@ namespace rgat
                 if (countTok.Type != JTokenType.Integer)
                 {
                     count = 0;
-                    Logging.RecordLogEvent($"EdgeTestObject Count must be integer, not {countTok.Type}", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"EdgeTestObject Count must be integer, not {countTok.Type}", Logging.LogFilterType.Error);
                     return false;
                 }
                 count = countTok.ToObject<ulong>();

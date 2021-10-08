@@ -122,6 +122,8 @@ namespace rgat.Threads
                     {
                         graph.InternalProtoGraph.MarkHeatSolvingComplete();
                     }
+                    if (graph.RenderingMode == CONSTANTS.eRenderingMode.eHeatmap)
+                        graph.ResetCachedRender();
                 }
             }
             Finished();

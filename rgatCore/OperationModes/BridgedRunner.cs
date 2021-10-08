@@ -36,7 +36,7 @@ namespace rgat.OperationModes
         {
             if (GlobalConfig.StartOptions!.ConnectModeAddress != null)
             {
-                Logging.RecordLogEvent("Starting GUI connect mode", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent("Starting GUI connect mode", Logging.LogFilterType.Debug);
                 try
                 {
                     ConnectToListener(connection, onConnected);
@@ -58,7 +58,7 @@ namespace rgat.OperationModes
         {
             if (GlobalConfig.StartOptions!.ListenPort != null)
             {
-                Logging.RecordLogEvent("Starting GUI listen mode", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent("Starting GUI listen mode", Logging.LogFilterType.Debug);
                 try
                 {
                     StartListenerMode(connection, onConnected);
@@ -128,13 +128,13 @@ namespace rgat.OperationModes
 
             if (GlobalConfig.StartOptions.ListenPort != null)
             {
-                Logging.RecordLogEvent($"Starting headless listen mode => {GlobalConfig.StartOptions.ListenPort}", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Starting headless listen mode => {GlobalConfig.StartOptions.ListenPort}", Logging.LogFilterType.Debug);
                 StartListenerMode(connection, () => RunConnection(connection));
             }
 
             if (GlobalConfig.StartOptions.ConnectModeAddress != null)
             {
-                Logging.RecordLogEvent($"Starting headless connect mode => {GlobalConfig.StartOptions.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Starting headless connect mode => {GlobalConfig.StartOptions.ConnectModeAddress}", Logging.LogFilterType.Debug);
                 ConnectToListener(connection, () => RunConnection(connection));
             }
 
@@ -185,14 +185,14 @@ namespace rgat.OperationModes
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordLogEvent($"RunConnection Error: ProcessData exception {e.Message} <{item.msgType}>, data:{GetString(item.data)}", Logging.LogFilterType.TextError);
+                            Logging.RecordLogEvent($"RunConnection Error: ProcessData exception {e.Message} <{item.msgType}>, data:{GetString(item.data)}", Logging.LogFilterType.Error);
                             connection.Teardown("RunConnection ProcessData Exception");
                             return;
                         }
                     }
                     else
                     {
-                        Logging.RecordLogEvent($"RunConnection Error: null data", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"RunConnection Error: null data", Logging.LogFilterType.Error);
                         connection.Teardown("Null indata");
                         return;
                     }
@@ -217,7 +217,7 @@ namespace rgat.OperationModes
                             reason = split[1];
                         }
 
-                        Logging.RecordLogEvent($"Disconnected - Remote party tore down the connection{((reason.Length > 0) ? $": {reason}" : "")}", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Disconnected - Remote party tore down the connection{((reason.Length > 0) ? $": {reason}" : "")}", Logging.LogFilterType.Error);
                         rgatState.NetworkBridge.Teardown(reason);
                         return;
                     }
@@ -269,7 +269,7 @@ namespace rgat.OperationModes
                     Logging.WriteConsole($"Processing trace meta {GetString(item.data)}");
                     if (!HandleTraceMeta(trace, items!))
                     {
-                        Logging.RecordLogEvent($"Failed processing trace meta {GetString(item.data)}", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Failed processing trace meta {GetString(item.data)}", Logging.LogFilterType.Error);
                         rgatState.NetworkBridge.Teardown($"Trace Meta processing failed");
                     }
                     break;
@@ -284,7 +284,7 @@ namespace rgat.OperationModes
                         }
                         else
                         {
-                            Logging.RecordLogEvent($"Trace data sent to bad pipe {item.destinationID}", Logging.LogFilterType.TextError);
+                            Logging.RecordLogEvent($"Trace data sent to bad pipe {item.destinationID}", Logging.LogFilterType.Error);
                             rgatState.NetworkBridge.Teardown($"Trace Data processing failed");
                         }
 
@@ -302,7 +302,7 @@ namespace rgat.OperationModes
                         }
                         else
                         {
-                            Logging.RecordLogEvent($"Invalid tracecommand addressing {item.destinationID}", Logging.LogFilterType.TextError);
+                            Logging.RecordLogEvent($"Invalid tracecommand addressing {item.destinationID}", Logging.LogFilterType.Error);
                             rgatState.NetworkBridge.Teardown($"TraceCommand addressing failure");
                         }
 
@@ -581,7 +581,7 @@ namespace rgat.OperationModes
                 return false;
             }
 
-            Logging.RecordLogEvent("New child binary initialised: " + remotePath, Logging.LogFilterType.TextAlert);
+            Logging.RecordLogEvent("New child binary initialised: " + remotePath, Logging.LogFilterType.Alert);
             return true;
         }
 
@@ -936,11 +936,11 @@ namespace rgat.OperationModes
             Process? p = ProcessLaunching.StartLocalTrace(pintool, settings, testID: testID);
             if (p != null)
             {
-                rgatState.NetworkBridge.SendLog($"Trace of {path} launched as remote process ID {p.Id}", Logging.LogFilterType.TextAlert);
+                rgatState.NetworkBridge.SendLog($"Trace of {path} launched as remote process ID {p.Id}", Logging.LogFilterType.Alert);
             }
             else
             {
-                rgatState.NetworkBridge.SendLog($"Trace of {path} failed to start", Logging.LogFilterType.TextAlert);
+                rgatState.NetworkBridge.SendLog($"Trace of {path} failed to start", Logging.LogFilterType.Alert);
             }
         }
 
@@ -1128,7 +1128,7 @@ namespace rgat.OperationModes
                 return;
             }
 
-            Logging.RecordLogEvent($"Initialising . {GlobalConfig.StartOptions!.ConnectModeAddress}", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Initialising . {GlobalConfig.StartOptions!.ConnectModeAddress}", Logging.LogFilterType.Debug);
             if (GlobalConfig.StartOptions.ConnectModeAddress is null ||
                 !GetRemoteAddress(GlobalConfig.StartOptions.ConnectModeAddress, out string address, out int port))
             {

@@ -115,14 +115,14 @@ namespace ImGuiNET
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
 
-            Logging.RecordLogEvent("Loading fonts", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent("Loading fonts", Logging.LogFilterType.Debug);
             var fonts = ImGui.GetIO().Fonts;
 
             BuildFonts();
             _originalFont = fonts.AddFontDefault();
 
 
-            Logging.RecordLogEvent("Done Loading fonts", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent("Done Loading fonts", Logging.LogFilterType.Debug);
 
             CreateDeviceResources(gd, outputDescription);
             SetKeyMappings();
@@ -151,7 +151,7 @@ namespace ImGuiNET
                 return;
             }
 
-            Logging.RecordLogEvent($"Loading Unicode fonts", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Loading Unicode fonts", Logging.LogFilterType.Debug);
             ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
 
             //TODO - make these options
@@ -208,7 +208,7 @@ namespace ImGuiNET
                 byte[]? solidFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Solid_900");
                 if (regularFontBytes != null && solidFontBytes != null)
                 {
-                    Logging.RecordLogEvent($"Loading font resources", Logging.LogFilterType.TextDebug);
+                    Logging.RecordLogEvent($"Loading font resources", Logging.LogFilterType.Debug);
                     System.Runtime.InteropServices.GCHandle rangeHandle =
                         System.Runtime.InteropServices.GCHandle.Alloc(new ushort[]
                         { 0xe000,0xffff,0}, System.Runtime.InteropServices.GCHandleType.Pinned);
@@ -556,7 +556,7 @@ namespace ImGuiNET
             foreach (KeyValuePair<Texture, TextureView> view_tview in _autoViewsByTexture)
             {
 
-                Debug.Assert(!view_tview.Value.IsDisposed);
+                Debug.Assert(!view_tview.Value.IsDisposed); 
                 if (view_tview.Key.IsDisposed)
                 {
                     Texture staleTexture = view_tview.Key;
@@ -578,7 +578,7 @@ namespace ImGuiNET
             if (removed.Any())
             {
                 removed.ForEach(r => _autoViewsByTexture.Remove(r));
-                Logging.RecordLogEvent($"Housekeeping removed {removed.Count} cached items, {_autoViewsByTexture.Count} active remaining", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Housekeeping removed {removed.Count} cached items, {_autoViewsByTexture.Count} active remaining", Logging.LogFilterType.Debug);
                 /*
                 if (_viewsById.Any())
                 {
@@ -635,7 +635,7 @@ namespace ImGuiNET
             using Stream? resourceStream = assembly.GetManifestResourceStream(resourceName);
             if (resourceStream == null)
             {
-                Logging.RecordLogEvent("ERROR: Failed to find resource " + resourceName, filter: Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("ERROR: Failed to find resource " + resourceName, filter: Logging.LogFilterType.Error);
                 return null;
             }
             else
@@ -824,7 +824,7 @@ namespace ImGuiNET
             uint totalVBSize = (uint)(draw_data.TotalVtxCount * Unsafe.SizeOf<ImDrawVert>());
             if (totalVBSize > _vertexBuffer!.SizeInBytes)
             {
-                Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Vertex buffer from {_vertexBuffer.SizeInBytes} to {totalVBSize * 1.5f}", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Vertex buffer from {_vertexBuffer.SizeInBytes} to {totalVBSize * 1.5f}", Logging.LogFilterType.Debug);
                 gd.DisposeWhenIdle(_vertexBuffer);
                 _vertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, (uint)(totalVBSize * 1.5f), BufferUsage.VertexBuffer | BufferUsage.Dynamic, name: _vertexBuffer.Name);
             }
@@ -832,7 +832,7 @@ namespace ImGuiNET
             uint totalIBSize = (uint)(draw_data.TotalIdxCount * sizeof(ushort));
             if (totalIBSize > _indexBuffer!.SizeInBytes)
             {
-                Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Index buffer from {_indexBuffer.SizeInBytes} to {totalIBSize * 1.5f}", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"ExpandGraphicsBuffers() Resizing Index buffer from {_indexBuffer.SizeInBytes} to {totalIBSize * 1.5f}", Logging.LogFilterType.Debug);
                 gd.DisposeWhenIdle(_indexBuffer);
                 _indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, (uint)(totalIBSize * 1.5f), BufferUsage.IndexBuffer | BufferUsage.Dynamic, name: _indexBuffer.Name);
             }

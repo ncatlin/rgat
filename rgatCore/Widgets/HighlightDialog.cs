@@ -253,9 +253,9 @@ namespace rgat.Widgets
                                     }
                                 }
                             }
-
-                            ImGui.TreePop();
                         }
+
+                        ImGui.TreePop();
                     }
                 }
             }
@@ -338,16 +338,17 @@ namespace rgat.Widgets
                         _activeHighlights.SelectedSymbols.Clear();
                     }
 
+                    /*
                     ImGui.SameLine(ImGui.GetContentRegionAvail().X - 100);
-                    ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000);
-                    ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000ff);
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.GraphBackground));
+                    ImGui.PushStyleColor(ImGuiCol.Text, WritableRgbaFloat.ToUint(Color.Cyan));
                     if (ImGui.Button("Highlight Colour"))
                     {
                         //todo: highlight colour picker
                     }
                     ImGui.PopStyleColor();
                     ImGui.PopStyleColor();
-
+                    */
 
                     ImGui.EndChild();
                 }

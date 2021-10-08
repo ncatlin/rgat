@@ -27,30 +27,27 @@ namespace rgat
         /// <param name="serialised">JArray of edge data items</param>
         /// <param name="index">Index of the edge in the edge list</param>
         /// <param name="sourceType">Type of soure node (jump, etc)</param>
-        public EdgeData(JArray serialised, int index, CONSTANTS.EdgeNodeType sourceType)
+        public EdgeData(CONSTANTS.EdgeNodeType edgeType, ulong execCount, int index, CONSTANTS.EdgeNodeType sourceType)
         {
             EdgeListIndex = index;
-            edgeClass = (CONSTANTS.EdgeNodeType)serialised[2].ToObject<uint>();
-            ExecutionCount = serialised[3].ToObject<ulong>();
+            edgeClass = edgeType;
+            ExecutionCount = execCount;
             sourceNodeType = sourceType;
         }
 
 
 
         /// <summary>
-        /// Convert the edge to JSON that can be saved
+        /// Output the edge tuple and data to the json writer
         /// </summary>
-        /// <param name="src">Source node index</param>
-        /// <param name="targ">Target node index</param>
-        /// <returns></returns>
-        public JArray Serialise(uint src, uint targ)
+        /// <param name="srctarg">Source/Target node indexes</param>
+        /// <param name="writer">Json Writer</param>
+        public void Serialise(System.Tuple<uint, uint> srctarg, Newtonsoft.Json.JsonWriter writer)
         {
-            JArray edgearr = new JArray();
-            edgearr.Add(src);
-            edgearr.Add(targ);
-            edgearr.Add(edgeClass);
-            edgearr.Add(ExecutionCount);
-            return edgearr;
+            writer.WriteValue(srctarg.Item1);
+            writer.WriteValue(srctarg.Item2);
+            writer.WriteValue(edgeClass);
+            writer.WriteValue(ExecutionCount);
         }
 
 

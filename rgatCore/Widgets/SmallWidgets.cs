@@ -7,12 +7,18 @@ namespace rgat.Widgets
 {
     internal class SmallWidgets
     {
-        public static void ProgressBar(string id, string caption, float progress, Vector2 barSize, uint barColour, uint BGColour = 0, uint textColour = 0xffffffff)
+
+        //unmaintainable hellmess
+        public static void ProgressBar(string id, string caption, float progress, Vector2 barSize, uint barColour, 
+            uint BGColour = 0, uint textColour = 0xffffffff)
         {
+            Vector2 origCursorPos = ImGui.GetCursorPos();
+            Vector2 origScreenPos = ImGui.GetCursorScreenPos();
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 6));
+            ImGui.Button(id, barSize);
+            ImGui.SetCursorScreenPos(new Vector2(ImGui.GetWindowPos().X + origCursorPos.X, ImGui.GetCursorScreenPos().Y));
 
-            ImGui.InvisibleButton(id, barSize);
-
-            const float vertPadding = 2;
+            const float vertPadding = 3;
             Vector2 start = new Vector2(ImGui.GetCursorScreenPos().X, ImGui.GetCursorScreenPos().Y - barSize.Y - vertPadding * 2);
             Vector2 end = new Vector2(start.X + barSize.X, start.Y + barSize.Y);
             ImGui.GetWindowDrawList().AddRectFilled(start, end, BGColour);
@@ -24,8 +30,9 @@ namespace rgat.Widgets
             Vector2 textSize = ImGui.CalcTextSize(caption);
             float halfCaptionWidth = textSize.X / 2;
 
-            Vector2 textpos = new Vector2(startInner.X + barSize.X / 2 - halfCaptionWidth, startInner.Y);
+            Vector2 textpos = new Vector2(startInner.X + barSize.X / 2 - halfCaptionWidth, startInner.Y + 1);
             ImGui.GetWindowDrawList().AddText(textpos, textColour, caption);
+            ImGui.PopStyleVar();
         }
 
         private static uint _lastActiveID;

@@ -14,10 +14,10 @@ namespace rgat
         public LogsWindow(rgatState _state)
         {
             _rgatState = _state;
-            _LogFilters[(int)Logging.LogFilterType.TextDebug] = true;
-            _LogFilters[(int)Logging.LogFilterType.TextInfo] = true;
-            _LogFilters[(int)Logging.LogFilterType.TextError] = true;
-            _LogFilters[(int)Logging.LogFilterType.TextAlert] = true;
+            _LogFilters[(int)Logging.LogFilterType.Debug] = true;
+            _LogFilters[(int)Logging.LogFilterType.Info] = true;
+            _LogFilters[(int)Logging.LogFilterType.Error] = true;
+            _LogFilters[(int)Logging.LogFilterType.Alert] = true;
 
             _refreshTimer = new System.Timers.Timer(750);
             _refreshTimer.Elapsed += FireTimer;
@@ -51,10 +51,10 @@ namespace rgat
 
                 var textFilterCounts = Logging.GetTextFilterCounts();
                 List<Tuple<string, LogFilterType>> filters = new List<Tuple<string, LogFilterType>>(){
-                        new Tuple<string, LogFilterType>("Debug", LogFilterType.TextDebug),
-                        new Tuple<string, LogFilterType>("Info", LogFilterType.TextInfo),
-                        new Tuple<string, LogFilterType>("Alert", LogFilterType.TextAlert),
-                        new Tuple<string, LogFilterType>("Error", LogFilterType.TextError)
+                        new Tuple<string, LogFilterType>("Debug", LogFilterType.Debug),
+                        new Tuple<string, LogFilterType>("Info", LogFilterType.Info),
+                        new Tuple<string, LogFilterType>("Alert", LogFilterType.Alert),
+                        new Tuple<string, LogFilterType>("Error", LogFilterType.Error)
                     };
 
                 if (ImGui.BeginTable("LogFilterTable", filters.Count + 1, ImGuiTableFlags.Borders, new Vector2(boxSize.X * (filters.Count + 1), 41)))
@@ -161,7 +161,7 @@ namespace rgat
                         case eLogFilterBaseType.Text:
                             {
                                 Logging.TEXT_LOG_EVENT text_evt = (Logging.TEXT_LOG_EVENT)msg;
-                                sourceString = $"{msg.LogType} - {text_evt.Filter}";
+                                sourceString = $"{text_evt.Filter}";
                                 msgString = text_evt.Text;
                                 break;
                             }
@@ -250,8 +250,8 @@ namespace rgat
         {
             //select only the alerts filter
             Array.Clear(_LogFilters, 0, _LogFilters.Length);
-            _LogFilters[(int)LogFilterType.TextAlert] = true;
-            _LogFilters[(int)LogFilterType.TextError] = true;
+            _LogFilters[(int)LogFilterType.Alert] = true;
+            _LogFilters[(int)LogFilterType.Error] = true;
         }
 
 

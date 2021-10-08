@@ -278,7 +278,7 @@ namespace rgat
         {
             if (InternalProtoGraph.TraceData.DiscardTraceData)
             {
-                InternalProtoGraph.SavedAnimationData.Clear();
+                InternalProtoGraph.PurgeSavedAnimationData();
             }
 
             ResetAllActiveAnimatedAlphas();
@@ -400,12 +400,6 @@ namespace rgat
                 return;
             }
 
-            int dbglimit = 9999;
-            if (DrawnEdgesCount > dbglimit)
-            {
-                return;
-            }
-
             for (int edgeIdx = DrawnEdgesCount; edgeIdx < endIndex; edgeIdx++)
             {
                 InternalProtoGraph.GetEdgeNodes(edgeIdx, out Tuple<uint, uint> edgeNodes, out EdgeData e);
@@ -429,11 +423,6 @@ namespace rgat
                 if (rgatState.rgatIsExiting)
                 {
                     break;
-                }
-
-                if (DrawnEdgesCount > dbglimit)
-                {
-                    return;
                 }
             }
         }
@@ -1128,7 +1117,7 @@ namespace rgat
                     }
                     else
                     {
-                        Logging.RecordLogEvent($"Edge A {currentNodeIndex},{neigbours[nidx]} didn't exist in getEdgeDataints", Logging.LogFilterType.TextAlert);
+                        Logging.RecordLogEvent($"Edge A {currentNodeIndex},{neigbours[nidx]} didn't exist in getEdgeDataints", Logging.LogFilterType.Debug);
                         edgeStrengths[edgeIndex] = 0.5f;
                     }
                     edgeIndex++;
@@ -1151,7 +1140,7 @@ namespace rgat
                     }
                     else
                     {
-                        Logging.RecordLogEvent($"Edge B {neigbours[nidx]},{currentNodeIndex} didn't exist in getEdgeDataints", Logging.LogFilterType.TextAlert);
+                        Logging.RecordLogEvent($"Edge B {neigbours[nidx]},{currentNodeIndex} didn't exist in getEdgeDataints", Logging.LogFilterType.Alert);
                         edgeStrengths[edgeIndex] = 0.5f;
                     }
                     edgeIndex++;
@@ -1364,9 +1353,11 @@ namespace rgat
                     FirstLastIdx = new Tuple<uint, uint>(n.Index, n.Index);
                     blockMid = (int)n.Index;
                     blockSize = 1;
+                    blockMiddlesList.Add((int)n.Index);
                     //external nodes dont have a block id so just give them a unique one
                     //all that matters in the shader is it's unique
-                    blockID = -1 - externals;
+                    blockID = blockMiddlesList.Count;
+                    blockMiddlesDict[blockID] = (int)n.Index;
                 }
 
                 int offsetFromCenter = 0;
@@ -1676,10 +1667,10 @@ namespace rgat
 
 
 
-        Position2DColour[] _cachedNodeVerts = Array.Empty<Position2DColour>();
-        Position2DColour[] _cachedNodePickingVerts = Array.Empty<Position2DColour>();
-        uint[] _cachedNodeIndexes = Array.Empty<uint>();
-        int _cachedNodeVertCount = 0;
+        Position2DColour[] _cachedMainNodeVerts = Array.Empty<Position2DColour>();
+        Position2DColour[] _cachedMainNodePickingVerts = Array.Empty<Position2DColour>();
+        uint[] _cachedMainNodeIndexes = Array.Empty<uint>();
+        int _cachedMainNodeVertCount = 0;
 
 
         /// <summary>
@@ -1701,6 +1692,7 @@ namespace rgat
                 createNewLabels = true;
                 _newLabels = false;
                 lastRenderingMode = renderingMode;
+                ResetCachedRender();
             }
 
             nodeCount = RenderedNodeCount();
@@ -1716,21 +1708,21 @@ namespace rgat
 
             int textureSize = textureWidth * textureWidth;
 
-            if (textureSize > _cachedNodeVerts.Length)
+            if (textureSize > _cachedMainNodeVerts.Length)
             {
                 Position2DColour[] NodeVerts = new Position2DColour[textureSize];
-                _cachedNodeVerts = NodeVerts;
+                _cachedMainNodeVerts = NodeVerts;
 
                 Position2DColour[] NodePickingVerts = new Position2DColour[textureSize];
-                _cachedNodePickingVerts = NodePickingVerts;
-                _cachedNodeVertCount = 0;
-                _cachedNodeIndexes = Enumerable.Range(0, NodeVerts.Length).Select(i => (uint)i).ToArray();
-                _edgeTexturiseRequired = true;
+                _cachedMainNodePickingVerts = NodePickingVerts;
+                _cachedMainNodeVertCount = 0;
+                _cachedMainNodeIndexes = Enumerable.Range(0, NodeVerts.Length).Select(i => (uint)i).ToArray();
+                _mainEdgesCache.TexturiseRequired = true;
             }
 
-            nodePickingColors = _cachedNodePickingVerts;
+            nodePickingColors = _cachedMainNodePickingVerts;
             captions = new List<Tuple<string?, uint>>();
-            nodeIndices = _cachedNodeIndexes;
+            nodeIndices = _cachedMainNodeIndexes;
 
 
             WritableRgbaFloat[] graphColoursCopy;
@@ -1739,30 +1731,30 @@ namespace rgat
                 graphColoursCopy = graphColours.ToArray();
             }
 
-            for (int index = _cachedNodeVertCount; index < _cachedNodeVerts.Length; index++)
+            for (int index = _cachedMainNodeVertCount; index < _cachedMainNodeVerts.Length; index++)
             {
                 float x = index % textureWidth;
                 float y = index / textureWidth;
                 Vector2 texturePosition = new Vector2(x, y);
 
-                if (index >= _cachedNodeVerts.Length || index >= InternalProtoGraph.NodeCount)
+                if (index >= _cachedMainNodeVerts.Length || index >= InternalProtoGraph.NodeCount)
                 {
-                    nodeCount = _cachedNodeVertCount;
+                    nodeCount = _cachedMainNodeVertCount;
                     break;
                 }
 
-                _cachedNodeVertCount += 1;
+                _cachedMainNodeVertCount += 1;
                 WritableRgbaFloat nodeColour = GetNodeColor(index, renderingMode, graphColoursCopy);
-                _cachedNodeVerts[index] = new Position2DColour
+                _cachedMainNodeVerts[index] = new Position2DColour
                 {
                     Position = texturePosition,
                     Color = nodeColour
                 };
 
-                _cachedNodePickingVerts[index] = new Position2DColour
+                _cachedMainNodePickingVerts[index] = new Position2DColour
                 {
                     Position = texturePosition,
-                    Color = new WritableRgbaFloat(index, 0, 0, 1)
+                    Color = new WritableRgbaFloat(Rf: (float)index, Gf: 0, Bf: 0, Af: 1)
                 };
             }
 
@@ -1771,7 +1763,7 @@ namespace rgat
             {
                 for (int index = 0; index < nodeCount; index++)
                 {
-                    if (!IsAnimated || _cachedNodeVerts[index].Color.A > 0)
+                    if (!IsAnimated || _cachedMainNodeVerts[index].Color.A > 0)
                     {
                         var caption = CreateNodeLabel((int)index, renderingMode, createNewLabels);
                         captions.Add(caption);
@@ -1779,8 +1771,8 @@ namespace rgat
                 }
             }
 
-            nodeCount = _cachedNodeVertCount;
-            return _cachedNodeVerts;
+            nodeCount = _cachedMainNodeVertCount;
+            return _cachedMainNodeVerts;
         }
 
         private void InitGraphColours()
@@ -1831,7 +1823,7 @@ namespace rgat
             {
                 _cachedPreviewNodeVerts = new Position2DColour[textureSize];
                 _cachedPreviewNodeIndexes = Enumerable.Range(0, textureSize).Select(i => (uint)i).ToArray();
-                _edgeTexturiseRequired = true;
+                _mainEdgesCache.TexturiseRequired = true;
                 _cachedPreviewNodeVertCount = 0;
             }
 
@@ -1872,11 +1864,22 @@ namespace rgat
         }
 
 
-        int _cachedELVertIndex = 0;
-        Position2DColour[] _cachedEdgeLineVerts = Array.Empty<Position2DColour>();
-        uint[] _cachedEdgeIndexBuffer = Array.Empty<uint>();
-        bool _edgeTexturiseRequired = false;
+        public void ResetCachedRender()
+        {
+            _mainEdgesCache.ELVertIndex = 0;
+            _cachedMainNodeVertCount = 0;
+        }
 
+        class CACHED_EDGE_SET
+        {
+            public int ELVertIndex = 0;
+            public Position2DColour[] EdgeLineVerts = Array.Empty<Position2DColour>();
+            public uint[] EdgeIndexBuffer = Array.Empty<uint>();
+            public bool TexturiseRequired = false;
+        }
+
+        CACHED_EDGE_SET _previewEdgesCache = new CACHED_EDGE_SET();
+        CACHED_EDGE_SET _mainEdgesCache = new CACHED_EDGE_SET();
 
         /// <summary>
         /// Get the geometry and colour of every edge
@@ -1885,16 +1888,18 @@ namespace rgat
         /// <param name="edgeIndices">Output list of edge indexes for drawing</param>
         /// <param name="vertCount">Output number of edge vertics to draw</param>
         /// <returns></returns>
-        public Position2DColour[] GetEdgeLineVerts(eRenderingMode renderingMode, out uint[] edgeIndices, out int vertCount)
+        public Position2DColour[] GetEdgeLineVerts(eRenderingMode renderingMode, out uint[] edgeIndices, out int vertCount, bool preview = false)
         {
+            CACHED_EDGE_SET cache = preview ? _previewEdgesCache : _mainEdgesCache;
+
             uint evTexWidth = EdgeVertsTextureWidth();
             uint evTexSize = evTexWidth * evTexWidth * 16;
-            if (evTexSize > _cachedEdgeLineVerts.Length || _edgeTexturiseRequired)
+            if (evTexSize > cache.EdgeLineVerts.Length || cache.TexturiseRequired)
             {
-                _cachedEdgeLineVerts = new Position2DColour[evTexSize];
-                _cachedEdgeIndexBuffer = Enumerable.Range(0, _cachedEdgeLineVerts.Length).Select(i => (uint)i).ToArray();
-                _cachedELVertIndex = 0;
-                _edgeTexturiseRequired = false;
+                cache.EdgeLineVerts = new Position2DColour[evTexSize];
+                cache.EdgeIndexBuffer = Enumerable.Range(0, cache.EdgeLineVerts.Length).Select(i => (uint)i).ToArray();
+                cache.ELVertIndex = 0;
+                cache.TexturiseRequired = false;
                 //GC.Collect();
             }
 
@@ -1913,21 +1918,21 @@ namespace rgat
                 Console.WriteLine($"gelv GetEdgelistSpans took {sw.ElapsedMilliseconds}ms ");
             sw.Restart();
 
-            for (var i = _cachedELVertIndex; i < lastEdgeIdx; i++)
+            for (var i = cache.ELVertIndex; i < lastEdgeIdx; i++)
             {
                 Tuple<uint, uint> edgeNodes = nodePairs[i];
 
                 int srcNodeIdx = (int)edgeNodes.Item1;
                 int destNodeIdx = (int)edgeNodes.Item2;
                 WritableRgbaFloat ecol = GetEdgeColor(edgeNodes, edges[i], renderingMode);
-                _cachedEdgeLineVerts[i * 2] =
+                cache.EdgeLineVerts[i * 2] =
                         new Position2DColour
                         {
                             Position = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
                             Color = ecol
                         };
 
-                _cachedEdgeLineVerts[i * 2 + 1] =
+                cache.EdgeLineVerts[i * 2 + 1] =
                     new Position2DColour
                     {
                         Position = new Vector2(destNodeIdx % textureSize, (float)Math.Floor((float)(destNodeIdx / textureSize))),
@@ -1935,14 +1940,16 @@ namespace rgat
                     };
             }
             vertCount = lastEdgeIdx * 2;
-            _cachedELVertIndex = lastEdgeIdx;
+            cache.ELVertIndex = lastEdgeIdx;
 
-            edgeIndices = _cachedEdgeIndexBuffer;
+            edgeIndices = cache.EdgeIndexBuffer;
             sw.Stop();
             if (sw.ElapsedMilliseconds > 60)
                 Console.WriteLine($"GetEdgeLineVertsloop took {sw.ElapsedMilliseconds}ms over {vertCount} verts ({sw.ElapsedMilliseconds / vertCount} avg)");
-            return _cachedEdgeLineVerts;
+            return cache.EdgeLineVerts;
         }
+
+
 
         /// <summary>
         /// Size of data textures for compute shaders
@@ -2196,11 +2203,12 @@ namespace rgat
             int updateLimit = GlobalConfig.LiveAnimationUpdatesPerFrame;
             processedCount = 0;
             Stopwatch sw = new();
-            while (updateProcessingIndex < InternalProtoGraph.SavedAnimationData.Count && (updateLimit-- > 0))
+            var animationData = InternalProtoGraph.GetSavedAnimationDataReference();
+            while (updateProcessingIndex < animationData.Count && (updateLimit-- > 0))
             {
                 sw.Restart();
-                ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[updateProcessingIndex];
-                if (!process_live_update())
+                ANIMATIONENTRY entry = animationData[updateProcessingIndex];
+                if (!process_live_update(entry))
                 {
                     break;
                 }
@@ -2209,6 +2217,7 @@ namespace rgat
                     Console.WriteLine($"ProcessLiveAnimationUpdates took {sw.ElapsedMilliseconds}ms with entry type {entry.entryType}");
                 processedCount += 1;
             }
+            InternalProtoGraph.ReleaseSavedAnimationDataReference();
 
             if (InternalProtoGraph.TraceData.DiscardTraceData)
             {
@@ -2220,7 +2229,7 @@ namespace rgat
 
 
         //return false if we need more trace data to do further updates
-        private bool process_live_update()
+        private bool process_live_update(ANIMATIONENTRY entry)
         {
             if (InternalProtoGraph.HasRecentStep)
             {
@@ -2228,7 +2237,6 @@ namespace rgat
             }
 
             // Stopwatch sw = new Stopwatch();
-            ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[updateProcessingIndex];
 
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
             {
@@ -2295,8 +2303,11 @@ namespace rgat
 
         private void process_replay_animation_updates(double optionalStepSize = 0)
         {
-            if (InternalProtoGraph.SavedAnimationData.Count == 0)
+
+            var animationData = InternalProtoGraph.GetSavedAnimationDataReference();
+            if (animationData.Count == 0)
             {
+                InternalProtoGraph.ReleaseSavedAnimationDataReference();
                 Logging.WriteConsole("Ending animation immediately - no animation data");
                 ReplayState = REPLAY_STATE.Ended;
                 return;
@@ -2327,14 +2338,14 @@ namespace rgat
                 {
                     for (var innerReplayIdx = _lastReplayedIndex + 1; innerReplayIdx < actualIndex + 1; innerReplayIdx += 1)
                     {
-                        process_replay_update(innerReplayIdx);
+                        process_replay_update(innerReplayIdx, animationData);
                     }
                     _lastReplayedIndex = actualIndex;
                 }
-                if (actualIndex >= InternalProtoGraph.SavedAnimationData.Count) break;
+                if (actualIndex >= animationData.Count) break;
             }
 
-            if (AnimationIndex >= InternalProtoGraph.SavedAnimationData.Count - 1)
+            if (AnimationIndex >= animationData.Count - 1)
             {
                 ReplayState = REPLAY_STATE.Ended;
             }
@@ -2342,10 +2353,10 @@ namespace rgat
 
         private int _lastReplayedIndex = -1;
 
-        private void process_replay_update(int replayUpdateIndex)
+        private void process_replay_update(int replayUpdateIndex, List<ANIMATIONENTRY> animationDataList)
         {
-            if (replayUpdateIndex >= InternalProtoGraph.SavedAnimationData.Count) return;
-            ANIMATIONENTRY entry = InternalProtoGraph.SavedAnimationData[replayUpdateIndex];
+            if (replayUpdateIndex >= animationDataList.Count) return;
+            ANIMATIONENTRY entry = animationDataList[replayUpdateIndex];
 
             double stepSize = AnimationRate;
             if (stepSize < 1)
@@ -2357,7 +2368,7 @@ namespace rgat
             //todo - probably other situations we want to do this apart from a parent exec tag
             if (replayUpdateIndex > 0)
             {
-                ANIMATIONENTRY lastentry = InternalProtoGraph.SavedAnimationData[replayUpdateIndex - 1];
+                ANIMATIONENTRY lastentry = animationDataList[replayUpdateIndex - 1];
                 if (lastentry.entryType == eTraceUpdateType.eAnimExecTag)
                 {
                     brighten_next_block_edge(entry.blockID, entry.blockAddr);
@@ -2407,12 +2418,16 @@ namespace rgat
             if (!get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint>? nodeIDList) &&
                 entry.entryType != eTraceUpdateType.eAnimExecException)
             {
+                if (this.InternalProtoGraph.Terminated)
+                {
+                    return;
+                }
                 Thread.Sleep(5);
                 while (!get_block_nodelist(entry.blockAddr, entry.blockID, out nodeIDList))
                 {
                     Thread.Sleep(15);
                     Logging.WriteConsole($"[rgat] process_replay_update waiting for block 0x{entry.blockAddr:x}");
-                    if (rgatState.rgatIsExiting)
+                    if (rgatState.rgatIsExiting || this.InternalProtoGraph.Terminated)
                     {
                         return;
                     }
@@ -3241,7 +3256,7 @@ namespace rgat
         /// </summary>
         public void ResetLayoutStats()
         {
-            ComputeLayoutTime = 0;
+            ComputeLayoutTime = 0.1;
             ComputeLayoutSteps = 0;
             VelocitySetupTime = 0;
             VelocityShaderTime = 0;
@@ -3260,7 +3275,7 @@ namespace rgat
         /// <summary>
         /// How many MS were spent in compute shaders for this layout
         /// </summary>
-        public double ComputeLayoutTime { get; private set; } = 0;
+        public double ComputeLayoutTime { get; private set; } = 0.1;
         /// <summary>
         /// How many rounds of computation were completed for this layout
         /// </summary>

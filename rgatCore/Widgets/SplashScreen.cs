@@ -214,10 +214,12 @@ namespace rgat
                             {
                                 if (File.Exists(entry.Path))
                                 {
+                                    System.Threading.Tasks.Task.Run(() => LoadTraceByPath(entry.Path));
+                                    /*
                                     if (!LoadTraceByPath(entry.Path) && !_badPaths.Contains(entry.Path))
                                     {
                                         _badPaths.Add(entry.Path);
-                                    }
+                                    }*/
                                 }
                                 else if (!_missingPaths.Contains(entry.Path))
                                 {

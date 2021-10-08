@@ -38,6 +38,7 @@ namespace rgat.Threads
         private readonly TextureView _NodeCircleSpriteview;
         private Pipeline? _edgesPipeline, _pointsPipeline;
         private static Task? _emptyGraphMonitor;
+        private Veldrid.CommandList cl;
 
 
         /// <summary>
@@ -133,7 +134,7 @@ namespace rgat.Threads
             _factory = _gdev.ResourceFactory;
 
             _layoutEngine = background ? widget.BackgroundLayoutEngine : widget.ForegroundLayoutEngine;
-
+            cl = _factory.CreateCommandList();
             SetupRenderingResources();
         }
 
@@ -207,9 +208,25 @@ namespace rgat.Threads
                 {
                     if (graph != rgatState.ActiveGraph)
                     {
-                        _layoutEngine.Compute(cl, graph, -1, false);
+                        try
+                        {
+                            _layoutEngine.Compute(cl, graph, -1, false);
+                        }
+                        catch (Exception e)
+                        {
+                            Logging.RecordError($"Preview Compute Error: {e.Message}");
+                        }
+
                     }
-                    RenderPreview(cl, graph);
+
+                    try
+                    {
+                        RenderPreview(graph);
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordError($"Preview Render Error: {e.Message}");
+                    }
                 }
                 else
                 {
@@ -270,7 +287,7 @@ namespace rgat.Threads
         }
 
 
-        private unsafe void RenderPreview(CommandList cl, PlottedGraph graph)
+        private unsafe void RenderPreview(PlottedGraph graph)
         {
             if (graph == null || _stopFlag)
             {
@@ -301,13 +318,14 @@ namespace rgat.Threads
 
             Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow,
                 out uint[] edgeDrawIndexes,
-                out int edgeVertCount);
+                out int edgeVertCount, preview: true);
             if (edgeVertCount == 0 || !graph.LayoutState.Initialised)
             {
                 return;
             }
 
             //Logging.RecordLogEvent("render preview 2", filter: Logging.LogFilterType.BulkDebugLogFile);
+
             cl.Begin();
 
             var textureSize = graph.LinearIndexTextureSize();
@@ -316,9 +334,7 @@ namespace rgat.Threads
             Position2DColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(CONSTANTS.eRenderingMode.eStandardControlFlow, out uint[] nodeIndices, out int nodeCount);
             Debug.Assert(nodeIndices.Length >= nodeCount);
 
-            Debug.Assert(_NodeVertexBuffer!.IsDisposed is false);
-
-            if (_NodeVertexBuffer.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
+            if (_NodeVertexBuffer!.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
                 (_NodeIndexBuffer!.SizeInBytes < nodeIndices.Length * sizeof(uint)))
             {
                 Debug.Assert(nodeIndices.Length >= nodeCount);
@@ -361,20 +377,25 @@ namespace rgat.Threads
 
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("render preview 3", filter: Logging.LogFilterType.BulkDebugLogFile);
 
+            //cl2.Begin();
 
             //todo - only do this on changes
             fixed (Position2DColour* vertsPtr = EdgeLineVerts)
             {
-                _gdev.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position2DColour.SizeInBytes);
-                //cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position2DColour.SizeInBytes);
+                //_gdev.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position2DColour.SizeInBytes); //not thread safe (duplicate key error)
+                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position2DColour.SizeInBytes);    //memory leak
+                //cl2.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position2DColour.SizeInBytes);
             }
 
 
             fixed (uint* indexPtr = edgeDrawIndexes)
             {
-                _gdev.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)indexPtr, (uint)edgeVertCount * sizeof(uint));
-                //cl.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)indexPtr, (uint)edgeVertCount * sizeof(uint));
+                //_gdev.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)indexPtr, (uint)edgeVertCount * sizeof(uint));  //not thread safe (duplicate key error)
+                cl.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)indexPtr, (uint)edgeVertCount * sizeof(uint));     //memory leak
+                //cl2.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)indexPtr, (uint)edgeVertCount * sizeof(uint));   
             }
+            //cl2.End();
+            //_gdev.SubmitCommands(cl2);
 
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gdev.PointSampler,
                 graph.LayoutState.PositionsVRAM1, graph.LayoutState.AttributesVRAM1);
@@ -419,7 +440,15 @@ namespace rgat.Threads
 
 
             graph.ReleasePreviewFramebuffer();
-
+            rounds += 1;
+            if (rounds % 1 == 0)
+            {
+                //clear staging buffers
+                //https://github.com/mellinoe/veldrid/issues/411
+                cl.Dispose();
+                cl = _clientState!._GraphicsDevice!.ResourceFactory.CreateCommandList();
+                rounds = 0;
+            }
             //Debug.Assert(!_NodeVertexBuffer.IsDisposed);
             crscore.Dispose();
             //Logging.RecordLogEvent($"render preview {graph.TID} disposing rsrcset {nodeAttributesBuffer.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
@@ -427,7 +456,7 @@ namespace rgat.Threads
 
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("render preview Done", filter: Logging.LogFilterType.BulkDebugLogFile);
         }
-
+        int rounds = 0;
 
 
         /// <summary>

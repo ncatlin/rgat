@@ -284,7 +284,7 @@ namespace rgat
                     string[] newFiles = RecompileRules(rulesDir);
                     foreach (string newCompiled in newFiles)
                     {
-                        Logging.RecordLogEvent("Compiled yara rule file generated: " + newCompiled, Logging.LogFilterType.TextDebug);
+                        Logging.RecordLogEvent("Compiled yara rule file generated: " + newCompiled, Logging.LogFilterType.Debug);
                     }
                     if (newFiles.Length != 1)
                     {
@@ -352,11 +352,11 @@ namespace rgat
                         {
                             //a bad rule causes an exeption in compilation and cant be removed, so we have to remove the whole file and recompile all from scratch
                             failed = true;
-                            Logging.RecordLogEvent($"Failed to compile Yara rule in file {rulespath}: {e.Message}", Logging.LogFilterType.TextError);
+                            Logging.RecordLogEvent($"Failed to compile Yara rule in file {rulespath}: {e.Message}", Logging.LogFilterType.Error);
                             ruleFiles.Remove(rulespath);
                             if (!ruleFiles.Any())
                             {
-                                Logging.RecordLogEvent($"No valid YARA rules found in directory {rulesDir}", Logging.LogFilterType.TextError);
+                                Logging.RecordLogEvent($"No valid YARA rules found in directory {rulesDir}", Logging.LogFilterType.Error);
                                 return savedrules.ToArray();
                             }
                             AllRulesCompiler.Dispose();
@@ -510,7 +510,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent("YARA Scan failed with exeption: " + e.Message, Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent("YARA Scan failed with exeption: " + e.Message, Logging.LogFilterType.Error);
                 targetScanProgress[targ] = eYaraScanProgress.eFailed;
             }
 
@@ -574,13 +574,13 @@ namespace rgat
                     ZipFile.ExtractToDirectory(tempfile, original, true);
                     File.Delete(tempfile);
                     OperationModes.BridgedRunner.SendSigDates();
-                    rgatState.NetworkBridge.SendLog("YARA signature replacement completed successfully", Logging.LogFilterType.TextInfo);
+                    rgatState.NetworkBridge.SendLog("YARA signature replacement completed successfully", Logging.LogFilterType.Info);
                 }
             }
             catch (Exception e)
             {
                 Logging.RecordError($"Failed to replace YARA signatures: {e.Message}");
-                rgatState.NetworkBridge.SendLog($"YARA signature sync failed: {e.Message}", Logging.LogFilterType.TextError);
+                rgatState.NetworkBridge.SendLog($"YARA signature sync failed: {e.Message}", Logging.LogFilterType.Error);
             }
         }
 

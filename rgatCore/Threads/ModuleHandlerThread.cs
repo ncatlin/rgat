@@ -90,7 +90,7 @@ namespace rgat
                 }
                 else
                 {
-                    Logging.RecordLogEvent("Refusing to start block handler with remote pipe without being connected", filter: Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent("Refusing to start block handler with remote pipe without being connected", filter: Logging.LogFilterType.Error);
                     return;
                 }
             }
@@ -176,21 +176,31 @@ namespace rgat
 
 
 
-
-        private void SpawnPipeTraceProcessorThreads(ProtoGraph graph)
+        private async void SpawnPipeTraceProcessorThreads(ProtoGraph graph)
         {
             string pipename = GetTracePipeName(graph.ThreadID);
 
-            Logging.WriteConsole("Opening pipe " + pipename);
+            Logging.RecordLogEvent($"Opening pipe {pipename} for PID:{graph.TraceData.PID} TID:{graph.ThreadID}", Logging.LogFilterType.Debug);
             NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
-
-            Logging.WriteConsole("Waiting for thread connection... ");
-            threadListener.WaitForConnection(); //todo make async
-            Logging.WriteConsole("Trace thread connected");
-
+            System.Threading.Tasks.Task waitTask = threadListener.WaitForConnectionAsync(rgatState.ExitToken);
+            while (true)
+            {
+                if (!waitTask.IsCompleted)
+                {
+                    Console.WriteLine($"Wait task {pipename} not complete - {waitTask.Status}");
+                    Thread.Sleep(150);
+                }
+                else
+                {
+                    Console.WriteLine($"Wait task {pipename} IS complete - {waitTask.Status}");
+                    break;
+                }
+            }
+            Logging.RecordLogEvent($"Instrumentation connection to pipe {pipename} for PID:{graph.TraceData.PID} TID:{graph.ThreadID}", Logging.LogFilterType.Debug);
 
             PlottedGraph MainGraph = new PlottedGraph(graph, _clientState!._GraphicsDevice!);
 
+            Console.WriteLine("ModuleHandlerThread STarting processors");
             graph.TraceReader = new PipeTraceIngestThread(threadListener, graph.ThreadID, graph);
             graph.TraceProcessor = new ThreadTraceProcessingThread(graph);
             graph.TraceReader.Begin();
@@ -222,7 +232,7 @@ namespace rgat
                     {
                         if (!_pendingPipeThreads.TryGetValue(ThreadRef, out graph) || graph is null)
                         {
-                            Logging.RecordLogEvent($"Error: SpawnRemoteTraceProcessorThreads has no pending pipe with ref {ThreadRef}", Logging.LogFilterType.TextError);
+                            Logging.RecordLogEvent($"Error: SpawnRemoteTraceProcessorThreads has no pending pipe with ref {ThreadRef}", Logging.LogFilterType.Error);
                             return false;
                         }
                         _pendingPipeThreads.Remove(pipeID);
@@ -248,7 +258,7 @@ namespace rgat
 
                     if (!trace.InsertNewThread(graph, graphPlot))
                     {
-                        Logging.RecordLogEvent("ERROR: Trace rendering thread creation failed", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent("ERROR: Trace rendering thread creation failed", Logging.LogFilterType.Error);
                         return false;
                     }
                     return true;
@@ -262,7 +272,6 @@ namespace rgat
 
         private void HandleNewThread(byte[] buf)
         {
-            Logging.WriteConsole(System.Text.ASCIIEncoding.ASCII.GetString(buf));
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 4);
             if (!uint.TryParse(fields[1], System.Globalization.NumberStyles.Integer, null, out uint TID))
             {
@@ -274,7 +283,7 @@ namespace rgat
                 Logging.RecordError($"Bad thread start address (ID:{TID})");
                 return;
             }
-            Logging.WriteConsole($"Thread {TID} started!");
+            Logging.WriteConsole($"HandleNewThread Thread {TID} started!");
 
             switch (trace.TraceType)
             {
@@ -282,7 +291,8 @@ namespace rgat
                     ProtoGraph newProtoGraph = new ProtoGraph(trace, TID, startAddr);
                     if (!rgatState.ConnectedToRemote)
                     {
-                        SpawnPipeTraceProcessorThreads(newProtoGraph);
+                        Console.WriteLine("ModuleHandlerThread Spawning processor");
+                        System.Threading.Tasks.Task.Run(() => SpawnPipeTraceProcessorThreads(newProtoGraph));
                     }
                     else
                     {
@@ -312,7 +322,7 @@ namespace rgat
                         break;
                     }
                 default:
-                    Logging.RecordLogEvent("HandleNewThread Bad Trace Type " + trace.TraceType, Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent("HandleNewThread Bad Trace Type " + trace.TraceType, Logging.LogFilterType.Error);
                     break;
             }
 
@@ -437,7 +447,7 @@ namespace rgat
 
                 foreach (string name in tracedDirs)
                 {
-                    Logging.RecordLogEvent($"Sending traced directory {name}", Logging.LogFilterType.TextDebug);
+                    Logging.RecordLogEvent($"Sending traced directory {name}", Logging.LogFilterType.Debug);
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@TD@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00"))
                     {
@@ -446,7 +456,7 @@ namespace rgat
                 }
                 foreach (string name in tracedFiles)
                 {
-                    Logging.RecordLogEvent($"Sending traced file {name}", Logging.LogFilterType.TextDebug);
+                    Logging.RecordLogEvent($"Sending traced file {name}", Logging.LogFilterType.Debug);
                     buf = System.Text.Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@TF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00"))
                     {
@@ -462,7 +472,7 @@ namespace rgat
                 Console.WriteLine($"Sending default trace settings: {ignoredDirs.Count} ignored dirs and {ignoredFiles.Count} ignored files");
                 foreach (string name in ignoredDirs)
                 {
-                    Logging.RecordLogEvent($"Sending ignored dir {name}", Logging.LogFilterType.TextDebug);
+                    Logging.RecordLogEvent($"Sending ignored dir {name}", Logging.LogFilterType.Debug);
                     buf = Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@ID@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00"))
                     {
@@ -471,7 +481,7 @@ namespace rgat
                 }
                 foreach (string name in ignoredFiles)
                 {
-                    Logging.RecordLogEvent($"Sending ignored file {name}", Logging.LogFilterType.TextDebug);
+                    Logging.RecordLogEvent($"Sending ignored file {name}", Logging.LogFilterType.Debug);
                     buf = Encoding.ASCII.GetBytes(name);
                     if (!CommandWrite($"@IF@{System.Convert.ToBase64String(buf)}@E\x00\x00\x00"))
                     {
@@ -495,7 +505,7 @@ namespace rgat
             foreach (KeyValuePair<string, string> kvp in config)
             {
                 string cmdc = $"@CK@{kvp.Key}@{kvp.Value}@\n\x00\x00\x00";
-                Logging.RecordLogEvent("MH:SendConfiguration() sending command " + cmdc, Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent("MH:SendConfiguration() sending command " + cmdc, Logging.LogFilterType.Debug);
                 CommandWrite(cmdc);
             }
         }
@@ -519,7 +529,7 @@ namespace rgat
                 {
                     eventPipe!.EndWaitForConnection(ar);
                 }
-                Logging.RecordLogEvent($"MH:ConnectCallback {pipeType} pipe connected to process PID " + trace.PID, Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"MH:ConnectCallback {pipeType} pipe connected to process PID " + trace.PID, Logging.LogFilterType.Debug);
             }
             catch (Exception e)
             {
@@ -539,16 +549,16 @@ namespace rgat
             {
                 if (bytesRead != 0)
                 {
-                    Logging.RecordLogEvent($"MH:ReadCallback() Unhandled tiny control pipe message: {buf}", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"MH:ReadCallback() Unhandled tiny control pipe message: {buf}", Logging.LogFilterType.Error);
                 }
                 return;
             }
 
             if (buf[0] == 'T')
             {
-
                 if (buf[1] == 'I')
                 {
+                    Console.WriteLine("ModuleHandlerThread TI");
                     HandleNewThread(buf);
                     return;
                 }
@@ -596,7 +606,7 @@ namespace rgat
                         trace.SetTraceState(ProcessState.eRunning);
                         break;
                     default:
-                        Logging.RecordLogEvent($"Bad debug command response {dbgCmd}", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Bad debug command response {dbgCmd}", Logging.LogFilterType.Error);
                         break;
                 }
                 return;
@@ -617,7 +627,7 @@ namespace rgat
             }
 
             string errmsg = $"Control pipe read unhandled entry from PID {trace.PID}: {ASCIIEncoding.ASCII.GetString(buf)}";
-            Logging.RecordLogEvent(errmsg, Logging.LogFilterType.TextError, trace: trace);
+            Logging.RecordLogEvent(errmsg, Logging.LogFilterType.Error, trace: trace);
         }
 
         //There is scope to randomise these in case it becomes a detection method, but 
@@ -736,6 +746,7 @@ namespace rgat
 
                 foreach (string item in newCommands)
                 {
+                    Console.WriteLine("Mhandler remote" + System.Text.ASCIIEncoding.ASCII.GetBytes(item));
                     try
                     {
                         SendCommand(System.Text.ASCIIEncoding.ASCII.GetBytes(item));

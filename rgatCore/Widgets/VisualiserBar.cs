@@ -708,7 +708,7 @@ namespace rgat.Widgets
                 return;
             }
 
-            List<ANIMATIONENTRY> animationData = graph.GetSavedAnimationData();
+            List<ANIMATIONENTRY> animationData = graph.GetSavedAnimationDataReference();
 
             ulong segmentBlockCount = 0;
             ulong segmentBlockInsCount = 0;
@@ -815,6 +815,8 @@ namespace rgat.Widgets
                 }
             }
 
+            graph.ReleaseSavedAnimationDataReference();
+
             var keys = pixAvg.Keys.ToArray();
             foreach (int pix in keys)
             {
@@ -909,7 +911,7 @@ namespace rgat.Widgets
             }
 
 
-            List<ANIMATIONENTRY> animationData = graph.GetSavedAnimationData();
+            List<ANIMATIONENTRY> animationData = graph.GetSavedAnimationDataReference();
             if (animationData.Count is not 0)
             {
                 // Draw heatmap
@@ -1068,10 +1070,10 @@ namespace rgat.Widgets
 
 
             // Grey out any area of unsaved trace data
-            if ((ulong)graph.SavedAnimationData.Count < graph.UpdateCount)
+            if ((ulong)animationData.Count < graph.UpdateCount)
             {
                 WritableRgbaFloat discardedColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.eTextDull1));
-                float Xoffset = _width * ((float)graph.SavedAnimationData.Count / (float)graph.UpdateCount);
+                float Xoffset = _width * ((float)animationData.Count / (float)graph.UpdateCount);
                 float width = _width - Xoffset;
                 CreateRect(discardedColour, Xoffset, 0, width, _height, ref triangles);
             }
@@ -1079,6 +1081,8 @@ namespace rgat.Widgets
             _pointVerts = points.ToArray();
             _lineVerts = lines.Concat(busyCountLinePoints).ToArray();
             _triangleVerts = triangles.ToArray();
+
+            graph.ReleaseSavedAnimationDataReference();
         }
 
 

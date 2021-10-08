@@ -233,7 +233,7 @@ namespace rgat.Testing
                         passed = false;
                         compareValueString = "[?]";
                         error = "Unknown general test requirement: " + req.Name;
-                        Logging.RecordLogEvent(error, Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent(error, Logging.LogFilterType.Error);
                         break;
                 }
                 if (!passed)

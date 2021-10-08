@@ -83,6 +83,7 @@ namespace rgat.Threads
             System.Diagnostics.Stopwatch st = new();
             PlottedGraph? activeGraph;
 
+            int rounds = 0;
             Veldrid.CommandList cl = _clientState!._GraphicsDevice!.ResourceFactory.CreateCommandList();
             while (!rgatState.rgatIsExiting)
             {
@@ -108,6 +109,15 @@ namespace rgat.Threads
 
                 //st.Restart();
                 _graphWidget.GenerateMainGraph(cl);
+                rounds += 1;
+                if (rounds % 1 == 0)
+                {
+                    //clear staging buffers
+                    //https://github.com/mellinoe/veldrid/issues/411
+                    cl.Dispose();
+                    cl = _clientState!._GraphicsDevice!.ResourceFactory.CreateCommandList();
+                    rounds = 0;
+                }
                 st.Stop();
                 //if (st.ElapsedMilliseconds > 0) System.Console.WriteLine($"gmg took {st.ElapsedMilliseconds} ms");
 

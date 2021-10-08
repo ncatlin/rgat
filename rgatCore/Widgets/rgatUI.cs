@@ -125,22 +125,22 @@ namespace rgat
             System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
             timer.Start();
 
-            Logging.RecordLogEvent("Startup: Initing graph display widgets", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent("Startup: Initing graph display widgets", Logging.LogFilterType.Debug);
 
             visualiserTab = new VisualiserTab(_rgatState, Controller);
 
 
-            Logging.RecordLogEvent($"Startup: Visualiser tab created in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Startup: Visualiser tab created in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Restart();
             visualiserTab.Init(_gd, progress);
             visualiserTab.SetDialogStateChangeCallback((bool state) => Controller.DialogChange(opened: state));
 
-            Logging.RecordLogEvent($"Startup: Visualiser tab initialised in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Startup: Visualiser tab initialised in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Restart();
 
             chart = new SandboxChart(Controller._unicodeFont);
 
-            Logging.RecordLogEvent($"Startup: Analysis chart loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Startup: Analysis chart loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Stop();
         }
 
@@ -273,6 +273,64 @@ namespace rgat
             {
                 DrawMainMenu();
             }
+
+            DrawLoadSaveModal();
+        }
+
+
+        void DrawLoadSaveModal()
+        {
+            rgatState.SERIALISE_PROGRESS? progress = rgatState.SerialisationProgress;
+            if (progress is null) return;
+
+            bool isOpen = true;
+            ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration;
+
+            float windowWidth = 300;
+            string? path = progress.FilePath;
+            if (path is not null)
+            {
+                if (path.Length > 300) path = path.Substring(path.Length - 299);
+                windowWidth = Math.Max(windowWidth, ImGui.CalcTextSize(path).X + 60);
+            }
+
+            ImGui.SetNextWindowSize(new Vector2(windowWidth, 200));
+            ImGui.OpenPopup("LoadSaveDLG");
+
+            if (ImGui.BeginPopupModal("LoadSaveDLG", ref isOpen, flags))//##" + rgatState.SerialisationProgress.Operation))
+            {
+                ImGui.SetWindowPos(ImGui.GetMainViewport().Size / 2 - ImGui.GetWindowSize() / 2);
+                ImguiUtils.DrawHorizCenteredText(progress.Operation);
+
+                if (path is not null)
+                {
+                    ImguiUtils.DrawHorizCenteredText(path);
+                }
+
+                if (progress.SectionsTotal > 0)
+                {
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 12);
+                    if (progress.SectionName is not null)
+                    {
+                        ImguiUtils.DrawHorizCenteredText($"Section {progress.SectionsComplete}/{progress.SectionsTotal}: " + progress.SectionName);
+                    }
+
+                    if (progress.SectionProgress > 0)
+                    {
+                        ImGui.SetCursorPosX((ImGui.GetWindowSize().X / 2) - 100);
+                        SmallWidgets.ProgressBar("#SecProgress", $"{progress.SectionProgress * 100:F1}%", progress.SectionProgress, 
+                            new Vector2(200,28), barColour: 0xff999999, BGColour: 0xff222222);
+                    }
+                }
+
+                ImGui.SetCursorPos(new Vector2(ImGui.GetWindowSize().X / 2 - 40, ImGui.GetWindowSize().Y - 50));
+                if (ImGui.Button("Cancel", new Vector2(80, 30)))
+                {
+                    _rgatState.CancelSerialization();
+                }
+                ImGui.EndPopup();
+            }
+
         }
 
 
@@ -462,7 +520,7 @@ namespace rgat
                                 break;
                             default:
                                 _SettingsMenu.AssignPendingKeybind(KeyModifierTuple);
-                                Logging.RecordLogEvent($"Known keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}", LogFilterType.TextDebug);
+                                Logging.RecordLogEvent($"Known keybind setting: {KeyModifierTuple.Item2}_{KeyModifierTuple.Item1}", LogFilterType.Debug);
                                 continue;
                         }
                     }
@@ -600,12 +658,13 @@ namespace rgat
                 ToggleRenderStatsDialog();
             }
 
+            visualiserTab?.AlertKeybindPressed(KeybindAction.Cancel, null);
             Debug.Assert(DialogOpen is false);
         }
 
         private void ToggleTestHarness()
         {
-            Logging.RecordLogEvent("Test harness toggled", LogFilterType.TextDebug);
+            Logging.RecordLogEvent("Test harness toggled", LogFilterType.Debug);
             if (_show_test_harness == false)
             {
                 if (_testHarness == null)
@@ -620,7 +679,7 @@ namespace rgat
         private void ToggleRemoteDialog()
         {
             if (GlobalConfig.Loaded is false) return;
-            Logging.RecordLogEvent("Remote dialog toggled", LogFilterType.TextDebug);
+            Logging.RecordLogEvent("Remote dialog toggled", LogFilterType.Debug);
             if (_show_remote_dialog == false)
             {
                 if (_RemoteDialog == null)
@@ -794,17 +853,26 @@ namespace rgat
                 {
                     foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Length)).Reverse())
                     {
-                        if (DrawRecentPathEntry(entry, true))
+                        if (DrawRecentPathEntry(entry, true) && rgatState.SerialisationProgress is null)
                         {
-                            LoadTraceByPath(entry.Path);
+                            System.Threading.Tasks.Task.Run(() => LoadTraceByPath(entry.Path));
                         }
                     }
                     ImGui.EndMenu();
                 }
                 if (ImGui.MenuItem("Open Saved Trace")) { ToggleLoadTraceWindow(); }
+
                 ImGui.Separator();
-                if (rgatState.ActiveTarget is not null && ImGui.MenuItem("Save This Trace")) { rgatState.SaveTarget(rgatState.ActiveTarget); }
-                if (ImGui.MenuItem("Save All Traces")) { rgatState.SaveAllTargets(); }
+
+                if (rgatState.ActiveTarget is not null && ImGui.MenuItem("Save This Trace") && rgatState.SerialisationProgress is null) {
+                    System.Threading.Tasks.Task.Run(() => rgatState.SaveTarget(rgatState.ActiveTarget));
+                }
+
+                if (ImGui.MenuItem("Save All Traces"))
+                {
+                    System.Threading.Tasks.Task.Run(() => rgatState.SaveAllTargets());
+                }
+
                 if (ImGui.MenuItem("Export Pajek"))
                 {
                     TraceRecord? record = rgatState.ActiveTrace;
@@ -1044,7 +1112,7 @@ namespace rgat
                     return;
                 }
 
-                Logging.RecordLogEvent($"Opening {label} directory in file browser: {path}", LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Opening {label} directory in file browser: {path}", LogFilterType.Debug);
                 System.Diagnostics.ProcessStartInfo openRequestedDir = new System.Diagnostics.ProcessStartInfo() { FileName = path, UseShellExecute = true };
                 System.Diagnostics.Process.Start(startInfo: openRequestedDir);
             }
@@ -1230,7 +1298,7 @@ namespace rgat
                         alpha = (int)(Math.Min(255f, 255f * fade));
                         alpha = Math.Max(alpha, 0);
                     }
-                    if (item.Filter == LogFilterType.TextAlert)
+                    if (item.Filter == LogFilterType.Alert)
                     {
                         ImGui.PushStyleColor(ImGuiCol.Text, alertColour.ToUint((uint?)alpha));
                         ImGui.Text($" {ImGuiController.FA_ICON_EYE} ");
@@ -1420,7 +1488,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Unable to check if file is a saved trace [{e.Message}]. Assuming it isn't", LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Unable to check if file is a saved trace [{e.Message}]. Assuming it isn't", LogFilterType.Debug);
             }
 
 
@@ -1443,14 +1511,14 @@ namespace rgat
 
                 if (!File.Exists(path))
                 {
-                    Logging.RecordLogEvent($"Loading binary {path} failed: File does not exist", filter: LogFilterType.TextAlert);
+                    Logging.RecordLogEvent($"Loading binary {path} failed: File does not exist", filter: LogFilterType.Alert);
                     return false;
                 }
 
                 FileStream fs = File.OpenRead(path);
                 if (fs.Length < 4)
                 {
-                    Logging.RecordLogEvent($"Loading binary {path} failed: File too small ({fs.Length} bytes)", filter: LogFilterType.TextAlert);
+                    Logging.RecordLogEvent($"Loading binary {path} failed: File too small ({fs.Length} bytes)", filter: LogFilterType.Alert);
                     return false;
                 }
 
@@ -1460,11 +1528,7 @@ namespace rgat
 
                 if (IsrgatSavedTrace(ASCIIEncoding.ASCII.GetString(preview)))
                 {
-                    if (!LoadTraceByPath(path))
-                    {
-                        Logging.RecordLogEvent($"Failed loading invalid trace: {path}", filter: LogFilterType.TextAlert);
-                        return false;
-                    }
+                    System.Threading.Tasks.Task.Run(() => LoadTraceByPath(path));
                     _SwitchToTraceSelectTab = true;
                 }
                 else
@@ -1488,7 +1552,7 @@ namespace rgat
         {
             if (!rgatState.ConnectedToRemote)
             {
-                Logging.RecordLogEvent($"Loading remote binary {path} failed: Not Connected", filter: LogFilterType.TextAlert);
+                Logging.RecordLogEvent($"Loading remote binary {path} failed: Not Connected", filter: LogFilterType.Alert);
                 return false;
             }
 
@@ -1542,6 +1606,12 @@ namespace rgat
 
         private bool LoadTraceByPath(string? filepath)
         {
+            if (rgatState.SerialisationProgress is not null)
+            {
+                Logging.RecordError("Serialization already in progress");
+                return false;
+            }
+
             if (filepath is null || !File.Exists(filepath))
             {
                 Logging.RecordError($"Failed to load missing trace file: {filepath}");
@@ -1550,7 +1620,6 @@ namespace rgat
 
             if (!_rgatState.LoadTraceByPath(filepath, out TraceRecord? trace) || trace is null)
             {
-                Logging.RecordError($"Failed to load invalid trace: {filepath}");
                 return false;
             }
             GlobalConfig.Settings.RecentPaths.RecordRecentPath(rgatSettings.PathType.Trace, filepath);
@@ -1602,7 +1671,7 @@ namespace rgat
                 {
                     if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)
                     {
-                        LoadTraceByPath(picker.SelectedFile);
+                        System.Threading.Tasks.Task.Run(() => LoadTraceByPath(picker.SelectedFile));
                     }
                     rgatFilePicker.FilePicker.RemoveFilePicker(this);
                     shown = false;

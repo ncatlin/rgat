@@ -202,7 +202,7 @@ namespace rgat
             try
             {
                 string pinpath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath);
-                Logging.RecordLogEvent($"Launching DLL trace: {pinpath} {runargs}", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Launching DLL trace: {pinpath} {runargs}", Logging.LogFilterType.Debug);
                 result = System.Diagnostics.Process.Start(pinpath, runargs);
                 result.Exited += (sender, args) => DeleteLoader(loaderPath);
             }
@@ -280,7 +280,7 @@ namespace rgat
             try
             {
                 string pinpath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath);
-                Logging.RecordLogEvent($"Launching EXE trace: {pinpath} {runargs}", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Launching EXE trace: {pinpath} {runargs}", Logging.LogFilterType.Debug);
                 result = System.Diagnostics.Process.Start(pinpath, runargs);
             }
             catch (Exception e)
@@ -296,7 +296,7 @@ namespace rgat
         {
             if (!target.RemoteAccessible)
             {
-                Logging.RecordLogEvent($"Could not trace {target.FilePath} on non-connected host {target.RemoteHost}", Logging.LogFilterType.TextAlert);
+                Logging.RecordLogEvent($"Could not trace {target.FilePath} on non-connected host {target.RemoteHost}", Logging.LogFilterType.Alert);
                 return;
             }
 

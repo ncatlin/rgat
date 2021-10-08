@@ -856,7 +856,7 @@ namespace rgatFilePicker
                 }
                 else
                 {
-                    Logging.RecordLogEvent($"Bad DirectoryInfo response", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"Bad DirectoryInfo response", Logging.LogFilterType.Error);
                     rgatState.NetworkBridge.Teardown("Bad DirectoryInfo response");
                     SetActiveDirectory(Environment.CurrentDirectory);
                 }
@@ -918,7 +918,7 @@ namespace rgatFilePicker
                         }
 
                     default:
-                        Logging.RecordLogEvent($"Bad response status {status}", filter: Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Bad response status {status}", filter: Logging.LogFilterType.Error);
                         rgatState.NetworkBridge.Teardown($"Bad response status { status}");
                         SetActiveDirectory(Environment.CurrentDirectory);
                         return PickerResult.eNoAction;
@@ -1592,7 +1592,7 @@ namespace rgatFilePicker
                         return Data.AvailableDriveStrings;
 
                     default:
-                        Logging.RecordLogEvent($"GetDriveListStrings Bad remote response state: {status}", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"GetDriveListStrings Bad remote response state: {status}", Logging.LogFilterType.Error);
                         _remoteMirror.Teardown("Bad status in GetDriveListStrings");
                         InitLocalDriveStrings();
                         return Data.AvailableDriveStrings;

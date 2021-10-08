@@ -36,11 +36,10 @@ namespace rgat.Widgets
             {
                 var tracelist = trace.Target.GetTracesUIList();
                 string selString = "PID " + trace.PID;
-                if (ImGui.BeginCombo($"{tracelist.Count} Process{(tracelist.Count != 1 ? "es" : "")}", selString))
+                if (ImGui.BeginCombo($"{tracelist.Length} Process{(tracelist.Length != 1 ? "es" : "")}", selString))
                 {
-                    foreach (var timepid in tracelist)
+                    foreach (var selectableTrace in tracelist)
                     {
-                        TraceRecord selectableTrace = timepid.Item2;
                         bool current = trace.PID == selectableTrace.PID && trace.randID == selectableTrace.randID;
                         string label = "PID " + selectableTrace.PID;
                         if (current is false)

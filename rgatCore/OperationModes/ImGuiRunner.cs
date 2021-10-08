@@ -65,7 +65,7 @@ namespace rgat.OperationModes
         /// </summary>
         public void Run()
         {
-            Logging.RecordLogEvent("rgat is starting in GUI mode", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent("rgat is starting in GUI mode", Logging.LogFilterType.Debug);
 
             if (!Setup())
             {
@@ -317,7 +317,7 @@ namespace rgat.OperationModes
         private async void LoadingThread()
         {
 
-            Logging.RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent("Constructing rgatUI: Initing/Loading Config", Logging.LogFilterType.Debug);
             double currentUIProgress = rgatUI.StartupProgress;
 
             Stopwatch timer = new(), timerTotal = new();
@@ -337,7 +337,7 @@ namespace rgat.OperationModes
 
             InitEventHandlers();
 
-            Logging.RecordLogEvent($"Startup: Widgets+config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Startup: Widgets+config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Restart();
 
             rgatUI.StartupProgress = 0.85;
@@ -346,7 +346,7 @@ namespace rgat.OperationModes
             rgatState.VideoRecorder.Load(); //0 ms
             _rgatUI!.InitSettingsMenu(); //50ms ish
 
-            Logging.RecordLogEvent($"Startup: Settings menu loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Startup: Settings menu loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Restart();
 
             heatRankThreadObj = new HeatRankingThread();
@@ -397,8 +397,8 @@ namespace rgat.OperationModes
             timer.Stop();
             timerTotal.Stop();
 
-            Logging.RecordLogEvent($"Startup: Signatures + API info inited in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
-            Logging.RecordLogEvent($"Startup: Loading thread took {timerTotal.ElapsedMilliseconds} ms", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Startup: Signatures + API info inited in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
+            Logging.RecordLogEvent($"Startup: Loading thread took {timerTotal.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             rgatUI.StartupProgress = 1;
             Logging.WriteConsole("Starup progress 1");
 

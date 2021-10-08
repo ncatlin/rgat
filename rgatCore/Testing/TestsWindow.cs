@@ -110,7 +110,7 @@ namespace rgat.Widgets
                     catch (Exception e)
                     {
                         Logging.RecordLogEvent($"Unhandled exception parsing tests in directory {testdir}: {e.Message}",
-                            Logging.LogFilterType.TextDebug);
+                            Logging.LogFilterType.Debug);
                         continue;
                     }
                 }
@@ -865,7 +865,7 @@ namespace rgat.Widgets
 
                             break;
                         default:
-                            Logging.RecordLogEvent("AddTestsToQueue has no handler for filter " + filter.ToString(), Logging.LogFilterType.TextError);
+                            Logging.RecordLogEvent("AddTestsToQueue has no handler for filter " + filter.ToString(), Logging.LogFilterType.Error);
                             break;
                     }
                 }

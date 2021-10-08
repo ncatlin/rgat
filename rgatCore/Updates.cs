@@ -25,13 +25,13 @@ namespace rgat
             DateTime nextCheckMinimum = GlobalConfig.Settings.Updates.UpdateLastCheckTime.AddMinutes(CONSTANTS.NETWORK.UpdateCheckMinimumDelayMinutes);
             if (nextCheckMinimum > DateTime.Now)
             {
-                Logging.RecordLogEvent($"Not checking for updates, next check will be next time rgat is launched after {nextCheckMinimum.Humanize()}", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Not checking for updates, next check will be next time rgat is launched after {nextCheckMinimum.Humanize()}", Logging.LogFilterType.Debug);
                 return;
             }
 
             if (!System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
             {
-                Logging.RecordLogEvent("Not checking for updates, no network connection available", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent("Not checking for updates, no network connection available", Logging.LogFilterType.Debug);
                 return;
             }
 
@@ -114,7 +114,7 @@ namespace rgat
                             }
                             else
                             {
-                                Logging.RecordLogEvent("Update Check: No valid content in changelog content request", Logging.LogFilterType.TextDebug);
+                                Logging.RecordLogEvent("Update Check: No valid content in changelog content request", Logging.LogFilterType.Debug);
                             }
                         }
                     }
@@ -428,7 +428,7 @@ namespace rgat
                 client.Headers.Add(HttpRequestHeader.UserAgent, $"rgat {CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC}");
                 client.Headers.Add(HttpRequestHeader.Accept, "application/vnd.github.v3+json");
 
-                Logging.RecordLogEvent($"Starting download: {GlobalConfig.Settings.Updates.UpdateDownloadLink}", filter: Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Starting download: {GlobalConfig.Settings.Updates.UpdateDownloadLink}", filter: Logging.LogFilterType.Debug);
                 Uri downloadAddr = new Uri(GlobalConfig.Settings.Updates.UpdateDownloadLink);
                 string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(Path.GetRandomFileName()));
                 Directory.CreateDirectory(tempDirectory);
@@ -480,7 +480,7 @@ namespace rgat
 
         private static void InitiateFileSwap(string new_rgatPath)
         {
-            Logging.RecordLogEvent($"Initialising update called with new rgat version {new_rgatPath}", filter: Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"Initialising update called with new rgat version {new_rgatPath}", filter: Logging.LogFilterType.Debug);
             bool failed = false;
             if (File.Exists(new_rgatPath))
             {
@@ -499,7 +499,7 @@ namespace rgat
                 }
                 if (failed)
                 {
-                    Logging.RecordLogEvent($"Deleting bad update at {new_rgatPath}", filter: Logging.LogFilterType.TextDebug);
+                    Logging.RecordLogEvent($"Deleting bad update at {new_rgatPath}", filter: Logging.LogFilterType.Debug);
                     try
                     {
                         File.Delete(new_rgatPath);
@@ -511,7 +511,7 @@ namespace rgat
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Exception deleting bad update: {e.Message}", filter: Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Exception deleting bad update: {e.Message}", filter: Logging.LogFilterType.Error);
                     }
                 }
             }
@@ -523,7 +523,7 @@ namespace rgat
 
             if (failed)
             {
-                Logging.RecordLogEvent($"Abandoning failed update", filter: Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Abandoning failed update", filter: Logging.LogFilterType.Debug);
                 GlobalConfig.Settings.Updates.StagedDownloadPath = "";
                 GlobalConfig.Settings.Updates.UpdateLastCheckVersion = new Version("0.0.0");
                 _update_in_progress = false;
@@ -537,12 +537,12 @@ namespace rgat
             Updates.PendingInstallPath = new_rgatPath;
             if (_update_style == "ONDOWNLOAD")
             {
-                Logging.RecordLogEvent($"Requesting exit to begin update", filter: Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Requesting exit to begin update", filter: Logging.LogFilterType.Debug);
                 rgatUI.RequestExit();
             }
             else
             {
-                Logging.RecordLogEvent($"Update staged for install on exit", filter: Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Update staged for install on exit", filter: Logging.LogFilterType.Debug);
             }
         }
 

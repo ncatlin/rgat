@@ -90,6 +90,9 @@ namespace rgat
             _GraphicsDevice = _gd;
         }
 
+        readonly object _stateLock = new object();
+        public static SERIALISE_PROGRESS? SerialisationProgress { get; private set; } = null;
+
 
         /// <summary>
         /// A task which loads binary signatures such as YARA and DIE
@@ -99,14 +102,14 @@ namespace rgat
         public static void LoadSignatures(IProgress<float>? progress = null, Action? completionCallback = null)
         {
             //todo - inner progress reporting based on signature count
-            Logging.RecordLogEvent("Loading DiELib", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent("Loading DiELib", Logging.LogFilterType.Debug);
             string DiEscriptsDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory);
             if (Directory.Exists(DiEscriptsDir) || File.Exists(DiEscriptsDir))
             {
                 try
                 {
                     DIELib = new DetectItEasy(DiEscriptsDir);
-                    Logging.RecordLogEvent("DiELib loaded", Logging.LogFilterType.TextDebug);
+                    Logging.RecordLogEvent("DiELib loaded", Logging.LogFilterType.Debug);
                 }
                 catch (Exception e)
                 {
@@ -119,7 +122,7 @@ namespace rgat
             }
 
             progress?.Report(0.5f);
-            Logging.RecordLogEvent("Loading YARA", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent("Loading YARA", Logging.LogFilterType.Debug);
 
             string YARAscriptsDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.YaraRulesDirectory);
             if (Directory.Exists(YARAscriptsDir))
@@ -140,7 +143,7 @@ namespace rgat
 
             if (YARALib != null)
             {
-                Logging.RecordLogEvent("YARA loaded", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent("YARA loaded", Logging.LogFilterType.Debug);
             }
             progress?.Report(1f);
             completionCallback?.Invoke();
@@ -288,6 +291,7 @@ namespace rgat
             }
         }
 
+
         /// <summary>
         /// Set the binary target active in the UI
         /// </summary>
@@ -307,6 +311,7 @@ namespace rgat
         {
             ActiveGraph = null;
         }
+
 
         /// <summary>
         /// Set the currently active trace in the UI. If a specific trace is not specified
@@ -328,46 +333,25 @@ namespace rgat
                 {
                     trace = ActiveTarget.GetFirstTrace();
                 }
-            }
 
-            ActiveTrace = trace;
-            SelectGraphInActiveTrace();
-        }
-
-
-        /// <summary>
-        /// Initialise a loaded target binary from a trace save object
-        /// </summary>
-        /// <param name="saveJSON">A Newtonsoft JObject for the saved trace</param>
-        /// <param name="targetResult">The created BinaryTarget object</param>
-        /// <returns></returns>
-        private static bool InitialiseTarget(Newtonsoft.Json.Linq.JObject saveJSON, out BinaryTarget? targetResult)
-        {
-            targetResult = null;
-
-            string? binaryPath = saveJSON.GetValue("BinaryPath")?.ToString();
-            if (binaryPath is null)
-            {
-                return false;
-            }
-
-            BinaryTarget? target;
-            if (!targets.GetTargetByPath(binaryPath, out target))
-            {
-                bool isLibrary = false;
-                if (saveJSON.TryGetValue("IsLibrary", out JToken? isLibTok) && isLibTok.Type == JTokenType.Boolean)
+                if (trace is not null && trace.ProtoGraphs.Count > 0)
                 {
-                    isLibrary = isLibTok.ToObject<bool>();
+                    ActiveTrace = trace;
+                    SelectGraphInActiveTrace();
                 }
-
-                target = targets.AddTargetByPath(binaryPath, isLibrary: isLibrary);
             }
-            //myui.targetListCombo.addTargetToInterface(target, newBinary);
 
-            targetResult = target;
-            return true;
+            if (trace is not null && trace.ProtoGraphs.Count > 0)
+            {
+                ActiveTrace = trace;
+                SelectGraphInActiveTrace();
+            }
 
         }
+
+
+
+
 
         private static readonly Dictionary<TraceRecord, PlottedGraph> LastGraphs = new Dictionary<TraceRecord, PlottedGraph>();
         private static readonly Dictionary<TraceRecord, uint> LastSelectedTheads = new Dictionary<TraceRecord, uint>();
@@ -478,7 +462,7 @@ namespace rgat
             if (firstgraph != null)
             {
                 Logging.RecordLogEvent("Got first graph " + firstgraph.TID,
-                    Logging.LogFilterType.TextDebug, trace: firstgraph.InternalProtoGraph.TraceData);
+                    Logging.LogFilterType.Debug, trace: firstgraph.InternalProtoGraph.TraceData);
                 SwitchToGraph(firstgraph);
             }
         }
@@ -535,18 +519,20 @@ namespace rgat
         /// <param name="target">The binarytarget associated with the trace</param>
         /// <param name="traceResult">The output reconstructed TraceRecord</param>
         /// <returns>true if a new trace was created, false if failed or duplicated</returns>
-        private static bool LoadTraceRecord(Newtonsoft.Json.Linq.JObject saveJSON, BinaryTarget target, out TraceRecord? traceResult)
+        private static bool LoadTraceRecord(JObject metadata, BinaryTarget target, out TraceRecord? traceResult)
         {
+            traceResult = null;
+
             bool valid = true;
-            valid &= saveJSON.TryGetValue("PID", out JToken? jPID) && jPID is not null;
-            valid &= saveJSON.TryGetValue("PID_ID", out JToken? jID) && jID is not null;
-            valid &= saveJSON.TryGetValue("StartTime", out JToken? jTime) && jTime is not null;
+            valid &= metadata.TryGetValue("PID", out JToken? jPID) && jPID is not null;
+            valid &= metadata.TryGetValue("PID_ID", out JToken? jID) && jID is not null;
+            valid &= metadata.TryGetValue("LaunchedTime", out JToken? jTime) && jTime is not null;
 
             if (valid is false ||
                 jPID!.Type != JTokenType.Integer ||
                 jID!.Type != JTokenType.Integer)
             {
-                Logging.WriteConsole("[rgat]Warning: Bad trace metadata. Load failed.");
+                Logging.WriteConsole("Bad trace metadata. Load failed.");
                 traceResult = null;
                 return false;
             }
@@ -570,13 +556,27 @@ namespace rgat
             if (!newTrace)
             {
                 //updateActivityStatus("Trace already loaded", 15000);
-                Logging.WriteConsole("[rgat] Trace already loaded");
+                Logging.RecordError("Trace already loaded");
                 return false;
             }
 
             //updateActivityStatus("Loaded saved process: " + QString::number(tracePID), 15000);
             return true;
         }
+
+
+        public class SERIALISE_PROGRESS
+        {
+            public string Operation;
+            public int FileCount;
+            public string? FilePath;
+            public int SectionsTotal;
+            public int SectionsComplete;
+            public float SectionProgress;
+            public string? SectionName;
+            public bool Cancelled = false;
+        }
+
 
         /// <summary>
         /// Load a saved trace
@@ -594,90 +594,138 @@ namespace rgat
                 return false;
             }
 
-            Newtonsoft.Json.Linq.JObject? saveJSON = null;
-            using (StreamReader streamreader = File.OpenText(path))
+            lock (_stateLock)
             {
-                using (JsonTextReader r = new JsonTextReader(streamreader))
+                if (SerialisationProgress is null)
                 {
-                    //string jsnfile = file.ReadToEnd();
-                    try
+                    SerialisationProgress = new SERIALISE_PROGRESS
                     {
-                        saveJSON = Newtonsoft.Json.Linq.JObject.Load(r);
-                    }
-                    catch (Newtonsoft.Json.JsonReaderException e)
+                        Operation = "Loading Trace",
+                        FileCount = 1
+                    };
+                }
+                SerialisationProgress.FilePath = path;
+            }
+
+            bool success;
+            try
+            {
+                using (StreamReader streamreader = File.OpenText(path))
+                {
+                    using (JsonTextReader jsnReader = new JsonTextReader(streamreader))
                     {
-                        Logging.WriteConsole("Failed to parse trace file - invalid JSON.");
-                        Logging.WriteConsole("\t->\t" + e.Message);
-                        return false;
-                    }
-                    catch (Exception e)
-                    {
-                        Logging.WriteConsole("Failed to parse trace file: " + e.Message);
-                        return false;
+                        if (!jsnReader.Read() || jsnReader.TokenType is not JsonToken.StartArray)
+                        {
+                            Logging.RecordError($"Trace file {path} started with unexpected data");
+                            return false;
+                        }
+                        success = DeserialiseTrace(jsnReader, SerialisationProgress, out trace);
+                        if (success is false)
+                        {
+                            if (SerialisationProgress.Cancelled is false)
+                                Logging.RecordError("Failed to load trace file"); //inner function should log why
+                            else
+                                Logging.RecordLogEvent("Loading cancelled", Logging.LogFilterType.Alert);
+
+                        }
                     }
                 }
             }
-
-            BinaryTarget? target;
-            if (!InitialiseTarget(saveJSON, out target) || target is null)
+            catch (Exception e)
             {
-                //updateActivityStatus("Process data load failed - possibly corrupt trace file", 15000);
+                Logging.RecordError("Error loading trace file: " + e.Message);
+                success = false;
+            }
 
+            lock (_stateLock)
+            {
+                SerialisationProgress = null;
+            }
+            if (rgatState.ActiveGraph is null && trace is not null)
+            {
+                if (ActiveTarget is null)
+                {
+                    SetActiveTarget(trace.Target);
+                }
+                rgatState.ChooseActiveGraph();
+            }
+            return true;
+        }
+
+
+        /// <summary>
+        /// Cancel an active load/save operation
+        /// </summary>
+        public void CancelSerialization()
+        {
+            lock (_stateLock)
+            {
+                if (SerialisationProgress is not null) SerialisationProgress.Cancelled = true;
+            }
+        }
+
+
+        bool DeserialiseTrace(JsonReader jsnReader, SERIALISE_PROGRESS SerialisationProgress, out TraceRecord? trace)
+        {
+            trace = null;
+            Debug.Assert(SerialisationProgress is not null);
+
+            JsonSerializer serializer = new JsonSerializer();
+            BinaryTarget? target;
+
+            if (BinaryTargets.ValidateSavedMetadata(jsnReader, serializer, "Metadata", out JObject? mdObj) is false || mdObj is null)
+            {
+                Logging.RecordLogEvent("No initial metadata in trace file");
                 return false;
             }
 
-            if (!LoadTraceRecord(saveJSON, target, out trace) || trace is null)
+            if (!targets.LoadSavedTarget(mdObj, out target) || target is null)
             {
+                return false;
+            }
+
+            if (!LoadTraceRecord(mdObj, target, out trace) || trace is null)
+            {
+                if (trace is not null)
+                    target.DeleteTrace(trace.LaunchedTime);
                 return false;
             }
 
             Debug.Assert(_GraphicsDevice is not null);
-            if (!trace.Load(saveJSON, _GraphicsDevice))
+
+            if (!trace.Load(jsnReader, serializer, SerialisationProgress, _GraphicsDevice))
             {
                 target.DeleteTrace(trace.LaunchedTime);
                 trace = null;
                 return false;
             }
-            //updateActivityStatus("Loaded " + QString::fromStdString(traceFilePath.filename().string()), 15000);
-            ExtractChildTraceFilenames(saveJSON, out List<string> childrenFiles);
-            if (childrenFiles.Count > 0)
-            {
-                LoadChildTraces(childrenFiles, trace);
-            }
 
+            //updateActivityStatus("Loaded " + QString::fromStdString(traceFilePath.filename().string()), 15000);
+            TraceRecord.ExtractChildTraceFilenames(jsnReader, serializer, out List<string>? childrenFiles);
+
+            if (childrenFiles is not null && childrenFiles.Count > 0)
+            {
+                SerialisationProgress.FileCount = 1 + childrenFiles.Count;
+                LoadChildTraces(childrenFiles, trace, SerialisationProgress);
+            }
             return true;
         }
 
-        /// <summary>
-        /// Get a list of child trace processes from a saved trace
-        /// </summary>
-        /// <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
-        /// <param name="childrenFiles">A list of relative filesystem paths of child traces</param>
-        private static void ExtractChildTraceFilenames(JObject saveJSON, out List<string> childrenFiles)
-        {
-            childrenFiles = new List<string>();
-            if (saveJSON.TryGetValue("Children", out JToken? jChildren) && jChildren.Type == JTokenType.Array)
-            {
-                JArray ChildrenArray = (JArray)jChildren;
-                foreach (JToken fname in ChildrenArray)
-                {
-                    childrenFiles.Add(fname.ToString());
-                }
-            }
-        }
+
+
 
         /// <summary>
         /// Loads child traces into a trace record
         /// </summary>
         /// <param name="childrenFiles">A list of relative filesystem paths of traces</param>
         /// <param name="trace">The parent TraceRecord of the child traces</param>
-        private void LoadChildTraces(List<string> childrenFiles, TraceRecord trace)
+        private void LoadChildTraces(List<string> childrenFiles, TraceRecord trace, SERIALISE_PROGRESS progress)
         {
 
             string saveDir = "C:\\";//config.saveDir; //should be same dir as loaded trace?
             foreach (string file in childrenFiles)
             {
-
+                progress.FilePath = file;
                 string childFilePath = Path.Combine(saveDir, file);
 
                 if (Path.GetDirectoryName(childFilePath) != saveDir) //or a children subdir?
@@ -712,9 +760,11 @@ namespace rgat
                 savedCount += SaveTarget(targ);
             }
 
-            Logging.RecordLogEvent($"Finished saving {savedCount} trace{((savedCount is not 1) ? 's' : "")}", Logging.LogFilterType.TextAlert);
+            Logging.RecordLogEvent($"Finished saving {savedCount} trace{((savedCount is not 1) ? 's' : "")}", Logging.LogFilterType.Alert);
             Logging.WriteConsole($"Finished saving {targslist.Count} targets");
         }
+
+
 
 
         /// <summary>
@@ -727,34 +777,52 @@ namespace rgat
 
             var traceslist = targ.GetTracesUIList();
             int savedCount = 0;
-
-            //todo save binary data so it can be loaded without the binary present
-            // preview, bitwidth, signature hits, exports, is library
-            foreach (Tuple<DateTime, TraceRecord> time_trace in traceslist)
+            SerialisationProgress = new SERIALISE_PROGRESS
             {
-                TraceRecord trace = time_trace.Item2;
-                DateTime creationTime = time_trace.Item1;
+                Operation = "Saving Trace",
+                FileCount = traceslist.Length
+            };
 
+
+            foreach (TraceRecord trace in traceslist)
+            {
                 if (!trace.WasLoadedFromSave)
                 {
-                    if (trace.Save(creationTime, out string? path))
+                    try
                     {
-                        savedCount += 1;
-                        Logging.RecordLogEvent($"Saved Process {trace.PID} to {Path.GetDirectoryName(path)}", Logging.LogFilterType.TextAlert);
+                        if (trace.Save(SerialisationProgress, out string? path))
+                        {
+                            savedCount += 1;
+                            Logging.RecordLogEvent($"Saved Process {trace.PID} to {path}", Logging.LogFilterType.Alert);
+                        }
                     }
-
+                    catch (Exception e)
+                    {
+                        Logging.RecordError($"Error saving trace {trace.PID} - {e.Message}");
+                    }
                 }
             }
+            SerialisationProgress = null;
             return savedCount;
         }
 
         /// <summary>
         /// Export the current trace in the pajek format, a simple graph serialisation format that other graph layout programs accept
         /// </summary>
-        public static void ExportTraceAsPajek(TraceRecord trace, uint TID) => trace.ExportPajek(TID);
+        public static void ExportTraceAsPajek(TraceRecord trace, uint TID)
+        {
+            try
+            {
+                trace.ExportPajek(TID);
+            }
+            catch (Exception e)
+            {
+                //Probably will be a thread safety issue
+                Logging.RecordError($"Failure exporting Pajek layout ({e.Message})");
+            }
+        }
 
-
-        private readonly object _testDictLock = new object();
+        private readonly object _testLock = new object();
         private readonly Dictionary<long, TraceRecord> _testConnections = new Dictionary<long, TraceRecord>();
         /// <summary>
         /// Store a reference to an incoming rgat test trace
@@ -763,7 +831,7 @@ namespace rgat
         /// <param name="trace">The TraceRecord associated with the test</param>
         public void RecordTestRunConnection(long testID, TraceRecord trace)
         {
-            lock (_testDictLock)
+            lock (_testLock)
             {
                 Debug.Assert(!_testConnections.ContainsKey(testID));
                 Debug.Assert(trace != null);
@@ -780,7 +848,7 @@ namespace rgat
         public bool GetTestTrace(long testID, out TraceRecord? trace)
         {
 
-            lock (_testDictLock)
+            lock (_stateLock)
             {
                 if (_testConnections.TryGetValue(testID, out trace))
                 {

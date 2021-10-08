@@ -205,7 +205,7 @@ namespace rgat
                 result = "DIElib Scan failed with exeption: " + e.Message;
             }
 
-            Logging.RecordLogEvent($"DetectItEasy result {result} for target {targ.FilePath}", Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent($"DetectItEasy result {result} for target {targ.FilePath}", Logging.LogFilterType.Debug);
             targ.AddDiESignatureHit(result);
         }
 
@@ -327,13 +327,13 @@ namespace rgat
                     System.IO.Compression.ZipFile.ExtractToDirectory(tempfile, original, true);
                     File.Delete(tempfile);
                     OperationModes.BridgedRunner.SendSigDates();
-                    rgatState.NetworkBridge.SendLog("DIE signature replacement completed successfully", Logging.LogFilterType.TextInfo);
+                    rgatState.NetworkBridge.SendLog("DIE signature replacement completed successfully", Logging.LogFilterType.Info);
                 }
             }
             catch (Exception e)
             {
                 Logging.RecordError($"Failed to replace signatures: {e.Message}");
-                rgatState.NetworkBridge.SendLog($"DIE signature sync failed: {e.Message}", Logging.LogFilterType.TextError);
+                rgatState.NetworkBridge.SendLog($"DIE signature sync failed: {e.Message}", Logging.LogFilterType.Error);
             }
         }
     }

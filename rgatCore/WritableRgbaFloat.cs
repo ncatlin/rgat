@@ -27,7 +27,8 @@ namespace rgat
 
 
         /// <summary>
-        /// Create a colour float colour values (0-1)
+        /// Create a colour from float colour values (0-1)
+        /// Values higher than 1 can be specified for non-colour rendering usage
         /// </summary>
         /// <param name="Rf">red</param>
         /// <param name="Gf">green</param>
@@ -40,6 +41,24 @@ namespace rgat
             B = (float)Bf;
             A = (float)Af;
         }
+
+
+        /// <summary>
+        /// Create a colour from uint colour values (0-255)
+        /// </summary>
+        /// <param name="Ru">red</param>
+        /// <param name="Gu">green</param>
+        /// <param name="Bu">blue</param>
+        /// <param name="Au">alpha</param>
+        public WritableRgbaFloat(uint Ru, uint Gu, uint Bu, uint Au)
+        {
+            System.Diagnostics.Debug.Assert(Ru <= 255 && Gu <= 255 && Bu <= 255 && Au <= 255);
+            R = (float)(Ru / 255.0);
+            G = (float)(Gu / 255.0);
+            B = (float)(Bu / 255.0);
+            A = (float)(Au / 255.0);
+        }
+
 
         /// <summary>
         /// Create a colour from a Vector
@@ -65,7 +84,7 @@ namespace rgat
             R = ((col & 0xff)) / 255f;
         }
 
-        //todo static version
+
         /// <summary>
         /// Get the uint value of this colour required by ImGui
         /// </summary>
@@ -80,6 +99,18 @@ namespace rgat
 
             return ((uint)(A * 255) << 24) + ((uint)(B * 255) << 16) + ((uint)(G * 255) << 8) + ((uint)(R * 255));
         }
+
+
+        /// <summary>
+        /// Get the uint value of this colour required by ImGui
+        /// </summary>
+        /// <param name="customAlpha">An optional alpha value</param>
+        /// <returns>This colour as a uint</returns>
+        public static uint ToUint(uint original, uint customAlpha)
+        {
+            return (customAlpha << 24) + (original & 0xffffff);
+        }
+
 
         /// <summary>
         /// This colour as a vector
@@ -116,6 +147,20 @@ namespace rgat
             float B = col.B / 255f;
             float A = col.A / 255f;
             return new RgbaFloat(R, G, B, A);
+        }
+
+        /// <summary>
+        /// Convert a .NET Colour to a uint
+        /// </summary>
+        /// <param name="col">Input Colour</param>
+        /// <returns>output uint</returns>
+        public static uint ToUint(Color col)
+        {
+            float R = col.R / 255f;
+            float G = col.G / 255f;
+            float B = col.B / 255f;
+            float A = col.A / 255f;
+            return CreateUint(R, G, B, A);
         }
 
 

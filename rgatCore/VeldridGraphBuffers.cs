@@ -116,6 +116,8 @@ namespace rgat
         private static readonly object b_lock = new object();
         private static readonly List<string> _allocatedBufs = new List<string>();
 
+        public static uint RoundUp(uint num, uint factor) => num + factor - 1 - (num + factor - 1) % factor;
+
         /// <summary>
         /// Allocate tracked VRAM memory
         /// </summary>
@@ -127,13 +129,14 @@ namespace rgat
         /// <returns>Allocated device buffer</returns>
         public static DeviceBuffer TrackedVRAMAlloc(GraphicsDevice gd, uint size, BufferUsage usage = BufferUsage.StructuredBufferReadWrite, uint stride = 0, string name = "?")
         {
+            size = RoundUp(size, 1024);
             lock (b_lock)
             {
                 AllocatedBytes += size;
                 AllocatedBuffers += 1;
                 if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"VRamAlloc! {size} name:{name}", Logging.LogFilterType.BulkDebugLogFile);
                 //Console.WriteLine($"VRamAlloc! {size} name:{name}");
-                DeviceBuffer result = gd.ResourceFactory.CreateBuffer(new BufferDescription(size, usage, stride));
+                DeviceBuffer result = gd.ResourceFactory.CreateBuffer(new BufferDescription(size, usage, stride), dbgname: name);
                 result.Name = name;
                 _allocatedBufs.Add(result.Name);
                 return result;

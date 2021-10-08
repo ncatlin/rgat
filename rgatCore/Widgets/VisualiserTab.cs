@@ -70,7 +70,7 @@ namespace rgat
 
             if (count == GlobalConfig.Settings.UI.PreviewWorkers)
             {
-                Logging.RecordLogEvent($"Starting {count} preview workers", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Starting {count} preview workers", Logging.LogFilterType.Debug);
             }
             else
             {
@@ -118,7 +118,7 @@ namespace rgat
 
                 float controlsHeight = 230;
                 sw.Start();
-                
+
                 DrawVisualiserGraphs((ImGui.GetWindowContentRegionMax().Y - 16) - controlsHeight);
                 sw.Stop();
                 if (sw.ElapsedMilliseconds > 40)
@@ -221,7 +221,7 @@ namespace rgat
 
         public bool AlertRawKeyPress(Tuple<Key, ModifierKeys> KeyModifierTuple) => MainGraphWidget.AlertRawKeyPress(KeyModifierTuple);
 
-        public bool AlertKeybindPressed(KeybindAction action, Tuple<Key, ModifierKeys> KeyModifierTuple)
+        public bool AlertKeybindPressed(KeybindAction action, Tuple<Key, ModifierKeys>? KeyModifierTuple)
         {
             /*
             if (action == eKeybind.Cancel && _show_stats_dialog)
@@ -285,7 +285,7 @@ namespace rgat
                 {
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
                     ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
-                    if (ImGui.BeginChild("ReplayControls", new Vector2(650, ImGui.GetContentRegionAvail().Y - 2)))
+                    if (ImGui.BeginChild("ReplayControls", new Vector2(800, ImGui.GetContentRegionAvail().Y - 2)))
                     {
 
                         DrawReplayControlsPanel(activeGraph);
@@ -316,7 +316,7 @@ namespace rgat
             string indexPos = "";
             if (graph.AnimationIndex > 0)
             {
-                indexPos = $" ({graph.AnimationIndex}/{graph.InternalProtoGraph.SavedAnimationData.Count})";
+                indexPos = $" ({graph.AnimationIndex}/{graph.InternalProtoGraph.StoredUpdateCount})";
             }
 
 
@@ -449,19 +449,23 @@ namespace rgat
                 {
                     if (ImGui.Button("Kill"))
                     {
+                        Console.WriteLine("kill click");
                         graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
                         // Sometimes the pintool doesn't respond
                         // This terminates our end of the connection after a reasonable wait
-                        System.Threading.Tasks.Task.Run(async () => { 
-                            await System.Threading.Tasks.Task.Delay(800); 
-                            if (graph.InternalProtoGraph.TraceData.TraceState is not TraceRecord.ProcessState.eTerminated) 
-                                graph.InternalProtoGraph.TraceReader?.Terminate(); }
+                        System.Threading.Tasks.Task.Run(async () =>
+                        {
+                            await System.Threading.Tasks.Task.Delay(800);
+                            if (graph.InternalProtoGraph.TraceData.TraceState is not TraceRecord.ProcessState.eTerminated)
+                                graph.InternalProtoGraph.TraceReader?.Terminate();
+                        }
                         );
                     }
                     SmallWidgets.MouseoverText("Terminate the process running the current thread");
 
                     if (ImGui.Button("Kill All"))
                     {
+                        Console.WriteLine("killall click");
                         foreach (var child in graph.InternalProtoGraph.TraceData.Children)
                             child.SendDebugCommand(0, "EXIT");
                         graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
@@ -570,10 +574,15 @@ namespace rgat
                 SmallWidgets.DisableableButton("Add Caption", false, new Vector2(100, 25));
                 SmallWidgets.MouseoverText("Not available in this version of rgat");
 
+                ImGui.Text($"Ctrl: {ImGui.GetIO().KeyCtrl}");
+                ImGui.Text($"Shft: {ImGui.GetIO().KeyShift}");
+
                 //ImGui.Button("Capture Settings");
                 ImGui.EndChild();
             }
         }
+
+
 
 
         private void DrawCameraPanel(PlottedGraph graph)
@@ -662,11 +671,14 @@ namespace rgat
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(10, 0));
 
+                List<ANIMATIONENTRY> animData = graph.GetSavedAnimationDataReference();
                 try
                 {
-                    if (lastAnimIdx >= 0 && lastAnimIdx < graph.SavedAnimationData.Count)
+                    if (lastAnimIdx >= 0 && lastAnimIdx < animData.Count)
                     {
-                        ANIMATIONENTRY lastEntry = graph.SavedAnimationData[lastAnimIdx];
+
+                        ANIMATIONENTRY lastEntry = animData[lastAnimIdx];
+
                         ImGui.Text($"Trace Tag: {lastEntry.entryType} Location: 0x{lastEntry.blockAddr} (Block {lastEntry.blockID})");
                         switch (lastEntry.entryType)
                         {
@@ -714,7 +726,7 @@ namespace rgat
                                     int ucBlkCount = 0;
                                     for (var i = lastAnimIdx; i > 0; i--)
                                     {
-                                        if (graph.SavedAnimationData[i].entryType != eTraceUpdateType.eAnimUnchained)
+                                        if (animData[i].entryType != eTraceUpdateType.eAnimUnchained)
                                         {
                                             break;
                                         }
@@ -744,6 +756,10 @@ namespace rgat
                 catch (Exception e)
                 {
                     Console.WriteLine($"disas box exc {e}");
+                }
+                finally
+                {
+                    graph.ReleaseSavedAnimationDataReference();
                 }
                 ImGui.PopStyleVar(3);
                 ImGui.EndChild();
@@ -777,7 +793,7 @@ namespace rgat
                     ImGui.SameLine();
                     DrawCameraPanel(graph);
                     ImGui.SameLine();
-                    DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.SavedAnimationData.Count - 1);
+                    DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.StoredUpdateCount - 1);
                     ImGui.EndChild();
                 }
                 else
@@ -829,6 +845,10 @@ namespace rgat
             ImGui.NextColumn();
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff110022);
+
+            int mouseNode = MainGraphWidget.MouseoverNodeID;
+
+
             if (ImGui.BeginChild("ActiveTraceMetrics", new Vector2(130, metricsHeight)))
             {
                 ImGui.Text($"Edges: {graph.EdgeCount}");
@@ -836,7 +856,6 @@ namespace rgat
                 ImGui.Text($"Updates: {graph.UpdateCount}");
                 ImGui.Text($"Instructions: {graph.TotalInstructions}");
                 ImGui.Text($"Exceptions: {graph.ExceptionCount}");
-
                 ImGui.EndChild();
             }
 
@@ -887,34 +906,6 @@ namespace rgat
                     ImGui.Text($"RepQu: {BrQlab}");
                 }
 
-                /*
-                double fps = rgatUI.UIDrawFPS;
-                if (fps >= 100)
-                {
-                    ImGui.Text($"UI FPS: 100+");
-                }
-                else
-                {
-                    uint fpscol;
-                    if (fps >= 40)
-                    {
-                        fpscol = Themes.GetThemeColourImGui(ImGuiCol.Text);
-                    }
-                    else if (fps < 40 && fps >= 10)
-                    {
-                        fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
-                    }
-                    else
-                    {
-                        fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
-                    }
-
-                    ImGui.PushStyleColor(ImGuiCol.Text, fpscol);
-                    ImGui.Text($"UI FPS: {fps:0.#}");
-                    ImGui.PopStyleColor();
-                }
-                SmallWidgets.MouseoverText($"How many frames the UI can render in one second (Last 10 Avg MS: {UIFrameAverage})");
-                */
                 if (plot.ComputeLayoutSteps > 0)
                 {
                     ImGui.Text($"Layout: {(plot.ComputeLayoutTime / plot.ComputeLayoutSteps):0.#}ms");
@@ -952,6 +943,76 @@ namespace rgat
             ImGui.Columns(1, "smushes");
         }
 
+
+        private void DrawMousePanel(PlottedGraph graph, int mouseNode)
+        {
+            if (mouseNode is -1) return;
+
+
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
+            ImGui.Text($"Mouseover Node: {mouseNode}");
+            ImGui.Indent(12);
+
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(8, 4));
+            if (ImGui.BeginChild("MouseInfoFrame", new Vector2(ImGui.GetContentRegionAvail().X - 5, ImGui.GetContentRegionAvail().Y - 2), true))
+            {
+                if (ImGui.BeginTable("#MouseInfoFrameTable", 2))
+                {
+                    ImGui.TableSetupColumn("MouseItem", ImGuiTableColumnFlags.WidthFixed, 45);
+                    ImGui.TableSetupColumn("MouseValue");
+
+                    NodeData? n = graph.InternalProtoGraph.GetNode((uint)mouseNode);
+                    if (n is not null)
+                    {
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Address");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"0x{n.address:X}");
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Sources");
+                        ImGui.TableNextColumn();
+                        ImGui.TextWrapped(GetNeighbourString(graph.InternalProtoGraph, n, incoming: true));
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Targets");
+                        ImGui.TableNextColumn();
+                        ImGui.TextWrapped(GetNeighbourString(graph.InternalProtoGraph, n, incoming: false));
+                    }
+                    ImGui.EndTable();
+                }
+                ImGui.EndChild();
+            }
+            ImGui.PopStyleVar();
+        }
+
+        private string GetNeighbourString(ProtoGraph graph, NodeData n, bool incoming = true)
+        {
+            List<uint> neighbourSet = incoming ? n.IncomingNeighboursSet : n.OutgoingNeighboursSet;
+            const int maxNeighbours = 2;
+            List<NodeData> srcNodes = new();
+            for (var i = 0; i < Math.Min(maxNeighbours, neighbourSet.Count); i++)
+            {
+                NodeData? neighbour = graph.GetNode(neighbourSet[i]);
+                if (neighbour is not null)
+                {
+                    srcNodes.Add(neighbour);
+                }
+            }
+            string srcString = $"x{neighbourSet.Count}: ";
+            for (var i = 0; i < srcNodes.Count; i++) // srcNodes.Count; i++)
+            {
+                NodeData neighbour = srcNodes[i];
+                srcString += $"{neighbour.Index} [0x{neighbour.address:X}]";
+                if (i < srcNodes.Count - 1) srcString += ", ";
+            }
+            if (srcNodes.Count < neighbourSet.Count) 
+                srcString += $" +{neighbourSet.Count - srcNodes.Count} more";
+            return srcString;
+        }
 
 
         private bool _stats_click_hover = false;
@@ -1006,7 +1067,17 @@ namespace rgat
                 TraceSelector.Draw(activeGraph?.InternalProtoGraph.TraceData);
 
                 if (activeGraph is not null)
-                    DrawPlotStatColumns(activeGraph);
+                {
+                    int mouseNode = MainGraphWidget.MouseoverNodeID;
+                    if (mouseNode is -1)
+                    {
+                        DrawPlotStatColumns(activeGraph);
+                    }
+                    else
+                    {
+                        DrawMousePanel(activeGraph, mouseNode);
+                    }
+                }
                 ImGui.EndGroup();
                 ImGui.EndChild();
             }
@@ -1229,41 +1300,49 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("Total compute engine time used to generate this layout");
 
-                    double accountedComputeTime = graphplot.VelocitySetupTime + graphplot.VelocityShaderTime +
+                    double accountedComputeTime = 0.1 + graphplot.VelocitySetupTime + graphplot.VelocityShaderTime +
                         graphplot.PositionSetupTime + graphplot.PositionShaderTime +
                         graphplot.AttributeSetupTime + graphplot.AttributeShaderTime;
 
+                    WritableRgbaFloat baseColour = new WritableRgbaFloat(0x8d, 0x00, 0x00, 0xff);
 
                     if (graphplot.VelocitySteps is not 0)
                     {
+
+                        double velpc = ((graphplot.VelocitySetupTime + graphplot.VelocityShaderTime)) / accountedComputeTime;
+                        double velpc_all = ((graphplot.VelocitySetupTime + graphplot.VelocityShaderTime)) / graphplot.ComputeLayoutTime;
+                        uint bgColour = baseColour.ToUint((uint)(velpc_all * 255.0));
+
+
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Velocity Setup MS");
+                        ImGui.Text($"Velocity Time %");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{velpc * 100.0:0.#}%% ({velpc_all * 100.0:0.#}%% of total)");
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Proportion of compute time spent measuring forces");
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"Velocity Setup Time");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{graphplot.VelocitySetupTime:0.#} MS over {graphplot.VelocitySteps} steps (Avg: {graphplot.VelocitySetupTime / graphplot.VelocitySteps:0.#})");
                         ImGui.TableNextColumn();
                         ImGui.Text("Time spent preparing to measure forces");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff884444);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Velocity Time");
+                        ImGui.Text($"Velocity Work Time");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{graphplot.VelocityShaderTime:0.#} MS over {graphplot.VelocitySteps} steps (Avg: {graphplot.VelocityShaderTime / graphplot.VelocitySteps:0.#})");
                         ImGui.TableNextColumn();
                         ImGui.Text("Time spent measuring forces");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff884444);
-
-                        ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        ImGui.Text($"Velocity Time Share");
-                        ImGui.TableNextColumn();
-                        double velpc = ((graphplot.VelocitySetupTime + graphplot.VelocityShaderTime)) / accountedComputeTime;
-                        double velpc_all = ((graphplot.VelocitySetupTime + graphplot.VelocityShaderTime)) / graphplot.ComputeLayoutTime;
-                        ImGui.Text($"{velpc * 100.0:0.#}%% ({velpc_all * 100.0:0.#}%% of total)");
-                        ImGui.TableNextColumn();
-                        ImGui.Text("Proportion of compute time spent measuring forces");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff884444);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
@@ -1273,11 +1352,26 @@ namespace rgat
                         ImGui.Text($"{((int)nodesPerSec).ToMetric()} Nodes/Second");
                         ImGui.TableNextColumn();
                         ImGui.Text("How fast the velocity shader is running");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff884444);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
                     }
 
                     if (graphplot.PositionSteps is not 0)
                     {
+                        double pospc = ((graphplot.PositionSetupTime + graphplot.PositionShaderTime)) / accountedComputeTime;
+                        double pospc_all = ((graphplot.PositionSetupTime + graphplot.PositionShaderTime)) / graphplot.ComputeLayoutTime;
+                        uint bgColour = baseColour.ToUint((uint)(pospc_all * 255.0));
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"Position Time %");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{pospc * 100.0:0.#}%% ({pospc_all * 100.0:0.#}%% of total)");
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Proportion of compute time spent moving nodes");
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
+
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         ImGui.Text($"Position Setup Time");
@@ -1285,27 +1379,18 @@ namespace rgat
                         ImGui.Text($"{graphplot.PositionSetupTime:0.#} MS over {graphplot.PositionSteps} steps (Avg: {graphplot.PositionSetupTime / graphplot.PositionSteps:0.#})");
                         ImGui.TableNextColumn();
                         ImGui.Text("Time spent preparing to move nodes");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff684444);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Position Time");
+                        ImGui.Text($"Position Work Time");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{graphplot.PositionShaderTime:0.#} MS over {graphplot.PositionSteps} steps (Avg: {graphplot.PositionShaderTime / graphplot.PositionSteps:0.#})");
                         ImGui.TableNextColumn();
                         ImGui.Text("Time spent moving nodes");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff684444);
-
-                        ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        ImGui.Text($"Position Time Share");
-                        ImGui.TableNextColumn();
-                        double pospc = ((graphplot.PositionSetupTime + graphplot.PositionShaderTime)) / accountedComputeTime;
-                        double pospc_all = ((graphplot.PositionSetupTime + graphplot.PositionShaderTime)) / graphplot.ComputeLayoutTime;
-                        ImGui.Text($"{pospc * 100.0:0.#}%% ({pospc_all * 100.0:0.#}%% of total)");
-                        ImGui.TableNextColumn();
-                        ImGui.Text("Proportion of compute time spent moving nodes");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff684444);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
@@ -1315,12 +1400,27 @@ namespace rgat
                         ImGui.Text($"{((int)nodesPerSec).ToMetric()} Nodes/Second");
                         ImGui.TableNextColumn();
                         ImGui.Text("How fast the position shader is running");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff684444);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
 
                     }
 
                     if (graphplot.AttributeSteps is not 0)
                     {
+                        double attpc = ((graphplot.AttributeSetupTime + graphplot.AttributeShaderTime)) / accountedComputeTime;
+                        double attpc_all = ((graphplot.AttributeSetupTime + graphplot.AttributeShaderTime)) / graphplot.ComputeLayoutTime;
+                        uint bgColour = baseColour.ToUint((uint)(attpc_all * 255.0));
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"Attribute Time %");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{attpc * 100.0:0.#}%% ({attpc_all * 100.0:0.#}%% of total)");
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Proportion of compute time spent animating nodes");
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
+
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         ImGui.Text($"Attribute Setup Time");
@@ -1328,27 +1428,18 @@ namespace rgat
                         ImGui.Text($"{graphplot.AttributeSetupTime:0.#} MS over {graphplot.AttributeSteps} steps (Avg: {graphplot.AttributeSetupTime / graphplot.AttributeSteps:0.#})");
                         ImGui.TableNextColumn();
                         ImGui.Text("Time spent preparing to animate nodes");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff484444);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Attribute Time");
+                        ImGui.Text($"Attribute Work Time");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{graphplot.AttributeShaderTime:0.#} MS over {graphplot.AttributeSteps} steps (Avg: {graphplot.AttributeShaderTime / graphplot.AttributeSteps:0.#})");
                         ImGui.TableNextColumn();
                         ImGui.Text("Time spent animating nodes");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff484444);
-
-                        ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        ImGui.Text($"Attribute Time Share");
-                        ImGui.TableNextColumn();
-                        double attpc = ((graphplot.AttributeSetupTime + graphplot.AttributeShaderTime)) / accountedComputeTime;
-                        double attpc_all = ((graphplot.AttributeSetupTime + graphplot.AttributeShaderTime)) / graphplot.ComputeLayoutTime;
-                        ImGui.Text($"{attpc * 100.0:0.#}%% ({attpc_all * 100.0:0.#}%% of total)");
-                        ImGui.TableNextColumn();
-                        ImGui.Text("Proportion of compute time spent animating nodes");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff484444);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
@@ -1358,30 +1449,37 @@ namespace rgat
                         ImGui.Text($"{((int)nodesPerSec).ToMetric()} Nodes/Second");
                         ImGui.TableNextColumn();
                         ImGui.Text("How fast the attribute shader is running");
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, 0xff484444);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
                     }
 
 
                     if (graphplot.ComputeLayoutSteps is not 0)
                     {
                         double setupTime = graphplot.ComputeLayoutTime - accountedComputeTime;
-
-                        ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        ImGui.Text($"Setup Time");
-                        ImGui.TableNextColumn();
-                        ImGui.Text($"{setupTime:0.#} MS over {graphplot.ComputeLayoutSteps} steps (Avg: {setupTime / graphplot.ComputeLayoutSteps:0.#})");
-                        ImGui.TableNextColumn();
-                        ImGui.Text("Time spent setting up resources");
+                        double unaccpc = (setupTime / graphplot.ComputeLayoutTime);
+                        uint bgColour = baseColour.ToUint((uint)(unaccpc * 255.0));
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         ImGui.Text($"Misc Time %");
                         ImGui.TableNextColumn();
-                        double unaccpc = (setupTime / graphplot.ComputeLayoutTime) * 100.0;
-                        ImGui.Text($"{setupTime:0.#} MS ({unaccpc:0.#} %% of total)");
+                        ImGui.Text($"{(unaccpc * 100.0):0.#} %% of total");
                         ImGui.TableNextColumn();
                         ImGui.Text("Time spent managing layout");
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"Misc Time Total");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{setupTime:0.#} MS over {graphplot.ComputeLayoutSteps} steps (Avg: {setupTime / graphplot.ComputeLayoutSteps:0.#})");
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Time spent setting up resources");
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, bgColour);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, bgColour);
+
                     }
 
 

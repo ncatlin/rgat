@@ -45,7 +45,7 @@ namespace rgat.Threads
                 //	"PID,%u,%d,%ld,%s,%ld", pid, arch, libraryFlag, instanceID, programName, testRunID
                 string[] fields = csString.Split('@');
                 const int expectedFieldCount = 7;
-                Logging.RecordLogEvent($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: {fields}", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: {fields}", Logging.LogFilterType.Debug);
 
                 if (fields.Length == expectedFieldCount)
                 {
@@ -96,11 +96,11 @@ namespace rgat.Threads
                         coordPipe.Write(System.Text.Encoding.UTF8.GetBytes(response));
 
                         Task startTask = Task.Run(() => ProcessNewPinConnection(PID, arch, libraryFlag == 1, randno, programName, testRunID));
-                        Logging.RecordLogEvent($"Coordinator connection initiated", Logging.LogFilterType.TextDebug);
+                        Logging.RecordLogEvent($"Coordinator connection initiated", Logging.LogFilterType.Debug);
                     }
                     else
                     {
-                        Logging.RecordLogEvent($"Coordinator got bad data from client: " + csString, Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"Coordinator got bad data from client: " + csString, Logging.LogFilterType.Error);
                     }
                 }
             }
@@ -118,11 +118,11 @@ namespace rgat.Threads
             try
             {
                 nps!.EndWaitForConnection(ar);
-                Logging.RecordLogEvent($"Incoming connection on coordinator pipe", Logging.LogFilterType.TextDebug);
+                Logging.RecordLogEvent($"Incoming connection on coordinator pipe", Logging.LogFilterType.Debug);
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Coordinator pipe callback exception {e.Message}", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"Coordinator pipe callback exception {e.Message}", Logging.LogFilterType.Error);
             }
 
         }
@@ -140,7 +140,7 @@ namespace rgat.Threads
             catch (System.IO.IOException e)
             {
                 string errmsg = $"Error: Failed to start bootstrap thread '{e.Message}' so rgat will not process incoming traces";
-                Logging.RecordLogEvent(errmsg, Logging.LogFilterType.TextAlert);
+                Logging.RecordLogEvent(errmsg, Logging.LogFilterType.Alert);
                 //todo: does this happen outside of debugging? if so A: figure out why, B:give visual indication
                 return;
             }
@@ -154,7 +154,7 @@ namespace rgat.Threads
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordLogEvent($"PCT::Listener BeginWaitForConnection exception {e.Message}", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"PCT::Listener BeginWaitForConnection exception {e.Message}", Logging.LogFilterType.Error);
                     Thread.Sleep(80);
                     continue;
                 }
@@ -164,7 +164,7 @@ namespace rgat.Threads
                 {
                     if (rgatState.rgatIsExiting)
                     {
-                        Logging.RecordLogEvent("rgat exited before the coordinator connection completed", Logging.LogFilterType.TextDebug);
+                        Logging.RecordLogEvent("rgat exited before the coordinator connection completed", Logging.LogFilterType.Debug);
                         Finished();
                         return;
                     }
@@ -173,11 +173,11 @@ namespace rgat.Threads
 
                 try
                 {
-                    Logging.RecordLogEvent($"rgatCoordinator pipe connected", Logging.LogFilterType.TextDebug);
+                    Logging.RecordLogEvent($"rgatCoordinator pipe connected", Logging.LogFilterType.Debug);
 
                     var readres = coordPipe.BeginRead(buf, 0, 1024, new AsyncCallback(GotMessage), null);
 
-                    Logging.RecordLogEvent("rgatCoordinator began read", Logging.LogFilterType.TextDebug);
+                    Logging.RecordLogEvent("rgatCoordinator began read", Logging.LogFilterType.Debug);
 
                     _ = WaitHandle.WaitAny(new WaitHandle[] { readres.AsyncWaitHandle }, 2000);
 
@@ -220,7 +220,7 @@ namespace rgat.Threads
             bool isTest = testID > -1;
             string msg = $"New {(isTest ? "test case" : "instrumentation")} connection with {arch}-bit trace: {shortName} (PID:{PID})";
 
-            Logging.RecordLogEvent(msg, Logging.LogFilterType.TextDebug);
+            Logging.RecordLogEvent(msg, Logging.LogFilterType.Debug);
 
             BinaryTarget? target;
             if (!rgatState.targets.GetTargetByPath(path: programName, out target) || target is null)
@@ -233,7 +233,7 @@ namespace rgat.Threads
                 if (target.BitWidth != 0)
                 {
                     msg = $"Warning: Incoming process reports different arch {arch} to binary {target.BitWidth}";
-                    Logging.RecordLogEvent(msg, Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent(msg, Logging.LogFilterType.Error);
                 }
                 target.BitWidth = arch;
             }
@@ -245,13 +245,13 @@ namespace rgat.Threads
             {
                 if (_pendingProcessMappings.TryGetValue(PID, out TraceRecord? parent))
                 {
-                    Logging.RecordLogEvent($"New Trace: {PID} - {tr.Target.FileName} [parent: {parent.PID} - {parent.Target.FileName}]", Logging.LogFilterType.TextAlert);
+                    Logging.RecordLogEvent($"New Trace: {PID} - {tr.Target.FileName} [parent: {parent.PID} - {parent.Target.FileName}]", Logging.LogFilterType.Alert);
                     parent.AddChildTrace(tr);
                     _pendingProcessMappings.Remove(PID);
                 }
                 else
                 {
-                    Logging.RecordLogEvent($"New Trace: {PID} - {tr.Target.FileName}", Logging.LogFilterType.TextAlert);
+                    Logging.RecordLogEvent($"New Trace: {PID} - {tr.Target.FileName}", Logging.LogFilterType.Alert);
                 }
             }
 

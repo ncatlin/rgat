@@ -37,7 +37,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Windows API datafile {datapath} could not be opened: {e.Message}", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"Windows API datafile {datapath} could not be opened: {e.Message}", Logging.LogFilterType.Error);
                 return;
             }
 
@@ -50,11 +50,11 @@ namespace rgat
             }
             catch (Newtonsoft.Json.JsonReaderException e)
             {
-                Logging.RecordLogEvent($"Failed to parse Windows API datafile JSON {datapath}: {e.Message}", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"Failed to parse Windows API datafile JSON {datapath}: {e.Message}", Logging.LogFilterType.Error);
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Failed to load Windows API datafile {datapath}: {e.Message}", Logging.LogFilterType.TextError);
+                Logging.RecordLogEvent($"Failed to load Windows API datafile {datapath}: {e.Message}", Logging.LogFilterType.Error);
             }
 
             if (apiDataJSON != null)
@@ -186,7 +186,7 @@ namespace rgat
 
                 if (moduleEntryTok.Type != JTokenType.Object)
                 {
-                    Logging.RecordLogEvent("API Data JSON has a library entry which is not an object. Abandoning Load.", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent("API Data JSON has a library entry which is not an object. Abandoning Load.", Logging.LogFilterType.Error);
                     return;
                 }
 
@@ -195,7 +195,7 @@ namespace rgat
                     !moduleEntry.TryGetValue("Library", out JToken? libnameTok) ||
                     libnameTok.Type != JTokenType.String)
                 {
-                    Logging.RecordLogEvent("API Data library entry has no 'Library' name string. Abandoning Load.", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent("API Data library entry has no 'Library' name string. Abandoning Load.", Logging.LogFilterType.Error);
                     return;
                 }
 
@@ -235,7 +235,7 @@ namespace rgat
                     {
                         if (API.Value is null || API.Value.Type != JTokenType.Object)
                         {
-                            Logging.RecordLogEvent($"API data entry {libname}:{API.Key} is not an object", Logging.LogFilterType.TextError);
+                            Logging.RecordLogEvent($"API data entry {libname}:{API.Key} is not an object", Logging.LogFilterType.Error);
                             continue;
                         }
                         JObject? APIJsn = API.Value.ToObject<JObject>();
@@ -305,7 +305,7 @@ namespace rgat
 
                 if (callParamTok.Type != JTokenType.Object)
                 {
-                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a non-object parameter", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a non-object parameter", Logging.LogFilterType.Error);
                     return null;
                 }
 
@@ -314,12 +314,12 @@ namespace rgat
                     !callParam.TryGetValue("Index", out JToken? paramIndexTok) ||
                     paramIndexTok.Type != JTokenType.Integer)
                 {
-                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter with no valid index", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter with no valid index", Logging.LogFilterType.Error);
                     return null;
                 }
                 if (!callParam.TryGetValue("Name", out JToken? paramNameTok) || paramNameTok.Type != JTokenType.String)
                 {
-                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter with no valid name", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter with no valid name", Logging.LogFilterType.Error);
                     return null;
                 }
 
@@ -340,7 +340,7 @@ namespace rgat
                                 !Enum.TryParse(typeof(InteractionEntityType), catTok.ToString(), out object? categoryEnum) ||
                                 categoryEnum is null)
                             {
-                                Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter ({param.name}) with no valid Category", Logging.LogFilterType.TextError);
+                                Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter ({param.name}) with no valid Category", Logging.LogFilterType.Error);
                                 return null;
                             }
 
@@ -352,7 +352,7 @@ namespace rgat
                                 !Enum.TryParse(typeof(InteractionRawType), rawTypeTok.ToString(), out object? rawtypeEnum) ||
                                 rawtypeEnum is null)
                             {
-                                Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter ({param.name}) with no valid RawType", Logging.LogFilterType.TextError);
+                                Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a parameter ({param.name}) with no valid RawType", Logging.LogFilterType.Error);
                                 return null;
                             }
                             param.RawType = (InteractionRawType)rawtypeEnum;
@@ -387,7 +387,7 @@ namespace rgat
             {
                 if (effectTok.Type != JTokenType.Object)
                 {
-                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a non-object interaction effect", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has a non-object interaction effect", Logging.LogFilterType.Error);
                     break;
                 }
                 JObject? effectJsn = effectTok.ToObject<JObject>();
@@ -395,7 +395,7 @@ namespace rgat
                     !effectJsn.TryGetValue("Type", out JToken? typetok) ||
                     typetok.Type != JTokenType.String)
                 {
-                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has an untyped interaction effect", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has an untyped interaction effect", Logging.LogFilterType.Error);
                     break;
                 }
                 bool valid = false;
@@ -452,12 +452,12 @@ namespace rgat
                         break;
 
                     default:
-                        Logging.RecordLogEvent($"API data entry {libname}:{apiname} has an unknown interaction effect {typetok}", Logging.LogFilterType.TextError);
+                        Logging.RecordLogEvent($"API data entry {libname}:{apiname} has an unknown interaction effect {typetok}", Logging.LogFilterType.Error);
                         break;
                 }
                 if (!valid)
                 {
-                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has an effect ({typetok}) with invalid parameters", Logging.LogFilterType.TextError);
+                    Logging.RecordLogEvent($"API data entry {libname}:{apiname} has an effect ({typetok}) with invalid parameters", Logging.LogFilterType.Error);
                 }
             }
             return result;
