@@ -38,7 +38,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DllLoader64", "DllLoader64\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UpdateFinaliser", "UpdateFinaliser\UpdateFinaliser.csproj", "{2B0F8588-E3EF-47A5-984B-2671A1A105D2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Veldrid", "..\veldridfix\src\Veldrid\Veldrid.csproj", "{BECE02BF-B178-4064-86D0-B0277A5770F4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Veldrid", "TemporaryVeldrid\src\Veldrid\Veldrid.csproj", "{BECE02BF-B178-4064-86D0-B0277A5770F4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
