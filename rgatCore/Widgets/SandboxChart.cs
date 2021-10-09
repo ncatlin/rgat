@@ -702,6 +702,7 @@ namespace rgat.Widgets
             }
         }
 
+
         private void HandleMouseInput()
         {
             /*
@@ -720,6 +721,7 @@ namespace rgat.Widgets
             }
         }
 
+
         private void StopLayout()
         {
             if (layout.State == QuikGraph.Algorithms.ComputationState.Running)
@@ -732,6 +734,7 @@ namespace rgat.Widgets
             }
             _layoutActive = false;
         }
+
 
         public void ApplyZoom(float delta)
         {
@@ -751,6 +754,7 @@ namespace rgat.Widgets
                 _computeRequired = true;
             }
         }
+
 
         private bool _fittingActive = false;
         private int fittingAttempts = 0;

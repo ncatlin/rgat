@@ -102,8 +102,9 @@ namespace rgat
 
 
         /// <summary>
-        /// Get the uint value of this colour required by ImGui
+        /// Change the alpha of a uint colour
         /// </summary>
+        /// <param name="original">The colour to change the alpha of</param>
         /// <param name="customAlpha">An optional alpha value</param>
         /// <returns>This colour as a uint</returns>
         public static uint ToUint(uint original, uint customAlpha)

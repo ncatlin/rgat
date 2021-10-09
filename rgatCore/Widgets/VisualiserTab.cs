@@ -171,9 +171,11 @@ namespace rgat
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
+                ImGui.PopStyleVar();
                 swdbg2.Restart();
                 MainGraphWidget.Draw(graphSize, rgatState.ActiveGraph);
                 swdbg2.Stop();
+                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
                 if (swdbg2.ElapsedMilliseconds > 52)
                     Console.WriteLine($"MainGraphWidget.Draw took {swdbg2.ElapsedMilliseconds}ms");
 
@@ -214,13 +216,11 @@ namespace rgat
                     Console.WriteLine("Fail3");
                 }
             }
-
-
         }
+
 
         public Vector2 GraphSize => MainGraphWidget.WidgetSize;
         public Vector2 GraphPosition => MainGraphWidget.WidgetPos;
-
         public bool ThreadsRunning => (mainRenderThreadObj != null && mainRenderThreadObj.Running);
         public bool MouseInMainWidget => MainGraphWidget != null && MainGraphWidget.MouseInWidget();
 
@@ -233,6 +233,7 @@ namespace rgat
             }
         }
 
+
         public void NotifyMouseDrag(Vector2 _delta)
         {
             if (MouseInMainWidget)
@@ -240,6 +241,7 @@ namespace rgat
                 MainGraphWidget?.ApplyMouseDrag(_delta);
             }
         }
+
 
         public void NotifyMouseRotate(Vector2 _delta)
         {
@@ -317,7 +319,7 @@ namespace rgat
                 {
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
                     //ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
-                    if (ImGui.BeginChild("ReplayControls", new Vector2(642, ImGui.GetContentRegionAvail().Y - 2)))
+                    if (ImGui.BeginChild("ReplayControls", new Vector2(660, ImGui.GetContentRegionAvail().Y - 2)))
                     {
 
                         DrawReplayControlsPanel(activeGraph);
@@ -614,42 +616,74 @@ namespace rgat
 
         private void DrawCameraPanel(PlottedGraph graph)
         {
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(8, 4));
-            if (ImGui.BeginChild("CameraStatFrame1", new Vector2(130, ImGui.GetContentRegionAvail().Y - 2), true))
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(18, 4));
+            if (ImGui.BeginChild("CameraStatFrame1", new Vector2(150, ImGui.GetContentRegionAvail().Y - 2), true))
             {
+                float itemWidth = 60;
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg, 45));
+                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4,3));
                 if (ImGui.BeginTable("#CameraStateTable", 3))
                 {
-                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 20);
-                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 15);
-                    ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 80);
+                    ImGui.TableSetupColumn("MovIcon", ImGuiTableColumnFlags.WidthFixed, 20);
+                    ImGui.TableSetupColumn("MovFieldLabel", ImGuiTableColumnFlags.WidthFixed, 15);
+                    ImGui.TableSetupColumn("MovValue", ImGuiTableColumnFlags.WidthFixed, 100);
+
+                    float furthestNode = Math.Abs(graph.FurthestNodeDimension);
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     ImGui.TableNextColumn();
+                    ImGui.AlignTextToFramePadding();
                     ImGui.Text($"X");
                     ImGui.TableNextColumn();
-                    ImGui.Text($"{(int)graph.CameraState.MainCameraXOffset}");
+                    ImGui.SetNextItemWidth(itemWidth);
+                    float xoff = graph.CameraState.MainCameraXOffset;
+                    if (ImGui.DragFloat("##Xm", ref xoff, 150, -3 * furthestNode, 3 * furthestNode, "%.f"))
+                        graph.CameraState.MainCameraXOffset = xoff;
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
+                    ImGui.AlignTextToFramePadding();
                     ImGui.Text($"{ImGuiController.FA_ICON_MOVEMENT}");
                     ImGui.TableNextColumn();
+                    ImGui.AlignTextToFramePadding();
                     ImGui.Text($"Y");
                     ImGui.TableNextColumn();
-                    ImGui.Text($"{(int)graph.CameraState.MainCameraYOffset}");
+                    ImGui.SetNextItemWidth(itemWidth);
+                    float yoff = graph.CameraState.MainCameraYOffset;
+                    if (ImGui.DragFloat("##Ym", ref yoff, 150, -3 * furthestNode, 3 * furthestNode, "%.f"))
+                        graph.CameraState.MainCameraYOffset = yoff;
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     ImGui.TableNextColumn();
+                    ImGui.AlignTextToFramePadding();
                     ImGui.Text($"Z");
                     ImGui.TableNextColumn();
-                    ImGui.Text($"{(int)graph.CameraState.MainCameraZoom}");
+                    ImGui.SetNextItemWidth(itemWidth);
+                    float mainzoom = graph.CameraState.MainCameraZoom;
+                    if (ImGui.DragFloat("##Zm", ref mainzoom, 500, -9999999999, furthestNode, "%.f"))
+                        graph.CameraState.MainCameraZoom = mainzoom;
 
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.AlignTextToFramePadding();
+                    ImGui.Text($"{ImGuiController.FA_ICON_ROTATION}");
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    if (ImGui.Button("Reset", new Vector2(itemWidth, 25)))
+                    {
+                        graph.CameraState.RotationMatrix = Matrix4x4.Identity;
+                    }
+                    SmallWidgets.MouseoverText("Reset the rotation of the graph");
 
                     ImGui.EndTable();
                 }
+                ImGui.PopStyleColor();
+                ImGui.PopStyleVar();
 
-
+                /*
                 if (ImGui.BeginTable("#CameraRotationStateTable", 3))
                 {
                     ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 20);
@@ -668,7 +702,7 @@ namespace rgat
                     SmallWidgets.MouseoverText("Reset the rotation of the graph");
                     ImGui.EndTable();
                 }
-
+                */
                 if (graph.CenteringInFrame is not PlottedGraph.CenteringMode.Inactive)
                 {
                     if (graph.CenteringInFrame is PlottedGraph.CenteringMode.Centering)

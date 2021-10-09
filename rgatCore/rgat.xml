@@ -3171,7 +3171,8 @@
             <summary>
             Create an edge from serialised edge data
             </summary>
-            <param name="serialised">JArray of edge data items</param>
+            <param name="edgeType">The control flow class of the edge</param>
+            <param name="execCount">The number of recorded edge executions</param>
             <param name="index">Index of the edge in the edge list</param>
             <param name="sourceType">Type of soure node (jump, etc)</param>
         </member>
@@ -3983,7 +3984,7 @@
             <summary>
             Deserialise an API call from JSON
             </summary>
-            <param name="apiTok">The token</param>
+            <param name="apiArr">The serialised call data</param>
             <param name="trace">The trace the call belongs to</param>
             <param name="apiObj">The resulting API object</param>
             <returns></returns>
@@ -4048,7 +4049,8 @@
             <summary>
             Deserialise a timeline event from JSON
             </summary>
-            <param name="jobj">A json timeline obj</param>
+            <param name="jsnReader">A JsonReader for the trace file</param>
+            <param name="serializer">A JsonSerializer</param>
             <param name="trace">The trace assocated with the timeline event</param>
         </member>
         <member name="M:rgat.Logging.TIMELINE_EVENT.Serialise(Newtonsoft.Json.JsonWriter,Newtonsoft.Json.JsonSerializer)">
@@ -4887,6 +4889,12 @@
             <param name="nodeCount">Number of nodes rendered</param>
             <returns>Node geometry array</returns>
         </member>
+        <member name="M:rgat.PlottedGraph.ResetCachedRender">
+            <summary>
+            Cause the main graph to be rerendered from scratch 
+            Usually due to edge colour changes
+            </summary>
+        </member>
         <member name="M:rgat.PlottedGraph.GetEdgeLineVerts(rgat.CONSTANTS.eRenderingMode,System.UInt32[]@,System.Int32@,System.Boolean)">
             <summary>
             Get the geometry and colour of every edge
@@ -4894,7 +4902,8 @@
             <param name="renderingMode">Rendering mode (standard, heatmap, etc)</param>
             <param name="edgeIndices">Output list of edge indexes for drawing</param>
             <param name="vertCount">Output number of edge vertics to draw</param>
-            <returns></returns>
+            <param name="preview">Use the preview data. If false - use the main node data</param>
+            <returns>Position/Colour geometry of the edges</returns>
         </member>
         <member name="M:rgat.PlottedGraph.dataTextureSize(System.Int32)">
             <summary>
@@ -5046,6 +5055,12 @@
             </summary>
             <param name="risingExterns">List of node index/strings of rising labels</param>
             <param name="risingLingering">List of node index/strings of lingering labels</param>
+        </member>
+        <member name="P:rgat.PlottedGraph.FurthestNodeDimension">
+            <summary>
+            The absolute largest dimension of any node on the graph
+            Use as a rough guide to the scale of the current plot 
+            </summary>
         </member>
         <member name="M:rgat.PlottedGraph.SetFurthestNodeDimension(System.Int32,System.Single)">
             <summary>
@@ -5765,7 +5780,9 @@
             <summary>
             Deserialise the process record from JSON
             </summary>
-            <param name="tracejson">JSON processrecord</param>
+            <param name="jsnReader">JSON processrecord</param>
+            <param name="serializer">JSON processrecord</param>
+            <param name="progress">JSON processrecord</param>
             <returns>If successful</returns>
         </member>
         <member name="T:rgat.Properties.Resources">
@@ -6359,8 +6376,11 @@
             <summary>
             Restore a thread ProtoGraph from a JObject
             </summary>
-            <param name="graphData">The serialised ProtoGraph JObject</param>
+            <param name="metadata">Section metadata prelude JSON</param>
+            <param name="jsnReader">A JsonReader for the trace file</param>
+            <param name="serializer">A JsonSerializer</param>
             <param name="processinfo">The processdata associated with the thread</param>
+            <param name="progress">Serialisation progress object</param>
             <returns>The deserialised ProtoGraph</returns>
         </member>
         <member name="M:rgat.ProtoGraph.GetRecentAnimationEntries(System.Int32,System.Collections.Generic.List{rgat.ANIMATIONENTRY}@)">
@@ -6377,6 +6397,17 @@
             ReleaseSavedAnimationDataReference() must be called after being finished with the list
             </summary>
             <returns>The original list of entries</returns>
+        </member>
+        <member name="M:rgat.ProtoGraph.ReleaseSavedAnimationDataReference">
+            <summary>
+            Release a reference to the saved animation data
+            At 0 it will be eligible for deletion operations
+            </summary>
+        </member>
+        <member name="M:rgat.ProtoGraph.PurgeSavedAnimationData">
+            <summary>
+            Clear the trace replay data, or mark it for clearing when the locks are released
+            </summary>
         </member>
         <member name="F:rgat.ProtoGraph.SymbolCallRecords">
             <summary>
@@ -6644,10 +6675,61 @@
             <summary>
             Load a TraceRecord from a serialised trace JObject
             </summary>
-            <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
+            <param name="metadata">The metadata prelude object of the saved trace</param>
             <param name="target">The binarytarget associated with the trace</param>
             <param name="traceResult">The output reconstructed TraceRecord</param>
             <returns>true if a new trace was created, false if failed or duplicated</returns>
+        </member>
+        <member name="T:rgat.rgatState.SERIALISE_PROGRESS">
+            <summary>
+            Serialisation progress information for UI display
+            </summary>
+        </member>
+        <member name="M:rgat.rgatState.SERIALISE_PROGRESS.#ctor(System.String)">
+            <summary>
+            Serialisation progress information for UI display
+            </summary>
+            <param name="operationName">Title of the operation being performed</param>
+        </member>
+        <member name="F:rgat.rgatState.SERIALISE_PROGRESS.Operation">
+            <summary>
+            The operation being performed
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.SERIALISE_PROGRESS.FileCount">
+            <summary>
+            The number of files being loaded/saved (not used)
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.SERIALISE_PROGRESS.FilePath">
+            <summary>
+            The path of the current file, or null if none
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.SERIALISE_PROGRESS.SectionsTotal">
+            <summary>
+            Total sections being processed in this stage
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.SERIALISE_PROGRESS.SectionsComplete">
+            <summary>
+            How many of this stages sections are complete
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.SERIALISE_PROGRESS.SectionProgress">
+            <summary>
+            0-1 progress in this section
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.SERIALISE_PROGRESS.SectionName">
+            <summary>
+            The name of the section being processed
+            </summary>
+        </member>
+        <member name="F:rgat.rgatState.SERIALISE_PROGRESS.Cancelled">
+            <summary>
+            Set to cancel processing
+            </summary>
         </member>
         <member name="M:rgat.rgatState.LoadTraceByPath(System.String,rgat.TraceRecord@)">
             <summary>
@@ -6668,6 +6750,7 @@
             </summary>
             <param name="childrenFiles">A list of relative filesystem paths of traces</param>
             <param name="trace">The parent TraceRecord of the child traces</param>
+            <param name="progress">Serialisation progress object</param>
         </member>
         <member name="M:rgat.rgatState.SaveAllTargets">
             <summary>
@@ -7700,6 +7783,7 @@
             Get a uint colour value of a specified imgui style colour item
             </summary>
             <param name="item">Am imGui style colour</param>
+            <param name="customAlpha">Optional custom alpha (0-255)</param>
             <returns>uint colour</returns>
         </member>
         <member name="P:rgat.Themes.ThemeVersion">
@@ -8459,9 +8543,11 @@
             <summary>
             Deserialise a TraceRecord from JSON
             </summary>
-            <param name="saveJSON">The JObject of the trace</param>
+            <param name="jsnReader">A JsonReader for the trace file</param>
+            <param name="serializer">A JsonSerializer</param>
+            <param name="progress">A serialisation progress object</param>
             <param name="device">A GraphicsDevice to start rendering the graphs with</param>
-            <returns></returns>
+            <returns>If load was successful</returns>
         </member>
         <member name="M:rgat.TraceRecord.RecordTimelineEvent(rgat.Logging.eTimelineEvent,rgat.TraceRecord,rgat.ProtoGraph)">
             <summary>
@@ -8608,7 +8694,7 @@
             Save all the data needed to reconstruct a process run and all its thread graphs
             Recursively saves child processes
             </summary>
-            <param name="traceStartedTime">The time the run was started</param>
+            <param name="progress">Progress object for the save operation</param>
             <param name="savePath">The filesystem path the trace was saved to</param>
             <returns>The path the trace was saved to</returns>
         </member>
@@ -8616,8 +8702,14 @@
             <summary>
             Get a list of child trace processes from a saved trace
             </summary>
-            <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
+            <param name="jsnReader">A JsonReader for the trace file</param>
+            <param name="serializer">A JsonSerializer</param>
             <param name="childrenFiles">A list of relative filesystem paths of child traces</param>
+        </member>
+        <member name="P:rgat.TraceRecord.SaveFileName">
+            <summary>
+            Filename to save this trace as
+            </summary>
         </member>
         <member name="M:rgat.TraceRecord.ExportPajek(System.UInt32)">
             <summary>
@@ -8747,6 +8839,15 @@
             Dispose of a VRAM devide buffer and track the deallocation
             </summary>
             <param name="db">DeviceBuffer to dispose</param>
+        </member>
+        <member name="M:rgat.VeldridGraphBuffers.RoundUp(System.UInt32,System.UInt32)">
+            <summary>
+            Round a number up to a given alignment
+            eg: (280, 250) => 500
+            </summary>
+            <param name="num">Source number</param>
+            <param name="alignment">Alignment gap</param>
+            <returns>Rounded number</returns>
         </member>
         <member name="M:rgat.VeldridGraphBuffers.TrackedVRAMAlloc(Veldrid.GraphicsDevice,System.UInt32,Veldrid.BufferUsage,System.UInt32,System.String)">
             <summary>
@@ -9505,8 +9606,9 @@
         </member>
         <member name="M:rgat.WritableRgbaFloat.ToUint(System.UInt32,System.UInt32)">
             <summary>
-            Get the uint value of this colour required by ImGui
+            Change the alpha of a uint colour
             </summary>
+            <param name="original">The colour to change the alpha of</param>
             <param name="customAlpha">An optional alpha value</param>
             <returns>This colour as a uint</returns>
         </member>

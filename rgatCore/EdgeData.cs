@@ -24,7 +24,8 @@ namespace rgat
         /// <summary>
         /// Create an edge from serialised edge data
         /// </summary>
-        /// <param name="serialised">JArray of edge data items</param>
+        /// <param name="edgeType">The control flow class of the edge</param>
+        /// <param name="execCount">The number of recorded edge executions</param>
         /// <param name="index">Index of the edge in the edge list</param>
         /// <param name="sourceType">Type of soure node (jump, etc)</param>
         public EdgeData(CONSTANTS.EdgeNodeType edgeType, ulong execCount, int index, CONSTANTS.EdgeNodeType sourceType)

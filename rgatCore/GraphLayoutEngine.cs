@@ -492,13 +492,13 @@ namespace rgat
                 }
             }
 
-            if (rgatUI.ResponsiveKeyHeld)
+            if (rgatUI.ResponsiveKeyHeld || graph.FurthestNodeDimension == 0)
             {
                 // todo - don't iterate over every node every frame!
                 // not sure whether to make this timer based or do it in the shader
                 // it looks pretty bad doing it every 10 frames
                 // for now just do it every 3 frames
-                if (forceComputationActive && (layout.RenderVersion % 3) == 0)
+                if ((forceComputationActive && (layout.RenderVersion % 3) == 0) || graph.FurthestNodeDimension == 0)
                 {
                     if (layout.PositionsVRAM1 is not null && (graph.ComputeBufferNodeCount * 4 * sizeof(float)) <= layout.PositionsVRAM1.SizeInBytes)
                     {
@@ -655,7 +655,7 @@ namespace rgat
             {
                 delta = delta,
                 NodesTexWidth = textureSize,
-                blockNodeSeperation = 60,
+                blockNodeSeperation = 160,
                 fixedInternalNodes = fixedNodes,
                 activatingPreset = graph.LayoutState.ActivatingPreset
             };
@@ -685,7 +685,7 @@ namespace rgat
             VelocityShaderParams parms = new VelocityShaderParams
             {
                 delta = delta,
-                attractionK =  GlobalConfig.AttractionK,
+                attractionK =  GlobalConfig.RepulsionK,
                 temperature = Math.Min(temperature, GlobalConfig.CurrentNodeTemperature),
                 repulsionK = GlobalConfig.RepulsionK,
                 fixedInternalNodes = 0,
@@ -717,7 +717,7 @@ namespace rgat
             {
                 delta = delta,
                 temperature = Math.Min(temperature, GlobalConfig.CurrentNodeTemperature),
-                attractionK = GlobalConfig.AttractionK,
+                attractionK = GlobalConfig.RepulsionK,
                 repulsionK = GlobalConfig.RepulsionK,
                 fixedInternalNodes = 1,
                 snappingToPreset = 0,

@@ -122,7 +122,24 @@ namespace rgat
         /// <param name="wheelClicks">Zoom delta (expressed as mousewheel roll units)</param>
         public void ApplyZoom(float wheelClicks)
         {
-            ActiveGraph?.ApplyMouseWheelDelta(wheelClicks * CONSTANTS.UI.GRAPH_ZOOM_MOUSEWHEEL_MULTIPLIER);
+            wheelClicks *= CONSTANTS.UI.GRAPH_ZOOM_MOUSEWHEEL_MULTIPLIER;
+
+            bool shift = ImGui.GetIO().KeyShift;
+            bool ctrl = ImGui.GetIO().KeyCtrl;
+            float shiftMultiplier = shift ? CONSTANTS.UI.MOUSEWHEEL_SHIFTKEY_MULTIPLIER : 1;
+            float ctrlMultiplier = ctrl ? CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER : 1;
+            if (shift && ctrl)
+            {
+                float mainzoom = rgatState.ActiveGraph?.CameraState.MainCameraZoom ?? 1f;
+                float proportion = Math.Abs(mainzoom / 7);
+                if (proportion > CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER)
+                {
+                    ctrlMultiplier = proportion;
+                    shiftMultiplier = 1;
+                } 
+            }
+
+            ActiveGraph?.ApplyMouseWheelDelta(wheelClicks * shiftMultiplier * ctrlMultiplier );
         }
 
         private bool _isInputTarget = false;
@@ -962,6 +979,7 @@ namespace rgat
         {
             if (!_cachedStrings.TryGetValue(inputString, out fontStruc[]? cached) || cached is null)
             {
+                Console.WriteLine("Cache miss " + inputString);
                 cached = new fontStruc[inputString.Length * 6];
 
                 float xPos = 0;
@@ -983,12 +1001,12 @@ namespace rgat
                     Vector2 uv1 = new Vector2(glyph.U1, glyph.V1);
                     Vector3 topLeft = new Vector3(xPos, yTop, 0);
                     Vector3 baseRight = new Vector3(xEnd, yBase, 0);
-                    cached[i * 6] = new fontStruc { nodeIdx = nodeIdx, screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
-                    cached[i * 6 + 1] = new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yBase, 0), fontCoord = new Vector2(glyph.U0, glyph.V1), yOffset = yOff, fontColour = fcolour };
-                    cached[i * 6 + 2] = new fontStruc { nodeIdx = nodeIdx, screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
-                    cached[i * 6 + 3] = new fontStruc { nodeIdx = nodeIdx, screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
-                    cached[i * 6 + 4] = new fontStruc { nodeIdx = nodeIdx, screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
-                    cached[i * 6 + 5] = new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yTop, 0), fontCoord = new Vector2(glyph.U1, glyph.V0), yOffset = yOff, fontColour = fcolour };
+                    cached[i * 6] = new fontStruc { screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
+                    cached[i * 6 + 1] = new fontStruc { screenCoord = new Vector3(xPos, yBase, 0), fontCoord = new Vector2(glyph.U0, glyph.V1), yOffset = yOff, fontColour = fcolour };
+                    cached[i * 6 + 2] = new fontStruc { screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
+                    cached[i * 6 + 3] = new fontStruc { screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
+                    cached[i * 6 + 4] = new fontStruc { screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
+                    cached[i * 6 + 5] = new fontStruc { screenCoord = new Vector3(xEnd, yTop, 0), fontCoord = new Vector2(glyph.U1, glyph.V0), yOffset = yOff, fontColour = fcolour };
                     xPos += charWidth;
                 }
                 _cachedStrings.Add(inputString, cached);
@@ -996,7 +1014,8 @@ namespace rgat
 
             for (var i = 0; i < cached.Length; i++)
             {
-                stringVerts[arrayIdx + i] = cached[i];
+                stringVerts[arrayIdx + i] = cached[i]; //do this in the lower loop because this is wrong in the cached struct
+                stringVerts[arrayIdx + i].nodeIdx = nodeIdx;
             }
         }
 

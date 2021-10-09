@@ -77,7 +77,7 @@ void main() {
     vec4 clipPosition = Projection * viewPosition;
     gl_Position = clipPosition;
 
-    float nodeSize = 300.0;
+    float nodeSize = 300.0; //remember to match the picking shader value to this
     float relativeNodeSize = nodeSize / length(gl_Position.xyz);
     gl_PointSize = nodeAttribTexture[index].x * relativeNodeSize;
 }
@@ -194,7 +194,7 @@ void main() {
     vec4 clipPosition = Projection * viewPosition;
     gl_Position = clipPosition;
 
-    gl_PointSize = 10.0;
+    gl_PointSize = 30.0;
 }";
 
 

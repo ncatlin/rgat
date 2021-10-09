@@ -396,7 +396,7 @@ namespace rgat
         /// <param name="serializer">A JsonSerializer</param>
         /// <param name="progress">A serialisation progress object</param>
         /// <param name="device">A GraphicsDevice to start rendering the graphs with</param>
-        /// <returns></returns>
+        /// <returns>If load was successful</returns>
         public bool Load(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress, Veldrid.GraphicsDevice device)
         {
             try

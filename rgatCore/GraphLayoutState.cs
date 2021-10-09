@@ -1178,7 +1178,7 @@ namespace rgat
         {
             Random rnd = new Random();
 
-            float radius = (layoutRAMBuffers.PositionsArray.Length / 4) * spread;
+            float radius = (layoutRAMBuffers.PositionsArray.Length / 4) * 2 * spread;
             int endLength = layoutRAMBuffers.PositionsArray.Length;
             for (var i = 0; i < endLength; i += 4)
             {
@@ -1188,15 +1188,14 @@ namespace rgat
                     break;
                 }
 
-                layoutRAMBuffers.VelocityArray[i] = 0;// rnd.Next(100);
-                layoutRAMBuffers.VelocityArray[i + 1] = 0;// rnd.Next(100);
-                layoutRAMBuffers.VelocityArray[i + 2] = 0;// rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 1] = rnd.Next(100);
+                layoutRAMBuffers.VelocityArray[i + 2] = rnd.Next(100);
 
                 getPoint(rnd, radius, out float x, out float y, out float z);
-                layoutRAMBuffers.PositionsArray[i] = 2;// x;
-                layoutRAMBuffers.PositionsArray[i + 1] = 2;// y;
-                layoutRAMBuffers.PositionsArray[i + 2] =2 ;// z;
-                layoutRAMBuffers.PositionsArray[i + 3] = 1 ;// w;
+                layoutRAMBuffers.PositionsArray[i] = x;
+                layoutRAMBuffers.PositionsArray[i + 1] = y;
+                layoutRAMBuffers.PositionsArray[i + 2] = z;
             }
         }
 

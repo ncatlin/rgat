@@ -366,14 +366,18 @@ namespace rgat
                     if (OutgoingNeighboursSet.Count > 1)
                     {
                         Label += "<";
-                        foreach (int nidx in OutgoingNeighboursSet)
+                        int nCount = Math.Min(OutgoingNeighboursSet.Count, 3);
+                        for (var i = 0; i < nCount; i++)
                         {
-                            EdgeData? targEdge = graph.GetEdge(Index, (uint)nidx);
+                            uint nidx = OutgoingNeighboursSet[i];
+                              EdgeData? targEdge = graph.GetEdge(Index, (uint)nidx);
                             if (targEdge != null)
                             {
                                 Label += $" {nidx}:{targEdge.ExecutionCount}, ";
                             }
                         }
+                        if (OutgoingNeighboursSet.Count > nCount)
+                            Label += "...";
                         Label += ">";
                     }
                 }

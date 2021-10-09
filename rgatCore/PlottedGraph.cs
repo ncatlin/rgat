@@ -742,7 +742,7 @@ namespace rgat
         private void GenerateRotationWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
             float WF_POINTSPERLINE = 50f;
-            float radius = _furthestNodeDimension;
+            float radius = FurthestNodeDimension;
 
             WritableRgbaFloat YawColour = new WritableRgbaFloat(0xFFE69F00);
             WritableRgbaFloat RollColour = new WritableRgbaFloat(0xFF56B4E9);
@@ -1018,8 +1018,11 @@ namespace rgat
         /// </summary>
         public void IncreaseTemperature()
         {
-            Temperature += _graphStructureLinear.Count / 2;
-            Temperature = Math.Min(Temperature, GlobalConfig.TemperatureLimit);
+            if (OPT_LOCK_TEMPERATURE is false)
+            {
+                Temperature += _graphStructureLinear.Count / 2;
+                Temperature = Math.Min(Temperature, GlobalConfig.TemperatureLimit);
+            }
         }
 
         /// <summary>
@@ -1028,8 +1031,11 @@ namespace rgat
         /// <param name="temp">Activity level</param>
         public void IncreaseTemperature(float temp)
         {
-            Temperature = temp;
-            Temperature = Math.Min(Temperature, GlobalConfig.TemperatureLimit);
+            if (OPT_LOCK_TEMPERATURE is false)
+            {
+                Temperature = temp;
+                Temperature = Math.Min(Temperature, GlobalConfig.TemperatureLimit);
+            }
         }
 
         private unsafe void AddNode(uint nodeIdx, EdgeData? edge = null)
@@ -2477,15 +2483,33 @@ namespace rgat
         /// <param name="delta">How far the mousewheel moved</param>
         public void ApplyMouseWheelDelta(float delta)
         {
+            if (Math.Abs(delta) > Math.Abs(CameraState.MainCameraZoom / 10))
+            {
+                if (Math.Abs(CameraState.MainCameraZoom) > Math.Abs(FurthestNodeDimension/5))
+                {
+                    delta = (delta > 0 ? 1 : -1) * Math.Abs(CameraState.MainCameraZoom / 10);
+                }
+            }
+
             float resultAfter = CameraState.MainCameraZoom + delta;
-            float absFurthest = Math.Abs(_furthestNodeDimension);
+            float absFurthest = Math.Abs(FurthestNodeDimension);
 
             //Safeguard to stop the camera zooming pointlessly into oblivion
-            if (resultAfter < 0 || Math.Abs(resultAfter) < absFurthest)
+            if (resultAfter < 0)
+            {
                 CameraState.MainCameraZoom = resultAfter;
+            }
+            else
+            {
+                if (Math.Abs(resultAfter) > absFurthest*2)
+                    CameraState.MainCameraZoom = absFurthest*2;
 
-            if (absFurthest > 1000 && CameraState.MainCameraZoom < -10 * absFurthest)
-                CameraState.MainCameraZoom = -10 * absFurthest;
+
+                else if (absFurthest > 1000 && CameraState.MainCameraZoom < -10 * absFurthest)
+                    CameraState.MainCameraZoom = -10 * absFurthest;
+                else
+                    CameraState.MainCameraZoom = resultAfter;
+            }
         }
 
 
@@ -2819,7 +2843,12 @@ namespace rgat
         }
 
         private int _furthestNodeIdx = -1;
-        private float _furthestNodeDimension = 0;
+        /// <summary>
+        /// The absolute largest dimension of any node on the graph
+        /// Use as a rough guide to the scale of the current plot 
+        /// </summary>
+        public float FurthestNodeDimension { get; private set; } = 0;
+
         /// <summary>
         /// Sets the coordinate of the furthest node from the origin
         /// Used for drawing the force directed layout wireframe, where the distance of this node from the origin is used as the radius
@@ -2829,7 +2858,7 @@ namespace rgat
         public void SetFurthestNodeDimension(int index, float farDimension)
         {
             _furthestNodeIdx = index;
-            _furthestNodeDimension = farDimension;
+            FurthestNodeDimension = farDimension;
         }
 
         private void AddRisingSymbol(uint nodeIdx, int callIndex, int lingerFrames)

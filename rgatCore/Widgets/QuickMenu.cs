@@ -28,8 +28,11 @@ namespace rgat.Widgets
             {
                 if (value != _baseMenuEntry.active && stateChangeCallback != null)
                 {
-                    stateChangeCallback(value);
-                    opens += value ? 1 : -1;
+                    if (opens is 0 && value is true || opens is 1 && value is false)
+                    {
+                        stateChangeCallback(value);
+                        opens += value ? 1 : -1;
+                    }
                     Debug.Assert(opens == 1 || opens == 0);
                 }
                 _baseMenuEntry.active = value;
@@ -694,7 +697,7 @@ namespace rgat.Widgets
             {
                 //ImGui.SetNextWindowSize(new Vector2(500, 300), ImGuiCond.Appearing);
                 //ImGui.SetNextWindowSizeConstraints(new Vector2(500, 300), new Vector2(800, 700));
-                
+
                 if (ImGui.Begin("Search/Highlighting", ref HighlightDialogWidget.PopoutHighlight, ImGuiWindowFlags.NoCollapse))
                 {
                     DrawSearchHighlightFrame();
@@ -944,7 +947,16 @@ private void DrawScalePopup()
                 ImGui.Text("Node Repulsion");
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                ImGui.SliderFloat("##RepulsionK", ref GlobalConfig.RepulsionK, 0.001f, 1000);
+                float repulsion = GlobalConfig.RepulsionK;
+                    
+                float step = (float)Math.Abs(repulsion);///10f;
+                if (repulsion > 10)
+                    step = 10;
+                
+                if (ImGui.DragFloat("##RepulsionK", ref repulsion, step, 0, 10000, "%.5f", ImGuiSliderFlags.Logarithmic))
+                {
+                    if (repulsion > 0) GlobalConfig.RepulsionK = repulsion;
+                }
 
                 PlottedGraph? graph = this._currentGraph;
 
