@@ -772,7 +772,9 @@ namespace rgat
         /// <summary>
         /// Deserialise the process record from JSON
         /// </summary>
-        /// <param name="tracejson">JSON processrecord</param>
+        /// <param name="jsnReader">JSON processrecord</param>
+        /// <param name="serializer">JSON processrecord</param>
+        /// <param name="progress">JSON processrecord</param>
         /// <returns>If successful</returns>
         public bool Load(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress)
         {
@@ -1040,7 +1042,7 @@ namespace rgat
             int loaded = 0;
             while (loaded < modulesToLoad && jsnReader.Read() && jsnReader.TokenType == JsonToken.StartArray)
             {
-                if (jsnReader.Read() is false || jsnReader.TokenType is not JsonToken.Integer) return false;
+                if (jsnReader.Read() is false || jsnReader.TokenType is not JsonToken.Integer || jsnReader.Value is null) return false;
                 int modID = (int)((long)jsnReader.Value);
 
                 modsymsPlain.Add(modID, new Dictionary<ulong, string?>());

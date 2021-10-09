@@ -468,6 +468,7 @@ namespace rgat
         /// Get a uint colour value of a specified imgui style colour item
         /// </summary>
         /// <param name="item">Am imGui style colour</param>
+        /// <param name="customAlpha">Optional custom alpha (0-255)</param>
         /// <returns>uint colour</returns>
         public static uint GetThemeColourImGui(ImGuiCol item, uint? customAlpha = null)
         {

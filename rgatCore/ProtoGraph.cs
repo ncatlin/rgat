@@ -1759,8 +1759,11 @@ namespace rgat
         /// <summary>
         /// Restore a thread ProtoGraph from a JObject
         /// </summary>
-        /// <param name="graphData">The serialised ProtoGraph JObject</param>
+        /// <param name="metadata">Section metadata prelude JSON</param>
+        /// <param name="jsnReader">A JsonReader for the trace file</param>
+        /// <param name="serializer">A JsonSerializer</param>
         /// <param name="processinfo">The processdata associated with the thread</param>
+        /// <param name="progress">Serialisation progress object</param>
         /// <returns>The deserialised ProtoGraph</returns>
         public bool Deserialise(JObject metadata, JsonReader jsnReader, JsonSerializer serializer, ProcessRecord processinfo, rgatState.SERIALISE_PROGRESS progress)
         {
@@ -2185,6 +2188,11 @@ namespace rgat
             }
         }
 
+
+        /// <summary>
+        /// Release a reference to the saved animation data
+        /// At 0 it will be eligible for deletion operations
+        /// </summary>
         public void ReleaseSavedAnimationDataReference()
         {
             lock (AnimDataLock)
@@ -2200,6 +2208,9 @@ namespace rgat
         private int animDataRefs = 0;
         private bool _requireAnimationDataPurge = false;
 
+        /// <summary>
+        /// Clear the trace replay data, or mark it for clearing when the locks are released
+        /// </summary>
         public void PurgeSavedAnimationData()
         {
             lock (AnimDataLock)

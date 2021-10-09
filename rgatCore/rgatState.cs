@@ -523,7 +523,7 @@ namespace rgat
         /// <summary>
         /// Load a TraceRecord from a serialised trace JObject
         /// </summary>
-        /// <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
+        /// <param name="metadata">The metadata prelude object of the saved trace</param>
         /// <param name="target">The binarytarget associated with the trace</param>
         /// <param name="traceResult">The output reconstructed TraceRecord</param>
         /// <returns>true if a new trace was created, false if failed or duplicated</returns>
@@ -573,15 +573,51 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Serialisation progress information for UI display
+        /// </summary>
         public class SERIALISE_PROGRESS
         {
+            /// <summary>
+            /// Serialisation progress information for UI display
+            /// </summary>
+            /// <param name="operationName">Title of the operation being performed</param>
+            public SERIALISE_PROGRESS(string operationName)
+            {
+                Operation = operationName;
+            }
+
+            /// <summary>
+            /// The operation being performed
+            /// </summary>
             public string Operation;
+            /// <summary>
+            /// The number of files being loaded/saved (not used)
+            /// </summary>
             public int FileCount;
+            /// <summary>
+            /// The path of the current file, or null if none
+            /// </summary>
             public string? FilePath;
+            /// <summary>
+            /// Total sections being processed in this stage
+            /// </summary>
             public int SectionsTotal;
+            /// <summary>
+            /// How many of this stages sections are complete
+            /// </summary>
             public int SectionsComplete;
+            /// <summary>
+            /// 0-1 progress in this section
+            /// </summary>
             public float SectionProgress;
+            /// <summary>
+            /// The name of the section being processed
+            /// </summary>
             public string? SectionName;
+            /// <summary>
+            /// Set to cancel processing
+            /// </summary>
             public bool Cancelled = false;
         }
 
@@ -606,9 +642,8 @@ namespace rgat
             {
                 if (SerialisationProgress is null)
                 {
-                    SerialisationProgress = new SERIALISE_PROGRESS
+                    SerialisationProgress = new SERIALISE_PROGRESS("Loading Trace")
                     {
-                        Operation = "Loading Trace",
                         FileCount = 1
                     };
                 }
@@ -727,6 +762,7 @@ namespace rgat
         /// </summary>
         /// <param name="childrenFiles">A list of relative filesystem paths of traces</param>
         /// <param name="trace">The parent TraceRecord of the child traces</param>
+        /// <param name="progress">Serialisation progress object</param>
         private void LoadChildTraces(List<string> childrenFiles, TraceRecord trace, SERIALISE_PROGRESS progress)
         {
 
@@ -785,12 +821,10 @@ namespace rgat
 
             var traceslist = targ.GetTracesUIList();
             int savedCount = 0;
-            SerialisationProgress = new SERIALISE_PROGRESS
+            SerialisationProgress = new SERIALISE_PROGRESS("Saving Trace")
             {
-                Operation = "Saving Trace",
                 FileCount = traceslist.Length
             };
-
 
             foreach (TraceRecord trace in traceslist)
             {

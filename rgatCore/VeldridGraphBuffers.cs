@@ -116,7 +116,15 @@ namespace rgat
         private static readonly object b_lock = new object();
         private static readonly List<string> _allocatedBufs = new List<string>();
 
-        public static uint RoundUp(uint num, uint factor) => num + factor - 1 - (num + factor - 1) % factor;
+        /// <summary>
+        /// Round a number up to a given alignment
+        /// eg: (280, 250) => 500
+        /// </summary>
+        /// <param name="num">Source number</param>
+        /// <param name="alignment">Alignment gap</param>
+        /// <returns>Rounded number</returns>
+        public static uint RoundUp(uint num, uint alignment) => num + alignment - 1 - (num + alignment - 1) % alignment;
+
 
         /// <summary>
         /// Allocate tracked VRAM memory

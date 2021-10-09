@@ -176,7 +176,7 @@ namespace rgat
 
 
 
-        private async void SpawnPipeTraceProcessorThreads(ProtoGraph graph)
+        private void SpawnPipeTraceProcessorThreads(ProtoGraph graph)
         {
             string pipename = GetTracePipeName(graph.ThreadID);
 
@@ -185,6 +185,7 @@ namespace rgat
             System.Threading.Tasks.Task waitTask = threadListener.WaitForConnectionAsync(rgatState.ExitToken);
             while (true)
             {
+                //debugging loop
                 if (!waitTask.IsCompleted)
                 {
                     Console.WriteLine($"Wait task {pipename} not complete - {waitTask.Status}");

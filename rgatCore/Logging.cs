@@ -135,7 +135,7 @@ namespace rgat
             /// <summary>
             /// Deserialise an API call from JSON
             /// </summary>
-            /// <param name="apiTok">The token</param>
+            /// <param name="apiArr">The serialised call data</param>
             /// <param name="trace">The trace the call belongs to</param>
             /// <param name="apiObj">The resulting API object</param>
             /// <returns></returns>
@@ -365,7 +365,8 @@ namespace rgat
             /// <summary>
             /// Deserialise a timeline event from JSON
             /// </summary>
-            /// <param name="jobj">A json timeline obj</param>
+            /// <param name="jsnReader">A JsonReader for the trace file</param>
+            /// <param name="serializer">A JsonSerializer</param>
             /// <param name="trace">The trace assocated with the timeline event</param>
             public TIMELINE_EVENT(JsonReader jsnReader, JsonSerializer serializer, TraceRecord trace) : base(eLogFilterBaseType.TimeLine)
             {
@@ -428,6 +429,7 @@ namespace rgat
             /// </summary>
             public void Serialise(Newtonsoft.Json.JsonWriter writer, Newtonsoft.Json.JsonSerializer serializer)
             {
+                Debug.Assert(_item is not null);
                 JArray meta = new JArray
                 {
                    TimelineEventType,
@@ -456,6 +458,7 @@ namespace rgat
             /// <returns>The list of strings and colours which need to be joined to make a label</returns>
             public List<Tuple<string, WritableRgbaFloat>> Label()
             {
+                Debug.Assert(_item is not null);
                 if (_cachedLabel != null && _cachedLabelTheme == Themes.ThemeVariant)
                 {
                     return _cachedLabel;
@@ -531,7 +534,7 @@ namespace rgat
             /// <summary>
             /// The underlying event data
             /// </summary>
-            public object Item => _item;
+            public object Item => _item!;
 
             /// <summary>
             /// an error was encountered processing this event, usually on the timeline chart
@@ -547,7 +550,7 @@ namespace rgat
             private readonly eTimelineEvent _eventType;
             private ulong _ID;
             private ulong _parentID;
-            private readonly object _item;
+            private object? _item;
         }
 
 

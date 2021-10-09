@@ -353,6 +353,7 @@ namespace rgat
             return MainPlottedGraphs.First();
         }
 
+
         /// <summary>
         /// Get the most recently recorded graph with instrumented instructions
         /// </summary>
@@ -391,7 +392,9 @@ namespace rgat
         /// <summary>
         /// Deserialise a TraceRecord from JSON
         /// </summary>
-        /// <param name="saveJSON">The JObject of the trace</param>
+        /// <param name="jsnReader">A JsonReader for the trace file</param>
+        /// <param name="serializer">A JsonSerializer</param>
+        /// <param name="progress">A serialisation progress object</param>
         /// <param name="device">A GraphicsDevice to start rendering the graphs with</param>
         /// <returns></returns>
         public bool Load(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress, Veldrid.GraphicsDevice device)
@@ -410,7 +413,7 @@ namespace rgat
                     return false;
                 }
 
-                
+
                 if (!LoadTimeline(jsnReader, serializer, progress))
 
                 {
@@ -975,10 +978,10 @@ namespace rgat
         /// Save all the data needed to reconstruct a process run and all its thread graphs
         /// Recursively saves child processes
         /// </summary>
-        /// <param name="traceStartedTime">The time the run was started</param>
+        /// <param name="progress">Progress object for the save operation</param>
         /// <param name="savePath">The filesystem path the trace was saved to</param>
         /// <returns>The path the trace was saved to</returns>
-        public bool Save(rgatState.SERIALISE_PROGRESS? progress, out string? savePath)
+        public bool Save(rgatState.SERIALISE_PROGRESS progress, out string? savePath)
         {
             savePath = null;
             Logging.RecordLogEvent($"Saving trace {Target.FilePath} -> PID {PID}");
@@ -996,61 +999,40 @@ namespace rgat
             }
 
 
-            if (progress is not null)
-            {
-                progress.FilePath = savePath;
-                progress.SectionsTotal = 5;
-                progress.SectionsComplete = 0;
-                progress.SectionName = "Metadata";
-            }
+            progress.FilePath = savePath;
+            progress.SectionsTotal = 5;
+            progress.SectionsComplete = 0;
+            progress.SectionName = "Metadata";
+
 
             outfileWriter.WriteStartArray();
 
             //Item 1 = metadata
             JObject metaDataObj = SerialiseMetadata();
             metaDataObj.WriteTo(outfileWriter);
-
-            if (progress is not null)
-            {
-                progress.SectionsComplete = 1;
-                progress.SectionName = "Disassembly";
-            }
+            progress.SectionsComplete = 1;
 
             //Item 2 - Disassembly data
+            progress.SectionName = "Disassembly";
             DisassemblyData.Serialise(outfileWriter, progress);
-
-            if (progress is not null)
-            {
-                progress.SectionsComplete = 2;
-                progress.SectionName = "Threads";
-            }
+            progress.SectionsComplete = 2;
 
             //Item 3 - Individual threads
+            progress.SectionName = "Threads";
             SerialiseGraphs(outfileWriter, progress);
+            progress.SectionsComplete = 3;
 
-            if (progress is not null)
-            {
-                progress.SectionsComplete = 3;
-                progress.SectionName = "Timeline";
-            }
 
             //Item 4 = Timeline
+            progress.SectionName = "Timeline";
             Newtonsoft.Json.JsonSerializer serializer = new Newtonsoft.Json.JsonSerializer();
             SerialiseTimeline(outfileWriter, serializer, progress);
-
-            if (progress is not null)
-            {
-                progress.SectionsComplete = 4;
-                progress.SectionName = "Child Paths";
-            }
+            progress.SectionsComplete = 4;
 
             //Item 5 - Children
+            progress.SectionName = "Child Paths";
             SerialiseChildrenFilenames(outfileWriter);
-
-            if (progress is not null)
-            {
-                progress.SectionsComplete = 5;
-            }
+            progress.SectionsComplete = 5;
 
             outfileWriter.WriteEndArray();
             outfileWriter.Close();
@@ -1081,7 +1063,8 @@ namespace rgat
         /// <summary>
         /// Get a list of child trace processes from a saved trace
         /// </summary>
-        /// <param name="saveJSON">The Newtonsoft JObject of the saved trace</param>
+        /// <param name="jsnReader">A JsonReader for the trace file</param>
+        /// <param name="serializer">A JsonSerializer</param>
         /// <param name="childrenFiles">A list of relative filesystem paths of child traces</param>
         public static bool ExtractChildTraceFilenames(JsonReader jsnReader, JsonSerializer serializer, out List<string>? childrenFiles)
         {
@@ -1093,7 +1076,7 @@ namespace rgat
             }
 
             childrenFiles = new List<string>();
-            if (mdObj.TryGetValue("Count", out JToken? countTok) && countTok.Type == JTokenType.Integer )
+            if (mdObj.TryGetValue("Count", out JToken? countTok) && countTok.Type == JTokenType.Integer)
             {
                 int loadMax = countTok.ToObject<int>();
                 if (loadMax > 0)
@@ -1127,7 +1110,7 @@ namespace rgat
         }
 
 
-        void SerialiseChildren(rgatState.SERIALISE_PROGRESS? progress)
+        void SerialiseChildren(rgatState.SERIALISE_PROGRESS progress)
         {
             foreach (TraceRecord trace in Children)
             {
@@ -1316,7 +1299,9 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Filename to save this trace as
+        /// </summary>
         public string SaveFileName => $"{Target.FileName}-{PID}-{LaunchedTime:MMM-dd__HH-mm-ss}.rgat";
 
         private JsonTextWriter? CreateSaveFile(out string? path)

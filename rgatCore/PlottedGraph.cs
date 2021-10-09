@@ -1859,11 +1859,16 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Cause the main graph to be rerendered from scratch 
+        /// Usually due to edge colour changes
+        /// </summary>
         public void ResetCachedRender()
         {
             _mainEdgesCache.ELVertIndex = 0;
             _cachedMainNodeVertCount = 0;
         }
+
 
         class CACHED_EDGE_SET
         {
@@ -1876,13 +1881,15 @@ namespace rgat
         CACHED_EDGE_SET _previewEdgesCache = new CACHED_EDGE_SET();
         CACHED_EDGE_SET _mainEdgesCache = new CACHED_EDGE_SET();
 
+
         /// <summary>
         /// Get the geometry and colour of every edge
         /// </summary>
         /// <param name="renderingMode">Rendering mode (standard, heatmap, etc)</param>
         /// <param name="edgeIndices">Output list of edge indexes for drawing</param>
         /// <param name="vertCount">Output number of edge vertics to draw</param>
-        /// <returns></returns>
+        /// <param name="preview">Use the preview data. If false - use the main node data</param>
+        /// <returns>Position/Colour geometry of the edges</returns>
         public Position2DColour[] GetEdgeLineVerts(eRenderingMode renderingMode, out uint[] edgeIndices, out int vertCount, bool preview = false)
         {
             CACHED_EDGE_SET cache = preview ? _previewEdgesCache : _mainEdgesCache;
