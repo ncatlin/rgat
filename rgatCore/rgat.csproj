@@ -89,6 +89,7 @@
     <PackageReference Include="QuikGraph" Version="2.3.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.3" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0-preview.7.21377.19" />
+    <PackageReference Include="Veldrid" Version="4.9.0-gdc7c2ed06a" />
     <PackageReference Include="Veldrid.ImageSharp" Version="4.9.0-gdc7c2ed06a" />
     <PackageReference Include="Veldrid.MetalBindings" Version="4.9.0-gdc7c2ed06a" />
     <PackageReference Include="Veldrid.OpenGLBindings" Version="4.9.0-gdc7c2ed06a" />
@@ -123,10 +124,6 @@
 
   <ItemGroup>
     <Folder Include="Submodules\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\TemporaryVeldrid\src\Veldrid\Veldrid.csproj" />
   </ItemGroup>
 
 </Project>

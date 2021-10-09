@@ -136,7 +136,7 @@ namespace rgat
                 AllocatedBuffers += 1;
                 if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"VRamAlloc! {size} name:{name}", Logging.LogFilterType.BulkDebugLogFile);
                 //Console.WriteLine($"VRamAlloc! {size} name:{name}");
-                DeviceBuffer result = gd.ResourceFactory.CreateBuffer(new BufferDescription(size, usage, stride), dbgname: name);
+                DeviceBuffer result = gd.ResourceFactory.CreateBuffer(new BufferDescription(size, usage, stride));
                 result.Name = name;
                 _allocatedBufs.Add(result.Name);
                 return result;
