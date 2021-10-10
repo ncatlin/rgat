@@ -1303,6 +1303,8 @@ namespace rgat
                 uint blockSize;
                 int blockMid;
                 int blockID;
+                int nodeIndexInBlock = 0;
+                int offsetFromCenter = 0;
                 Tuple<uint, uint>? FirstLastIdx;
                 if (!n.IsExternal)
                 {
@@ -1317,7 +1319,6 @@ namespace rgat
                         continue;
                     }
 
-                    blockSize = (FirstLastIdx.Item2 - FirstLastIdx.Item1) + 1;
                     blockID = NodeBlockToBlockMetaIndex[(int)n.BlockID];
                     if (!blockMiddlesDict.ContainsKey(blockID))
                     {
@@ -1325,6 +1326,13 @@ namespace rgat
                     }
 
                     blockMid = blockMiddlesDict[blockID];
+
+                    var blockEntry = InternalProtoGraph.ProcessData.BasicBlocksList[(int)n.BlockID];
+                    Debug.Assert(blockEntry is not null);
+                    blockSize = (uint) blockEntry.Item2.Count;
+                    int blockOffset = blockEntry.Item2.FindIndex(x => x.Address == n.address);
+                    int midIdx = (int)Math.Ceiling((blockEntry.Item2.Count - 1.0) / 2.0);
+                    offsetFromCenter = blockOffset - midIdx;
                 }
                 else
                 {
@@ -1332,6 +1340,7 @@ namespace rgat
                     FirstLastIdx = new Tuple<uint, uint>(n.Index, n.Index);
                     blockMid = (int)n.Index;
                     blockSize = 1;
+                    offsetFromCenter = 0;
                     blockMiddlesList.Add((int)n.Index);
 
                     //external nodes dont have a block id so just give them a unique one
@@ -1340,15 +1349,6 @@ namespace rgat
                     blockMiddlesDict[blockID] = (int)n.Index;
                 }
 
-                int offsetFromCenter = 0;
-                if (blockSize > 1)
-                {
-                    offsetFromCenter = (int)nodeIdx - blockMid;
-                }
-                else
-                {
-                    offsetFromCenter = 0;
-                }
 
                 int blockTopNodeIndex = -1;
                 int blockBaseNodeIndex = -1;

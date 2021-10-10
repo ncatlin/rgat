@@ -681,7 +681,8 @@ namespace rgat
                 graph.GetBlockRenderingMetadata(out PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER[] blockdats, out int[] blockMiddles);
 
                 _VRAMBuffers.BlockMetadata = VeldridGraphBuffers.TrackedVRAMAlloc(_gd,
-                    (uint)blockdats.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMetadata_T{graph.TID}");
+                    (uint)blockdats.Length * PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER.SizeInBytes, 
+                    BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMetadata_T{graph.TID}");
 
                 _VRAMBuffers.BlockMiddles = VeldridGraphBuffers.TrackedVRAMAlloc(_gd,
                     (uint)blockMiddles.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMiddles_T{graph.TID}");
@@ -1158,7 +1159,8 @@ namespace rgat
             int endLength = layoutRAMBuffers.PositionsArray.Length;
             for (var i = 0; i < endLength; i += 4)
             {
-                if (layoutRAMBuffers.PositionsArray[i + 3] == 0)
+
+                if (layoutRAMBuffers.PositionsArray[i + 3] <= 0)
                 {
                     break;
                 }

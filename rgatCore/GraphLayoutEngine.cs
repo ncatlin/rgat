@@ -534,8 +534,8 @@ namespace rgat
             //_gd!.WaitForIdle();
 
             //DebugPrintOutputIntBuffer(layout.BlockMiddles!, "Middles", 100);
-            DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 1024);
-            //DebugPrintOutputFloatBuffer(layout.PositionsVRAM1!, "pos", 68);
+            //DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 1024);
+            DebugPrintOutputFloatBuffer(layout.PositionsVRAM1!, "pos", 68);
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM2, "Atts2", 32);
 
             if (layout.ActivatingPreset && layout.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
@@ -701,7 +701,7 @@ namespace rgat
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
-            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.VelocitiesVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
+            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.VelocitiesVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4) * sizeof(Vector4))), (uint)sizeof(Vector4), 1);
             watch.Stop();
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done in {watch.ElapsedMilliseconds} MS", Logging.LogFilterType.BulkDebugLogFile);
             return watch.Elapsed.TotalMilliseconds;
@@ -732,7 +732,7 @@ namespace rgat
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
-            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.VelocitiesVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4) * sizeof(Vector4))), (uint) sizeof(Vector4), 1);
+            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.VelocitiesVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4))), (uint) 1, 1);
             watch.Stop();
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done in {watch.ElapsedMilliseconds} MS", Logging.LogFilterType.BulkDebugLogFile);
             return watch.Elapsed.TotalMilliseconds;
@@ -988,7 +988,7 @@ namespace rgat
             DeviceBuffer destinationReadback = VeldridGraphBuffers.GetReadback(_gd!, buf);
             MappedResourceView<float> destinationReadView = _gd!.Map<float>(destinationReadback, MapMode.Read);
             float[] outputArray = new float[destinationReadView.Count];
-            for (int index = 0; index < destinationReadView.Count; index++)
+            for (int index = 499520; index < destinationReadView.Count; index++)
             {
                 if (index >= destinationReadView.Count)
                 {
@@ -1007,7 +1007,7 @@ namespace rgat
 
             Logging.WriteConsole(premsg);
             bool printed = false;
-            for (var i = 0; i < sourceData.Length; i += 4)
+            for (var i = 499520; i < sourceData.Length; i += 4)
             {
                 if (limit > 0 && i > limit)
                 {
