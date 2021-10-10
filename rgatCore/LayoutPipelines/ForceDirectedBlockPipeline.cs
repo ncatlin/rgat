@@ -164,9 +164,8 @@ namespace rgat.Layouts
         /// <summary>
         /// Used the velocity buffer to move the nodes in the positions buffer
         /// </summary>
-        /// <param name="cl">Thread-specific Veldrid command list to use</param>
-        /// <param name="graph">PlottedGraph to compute</param>
-        /// <param name="resources">Position shader resource set</param>
+        /// <param name="plot">PlottedGraph to compute</param>
+        /// <param name="RSetDesc">Position shader resource set</param>
         /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         private unsafe void RenderPosition(ResourceSetDescription RSetDesc, PlottedGraph plot, float delta)
         {

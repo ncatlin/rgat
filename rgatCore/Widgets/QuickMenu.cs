@@ -949,7 +949,7 @@ private void DrawScalePopup()
                 ImGui.SetNextItemWidth(150);
                 float repulsion = GlobalConfig.RepulsionK;
                     
-                float step = (float)Math.Abs(repulsion);///10f;
+                float step = (float)Math.Abs(repulsion);
                 if (repulsion > 10)
                     step = 10;
                 

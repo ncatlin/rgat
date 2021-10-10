@@ -133,11 +133,9 @@ namespace rgat.Layouts
         /// <summary>
         /// Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
         /// </summary>
-        /// <param name="cl">Thread-specific Veldrid command list to use</param>
-        /// <param name="graph">PlottedGraph to compute</param>
-        /// <param name="resources">Velocity shader resource set</param>
+        /// <param name="RSetDesc">Velocity shader resource set description</param>
+        /// <param name="plot">PlottedGraph to compute</param>
         /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
-        /// <param name="temperature">The activity level of the layout state. Higher balues => bigger movements</param>
         private void RenderVelocity(ResourceSetDescription RSetDesc, PlottedGraph plot, float delta)
         {
             //if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);

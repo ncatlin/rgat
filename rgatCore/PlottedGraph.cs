@@ -1062,10 +1062,24 @@ namespace rgat
             textureLock.ExitReadLock();
         }
 
+        /// <summary>
+        /// A descriptor for edges in shader edge buffers
+        /// </summary>
         public struct EDGE_INDEX_FIRSTLAST
         {
+            /// <summary>
+            /// The index of the first edge for this node in the edge list
+            /// </summary>
             public int FirstEdgeIndex;
+
+            /// <summary>
+            /// The index of the final edge for this node in the edge list
+            /// </summary>
             public int LastEdgeIndex;
+
+            /// <summary>
+            /// The raw size of this structure
+            /// </summary>
             public const uint SizeInBytes = 8;
         }
 
@@ -1187,7 +1201,10 @@ namespace rgat
             return true;
         }
 
-
+        /// <summary>
+        /// Get the list of node neighbours for use in a compute shader
+        /// </summary>
+        /// <returns></returns>
         public List<int>[] GetNodeNeighboursArray()
         {
             lock (animationLock)
