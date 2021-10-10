@@ -16,14 +16,10 @@ glslangValidator.exe  -V sim-nodePosition.glsl -o sim-nodePosition.spv -S comp
 struct PositionParams
 {
     float delta;
-    uint nodesTexWidth;
-    float blockNodeSeperation;
-    uint fixedInternalNodes;
-    bool activatingPreset;
 };
 layout(set = 0, binding=0) uniform Params{  PositionParams fieldParams;};
 layout(set = 0, binding=1) buffer bufpositions{vec4 positions[];};
-layout(set = 0, binding=2) buffer  bufvelocities{vec4 velocities[];};
+layout(set = 0, binding=2) buffer bufvelocities{vec4 velocities[];};
 layout(set = 0, binding=3) buffer resultData{  vec4 field_Destination[];};
 
 

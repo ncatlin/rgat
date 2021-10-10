@@ -810,14 +810,14 @@ private void DrawScalePopup()
             }
 
             float APix = graph.OPT_CYLINDER_PIXELS_PER_A;
-            if (ImGui.DragFloat("A Pix", ref APix, 1, 1, 10000))
+            if (ImGui.DragFloat("Horizontal Separation", ref APix, 1, 1, 10000))
             {
                 graph.OPT_CYLINDER_PIXELS_PER_A = APix;
                 InitGraphCylinderLayoutReplot();
             }
 
             float BPix = graph.OPT_CYLINDER_PIXELS_PER_B;
-            if (ImGui.DragFloat("B Pix", ref BPix, 1, 1, 10000))
+            if (ImGui.DragFloat("Vertical Separation", ref BPix, 1, 1, 10000))
             {
                 graph.OPT_CYLINDER_PIXELS_PER_B = BPix;
                 InitGraphCylinderLayoutReplot();

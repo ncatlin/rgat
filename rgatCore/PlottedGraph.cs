@@ -688,7 +688,7 @@ namespace rgat
         /// <summary>
         /// Size of a cylinder plot
         /// </summary>
-        public float OPT_CYLINDER_RADIUS = 80000f;
+        public float OPT_CYLINDER_RADIUS = 20000f;
         /// <summary>
         /// Vertical separation of nodes on a cylinder plot
         /// </summary>

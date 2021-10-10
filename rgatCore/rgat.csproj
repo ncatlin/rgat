@@ -54,6 +54,7 @@
     <None Remove="Shaders\SPIR-V\sim-blockVelocity.spv" />
     <None Remove="Shaders\SPIR-V\sim-nodePosition.spv" />
     <None Remove="Shaders\SPIR-V\sim-nodeVelocity.spv" />
+    <None Remove="Shaders\SPIR-V\sim-presetVelocity.spv" />
   </ItemGroup>
 
   <ItemGroup>
@@ -67,6 +68,7 @@
     <EmbeddedResource Include="Shaders\SPIR-V\sim-blockVelocity.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\sim-nodePosition.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\sim-nodeVelocity.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-presetVelocity.spv" />
     <Resource Include="Shaders\SPIR-V\imgui-frag.glsl" />
     <EmbeddedResource Include="Shaders\SPIR-V\imgui-frag.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\imgui-vertex.spv" />

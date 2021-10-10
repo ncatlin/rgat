@@ -112,8 +112,7 @@ void main()	{
 
         vec4 nodePosition;
 
-        const float speedLimit = 100000.0;
-        float attct = 0;
+        //const float speedLimit = 100000.0;
         float outputDebug = -100;
      
          /*
@@ -182,12 +181,12 @@ void main()	{
                 //    velocity = normalize( velocity ) * speedLimit;
                /// }
             }
-        }
     
         // add friction
         velocity *= 0.25;
     
         field_Destination[index] = vec4(velocity,  outputDebug);//velocities[index].w);
+        }
     }
 }
 

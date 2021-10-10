@@ -42,6 +42,7 @@ namespace rgat
 
             ForceNodesLayout = new Layouts.ForceDirectedNodePipeline(_gd);
             ForceBlocksLayout = new Layouts.ForceDirectedBlockPipeline(_gd);
+            PresetLayout = new Layouts.PresetSnappingPipeline(_gd);
             return true;
         }
 
@@ -56,6 +57,7 @@ namespace rgat
 
         LayoutPipelines.LayoutPipeline? ForceNodesLayout;
         LayoutPipelines.LayoutPipeline? ForceBlocksLayout;
+        LayoutPipelines.LayoutPipeline? PresetLayout;
 
         private Pipeline? _nodeAttribComputePipeline;
         private Shader? _nodeAttribShader;
@@ -297,16 +299,17 @@ namespace rgat
                 LayoutPipelines.LayoutPipeline? activePipeline = SelectPipeline(layout);
                 if (activePipeline is null)
                 {
-                    Logging.RecordError("Error selecting active layout");
+                    ErrorState = true;
+                    Logging.RecordError("Error selecting active layout - it's either invalid or the pipeline is uninitialised");
                     return layout.RenderVersion;
                 }
 
                 bool flip = layout.flip();
                 if (forceComputationActive)
                 {
-                    if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Force computation starting in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+                    if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Layout computation starting in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
                     activePipeline.Compute(plot, flip, delta);
-                    if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Force computation finished in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+                    if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Layout computation finished in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
 
                     layout.IncrementVersion();
 
@@ -318,8 +321,6 @@ namespace rgat
                             plot.Temperature = 0;
                         }
                     }
-
-
                 }
 
                 if (rgatUI.ResponsiveKeyHeld || plot.FurthestNodeDimension == 0)
@@ -342,7 +343,7 @@ namespace rgat
                 }
 
                 if (GlobalConfig.LayoutAttribsActive)
-                { 
+                {
                     if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Attribute computation starting in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
                     ComputeAttributes(flip, layout, cl, plot, delta, mouseoverNodeID, isAnimated);
                     if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Attribute computation finished in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
@@ -390,8 +391,9 @@ namespace rgat
 
 
             //DebugPrintOutputIntBuffer(layout.BlockMiddles!, "Middles", 100);
-            //DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 1024);
-            //DebugPrintOutputFloatBuffer(layout.PositionsVRAM1!, "pos", 68);
+            //DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 32);
+            //DebugPrintOutputFloatBuffer(layout.PositionsVRAM1!, "pos1", 32);
+            //DebugPrintOutputFloatBuffer(layout.PositionsVRAM2!, "pos2", 32);
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM2, "Atts2", 32);
 
 
@@ -453,20 +455,25 @@ namespace rgat
         {
             if (layout.ActivatingPreset)
             {
-                return this.ForceNodesLayout;
+                return this.PresetLayout;
             }
-            else
+            switch (layout.Style)
             {
-                switch (layout.Style)
-                {
-                    case CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks:
-                        return this.ForceBlocksLayout;
+                case CONSTANTS.LayoutStyles.Style.ForceDirected3DBlocks:
+                    return this.ForceBlocksLayout;
 
-                    case CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes:
-                    default:
-                        return this.ForceNodesLayout;
-                }
+                case CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes:
+                    return this.ForceNodesLayout;
+
+                case CONSTANTS.LayoutStyles.Style.CylinderLayout:
+                case CONSTANTS.LayoutStyles.Style.Circle:
+                    return this.PresetLayout;
+
+                default:
+                    Logging.RecordError($"Layout {layout.Style} requested but not handled by SelectPipeline");
+                    return null;
             }
+
         }
 
 

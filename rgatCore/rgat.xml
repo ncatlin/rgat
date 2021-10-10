@@ -1269,7 +1269,8 @@
         </member>
         <member name="F:rgat.GlobalConfig.TemperatureLimit">
             <summary>
-            Maximum speed limit available on the GUI
+            Maximum temperature available on the GUI
+            This is seperate from maximum node temperature because it also controls how long the activity lasts
             </summary>
         </member>
         <member name="F:rgat.GlobalConfig.AttractionK">
@@ -3338,7 +3339,7 @@
             Adjusts the size/alpha of nodes based on the attribute buffer
             </summary>
             <param name="cl">Thread-specific command list</param>
-            <param name="graph">Graph to perform computation on</param>
+            <param name="plot">Graph to perform computation on</param>
             <param name="mouseoverNodeID">The index of the node the users mouse is hovering over</param>
             <param name="isAnimated">If the graph should have animation attributes computed (ie: main graph with live/replay active)</param>
             <returns>The version ID associated with the produced graph layout computed</returns>
@@ -3406,7 +3407,7 @@
             <summary>
             Create buffers for a graph rendering
             </summary>
-            <param name="graph">The graph the layout applies to</param>
+            <param name="plot">The graph the layout applies to</param>
             <param name="device">The graphicsdevice for VRAM operations</param>
             <param name="style">The intial style of the layout</param>
         </member>
@@ -3743,7 +3744,7 @@
             <summary>
             Prepare a preset buffer to generate a non-force directed layout
             </summary>
-            <param name="graph"></param>
+            <param name="plot"></param>
         </member>
         <member name="M:rgat.GraphLayoutState.CreateEdgeDataBuffers(rgat.PlottedGraph)">
             <summary>
@@ -3758,14 +3759,14 @@
             Must have upgradable readlock
             </summary>
             <param name="finalCount">how many nodes to add</param>
-            <param name="graph">The graph with new nodes</param>
+            <param name="plot">The graph with new nodes</param>
         </member>
         <member name="M:rgat.GraphLayoutState.ResizeComputeBuffers(rgat.PlottedGraph,System.UInt32,Veldrid.CommandList,System.Collections.Generic.List{Veldrid.DeviceBuffer}@)">
             <summary>
             Adjust the compute buffers to fit new nodes
             Must hold writer lock before calling
             </summary>
-            <param name="graph">The graph with new nodes</param>
+            <param name="plot">The graph with new nodes</param>
             <param name="bufferSize">The new buffer size</param>
             <param name="cl">Veldrid CommandList to place commands on</param>
             <param name="disposals">Buffers to dispose of</param>
@@ -3905,6 +3906,24 @@
             <param name="cl">Thread-specific Veldrid command list to use</param>
             <param name="graph">PlottedGraph to compute</param>
             <param name="resources">Position shader resource set</param>
+            <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
+        </member>
+        <member name="M:rgat.Layouts.PresetSnappingPipeline.RenderVelocity(Veldrid.ResourceSetDescription,rgat.PlottedGraph,System.Single)">
+            <summary>
+            Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
+            </summary>
+            <param name="cl">Thread-specific Veldrid command list to use</param>
+            <param name="graph">PlottedGraph to compute</param>
+            <param name="resources">Velocity shader resource set</param>
+            <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
+            <param name="temperature">The activity level of the layout state. Higher balues => bigger movements</param>
+        </member>
+        <member name="M:rgat.Layouts.PresetSnappingPipeline.RenderPosition(Veldrid.ResourceSetDescription,rgat.PlottedGraph,System.Single)">
+            <summary>
+            Used the velocity buffer to move the nodes in the positions buffer
+            </summary>
+            <param name="RSetDesc">Data for the shader</param>
+            <param name="plot">PlottedGraph to compute</param>
             <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         </member>
         <member name="T:rgat.Logging">
@@ -6668,7 +6687,7 @@
             <summary>
             Causes the UI to switch to displaying a different thread graph
             </summary>
-            <param name="graph">The PlottedGraph object of the graph to switch to. Null to clear the active graph.</param>
+            <param name="plot">The PlottedGraph object of the graph to switch to. Null to clear the active graph.</param>
         </member>
         <member name="M:rgat.rgatState.ChooseActiveGraph">
             <summary>
@@ -6686,7 +6705,7 @@
             <summary>
             Sets a specific thread graph for the UI to display
             </summary>
-            <param name="graph">A PlottedGraph object of the thread to display</param>
+            <param name="plot">A PlottedGraph object of the thread to display</param>
             <returns></returns>
         </member>
         <member name="M:rgat.rgatState.GetActiveGraph">
@@ -7984,7 +8003,7 @@
             It will first fetch priority graphs (ie: those in the active trace) 
             unless the background flag is set
             </summary>
-            <param name="graph"></param>
+            <param name="plot"></param>
         </member>
         <member name="M:rgat.Threads.PreviewRendererThread.FetchRenderTask(System.Boolean)">
             <summary>
@@ -8020,7 +8039,7 @@
             regular rotation
             </summary>
         </member>
-        <member name="M:rgat.Threads.PreviewRendererThread.CenterGraphInFrameStep(System.Single@,rgat.GraphLayoutEngine,rgat.PlottedGraph)">
+        <member name="M:rgat.Threads.PreviewRendererThread.CenterGraphInFrameStep(System.Single@,rgat.PlottedGraph)">
             <summary>
             Adjust the camera offset and zoom so that every node of the graph is in the frame
             </summary>
@@ -9366,7 +9385,7 @@
             <summary>
             Update graph drawing parameters used by the shaders
             </summary>
-            <param name="graph">The graph being drawn</param>
+            <param name="plot">The graph being drawn</param>
             <param name="textureSize"></param>
             <param name="projection"></param>
             <param name="view"></param>
@@ -9379,7 +9398,7 @@
             Draws the various nodes, edges, captions and illustrations to the framebuffer for display
             </summary>
             <param name="cl">A veldrid commandlist, for use by this thread only</param>
-            <param name="graph">The PlottedGraph to draw</param>
+            <param name="plot">The PlottedGraph to draw</param>
         </member>
         <member name="M:rgat.GraphPlotWidget.DrawGraphImage">
             <summary>
@@ -9491,7 +9510,7 @@
             <summary>
             Set the active graph
             </summary>
-            <param name="graph"></param>
+            <param name="plot"></param>
         </member>
         <member name="M:rgat.PreviewGraphsWidget.ResetClickedGraph">
             <summary>
@@ -9522,7 +9541,7 @@
             <summary>
             Draw a preview graph texture on the preview pane
             </summary>
-            <param name="graph">The graph being drawn</param>
+            <param name="plot">The graph being drawn</param>
             <param name="xPadding">horizontal padding</param>
             <param name="captionHeight">height of the caption</param>
             <param name="captionBackgroundcolor">contrast background colour of the caption</param>
@@ -9538,20 +9557,20 @@
             <summary>
             Check if a graph is queued for preview centering
             </summary>
-            <param name="graph">The graph</param>
+            <param name="plot">The graph</param>
             <returns></returns>
         </member>
         <member name="M:rgat.PreviewGraphsWidget.StartCentering(rgat.PlottedGraph)">
             <summary>
             Set a graph as requiring preview centering
             </summary>
-            <param name="graph">The graph</param>
+            <param name="plot">The graph</param>
         </member>
         <member name="M:rgat.PreviewGraphsWidget.StopCentering(rgat.PlottedGraph)">
             <summary>
             Stop preview graph centering on a graph
             </summary>
-            <param name="graph">The graph</param>
+            <param name="plot">The graph</param>
         </member>
         <member name="M:rgat.PreviewGraphsWidget.GetGraphBackgroundColour(rgat.PlottedGraph)">
             <summary>

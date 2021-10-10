@@ -288,7 +288,7 @@ namespace rgat
                     }
                     if (newFiles.Length != 1)
                     {
-                        Logging.RecordLogEvent($"Failed to compile new yara rules file)");
+                        Logging.RecordLogEvent($"Failed to compile new yara rules file");
                     }
                 }
             }

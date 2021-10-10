@@ -10,9 +10,9 @@ using Veldrid;
 
 namespace rgat.Layouts
 {
-    class ForceDirectedNodePipeline : LayoutPipelines.LayoutPipeline
+    class PresetSnappingPipeline : LayoutPipelines.LayoutPipeline
     {
-        public ForceDirectedNodePipeline(GraphicsDevice gdev) : base(gdev)
+        public PresetSnappingPipeline(GraphicsDevice gdev) : base(gdev)
         {
             SetupComputeResources();
         }
@@ -45,14 +45,9 @@ namespace rgat.Layouts
         [StructLayout(LayoutKind.Sequential)]
         private struct VelocityShaderParams
         {
-            public float delta;
-            public float temperature;
-            public float repulsionK;
-            public uint snappingToPreset;
-
             public uint nodeCount;
             //must be multiple of 16
-            private readonly uint _padding1; 
+            private readonly uint _padding1;
             private readonly uint _padding2;
             private readonly uint _padding3;
         }
@@ -65,7 +60,7 @@ namespace rgat.Layouts
 
             _velocityParamsBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<VelocityShaderParams>(), BufferUsage.UniformBuffer, name: "VelocityShaderParams");
 
-            byte[]? velocityShaderBytes = ImGuiNET.ImGuiController.LoadEmbeddedShaderCode(factory, "sim-nodeVelocity", ShaderStages.Compute);
+            byte[]? velocityShaderBytes = ImGuiNET.ImGuiController.LoadEmbeddedShaderCode(factory, "sim-presetVelocity", ShaderStages.Compute);
             _velocityShader = factory.CreateShader(new ShaderDescription(ShaderStages.Compute, velocityShaderBytes, "main"));
 
             _velocityShaderRsrcLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
@@ -73,9 +68,6 @@ namespace rgat.Layouts
             new ResourceLayoutElementDescription("positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("presetPositions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("velocities", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
-            new ResourceLayoutElementDescription("edgeIndices", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
-            new ResourceLayoutElementDescription("edgeData", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
-            new ResourceLayoutElementDescription("edgeStrengths", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)));
 
             ComputePipelineDescription VelocityCPD = new ComputePipelineDescription(_velocityShader, _velocityShaderRsrcLayout, 16, 16, 1); //todo: i dont understand this. experiment with group sizes.
@@ -90,21 +82,10 @@ namespace rgat.Layouts
             new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)
             ));
 
-
             byte[]? positionShaderBytes;
 
             positionShaderBytes = ImGuiNET.ImGuiController.LoadEmbeddedShaderCode(factory, "sim-nodePosition", ShaderStages.Compute);
-            //177ms~ ish for this simple shader - multiplied by the different pipelines and stages this would add a lot to startup time
-            //so for now going to keep embedding them in resources. This at least illustrates how to do startup-time compilation.
-            /*
-            if (velocityShaderBytes is null)
-            {
-                _timer.Restart();
-                positionShaderBytes = Veldrid.SPIRV.SpirvCompilation.CompileGlslToSpirv(positionShaderSource, null, ShaderStages.Compute, Veldrid.SPIRV.GlslCompileOptions.Default).SpirvBytes;
-                _timer.Stop();
-                Logging.RecordLogEvent($"Compilation for ForceDirectedNode Position shader took {_timer.Elapsed.TotalMilliseconds:F1}ms");
-            }
-            */
+
             _positionShader = factory.CreateShader(new ShaderDescription(ShaderStages.Compute, positionShaderBytes, "main"));
             ComputePipelineDescription PositionCPD = new ComputePipelineDescription(_positionShader, _positionShaderRsrcLayout, 16, 16, 1);
             _positionComputePipeline = factory.CreateComputePipeline(PositionCPD);
@@ -121,23 +102,22 @@ namespace rgat.Layouts
             ResourceSetDescription velocity_rsrc_desc, pos_rsrc_desc;
             if (flip)
             {
-                velocity_rsrc_desc = new ResourceSetDescription(_velocityShaderRsrcLayout,
-                    _velocityParamsBuffer, layout.PositionsVRAM1, layout.VelocitiesVRAM1, layout.PresetPositions, layout.EdgeConnectionIndexes,
-                    layout.EdgeConnections, layout.EdgeStrengths, 
-                layout.VelocitiesVRAM2
-                );
 
+                velocity_rsrc_desc = new ResourceSetDescription(_velocityShaderRsrcLayout,
+                    _positionParamsBuffer, layout.PositionsVRAM1,  layout.PresetPositions, layout.VelocitiesVRAM1,
+                   layout.VelocitiesVRAM2
+                );
                 pos_rsrc_desc = new ResourceSetDescription(_positionShaderRsrcLayout,
                     _positionParamsBuffer, layout.PositionsVRAM1, layout.VelocitiesVRAM2,
                    layout.PositionsVRAM2);
+            
             }
             else
             {
                 velocity_rsrc_desc = new ResourceSetDescription(_velocityShaderRsrcLayout,
-                _velocityParamsBuffer, layout.PositionsVRAM2, layout.VelocitiesVRAM2, layout.PresetPositions, layout.EdgeConnectionIndexes,
-                layout.EdgeConnections, layout.EdgeStrengths, 
-                layout.VelocitiesVRAM1
-                );
+                    _positionParamsBuffer, layout.PositionsVRAM2, layout.PresetPositions, layout.VelocitiesVRAM2,
+                    layout.VelocitiesVRAM1);
+
 
                 pos_rsrc_desc = new ResourceSetDescription(_positionShaderRsrcLayout,
                     _positionParamsBuffer, layout.PositionsVRAM2, layout.VelocitiesVRAM1,
@@ -171,10 +151,6 @@ namespace rgat.Layouts
             GraphLayoutState layout = plot.LayoutState;
             VelocityShaderParams parameters = new VelocityShaderParams
             {
-                delta = delta,
-                temperature = Math.Min(plot.Temperature, GlobalConfig.MaximumNodeTemperature),
-                repulsionK = GlobalConfig.RepulsionK,
-                snappingToPreset = (uint)(plot.LayoutState.ActivatingPreset ? 1 : 0),
                 nodeCount = (uint)plot.RenderedNodeCount()
             };
 
@@ -205,9 +181,8 @@ namespace rgat.Layouts
         /// <summary>
         /// Used the velocity buffer to move the nodes in the positions buffer
         /// </summary>
-        /// <param name="cl">Thread-specific Veldrid command list to use</param>
-        /// <param name="graph">PlottedGraph to compute</param>
-        /// <param name="resources">Position shader resource set</param>
+        /// <param name="RSetDesc">Data for the shader</param>
+        /// <param name="plot">PlottedGraph to compute</param>
         /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         private unsafe void RenderPosition(ResourceSetDescription RSetDesc, PlottedGraph plot, float delta)
         {
@@ -219,14 +194,11 @@ namespace rgat.Layouts
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, velocities));
 
             //if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderPosition  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-            var textureSize = plot.LinearIndexTextureSize();
 
             PositionShaderParams parameters = new PositionShaderParams
             {
                 delta = delta
             };
-
-            //Logging.WriteConsole($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
 
             _cl.UpdateBuffer(_positionParamsBuffer, 0, parameters);
             _cl.SetPipeline(_positionComputePipeline);
@@ -241,7 +213,7 @@ namespace rgat.Layouts
             _gd!.WaitForIdle();
             _gd.DisposeWhenIdle(resourceSet);
             _timer.Stop();
-            PositionTime = _timer.Elapsed.TotalMilliseconds;    
+            PositionTime = _timer.Elapsed.TotalMilliseconds;
         }
 
 
@@ -258,45 +230,7 @@ namespace rgat.Layouts
             private readonly uint _padding1;
             private readonly uint _padding3;
             private readonly bool _padding4;
-
         }
-
-
-        const string positionShaderSource = @"
-/*
-Copyright (c) 2014-2015, MetaStack Inc.
-All rights reserved.
-
-Code adapted from https://github.com/jaredmcqueen/analytics/blob/7fa833bb07e2f145dba169b674f8865566970a68/shaders/sim-position.glsl
-
-See included licence: METASTACK ANALYTICS LICENSE
-*/
-
-#version 450
-
-struct PositionParams
-{
-    float delta;
-    uint nodesTexWidth;
-    float blockNodeSeperation;
-    uint fixedInternalNodes;
-    bool activatingPreset;
-};
-layout(set = 0, binding=0) uniform Params{  PositionParams fieldParams;};
-layout(set = 0, binding=1) buffer bufpositions{vec4 positions[];};
-layout(set = 0, binding=2) buffer  bufvelocities{vec4 velocities[];};
-layout(set = 0, binding=3) buffer resultData{  vec4 field_Destination[];};
-
-
-layout (local_size_x = 256) in;
-
-void main()	{
-    uvec3 id = gl_GlobalInvocationID;    
-    uint index = id.x;// id.y * 256 + id.x; //what should be done here?
-    vec4 selfPosition = positions[index];    
-    field_Destination[index] = vec4( selfPosition.xyz + velocities[index].xyz * fieldParams.delta * 50.0, selfPosition.w );
-}
-";
 
     }
 }

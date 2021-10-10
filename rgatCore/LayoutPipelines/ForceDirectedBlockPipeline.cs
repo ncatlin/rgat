@@ -27,10 +27,10 @@ namespace rgat.Layouts
                 if (disposing)
                 {
                     _velocityShader?.Dispose();
-                    _velocityComputeLayout?.Dispose();
+                    _velocityShaderRsrcLayout?.Dispose();
                     _velocityComputePipeline?.Dispose();
                     _positionShader?.Dispose();
-                    _positionComputeLayout?.Dispose();
+                    _positionShaderRsrcLayout?.Dispose();
                     _positionComputePipeline?.Dispose();
                 }
                 _disposed = true;
@@ -51,7 +51,7 @@ namespace rgat.Layouts
             byte[]? velocityBlockShaderBytes = ImGuiNET.ImGuiController.LoadEmbeddedShaderCode(factory, "sim-blockVelocity", ShaderStages.Fragment);
             _velocityShader = factory.CreateShader(new ShaderDescription(ShaderStages.Compute, velocityBlockShaderBytes, "FS"));
 
-            _velocityComputeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _velocityShaderRsrcLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Compute),
             new ResourceLayoutElementDescription("positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("velocities", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
@@ -62,11 +62,11 @@ namespace rgat.Layouts
             new ResourceLayoutElementDescription("blockMiddles", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("resultData", ResourceKind.StructuredBufferReadWrite, ShaderStages.Compute)));
 
-            ComputePipelineDescription VelocityBlockCPD = new ComputePipelineDescription(_velocityShader, _velocityComputeLayout, 16, 16, 1);
+            ComputePipelineDescription VelocityBlockCPD = new ComputePipelineDescription(_velocityShader, _velocityShaderRsrcLayout, 16, 16, 1);
 
             _velocityComputePipeline = factory.CreateComputePipeline(VelocityBlockCPD);
 
-            _positionComputeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _positionShaderRsrcLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Compute),
             new ResourceLayoutElementDescription("positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("velocities", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
@@ -78,7 +78,7 @@ namespace rgat.Layouts
             byte[]? positionShaderBytes = ImGuiNET.ImGuiController.LoadEmbeddedShaderCode(factory, "sim-blockPosition", ShaderStages.Vertex);
             _positionShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, positionShaderBytes, "FS")); //todo ... not fragment
 
-            ComputePipelineDescription PositionCPD = new ComputePipelineDescription(_positionShader, _positionComputeLayout, 16, 16, 1);
+            ComputePipelineDescription PositionCPD = new ComputePipelineDescription(_positionShader, _positionShaderRsrcLayout, 16, 16, 1);
             _positionComputePipeline = factory.CreateComputePipeline(PositionCPD);
             _positionParamsBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<PositionShaderParams>(), BufferUsage.UniformBuffer, name: "PositionShaderParams");
         }
@@ -90,25 +90,25 @@ namespace rgat.Layouts
             ResourceSetDescription velocity_rsrc_desc, pos_rsrc_desc;
             if (flip)
             {
-                velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeLayout,
+                velocity_rsrc_desc = new ResourceSetDescription(_velocityShaderRsrcLayout,
                     _velocityParamsBuffer, layout.PositionsVRAM1, layout.VelocitiesVRAM1, layout.EdgeConnectionIndexes,
                     layout.EdgeConnections, layout.EdgeStrengths, layout.BlockMetadata, layout.BlockMiddles,
                 layout.VelocitiesVRAM2
                 );
 
-                pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout,
+                pos_rsrc_desc = new ResourceSetDescription(_positionShaderRsrcLayout,
                     _positionParamsBuffer, layout.PositionsVRAM1, layout.VelocitiesVRAM2, layout.BlockMetadata,
                    layout.PositionsVRAM2);
             }
             else
             {
-                velocity_rsrc_desc = new ResourceSetDescription(_velocityComputeLayout,
+                velocity_rsrc_desc = new ResourceSetDescription(_velocityShaderRsrcLayout,
                 _velocityParamsBuffer, layout.PositionsVRAM2, layout.VelocitiesVRAM2, layout.EdgeConnectionIndexes,
                 layout.EdgeConnections, layout.EdgeStrengths, layout.BlockMetadata, layout.BlockMiddles,
                 layout.VelocitiesVRAM1
                 );
 
-                pos_rsrc_desc = new ResourceSetDescription(_positionComputeLayout,
+                pos_rsrc_desc = new ResourceSetDescription(_positionShaderRsrcLayout,
                     _positionParamsBuffer, layout.PositionsVRAM2, layout.VelocitiesVRAM1, layout.BlockMetadata,
                     layout.PositionsVRAM1);
             }

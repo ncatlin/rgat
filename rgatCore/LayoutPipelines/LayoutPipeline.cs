@@ -12,8 +12,8 @@ namespace rgat.LayoutPipelines
         protected Pipeline? _positionComputePipeline, _velocityComputePipeline;
         protected Shader? _positionShader, _velocityShader;
         protected DeviceBuffer? _velocityParamsBuffer, _positionParamsBuffer;
-        protected ResourceLayout? _velocityComputeLayout;
-        protected ResourceLayout? _positionComputeLayout;
+        protected ResourceLayout? _velocityShaderRsrcLayout;
+        protected ResourceLayout? _positionShaderRsrcLayout;
 
         protected readonly object _lock = new object();
         protected readonly GraphicsDevice _gd;
