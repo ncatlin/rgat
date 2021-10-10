@@ -219,7 +219,7 @@ namespace rgat.Threads
                                     continue;
                                 }
 
-                                if (outn.IsExternal && outn.address == targetAddr)
+                                if (outn.IsExternal && outn.Address == targetAddr)
                                 {
                                     EdgeData? e = protograph.GetEdge(lastNodeIdx, outn.Index);
                                     if (e == null)
@@ -309,7 +309,7 @@ namespace rgat.Threads
                             }
                             else
                             {
-                                Logging.WriteConsole($"No callers for node 0x{n.address:X} A");
+                                Logging.WriteConsole($"No callers for node 0x{n.Address:X} A");
                                 needWait = true;
                                 break;
                             }

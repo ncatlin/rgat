@@ -151,7 +151,7 @@ namespace rgat.Widgets
                                 if (n is not null)
                                 {
                                     string insBase = System.IO.Path.GetFileName(graph.ProcessData.GetModulePath(n.GlobalModuleID));
-                                    ImGui.Text($"First Instrumented: 0x{n.address:X} [{insBase}]");
+                                    ImGui.Text($"First Instrumented: 0x{n.Address:X} [{insBase}]");
                                 }
                             }
                             ImGui.EndTooltip();

@@ -344,18 +344,18 @@ namespace rgat
 
         }
 
-        private static void DrawReplayControlsPanel(PlottedGraph graph)
+        private static void DrawReplayControlsPanel(PlottedGraph plot)
         {
             string indexPos = "";
-            if (graph.AnimationIndex > 0)
+            if (plot.AnimationIndex > 0)
             {
-                indexPos = $" ({graph.AnimationIndex}/{graph.InternalProtoGraph.StoredUpdateCount})";
+                indexPos = $" ({plot.AnimationIndex}/{plot.InternalProtoGraph.StoredUpdateCount})";
             }
 
             if (ImGui.BeginChild("ReplayControlsFrame1", new Vector2(220, ImGui.GetContentRegionAvail().Y - 2), true))
             {
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(5, 15));
-                switch (graph.ReplayState)
+                switch (plot.ReplayState)
                 {
                     case PlottedGraph.REPLAY_STATE.Paused:
                         ImGui.Text("Trace Replay: Paused" + indexPos);
@@ -374,88 +374,88 @@ namespace rgat
 
                 ImGui.BeginGroup();
                 {
-                    PlottedGraph.REPLAY_STATE replaystate = graph.ReplayState;
+                    PlottedGraph.REPLAY_STATE replaystate = plot.ReplayState;
                     string BtnText = replaystate == PlottedGraph.REPLAY_STATE.Playing ? $"{ImGuiController.FA_ICON_PAUSE} Pause" : $"{ImGuiController.FA_ICON_PLAY} Play";
 
 
-                    if (SmallWidgets.DisableableButton(BtnText, graph.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(58, 26)))
+                    if (SmallWidgets.DisableableButton(BtnText, plot.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(58, 26)))
                     {
-                        graph.PlayPauseClicked();
+                        plot.PlayPauseClicked();
                     }
                     ImGui.SameLine();
-                    if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_STOP} Reset", graph.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(58, 26)))
+                    if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_STOP} Reset", plot.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(58, 26)))
                     {
-                        graph.ResetClicked();
+                        plot.ResetClicked();
                     }
                     ImGui.SameLine();
                     if (replaystate == PlottedGraph.REPLAY_STATE.Paused && ImGui.Button($"{ImGuiController.FA_ICON_STEP} Step", new Vector2(58, 26)))
                     {
                         ImGui.SameLine();
-                        graph.StepPausedAnimation(1);
+                        plot.StepPausedAnimation(1);
                     }
                     ImGui.EndGroup();
                 }
                 ImGui.SetNextItemWidth(120f);
 
-                float speedVal = graph.AnimationRate;
+                float speedVal = plot.AnimationRate;
                 if (ImGui.DragFloat("##SpeedSlider", ref speedVal, 0.25f, 0, 100, format: "Replay Speed: %.2f", flags: ImGuiSliderFlags.Logarithmic))
                 {
-                    graph.AnimationRate = speedVal;
+                    plot.AnimationRate = speedVal;
                 }
                 SmallWidgets.MouseoverText("The number of trace updates to replay per frame.\nDrag or Double click to set a custom rate.");
                 ImGui.SameLine();
 
                 ImGui.SetNextItemWidth(65f);
-                if (ImGui.BeginCombo("##Replay Speed", $" {graph.AnimationRate:F2}", ImGuiComboFlags.HeightLargest))
+                if (ImGui.BeginCombo("##Replay Speed", $" {plot.AnimationRate:F2}", ImGuiComboFlags.HeightLargest))
                 {
                     if (ImGui.Selectable("x1/10"))
                     {
-                        graph.AnimationRate = 0.1f;
+                        plot.AnimationRate = 0.1f;
                     }
 
                     if (ImGui.Selectable("x1/4"))
                     {
-                        graph.AnimationRate = 0.25f;
+                        plot.AnimationRate = 0.25f;
                     }
 
                     if (ImGui.Selectable("x1/2"))
                     {
-                        graph.AnimationRate = 0.5f;
+                        plot.AnimationRate = 0.5f;
                     }
 
                     if (ImGui.Selectable("x1"))
                     {
-                        graph.AnimationRate = 1;
+                        plot.AnimationRate = 1;
                     }
 
                     if (ImGui.Selectable("x2"))
                     {
-                        graph.AnimationRate = 2;
+                        plot.AnimationRate = 2;
                     }
 
                     if (ImGui.Selectable("x5"))
                     {
-                        graph.AnimationRate = 5;
+                        plot.AnimationRate = 5;
                     }
 
                     if (ImGui.Selectable("x10"))
                     {
-                        graph.AnimationRate = 10;
+                        plot.AnimationRate = 10;
                     }
 
                     if (ImGui.Selectable("x25"))
                     {
-                        graph.AnimationRate = 25;
+                        plot.AnimationRate = 25;
                     }
 
                     if (ImGui.Selectable("x50"))
                     {
-                        graph.AnimationRate = 50;
+                        plot.AnimationRate = 50;
                     }
 
                     if (ImGui.Selectable("x100"))
                     {
-                        graph.AnimationRate = 100;
+                        plot.AnimationRate = 100;
                     }
 
                     ImGui.EndCombo();
@@ -466,28 +466,27 @@ namespace rgat
             }
         }
 
-        private static void DrawActiveTraceControlPanel(PlottedGraph graph)
+
+        private static void DrawActiveTraceControlPanel(PlottedGraph plot)
         {
             if (ImGui.BeginChild("LiveTraceCtrls", new Vector2(160, ImGui.GetContentRegionAvail().Y - 2), true))
             {
-
                 ImGui.Columns(2);
                 ImGui.SetColumnWidth(0, 65);
                 ImGui.SetColumnWidth(1, 90);
-
 
                 ImGui.BeginGroup();
                 {
                     if (ImGui.Button("Kill", new Vector2(50, 24)))
                     {
-                        graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
+                        plot.InternalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
                         // Sometimes the pintool doesn't respond
                         // This terminates our end of the connection after a reasonable wait
                         System.Threading.Tasks.Task.Run(async () =>
                         {
                             await System.Threading.Tasks.Task.Delay(800);
-                            if (graph.InternalProtoGraph.TraceData.TraceState is not TraceRecord.ProcessState.eTerminated)
-                                graph.InternalProtoGraph.TraceReader?.Terminate();
+                            if (plot.InternalProtoGraph.TraceData.TraceState is not TraceRecord.ProcessState.eTerminated)
+                                plot.InternalProtoGraph.TraceReader?.Terminate();
                         }
                         );
                     }
@@ -495,9 +494,9 @@ namespace rgat
 
                     if (ImGui.Button("Kill All", new Vector2(50, 24)))
                     {
-                        foreach (var child in graph.InternalProtoGraph.TraceData.Children)
+                        foreach (var child in plot.InternalProtoGraph.TraceData.Children)
                             child.SendDebugCommand(0, "EXIT");
-                        graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
+                        plot.InternalProtoGraph.TraceData.SendDebugCommand(0, "EXIT");
                     }
 
                     ImGui.EndGroup();
@@ -507,32 +506,32 @@ namespace rgat
 
                 ImGui.BeginGroup();
                 {
-                    if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.ProcessState.eRunning)
+                    if (plot.InternalProtoGraph.TraceData.TraceState == TraceRecord.ProcessState.eRunning)
                     {
                         if (ImGui.Button("Pause/Break", new Vector2(80, 24)))
                         {
-                            graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "BRK");
+                            plot.InternalProtoGraph.TraceData.SendDebugCommand(0, "BRK");
                         }
                         SmallWidgets.MouseoverText("Pause all process threads");
                     }
 
-                    if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.ProcessState.eSuspended)
+                    if (plot.InternalProtoGraph.TraceData.TraceState == TraceRecord.ProcessState.eSuspended)
                     {
                         if (ImGui.Button("Continue", new Vector2(65, 24)))
                         {
-                            graph.InternalProtoGraph.TraceData.SendDebugCommand(0, "CTU");
+                            plot.InternalProtoGraph.TraceData.SendDebugCommand(0, "CTU");
                         }
                         SmallWidgets.MouseoverText("Resume all process threads");
 
                         if (ImGui.Button("Step In", new Vector2(65, 24)))
                         {
-                            graph.InternalProtoGraph.TraceData.SendDebugStep(graph.InternalProtoGraph);
+                            plot.InternalProtoGraph.TraceData.SendDebugStep(plot.InternalProtoGraph);
                         }
                         SmallWidgets.MouseoverText("Step to next instruction");
 
                         if (ImGui.Button("Step Over", new Vector2(65, 24)))
                         {
-                            graph.InternalProtoGraph.TraceData.SendDebugStepOver(graph.InternalProtoGraph);
+                            plot.InternalProtoGraph.TraceData.SendDebugStepOver(plot.InternalProtoGraph);
                         }
                         SmallWidgets.MouseoverText("Step past call instruction");
 
@@ -544,16 +543,17 @@ namespace rgat
             }
         }
 
-        private static void DrawRenderControlPanel(PlottedGraph graph)
+
+        private static void DrawRenderControlPanel(PlottedGraph plot)
         {
             if (ImGui.BeginChild("GraphRenderControlsFrame1", new Vector2(150, ImGui.GetContentRegionAvail().Y - 2), true))
             {
-                if (SmallWidgets.ToggleButton("AnimatedToggle", graph.IsAnimated, "In animated mode the graph is dark with active regions lit up"))
+                if (SmallWidgets.ToggleButton("AnimatedToggle", plot.IsAnimated, "In animated mode the graph is dark with active regions lit up"))
                 {
-                    graph.SetAnimated(!graph.IsAnimated);
+                    plot.SetAnimated(!plot.IsAnimated);
                 }
                 ImGui.SameLine();
-                ImGui.Text(graph.IsAnimated ? "Animated" : "Full Brightness");
+                ImGui.Text(plot.IsAnimated ? "Animated" : "Full Brightness");
 
                 if (SmallWidgets.ToggleButton("LayoutComputeEnabled", GlobalConfig.LayoutPositionsActive, "Toggle GPU graph layout compuation"))
                 {
@@ -566,7 +566,7 @@ namespace rgat
         }
 
 
-        private static void DrawVideoControlPanel(PlottedGraph graph)
+        private static void DrawVideoControlPanel(PlottedGraph plot)
         {
             if (ImGui.BeginChild("VideoControlsFrame1", new Vector2(115, ImGui.GetContentRegionAvail().Y - 2), true))
             {
@@ -614,7 +614,7 @@ namespace rgat
 
 
 
-        private void DrawCameraPanel(PlottedGraph graph)
+        private void DrawCameraPanel(PlottedGraph plot)
         {
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(18, 4));
             if (ImGui.BeginChild("CameraStatFrame1", new Vector2(150, ImGui.GetContentRegionAvail().Y - 2), true))
@@ -628,7 +628,7 @@ namespace rgat
                     ImGui.TableSetupColumn("MovFieldLabel", ImGuiTableColumnFlags.WidthFixed, 15);
                     ImGui.TableSetupColumn("MovValue", ImGuiTableColumnFlags.WidthFixed, 100);
 
-                    float furthestNode = Math.Abs(graph.FurthestNodeDimension);
+                    float furthestNode = Math.Abs(plot.FurthestNodeDimension);
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
@@ -637,9 +637,9 @@ namespace rgat
                     ImGui.Text($"X");
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(itemWidth);
-                    float xoff = graph.CameraState.MainCameraXOffset;
+                    float xoff = plot.CameraState.MainCameraXOffset;
                     if (ImGui.DragFloat("##Xm", ref xoff, 150, -3 * furthestNode, 3 * furthestNode, "%.f"))
-                        graph.CameraState.MainCameraXOffset = xoff;
+                        plot.CameraState.MainCameraXOffset = xoff;
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
@@ -650,9 +650,9 @@ namespace rgat
                     ImGui.Text($"Y");
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(itemWidth);
-                    float yoff = graph.CameraState.MainCameraYOffset;
+                    float yoff = plot.CameraState.MainCameraYOffset;
                     if (ImGui.DragFloat("##Ym", ref yoff, 150, -3 * furthestNode, 3 * furthestNode, "%.f"))
-                        graph.CameraState.MainCameraYOffset = yoff;
+                        plot.CameraState.MainCameraYOffset = yoff;
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
@@ -661,9 +661,9 @@ namespace rgat
                     ImGui.Text($"Z");
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(itemWidth);
-                    float mainzoom = graph.CameraState.MainCameraZoom;
+                    float mainzoom = plot.CameraState.MainCameraZoom;
                     if (ImGui.DragFloat("##Zm", ref mainzoom, 500, -9999999999, furthestNode, "%.f"))
-                        graph.CameraState.MainCameraZoom = mainzoom;
+                        plot.CameraState.MainCameraZoom = mainzoom;
 
 
                     ImGui.TableNextRow();
@@ -674,7 +674,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     if (ImGui.Button("Reset", new Vector2(itemWidth, 25)))
                     {
-                        graph.CameraState.RotationMatrix = Matrix4x4.Identity;
+                        plot.CameraState.RotationMatrix = Matrix4x4.Identity;
                     }
                     SmallWidgets.MouseoverText("Reset the rotation of the graph");
 
@@ -703,11 +703,11 @@ namespace rgat
                     ImGui.EndTable();
                 }
                 */
-                if (graph.CenteringInFrame is not PlottedGraph.CenteringMode.Inactive)
+                if (plot.CenteringInFrame is not PlottedGraph.CenteringMode.Inactive)
                 {
-                    if (graph.CenteringInFrame is PlottedGraph.CenteringMode.Centering)
+                    if (plot.CenteringInFrame is PlottedGraph.CenteringMode.Centering)
                         ImGui.Text("Centering...");
-                    else if (graph.CenteringInFrame is PlottedGraph.CenteringMode.ContinuousCentering)
+                    else if (plot.CenteringInFrame is PlottedGraph.CenteringMode.ContinuousCentering)
                     {
                         ImGui.Text("Centering [locked]");
                         SmallWidgets.MouseoverText("The graph is in lock-centering mode. Use the keybind to deactivate it.");
@@ -834,7 +834,7 @@ namespace rgat
         }
 
 
-        private unsafe void DrawLiveTraceControls(float otherControlsHeight, float width, PlottedGraph graph)
+        private unsafe void DrawLiveTraceControls(float otherControlsHeight, float width, PlottedGraph plot)
         {
             float replayControlsSize = ImGui.GetContentRegionAvail().X;
             if (ImGui.BeginChild(ImGui.GetID("LiveTraceControlPanel"), new Vector2(replayControlsSize, otherControlsHeight)))
@@ -846,15 +846,15 @@ namespace rgat
                 if (ImGui.BeginChild("LiveControlsPane", new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y - 2)))
                 {
                     ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX(), ImGui.GetCursorPosY() + 6));
-                    DrawActiveTraceControlPanel(graph);
+                    DrawActiveTraceControlPanel(plot);
                     ImGui.SameLine();
-                    DrawRenderControlPanel(graph);
+                    DrawRenderControlPanel(plot);
                     ImGui.SameLine();
-                    DrawVideoControlPanel(graph);
+                    DrawVideoControlPanel(plot);
                     ImGui.SameLine();
-                    DrawCameraPanel(graph);
+                    DrawCameraPanel(plot);
                     ImGui.SameLine();
-                    DrawDiasmPreviewBox(graph.InternalProtoGraph, graph.InternalProtoGraph.StoredUpdateCount - 1);
+                    DrawDiasmPreviewBox(plot.InternalProtoGraph, plot.InternalProtoGraph.StoredUpdateCount - 1);
                     ImGui.EndChild();
                 }
                 else
@@ -866,16 +866,16 @@ namespace rgat
 
         }
 
-        private void SetActiveGraph(PlottedGraph graph)
+        private void SetActiveGraph(PlottedGraph plot)
         {
-            if (rgatState.ActiveGraph is not null && graph.PID != rgatState.ActiveGraph.PID)
+            if (rgatState.ActiveGraph is not null && plot.PID != rgatState.ActiveGraph.PID)
             {
                 Logging.WriteConsole("Warning: Graph selected in inactive trace");
                 return;
             }
 
-            rgatState.SwitchToGraph(graph);
-            PreviewGraphWidget!.SetSelectedGraph(graph);
+            rgatState.SwitchToGraph(plot);
+            PreviewGraphWidget!.SetSelectedGraph(plot);
             //MainGraphWidget.SetActiveGraph(graph);
         }
 
@@ -1035,7 +1035,7 @@ namespace rgat
         }
 
 
-        private void DrawMousePanel(PlottedGraph graph, int mouseNode)
+        private void DrawMousePanel(PlottedGraph plot, int mouseNode)
         {
             if (mouseNode is -1) return;
 
@@ -1052,26 +1052,26 @@ namespace rgat
                     ImGui.TableSetupColumn("MouseItem", ImGuiTableColumnFlags.WidthFixed, 45);
                     ImGui.TableSetupColumn("MouseValue");
 
-                    NodeData? n = graph.InternalProtoGraph.GetNode((uint)mouseNode);
+                    NodeData? n = plot.InternalProtoGraph.GetNode((uint)mouseNode);
                     if (n is not null)
                     {
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         ImGui.Text("Address");
                         ImGui.TableNextColumn();
-                        ImGui.Text($"0x{n.address:X}");
+                        ImGui.Text($"0x{n.Address:X}");
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         ImGui.Text("Sources");
                         ImGui.TableNextColumn();
-                        ImGui.TextWrapped(GetNeighbourString(graph.InternalProtoGraph, n, incoming: true));
+                        ImGui.TextWrapped(GetNeighbourString(plot.InternalProtoGraph, n, incoming: true));
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
                         ImGui.Text("Targets");
                         ImGui.TableNextColumn();
-                        ImGui.TextWrapped(GetNeighbourString(graph.InternalProtoGraph, n, incoming: false));
+                        ImGui.TextWrapped(GetNeighbourString(plot.InternalProtoGraph, n, incoming: false));
                     }
                     ImGui.EndTable();
                 }
@@ -1097,7 +1097,7 @@ namespace rgat
             for (var i = 0; i < srcNodes.Count; i++) // srcNodes.Count; i++)
             {
                 NodeData neighbour = srcNodes[i];
-                srcString += $"{neighbour.Index} [0x{neighbour.address:X}]";
+                srcString += $"{neighbour.Index} [0x{neighbour.Address:X}]";
                 if (i < srcNodes.Count - 1) srcString += ", ";
             }
             if (srcNodes.Count < neighbourSet.Count)

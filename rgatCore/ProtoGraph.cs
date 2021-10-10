@@ -544,7 +544,7 @@ namespace rgat
 
             //piddata->dropExternCallerReadLock();
 
-            lastNode.childexterns += 1;
+            lastNode.Childexterns += 1;
             targVertID = (uint)NodeCount;
             resultPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
 
@@ -573,9 +573,9 @@ namespace rgat
             {
                 GlobalModuleID = module,
                 IsExternal = true,
-                address = targaddr,
+                Address = targaddr,
                 Index = targVertID,
-                parentIdx = ProtoLastVertID
+                ParentIdx = ProtoLastVertID
             };
             newTargNode.SetExecutionCount(repeats);
             newTargNode.BlockID = uint.MaxValue;
@@ -769,7 +769,7 @@ namespace rgat
             Debug.Assert(node.IsExternal && node.HasSymbol);
             //int  moduleEnum = ProcessData.ModuleAPIReferences[node.GlobalModuleID];
 
-            ProcessData.GetSymbol(node.GlobalModuleID, node.address, out string? symbol);
+            ProcessData.GetSymbol(node.GlobalModuleID, node.Address, out string? symbol);
         }
 
 
@@ -1038,9 +1038,9 @@ namespace rgat
 
             if (source.IsConditional && source.conditional != ConditionalType.CONDCOMPLETE)
             {
-                if (source.ins!.condDropAddress == target.address)
+                if (source.ins!.condDropAddress == target.Address)
                 {
-                    if (source.ins.branchAddress == target.address)
+                    if (source.ins.branchAddress == target.Address)
                     {
                         source.conditional = ConditionalType.CONDCOMPLETE; //opaque predicate
                     }
@@ -1049,7 +1049,7 @@ namespace rgat
                         source.conditional |= ConditionalType.CONDFELLTHROUGH;
                     }
                 }
-                else if (source.ins.branchAddress == target.address)
+                else if (source.ins.branchAddress == target.Address)
                 {
                     source.conditional |= ConditionalType.CONDTAKEN;
                 }
@@ -1228,9 +1228,10 @@ namespace rgat
             thisnode.Index = targVertID;
             thisnode.ins = instruction;
             thisnode.conditional = thisnode.ins.conditional ? ConditionalType.ISCONDITIONAL : ConditionalType.NOTCONDITIONAL;
-            thisnode.address = instruction.Address;
+            thisnode.Address = instruction.Address;
             thisnode.BlockID = blockID;
-            thisnode.parentIdx = ProtoLastVertID;
+            thisnode.BlockIndex = ProcessData.BasicBlocksList[(int)blockID]!.Item2.FindIndex(ins => ins.Address == thisnode.Address);
+            thisnode.ParentIdx = ProtoLastVertID;
             thisnode.SetExecutionCount(repeats);
             thisnode.GlobalModuleID = instruction.GlobalModNum;
             thisnode.HasSymbol = instruction.hasSymbol;
@@ -1447,6 +1448,7 @@ namespace rgat
             return n;
 
         }
+
 
 
 

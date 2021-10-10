@@ -3343,25 +3343,6 @@
             <param name="isAnimated">If the graph should have animation attributes computed (ie: main graph with live/replay active)</param>
             <returns>The version ID associated with the produced graph layout computed</returns>
         </member>
-        <member name="M:rgat.GraphLayoutEngine.RenderPosition(Veldrid.CommandList,rgat.PlottedGraph,Veldrid.ResourceSet,System.Single)">
-            <summary>
-            Used the velocity buffer to move the nodes in the positions buffer
-            </summary>
-            <param name="cl">Thread-specific Veldrid command list to use</param>
-            <param name="graph">PlottedGraph to compute</param>
-            <param name="resources">Position shader resource set</param>
-            <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
-        </member>
-        <member name="M:rgat.GraphLayoutEngine.RenderVelocityStandard(Veldrid.CommandList,rgat.PlottedGraph,Veldrid.ResourceSet,System.Single,System.Single)">
-            <summary>
-            Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
-            </summary>
-            <param name="cl">Thread-specific Veldrid command list to use</param>
-            <param name="graph">PlottedGraph to compute</param>
-            <param name="resources">Velocity shader resource set</param>
-            <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
-            <param name="temperature">The activity level of the layout state. Higher balues => bigger movements</param>
-        </member>
         <member name="M:rgat.GraphLayoutEngine.RenderNodeAttribs(Veldrid.CommandList,rgat.PlottedGraph,Veldrid.DeviceBuffer,Veldrid.ResourceSet,System.Single,System.Int32,System.Boolean)">
             <summary>
             Update the node attributes compute VRAM buffer (alpha, node size, mouseover details)
@@ -3749,6 +3730,15 @@
             Must hold writer lock before calling
             </summary>
         </member>
+        <member name="M:rgat.GraphLayoutState.RegenerateCustomData(rgat.PlottedGraph)">
+            <summary>
+            Gathers layout-specific data into our state
+            This is a bit of a stopgap - ideally we would have some kind of single
+            abstract layoutpipeline object which would call the right function
+            rather than having to build in each layout here
+            </summary>
+            <param name="plot"></param>
+        </member>
         <member name="M:rgat.GraphLayoutState.RegeneratePresetBuffer(rgat.PlottedGraph)">
             <summary>
             Prepare a preset buffer to generate a non-force directed layout
@@ -3761,9 +3751,6 @@
             </summary>
             <param name="graph"></param>
             <returns></returns>
-        </member>
-        <member name="M:rgat.GraphLayoutState.CreateBlockMetadataBuffer(rgat.PlottedGraph)">
-            Creates an array of metadata for basic blocks used for basic-block-centric graph layout
         </member>
         <member name="M:rgat.GraphLayoutState.AddNewNodesToComputeBuffers(System.Int32,rgat.PlottedGraph)">
             <summary>
@@ -3876,6 +3863,49 @@
             The layout is now in RAM. Positions are in the preset buffer. 
             Start moving the existing nodes towards them
             </summary>
+        </member>
+        <member name="M:rgat.Layouts.ForceDirectedBlockPipeline.RenderPosition(Veldrid.ResourceSetDescription,rgat.PlottedGraph,System.Single)">
+            <summary>
+            Used the velocity buffer to move the nodes in the positions buffer
+            </summary>
+            <param name="cl">Thread-specific Veldrid command list to use</param>
+            <param name="graph">PlottedGraph to compute</param>
+            <param name="resources">Position shader resource set</param>
+            <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
+        </member>
+        <member name="M:rgat.Layouts.ForceDirectedBlockPipeline.CreateBlockMetadataBuffer(rgat.PlottedGraph,Veldrid.GraphicsDevice)">
+            Creates an array of metadata for basic blocks used for basic-block-centric graph layout
+        </member>
+        <member name="M:rgat.Layouts.ForceDirectedBlockPipeline.CreateBlockMetadataBuf(rgat.PlottedGraph,rgat.Layouts.ForceDirectedBlockPipeline.NODE_BLOCK_METADATA_COMPUTEBUFFER[]@,System.Int32[]@)">
+            <summary>
+            Creates an array of metadata for basic blocks used for basic-block-centric graph layout
+            item[0] = blockID
+            item[1] = offsetFromCenter; number of nodes ahead the center node is
+            item[2] = centerPseudoBlockTopID; top of the block this node is in
+            item[3] = centerPseudoBlockBaseID; base of the block this node is in
+            </summary>
+            <param name="plot">The graph being plotted</param>
+            <param name="blockData">Output description of basic block information for each node</param>
+            <param name="blockMiddles">Output List of basic block middle nodes</param>
+        </member>
+        <member name="M:rgat.Layouts.ForceDirectedNodePipeline.RenderVelocity(Veldrid.ResourceSetDescription,rgat.PlottedGraph,System.Single)">
+            <summary>
+            Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
+            </summary>
+            <param name="cl">Thread-specific Veldrid command list to use</param>
+            <param name="graph">PlottedGraph to compute</param>
+            <param name="resources">Velocity shader resource set</param>
+            <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
+            <param name="temperature">The activity level of the layout state. Higher balues => bigger movements</param>
+        </member>
+        <member name="M:rgat.Layouts.ForceDirectedNodePipeline.RenderPosition(Veldrid.ResourceSetDescription,rgat.PlottedGraph,System.Single)">
+            <summary>
+            Used the velocity buffer to move the nodes in the positions buffer
+            </summary>
+            <param name="cl">Thread-specific Veldrid command list to use</param>
+            <param name="graph">PlottedGraph to compute</param>
+            <param name="resources">Position shader resource set</param>
+            <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         </member>
         <member name="T:rgat.Logging">
             <summary>
@@ -4211,6 +4241,15 @@
             <param name="graph">Graph the error applies to (optional)</param>
             <param name="trace">Trace the error applies to (optional)</param>
         </member>
+        <member name="M:rgat.Logging.RecordException(System.String,System.Exception,rgat.ProtoGraph,rgat.TraceRecord)">
+            <summary>
+            Declares an error and seperately adds the exception details to the log
+            </summary>
+            <param name="message">Exception context text</param>
+            <param name="e">Exception</param>
+            <param name="graph">Graph the error applies to (optional)</param>
+            <param name="trace">Trace the error applies to (optional)</param>
+        </member>
         <member name="M:rgat.Logging.GetLogMessages(rgat.TraceRecord,System.Boolean[])">
             <summary>
             Fetch messages for a filter and clear pending alerts
@@ -4331,6 +4370,11 @@
             The block the node belongs to
             </summary>
         </member>
+        <member name="F:rgat.NodeData.BlockIndex">
+            <summary>
+            The index of the node in its latest basic block
+            </summary>
+        </member>
         <member name="F:rgat.NodeData.callRecordsIndexs">
             <summary>
             An index used to lookup the caller/arguments of each instance of this being called
@@ -4346,22 +4390,23 @@
             The node needs its label regenerating
             </summary>
         </member>
-        <member name="F:rgat.NodeData.childexterns">
+        <member name="F:rgat.NodeData.Childexterns">
             <summary>
-            number of external functions called
+            Number of external functions called
+            Used by the cylinder layout
             </summary>
         </member>
-        <member name="F:rgat.NodeData.address">
+        <member name="F:rgat.NodeData.Address">
             <summary>
             Memory address of the node instruction
             </summary>
         </member>
-        <member name="F:rgat.NodeData.parentIdx">
+        <member name="F:rgat.NodeData.ParentIdx">
             <summary>
             Which instruction first lead to this node
             </summary>
         </member>
-        <member name="P:rgat.NodeData.executionCount">
+        <member name="P:rgat.NodeData.ExecutionCount">
             <summary>
             How many times the instruction has been recorded executing
             </summary>
@@ -4378,7 +4423,7 @@
             </summary>
             <param name="value">Number of new executions recorded</param>
         </member>
-        <member name="F:rgat.NodeData.heatRank">
+        <member name="F:rgat.NodeData.HeatRank">
             <summary>
             How often the instruction is executed relative to other instuctions (0 [least] to 9 [most])
             </summary>
@@ -4776,22 +4821,6 @@
             Also initialises the edge strength array, 
             </summary>
             <returns>If there was data</returns>
-        </member>
-        <member name="M:rgat.PlottedGraph.GetBlockRenderingMetadata(rgat.PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER[]@,System.Int32[]@)">
-            Creates an array of metadata for basic blocks used for basic-block-centric graph layout
-        </member>
-        <member name="M:rgat.PlottedGraph.CreateBlockMetadataBuf(System.Int32,rgat.PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER[]@,System.Int32[]@)">
-            <summary>
-            Creates an array of metadata for basic blocks used for basic-block-centric graph layout
-            item[0] = blockID
-            item[1] = offsetFromCenter; number of nodes ahead the center node is
-            item[2] = centerPseudoBlockTopID; top of the block this node is in
-            item[3] = centerPseudoBlockBaseID; base of the block this node is in
-            </summary>
-            <param name="nodecount">Number of nodes to add. This isn't just taken from nodelist because
-            it may be intended for a texture of a certain size</param>
-            <param name="blockData">Output description of basic block information for each node</param>
-            <param name="blockMiddles">Output List of basic block middle nodes</param>
         </member>
         <member name="F:rgat.PlottedGraph.DrawnEdgesCount">
             <summary>

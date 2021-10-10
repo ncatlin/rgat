@@ -557,7 +557,7 @@ namespace rgat
         {
             int ModuleReference = DisassemblyData.GetModuleReference(node.GlobalModuleID);
 
-            APIDetailsWin.API_ENTRY? APIDetails = DisassemblyData.GetAPIEntry(node.GlobalModuleID, ModuleReference, node.address);
+            APIDetailsWin.API_ENTRY? APIDetails = DisassemblyData.GetAPIEntry(node.GlobalModuleID, ModuleReference, node.Address);
 
             if (APIDetails is null)
             {

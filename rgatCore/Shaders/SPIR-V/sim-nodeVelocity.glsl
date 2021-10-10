@@ -21,56 +21,19 @@ struct VelocityParams
 {
     float delta; //not used
     float temperature;
-    float attractionK;
     float repulsionK;
-
-    uint fixedInternalNodes;
     uint snapToPreset;
     uint nodeCount;
 };
 
-layout(set = 0, binding=0) uniform Params 
-{
-    VelocityParams fieldParams;
-};
-layout(set = 0, binding=1) buffer bufPositions{
-    vec4 positions[];
-};
-layout(set = 0, binding=2) buffer bufPresetPositions{   
-    vec4 presetPositions[];
-};
-layout(set = 0, binding=3) buffer bufvelocities {   
-    vec4 velocities[];
-};
-//edge data offsets
-layout(set = 0, binding=4) buffer bufedgeIndices {   
-    ivec2 edgeIndices[];
-};
-//edge data 
-layout(set = 0, binding=5) buffer bufedgeTargets {   
-    uint edgeTargets[];
-};
-layout(set = 0, binding=6) buffer bufEdgeStrengths {   
-    float edgeStrengths[];
-};
-
-/*
-one entry for each node, describing the block its in
-x = blockid, so nodes in each block can attract each other
-y = top/bottom flag, so we know to apply gravity 
-z = pseudo node id, used for the center node to perform the attractions of the actual edge (this will usually be the id of the top node)
-w = pseudo node id, used for the center node to perform the attractions of the actual edge (this will usually be the id of the base node)
-*/
-
-layout(set = 0, binding=7) buffer blockDataBuf {   
-    ivec4 blockData[];
-};
-
-layout(set = 0, binding=8) buffer resultData
-{
-    vec4 field_Destination[];
-};
-
+layout(set = 0, binding=0) uniform Params { VelocityParams fieldParams;};
+layout(set = 0, binding=1) buffer bufPositions{ vec4 positions[];};
+layout(set = 0, binding=2) buffer bufPresetPositions{ vec4 presetPositions[];};
+layout(set = 0, binding=3) buffer bufvelocities { vec4 velocities[];};
+layout(set = 0, binding=4) buffer bufedgeIndices { ivec2 edgeIndices[];};  //edge data list offsets (sacrifice space for time)
+layout(set = 0, binding=5) buffer bufedgeTargets { uint edgeTargets[];};   //edge data 
+layout(set = 0, binding=6) buffer bufEdgeStrengths { float edgeStrengths[];};
+layout(set = 0, binding=7) buffer resultData{ vec4 field_Destination[];};
 
 
 vec4 getNeighbor(uint bufferIndex){
@@ -104,7 +67,7 @@ vec3 addAttraction(vec4 self, vec4 neighbor, int edgeIndex){
     if (neighbor.w == -1) return vec3(0,0,0); 
     vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
-    float f = ( x * x ) / fieldParams.attractionK;
+    float f = ( x * x ) / fieldParams.repulsionK;
    // f *= edgeStrengths[edgeIndex];
 
 
@@ -114,17 +77,14 @@ vec3 addAttraction(vec4 self, vec4 neighbor, int edgeIndex){
 
 vec3 addWorldGravity(vec4 self, float force)
 {
-
     vec3 bodyAbove = self.xyz;
     bodyAbove.y += force;
     vec3 diff = self.xyz - bodyAbove.xyz;
     float x = length( diff );
-    float f = ( x * x ) / fieldParams.attractionK;
+    float f = ( x * x ) / fieldParams.repulsionK;
     vec3 normalised = normalize(diff) * f;
 
-  
    return normalised;
-
 }
 
 vec3 addProportionalAttraction(vec3 self, vec4 neighbor, float speed){
@@ -160,7 +120,7 @@ void main()	{
          .w presetLayoutPosition values
      
             -1 = not a node
-             0 = internal block node, fixed position from parent
+             0 = invalid
              1 = preset, simple attraction towards target
              2 = free body subject to standard forces
          */
@@ -187,8 +147,7 @@ void main()	{
             
                 // force-directed n-body simulation
 
-                //first repel every node away from each other
-                
+                //first repel every node away from each other                
                 for(uint nodeIndex = 0; nodeIndex < fieldParams.nodeCount; nodeIndex++)
                 {
                   velocity += addRepulsion(selfPosition,  positions[nodeIndex]);
@@ -228,9 +187,6 @@ void main()	{
         // add friction
         velocity *= 0.25;
     
-    
-        //debugging
-
         field_Destination[index] = vec4(velocity,  outputDebug);//velocities[index].w);
     }
 }

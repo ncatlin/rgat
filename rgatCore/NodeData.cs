@@ -23,9 +23,9 @@ namespace rgat
             nodearr.Add(BlockID);
             nodearr.Add(conditional);
             nodearr.Add(GlobalModuleID);
-            nodearr.Add(address);
-            nodearr.Add(executionCount);
-            nodearr.Add(parentIdx);
+            nodearr.Add(Address);
+            nodearr.Add(ExecutionCount);
+            nodearr.Add(ParentIdx);
 
             JArray incoming = new JArray();
             foreach (var nidx in IncomingNeighboursSet)
@@ -60,7 +60,7 @@ namespace rgat
                 nodearr.Add(callRecIdxArr);
             }
 
-            nodearr.Add(unreliableCount);
+            nodearr.Add(BlockIndex);
             nodearr.WriteTo(writer);
         }
 
@@ -110,7 +110,7 @@ namespace rgat
                 return ErrorAtIndex(jsnArrIdx);
             }
 
-            address = nodeData[jsnArrIdx].ToObject<ulong>();
+            Address = nodeData[jsnArrIdx].ToObject<ulong>();
             jsnArrIdx++;
 
             if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
@@ -118,7 +118,7 @@ namespace rgat
                 return ErrorAtIndex(jsnArrIdx);
             }
 
-            executionCount = nodeData[jsnArrIdx].ToObject<ulong>();
+            ExecutionCount = nodeData[jsnArrIdx].ToObject<ulong>();
             jsnArrIdx++;
 
             //execution comes from these nodes to this node
@@ -127,7 +127,7 @@ namespace rgat
                 return ErrorAtIndex(jsnArrIdx);
             }
 
-            parentIdx = nodeData[jsnArrIdx].ToObject<uint>();
+            ParentIdx = nodeData[jsnArrIdx].ToObject<uint>();
             jsnArrIdx++;
 
             //execution comes from these nodes to this node
@@ -199,7 +199,7 @@ namespace rgat
             }
             else
             {
-                HasSymbol = processinfo.SymbolExists(GlobalModuleID, address);
+                HasSymbol = processinfo.SymbolExists(GlobalModuleID, Address);
                 //load disassembly data of the instruction
                 if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
                 {
@@ -208,9 +208,9 @@ namespace rgat
 
                 int mutationIndex = nodeData[jsnArrIdx].ToObject<int>();
 
-                if (!processinfo.disassembly.TryGetValue(address, out List<InstructionData>? addrInstructions))
+                if (!processinfo.disassembly.TryGetValue(Address, out List<InstructionData>? addrInstructions))
                 {
-                    Logging.WriteConsole("[rgat] Error. Failed to find address " + address + " in disassembly for node " + jsnArrIdx);
+                    Logging.WriteConsole("[rgat] Error. Failed to find address " + Address + " in disassembly for node " + jsnArrIdx);
                     return ErrorAtIndex(jsnArrIdx);
                 }
                 ins = addrInstructions[mutationIndex];
@@ -218,13 +218,12 @@ namespace rgat
 
             jsnArrIdx++;
 
-            if (nodeData[jsnArrIdx].Type != JTokenType.Boolean)
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
             {
                 return ErrorAtIndex(jsnArrIdx);
             }
 
-            unreliableCount = nodeData[jsnArrIdx].ToObject<bool>();
-
+            BlockIndex = nodeData[jsnArrIdx].ToObject<int>();
             return true;
         }
 
@@ -338,7 +337,7 @@ namespace rgat
 
             if (plot.Opt_ShowNodeAddresses)
             {
-                Label += $"0x{this.address:X}:";
+                Label += $"0x{this.Address:X}:";
             }
 
             if (!IsExternal && ins!.InsText?.Length > 0)
@@ -362,7 +361,7 @@ namespace rgat
             {
                 if (plot != null && plot.RenderingMode == eRenderingMode.eHeatmap)
                 {
-                    Label += $" [x{executionCount}] ";
+                    Label += $" [x{ExecutionCount}] ";
                     if (OutgoingNeighboursSet.Count > 1)
                     {
                         Label += "<";
@@ -394,17 +393,17 @@ namespace rgat
         {
             string? symbolText = "";
             bool found = false;
-            if (graph.ProcessData.GetSymbol(GlobalModuleID, address, out symbolText))
+            if (graph.ProcessData.GetSymbol(GlobalModuleID, Address, out symbolText))
             {
                 found = true;
             }
             else
             {
                 //search back from the instruction to try and find symbol of a function it may (or may not) be part of
-                ulong searchLimit = Math.Min(GlobalConfig.Settings.Tracing.SymbolSearchDistance, address);
+                ulong searchLimit = Math.Min(GlobalConfig.Settings.Tracing.SymbolSearchDistance, Address);
                 for (ulong symOffset = 0; symOffset < searchLimit; symOffset++)
                 {
-                    if (graph.ProcessData.GetSymbol(GlobalModuleID, address - symOffset, out symbolText))
+                    if (graph.ProcessData.GetSymbol(GlobalModuleID, Address - symOffset, out symbolText))
                     {
                         symbolText += $"+0x{symOffset}";
                         found = true;
@@ -415,19 +414,19 @@ namespace rgat
 
             if (!found)
             {
-                return $"[No Symbol]0x{address:x}";
+                return $"[No Symbol]0x{Address:x}";
             }
 
 
             if (callRecordsIndexs.Count == 0)
             {
-                if (executionCount == 1)
+                if (ExecutionCount == 1)
                 {
                     return $"{symbolText}()";
                 }
                 else
                 {
-                    return $"{symbolText}() [x{executionCount}]";
+                    return $"{symbolText}() [x{ExecutionCount}]";
                 }
             }
 
@@ -491,13 +490,13 @@ namespace rgat
             List<Tuple<string, WritableRgbaFloat>> result = new List<Tuple<string, WritableRgbaFloat>>();
             string? symbolText = "";
             bool found = false;
-            if (!graph.ProcessData.GetSymbol(GlobalModuleID, address, out symbolText))
+            if (!graph.ProcessData.GetSymbol(GlobalModuleID, Address, out symbolText))
             {
                 //search back from the instruction to try and find symbol of a function it may (or may not) be part of
-                ulong searchLimit = Math.Min(GlobalConfig.Settings.Tracing.SymbolSearchDistance, address);
+                ulong searchLimit = Math.Min(GlobalConfig.Settings.Tracing.SymbolSearchDistance, Address);
                 for (ulong symOffset = 0; symOffset < searchLimit; symOffset++)
                 {
-                    if (graph.ProcessData.GetSymbol(GlobalModuleID, address - symOffset, out symbolText))
+                    if (graph.ProcessData.GetSymbol(GlobalModuleID, Address - symOffset, out symbolText))
                     {
                         symbolText += $"+0x{symOffset}";
                         found = true;
@@ -563,6 +562,7 @@ namespace rgat
         /// </summary>
         /// <param name="state"></param>
         public void SetHighlighted(bool state) => Highlighted = state;
+
         /// <summary>
         /// The index of this node in the node array and various node collections
         /// </summary>
@@ -604,6 +604,10 @@ namespace rgat
         /// </summary>
         public uint BlockID;
 
+        /// <summary>
+        /// The index of the node in its latest basic block
+        /// </summary>
+        public int BlockIndex; //maybe shouldn't have this here - time/space tradeoff. Alternative is block.findindexof on every metadata generation
 
         /// <summary>
         /// An index used to lookup the caller/arguments of each instance of this being called
@@ -622,24 +626,25 @@ namespace rgat
 
 
         /// <summary>
-        /// number of external functions called
+        /// Number of external functions called
+        /// Used by the cylinder layout
         /// </summary>
-        public uint childexterns = 0;
+        public uint Childexterns = 0;
 
         /// <summary>
         /// Memory address of the node instruction
         /// </summary>
-        public ulong address = 0;
+        public ulong Address = 0;
 
         /// <summary>
         /// Which instruction first lead to this node
         /// </summary>
-        public uint parentIdx = 0;
+        public uint ParentIdx = 0;
 
         /// <summary>
         /// How many times the instruction has been recorded executing
         /// </summary>
-        public ulong executionCount { get; private set; } = 0;
+        public ulong ExecutionCount { get; private set; } = 0;
 
         /// <summary>
         /// Set the execution count
@@ -647,7 +652,7 @@ namespace rgat
         /// <param name="value">How many times the instruction has been recorded executing</param>
         public void SetExecutionCount(ulong value)
         {
-            executionCount = value;
+            ExecutionCount = value;
             Dirty = true;
         }
 
@@ -657,13 +662,13 @@ namespace rgat
         /// <param name="value">Number of new executions recorded</param>
         public void IncreaseExecutionCount(ulong value)
         {
-            SetExecutionCount(executionCount + value);
+            SetExecutionCount(ExecutionCount + value);
         }
 
         /// <summary>
         /// How often the instruction is executed relative to other instuctions (0 [least] to 9 [most])
         /// </summary>
-        public float heatRank = 0;
+        public float HeatRank = 0;
 
         /// <summary>
         /// Sources for this node

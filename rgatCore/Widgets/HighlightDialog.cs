@@ -75,15 +75,15 @@ namespace rgat.Widgets
                     modentry.path = processrec.GetModulePath(n.GlobalModuleID);
                     _activeHighlights.displayedModules.Add(n.GlobalModuleID, modentry);
                 }
-                if (!modentry.symbols.TryGetValue(n.address, out symbolInfo symentry))
+                if (!modentry.symbols.TryGetValue(n.Address, out symbolInfo symentry))
                 {
                     symentry = new symbolInfo();
-                    symentry.address = n.address;
+                    symentry.address = n.Address;
                     symentry.selected = false;
                     symentry.moduleID = n.GlobalModuleID;
 
                     string? foundName;
-                    if (processrec.GetSymbol(n.GlobalModuleID, n.address, out foundName) && foundName is not null)
+                    if (processrec.GetSymbol(n.GlobalModuleID, n.Address, out foundName) && foundName is not null)
                     {
                         symentry.name = foundName;
                     }
@@ -93,7 +93,7 @@ namespace rgat.Widgets
                     }
                     symentry.threadNodes = new List<uint>() { n.Index };
 
-                    modentry.symbols.Add(n.address, symentry);
+                    modentry.symbols.Add(n.Address, symentry);
                 }
                 else
                 {
@@ -107,48 +107,48 @@ namespace rgat.Widgets
             _activeHighlights.LastExternNodeCount = externNodes.Length;
         }
 
-        private void HandleSelectedSym(PlottedGraph graph, moduleEntry module_modentry, symbolInfo syminfo)
+        private void HandleSelectedSym(PlottedGraph plot, moduleEntry module_modentry, symbolInfo syminfo)
         {
             syminfo.selected = !syminfo.selected;
             module_modentry.symbols[syminfo.address] = syminfo;
 
-            graph.LayoutState.Lock.EnterUpgradeableReadLock();
-            graph.LayoutState.GetAttributes(graph.ActiveLayoutStyle, out float[]? attribsArray);
+            plot.LayoutState.Lock.EnterUpgradeableReadLock();
+            plot.LayoutState.GetAttributes(plot.ActiveLayoutStyle, out float[]? attribsArray);
 
 
             if (syminfo.selected)
             {
-                graph.AddHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.Externals);
+                plot.AddHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.Externals);
                 _activeHighlights.SelectedSymbols.Add(syminfo);
 
             }
             else
             {
-                graph.RemoveHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.Externals);
+                plot.RemoveHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.Externals);
                 _activeHighlights.SelectedSymbols = _activeHighlights.SelectedSymbols.Where(s => s.address != syminfo.address).ToList();
 
             }
-            graph.LayoutState.Lock.ExitUpgradeableReadLock();
+            plot.LayoutState.Lock.ExitUpgradeableReadLock();
         }
 
 
-        private static void HandleMouseoverSym(PlottedGraph graph, moduleEntry module_modentry, symbolInfo syminfo)
+        private static void HandleMouseoverSym(PlottedGraph plot, moduleEntry module_modentry, symbolInfo syminfo)
         {
             module_modentry.symbols[syminfo.address] = syminfo;
             if (syminfo.hovered)
             {
-                graph.AddHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.Externals);
+                plot.AddHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.Externals);
             }
             else
             {
-                graph.RemoveHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.Externals);
+                plot.RemoveHighlightedNodes(syminfo.threadNodes, CONSTANTS.HighlightType.Externals);
             }
 
         }
 
         private Vector4 _activeColorPick1 = new WritableRgbaFloat(Color.Cyan).ToVec4();
 
-        private void DrawModSymTreeNodes(PlottedGraph graph)
+        private void DrawModSymTreeNodes(PlottedGraph plot)
         {
             string LowerFilterText = _activeHighlights.SymFilterText.ToLower();
             foreach (moduleEntry module_modentry in _activeHighlights.displayedModules.Values)
@@ -199,7 +199,7 @@ namespace rgat.Widgets
                             ImGui.BeginGroup();
                             if (ImGui.Selectable($"{syminfo.name}", syminfo.selected))
                             {
-                                HandleSelectedSym(graph, module_modentry, syminfo);
+                                HandleSelectedSym(plot, module_modentry, syminfo);
                             }
                             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                             {
@@ -215,14 +215,14 @@ namespace rgat.Widgets
                                 {
                                     foreach (uint node in syminfo.threadNodes)
                                     {
-                                        graph.SetCustomHighlightColour((int)node, _activeColorPick1);
+                                        plot.SetCustomHighlightColour((int)node, _activeColorPick1);
                                     }
                                 }
                                 ImGui.Text("Highlight active:");
                                 ImGui.SameLine();
                                 if (SmallWidgets.ToggleButton("NodeActiveHighlightToggle", syminfo.selected, "Node is highlighted"))
                                 {
-                                    HandleSelectedSym(graph, module_modentry, syminfo);
+                                    HandleSelectedSym(plot, module_modentry, syminfo);
                                 }
                                 ImGui.PopStyleColor();
                                 ImGui.EndPopup();
@@ -241,7 +241,7 @@ namespace rgat.Widgets
                                     if (syminfo.hovered == false)
                                     {
                                         syminfo.hovered = true;
-                                        HandleMouseoverSym(graph, module_modentry, syminfo);
+                                        HandleMouseoverSym(plot, module_modentry, syminfo);
                                     }
                                 }
                                 else
@@ -249,7 +249,7 @@ namespace rgat.Widgets
                                     if (syminfo.hovered == true)
                                     {
                                         syminfo.hovered = false;
-                                        HandleMouseoverSym(graph, module_modentry, syminfo);
+                                        HandleMouseoverSym(plot, module_modentry, syminfo);
                                     }
                                 }
                             }
@@ -310,7 +310,8 @@ namespace rgat.Widgets
             ImGui.PopStyleColor();
         }
 
-        private void DrawSymbolsSelectControls(PlottedGraph graph)
+
+        private void DrawSymbolsSelectControls(PlottedGraph plot)
         {
             float height = 30;
             if (_activeHighlights.selectedHighlightTab == 0)
@@ -318,7 +319,7 @@ namespace rgat.Widgets
                 if (ImGui.BeginChild(ImGui.GetID("highlightSymsControls"), new Vector2(ImGui.GetContentRegionAvail().X, height)))
                 {
                     ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"{_activeHighlights.SelectedSymbols.Count} highlighted symbols ({graph.HighlightedSymbolNodes.Count} nodes)");
+                    ImGui.Text($"{_activeHighlights.SelectedSymbols.Count} highlighted symbols ({plot.HighlightedSymbolNodes.Count} nodes)");
                     ImGui.SameLine();
                     ImGui.Dummy(new Vector2(6, 10));
                     ImGui.SameLine();
@@ -331,9 +332,9 @@ namespace rgat.Widgets
                             _activeHighlights.displayedModules[sym.moduleID].symbols[sym.address] = symdat;
                         }
 
-                        graph.LayoutState.Lock.EnterUpgradeableReadLock();
-                        graph.RemoveHighlightedNodes(graph.HighlightedSymbolNodes, CONSTANTS.HighlightType.Externals);
-                        graph.LayoutState.Lock.ExitUpgradeableReadLock();
+                        plot.LayoutState.Lock.EnterUpgradeableReadLock();
+                        plot.RemoveHighlightedNodes(plot.HighlightedSymbolNodes, CONSTANTS.HighlightType.Externals);
+                        plot.LayoutState.Lock.ExitUpgradeableReadLock();
 
                         _activeHighlights.SelectedSymbols.Clear();
                     }
@@ -356,7 +357,7 @@ namespace rgat.Widgets
         }
 
         private static int selitem = 0;
-        public void DrawAddressSelectBox(float height, PlottedGraph graph)
+        public void DrawAddressSelectBox(PlottedGraph plot)
         {
             if (ImGui.ListBox("##AddrListbox", ref selitem,
                 _activeHighlights.SelectedAddresses.Select(ad => $"0x{ad:X}").ToArray(),
@@ -364,17 +365,18 @@ namespace rgat.Widgets
             {
                 ulong address = _activeHighlights.SelectedAddresses[selitem];
                 _activeHighlights.SelectedAddresses.RemoveAt(selitem);
-                graph.HighlightedAddresses.Remove(address);
-                List<uint> nodes = graph.InternalProtoGraph.ProcessData.GetNodesAtAddress(address, graph.TID);
+                plot.HighlightedAddresses.Remove(address);
+                List<uint> nodes = plot.InternalProtoGraph.ProcessData.GetNodesAtAddress(address, plot.TID);
 
-                graph.LayoutState.Lock.EnterUpgradeableReadLock();
-                graph.RemoveHighlightedNodes(nodes, CONSTANTS.HighlightType.Addresses);
-                graph.LayoutState.Lock.ExitUpgradeableReadLock();
+                plot.LayoutState.Lock.EnterUpgradeableReadLock();
+                plot.RemoveHighlightedNodes(nodes, CONSTANTS.HighlightType.Addresses);
+                plot.LayoutState.Lock.ExitUpgradeableReadLock();
             }
 
         }
 
-        public void DrawAddressSelectControls(PlottedGraph graph)
+
+        private void DrawAddressSelectControls(PlottedGraph plot)
         {
             ImGui.Text("Address");
             ImGui.InputText("##AddressInput", ref _activeHighlights.AddrEntryText, 255);
@@ -404,7 +406,7 @@ namespace rgat.Widgets
                     if (!_activeHighlights.SelectedAddresses.Contains(hexAddr))
                     {
 
-                        graph.AddHighlightedAddress(hexAddr);
+                        plot.AddHighlightedAddress(hexAddr);
                         _activeHighlights.SelectedAddresses.Add(hexAddr);
                     }
                 }
@@ -412,9 +414,9 @@ namespace rgat.Widgets
         }
 
 
-        public void DrawExceptionSelectBox(float height, PlottedGraph graph)
+        private void DrawExceptionSelectBox(PlottedGraph plot)
         {
-            uint[]? exceptionNodes = graph.InternalProtoGraph.GetExceptionNodes();
+            uint[]? exceptionNodes = plot.InternalProtoGraph.GetExceptionNodes();
             if (exceptionNodes is null || exceptionNodes.Length == 0)
             {
                 string caption = $"No exceptions recorded in thread ID {_ActiveGraph?.TID}";
@@ -430,28 +432,28 @@ namespace rgat.Widgets
                 ImGui.TableHeadersRow();
                 foreach (uint nodeidx in exceptionNodes)
                 {
-                    NodeData? n = graph.InternalProtoGraph.GetNode(nodeidx);
+                    NodeData? n = plot.InternalProtoGraph.GetNode(nodeidx);
 
                     if (n is not null)
                     {
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        if(ImGui.Selectable($"0x{n.address:X}", _activeHighlights.SelectedExceptionNodes.Contains(nodeidx), ImGuiSelectableFlags.SpanAllColumns))                        
+                        if(ImGui.Selectable($"0x{n.Address:X}", _activeHighlights.SelectedExceptionNodes.Contains(nodeidx), ImGuiSelectableFlags.SpanAllColumns))                        
                         {
                             if (_activeHighlights.SelectedExceptionNodes.Contains(nodeidx))
                             {
                                 _activeHighlights.SelectedExceptionNodes.Remove(nodeidx);
-                                graph.RemoveHighlightedNodes(new List<uint> { nodeidx }, CONSTANTS.HighlightType.Exceptions);
+                                plot.RemoveHighlightedNodes(new List<uint> { nodeidx }, CONSTANTS.HighlightType.Exceptions);
                             }
                             else
                             {
                                 _activeHighlights.SelectedExceptionNodes.Add(nodeidx);
-                                graph.AddHighlightedNodes(new List<uint> { nodeidx }, CONSTANTS.HighlightType.Exceptions);
+                                plot.AddHighlightedNodes(new List<uint> { nodeidx }, CONSTANTS.HighlightType.Exceptions);
                             }
                         }
                         ImGui.TableNextColumn();
-                        ImGui.Text(System.IO.Path.GetFileName(graph.InternalProtoGraph.ProcessData.GetModulePath(n.GlobalModuleID)));
+                        ImGui.Text(System.IO.Path.GetFileName(plot.InternalProtoGraph.ProcessData.GetModulePath(n.GlobalModuleID)));
                         
                     }
                 }
@@ -514,14 +516,14 @@ namespace rgat.Widgets
                     if (ImGui.BeginTabItem("Addresses"))
                     {
                         _activeHighlights.selectedHighlightTab = 1;
-                        DrawAddressSelectBox(888, _ActiveGraph);
+                        DrawAddressSelectBox(_ActiveGraph);
                         DrawAddressSelectControls(_ActiveGraph);
                         ImGui.EndTabItem();
                     }
                     if (ImGui.BeginTabItem("Exceptions"))
                     {
                         _activeHighlights.selectedHighlightTab = 2;
-                        DrawExceptionSelectBox(555, _ActiveGraph);
+                        DrawExceptionSelectBox(_ActiveGraph);
                         DrawExceptionSelectControls();
                         ImGui.EndTabItem();
                     }

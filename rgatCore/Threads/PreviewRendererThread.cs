@@ -46,22 +46,22 @@ namespace rgat.Threads
         /// It will first fetch priority graphs (ie: those in the active trace) 
         /// unless the background flag is set
         /// </summary>
-        /// <param name="graph"></param>
-        public static void AddGraphToPreviewRenderQueue(PlottedGraph graph)
+        /// <param name="plot"></param>
+        public static void AddGraphToPreviewRenderQueue(PlottedGraph plot)
         {
             lock (_lock)
             {
-                Debug.Assert(priorityQueue.Contains(graph) is false);
-                Debug.Assert(renderQueue.Contains(graph) is false);
-                Debug.Assert(_emptyGraphList.Contains(graph) is false);
+                Debug.Assert(priorityQueue.Contains(plot) is false);
+                Debug.Assert(renderQueue.Contains(plot) is false);
+                Debug.Assert(_emptyGraphList.Contains(plot) is false);
 
-                if (graph.InternalProtoGraph.TraceData == rgatState.ActiveTrace && graph.InternalProtoGraph.EdgeCount > 0)
+                if (plot.InternalProtoGraph.TraceData == rgatState.ActiveTrace && plot.InternalProtoGraph.EdgeCount > 0)
                 {
-                    priorityQueue.Enqueue(graph);
+                    priorityQueue.Enqueue(plot);
                 }
                 else
                 {
-                    renderQueue.Enqueue(graph);
+                    renderQueue.Enqueue(plot);
                 }
 
                 if (_waitEvent.IsSet is false)
@@ -257,22 +257,22 @@ namespace rgat.Threads
             Stopwatch s = new Stopwatch();
             while (_stopFlag is false && !rgatState.rgatIsExiting)
             {
-                PlottedGraph[] graphs;
+                PlottedGraph[] graphPlots;
                 if (_emptyGraphList.Count > 0)
                 {
                     lock (_lock)
                     {
-                        graphs = _emptyGraphList.ToArray();
+                        graphPlots = _emptyGraphList.ToArray();
                     }
-                    foreach (PlottedGraph graph in graphs)
+                    foreach (PlottedGraph plot in graphPlots)
                     {
-                        if (graph.InternalProtoGraph.EdgeCount > 0)
+                        if (plot.InternalProtoGraph.EdgeCount > 0)
                         {
                             lock (_lock)
                             {
-                                _emptyGraphList.Remove(graph);
+                                _emptyGraphList.Remove(plot);
                             }
-                            AddGraphToPreviewRenderQueue(graph);
+                            AddGraphToPreviewRenderQueue(plot);
                         }
                     }
                 }
@@ -287,39 +287,39 @@ namespace rgat.Threads
         }
 
 
-        private unsafe void RenderPreview(PlottedGraph graph)
+        private unsafe void RenderPreview(PlottedGraph plot)
         {
-            if (graph == null || _stopFlag)
+            if (plot == null || _stopFlag)
             {
                 return;
             }
 
-            if (graph._previewFramebuffer1 == null)
+            if (plot._previewFramebuffer1 == null)
             {
-                graph.InitPreviewTexture(new Vector2(PreviewGraphsWidget.EachGraphWidth, CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT), _gdev);
+                plot.InitPreviewTexture(new Vector2(PreviewGraphsWidget.EachGraphWidth, CONSTANTS.UI.PREVIEW_PANE_GRAPH_HEIGHT), _gdev);
             }
 
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("render preview 1", filter: Logging.LogFilterType.BulkDebugLogFile);
             bool needsCentering = true;
-            if (!_graphWidget.IsCenteringRequired(graph))
+            if (!_graphWidget.IsCenteringRequired(plot))
             {
-                _graphWidget.StartCentering(graph);
+                _graphWidget.StartCentering(plot);
             }
 
 
             if (needsCentering)
             {
-                bool done = CenterGraphInFrameStep(out float maxremaining, _layoutEngine, graph);
+                bool done = CenterGraphInFrameStep(out float maxremaining, plot);
                 if (done)
                 {
-                    _graphWidget.StopCentering(graph);
+                    _graphWidget.StopCentering(plot);
                 }
             }
 
-            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow,
+            Position2DColour[] EdgeLineVerts = plot.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow,
                 out uint[] edgeDrawIndexes,
                 out int edgeVertCount, preview: true);
-            if (edgeVertCount == 0 || !graph.LayoutState.Initialised)
+            if (edgeVertCount == 0 || !plot.LayoutState.Initialised)
             {
                 return;
             }
@@ -328,10 +328,10 @@ namespace rgat.Threads
 
             cl.Begin();
 
-            var textureSize = graph.LinearIndexTextureSize();
-            updateShaderParams(textureSize, graph, cl);
+            var textureSize = plot.LinearIndexTextureSize();
+            updateShaderParams(textureSize, plot, cl);
 
-            Position2DColour[] NodeVerts = graph.GetPreviewgraphNodeVerts(CONSTANTS.eRenderingMode.eStandardControlFlow, out uint[] nodeIndices, out int nodeCount);
+            Position2DColour[] NodeVerts = plot.GetPreviewgraphNodeVerts(CONSTANTS.eRenderingMode.eStandardControlFlow, out uint[] nodeIndices, out int nodeCount);
             Debug.Assert(nodeIndices.Length >= nodeCount);
 
             if (_NodeVertexBuffer!.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
@@ -398,21 +398,21 @@ namespace rgat.Threads
             //_gdev.SubmitCommands(cl2);
 
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gdev.PointSampler,
-                graph.LayoutState.PositionsVRAM1, graph.LayoutState.AttributesVRAM1);
+                plot.LayoutState.PositionsVRAM1, plot.LayoutState.AttributesVRAM1);
             ResourceSet crscore = _factory!.CreateResourceSet(crs_core_rsd);
 
 
-            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"render preview {graph.TID} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"render preview {plot.TID} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _NodeCircleSpriteview);
             ResourceSet crsnodesedge = _factory.CreateResourceSet(crs_nodesEdges_rsd);
 
             Debug.Assert(nodeIndices.Length <= (_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
 
-            graph.GetPreviewFramebuffer(out Framebuffer drawtarget);
+            plot.GetPreviewFramebuffer(out Framebuffer drawtarget);
 
             cl.SetFramebuffer(drawtarget);
 
-            cl.ClearColorTarget(0, PreviewGraphsWidget.GetGraphBackgroundColour(graph).ToRgbaFloat());
+            cl.ClearColorTarget(0, PreviewGraphsWidget.GetGraphBackgroundColour(plot).ToRgbaFloat());
             cl.SetViewport(0, new Viewport(0, 0, PreviewGraphsWidget.EachGraphWidth, PreviewGraphsWidget.EachGraphHeight, -2200, 1000));
 
             //draw nodes
@@ -432,14 +432,14 @@ namespace rgat.Threads
             cl.End();
             if (!_stopFlag)
             {
-                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"render preview start commands {graph.TID}. Pos{graph.LayoutState.PositionsVRAM1!.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"render preview start commands {plot.TID}. Pos{plot.LayoutState.PositionsVRAM1!.Name}", filter: Logging.LogFilterType.BulkDebugLogFile);
                 _gdev.SubmitCommands(cl);
-                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"render preview finished commands {graph.TID}", filter: Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"render preview finished commands {plot.TID}", filter: Logging.LogFilterType.BulkDebugLogFile);
                 _gdev.WaitForIdle(); //needed?
             }
 
 
-            graph.ReleasePreviewFramebuffer();
+            plot.ReleasePreviewFramebuffer();
             rounds += 1;
             if (rounds % 1 == 0)
             {
@@ -462,10 +462,10 @@ namespace rgat.Threads
         /// <summary>
         /// Adjust the camera offset and zoom so that every node of the graph is in the frame
         /// </summary>
-        private static bool CenterGraphInFrameStep(out float MaxRemaining, GraphLayoutEngine computeEngine, PlottedGraph graph)
+        private static bool CenterGraphInFrameStep(out float MaxRemaining, PlottedGraph plot)
         {
             Vector2 size = new Vector2(PreviewGraphsWidget.EachGraphWidth, PreviewGraphsWidget.EachGraphHeight);
-            if (!GraphLayoutEngine.GetWidgetFitOffsets(size, graph, isPreview: true, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets))
+            if (!GraphLayoutEngine.GetWidgetFitOffsets(size, plot, isPreview: true, out Vector2 xoffsets, out Vector2 yoffsets, out Vector2 zoffsets))
             {
                 MaxRemaining = 0;
                 return false;
@@ -486,7 +486,7 @@ namespace rgat.Threads
                 //graph.PreviewCameraZoom -= maxdelta;
                 //MaxRemaining = maxdelta;
                 MaxRemaining = 1;
-                graph.CameraState.PreviewCameraZoom = -1 * graphDepth;
+                plot.CameraState.PreviewCameraZoom = -1 * graphDepth;
                 return false;
             }
 
@@ -507,7 +507,7 @@ namespace rgat.Threads
 
                 if (delta > 1)
                 {
-                    graph.CameraState.PreviewCameraZoom -= graphDepth;
+                    plot.CameraState.PreviewCameraZoom -= graphDepth;
                     MaxRemaining = Math.Abs(delta);
                     return false;
                 }
@@ -602,31 +602,31 @@ namespace rgat.Threads
             float actualXdelta = Math.Abs(xdelta);
             if (xdelta > 0)
             {
-                graph.CameraState.PreviewCameraXOffset += actualXdelta;
+                plot.CameraState.PreviewCameraXOffset += actualXdelta;
             }
             else
             {
-                graph.CameraState.PreviewCameraXOffset -= actualXdelta;
+                plot.CameraState.PreviewCameraXOffset -= actualXdelta;
             }
 
             float actualYdelta = Math.Abs(ydelta);
             if (ydelta > 0)
             {
-                graph.CameraState.PreviewCameraYOffset += actualYdelta;
+                plot.CameraState.PreviewCameraYOffset += actualYdelta;
             }
             else
             {
-                graph.CameraState.PreviewCameraYOffset -= actualYdelta;
+                plot.CameraState.PreviewCameraYOffset -= actualYdelta;
             }
 
             float actualZdelta = Math.Abs(zdelta);
             if (zdelta > 0)
             {
-                graph.CameraState.PreviewCameraZoom += actualZdelta;
+                plot.CameraState.PreviewCameraZoom += actualZdelta;
             }
             else
             {
-                graph.CameraState.PreviewCameraZoom -= actualZdelta;
+                plot.CameraState.PreviewCameraZoom -= actualZdelta;
             }
 
             //weight the offsets higher
@@ -694,7 +694,7 @@ namespace rgat.Threads
             _edgesPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
         }
 
-        private GraphPlotWidget.GraphShaderParams updateShaderParams(uint textureSize, PlottedGraph graph, CommandList cl)
+        private GraphPlotWidget.GraphShaderParams updateShaderParams(uint textureSize, PlottedGraph plot, CommandList cl)
         {
             GraphPlotWidget.GraphShaderParams shaderParams = new GraphPlotWidget.GraphShaderParams
             {
@@ -705,8 +705,8 @@ namespace rgat.Threads
 
             shaderParams.nonRotatedView = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0);
             shaderParams.proj = PreviewGraphsWidget.PreviewProjection;
-            shaderParams.world = graph.CameraState.RotationMatrix;
-            shaderParams.view = graph.CameraState.PreviewCameraTranslation;
+            shaderParams.world = plot.CameraState.RotationMatrix;
+            shaderParams.view = plot.CameraState.PreviewCameraTranslation;
 
 
             cl.UpdateBuffer(_paramsBuffer, 0, shaderParams);

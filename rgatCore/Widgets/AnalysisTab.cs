@@ -341,7 +341,7 @@ namespace rgat
                 }
                 else
                 {
-                    if (call.Graph.TraceData.DisassemblyData.GetSymbol(call.Node.GlobalModuleID, call.Node.address, out string? symbol))
+                    if (call.Graph.TraceData.DisassemblyData.GetSymbol(call.Node.GlobalModuleID, call.Node.Address, out string? symbol))
                     {
                         ImGui.TextWrapped(symbol);
                     }

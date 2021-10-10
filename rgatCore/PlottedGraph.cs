@@ -569,14 +569,14 @@ namespace rgat
             {
                 NodeData? n = InternalProtoGraph.GetNode(i);
                 Debug.Assert(n is not null);
-                NodeData? firstParent = InternalProtoGraph.GetNode(n.parentIdx);
+                NodeData? firstParent = InternalProtoGraph.GetNode(n.ParentIdx);
                 Debug.Assert(firstParent is not null);
 
                 if (n.IsExternal)
                 {
                     //todo - test multiple extern calls from same node
-                    a = a + (-0.5f) - 1f * firstParent.childexterns;
-                    b = b + (0.5f) + 0.7f * firstParent.childexterns;
+                    a = a + (-0.5f) - 1f * firstParent.Childexterns;
+                    b = b + (0.5f) + 0.7f * firstParent.Childexterns;
                 }
                 else
                 {
@@ -588,7 +588,7 @@ namespace rgat
 
                         case EdgeNodeType.eNodeJump:
 
-                            if (firstParent.IsConditional && n.address == firstParent.ins!.condDropAddress)
+                            if (firstParent.IsConditional && n.Address == firstParent.ins!.condDropAddress)
                             {
                                 b += B_BETWEEN_BLOCKNODES;
                                 break;
@@ -619,7 +619,7 @@ namespace rgat
                             Tuple<float, float>? callerPos = null;
                             for (var stackI = callStack.Count - 1; stackI >= 0; stackI--)
                             {
-                                if (callStack[stackI].Item2 == n.address)
+                                if (callStack[stackI].Item2 == n.Address)
                                 {
                                     callerPos = callStack[stackI].Item1;
                                     callStack.RemoveRange(stackI, callStack.Count - stackI);
@@ -648,7 +648,7 @@ namespace rgat
                 //record return address
                 if (n.VertType() == EdgeNodeType.eNodeCall)
                 {
-                    callStack.Add(new Tuple<Tuple<float, float>, ulong>(new Tuple<float, float>(a, b), n.address + (ulong)n.ins!.NumBytes));
+                    callStack.Add(new Tuple<Tuple<float, float>, ulong>(new Tuple<float, float>(a, b), n.Address + (ulong)n.ins!.NumBytes));
                 }
 
                 //if returning from a function, limit drawing any new functions to below this one
@@ -1188,194 +1188,16 @@ namespace rgat
         }
 
 
-
-        public struct NODE_BLOCK_METADATA_COMPUTEBUFFER
+        public List<int>[] GetNodeNeighboursArray()
         {
-            public int BlockIndex;
-            public int OffsetFromCenter;
-            public int BlockTopEdgeList;
-            public int BlockBaseEdgeList;
-            public const uint SizeInBytes = 16;
-        }
-
-
-        /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
-        public unsafe bool GetBlockRenderingMetadata(out NODE_BLOCK_METADATA_COMPUTEBUFFER[] blockData, out int[] blockMiddles)
-        {
-            List<List<int>>? nodeNeighboursArray = null;
             lock (animationLock)
             {
-                nodeNeighboursArray = _graphStructureBalanced.ToList();
+                return _graphStructureBalanced.ToArray();
             }
-            return CreateBlockMetadataBuf(Math.Min(nodeNeighboursArray.Count, InternalProtoGraph.NodeList.Count), out blockData, out blockMiddles);
         }
 
 
-        /// <summary>
-        /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
-        /// item[0] = blockID
-        /// item[1] = offsetFromCenter; number of nodes ahead the center node is
-        /// item[2] = centerPseudoBlockTopID; top of the block this node is in
-        /// item[3] = centerPseudoBlockBaseID; base of the block this node is in
-        /// </summary>
-        /// <param name="nodecount">Number of nodes to add. This isn't just taken from nodelist because
-        /// it may be intended for a texture of a certain size</param>
-        /// <param name="blockData">Output description of basic block information for each node</param>
-        /// <param name="blockMiddles">Output List of basic block middle nodes</param>
-        private bool CreateBlockMetadataBuf(int nodecount, out NODE_BLOCK_METADATA_COMPUTEBUFFER[] blockData, out int[] blockMiddles)
-        {
 
-            NODE_BLOCK_METADATA_COMPUTEBUFFER[] blockDataInts = new NODE_BLOCK_METADATA_COMPUTEBUFFER[nodecount];
-            Dictionary<int, int> blockMiddlesDict = new Dictionary<int, int>();
-            List<int> blockMiddlesList = new List<int>();
-
-            //todo this is testing, optimise later
-            List<int> activeBlockIDs = new();
-            Dictionary<int, int> NodeBlockToBlockMetaIndex = new();
-            Dictionary<int, int> BlockMetaToBlockFirstLastIndex = new();
-            for (var i = 0; i < InternalProtoGraph.NodeCount; i++)
-            {
-                int nodeBlockID = (int)InternalProtoGraph.NodeList[i].BlockID;
-                if (NodeBlockToBlockMetaIndex.TryGetValue(nodeBlockID, out int metaBlockID) is false || activeBlockIDs.Contains(metaBlockID) is false)
-                {
-                    NodeBlockToBlockMetaIndex[nodeBlockID] = activeBlockIDs.Count;
-                    BlockMetaToBlockFirstLastIndex[activeBlockIDs.Count] = nodeBlockID;
-                    activeBlockIDs.Add(activeBlockIDs.Count);
-                }
-            }
-
-            //step 1: find the center node of each block
-            //  todo: cache
-            int blockMetaDataIndex = 0;
-            foreach (int blockIdx in activeBlockIDs)
-            {
-                if (blockIdx == -1)
-                {
-                    blockMiddlesList.Add(-1);
-                }
-
-                int originalBlockIndex = BlockMetaToBlockFirstLastIndex[blockIdx];
-                
-                if (originalBlockIndex < 0 || originalBlockIndex >= InternalProtoGraph.BlocksFirstLastNodeList.Count)
-                {
-                    continue;
-                }
-                
-                var firstIdx_LastIdx = InternalProtoGraph.BlocksFirstLastNodeList[originalBlockIndex];
-                if (firstIdx_LastIdx == null)
-                {
-                    continue;
-                }
-
-                if (firstIdx_LastIdx.Item1 == firstIdx_LastIdx.Item2)
-                {
-                    if (blockMiddlesList.Contains((int)firstIdx_LastIdx.Item1)) continue;
-                    blockMiddlesDict[blockIdx] = (int)firstIdx_LastIdx.Item1; //1 node block, top/mid/base is the same
-                    blockMiddlesList.Add((int)firstIdx_LastIdx.Item1);
-                }
-                else
-                {
-                    var block = InternalProtoGraph.ProcessData.BasicBlocksList[originalBlockIndex]?.Item2;
-                    Debug.Assert(block is not null);
-                    int midIdx = (int)Math.Ceiling((block.Count - 1.0) / 2.0);
-                    var middleIns = block[midIdx];
-                    if (!middleIns.GetThreadVert(TID, out uint centerNodeID))
-                    {
-                        blockMiddlesDict[blockIdx] = -1; //instructions sent and not executed? why?
-                        //Debug.Assert(false, $"Instruction 0x{middleIns.address:X} not found in thread {tid}");
-                    }
-                    else
-                    {
-                        if (blockMiddlesList.Contains((int)centerNodeID)) continue;
-                        blockMiddlesDict[blockIdx] = (int)centerNodeID;
-                        blockMiddlesList.Add((int)centerNodeID);
-                    }
-                }
-            }
-
-            //step 2:
-            int externals = 0;
-            for (uint nodeIdx = 0; nodeIdx < nodecount; nodeIdx++)
-            {
-                NodeData? n = InternalProtoGraph.GetNode(nodeIdx);  //todo - this grabs a lot of locks. improve it
-                Debug.Assert(n is not null);
-
-                uint blockSize;
-                int blockMid;
-                int blockID;
-                int nodeIndexInBlock = 0;
-                int offsetFromCenter = 0;
-                Tuple<uint, uint>? FirstLastIdx;
-                if (!n.IsExternal)
-                {
-                    if (n.BlockID >= InternalProtoGraph.BlocksFirstLastNodeList.Count)
-                    {
-                        continue;
-                    }
-
-                    FirstLastIdx = InternalProtoGraph.BlocksFirstLastNodeList[(int)n.BlockID]; //bug: this can happen before bflnl is filled
-                    if (FirstLastIdx == null)
-                    {
-                        continue;
-                    }
-
-                    blockID = NodeBlockToBlockMetaIndex[(int)n.BlockID];
-                    if (!blockMiddlesDict.ContainsKey(blockID))
-                    {
-                        continue;
-                    }
-
-                    blockMid = blockMiddlesDict[blockID];
-
-                    var blockEntry = InternalProtoGraph.ProcessData.BasicBlocksList[(int)n.BlockID];
-                    Debug.Assert(blockEntry is not null);
-                    blockSize = (uint) blockEntry.Item2.Count;
-                    int blockOffset = blockEntry.Item2.FindIndex(x => x.Address == n.address);
-                    int midIdx = (int)Math.Ceiling((blockEntry.Item2.Count - 1.0) / 2.0);
-                    offsetFromCenter = blockOffset - midIdx;
-                }
-                else
-                {
-                    externals += 1;
-                    FirstLastIdx = new Tuple<uint, uint>(n.Index, n.Index);
-                    blockMid = (int)n.Index;
-                    blockSize = 1;
-                    offsetFromCenter = 0;
-                    blockMiddlesList.Add((int)n.Index);
-
-                    //external nodes dont have a block id so just give them a unique one
-                    //all that matters in the shader is it's unique
-                    blockID = blockMiddlesList.Count;
-                    blockMiddlesDict[blockID] = (int)n.Index;
-                }
-
-
-                int blockTopNodeIndex = -1;
-                int blockBaseNodeIndex = -1;
-                if (nodeIdx == blockMid || blockSize == 1)
-                {
-                    if (InternalProtoGraph.GetNode(FirstLastIdx.Item1)?.IncomingNeighboursSet.Count > 0)
-                    {
-                        blockTopNodeIndex = (int)FirstLastIdx.Item1;
-                    }
-
-                    if (InternalProtoGraph.GetNode(FirstLastIdx.Item2)?.OutgoingNeighboursSet.Count > 0)
-                    {
-                        blockBaseNodeIndex = (int)FirstLastIdx.Item2;
-                    }
-                }
-
-                blockDataInts[nodeIdx].BlockIndex = blockID;
-                blockDataInts[nodeIdx].OffsetFromCenter = offsetFromCenter;
-                blockDataInts[nodeIdx].BlockTopEdgeList = blockTopNodeIndex;
-                blockDataInts[nodeIdx].BlockBaseEdgeList = blockBaseNodeIndex != blockTopNodeIndex ? blockBaseNodeIndex : -1;
-            }
-
-            blockMiddles = blockMiddlesList.ToArray();
-            blockData = blockDataInts;
-
-            return true;
-        }
 
 
         /// <summary>

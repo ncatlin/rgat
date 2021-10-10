@@ -979,7 +979,7 @@ namespace rgat
         {
             if (!_cachedStrings.TryGetValue(inputString, out fontStruc[]? cached) || cached is null)
             {
-                Console.WriteLine("Cache miss " + inputString);
+                //Console.WriteLine("Cache miss " + inputString);
                 cached = new fontStruc[inputString.Length * 6];
 
                 float xPos = 0;
@@ -1023,26 +1023,26 @@ namespace rgat
         /// <summary>
         /// Update graph drawing parameters used by the shaders
         /// </summary>
-        /// <param name="graph">The graph being drawn</param>
+        /// <param name="plot">The graph being drawn</param>
         /// <param name="textureSize"></param>
         /// <param name="projection"></param>
         /// <param name="view"></param>
         /// <param name="world"></param>
         /// <param name="cl"></param>
         /// <returns></returns>
-        private GraphShaderParams updateShaderParams(PlottedGraph graph, uint textureSize, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, CommandList cl)
+        private GraphShaderParams updateShaderParams(PlottedGraph plot, uint textureSize, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, CommandList cl)
         {
             GraphShaderParams shaderParams = new GraphShaderParams
             {
                 TexWidth = textureSize,
                 pickingNode = MouseoverNodeID,
-                isAnimated = graph.IsAnimated
+                isAnimated = plot.IsAnimated
             };
 
             shaderParams.proj = projection;
             shaderParams.view = view;
             shaderParams.world = world;
-            shaderParams.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), graph.CameraState.MainCameraTranslation);
+            shaderParams.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), plot.CameraState.MainCameraTranslation);
 
             cl.UpdateBuffer(_paramsBuffer, 0, shaderParams);
 
@@ -1228,13 +1228,13 @@ namespace rgat
         /// Draws the various nodes, edges, captions and illustrations to the framebuffer for display
         /// </summary>
         /// <param name="cl">A veldrid commandlist, for use by this thread only</param>
-        /// <param name="graph">The PlottedGraph to draw</param>
-        public unsafe void DrawGraph(CommandList cl, PlottedGraph graph)
+        /// <param name="plot">The PlottedGraph to draw</param>
+        public unsafe void DrawGraph(CommandList cl, PlottedGraph plot)
         {
             Stopwatch st = new();
             st.Start();
-            Position2DColour[] EdgeLineVerts = graph.GetEdgeLineVerts(_renderingMode, out uint[] edgeDrawIndexes, out int edgeVertCount);
-            if (graph.LayoutState.Initialised is false || edgeVertCount == 0 || Exiting)
+            Position2DColour[] EdgeLineVerts = plot.GetEdgeLineVerts(_renderingMode, out uint[] edgeDrawIndexes, out int edgeVertCount);
+            if (plot.LayoutState.Initialised is false || edgeVertCount == 0 || Exiting)
             {
                 return;
             }
@@ -1262,16 +1262,16 @@ namespace rgat
             ResourceSet crs_nodesEdges = _factory!.CreateResourceSet(crs_nodesEdges_rsd);
 
             //rotval += 0.01f; //autorotate
-            var textureSize = graph.LinearIndexTextureSize();
+            var textureSize = plot.LinearIndexTextureSize();
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
-            updateShaderParams(graph, textureSize, proj, view, world, cl);
+            updateShaderParams(plot, textureSize, proj, view, world, cl);
 
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer,
-                _gd.PointSampler, graph.LayoutState.PositionsVRAM1, graph.LayoutState.AttributesVRAM1);
+                _gd.PointSampler, plot.LayoutState.PositionsVRAM1, plot.LayoutState.AttributesVRAM1);
             ResourceSet crs_core = _factory.CreateResourceSet(crs_core_rsd);
 
-            Position2DColour[] NodeVerts = graph.GetMaingraphNodeVerts(_renderingMode, (int)textureSize,
+            Position2DColour[] NodeVerts = plot.GetMaingraphNodeVerts(_renderingMode, (int)textureSize,
             out uint[] nodeIndices, out Position2DColour[] nodePickingColors,
             out List<Tuple<string?, uint>> captions, out int nodeCount);
 
@@ -1368,7 +1368,7 @@ namespace rgat
             cl.SetFramebuffer(drawtarget);
             cl.ClearColorTarget(0, Themes.GetThemeColourWRF(Themes.eThemeColour.GraphBackground).ToRgbaFloat());
 
-            if (graph.Opt_NodesVisible)
+            if (plot.Opt_NodesVisible)
             {
                 cl.SetPipeline(_pointsPipeline);
                 cl.SetGraphicsResourceSet(0, crs_core);
@@ -1378,7 +1378,7 @@ namespace rgat
                 cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             }
 
-            if (graph.Opt_EdgesVisible)
+            if (plot.Opt_EdgesVisible)
             {
                 cl.SetPipeline(_edgesPipelineRelative);
                 cl.SetGraphicsResourceSet(0, crs_core);
@@ -1388,7 +1388,7 @@ namespace rgat
                 cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
             }
 
-            GeomPositionColour[] IllustrationEdges = graph.GetIllustrationEdges(out List<uint> illusEdgeDrawIndexes);
+            GeomPositionColour[] IllustrationEdges = plot.GetIllustrationEdges(out List<uint> illusEdgeDrawIndexes);
 
             if (IllustrationEdges.Length > 0)
             {
@@ -1414,7 +1414,7 @@ namespace rgat
 
 
             //draw text            
-            if (graph.Opt_TextEnabled)
+            if (plot.Opt_TextEnabled)
             {
                 cl.SetViewport(0, new Viewport(0, 0, WidgetSize.X, WidgetSize.Y, -2200, 1000));
 
@@ -1785,7 +1785,7 @@ namespace rgat
         }
 
 
-        private void DrawLayoutSelector(PlottedGraph graph, Vector2 position, float scale, LayoutStyles.Style layout)
+        private void DrawLayoutSelector(PlottedGraph plot, Vector2 position, float scale, LayoutStyles.Style layout)
         {
             Vector2 iconSize = new Vector2(128 * scale, 128 * scale);
             float padding = 6f;
@@ -1816,7 +1816,7 @@ namespace rgat
                 ImGui.OpenPopup("layout select popup");
             }
 
-            bool snappingToPreset = graph.LayoutState.ActivatingPreset;
+            bool snappingToPreset = plot.LayoutState.ActivatingPreset;
             if (snappingToPreset) { ImGui.PushStyleColor(ImGuiCol.Border, 0xff4400ff); }
 
             if (ImGui.BeginPopup("layout select popup"))

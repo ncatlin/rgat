@@ -19,12 +19,12 @@ namespace rgat
         /// <summary>
         /// Create buffers for a graph rendering
         /// </summary>
-        /// <param name="graph">The graph the layout applies to</param>
+        /// <param name="plot">The graph the layout applies to</param>
         /// <param name="device">The graphicsdevice for VRAM operations</param>
         /// <param name="style">The intial style of the layout</param>
-        public GraphLayoutState(PlottedGraph graph, GraphicsDevice device, LayoutStyles.Style style)
+        public GraphLayoutState(PlottedGraph plot, GraphicsDevice device, LayoutStyles.Style style)
         {
-            GraphPlot = graph;
+            GraphPlot = plot;
             _VRAMBuffers.Style = style;
             _gd = device;
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Layout state {GraphPlot.TID} inited", Logging.LogFilterType.BulkDebugLogFile);
@@ -523,7 +523,7 @@ namespace rgat
         /// <summary>
         /// Must hold writer lock before calling
         /// </summary>
-        public void RegenerateEdgeDataBuffers(PlottedGraph graph)
+        public void RegenerateEdgeDataBuffers(PlottedGraph plot)
         {
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RegenerateEdgeDataBuffers start", Logging.LogFilterType.BulkDebugLogFile);
             long v1 = 0, v2 = 0, v3 = 0;
@@ -531,103 +531,89 @@ namespace rgat
             Stopwatch st = new();
 
             st.Restart();
-            CreateEdgeDataBuffers(graph);
+            CreateEdgeDataBuffers(plot);
             st.Stop(); v1 = st.ElapsedMilliseconds;
             st.Restart();
-            CreateBlockMetadataBuffer(graph);
+            RegenerateCustomData(plot);
             st.Stop(); v2 = st.ElapsedMilliseconds;
             st.Restart();
-            RegeneratePresetBuffer(graph);
+            RegeneratePresetBuffer(plot);
             st.Stop(); v3 = st.ElapsedMilliseconds;
-            if (!LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle))//todo and not done
+            if (!LayoutStyles.IsForceDirected(plot.ActiveLayoutStyle))//todo and not done
             {
                 ActivatingPreset = true;
             }
-            //}
 
             if (v1 > 80 || v2 > 80 || v3 > 80)
                 Console.WriteLine($"Regen took: edged:{v1}ms, blockmd:{v2}ms, preset:{v3}ms");
-            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {graph.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {plot.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
+        }
+
+        /// <summary>
+        /// Gathers layout-specific data into our state
+        /// This is a bit of a stopgap - ideally we would have some kind of single
+        /// abstract layoutpipeline object which would call the right function
+        /// rather than having to build in each layout here
+        /// </summary>
+        /// <param name="plot"></param>
+        void RegenerateCustomData(PlottedGraph plot)
+        {
+            switch(this.Style)
+            {
+                case LayoutStyles.Style.ForceDirected3DBlocks:
+                    Layouts.ForceDirectedBlockPipeline.CreateBlockMetadataBuffer(plot, _gd);
+                    break;
+                default:
+                    break;
+            }
         }
 
 
         /// <summary>
         /// Prepare a preset buffer to generate a non-force directed layout
         /// </summary>
-        /// <param name="graph"></param>
-        private void RegeneratePresetBuffer(PlottedGraph graph)
+        /// <param name="plot"></param>
+        private void RegeneratePresetBuffer(PlottedGraph plot)
         {
-            if (!LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle))
+            if (!LayoutStyles.IsForceDirected(plot.ActiveLayoutStyle))
             {
                 VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.PresetPositions);
-                float[]? presetPositons = graph.GeneratePresetPositions(PresetStyle);
+                float[]? presetPositons = plot.GeneratePresetPositions(PresetStyle);
                 Debug.Assert(presetPositons is not null);
                 _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(presetPositons, _gd, "Preset1");
             }
-
-            //VeldridGraphBuffers.DoDispose(_VRAMBuffers.PresetPositions);
-            // _VRAMBuffers.PresetPositions = _VRAMBuffers.Positions1;
-            //VeldridGraphBuffers.CreateFloatsDeviceBuffer(SavedStates[Style].PositionsArray, _gd, $"PLP_PresetPosbuf_{graph.TID}");
-
         }
 
-        //must hold writer lock
-        /*
-        public void LoadPreset(PlottedGraph graph)
-        {
-            if (LayoutStyles.IsForceDirected(graph.ActiveLayoutStyle) )
-            {
-                PurgeVRAMBuffers();
-                if (SavedStates.ContainsKey(graph.ActiveLayoutStyle))
-                {
-                    LockedUploadStateToVRAM(graph.ActiveLayoutStyle);
-                }
-                else
-                {
-                    //random
-                }
-
-                //_VRAMBuffers.PresetPositions =
-                //    VeldridGraphBuffers.CreateFloatsDeviceBuffer(SavedStates[Style].PositionsArray, _gd, $"PLP_PresetPosbuf_{graph.TID}");
-
-            }
-            else
-            {
-                _VRAMBuffers.PresetPositions =  VeldridGraphBuffers.CreateFloatsDeviceBuffer(graph.GeneratePresetPositions(), _gd, "PresetPos");
-                _VRAMBuffers.Style = graph.ActiveLayoutStyle;
-            }
-        }
-        */
 
         /// <summary>
         /// This buffer list the index of every node each node is connected to
         /// </summary>
         /// <param name="graph"></param>
         /// <returns></returns>
-        private unsafe bool CreateEdgeDataBuffers(PlottedGraph graph)
+        private unsafe bool CreateEdgeDataBuffers(PlottedGraph plot)
         {
-            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateEdgeDataBuffers  {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateEdgeDataBuffers  {plot.TID}", Logging.LogFilterType.BulkDebugLogFile);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnections);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeConnectionIndexes);
             VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.EdgeStrengths);
 
             Stopwatch st = new Stopwatch();
             st.Start();
-            if (!graph.GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargets, out PlottedGraph.EDGE_INDEX_FIRSTLAST[] edgeMetaOffsets))
+            if (!plot.GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargets, out PlottedGraph.EDGE_INDEX_FIRSTLAST[] edgeMetaOffsets))
             {
                 if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateEdgeDataBuffers zerobuf", Logging.LogFilterType.BulkDebugLogFile);
-                _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeTargets_T{graph.TID}");
-                _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeStrengths_T{graph.TID}");
-                _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeOffsets_T{graph.TID}");
+                _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeTargets_T{plot.TID}");
+                _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeStrengths_T{plot.TID}");
+                _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeOffsets_T{plot.TID}");
                 return false;
             }
             st.Stop();
             if (st.ElapsedMilliseconds > 80)
                 Console.WriteLine($"GetEdgeRenderingdata took {st.ElapsedMilliseconds} ms");
 
-            _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeTargets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeTargetsBuf_T{graph.TID}");
-            _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeStrengths.Length * sizeof(float), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeStrengthsBuf_T{graph.TID}");
-            _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeMetaOffsets.Length * PlottedGraph.EDGE_INDEX_FIRSTLAST.SizeInBytes, BufferUsage.StructuredBufferReadOnly, 4, $"EdgeOffsetsBuf_T{graph.TID}");
+            _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeTargets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeTargetsBuf_T{plot.TID}");
+            _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeStrengths.Length * sizeof(float), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeStrengthsBuf_T{plot.TID}");
+            _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeMetaOffsets.Length * PlottedGraph.EDGE_INDEX_FIRSTLAST.SizeInBytes, BufferUsage.StructuredBufferReadOnly, 4, $"EdgeOffsetsBuf_T{plot.TID}");
 
             //Logging.RecordLogEvent($"CreateEdgeDataBuffers processing {edgeStrengths.Length * sizeof(int)} bufsize {EdgeStrengthsBuf.SizeInBytes}", Logging.LogFilterType.BulkDebugLogFile);
             fixed (int* targsPtr = edgeTargets)
@@ -666,56 +652,6 @@ namespace rgat
         }
 
 
-        /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
-        private unsafe void CreateBlockMetadataBuffer(PlottedGraph graph)
-        {
-
-            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.TID}", Logging.LogFilterType.BulkDebugLogFile);
-
-            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMetadata);
-            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.BlockMiddles);
-
-            var textureSize = graph.EdgeTextureWidth();
-            if (textureSize > 0)
-            {
-                graph.GetBlockRenderingMetadata(out PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER[] blockdats, out int[] blockMiddles);
-
-                _VRAMBuffers.BlockMetadata = VeldridGraphBuffers.TrackedVRAMAlloc(_gd,
-                    (uint)blockdats.Length * PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER.SizeInBytes, 
-                    BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMetadata_T{graph.TID}");
-
-                _VRAMBuffers.BlockMiddles = VeldridGraphBuffers.TrackedVRAMAlloc(_gd,
-                    (uint)blockMiddles.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMiddles_T{graph.TID}");
-
-                _VRAMBuffers.BlockCount = blockMiddles.Length;
-
-                if (blockdats.Length == 0)
-                {
-                    return;
-                }
-
-                fixed (PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER* datsPtr = blockdats)
-                {
-                    fixed (int* middlesPtr = blockMiddles)
-                    {
-                        CommandList cl = _gd.ResourceFactory.CreateCommandList();
-                        cl.Begin();
-                        cl.UpdateBuffer(_VRAMBuffers.BlockMetadata, 0, (IntPtr)datsPtr, (uint)blockdats.Length * PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER.SizeInBytes);
-                        cl.UpdateBuffer(_VRAMBuffers.BlockMiddles, 0, (IntPtr)middlesPtr, (uint)blockMiddles.Length * sizeof(int));
-                        cl.End();
-                        _gd.SubmitCommands(cl);
-                        _gd.WaitForIdle();
-                        cl.Dispose();
-                    } }
-            }
-
-
-            //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, newBuffer));
-
-            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateBlockDataBuffer  {graph.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
-            //PrintBufferArray(textureArray, "Created data texture:");
-        }
-
 
 
 
@@ -724,21 +660,21 @@ namespace rgat
         /// Must have upgradable readlock
         /// </summary>
         /// <param name="finalCount">how many nodes to add</param>
-        /// <param name="graph">The graph with new nodes</param>
-        public unsafe void AddNewNodesToComputeBuffers(int finalCount, PlottedGraph graph)
+        /// <param name="plot">The graph with new nodes</param>
+        public unsafe void AddNewNodesToComputeBuffers(int finalCount, PlottedGraph plot)
         {
-            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"AddNewNodesToComputeBuffers <{finalCount - graph.ComputeBufferNodeCount}?  {graph.TID} start", Logging.LogFilterType.BulkDebugLogFile);
-            int newNodeCount = finalCount - graph.ComputeBufferNodeCount;
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"AddNewNodesToComputeBuffers <{finalCount - plot.ComputeBufferNodeCount}?  {plot.TID} start", Logging.LogFilterType.BulkDebugLogFile);
+            int newNodeCount = finalCount - plot.ComputeBufferNodeCount;
             if (newNodeCount == 0)
             {
                 return;
             }
-            LayoutStyles.Style graphStyle = graph.LayoutState.Style;
+            LayoutStyles.Style graphStyle = plot.LayoutState.Style;
             if (SavedStates.TryGetValue(graphStyle, out CPUBuffers? RAMbufs) == false || RAMbufs is null) return;
 
-            Debug.Assert(graph.ActiveLayoutStyle == _VRAMBuffers.Style);
+            Debug.Assert(plot.ActiveLayoutStyle == _VRAMBuffers.Style);
 
-            uint offset = (uint)graph.ComputeBufferNodeCount * 4 * sizeof(float);
+            uint offset = (uint)plot.ComputeBufferNodeCount * 4 * sizeof(float);
             uint updateSize = 4 * sizeof(float) * (uint)newNodeCount;
             List<DeviceBuffer?> disposals = new List<DeviceBuffer?>();
 
@@ -751,7 +687,7 @@ namespace rgat
                 _lock.EnterWriteLock();
                 if (!_VRAMBuffers.Initialised || (offset + updateSize) > VelocitiesVRAM1!.SizeInBytes)
                 {
-                    var bufferWidth = graph.NestedIndexTextureSize();
+                    var bufferWidth = plot.NestedIndexTextureSize();
                     var bufferFloatCount = bufferWidth * bufferWidth * 4;
                     var bufferSize = bufferFloatCount * sizeof(float);
                     Debug.Assert(bufferSize >= updateSize);
@@ -762,18 +698,18 @@ namespace rgat
                     }
                     else
                     {
-                        Logging.RecordLogEvent($"Creating VRAM buffers size {bufferSize} for graph {graph.TID}", Logging.LogFilterType.Debug);
+                        Logging.RecordLogEvent($"Creating VRAM buffers size {bufferSize} for graph {plot.TID}", Logging.LogFilterType.Debug);
                     }
-                    ResizeComputeBuffers(graph, bufferSize, cl, ref disposals);
+                    ResizeComputeBuffers(plot, bufferSize, cl, ref disposals);
                 }
                 _lock.ExitWriteLock();
-                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"AddNewNodesToComputeBuffers  {graph.TID} done", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"AddNewNodesToComputeBuffers  {plot.TID} done", Logging.LogFilterType.BulkDebugLogFile);
             }
 
             Debug.Assert(VelocitiesVRAM1 is not null);
 
 
-            uint endOfComputeBufferOffset = (uint)graph.ComputeBufferNodeCount * 4;
+            uint endOfComputeBufferOffset = (uint)plot.ComputeBufferNodeCount * 4;
             float[] newPositions = RAMbufs.PositionsArray;
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Writing new nodes from {offset / 16} to {offset / 16 + updateSize / 16} -> finalcount {finalCount}", Logging.LogFilterType.BulkDebugLogFile);
             fixed (float* dataPtr = newPositions)
@@ -802,7 +738,7 @@ namespace rgat
 
             disposals.ForEach(buf => VeldridGraphBuffers.VRAMDispose(buf));
 
-            graph.ComputeBufferNodeCount = finalCount;
+            plot.ComputeBufferNodeCount = finalCount;
         }
 
 
@@ -813,11 +749,11 @@ namespace rgat
         /// Adjust the compute buffers to fit new nodes
         /// Must hold writer lock before calling
         /// </summary>
-        /// <param name="graph">The graph with new nodes</param>
+        /// <param name="plot">The graph with new nodes</param>
         /// <param name="bufferSize">The new buffer size</param>
         /// <param name="cl">Veldrid CommandList to place commands on</param>
         /// <param name="disposals">Buffers to dispose of</param>
-        private void ResizeComputeBuffers(PlottedGraph graph, uint bufferSize, CommandList cl, ref List<DeviceBuffer?> disposals)
+        private void ResizeComputeBuffers(PlottedGraph plot, uint bufferSize, CommandList cl, ref List<DeviceBuffer?> disposals)
         {
 
             uint zeroFillStart = 0;
@@ -828,12 +764,12 @@ namespace rgat
 
             BufferDescription bd = new BufferDescription(bufferSize, BufferUsage.StructuredBufferReadWrite, 4);
 
-            DeviceBuffer velocityBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Vel1ZeroFilled_T{graph.TID}");
-            DeviceBuffer positionsBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Pos1ZeroFilled_T{graph.TID}");
-            DeviceBuffer velocityBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Vel2ZeroFilled_T{graph.TID}");
-            DeviceBuffer positionsBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Pos2ZeroFilled_T{graph.TID}");
-            DeviceBuffer attribsBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Att1ZeroFilled_T{graph.TID}");
-            DeviceBuffer attribsBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Att2ZeroFilled_T{graph.TID}");
+            DeviceBuffer velocityBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Vel1ZeroFilled_T{plot.TID}");
+            DeviceBuffer positionsBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Pos1ZeroFilled_T{plot.TID}");
+            DeviceBuffer velocityBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Vel2ZeroFilled_T{plot.TID}");
+            DeviceBuffer positionsBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Pos2ZeroFilled_T{plot.TID}");
+            DeviceBuffer attribsBuffer1B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Att1ZeroFilled_T{plot.TID}");
+            DeviceBuffer attribsBuffer2B = VeldridGraphBuffers.CreateZeroFilledBuffer(bd, _gd, zeroFillStart, $"Att2ZeroFilled_T{plot.TID}");
 
             if (_VRAMBuffers.Initialised)
             {
@@ -961,12 +897,12 @@ namespace rgat
             var bounds = Math.Max(1000, (nodeIdx * 12) + 500);
             var bounds_half = bounds / 2;
 
-            PlottedGraph graph = GraphPlot;
-            if (!SavedStates.TryGetValue(graph.ActiveLayoutStyle, out CPUBuffers? bufs))
+            PlottedGraph plot = GraphPlot;
+            if (!SavedStates.TryGetValue(plot.ActiveLayoutStyle, out CPUBuffers? bufs))
             {
                 _lock.EnterWriteLock();
-                bufs = new CPUBuffers(graph.ActiveLayoutStyle);
-                SavedStates[graph.ActiveLayoutStyle] = bufs;
+                bufs = new CPUBuffers(plot.ActiveLayoutStyle);
+                SavedStates[plot.ActiveLayoutStyle] = bufs;
                 _lock.ExitWriteLock();
             }
 

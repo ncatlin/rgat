@@ -69,7 +69,7 @@ namespace rgat.Threads
 
             var nodeSpan = graph.GetNodeObjlistSpan();
             
-            var allNodeExecutions = nodeSpan.ToArray().Select(n => n.executionCount).ToList();
+            var allNodeExecutions = nodeSpan.ToArray().Select(n => n.ExecutionCount).ToList();
             allNodeExecutions.Sort();
 
 
@@ -84,13 +84,13 @@ namespace rgat.Threads
 
             foreach (NodeData n in nodeSpan)
             {
-                ulong execCount = n.executionCount;
+                ulong execCount = n.ExecutionCount;
                 int threshold = 0;
                 while (threshold < NodeHeatThresholds.Count && execCount > NodeHeatThresholds[threshold])
                 {
                     threshold++;
                 }
-                n.heatRank = threshold;
+                n.HeatRank = threshold;
             }
         }
 

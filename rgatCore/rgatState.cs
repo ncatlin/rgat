@@ -367,13 +367,13 @@ namespace rgat
         /// <summary>
         /// Causes the UI to switch to displaying a different thread graph
         /// </summary>
-        /// <param name="graph">The PlottedGraph object of the graph to switch to. Null to clear the active graph.</param>
-        public static void SwitchToGraph(PlottedGraph graph)
+        /// <param name="plot">The PlottedGraph object of the graph to switch to. Null to clear the active graph.</param>
+        public static void SwitchToGraph(PlottedGraph plot)
         {
             //valid target or not, we assume current graph is no longer fashionable
             ClearActiveGraph();
 
-            if (graph == null || graph.BeingDeleted)
+            if (plot == null || plot.BeingDeleted)
             {
                 return;
             }
@@ -384,16 +384,16 @@ namespace rgat
                 return;
             }
 
-            if (ActiveTrace?.PID != graph.PID)
+            if (ActiveTrace?.PID != plot.PID)
             {
                 return;
             }
 
-            if (SetActiveGraph(graph))
+            if (SetActiveGraph(plot))
             {
-                Debug.Assert(trace.PID == graph.PID);
-                LastGraphs[trace] = graph;
-                LastSelectedTheads[trace] = graph.TID;
+                Debug.Assert(trace.PID == plot.PID);
+                LastGraphs[trace] = plot;
+                LastSelectedTheads[trace] = plot.TID;
             }
             //setGraphUIControls(graph);
         }
@@ -479,9 +479,9 @@ namespace rgat
         /// <summary>
         /// Sets a specific thread graph for the UI to display
         /// </summary>
-        /// <param name="graph">A PlottedGraph object of the thread to display</param>
+        /// <param name="plot">A PlottedGraph object of the thread to display</param>
         /// <returns></returns>
-        public static bool SetActiveGraph(PlottedGraph graph)
+        public static bool SetActiveGraph(PlottedGraph plot)
         {
             if (ActiveGraph != null && ActiveGraph.BeingDeleted)
             {
@@ -490,14 +490,14 @@ namespace rgat
 
             ClearActiveGraph();
 
-            if (ActiveTrace is not null && graph.PID != ActiveTrace.PID)
+            if (ActiveTrace is not null && plot.PID != ActiveTrace.PID)
             {
                 ActiveTrace = null;
             }
 
             Debug.Assert(ActiveGraph == null);
 
-            ActiveGraph = graph;
+            ActiveGraph = plot;
             return true;
         }
 

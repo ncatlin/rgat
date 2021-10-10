@@ -575,9 +575,9 @@ namespace rgat.Widgets
                         {
                             // colour from heat ranking of final node
                             NodeData node = graph.NodeList[blockTailIdx];
-                            Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
+                            Debug.Assert(node.HeatRank >= 0 && node.HeatRank <= 9);
 
-                            heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.eHeat0Lowest + node.heatRank));
+                            heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.eHeat0Lowest + node.HeatRank));
 
                             CreateRect(heatColour, Xoffset, 15, pSep, 10, ref triangles);
 
@@ -775,12 +775,12 @@ namespace rgat.Widgets
                         foreach (var edge in ae.edgeCounts)
                         {
                             ulong block = edge.Item1;
-                            if ((int)block < graph.BlocksFirstLastNodeList.Count)
+                            if ((int)block < graph.ProcessData.BasicBlocksList.Count)
                             {
-                                var nodeRange = graph.BlocksFirstLastNodeList[(int)block];
+                                var nodeRange = graph.ProcessData.BasicBlocksList[(int)block];
                                 if (nodeRange != null)
                                 {
-                                    uint blockInsCt = (nodeRange.Item2 - nodeRange.Item1) + 1;
+                                    ulong blockInsCt = (ulong)nodeRange.Item2.Count;
                                     tagInsCount += blockInsCt * edge.Item2;
                                 }
                             }
@@ -938,9 +938,9 @@ namespace rgat.Widgets
                         {
                             // colour from heat ranking of final node
                             NodeData node = graph.NodeList[blockTailIdx];
-                            Debug.Assert(node.heatRank >= 0 && node.heatRank <= 9);
+                            Debug.Assert(node.HeatRank >= 0 && node.HeatRank <= 9);
                             WritableRgbaFloat heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)
-                                ((float)Themes.eThemeColour.eHeat0Lowest + node.heatRank));
+                                ((float)Themes.eThemeColour.eHeat0Lowest + node.HeatRank));
                             //Logging.WriteConsole($"x: {x}, animidx: {entryIdx} node:{node.index} rank:{node.heatRank}");
                             lines.Add(new Position2DColour()
                             {

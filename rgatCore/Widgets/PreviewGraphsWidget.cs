@@ -100,13 +100,13 @@ namespace rgat
         /// <summary>
         /// Set the active graph
         /// </summary>
-        /// <param name="graph"></param>
-        public void SetSelectedGraph(PlottedGraph? graph)
+        /// <param name="plot"></param>
+        public void SetSelectedGraph(PlottedGraph? plot)
         {
-            selectedGraphTID = graph is not null ? graph.TID : uint.MaxValue;
+            selectedGraphTID = plot is not null ? plot.TID : uint.MaxValue;
         }
 
-        private void HandleClickedGraph(PlottedGraph graph) => clickedGraph = graph;
+        private void HandleClickedGraph(PlottedGraph plot) => clickedGraph = plot;
 
         /// <summary>
         /// We have dealt with the graph click, clear it
@@ -121,9 +121,9 @@ namespace rgat
             //Logging.WriteConsole("Handling timer fired");
             lock (_lock)
             {
-                foreach (PlottedGraph graph in _centeringRequired.Keys.ToList())
+                foreach (PlottedGraph plot in _centeringRequired.Keys)
                 {
-                    _centeringRequired[graph] = true;
+                    _centeringRequired[plot] = true;
                 }
             }
         }
@@ -163,9 +163,9 @@ namespace rgat
             {
                 foreach (int graphIdx in indexes)
                 {
-                    PlottedGraph graph = DrawnPreviewGraphs[graphIdx];
+                    PlottedGraph plot = DrawnPreviewGraphs[graphIdx];
                     float xPadding = CONSTANTS.UI.PREVIEW_PANE_X_PADDING;
-                    if (graph == null || graph.GraphNodeCount() == 0)
+                    if (plot == null || plot.GraphNodeCount() == 0)
                     {
                         continue;
                     }
@@ -173,15 +173,15 @@ namespace rgat
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
 
-                    if (DrawPreviewGraph(graph, xPadding, captionHeight, captionBackgroundcolor, out bool canHover))
+                    if (DrawPreviewGraph(plot, xPadding, captionHeight, captionBackgroundcolor, out bool canHover))
                     {
-                        var MainGraphs = graph.InternalProtoGraph.TraceData.GetPlottedGraphs();
+                        var MainGraphs = plot.InternalProtoGraph.TraceData.GetPlottedGraphs();
                         HandleClickedGraph(MainGraphs[graphIdx]);
                     }
 
                     if (canHover && ImGui.IsItemHovered(ImGuiHoveredFlags.None) && !(ImGui.IsMouseDown(ImGuiMouseButton.Left)))
                     {
-                        latestHoverGraph = graph;
+                        latestHoverGraph = plot;
                         showToolTip = true;
                     }
                 }
@@ -249,20 +249,20 @@ namespace rgat
             return result;
         }
 
-        private void DrawGraphTooltip(PlottedGraph graph)
+        private void DrawGraphTooltip(PlottedGraph plot)
         {
             ImGui.SetNextWindowPos(ImGui.GetMousePos() + new Vector2(0, 20));
 
             ImGui.BeginTooltip();
             string runningState;
             //todo a 'blocked' option when i get around to detecting/displaying the blocked state
-            if (graph.InternalProtoGraph.TraceData.TraceState == TraceRecord.ProcessState.eSuspended)
+            if (plot.InternalProtoGraph.TraceData.TraceState == TraceRecord.ProcessState.eSuspended)
             {
                 runningState = "Suspended";
             }
             else
             {
-                if (graph.InternalProtoGraph.Terminated)
+                if (plot.InternalProtoGraph.Terminated)
                 {
                     runningState = "Terminated";
                 }
@@ -272,19 +272,19 @@ namespace rgat
                 }
             }
 
-            if (_threadStartCache.ContainsKey(graph))
+            if (_threadStartCache.ContainsKey(plot))
             {
-                ImGui.Text(_threadStartCache[graph]);
+                ImGui.Text(_threadStartCache[plot]);
             }
             else
             {
-                if (graph.InternalProtoGraph.NodeCount > 0)
+                if (plot.InternalProtoGraph.NodeCount > 0)
                 {
-                    ulong blockaddr = graph.InternalProtoGraph.NodeList[0].address;
-                    bool found = graph.InternalProtoGraph.ProcessData.FindContainingModule(blockaddr, out int? module);
+                    ulong blockaddr = plot.InternalProtoGraph.NodeList[0].Address;
+                    bool found = plot.InternalProtoGraph.ProcessData.FindContainingModule(blockaddr, out int? module);
                     if (found)
                     {
-                        string path = graph.InternalProtoGraph.ProcessData.GetModulePath(module!.Value);
+                        string path = plot.InternalProtoGraph.ProcessData.GetModulePath(module!.Value);
                         string pathSnip = Path.GetFileName(path);
                         if (pathSnip.Length > 50)
                         {
@@ -292,7 +292,7 @@ namespace rgat
                         }
 
                         string val = $"Start Address: {pathSnip}:0x{blockaddr:X}";
-                        _threadStartCache[graph] = val;
+                        _threadStartCache[plot] = val;
                         ImGui.Text(val);
                     }
                     else
@@ -303,12 +303,12 @@ namespace rgat
                 }
             }
 
-            ImGui.Text($"Graph TID: {graph.TID} [{runningState}]");
-            ImGui.Text($"Graph PID: {graph.PID}");
-            ImGui.Text($"Unique Instructions: {graph.InternalProtoGraph.NodeList.Count}");
-            ImGui.Text($"Total Instructions: {graph.InternalProtoGraph.TotalInstructions}");
-            ImGui.Text($"Animation Entries: {graph.InternalProtoGraph.UpdateCount}");
-            ImGui.Text($"Exceptions: {graph.InternalProtoGraph.ExceptionCount}");
+            ImGui.Text($"Graph TID: {plot.TID} [{runningState}]");
+            ImGui.Text($"Graph PID: {plot.PID}");
+            ImGui.Text($"Unique Instructions: {plot.InternalProtoGraph.NodeList.Count}");
+            ImGui.Text($"Total Instructions: {plot.InternalProtoGraph.TotalInstructions}");
+            ImGui.Text($"Animation Entries: {plot.InternalProtoGraph.UpdateCount}");
+            ImGui.Text($"Exceptions: {plot.InternalProtoGraph.ExceptionCount}");
 
 
             ImGui.Separator();
@@ -418,12 +418,12 @@ namespace rgat
         /// </summary>
         public PlottedGraph? HoveredGraph { get; private set; } = null;
 
-        private static void DrawPreviewZoomEnvelope(PlottedGraph graph, Vector2 subGraphPosition)
+        private static void DrawPreviewZoomEnvelope(PlottedGraph plot, Vector2 subGraphPosition)
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList();
             float previewBaseY = subGraphPosition.Y + EachGraphHeight;
 
-            graph.GetPreviewVisibleRegion(new Vector2(EachGraphWidth, EachGraphHeight), PreviewProjection, out Vector2 TopLeft, out Vector2 BaseRight);
+            plot.GetPreviewVisibleRegion(new Vector2(EachGraphWidth, EachGraphHeight), PreviewProjection, out Vector2 TopLeft, out Vector2 BaseRight);
 
             float C1X = subGraphPosition.X + TopLeft.X;
             float C2X = subGraphPosition.X + BaseRight.X;
@@ -457,42 +457,42 @@ namespace rgat
         /// <summary>
         /// Draw a preview graph texture on the preview pane
         /// </summary>
-        /// <param name="graph">The graph being drawn</param>
+        /// <param name="plot">The graph being drawn</param>
         /// <param name="xPadding">horizontal padding</param>
         /// <param name="captionHeight">height of the caption</param>
         /// <param name="captionBackgroundcolor">contrast background colour of the caption</param>
         /// <param name="canHover">output flag states if we can safely draw a mouseover tooltip</param>
         /// <returns>The graph was clicked</returns>
-        private bool DrawPreviewGraph(PlottedGraph graph, float xPadding, float captionHeight, uint captionBackgroundcolor, out bool canHover)
+        private bool DrawPreviewGraph(PlottedGraph plot, float xPadding, float captionHeight, uint captionBackgroundcolor, out bool canHover)
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             bool clicked = false;
             canHover = false;
-            if (graph == null)
+            if (plot == null)
             {
                 return clicked;
             }
 
-            int graphNodeCount = graph.GraphNodeCount();
+            int graphNodeCount = plot.GraphNodeCount();
             if (graphNodeCount == 0)
             {
                 return clicked;
             }
 
-            graph.GetLatestTexture(out Texture previewTexture);
+            plot.GetLatestTexture(out Texture previewTexture);
             if (previewTexture == null)
             {
                 return clicked;
             }
 
-            bool isSelected = graph.TID == selectedGraphTID;
+            bool isSelected = plot.TID == selectedGraphTID;
             canHover = true;
 
             //copy in the actual rendered graph
             ImGui.SetCursorPosY(ImGui.GetCursorPosY());
             Vector2 subGraphPosition = ImGui.GetCursorScreenPos() + new Vector2(xPadding, 0);
 
-            IntPtr CPUframeBufferTextureId = _ImGuiController!.GetOrCreateImGuiBinding(_gd!.ResourceFactory, previewTexture, $"PreviewPlot{graph.TID}");
+            IntPtr CPUframeBufferTextureId = _ImGuiController!.GetOrCreateImGuiBinding(_gd!.ResourceFactory, previewTexture, $"PreviewPlot{plot.TID}");
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId,
                 p_min: subGraphPosition,
                 p_max: new Vector2(subGraphPosition.X + EachGraphWidth, subGraphPosition.Y + EachGraphHeight),
@@ -504,19 +504,19 @@ namespace rgat
 
             if (isSelected)
             {
-                DrawPreviewZoomEnvelope(graph, subGraphPosition);
+                DrawPreviewZoomEnvelope(plot, subGraphPosition);
 
                 if (borderThickness > 0)
                 {
                     imdp.AddRect(
                         p_min: new Vector2(subGraphPosition.X + halfBorderThickness, subGraphPosition.Y + halfBorderThickness),
                         p_max: new Vector2((subGraphPosition.X + EachGraphWidth - halfBorderThickness), subGraphPosition.Y + EachGraphHeight - halfBorderThickness),
-                        col: GetGraphBorderColour(graph), 0, ImDrawFlags.None, borderThickness);
+                        col: GetGraphBorderColour(plot), 0, ImDrawFlags.None, borderThickness);
                 }
             }
 
             //write the caption
-            string Caption = $"TID:{graph.TID} {graphNodeCount} nodes {(isSelected ? "[Selected]" : "")}";
+            string Caption = $"TID:{plot.TID} {graphNodeCount} nodes {(isSelected ? "[Selected]" : "")}";
             ImGui.SetCursorPosX(ImGui.GetCursorPosX());
             Vector2 captionBGStart = subGraphPosition + new Vector2(borderThickness, borderThickness);
             Vector2 captionBGEnd = new Vector2((captionBGStart.X + EachGraphWidth - borderThickness * 2), captionBGStart.Y + captionHeight);
@@ -535,9 +535,9 @@ namespace rgat
 
                 float maxVal;
                 float[]? invalues = null;
-                if (graph.InternalProtoGraph.TraceReader != null)
+                if (plot.InternalProtoGraph.TraceReader != null)
                 {
-                    graph.InternalProtoGraph.TraceReader.RecentMessageRates(out invalues);
+                    plot.InternalProtoGraph.TraceReader.RecentMessageRates(out invalues);
                 }
                 if (invalues == null || invalues.Length == 0)
                 {
@@ -559,7 +559,7 @@ namespace rgat
             //invisible button to detect graph click
 
             ImGui.SetCursorPos(new Vector2(1, ImGui.GetCursorPosY() - (float)(captionHeight)));
-            if (ImGui.InvisibleButton("PrevGraphBtn" + graph.TID, new Vector2(EachGraphWidth, EachGraphHeight - 2)) || ImGui.IsItemActive())
+            if (ImGui.InvisibleButton("PrevGraphBtn" + plot.TID, new Vector2(EachGraphWidth, EachGraphHeight - 2)) || ImGui.IsItemActive())
             {
                 clicked = true;
                 if (isSelected)
@@ -567,7 +567,7 @@ namespace rgat
                     Vector2 clickPos = ImGui.GetMousePos();
                     Vector2 clickOffset = clickPos - subGraphPosition;
                     clickOffset.Y = EachGraphHeight - clickOffset.Y;
-                    graph.MoveCameraToPreviewClick(clickOffset, new Vector2(EachGraphWidth, EachGraphHeight), new Vector2(884, 454), PreviewProjection);//todo widget size
+                    plot.MoveCameraToPreviewClick(clickOffset, new Vector2(EachGraphWidth, EachGraphHeight), new Vector2(884, 454), PreviewProjection);//todo widget size
                 }
 
             }
@@ -585,25 +585,25 @@ namespace rgat
         /// <summary>
         /// Check if a graph is queued for preview centering
         /// </summary>
-        /// <param name="graph">The graph</param>
+        /// <param name="plot">The graph</param>
         /// <returns></returns>
-        public bool IsCenteringRequired(PlottedGraph graph)
+        public bool IsCenteringRequired(PlottedGraph plot)
         {
             lock(_lock)
             {
-                return _centeringRequired.TryGetValue(graph, out bool required) && required;
+                return _centeringRequired.TryGetValue(plot, out bool required) && required;
             }
         }
 
         /// <summary>
         /// Set a graph as requiring preview centering
         /// </summary>
-        /// <param name="graph">The graph</param>
-        public void StartCentering(PlottedGraph graph)
+        /// <param name="plot">The graph</param>
+        public void StartCentering(PlottedGraph plot)
         {
             lock(_lock)
             {
-                _centeringRequired[graph] = true;
+                _centeringRequired[plot] = true;
             }
         }
 
@@ -611,12 +611,12 @@ namespace rgat
         /// <summary>
         /// Stop preview graph centering on a graph
         /// </summary>
-        /// <param name="graph">The graph</param>
-        public void StopCentering(PlottedGraph graph)
+        /// <param name="plot">The graph</param>
+        public void StopCentering(PlottedGraph plot)
         {
             lock(_lock)
             {
-                _centeringRequired[graph] = false;
+                _centeringRequired[plot] = false;
             }
         }
 

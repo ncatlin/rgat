@@ -767,6 +767,25 @@ namespace rgat
             RecordLogEvent(text: text, graph: graph, trace: trace, filter: LogFilterType.Error);
         }
 
+
+        /// <summary>
+        /// Declares an error and seperately adds the exception details to the log
+        /// </summary>
+        /// <param name="message">Exception context text</param>
+        /// <param name="e">Exception</param>
+        /// <param name="graph">Graph the error applies to (optional)</param>
+        /// <param name="trace">Trace the error applies to (optional)</param>
+        public static void RecordException(string message, Exception e, ProtoGraph? graph = null, TraceRecord? trace = null)
+        {
+            if (rgatState.NetworkBridge.Connected)
+            {
+                rgatState.NetworkBridge.SendLog(message, LogFilterType.Error);
+            }
+            RecordLogEvent(text: message, graph: graph, trace: trace, filter: LogFilterType.Error);
+            RecordLogEvent(text: e.ToString(), graph: graph, trace: trace, filter: LogFilterType.Info);
+        }
+
+
         private static System.IO.StreamWriter? _logFile = null;
 
         private static void WriteToDebugFile(TEXT_LOG_EVENT log)

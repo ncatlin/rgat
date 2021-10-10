@@ -27,8 +27,10 @@ namespace rgat
         /// <param name="gd">A veldrid graphics device</param>
         /// <param name="buffer">The buffer to read</param>
         /// <returns></returns>
-        public static DeviceBuffer GetReadback(GraphicsDevice gd, DeviceBuffer buffer)
+        public static DeviceBuffer GetReadback(GraphicsDevice gd, DeviceBuffer? buffer)
         {
+            System.Diagnostics.Debug.Assert(buffer is not null);
+
             DeviceBuffer readback;
             if ((buffer.Usage & BufferUsage.Staging) != 0)
             {

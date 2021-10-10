@@ -17,14 +17,9 @@ C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\U
 
 struct VelocityParams
 {
-    float delta; //not used
     float temperature;
-    float attractionK;
     float repulsionK;
-
-    uint fixedInternalNodes;
-    uint snapToPreset;
-    uint nodeCount;
+    uint blockCount;
 };
 
 layout(set = 0, binding=0) uniform Params 
@@ -128,7 +123,7 @@ vec3 addWorldGravity(vec4 self, float force)
     bodyAbove.y += force;
     vec3 diff = self.xyz - bodyAbove.xyz;
     float x = length( diff );
-    float f = ( x * x ) / fieldParams.attractionK;
+    float f = ( x * x ) / fieldParams.repulsionK;
     vec3 normalised = normalize(diff) * f;
 
   
@@ -151,7 +146,7 @@ void main()	{
     uvec3 id = gl_GlobalInvocationID;
 
     uint midListIndex =id.x;//id.y * 256 + id.x;
-    if (midListIndex < fieldParams.nodeCount)
+    if (midListIndex < fieldParams.blockCount)
     {
 
         vec4 nodePosition;
@@ -166,7 +161,7 @@ void main()	{
         vec4 selfPosition = positions[index];
 
         //first repel 
-        for(uint nodeIdx = 0; nodeIdx < fieldParams.nodeCount; nodeIdx++)
+        for(uint nodeIdx = 0; nodeIdx < fieldParams.blockCount; nodeIdx++)
         {;
             if (nodeIdx != midListIndex)
             {

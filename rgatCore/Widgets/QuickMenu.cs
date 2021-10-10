@@ -173,7 +173,7 @@ namespace rgat.Widgets
 
         private void DrawVisibilityFrame()
         {
-            Debug.Assert(_currentGraph is not null);
+            Debug.Assert(_currentPlot is not null);
 
             if (ImGui.BeginTable("VisTable", 6, ImGuiTableFlags.BordersInnerV))
             {
@@ -188,12 +188,12 @@ namespace rgat.Widgets
 
 
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(0, ActionName.ToggleEdges, _currentGraph.Opt_EdgesVisible))
+                if (ShowTooltipToggle(0, ActionName.ToggleEdges, _currentPlot.Opt_EdgesVisible))
                 {
                     ActivateAction(ActionName.ToggleEdges, hotKey: false);
                 }
 
-                if (ShowTooltipToggle(2, ActionName.ToggleTextAll, _currentGraph.Opt_TextEnabled))
+                if (ShowTooltipToggle(2, ActionName.ToggleTextAll, _currentPlot.Opt_TextEnabled))
                 {
                     ActivateAction(ActionName.ToggleTextAll, hotKey: false);
                 }
@@ -204,53 +204,53 @@ namespace rgat.Widgets
                 }
 
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(0, ActionName.ToggleNodes, _currentGraph.Opt_NodesVisible))
+                if (ShowTooltipToggle(0, ActionName.ToggleNodes, _currentPlot.Opt_NodesVisible))
                 {
                     ActivateAction(ActionName.ToggleNodes, hotKey: false);
                 }
 
-                if (ShowTooltipToggle(2, ActionName.ToggleTextInstructions, _currentGraph.Opt_TextEnabledIns))
+                if (ShowTooltipToggle(2, ActionName.ToggleTextInstructions, _currentPlot.Opt_TextEnabledIns))
                 {
                     ActivateAction(ActionName.ToggleTextInstructions, hotKey: false);
                 }
 
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(0, ActionName.ToggleActiveHighlight, _currentGraph.Opt_LiveNodeEdgeEnabled))
+                if (ShowTooltipToggle(0, ActionName.ToggleActiveHighlight, _currentPlot.Opt_LiveNodeEdgeEnabled))
                 {
                     ActivateAction(ActionName.ToggleActiveHighlight, hotKey: false);
                 }
 
-                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbols, _currentGraph.Opt_TextEnabledSym))
+                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbols, _currentPlot.Opt_TextEnabledSym))
                 {
                     ActivateAction(ActionName.ToggleTextSymbols, hotKey: false);
                 }
 
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbolsLive, _currentGraph.Opt_TextEnabledLive))
+                if (ShowTooltipToggle(2, ActionName.ToggleTextSymbolsLive, _currentPlot.Opt_TextEnabledLive))
                 {
                     ActivateAction(ActionName.ToggleTextSymbolsLive, hotKey: false);
                 }
 
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleNodeAddresses, _currentGraph.Opt_ShowNodeAddresses))
+                if (ShowTooltipToggle(2, ActionName.ToggleNodeAddresses, _currentPlot.Opt_ShowNodeAddresses))
                 {
                     ActivateAction(ActionName.ToggleNodeAddresses, hotKey: false);
                 }
 
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleNodeIndexes, _currentGraph.Opt_ShowNodeIndexes))
+                if (ShowTooltipToggle(2, ActionName.ToggleNodeIndexes, _currentPlot.Opt_ShowNodeIndexes))
                 {
                     ActivateAction(ActionName.ToggleNodeIndexes, hotKey: false);
                 }
 
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleSymbolModules, _currentGraph.Opt_ShowSymbolModules))
+                if (ShowTooltipToggle(2, ActionName.ToggleSymbolModules, _currentPlot.Opt_ShowSymbolModules))
                 {
                     ActivateAction(ActionName.ToggleSymbolModules, hotKey: false);
                 }
 
                 ImGui.TableNextRow();
-                if (ShowTooltipToggle(2, ActionName.ToggleSymbolFullPaths, _currentGraph.Opt_ShowSymbolModulePaths))
+                if (ShowTooltipToggle(2, ActionName.ToggleSymbolFullPaths, _currentPlot.Opt_ShowSymbolModulePaths))
                 {
                     ActivateAction(ActionName.ToggleSymbolFullPaths, hotKey: false);
                 }
@@ -294,54 +294,54 @@ namespace rgat.Widgets
                 Logging.RecordLogEvent("Bad quickmenu action:" + actionName);
                 return false;
             }
-            Debug.Assert(_currentGraph is not null);
+            Debug.Assert(_currentPlot is not null);
             keyCombo.Add(action.Shortcut);
 
             switch (actionName)
             {
                 case ActionName.ToggleNodes:
-                    _currentGraph.Opt_NodesVisible = !_currentGraph.Opt_NodesVisible;
-                    resultText = _currentGraph.Opt_NodesVisible ? "Visible" : "Hidden";
+                    _currentPlot.Opt_NodesVisible = !_currentPlot.Opt_NodesVisible;
+                    resultText = _currentPlot.Opt_NodesVisible ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleEdges:
-                    _currentGraph.Opt_EdgesVisible = !_currentGraph.Opt_EdgesVisible;
-                    resultText = _currentGraph.Opt_EdgesVisible ? "Visible" : "Hidden";
+                    _currentPlot.Opt_EdgesVisible = !_currentPlot.Opt_EdgesVisible;
+                    resultText = _currentPlot.Opt_EdgesVisible ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleTextAll:
-                    _currentGraph.Opt_TextEnabled = !_currentGraph.Opt_TextEnabled;
-                    resultText = _currentGraph.Opt_TextEnabled ? "Visible" : "Hidden";
+                    _currentPlot.Opt_TextEnabled = !_currentPlot.Opt_TextEnabled;
+                    resultText = _currentPlot.Opt_TextEnabled ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleTextInstructions:
-                    _currentGraph.Opt_TextEnabledIns = !_currentGraph.Opt_TextEnabledIns;
-                    resultText = _currentGraph.Opt_TextEnabledIns ? "Visible" : "Hidden";
+                    _currentPlot.Opt_TextEnabledIns = !_currentPlot.Opt_TextEnabledIns;
+                    resultText = _currentPlot.Opt_TextEnabledIns ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleTextSymbols:
-                    _currentGraph.Opt_TextEnabledSym = !_currentGraph.Opt_TextEnabledSym;
-                    resultText = _currentGraph.Opt_TextEnabledSym ? "Visible" : "Hidden";
+                    _currentPlot.Opt_TextEnabledSym = !_currentPlot.Opt_TextEnabledSym;
+                    resultText = _currentPlot.Opt_TextEnabledSym ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleTextSymbolsLive:
-                    _currentGraph.Opt_TextEnabledLive = !_currentGraph.Opt_TextEnabledLive;
-                    resultText = _currentGraph.Opt_TextEnabledLive ? "Visible" : "Hidden";
+                    _currentPlot.Opt_TextEnabledLive = !_currentPlot.Opt_TextEnabledLive;
+                    resultText = _currentPlot.Opt_TextEnabledLive ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleActiveHighlight:
-                    _currentGraph.Opt_LiveNodeEdgeEnabled = !_currentGraph.Opt_LiveNodeEdgeEnabled;
-                    resultText = _currentGraph.Opt_LiveNodeEdgeEnabled ? "Active" : "Inactive";
+                    _currentPlot.Opt_LiveNodeEdgeEnabled = !_currentPlot.Opt_LiveNodeEdgeEnabled;
+                    resultText = _currentPlot.Opt_LiveNodeEdgeEnabled ? "Active" : "Inactive";
                     break;
                 case ActionName.ToggleNodeAddresses:
-                    _currentGraph.Opt_ShowNodeAddresses = !_currentGraph.Opt_ShowNodeAddresses;
-                    resultText = _currentGraph.Opt_ShowNodeAddresses ? "Visible" : "Hidden";
+                    _currentPlot.Opt_ShowNodeAddresses = !_currentPlot.Opt_ShowNodeAddresses;
+                    resultText = _currentPlot.Opt_ShowNodeAddresses ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleNodeIndexes:
-                    _currentGraph.Opt_ShowNodeIndexes = !_currentGraph.Opt_ShowNodeIndexes;
-                    resultText = _currentGraph.Opt_ShowNodeIndexes ? "Visible" : "Hidden";
+                    _currentPlot.Opt_ShowNodeIndexes = !_currentPlot.Opt_ShowNodeIndexes;
+                    resultText = _currentPlot.Opt_ShowNodeIndexes ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleSymbolModules:
-                    _currentGraph.Opt_ShowSymbolModules = !_currentGraph.Opt_ShowSymbolModules;
-                    resultText = _currentGraph.Opt_ShowSymbolModules ? "Visible" : "Hidden";
+                    _currentPlot.Opt_ShowSymbolModules = !_currentPlot.Opt_ShowSymbolModules;
+                    resultText = _currentPlot.Opt_ShowSymbolModules ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleSymbolFullPaths:
-                    _currentGraph.Opt_ShowSymbolModulePaths = !_currentGraph.Opt_ShowSymbolModulePaths;
-                    resultText = _currentGraph.Opt_ShowSymbolModulePaths ? "Visible" : "Hidden";
+                    _currentPlot.Opt_ShowSymbolModulePaths = !_currentPlot.Opt_ShowSymbolModulePaths;
+                    resultText = _currentPlot.Opt_ShowSymbolModulePaths ? "Visible" : "Hidden";
                     break;
                 case ActionName.ToggleMenu:
                     MenuPressed();
@@ -512,10 +512,10 @@ namespace rgat.Widgets
 
         }
 
-        private PlottedGraph? _currentGraph;
-        public void Draw(Vector2 position, float scale, PlottedGraph graph)
+        private PlottedGraph? _currentPlot;
+        public void Draw(Vector2 position, float scale, PlottedGraph plot)
         {
-            _currentGraph = graph;
+            _currentPlot = plot;
 
             Texture btnIcon = _controller.GetImage("Menu");
 
@@ -772,15 +772,15 @@ private void DrawScalePopup()
         private float _replotSpread = 3;
         private void DrawGraphLayoutFrame()
         {
-            Debug.Assert(_currentGraph is not null);
+            Debug.Assert(_currentPlot is not null);
 
-            if (_currentGraph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.CylinderLayout)
+            if (_currentPlot.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.CylinderLayout)
             {
                 DrawCylinderOptions();
                 return;
             }
 
-            if (_currentGraph.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.Circle)
+            if (_currentPlot.ActiveLayoutStyle == CONSTANTS.LayoutStyles.Style.Circle)
             {
                 if (ImGui.BeginChild("#CircMsg", new Vector2(360, 50)))
                 {
@@ -790,7 +790,7 @@ private void DrawScalePopup()
                 return;
             }
 
-            if (CONSTANTS.LayoutStyles.IsForceDirected(_currentGraph.ActiveLayoutStyle))
+            if (CONSTANTS.LayoutStyles.IsForceDirected(_currentPlot.ActiveLayoutStyle))
             {
                 DrawForceDirectedOptions();
             }
@@ -799,7 +799,7 @@ private void DrawScalePopup()
         private void DrawCylinderOptions()
         {
             ImGui.Text("Cylinder Layout Configuration");
-            PlottedGraph? graph = this._currentGraph;
+            PlottedGraph? graph = this._currentPlot;
             if (graph is null) return;
 
             float radius = graph.OPT_CYLINDER_RADIUS;
@@ -958,7 +958,7 @@ private void DrawScalePopup()
                     if (repulsion > 0) GlobalConfig.RepulsionK = repulsion;
                 }
 
-                PlottedGraph? graph = this._currentGraph;
+                PlottedGraph? graph = this._currentPlot;
 
                 if (graph is not null)
                 {
@@ -998,28 +998,28 @@ private void DrawScalePopup()
 
         private void InitGraphForceLayoutReplot(GraphLayoutState.PositionResetStyle resetStyle, float spread = 2f)
         {
-            if (_currentGraph is not null)
+            if (_currentPlot is not null)
             {
-                _currentGraph.LayoutState.ResetForceLayout(resetMethod: resetStyle, spread);
-                _currentGraph.BeginNewLayout(keepCamera: true);
+                _currentPlot.LayoutState.ResetForceLayout(resetMethod: resetStyle, spread);
+                _currentPlot.BeginNewLayout(keepCamera: true);
             }
         }
 
 
         private void InitGraphCylinderLayoutReplot()
         {
-            if (_currentGraph is not null && _currentGraph.LayoutState.ActivatingPreset is false)
+            if (_currentPlot is not null && _currentPlot.LayoutState.ActivatingPreset is false)
             {
-                _currentGraph.LayoutState.TriggerLayoutChange(CONSTANTS.LayoutStyles.Style.CylinderLayout, forceSame: true);
+                _currentPlot.LayoutState.TriggerLayoutChange(CONSTANTS.LayoutStyles.Style.CylinderLayout, forceSame: true);
             }
         }
 
 
         private void DrawSearchHighlightFrame()
         {
-            if (_currentGraph is not null)
+            if (_currentPlot is not null)
             {
-                HighlightDialogWidget.Draw(_currentGraph);
+                HighlightDialogWidget.Draw(_currentPlot);
             }
         }
     }

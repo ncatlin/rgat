@@ -50,7 +50,10 @@
     <None Remove="Shaders\SPIR-V\imgui-frag.glsl" />
     <None Remove="Shaders\SPIR-V\imgui-frag.spv" />
     <None Remove="Shaders\SPIR-V\imgui-vertex.spv" />
+    <None Remove="Shaders\SPIR-V\sim-blockPosition.spv" />
     <None Remove="Shaders\SPIR-V\sim-blockVelocity.spv" />
+    <None Remove="Shaders\SPIR-V\sim-nodePosition.spv" />
+    <None Remove="Shaders\SPIR-V\sim-nodeVelocity.spv" />
   </ItemGroup>
 
   <ItemGroup>
@@ -60,11 +63,13 @@
     <EmbeddedResource Include="Shaders\HLSL\imgui-frag.hlsl.bytes" />
     <EmbeddedResource Include="Shaders\HLSL\imgui-vertex.hlsl" />
     <EmbeddedResource Include="Shaders\HLSL\imgui-vertex.hlsl.bytes" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-blockPosition.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\sim-blockVelocity.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-nodePosition.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-nodeVelocity.spv" />
     <Resource Include="Shaders\SPIR-V\imgui-frag.glsl" />
     <EmbeddedResource Include="Shaders\SPIR-V\imgui-frag.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\imgui-vertex.spv" />
-    <EmbeddedResource Include="Shaders\SPIR-V\sim-position.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\sim-velocity.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\sim-nodeAttrib.spv" />
   </ItemGroup>
@@ -120,10 +125,6 @@
     <None Update="libyara.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Submodules\" />
   </ItemGroup>
 
 </Project>
