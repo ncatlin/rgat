@@ -50,10 +50,10 @@ namespace rgat
 
         //vert/frag rendering buffers
         private ResourceSet? _crs_font;
-        private DeviceBuffer? _EdgeVertBuffer, _EdgeIndexBuffer;
+        private DeviceBuffer? _EdgeVertBuffer;
         private DeviceBuffer? _RawEdgeVertBuffer, _RawEdgeIndexBuffer;
-        private DeviceBuffer? _NodeVertexBuffer, _NodePickingBuffer, _NodeIndexBuffer;
-        private DeviceBuffer? _FontVertBuffer, _FontIndexBufferAll;
+        private DeviceBuffer? _NodeVertexBuffer, _NodePickingBuffer;
+        private DeviceBuffer? _FontVertBuffer;
         private DeviceBuffer? _paramsBuffer;
         private int latestWrittenTexture = 1;
 
@@ -751,7 +751,7 @@ namespace rgat
                 depthClipEnabled: false,
                 scissorTestEnabled: false),
                 ResourceLayouts = new[] { _coreRsrcLayout, _nodesEdgesRsrclayout },
-                ShaderSet = SPIRVShaders.CreateNodeShaders(_gd, out _NodeVertexBuffer, out _NodeIndexBuffer)
+                ShaderSet = SPIRVShaders.CreateNodeShaders(_gd, out _NodeVertexBuffer)
             };
 
             Debug.Assert(_outputTexture1 is null && _outputFramebuffer1 is null);
@@ -775,7 +775,7 @@ namespace rgat
              * this can probably be a linestrip, but for now lets see if linelist lets us do something more
              * like multiple graphs
              */
-            pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRelativeShaders(_gd, out _EdgeVertBuffer, out _EdgeIndexBuffer);
+            pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRelativeShaders(_gd, out _EdgeVertBuffer);
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
             _edgesPipelineRelative = factory.CreateGraphicsPipeline(pipelineDescription);
 
@@ -794,7 +794,7 @@ namespace rgat
             ResourceSetDescription crs_font_rsd = new ResourceSetDescription(_fontRsrcLayout, _controller._fontTextureView);
             _crs_font = factory.CreateResourceSet(crs_font_rsd);
 
-            ShaderSetDescription fontshader = SPIRVShaders.CreateFontShaders(_gd, out _FontVertBuffer, out _FontIndexBufferAll);
+            ShaderSetDescription fontshader = SPIRVShaders.CreateFontShaders(_gd, out _FontVertBuffer);
 
             GraphicsPipelineDescription fontpd = new GraphicsPipelineDescription(
                 BlendStateDescription.SingleAlphaBlend,
@@ -1066,21 +1066,17 @@ namespace rgat
         {
             Debug.Assert(_gd is not null);
             int vertsCount = stringVerts1.Length + stringVerts2.Length;
-            uint[] charIndexes = Enumerable.Range(0, vertsCount).Select(i => (uint)i).ToArray();
 
             if (vertsCount * fontStruc.SizeInBytes > _FontVertBuffer!.SizeInBytes)
             {
                 VeldridGraphBuffers.VRAMDispose(_FontVertBuffer);
                 _FontVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)vertsCount * fontStruc.SizeInBytes, BufferUsage.VertexBuffer, name: _FontVertBuffer.Name);
-                VeldridGraphBuffers.VRAMDispose(_FontIndexBufferAll);
-                _FontIndexBufferAll = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)charIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: _FontIndexBufferAll!.Name);
             }
 
             if (stringVerts1.Any())
                 cl.UpdateBuffer(_FontVertBuffer, 0, stringVerts1);
             if (stringVerts2.Any())
                 cl.UpdateBuffer(_FontVertBuffer, (uint)(stringVerts1.Length * fontStruc.SizeInBytes), stringVerts2);
-            cl.UpdateBuffer(_FontIndexBufferAll, 0, charIndexes);
         }
 
         private fontStruc[] RenderHighlightedNodeText(List<Tuple<string?, uint>> captions, int nodeIdx = -1)
@@ -1233,7 +1229,7 @@ namespace rgat
         {
             Stopwatch st = new();
             st.Start();
-            Position2DColour[] EdgeLineVerts = plot.GetEdgeLineVerts(_renderingMode, out uint[] edgeDrawIndexes, out int edgeVertCount);
+            Position1DColour[] EdgeLineVerts = plot.GetEdgeLineVerts(_renderingMode, out int edgeVertCount);
             if (plot.LayoutState.Initialised is false || edgeVertCount == 0 || Exiting)
             {
                 return;
@@ -1271,8 +1267,7 @@ namespace rgat
                 _gd.PointSampler, plot.LayoutState.PositionsVRAM1, plot.LayoutState.AttributesVRAM1);
             ResourceSet crs_core = _factory.CreateResourceSet(crs_core_rsd);
 
-            Position2DColour[] NodeVerts = plot.GetMaingraphNodeVerts(_renderingMode, (int)textureSize,
-            out uint[] nodeIndices, out Position2DColour[] nodePickingColors,
+            Position1DColour[] NodeVerts = plot.GetMaingraphNodeVerts(_renderingMode, (int)textureSize, out Position1DColour[] nodePickingColors,
             out List<Tuple<string?, uint>> captions, out int nodeCount);
 
             st.Stop();
@@ -1281,60 +1276,37 @@ namespace rgat
 
             //_layoutEngine.GetScreenFitOffsets(WidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 
-            if (_NodeVertexBuffer!.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
-                (_NodeIndexBuffer!.SizeInBytes < nodeIndices.Length * sizeof(uint)))
+            if (_NodeVertexBuffer!.SizeInBytes < NodeVerts.Length * Position1DColour.SizeInBytes)
             {
                 VRAMDispose(_NodeVertexBuffer);
                 VRAMDispose(_NodePickingBuffer);
-                VRAMDispose(_NodeIndexBuffer);
 
-                _NodeVertexBuffer = TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "NodeVertexBuffer");
-                _NodePickingBuffer = TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "NodePickingVertexBuffer");
-                _NodeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)nodeIndices.Length * sizeof(uint), BufferUsage.IndexBuffer, name: "NodeIndexBuffer");
+                _NodeVertexBuffer = TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position1DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "NodeVertexBuffer");
+                _NodePickingBuffer = TrackedVRAMAlloc(_gd, (uint)NodeVerts.Length * Position1DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "NodePickingVertexBuffer");
             }
 
 
             //todo - only do this on changes
 
-            fixed (Position2DColour* vertsPtr = NodeVerts, pickingVertsPtr = nodePickingColors)
+            fixed (Position1DColour* vertsPtr = NodeVerts, pickingVertsPtr = nodePickingColors)
             {
-                if ((uint)nodeCount * Position2DColour.SizeInBytes > _NodeVertexBuffer.SizeInBytes) Console.WriteLine("PROBLEM1");
-                if ((uint)nodeCount * Position2DColour.SizeInBytes > _NodePickingBuffer!.SizeInBytes) Console.WriteLine("PROBLE2");
-                cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)nodeCount * Position2DColour.SizeInBytes);
-                cl.UpdateBuffer(_NodePickingBuffer, 0, (IntPtr)pickingVertsPtr, (uint)nodeCount * Position2DColour.SizeInBytes);
+                cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)nodeCount * Position1DColour.SizeInBytes);
+                cl.UpdateBuffer(_NodePickingBuffer, 0, (IntPtr)pickingVertsPtr, (uint)nodeCount * Position1DColour.SizeInBytes);
             }
 
-
-            fixed (uint* indxPtr = nodeIndices)
-            {
-                if ((uint)nodeCount * sizeof(uint) > _NodeIndexBuffer.SizeInBytes) Console.WriteLine("PROBLEM3");
-                cl.UpdateBuffer(_NodeIndexBuffer, 0, (IntPtr)indxPtr, (uint)nodeCount * sizeof(uint));
-            }
-
-
-            int edgeIndexBufSize = edgeDrawIndexes.Length;
-            if (((EdgeLineVerts.Length * Position2DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes) ||
-                (edgeIndexBufSize * sizeof(uint)) > _EdgeIndexBuffer!.SizeInBytes)
+            if ((EdgeLineVerts.Length * Position1DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes)
             {
                 VRAMDispose(_EdgeVertBuffer);
-                _EdgeVertBuffer = TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
-                VRAMDispose(_EdgeIndexBuffer);
-                _EdgeIndexBuffer = TrackedVRAMAlloc(_gd, (uint)edgeIndexBufSize * sizeof(uint), BufferUsage.IndexBuffer, name: "EdgeIndexBuffer");
+                _EdgeVertBuffer = TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position1DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
             }
 
-            ReadOnlySpan<Position2DColour> elvSpan = new ReadOnlySpan<Position2DColour>(EdgeLineVerts, 0, edgeVertCount);
-            fixed (Position2DColour* vertsPtr = elvSpan)
+            ReadOnlySpan<Position1DColour> elvSpan = new ReadOnlySpan<Position1DColour>(EdgeLineVerts, 0, edgeVertCount);
+            fixed (Position1DColour* vertsPtr = elvSpan)
             {
-                if ((uint)(elvSpan.Length * Position2DColour.SizeInBytes) > _EdgeVertBuffer.SizeInBytes) Console.WriteLine("PROBLEM4");
-                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(edgeVertCount * Position2DColour.SizeInBytes));
+                if ((uint)(elvSpan.Length * Position1DColour.SizeInBytes) > _EdgeVertBuffer.SizeInBytes) Console.WriteLine("PROBLEM4");
+                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(edgeVertCount * Position1DColour.SizeInBytes));
             }
 
-            ReadOnlySpan<uint> eidxsSpan = new ReadOnlySpan<uint>(edgeDrawIndexes, 0, edgeIndexBufSize);
-            fixed (uint* eindexPtr = eidxsSpan)
-            {
-                if ((uint)eidxsSpan.Length * sizeof(uint) > _EdgeIndexBuffer!.SizeInBytes) Console.WriteLine("PROBLEM5");
-                cl.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)eindexPtr, (uint)(edgeIndexBufSize * sizeof(uint)));
-            }
 
             st.Restart();
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("render graph 4", filter: Logging.LogFilterType.BulkDebugLogFile);
@@ -1359,8 +1331,8 @@ namespace rgat
                 Console.WriteLine($"DGtexts took {st.ElapsedMilliseconds}");
 
 
-            Debug.Assert(nodeIndices.Length <= (_NodeIndexBuffer.SizeInBytes / 4));
-            int nodesToDraw = Math.Min(nodeIndices.Length, (int)(_NodeIndexBuffer.SizeInBytes / 4));
+            Debug.Assert(NodeVerts.Length <= (_NodeVertexBuffer.SizeInBytes / 4));
+            int nodesToDraw = Math.Min(NodeVerts.Length, (int)(_NodeVertexBuffer.SizeInBytes / 4));
 
             GetOutputFramebuffer(out Framebuffer drawtarget);
        
@@ -1374,8 +1346,7 @@ namespace rgat
                 cl.SetGraphicsResourceSet(0, crs_core);
                 cl.SetGraphicsResourceSet(1, crs_nodesEdges);
                 cl.SetVertexBuffer(0, _NodeVertexBuffer);
-                cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
-                cl.DrawIndexed(indexCount: (uint)nodesToDraw, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+                cl.Draw((uint)nodesToDraw);
             }
 
             if (plot.Opt_EdgesVisible)
@@ -1384,8 +1355,7 @@ namespace rgat
                 cl.SetGraphicsResourceSet(0, crs_core);
                 cl.SetGraphicsResourceSet(1, crs_nodesEdges);
                 cl.SetVertexBuffer(0, _EdgeVertBuffer);
-                cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
-                cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+                cl.Draw((uint)edgeVertCount);
             }
 
             GeomPositionColour[] IllustrationEdges = plot.GetIllustrationEdges(out List<uint> illusEdgeDrawIndexes);
@@ -1420,14 +1390,11 @@ namespace rgat
 
                 cl.SetPipeline(_fontPipeline);
                 cl.SetVertexBuffer(0, _FontVertBuffer);
-                cl.SetIndexBuffer(_FontIndexBufferAll, IndexFormat.UInt32);
                 cl.SetGraphicsResourceSet(0, crs_core);
                 cl.SetGraphicsResourceSet(1, _crs_font);
 
-                cl.DrawIndexed(indexCount: (uint)(stringVerts.Length + risingTextVerts.Count), instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+                cl.Draw((uint)(stringVerts.Length + risingTextVerts.Count));
             }
-
-
 
             //update the picking framebuffer 
             //todo - not every frame?
@@ -1435,12 +1402,11 @@ namespace rgat
             cl.SetGraphicsResourceSet(0, crs_core);
             cl.SetGraphicsResourceSet(1, crs_nodesEdges);
             cl.SetVertexBuffer(0, _NodePickingBuffer);
-            cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
             cl.SetFramebuffer(_pickingFrameBuffer);
 
             cl.ClearColorTarget(0, new RgbaFloat(0f, 0f, 0f, 0f));
             cl.SetViewport(0, new Viewport(0, 0, WidgetSize.X, WidgetSize.Y, -2200, 1000));
-            cl.DrawIndexed(indexCount: (uint)nodeIndices.Length, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            cl.Draw((uint)NodeVerts.Length);
 
             cl.CopyTexture(_testPickingTexture, _pickingStagingTexture);
             st.Restart();

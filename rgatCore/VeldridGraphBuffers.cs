@@ -342,10 +342,30 @@ namespace rgat
         /// This is used for shaders where the coordinate being referenced is contained in a texture. 
         /// The Texposition is the location (in the positions texture) to read and then draw geometry at with the specified colour.
         /// </summary>
+        public struct Position1DColour
+        {
+            /// <summary>
+            /// Possitions buffer index
+            /// </summary>
+            public int PositionIndex;
+            /// <summary>
+            /// Colour of the geometry
+            /// </summary>
+            public WritableRgbaFloat Color;
+            /// <summary>
+            /// Size of this structure in bytes
+            /// </summary>
+            public const uint SizeInBytes = 20;
+        }
+
+        /// <s
+        /// ummary>
+        /// Raw colour and geometry in 2D
+        /// </summary>
         public struct Position2DColour
         {
             /// <summary>
-            /// Texture coordinate
+            /// Possitions buffer index
             /// </summary>
             public Vector2 Position;
             /// <summary>
@@ -357,6 +377,7 @@ namespace rgat
             /// </summary>
             public const uint SizeInBytes = 24;
         }
+
 
 
         /// <summary>

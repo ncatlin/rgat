@@ -358,6 +358,7 @@ namespace rgat
             return targetfile;
         }
 
+
         private static Speed GetVideoSpeed()
         {
             Speed result;
@@ -367,12 +368,13 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.Exception($"Unable to parse video speed setting '{GlobalConfig.Settings.Media.VideoCodec_Speed}' into a speed preset: {e.Message}", e);
+                Logging.RecordException($"Unable to parse video speed setting '{GlobalConfig.Settings.Media.VideoCodec_Speed}' into a speed preset: {e.Message}", e);
                 result = Speed.Medium;
                 GlobalConfig.Settings.Media.VideoCodec_Speed = GlobalConfig.Settings.Media.VideoCodec_Speed.ToString();
             }
             return result;
         }
+
 
         /// <summary>
         /// A task for recording a video

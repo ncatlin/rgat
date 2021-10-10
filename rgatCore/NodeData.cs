@@ -592,7 +592,6 @@ namespace rgat
         /// The node calls an API thunk
         /// </summary>
         public bool ThunkCaller = false;
-        private bool unreliableCount = false; //external executions not directly tracked - estimated using heatmap solver
 
         /// <summary>
         /// The module the node belongs to

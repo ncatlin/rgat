@@ -13,9 +13,9 @@ namespace rgat.Shaders.SPIR_V
         * 
         */
 
-        public static ShaderSetDescription CreateNodeShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        public static ShaderSetDescription CreateNodeShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer)
         {
-            VertexElementDescription VEDpos = new VertexElementDescription("PositionTexCoord", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2);
+            VertexElementDescription VEDpos = new VertexElementDescription("PositionBufIndex", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Int1);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
             VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
 
@@ -30,7 +30,6 @@ namespace rgat.Shaders.SPIR_V
                 shaders: shaders);
 
             vertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.VertexBuffer, name: "NodeShaderVertexBufInitial");
-            indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.IndexBuffer, name: "NodeShaderIndexBufInitial");
 
             return shaderSetDesc;
         }
@@ -40,7 +39,7 @@ namespace rgat.Shaders.SPIR_V
 #version 450
 
 
-layout(location = 0) in vec2 PositionTexCoord;
+layout(location = 0) in int PositionBufIndex;
 layout(location = 1) in vec4 Color;
 layout(location = 0) out vec2 PositionTexCoordOut;
 layout(location = 1) out vec4 vColor;
@@ -63,23 +62,21 @@ layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[]
 
 
 void main() {
-    PositionTexCoordOut = PositionTexCoord;
-    uint index = uint(PositionTexCoord.y * TexWidth + PositionTexCoord.x);
 
-    if (index == pickingNodeID){
+    if (PositionBufIndex == pickingNodeID){
         vColor = vec4(1.0,0.0,1.0,1.0);
     } else {
-        vColor = vec4(Color.xyz, nodeAttribTexture[index].y) ; //attrib.y == alpha
+        vColor = vec4(Color.xyz, nodeAttribTexture[PositionBufIndex].y) ; //attrib.y == alpha
     }
 
-    vec4 worldPosition = World *  positionTexture[index];
+    vec4 worldPosition = World *  positionTexture[PositionBufIndex];
     vec4 viewPosition = View * worldPosition;
     vec4 clipPosition = Projection * viewPosition;
     gl_Position = clipPosition;
 
     float nodeSize = 300.0; //remember to match the picking shader value to this
     float relativeNodeSize = nodeSize / length(gl_Position.xyz);
-    gl_PointSize = nodeAttribTexture[index].x * relativeNodeSize;
+    gl_PointSize = nodeAttribTexture[PositionBufIndex].x * relativeNodeSize;
 }
 ";
 
@@ -95,7 +92,7 @@ void main() {
 #extension GL_EXT_nonuniform_qualifier : enable
 
 
-layout(location = 0) in vec2 PositionTexCoord;
+layout(location = 0) flat in int PositionBufIndex;
 layout(location = 1) in vec4 fsin_Color;
 layout(location = 0) out vec4 fsout_Color;
 layout(set = 0, binding=0) uniform ParamsBuf
@@ -116,8 +113,8 @@ layout(set = 1, binding=0) uniform texture2D nodeTextures;
 
 void main() 
 {
-    uint index = uint(PositionTexCoord.y * TexWidth + PositionTexCoord.x);
-    float textureIdx = nodeAttribTexture[index].w;    //the icon used for the node
+    //uint index = uint(PositionTexCoord.y * TexWidth + PositionTexCoord.x);
+    float textureIdx = nodeAttribTexture[PositionBufIndex].w;    //the icon used for the node
     
 
     //draw the sphere texture over the node point
@@ -141,7 +138,7 @@ void main()
 
         public static ShaderSetDescription CreateNodePickingShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer)
         {
-            VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2);
+            VertexElementDescription VEDpos = new VertexElementDescription("PositionBufIndex", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Int1);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
             VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
 
@@ -164,7 +161,7 @@ void main()
 #extension GL_ARB_shading_language_420pack : enable
 
 
-layout(location = 0) in vec2 Position;
+layout(location = 0) in int PositionBufIndex;
 layout(location = 1) in vec4 Color;
 layout(location = 0) out vec4 vColor;
 
@@ -187,9 +184,9 @@ layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[]
 void main() {
     vColor = Color;
 
-    uint index = uint(Position.y * TexWidth + Position.x);
+    //uint index = uint(Position.y * TexWidth + Position.x);
 
-    vec4 worldPosition = World *  vec4(positionTexture[index].xyz,1);
+    vec4 worldPosition = World *  vec4(positionTexture[PositionBufIndex].xyz,1);
     vec4 viewPosition = View * worldPosition;
     vec4 clipPosition = Projection * viewPosition;
     gl_Position = clipPosition;
@@ -215,9 +212,9 @@ void main() {
         * Edge line lists between nodes
         * 
         */
-        public static ShaderSetDescription CreateEdgeRelativeShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        public static ShaderSetDescription CreateEdgeRelativeShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer)
         {
-            VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2);
+            VertexElementDescription VEDpos = new VertexElementDescription("PositionBufIndex", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Int1);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
             VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
 
@@ -231,7 +228,6 @@ void main() {
                 shaders: gd.ResourceFactory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
 
             vertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 4, BufferUsage.VertexBuffer, name: "EdgeShaderVertexBufInitial");
-            indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 4, BufferUsage.IndexBuffer, name: "EdgeShaderIndexBufInitial");
 
             return shaderSetDesc;
         }
@@ -243,7 +239,7 @@ void main() {
 #extension GL_ARB_shading_language_420pack : enable
 
 
-layout(location = 0) in vec2 Position;
+layout(location = 0) in int PositionBufIndex;
 layout(location = 1) in vec4 Color;
 layout(location = 0) out vec4 vColor;
 
@@ -265,13 +261,13 @@ layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[]
 
 void main() {
 
-    uint index = uint(Position.y * TexWidth + Position.x);
+    //uint index = uint(Position.y * TexWidth + Position.x);
     /*
         each edge has two verts, one for each node
     */    
-    vColor = vec4(Color.xyz, nodeAttribTexture[index].y);
+    vColor = vec4(Color.xyz, nodeAttribTexture[PositionBufIndex].y);
 
-    vec4 worldPosition = World *  vec4(positionTexture[index].xyz,1);
+    vec4 worldPosition = World *  vec4(positionTexture[PositionBufIndex].xyz,1);
     vec4 viewPosition = View * worldPosition;
     vec4 clipPosition = Projection * viewPosition;
     gl_Position = clipPosition;
@@ -364,7 +360,7 @@ void main() {
         * Font triangles
         * 
         */
-        public static ShaderSetDescription CreateFontShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer, out DeviceBuffer indexBuffer)
+        public static ShaderSetDescription CreateFontShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer)
         {
             VertexElementDescription nodeIdx = new VertexElementDescription("nodeIdx", VertexElementSemantic.TextureCoordinate, VertexElementFormat.UInt1);
             VertexElementDescription VEDpos = new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
@@ -384,7 +380,6 @@ void main() {
                 shaders: gd.ResourceFactory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
 
             vertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.VertexBuffer, name: "FontShaderVertexBufInitial");
-            indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 1, BufferUsage.IndexBuffer, name: "FontRawShaderIndexBufInitial");
             return shaderSetDesc;
         }
 
@@ -451,10 +446,6 @@ void main()
             color = TexColor * sampled;
         }  
 ";
-
-
-
-
 
 
 

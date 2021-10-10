@@ -176,13 +176,13 @@ namespace rgat
                     repo.LastRefreshError = "See Logs";
                 }
                 GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
-                Logging.RecordException($"Exception updating {repo.FetchPath} => {e.Message}", e;
+                Logging.RecordException($"Exception updating {repo.FetchPath} => {e.Message}", e);
             }
         }
 
+
         private static string? GetRepoDirectory(ref GlobalConfig.SignatureSource repo, string sigsdir)
         {
-
             try
             {
                 if (!Directory.Exists(sigsdir))
@@ -217,6 +217,7 @@ namespace rgat
                 return null;
             }
         }
+
 
         private static bool PurgeDirectory(string repoDirectory)
         {

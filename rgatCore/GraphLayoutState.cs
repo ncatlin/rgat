@@ -110,6 +110,9 @@ namespace rgat
             /// </summary>
             public DeviceBuffer? BlockMiddles;
 
+            /// <summary>
+            /// How many basic blocks are rendered
+            /// </summary>
             public int BlockCount;
 
             /// <summary>
@@ -588,8 +591,8 @@ namespace rgat
         /// <summary>
         /// This buffer list the index of every node each node is connected to
         /// </summary>
-        /// <param name="graph"></param>
-        /// <returns></returns>
+        /// <param name="plot"></param>
+        /// <returns>success</returns>
         private unsafe bool CreateEdgeDataBuffers(PlottedGraph plot)
         {
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateEdgeDataBuffers  {plot.TID}", Logging.LogFilterType.BulkDebugLogFile);

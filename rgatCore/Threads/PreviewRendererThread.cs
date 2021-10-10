@@ -33,8 +33,8 @@ namespace rgat.Threads
         private readonly ResourceFactory? _factory;
         private ResourceLayout? _coreRsrcLayout, _nodesEdgesRsrclayout;
         private DeviceBuffer? _paramsBuffer;
-        private DeviceBuffer? _EdgeVertBuffer, _EdgeIndexBuffer;
-        private DeviceBuffer? _NodeVertexBuffer, _NodeIndexBuffer;
+        private DeviceBuffer? _EdgeVertBuffer;
+        private DeviceBuffer? _NodeVertexBuffer;
         private readonly TextureView _NodeCircleSpriteview;
         private Pipeline? _edgesPipeline, _pointsPipeline;
         private static Task? _emptyGraphMonitor;
@@ -316,9 +316,7 @@ namespace rgat.Threads
                 }
             }
 
-            Position2DColour[] EdgeLineVerts = plot.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow,
-                out uint[] edgeDrawIndexes,
-                out int edgeVertCount, preview: true);
+            Position1DColour[] EdgeLineVerts = plot.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow,  out int edgeVertCount, preview: true);
             if (edgeVertCount == 0 || !plot.LayoutState.Initialised)
             {
                 return;
@@ -331,71 +329,38 @@ namespace rgat.Threads
             var textureSize = plot.LinearIndexTextureSize();
             updateShaderParams(textureSize, plot, cl);
 
-            Position2DColour[] NodeVerts = plot.GetPreviewgraphNodeVerts(CONSTANTS.eRenderingMode.eStandardControlFlow, out uint[] nodeIndices, out int nodeCount);
-            Debug.Assert(nodeIndices.Length >= nodeCount);
+            Position1DColour[] NodeVerts = plot.GetPreviewgraphNodeVerts(CONSTANTS.eRenderingMode.eStandardControlFlow, out int nodeCount);
+            Debug.Assert(NodeVerts.Length >= nodeCount);
 
-            if (_NodeVertexBuffer!.SizeInBytes < NodeVerts.Length * Position2DColour.SizeInBytes ||
-                (_NodeIndexBuffer!.SizeInBytes < nodeIndices.Length * sizeof(uint)))
+            if (_NodeVertexBuffer!.SizeInBytes < NodeVerts.Length * Position1DColour.SizeInBytes)
             {
-                Debug.Assert(nodeIndices.Length >= nodeCount);
                 VeldridGraphBuffers.VRAMDispose(_NodeVertexBuffer);
-                _NodeVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)NodeVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewNodeVertexBuffer");
-
-                VeldridGraphBuffers.VRAMDispose(_NodeIndexBuffer);
-                _NodeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)nodeIndices.Length * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewNodeIndexBuffer");
+                _NodeVertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)NodeVerts.Length * Position1DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewNodeVertexBuffer");
             }
-            Debug.Assert((_NodeVertexBuffer.SizeInBytes >= NodeVerts.Length * Position2DColour.SizeInBytes) &&
-                (_NodeIndexBuffer!.SizeInBytes >= nodeIndices.Length * sizeof(uint)));
-
-            Debug.Assert(nodeIndices.Length >= nodeCount);
+            Debug.Assert(_NodeVertexBuffer.SizeInBytes >= NodeVerts.Length * Position1DColour.SizeInBytes);
 
             //todo only on change
-            fixed (Position2DColour* vertsPtr = NodeVerts)
+            fixed (Position1DColour* vertsPtr = NodeVerts)
             {
-                cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)nodeCount * Position2DColour.SizeInBytes);
+                cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)nodeCount * Position1DColour.SizeInBytes);
             }
 
-            Debug.Assert(nodeIndices.Length >= nodeCount);
-            fixed (uint* indxPtr = nodeIndices)
-            {
-                cl.UpdateBuffer(_NodeIndexBuffer, 0, (IntPtr)indxPtr, (uint)nodeCount * sizeof(uint));
-            }
-
-            if (((edgeVertCount * Position2DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes) ||
-                (edgeDrawIndexes.Length * sizeof(uint)) > _EdgeIndexBuffer!.SizeInBytes)
+            if ((edgeVertCount * Position1DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes)
             {
                 if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("disposeremake edgeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
 
                 VeldridGraphBuffers.VRAMDispose(_EdgeVertBuffer);
-                _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)EdgeLineVerts.Length * Position2DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewEdgeVertexBuffer");
-
-                VeldridGraphBuffers.VRAMDispose(_EdgeIndexBuffer);
-                _EdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)edgeDrawIndexes.Length * sizeof(uint), BufferUsage.IndexBuffer, name: "PreviewEdgeIndexBuffer");
+                _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)EdgeLineVerts.Length * Position1DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewEdgeVertexBuffer");
             }
-
-            Debug.Assert(((edgeVertCount * sizeof(uint)) <= _EdgeIndexBuffer!.SizeInBytes));
 
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("render preview 3", filter: Logging.LogFilterType.BulkDebugLogFile);
 
-            //cl2.Begin();
 
             //todo - only do this on changes
-            fixed (Position2DColour* vertsPtr = EdgeLineVerts)
+            fixed (Position1DColour* vertsPtr = EdgeLineVerts)
             {
-                //_gdev.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position2DColour.SizeInBytes); //not thread safe (duplicate key error)
-                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position2DColour.SizeInBytes);    //memory leak
-                //cl2.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position2DColour.SizeInBytes);
+                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position1DColour.SizeInBytes); 
             }
-
-
-            fixed (uint* indexPtr = edgeDrawIndexes)
-            {
-                //_gdev.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)indexPtr, (uint)edgeVertCount * sizeof(uint));  //not thread safe (duplicate key error)
-                cl.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)indexPtr, (uint)edgeVertCount * sizeof(uint));     //memory leak
-                //cl2.UpdateBuffer(_EdgeIndexBuffer, 0, (IntPtr)indexPtr, (uint)edgeVertCount * sizeof(uint));   
-            }
-            //cl2.End();
-            //_gdev.SubmitCommands(cl2);
 
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gdev.PointSampler,
                 plot.LayoutState.PositionsVRAM1, plot.LayoutState.AttributesVRAM1);
@@ -405,8 +370,6 @@ namespace rgat.Threads
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"render preview {plot.TID} creating rsrcset ", filter: Logging.LogFilterType.BulkDebugLogFile);
             ResourceSetDescription crs_nodesEdges_rsd = new ResourceSetDescription(_nodesEdgesRsrclayout, _NodeCircleSpriteview);
             ResourceSet crsnodesedge = _factory.CreateResourceSet(crs_nodesEdges_rsd);
-
-            Debug.Assert(nodeIndices.Length <= (_NodeIndexBuffer.SizeInBytes / sizeof(uint)));
 
             plot.GetPreviewFramebuffer(out Framebuffer drawtarget);
 
@@ -420,14 +383,12 @@ namespace rgat.Threads
             cl.SetGraphicsResourceSet(0, crscore);
             cl.SetGraphicsResourceSet(1, crsnodesedge);
             cl.SetVertexBuffer(0, _NodeVertexBuffer);
-            cl.SetIndexBuffer(_NodeIndexBuffer, IndexFormat.UInt32);
-            cl.DrawIndexed(indexCount: (uint)nodeCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            cl.Draw((uint)nodeCount);
 
             //draw edges
             cl.SetPipeline(_edgesPipeline);
             cl.SetVertexBuffer(0, _EdgeVertBuffer);
-            cl.SetIndexBuffer(_EdgeIndexBuffer, IndexFormat.UInt32);
-            cl.DrawIndexed(indexCount: (uint)edgeVertCount, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            cl.Draw((uint)edgeVertCount);
 
             cl.End();
             if (!_stopFlag)
@@ -669,8 +630,7 @@ namespace rgat.Threads
                     depthClipEnabled: false,
                     scissorTestEnabled: false),
                 ResourceLayouts = new[] { _coreRsrcLayout, _nodesEdgesRsrclayout },
-                ShaderSet = SPIRVShaders.CreateNodeShaders(_gdev, out _NodeVertexBuffer, out _NodeIndexBuffer
-                    )
+                ShaderSet = SPIRVShaders.CreateNodeShaders(_gdev, out _NodeVertexBuffer)
             };
 
             OutputAttachmentDescription[] oads = { new OutputAttachmentDescription(PixelFormat.R32_G32_B32_A32_Float) };
@@ -689,7 +649,7 @@ namespace rgat.Threads
              * this can probably be a linestrip, but for now lets see if linelist lets us do something more
              * like multiple graphs
              */
-            pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRelativeShaders(_gdev, out _EdgeVertBuffer, out _EdgeIndexBuffer);
+            pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRelativeShaders(_gdev, out _EdgeVertBuffer);
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
             _edgesPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
         }
@@ -707,7 +667,6 @@ namespace rgat.Threads
             shaderParams.proj = PreviewGraphsWidget.PreviewProjection;
             shaderParams.world = plot.CameraState.RotationMatrix;
             shaderParams.view = plot.CameraState.PreviewCameraTranslation;
-
 
             cl.UpdateBuffer(_paramsBuffer, 0, shaderParams);
 

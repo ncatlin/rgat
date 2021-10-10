@@ -208,21 +208,21 @@ namespace rgat.Widgets
             _cl.SetGraphicsResourceSet(0, _rsrcs);
             _cl.SetVertexBuffer(0, _trisVertexBuffer);
             _cl.SetIndexBuffer(_trisIndexBuffer, IndexFormat.UInt32);
-            _cl.DrawIndexed(indexCount: (uint)triIndices.Length, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            _cl.Draw((uint)triIndices.Length);
 
 
             _cl.SetPipeline(_lineListPipeline);
             _cl.SetGraphicsResourceSet(0, _rsrcs);
             _cl.SetVertexBuffer(0, _linesVertexBuffer);
             _cl.SetIndexBuffer(_linesIndexBuffer, IndexFormat.UInt32);
-            _cl.DrawIndexed(indexCount: (uint)lineIndices.Length, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            _cl.Draw((uint)lineIndices.Length);
 
 
             _cl.SetPipeline(_pointPipeline);
             _cl.SetGraphicsResourceSet(0, _rsrcs);
             _cl.SetVertexBuffer(0, _pointsVertexBuffer);
             _cl.SetIndexBuffer(_pointsIndexBuffer, IndexFormat.UInt32);
-            _cl.DrawIndexed(indexCount: (uint)pointIndices.Length, instanceCount: 1, indexStart: 0, vertexOffset: 0, instanceStart: 0);
+            _cl.Draw((uint)pointIndices.Length);
 
 
             _cl.End();

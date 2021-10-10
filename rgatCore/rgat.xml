@@ -3501,6 +3501,11 @@
             Indexes of basic block centers
             </summary>
         </member>
+        <member name="F:rgat.GraphLayoutState.GPUBuffers.BlockCount">
+            <summary>
+            How many basic blocks are rendered
+            </summary>
+        </member>
         <member name="F:rgat.GraphLayoutState.GPUBuffers.RenderVersion">
             <summary>
             The current version of the layout, incremented every time a compute pass is done
@@ -3750,8 +3755,8 @@
             <summary>
             This buffer list the index of every node each node is connected to
             </summary>
-            <param name="graph"></param>
-            <returns></returns>
+            <param name="plot"></param>
+            <returns>success</returns>
         </member>
         <member name="M:rgat.GraphLayoutState.AddNewNodesToComputeBuffers(System.Int32,rgat.PlottedGraph)">
             <summary>
@@ -4931,24 +4936,22 @@
             Get the currently selected rendering mode of the graph (heatmap, etc)
             </summary>
         </member>
-        <member name="M:rgat.PlottedGraph.GetMaingraphNodeVerts(rgat.CONSTANTS.eRenderingMode,System.Int32,System.UInt32[]@,rgat.VeldridGraphBuffers.Position2DColour[]@,System.Collections.Generic.List{System.Tuple{System.String,System.UInt32}}@,System.Int32@)">
+        <member name="M:rgat.PlottedGraph.GetMaingraphNodeVerts(rgat.CONSTANTS.eRenderingMode,System.Int32,rgat.VeldridGraphBuffers.Position1DColour[]@,System.Collections.Generic.List{System.Tuple{System.String,System.UInt32}}@,System.Int32@)">
             <summary>
             Get the node drawing data for the preview version of this graph
             </summary>
             <param name="renderingMode">Rendering mode (heatmap, etc)</param>
             <param name="textureWidth">Float width of the square vertex texture</param>
-            <param name="nodeIndices">Output node indexes</param>
             <param name="nodePickingColors">Output node mouse hover picking data</param>
             <param name="captions">Node caption texts</param>
             <param name="nodeCount">Number of nodes in the output buffers</param>
             <returns>Node drawing data</returns>
         </member>
-        <member name="M:rgat.PlottedGraph.GetPreviewgraphNodeVerts(rgat.CONSTANTS.eRenderingMode,System.UInt32[]@,System.Int32@)">
+        <member name="M:rgat.PlottedGraph.GetPreviewgraphNodeVerts(rgat.CONSTANTS.eRenderingMode,System.Int32@)">
             <summary>
             Get the node drawing data for the preview version of this graph
             </summary>
             <param name="renderingMode">Rendering mode of the preview</param>
-            <param name="nodeIndices">Output node index list</param>
             <param name="nodeCount">Number of nodes rendered</param>
             <returns>Node geometry array</returns>
         </member>
@@ -4958,12 +4961,11 @@
             Usually due to edge colour changes
             </summary>
         </member>
-        <member name="M:rgat.PlottedGraph.GetEdgeLineVerts(rgat.CONSTANTS.eRenderingMode,System.UInt32[]@,System.Int32@,System.Boolean)">
+        <member name="M:rgat.PlottedGraph.GetEdgeLineVerts(rgat.CONSTANTS.eRenderingMode,System.Int32@,System.Boolean)">
             <summary>
             Get the geometry and colour of every edge
             </summary>
             <param name="renderingMode">Rendering mode (standard, heatmap, etc)</param>
-            <param name="edgeIndices">Output list of edge indexes for drawing</param>
             <param name="vertCount">Output number of edge vertics to draw</param>
             <param name="preview">Use the preview data. If false - use the main node data</param>
             <returns>Position/Colour geometry of the edges</returns>
@@ -8986,15 +8988,31 @@
             <param name="buf">Buffer to search</param>
             <returns>true if NaN was found</returns>
         </member>
-        <member name="T:rgat.VeldridGraphBuffers.Position2DColour">
+        <member name="T:rgat.VeldridGraphBuffers.Position1DColour">
             <summary>
             This is used for shaders where the coordinate being referenced is contained in a texture. 
             The Texposition is the location (in the positions texture) to read and then draw geometry at with the specified colour.
             </summary>
         </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position1DColour.PositionIndex">
+            <summary>
+            Possitions buffer index
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position1DColour.Color">
+            <summary>
+            Colour of the geometry
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position1DColour.SizeInBytes">
+            <summary>
+            Size of this structure in bytes
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:rgat.VeldridGraphBuffers.Position2DColour" -->
         <member name="F:rgat.VeldridGraphBuffers.Position2DColour.Position">
             <summary>
-            Texture coordinate
+            Possitions buffer index
             </summary>
         </member>
         <member name="F:rgat.VeldridGraphBuffers.Position2DColour.Color">

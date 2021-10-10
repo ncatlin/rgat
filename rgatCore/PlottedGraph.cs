@@ -816,11 +816,8 @@ namespace rgat
         /// <returns>Output edge geometry</returns>
         public GeomPositionColour[] GetIllustrationEdges(out List<uint> edgeIndices)
         {
-
             List<GeomPositionColour> resultList = new List<GeomPositionColour>();
             edgeIndices = new List<uint>();
-
-            //todo: if wireframe enabled
 
             switch (WireframeStyle())
             {
@@ -1496,9 +1493,8 @@ namespace rgat
 
         private ulong lastThemeVersion = 0;
 
-        Position2DColour[] _cachedMainNodeVerts = Array.Empty<Position2DColour>();
-        Position2DColour[] _cachedMainNodePickingVerts = Array.Empty<Position2DColour>();
-        uint[] _cachedMainNodeIndexes = Array.Empty<uint>();
+        Position1DColour[] _cachedMainNodeVerts = Array.Empty<Position1DColour>();
+        Position1DColour[] _cachedMainNodePickingVerts = Array.Empty<Position1DColour>();
         int _cachedMainNodeVertCount = 0;
 
 
@@ -1507,13 +1503,12 @@ namespace rgat
         /// </summary>
         /// <param name="renderingMode">Rendering mode (heatmap, etc)</param>
         /// <param name="textureWidth">Float width of the square vertex texture</param>
-        /// <param name="nodeIndices">Output node indexes</param>
         /// <param name="nodePickingColors">Output node mouse hover picking data</param>
         /// <param name="captions">Node caption texts</param>
         /// <param name="nodeCount">Number of nodes in the output buffers</param>
         /// <returns>Node drawing data</returns>
-        public Position2DColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode, int textureWidth,
-            out uint[] nodeIndices, out Position2DColour[] nodePickingColors, out List<Tuple<string?, uint>> captions, out int nodeCount)
+        public Position1DColour[] GetMaingraphNodeVerts(eRenderingMode renderingMode, int textureWidth,
+            out Position1DColour[] nodePickingColors, out List<Tuple<string?, uint>> captions, out int nodeCount)
         {
             bool createNewLabels = false;
             if (renderingMode != lastRenderingMode || _newLabels)
@@ -1539,20 +1534,17 @@ namespace rgat
 
             if (textureSize > _cachedMainNodeVerts.Length)
             {
-                Position2DColour[] NodeVerts = new Position2DColour[textureSize];
+                Position1DColour[] NodeVerts = new Position1DColour[textureSize];
                 _cachedMainNodeVerts = NodeVerts;
 
-                Position2DColour[] NodePickingVerts = new Position2DColour[textureSize];
+                Position1DColour[] NodePickingVerts = new Position1DColour[textureSize];
                 _cachedMainNodePickingVerts = NodePickingVerts;
                 _cachedMainNodeVertCount = 0;
-                _cachedMainNodeIndexes = Enumerable.Range(0, NodeVerts.Length).Select(i => (uint)i).ToArray();
                 _mainEdgesCache.TexturiseRequired = true;
             }
 
             nodePickingColors = _cachedMainNodePickingVerts;
             captions = new List<Tuple<string?, uint>>();
-            nodeIndices = _cachedMainNodeIndexes;
-
 
             WritableRgbaFloat[] graphColoursCopy;
             lock (textureLock)
@@ -1562,10 +1554,6 @@ namespace rgat
 
             for (int index = _cachedMainNodeVertCount; index < _cachedMainNodeVerts.Length; index++)
             {
-                float x = index % textureWidth;
-                float y = index / textureWidth;
-                Vector2 texturePosition = new Vector2(x, y);
-
                 if (index >= _cachedMainNodeVerts.Length || index >= InternalProtoGraph.NodeCount)
                 {
                     nodeCount = _cachedMainNodeVertCount;
@@ -1574,15 +1562,15 @@ namespace rgat
 
                 _cachedMainNodeVertCount += 1;
                 WritableRgbaFloat nodeColour = GetNodeColor(index, renderingMode, graphColoursCopy);
-                _cachedMainNodeVerts[index] = new Position2DColour
+                _cachedMainNodeVerts[index] = new Position1DColour
                 {
-                    Position = texturePosition,
+                    PositionIndex = index,
                     Color = nodeColour
                 };
 
-                _cachedMainNodePickingVerts[index] = new Position2DColour
+                _cachedMainNodePickingVerts[index] = new Position1DColour
                 {
-                    Position = texturePosition,
+                    PositionIndex = index,
                     Color = new WritableRgbaFloat(Rf: (float)index, Gf: 0, Bf: 0, Af: 1)
                 };
             }
@@ -1629,8 +1617,8 @@ namespace rgat
 
 
 
-        Position2DColour[] _cachedPreviewNodeVerts = Array.Empty<Position2DColour>();
-        Position2DColour[] _cachedPreviewNodePickingVerts = Array.Empty<Position2DColour>();
+        Position1DColour[] _cachedPreviewNodeVerts = Array.Empty<Position1DColour>();
+        Position1DColour[] _cachedPreviewNodePickingVerts = Array.Empty<Position1DColour>();
         uint[] _cachedPreviewNodeIndexes = Array.Empty<uint>();
         int _cachedPreviewNodeVertCount = 0;
 
@@ -1638,10 +1626,9 @@ namespace rgat
         /// Get the node drawing data for the preview version of this graph
         /// </summary>
         /// <param name="renderingMode">Rendering mode of the preview</param>
-        /// <param name="nodeIndices">Output node index list</param>
         /// <param name="nodeCount">Number of nodes rendered</param>
         /// <returns>Node geometry array</returns>
-        public Position2DColour[] GetPreviewgraphNodeVerts(eRenderingMode renderingMode, out uint[] nodeIndices, out int nodeCount)
+        public Position1DColour[] GetPreviewgraphNodeVerts(eRenderingMode renderingMode, out int nodeCount)
         {
             
             int maxNodes = InternalProtoGraph.NodeCount;
@@ -1650,8 +1637,7 @@ namespace rgat
 
             if (textureSize > _cachedPreviewNodeVerts.Length)
             {
-                _cachedPreviewNodeVerts = new Position2DColour[textureSize];
-                _cachedPreviewNodeIndexes = Enumerable.Range(0, textureSize).Select(i => (uint)i).ToArray();
+                _cachedPreviewNodeVerts = new Position1DColour[textureSize];
                 _mainEdgesCache.TexturiseRequired = true;
                 _cachedPreviewNodeVertCount = 0;
             }
@@ -1666,29 +1652,27 @@ namespace rgat
 
             for (int index = _cachedPreviewNodeVertCount; index < _cachedPreviewNodeVerts.Length; index++)
             {
-                float x = index % textureWidth;
-                float y = index / textureWidth;
-                Vector2 texturePosition = new Vector2(x, y);
+                //float x = index % textureWidth;
+                //float y = index / textureWidth;
+                //Vector2 texturePosition = new Vector2(x, y);
 
                 if (index >= maxNodes)
                 {
                     nodeCount = _cachedPreviewNodeVertCount;
                     Debug.Assert(nodeCount <= _cachedPreviewNodeVerts.Length);
-                    nodeIndices = _cachedPreviewNodeIndexes;
                     return _cachedPreviewNodeVerts;
                 }
 
                 _cachedPreviewNodeVertCount += 1;
-                _cachedPreviewNodeVerts[index] = new Position2DColour
+                _cachedPreviewNodeVerts[index] = new Position1DColour
                 {
-                    Position = new Vector2(x, y),
+                    PositionIndex = index,//new Vector2(x, y),
                     Color = GetNodeColor((int)index, renderingMode, graphColoursCopy)
                 };
 
             }
             nodeCount = _cachedPreviewNodeVertCount;
             Debug.Assert(nodeCount <= _cachedPreviewNodeVerts.Length);
-            nodeIndices = _cachedPreviewNodeIndexes;
             return _cachedPreviewNodeVerts;
         }
 
@@ -1707,8 +1691,7 @@ namespace rgat
         class CACHED_EDGE_SET
         {
             public int ELVertIndex = 0;
-            public Position2DColour[] EdgeLineVerts = Array.Empty<Position2DColour>();
-            public uint[] EdgeIndexBuffer = Array.Empty<uint>();
+            public Position1DColour[] EdgeLineVerts = Array.Empty<Position1DColour>();
             public bool TexturiseRequired = false;
         }
 
@@ -1720,11 +1703,10 @@ namespace rgat
         /// Get the geometry and colour of every edge
         /// </summary>
         /// <param name="renderingMode">Rendering mode (standard, heatmap, etc)</param>
-        /// <param name="edgeIndices">Output list of edge indexes for drawing</param>
         /// <param name="vertCount">Output number of edge vertics to draw</param>
         /// <param name="preview">Use the preview data. If false - use the main node data</param>
         /// <returns>Position/Colour geometry of the edges</returns>
-        public Position2DColour[] GetEdgeLineVerts(eRenderingMode renderingMode, out uint[] edgeIndices, out int vertCount, bool preview = false)
+        public Position1DColour[] GetEdgeLineVerts(eRenderingMode renderingMode, out int vertCount, bool preview = false)
         {
             CACHED_EDGE_SET cache = preview ? _previewEdgesCache : _mainEdgesCache;
 
@@ -1732,8 +1714,7 @@ namespace rgat
             uint evTexSize = evTexWidth * evTexWidth * 16;
             if (evTexSize > cache.EdgeLineVerts.Length || cache.TexturiseRequired)
             {
-                cache.EdgeLineVerts = new Position2DColour[evTexSize];
-                cache.EdgeIndexBuffer = Enumerable.Range(0, cache.EdgeLineVerts.Length).Select(i => (uint)i).ToArray();
+                cache.EdgeLineVerts = new Position1DColour[evTexSize];
                 cache.ELVertIndex = 0;
                 cache.TexturiseRequired = false;
                 //GC.Collect();
@@ -1762,23 +1743,22 @@ namespace rgat
                 int destNodeIdx = (int)edgeNodes.Item2;
                 WritableRgbaFloat ecol = GetEdgeColor(edgeNodes, edges[i], renderingMode);
                 cache.EdgeLineVerts[i * 2] =
-                        new Position2DColour
+                        new Position1DColour
                         {
-                            Position = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
+                            PositionIndex = srcNodeIdx,// = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
                             Color = ecol
                         };
 
                 cache.EdgeLineVerts[i * 2 + 1] =
-                    new Position2DColour
+                    new Position1DColour
                     {
-                        Position = new Vector2(destNodeIdx % textureSize, (float)Math.Floor((float)(destNodeIdx / textureSize))),
+                        PositionIndex = destNodeIdx,// new Vector2(destNodeIdx % textureSize, (float)Math.Floor((float)(destNodeIdx / textureSize))),
                         Color = ecol
                     };
             }
             vertCount = lastEdgeIdx * 2;
             cache.ELVertIndex = lastEdgeIdx;
 
-            edgeIndices = cache.EdgeIndexBuffer;
             sw.Stop();
             if (sw.ElapsedMilliseconds > 60)
                 Console.WriteLine($"GetEdgeLineVertsloop took {sw.ElapsedMilliseconds}ms over {vertCount} verts ({sw.ElapsedMilliseconds / vertCount} avg)");
@@ -2891,7 +2871,6 @@ namespace rgat
             }
         }
 
-        private bool _showNodeAdresses = true;
         /// <summary>
         /// The addresses of nodes are added to their label
         /// </summary>
@@ -2904,8 +2883,9 @@ namespace rgat
                 RegenerateLabels();
             }
         }
+        private bool _showNodeAdresses = false;
 
-        private bool _showNodeIndexes = true;
+
         /// <summary>
         /// Whether node labels will include the internal index of the node
         /// </summary>
@@ -2918,8 +2898,8 @@ namespace rgat
                 RegenerateLabels();
             }
         }
+        private bool _showNodeIndexes = false;
 
-        private bool _showSymbolModules = true;
         /// <summary>
         /// Whether symbols will show the modules they reside in
         /// </summary>
@@ -2932,8 +2912,8 @@ namespace rgat
                 RegenerateLabels();
             }
         }
+        private bool _showSymbolModules = true;
 
-        private bool _showSymbolModulePaths = true;
         /// <summary>
         /// Whether symbol labels include the full path of the module
         /// </summary>
@@ -2946,6 +2926,7 @@ namespace rgat
                 RegenerateLabels();
             }
         }
+        private bool _showSymbolModulePaths = true;
 
         /// <summary>
         /// Enable animated live instruction text
