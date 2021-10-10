@@ -259,7 +259,7 @@ namespace rgat
         /// Maximum temperature that will be applied to force-directed nodes. Fast nodes will layout quickly but wobble
         /// in their low energy position.
         /// </summary>
-        public static float CurrentNodeTemperature = 1500;
+        public static float MaximumNodeTemperature = 1500;
 
         /// <summary>
         /// Maximum speed limit available on the GUI

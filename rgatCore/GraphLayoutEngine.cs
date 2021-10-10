@@ -534,7 +534,7 @@ namespace rgat
             //_gd!.WaitForIdle();
 
             //DebugPrintOutputIntBuffer(layout.BlockMiddles!, "Middles", 100);
-            //DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 68);
+            DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 1024);
             //DebugPrintOutputFloatBuffer(layout.PositionsVRAM1!, "pos", 68);
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM2, "Atts2", 32);
 
@@ -686,7 +686,7 @@ namespace rgat
             {
                 delta = delta,
                 attractionK =  GlobalConfig.RepulsionK,
-                temperature = Math.Min(temperature, GlobalConfig.CurrentNodeTemperature),
+                temperature = Math.Min(temperature, GlobalConfig.MaximumNodeTemperature),
                 repulsionK = GlobalConfig.RepulsionK,
                 fixedInternalNodes = 0,
                 snappingToPreset = (uint)(graph.LayoutState.ActivatingPreset ? 1 : 0),
@@ -716,12 +716,12 @@ namespace rgat
             VelocityShaderParams parms = new VelocityShaderParams
             {
                 delta = delta,
-                temperature = Math.Min(temperature, GlobalConfig.CurrentNodeTemperature),
+                temperature = Math.Min(temperature, GlobalConfig.MaximumNodeTemperature),
                 attractionK = GlobalConfig.RepulsionK,
                 repulsionK = GlobalConfig.RepulsionK,
                 fixedInternalNodes = 1,
                 snappingToPreset = 0,
-                nodeCount = (uint)graph.LayoutState.BlockMiddles!.SizeInBytes / 4
+                nodeCount = (uint)graph.LayoutState._VRAMBuffers.BlockCount
             };
 
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
@@ -732,7 +732,7 @@ namespace rgat
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
-            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.VelocitiesVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
+            cl.Dispatch((uint)Math.Ceiling(graph.LayoutState.VelocitiesVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4) * sizeof(Vector4))), (uint) sizeof(Vector4), 1);
             watch.Stop();
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done in {watch.ElapsedMilliseconds} MS", Logging.LogFilterType.BulkDebugLogFile);
             return watch.Elapsed.TotalMilliseconds;

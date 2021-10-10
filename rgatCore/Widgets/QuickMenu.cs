@@ -34,8 +34,8 @@ namespace rgat.Widgets
                         opens += value ? 1 : -1;
                     }
                     Debug.Assert(opens == 1 || opens == 0);
+                    _baseMenuEntry.active = value;
                 }
-                _baseMenuEntry.active = value;
             }
         }
 
@@ -654,7 +654,7 @@ namespace rgat.Widgets
                 {
                     if (_activeMenuPopupName != null)
                     {
-                        if (_activeEntry is not null)
+                        if (_activeEntry is not null && _activeEntry != _baseMenuEntry)
                         {
                             _activeEntry.active = false;
                         }
@@ -912,7 +912,7 @@ private void DrawScalePopup()
                 ImGui.Text("Max Node Speed");
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                ImGui.SliderFloat("##MaxNodeSpeed", ref GlobalConfig.CurrentNodeTemperature, 0, GlobalConfig.TemperatureLimit);
+                ImGui.SliderFloat("##MaxNodeSpeed", ref GlobalConfig.MaximumNodeTemperature, 0, GlobalConfig.TemperatureLimit);
 
                 SmallWidgets.MouseoverText("Speed limit for node layout. High values make layout faster in the early stages,\n" +
                     "but cause nodes to vibrate violently when they are near equilibrium.");

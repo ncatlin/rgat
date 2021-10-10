@@ -1062,13 +1062,20 @@ namespace rgat
             textureLock.ExitReadLock();
         }
 
+        public struct EDGE_INDEX_FIRSTLAST
+        {
+            public int FirstEdgeIndex;
+            public int LastEdgeIndex;
+            public const uint SizeInBytes = 8;
+        }
+
 
         /// <summary>
         /// Create an array listing the index of every neighbour of every node
         /// Also initialises the edge strength array, 
         /// </summary>
         /// <returns>If there was data</returns>
-        public bool GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargetIndexes, out int[] edgeIndexLookups)
+        public bool GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargetIndexes, out EDGE_INDEX_FIRSTLAST[] edgeIndexLookups)
         {
             //var textureSize = indexTextureSize(_graphStructureLinear.Count);
             List<List<int>> targetArray = _graphStructureBalanced;
@@ -1079,7 +1086,7 @@ namespace rgat
             {
                 edgeStrengths = new float[] { 0 };
                 edgeTargetIndexes = new int[] { 1 };
-                edgeIndexLookups = new int[] { 1 };
+                edgeIndexLookups = new EDGE_INDEX_FIRSTLAST[] { new EDGE_INDEX_FIRSTLAST() };
                 return false;
             }
 
@@ -1098,7 +1105,7 @@ namespace rgat
                 nodeNeighboursArray = _graphStructureBalanced.ToList();
             }
             var textureSize2 = indexTextureSize(nodeCount * 2);
-            edgeIndexLookups = new int[textureSize2 * textureSize2];// * textureSize2 * 2];
+            edgeIndexLookups = new EDGE_INDEX_FIRSTLAST[(int)(textureSize2 * textureSize2 * 0.5f)];// * textureSize2 * 2];
 
             st.Stop(); v1 = st.ElapsedMilliseconds; st.Restart();
 
@@ -1106,7 +1113,7 @@ namespace rgat
             int edgeIndex = 0;
             for (currentNodeIndex = 0; currentNodeIndex < nodeCount; currentNodeIndex++)
             {
-                edgeIndexLookups[currentNodeIndex * 2] = edgeIndex;
+                edgeIndexLookups[currentNodeIndex].FirstEdgeIndex = edgeIndex; //first edge
 
                 List<uint> neigbours = InternalProtoGraph.NodeList[currentNodeIndex].OutgoingNeighboursSet;
                 for (var nidx = 0; nidx < neigbours.Count; nidx++)
@@ -1114,19 +1121,19 @@ namespace rgat
                     edgeTargetIndexes[edgeIndex] = (int)neigbours[nidx];
                     if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>((uint)currentNodeIndex, neigbours[nidx]), out EdgeData? edge) && edge is not null)
                     {
-                        edgeStrengths[edgeIndex] = GetAttractionForce(edge);
+                        edgeStrengths[edgeIndex] = 1;// GetAttractionForce(edge);
                     }
                     else
                     {
                         Logging.RecordLogEvent($"Edge A {currentNodeIndex},{neigbours[nidx]} didn't exist in getEdgeDataints", Logging.LogFilterType.Debug);
-                        edgeStrengths[edgeIndex] = 0.5f;
+                        edgeStrengths[edgeIndex] = 1;// 0.5f;
                     }
                     edgeIndex++;
 
 
                     if (edgeIndex == edgeTargetIndexes.Length)
                     {
-                        edgeIndexLookups[currentNodeIndex * 2 + 1] = edgeIndex;
+                        edgeIndexLookups[currentNodeIndex].LastEdgeIndex = edgeIndex; //last edge
                         return true;
                     }
                 }
@@ -1137,22 +1144,22 @@ namespace rgat
                     edgeTargetIndexes[edgeIndex] = (int)neigbours[nidx];
                     if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>(neigbours[nidx], (uint)currentNodeIndex), out EdgeData? edge) && edge is not null)
                     {
-                        edgeStrengths[edgeIndex] = GetAttractionForce(edge);
+                        edgeStrengths[edgeIndex] = 1;// GetAttractionForce(edge);
                     }
                     else
                     {
                         Logging.RecordLogEvent($"Edge B {neigbours[nidx]},{currentNodeIndex} didn't exist in getEdgeDataints", Logging.LogFilterType.Alert);
-                        edgeStrengths[edgeIndex] = 0.5f;
+                        edgeStrengths[edgeIndex] = 1;// 0.5f;
                     }
                     edgeIndex++;
                     if (edgeIndex == edgeTargetIndexes.Length)
                     {
-                        edgeIndexLookups[currentNodeIndex * 2 + 1] = edgeIndex;
+                        edgeIndexLookups[currentNodeIndex].LastEdgeIndex = edgeIndex;
                         return true;
                     }
                 }
 
-                edgeIndexLookups[currentNodeIndex * 2 + 1] = edgeIndex;
+                edgeIndexLookups[currentNodeIndex].LastEdgeIndex = edgeIndex;
             }
 
             st.Stop(); v2 = st.ElapsedMilliseconds; st.Restart();
@@ -1166,10 +1173,11 @@ namespace rgat
             st.Stop(); v3 = st.ElapsedMilliseconds; st.Restart();
 
 
-            for (var i = InternalProtoGraph.NodeList.Count * 2; i < edgeIndexLookups.Length; i++)
+            for (var i = InternalProtoGraph.NodeList.Count; i < edgeIndexLookups.Length; i++)
             {
                 //fill unused RGBA slots with -1
-                edgeIndexLookups[i] = -1;
+                edgeIndexLookups[i].FirstEdgeIndex = -1;
+                edgeIndexLookups[i].LastEdgeIndex = -1;
             }
             st.Stop(); v4 = st.ElapsedMilliseconds; st.Restart();
 
@@ -1180,79 +1188,19 @@ namespace rgat
         }
 
 
-        /// <summary>
-        /// Lists the first and last+1 edge index that this node is connected to
-        /// usage:
-        ///   selfedgei = edgeindices[index]
-        ///   firstedge, endedge = selfedgei.x, selfedgei.y
-        ///	  uint neighbour = edgeData[firstedge to endedge-1];
-        ///    nodePosition = positions[neighbour];
-        /// </summary>
-        /// <returns></returns>
-        public unsafe int[] GetNodeNeighbourDataOffsets()
+
+        public struct NODE_BLOCK_METADATA_COMPUTEBUFFER
         {
-            //list of neighbours for each node:
-            //eg a graph like 0->1, 0->3, 1->2
-            // would result in be
-            //   0     1    2   3
-            //[[1,3],[0,2],[1],[0]]
-
-            List<List<int>>? nodeNeighboursArray = null;
-            lock (animationLock)
-            {
-                nodeNeighboursArray = _graphStructureBalanced.ToList();
-            }
-
-            //create the basic block metadata here for no good reason
-
-            CreateBlockMetadataBuf(Math.Min(nodeNeighboursArray.Count, InternalProtoGraph.NodeList.Count), out _blockRenderingMetadata, out int[]? blockMiddles);
-
-            var textureSize = indexTextureSize(nodeNeighboursArray.Count);
-
-            int[] sourceData = new int[textureSize * textureSize * 2];
-            int edgeIndex = 0;
-
-            for (var srcNodeIndex = 0; srcNodeIndex < nodeNeighboursArray.Count; srcNodeIndex++)
-            {
-
-                //keep track of the beginning of the array for this node
-                int start = edgeIndex;
-
-                foreach (int destNodeID in nodeNeighboursArray[srcNodeIndex])
-                {
-                    edgeIndex++;
-                }
-
-                //write the two sets of texture indices out.  We'll fill up an entire pixel on each pass
-
-                if (start != edgeIndex)
-                {
-                    sourceData[srcNodeIndex * 2] = start;
-                    sourceData[srcNodeIndex * 2 + 1] = edgeIndex;
-                }
-                else
-                {
-
-                    sourceData[srcNodeIndex * 2] = -1;
-                    sourceData[srcNodeIndex * 2 + 1] = -1;
-                }
-
-            }
-
-            for (var i = nodeNeighboursArray.Count * 2; i < sourceData.Length; i++)
-            {
-
-                // fill unused RGBA slots with -1
-                sourceData[i] = -1;
-            }
-            //Logging.WriteConsole($"GetEdgeIndicesInts Returning indexes with {targetArray.Count} filled and {sourceData.Length - targetArray.Count} empty");
-            return sourceData;
+            public int BlockIndex;
+            public int OffsetFromCenter;
+            public int BlockTopEdgeList;
+            public int BlockBaseEdgeList;
+            public const uint SizeInBytes = 16;
         }
 
-        private int[]? _blockRenderingMetadata;
 
         /// Creates an array of metadata for basic blocks used for basic-block-centric graph layout
-        public unsafe bool GetBlockRenderingMetadata(out int[] blockData, out int[] blockMiddles)
+        public unsafe bool GetBlockRenderingMetadata(out NODE_BLOCK_METADATA_COMPUTEBUFFER[] blockData, out int[] blockMiddles)
         {
             List<List<int>>? nodeNeighboursArray = null;
             lock (animationLock)
@@ -1274,18 +1222,46 @@ namespace rgat
         /// it may be intended for a texture of a certain size</param>
         /// <param name="blockData">Output description of basic block information for each node</param>
         /// <param name="blockMiddles">Output List of basic block middle nodes</param>
-        private bool CreateBlockMetadataBuf(int nodecount, out int[] blockData, out int[] blockMiddles)
+        private bool CreateBlockMetadataBuf(int nodecount, out NODE_BLOCK_METADATA_COMPUTEBUFFER[] blockData, out int[] blockMiddles)
         {
 
-            int[] blockDataInts = new int[nodecount * 4];
+            NODE_BLOCK_METADATA_COMPUTEBUFFER[] blockDataInts = new NODE_BLOCK_METADATA_COMPUTEBUFFER[nodecount];
             Dictionary<int, int> blockMiddlesDict = new Dictionary<int, int>();
             List<int> blockMiddlesList = new List<int>();
 
+            //todo this is testing, optimise later
+            List<int> activeBlockIDs = new();
+            Dictionary<int, int> NodeBlockToBlockMetaIndex = new();
+            Dictionary<int, int> BlockMetaToBlockFirstLastIndex = new();
+            for (var i = 0; i < InternalProtoGraph.NodeCount; i++)
+            {
+                int nodeBlockID = (int)InternalProtoGraph.NodeList[i].BlockID;
+                if (NodeBlockToBlockMetaIndex.TryGetValue(nodeBlockID, out int metaBlockID) is false || activeBlockIDs.Contains(metaBlockID) is false)
+                {
+                    NodeBlockToBlockMetaIndex[nodeBlockID] = activeBlockIDs.Count;
+                    BlockMetaToBlockFirstLastIndex[activeBlockIDs.Count] = nodeBlockID;
+                    activeBlockIDs.Add(activeBlockIDs.Count);
+                }
+            }
+
             //step 1: find the center node of each block
             //  todo: cache
-            for (int blockIdx = 0; blockIdx < InternalProtoGraph.BlocksFirstLastNodeList.Count; blockIdx++)
+            int blockMetaDataIndex = 0;
+            foreach (int blockIdx in activeBlockIDs)
             {
-                var firstIdx_LastIdx = InternalProtoGraph.BlocksFirstLastNodeList[blockIdx];
+                if (blockIdx == -1)
+                {
+                    blockMiddlesList.Add(-1);
+                }
+
+                int originalBlockIndex = BlockMetaToBlockFirstLastIndex[blockIdx];
+                
+                if (originalBlockIndex < 0 || originalBlockIndex >= InternalProtoGraph.BlocksFirstLastNodeList.Count)
+                {
+                    continue;
+                }
+                
+                var firstIdx_LastIdx = InternalProtoGraph.BlocksFirstLastNodeList[originalBlockIndex];
                 if (firstIdx_LastIdx == null)
                 {
                     continue;
@@ -1293,12 +1269,13 @@ namespace rgat
 
                 if (firstIdx_LastIdx.Item1 == firstIdx_LastIdx.Item2)
                 {
+                    if (blockMiddlesList.Contains((int)firstIdx_LastIdx.Item1)) continue;
                     blockMiddlesDict[blockIdx] = (int)firstIdx_LastIdx.Item1; //1 node block, top/mid/base is the same
                     blockMiddlesList.Add((int)firstIdx_LastIdx.Item1);
                 }
                 else
                 {
-                    var block = InternalProtoGraph.ProcessData.BasicBlocksList[blockIdx]?.Item2;
+                    var block = InternalProtoGraph.ProcessData.BasicBlocksList[originalBlockIndex]?.Item2;
                     Debug.Assert(block is not null);
                     int midIdx = (int)Math.Ceiling((block.Count - 1.0) / 2.0);
                     var middleIns = block[midIdx];
@@ -1309,6 +1286,7 @@ namespace rgat
                     }
                     else
                     {
+                        if (blockMiddlesList.Contains((int)centerNodeID)) continue;
                         blockMiddlesDict[blockIdx] = (int)centerNodeID;
                         blockMiddlesList.Add((int)centerNodeID);
                     }
@@ -1340,7 +1318,7 @@ namespace rgat
                     }
 
                     blockSize = (FirstLastIdx.Item2 - FirstLastIdx.Item1) + 1;
-                    blockID = (int)n.BlockID;
+                    blockID = NodeBlockToBlockMetaIndex[(int)n.BlockID];
                     if (!blockMiddlesDict.ContainsKey(blockID))
                     {
                         continue;
@@ -1355,6 +1333,7 @@ namespace rgat
                     blockMid = (int)n.Index;
                     blockSize = 1;
                     blockMiddlesList.Add((int)n.Index);
+
                     //external nodes dont have a block id so just give them a unique one
                     //all that matters in the shader is it's unique
                     blockID = blockMiddlesList.Count;
@@ -1375,14 +1354,21 @@ namespace rgat
                 int blockBaseNodeIndex = -1;
                 if (nodeIdx == blockMid || blockSize == 1)
                 {
-                    blockTopNodeIndex = (int)FirstLastIdx.Item1;
-                    blockBaseNodeIndex = (int)FirstLastIdx.Item2;
+                    if (InternalProtoGraph.GetNode(FirstLastIdx.Item1)?.IncomingNeighboursSet.Count > 0)
+                    {
+                        blockTopNodeIndex = (int)FirstLastIdx.Item1;
+                    }
+
+                    if (InternalProtoGraph.GetNode(FirstLastIdx.Item2)?.OutgoingNeighboursSet.Count > 0)
+                    {
+                        blockBaseNodeIndex = (int)FirstLastIdx.Item2;
+                    }
                 }
 
-                blockDataInts[nodeIdx * 4] = blockID;
-                blockDataInts[nodeIdx * 4 + 1] = offsetFromCenter;
-                blockDataInts[nodeIdx * 4 + 2] = blockTopNodeIndex;
-                blockDataInts[nodeIdx * 4 + 3] = blockBaseNodeIndex;
+                blockDataInts[nodeIdx].BlockIndex = blockID;
+                blockDataInts[nodeIdx].OffsetFromCenter = offsetFromCenter;
+                blockDataInts[nodeIdx].BlockTopEdgeList = blockTopNodeIndex;
+                blockDataInts[nodeIdx].BlockBaseEdgeList = blockBaseNodeIndex != blockTopNodeIndex ? blockBaseNodeIndex : -1;
             }
 
             blockMiddles = blockMiddlesList.ToArray();
@@ -1655,18 +1641,21 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Force the generation of new labels instead of using cached versions
+        /// Usually because label settings/values/colours have changed
+        /// </summary>
         private void RegenerateLabels() => _newLabels = true;
-
         private bool _newLabels;
-        private eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
+
         /// <summary>
         /// Get the currently selected rendering mode of the graph (heatmap, etc)
         /// </summary>
         public eRenderingMode RenderingMode => lastRenderingMode;
+        private eRenderingMode lastRenderingMode = eRenderingMode.eStandardControlFlow;
+
 
         private ulong lastThemeVersion = 0;
-
-
 
         Position2DColour[] _cachedMainNodeVerts = Array.Empty<Position2DColour>();
         Position2DColour[] _cachedMainNodePickingVerts = Array.Empty<Position2DColour>();
@@ -2599,9 +2588,19 @@ namespace rgat
             {
                 st.Start();
                 LayoutState.Lock.EnterWriteLock();
-                LayoutState.RegenerateEdgeDataBuffers(this);
-                RenderedEdgeCount = (uint)edgesCount;
-                LayoutState.Lock.ExitWriteLock();
+                try
+                {
+                    LayoutState.RegenerateEdgeDataBuffers(this);
+                    RenderedEdgeCount = (uint)edgesCount;
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordError($"Exception regenerating edge buffers: {e.Message}");
+                }
+                finally
+                {
+                    LayoutState.Lock.ExitWriteLock();
+                }
                 st.Stop();
                 doneRegen = true;
                 v1 = st.ElapsedMilliseconds;

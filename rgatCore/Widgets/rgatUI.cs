@@ -162,6 +162,7 @@ namespace rgat
         public void AddMouseDragDelta(Vector2 delta)
         {
             lock (_inputLock)
+            
             {
                 _mouseDragDelta += delta;
             }

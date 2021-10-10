@@ -110,6 +110,8 @@ namespace rgat
             /// </summary>
             public DeviceBuffer? BlockMiddles;
 
+            public int BlockCount;
+
             /// <summary>
             /// The current version of the layout, incremented every time a compute pass is done
             /// Used to compare RAM and VRAM buffers
@@ -611,7 +613,7 @@ namespace rgat
 
             Stopwatch st = new Stopwatch();
             st.Start();
-            if (!graph.GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargets, out int[] edgeMetaOffsets))
+            if (!graph.GetEdgeRenderingData(out float[] edgeStrengths, out int[] edgeTargets, out PlottedGraph.EDGE_INDEX_FIRSTLAST[] edgeMetaOffsets))
             {
                 if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"CreateEdgeDataBuffers zerobuf", Logging.LogFilterType.BulkDebugLogFile);
                 _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, 4, BufferUsage.StructuredBufferReadOnly, 4, $"BadFillerBufEdgeTargets_T{graph.TID}");
@@ -625,14 +627,14 @@ namespace rgat
 
             _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeTargets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeTargetsBuf_T{graph.TID}");
             _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeStrengths.Length * sizeof(float), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeStrengthsBuf_T{graph.TID}");
-            _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeMetaOffsets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeOffsetsBuf_T{graph.TID}");
+            _VRAMBuffers.EdgeConnectionIndexes = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeMetaOffsets.Length * PlottedGraph.EDGE_INDEX_FIRSTLAST.SizeInBytes, BufferUsage.StructuredBufferReadOnly, 4, $"EdgeOffsetsBuf_T{graph.TID}");
 
             //Logging.RecordLogEvent($"CreateEdgeDataBuffers processing {edgeStrengths.Length * sizeof(int)} bufsize {EdgeStrengthsBuf.SizeInBytes}", Logging.LogFilterType.BulkDebugLogFile);
             fixed (int* targsPtr = edgeTargets)
             {
                 fixed (float* strengthsPtr = edgeStrengths)
                 {
-                    fixed (int* offsetsPtr = edgeMetaOffsets)
+                    fixed (PlottedGraph.EDGE_INDEX_FIRSTLAST* offsetsPtr = edgeMetaOffsets)
                     {
 
                         CommandList cl = _gd.ResourceFactory.CreateCommandList();
@@ -642,7 +644,7 @@ namespace rgat
                         Debug.Assert(_VRAMBuffers.EdgeStrengths.SizeInBytes >= (edgeStrengths.Length * sizeof(float)));
                         cl.UpdateBuffer(_VRAMBuffers.EdgeConnections, 0, (IntPtr)targsPtr, (uint)edgeTargets.Length * sizeof(int));
                         cl.UpdateBuffer(_VRAMBuffers.EdgeStrengths, 0, (IntPtr)strengthsPtr, (uint)edgeStrengths.Length * sizeof(float));
-                        cl.UpdateBuffer(_VRAMBuffers.EdgeConnectionIndexes, 0, (IntPtr)offsetsPtr, (uint)edgeMetaOffsets.Length * sizeof(int));
+                        cl.UpdateBuffer(_VRAMBuffers.EdgeConnectionIndexes, 0, (IntPtr)offsetsPtr, (uint)edgeMetaOffsets.Length * PlottedGraph.EDGE_INDEX_FIRSTLAST.SizeInBytes);
                         cl.End();
                         _gd.SubmitCommands(cl);
                         //_gd.WaitForIdle();
@@ -676,7 +678,7 @@ namespace rgat
             var textureSize = graph.EdgeTextureWidth();
             if (textureSize > 0)
             {
-                graph.GetBlockRenderingMetadata(out int[] blockdats, out int[] blockMiddles);
+                graph.GetBlockRenderingMetadata(out PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER[] blockdats, out int[] blockMiddles);
 
                 _VRAMBuffers.BlockMetadata = VeldridGraphBuffers.TrackedVRAMAlloc(_gd,
                     (uint)blockdats.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMetadata_T{graph.TID}");
@@ -684,22 +686,26 @@ namespace rgat
                 _VRAMBuffers.BlockMiddles = VeldridGraphBuffers.TrackedVRAMAlloc(_gd,
                     (uint)blockMiddles.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, sizeof(int), $"BlockMiddles_T{graph.TID}");
 
+                _VRAMBuffers.BlockCount = blockMiddles.Length;
+
                 if (blockdats.Length == 0)
                 {
                     return;
                 }
 
-                fixed (int* datsPtr = blockdats, midsPtr = blockMiddles)
+                fixed (PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER* datsPtr = blockdats)
                 {
-                    CommandList cl = _gd.ResourceFactory.CreateCommandList();
-                    cl.Begin();
-                    cl.UpdateBuffer(_VRAMBuffers.BlockMetadata, 0, (IntPtr)datsPtr, (uint)blockdats.Length * sizeof(int));
-                    cl.UpdateBuffer(_VRAMBuffers.BlockMiddles, 0, (IntPtr)midsPtr, (uint)blockMiddles.Length * sizeof(int));
-                    cl.End();
-                    _gd.SubmitCommands(cl);
-                    _gd.WaitForIdle();
-                    cl.Dispose();
-                }
+                    fixed (int* middlesPtr = blockMiddles)
+                    {
+                        CommandList cl = _gd.ResourceFactory.CreateCommandList();
+                        cl.Begin();
+                        cl.UpdateBuffer(_VRAMBuffers.BlockMetadata, 0, (IntPtr)datsPtr, (uint)blockdats.Length * PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER.SizeInBytes);
+                        cl.UpdateBuffer(_VRAMBuffers.BlockMiddles, 0, (IntPtr)middlesPtr, (uint)blockMiddles.Length * sizeof(int));
+                        cl.End();
+                        _gd.SubmitCommands(cl);
+                        _gd.WaitForIdle();
+                        cl.Dispose();
+                    } }
             }
 
 

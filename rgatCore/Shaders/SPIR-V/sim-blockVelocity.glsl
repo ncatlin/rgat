@@ -38,10 +38,14 @@ layout(set = 0, binding=1) buffer bufPositions{
 layout(set = 0, binding=2) buffer bufvelocities {   
     vec4 velocities[];
 };
+
+
+struct EDGE_INDEX_LIST_OFFSETS{ int FirstEdgeIndex;  int LastEdgeIndex; };
+
 //edge data offsets
-layout(set = 0, binding=3) buffer bufedgeIndices {   
-    ivec2 edgeIndices[];
-};
+layout(set = 0, binding=3) buffer bufedgeIndices {   EDGE_INDEX_LIST_OFFSETS edgeIndices[];};
+
+
 //edge data 
 layout(set = 0, binding=4) buffer bufedgeTargets {   
     uint edgeTargets[];
@@ -58,8 +62,11 @@ z = pseudo node id, used for the center node to perform the attractions of the a
 w = pseudo node id, used for the center node to perform the attractions of the actual edge (this will usually be the id of the base node)
 */
 
+
+struct BLOCK_METADATA{  int BlockID;  int OffsetFromCenterNode;  int CenterBlockTopEdges; int CenterBlockLastEdges; };
+
 layout(set = 0, binding=6) buffer blockDataBuf {   
-    ivec4 blockData[];
+    BLOCK_METADATA blockData[];
 };
 
 layout(set = 0, binding=7) buffer blockMiddlesBuf {   
@@ -107,10 +114,9 @@ vec3 addAttraction(vec4 self, vec4 neighbor, int edgeIndex){
     if (neighbor.w == -1) return vec3(0,0,0); 
     vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
-    float f = ( x * x ) / fieldParams.attractionK;
+    float f = ( x * x ) / fieldParams.repulsionK;
     f *= edgeStrengths[edgeIndex];
-
-
+  
     return normalize(diff) * f;
 }
 
@@ -155,82 +161,70 @@ void main()	{
         float outputDebug = -100;
       
         int index = blockMiddles[midListIndex];
-        ivec4 selfBlockData = blockData[index];
+        BLOCK_METADATA selfBlockData = blockData[index];
         vec3 velocity = velocities[index].xyz;
         vec4 selfPosition = positions[index];
 
-
         //first repel 
         for(uint nodeIdx = 0; nodeIdx < fieldParams.nodeCount; nodeIdx++)
-        {
-            int compareNodeMidIndex = blockMiddles[nodeIdx];
-            if (compareNodeMidIndex != midListIndex)
+        {;
+            if (nodeIdx != midListIndex)
             {
+                int compareNodeMidIndex = blockMiddles[nodeIdx];
                 vec4 compareNodePosition = positions[compareNodeMidIndex];
             
                 //if distance below threshold, repel every node from every single node
                 //if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
                 //{
-                    velocity += addRepulsion(selfPosition, compareNodePosition);
+                   velocity += addRepulsion(selfPosition, compareNodePosition);
                 //}
            }
 		}
             
-
+            
+        float dbgval1 = 0;
+        float dbgval2 = 0;
 
         //now attract
-        //vec2 selfEdgeIndices = edgeIndices[index];
-        //float start = selfEdgeIndices.x;
-        //float end = selfEdgeIndices.y;
-
-        /*
-        blockdata.x = index of block
-        blockdata.y = count of how many nodes from this node to center of block node
-        blockdata.z = first node in block  [set only for mid node]
-        blockdata.w = last node in block [set only for mid node]
-        */
-              
-             
-        //attract any blocks linked to the base node towards this center node
-        vec2 baseEdgeIndices = edgeIndices[selfBlockData.z];
-        float start = baseEdgeIndices.x;
-        float end = baseEdgeIndices.y;
-        if(start != -1)
+           
+                                        
+        //attract this center node towards any blocks linked to the top node 
+        EDGE_INDEX_LIST_OFFSETS topEdgeIndices = edgeIndices[selfBlockData.CenterBlockTopEdges];
+        if(topEdgeIndices.FirstEdgeIndex != -1)
         {
-            for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
+            for(int edgeIndex  = int(topEdgeIndices.FirstEdgeIndex); edgeIndex < topEdgeIndices.LastEdgeIndex; edgeIndex++)
             {
                 uint neighbourID = edgeTargets[edgeIndex];
                 nodePosition = positions[neighbourID];
-                vec4 neighborBlockData = blockData[neighbourID];
-                //attract center of this block to center of another block (not this block)
-                if (neighborBlockData.z != -1 && neighborBlockData.x != selfBlockData.x)
-                {
-                    vec3 resvel = addAttraction(selfPosition, nodePosition, int(edgeIndex));
-                    velocity -= resvel;
-                }
-            }
-        }
-                               
-                              
-        //attract any blocks linked to the top node towards this center node 
-        vec2 topEdgeIndices = edgeIndices[selfBlockData.w];
-        start = topEdgeIndices.x;
-        end = topEdgeIndices.y;
-        if(start != -1)
-        {
-            for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
-            {
-                uint neighbourID = edgeTargets[edgeIndex];
-                nodePosition = positions[neighbourID];
-                vec4 neighborBlockData = blockData[neighbourID];
+                BLOCK_METADATA neighborBlockData = blockData[neighbourID];
                 //attract center to another block
-                if (neighborBlockData.x != selfBlockData.x)
-                {
-                    vec3 resvel = addAttraction(selfPosition, nodePosition, int(edgeIndex));
-                    velocity -= resvel;
+                if (neighborBlockData.BlockID != selfBlockData.BlockID)
+                { 
+                    velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
+                    dbgval1 += 1;
                 }
             }
         }
+
+        //attract this center node towards any blocks linked to the base node 
+        EDGE_INDEX_LIST_OFFSETS baseEdgeIndices = edgeIndices[selfBlockData.CenterBlockLastEdges];
+        if(baseEdgeIndices.FirstEdgeIndex != -1)
+        {
+            for(int edgeIndex  = int(baseEdgeIndices.FirstEdgeIndex); edgeIndex < baseEdgeIndices.LastEdgeIndex; edgeIndex++)
+            {
+                uint neighbourID = edgeTargets[edgeIndex];
+                nodePosition = positions[neighbourID];
+                BLOCK_METADATA neighborBlockData = blockData[neighbourID];
+                //attract center of this block to center of another block (not this block)
+                if (neighborBlockData.BlockID != selfBlockData.BlockID)
+                {
+                    velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
+                  dbgval2 += 1;
+                }
+            }
+        }
+        
+
                   
         // temperature gradually cools down to zero
 
@@ -250,7 +244,9 @@ void main()	{
     
         //debugging
 
-        field_Destination[index] = vec4(velocity,  181);//velocities[index].w);
+        
+        field_Destination[index] = vec4(velocity,  dbgval1);//velocities[index].w);
+        //field_Destination[index] = vec4(midListIndex , 0,  dbgval1,  dbgval2);//velocities[index].w);
     }
 }
 

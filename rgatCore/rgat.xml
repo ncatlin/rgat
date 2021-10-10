@@ -1261,7 +1261,7 @@
             Toggle attribute (animation brightness+size) computation
             </summary>
         </member>
-        <member name="F:rgat.GlobalConfig.CurrentNodeTemperature">
+        <member name="F:rgat.GlobalConfig.MaximumNodeTemperature">
             <summary>
             Maximum temperature that will be applied to force-directed nodes. Fast nodes will layout quickly but wobble
             in their low energy position.
@@ -4770,28 +4770,17 @@
             </summary>
             <param name="temp">Activity level</param>
         </member>
-        <member name="M:rgat.PlottedGraph.GetEdgeRenderingData(System.Single[]@,System.Int32[]@,System.Int32[]@)">
+        <member name="M:rgat.PlottedGraph.GetEdgeRenderingData(System.Single[]@,System.Int32[]@,rgat.PlottedGraph.EDGE_INDEX_FIRSTLAST[]@)">
             <summary>
             Create an array listing the index of every neighbour of every node
             Also initialises the edge strength array, 
             </summary>
             <returns>If there was data</returns>
         </member>
-        <member name="M:rgat.PlottedGraph.GetNodeNeighbourDataOffsets">
-            <summary>
-            Lists the first and last+1 edge index that this node is connected to
-            usage:
-              selfedgei = edgeindices[index]
-              firstedge, endedge = selfedgei.x, selfedgei.y
-              uint neighbour = edgeData[firstedge to endedge-1];
-               nodePosition = positions[neighbour];
-            </summary>
-            <returns></returns>
-        </member>
-        <member name="M:rgat.PlottedGraph.GetBlockRenderingMetadata(System.Int32[]@,System.Int32[]@)">
+        <member name="M:rgat.PlottedGraph.GetBlockRenderingMetadata(rgat.PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER[]@,System.Int32[]@)">
             Creates an array of metadata for basic blocks used for basic-block-centric graph layout
         </member>
-        <member name="M:rgat.PlottedGraph.CreateBlockMetadataBuf(System.Int32,System.Int32[]@,System.Int32[]@)">
+        <member name="M:rgat.PlottedGraph.CreateBlockMetadataBuf(System.Int32,rgat.PlottedGraph.NODE_BLOCK_METADATA_COMPUTEBUFFER[]@,System.Int32[]@)">
             <summary>
             Creates an array of metadata for basic blocks used for basic-block-centric graph layout
             item[0] = blockID
@@ -4862,6 +4851,12 @@
             <param name="e">The EdgeData edge object</param>
             <param name="renderingMode">The rendering mode</param>
             <returns>The colour of the edge</returns>
+        </member>
+        <member name="M:rgat.PlottedGraph.RegenerateLabels">
+            <summary>
+            Force the generation of new labels instead of using cached versions
+            Usually because label settings/values/colours have changed
+            </summary>
         </member>
         <member name="P:rgat.PlottedGraph.RenderingMode">
             <summary>
