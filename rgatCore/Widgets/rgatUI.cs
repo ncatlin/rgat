@@ -950,7 +950,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Exception processing screenshot notification: {e.Message}");
+                    Logging.RecordException($"Exception processing screenshot notification: {e.Message}", e);
                     _lastScreenShot = VideoEncoder.CaptureContent.Invalid;
                 }
             }
@@ -1120,7 +1120,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Exception {e.Message} opening {label} directory {path}");
+                Logging.RecordException($"Exception {e.Message} opening {label} directory {path}", e);
                 return;
             }
         }
@@ -1558,7 +1558,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Error loading target binary: {e.Message}");
+                Logging.RecordException($"Error loading target binary: {e.Message}", e);
                 return false;
             }
 

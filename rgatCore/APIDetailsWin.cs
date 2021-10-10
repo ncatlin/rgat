@@ -37,7 +37,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Windows API datafile {datapath} could not be opened: {e.Message}", Logging.LogFilterType.Error);
+                Logging.RecordException($"Windows API datafile {datapath} could not be opened: {e.Message}", e);
                 return;
             }
 
@@ -50,11 +50,11 @@ namespace rgat
             }
             catch (Newtonsoft.Json.JsonReaderException e)
             {
-                Logging.RecordLogEvent($"Failed to parse Windows API datafile JSON {datapath}: {e.Message}", Logging.LogFilterType.Error);
+                Logging.RecordException($"Failed to parse Windows API datafile JSON {datapath}: {e.Message}", e);
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Failed to load Windows API datafile {datapath}: {e.Message}", Logging.LogFilterType.Error);
+                Logging.RecordException($"Failed to load Windows API datafile {datapath}: {e.Message}", e);
             }
 
             if (apiDataJSON != null)
@@ -99,7 +99,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Error loading api data file: {e.Message}");
+                Logging.RecordException($"Error loading api data file: {e.Message}", e);
             }
             return null;
         }

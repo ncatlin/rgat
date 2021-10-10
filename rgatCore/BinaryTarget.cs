@@ -306,7 +306,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"BinaryTarget.Parse threw exception {e.Message}");
+                    Logging.RecordException($"BinaryTarget.Parse threw exception {e.Message}", e);
                 }
             }
             else
@@ -507,7 +507,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Exception parsing Remote Target init data: {e.Message}");
+                Logging.RecordException($"Exception parsing Remote Target init data: {e.Message}", e);
                 return false;
             }
         }

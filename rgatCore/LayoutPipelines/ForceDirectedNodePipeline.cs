@@ -220,7 +220,8 @@ namespace rgat.Layouts
 
             PositionShaderParams parameters = new PositionShaderParams
             {
-                delta = delta
+                delta = delta,
+                nodeCount = (uint)plot.RenderedNodeCount()
             };
 
             //Logging.WriteConsole($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
@@ -251,10 +252,10 @@ namespace rgat.Layouts
         private struct PositionShaderParams
         {
             public float delta;
+            public uint nodeCount;
             //must be multiple of 16
             private readonly uint _padding1;
-            private readonly uint _padding3;
-            private readonly bool _padding4;
+            private readonly uint _padding2;
 
         }
 

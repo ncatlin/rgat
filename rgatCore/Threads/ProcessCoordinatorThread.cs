@@ -122,7 +122,7 @@ namespace rgat.Threads
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Coordinator pipe callback exception {e.Message}", Logging.LogFilterType.Error);
+                Logging.RecordException($"Coordinator pipe callback exception {e.Message}", e);
             }
 
         }
@@ -154,7 +154,7 @@ namespace rgat.Threads
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordLogEvent($"PCT::Listener BeginWaitForConnection exception {e.Message}", Logging.LogFilterType.Error);
+                    Logging.RecordException($"PCT::Listener BeginWaitForConnection exception {e.Message}", e);
                     Thread.Sleep(80);
                     continue;
                 }
@@ -200,7 +200,7 @@ namespace rgat.Threads
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Trace connection experienced an unknown error: {e.Message}");
+                    Logging.RecordException($"Trace connection experienced an unknown error: {e.Message}", e);
                     if (coordPipe.IsConnected)
                     {
                         coordPipe.Disconnect();

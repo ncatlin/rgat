@@ -427,7 +427,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Error loading trace: {e.Message} - {e.StackTrace}");
+                Logging.RecordException($"Error loading trace: {e.Message}", e);
                 return false;
             }
         }
@@ -950,7 +950,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Deserialising trace file failed: {e.Message} - {e.StackTrace}");
+                Logging.RecordException($"Deserialising trace file failed: {e.Message}", e);
                 return false;
             }
 
@@ -1123,7 +1123,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Error saving child trace {trace.PID}: {e.Message}");
+                    Logging.RecordException($"Error saving child trace {trace.PID}: {e.Message}", e);
                 }
             }
 

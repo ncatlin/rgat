@@ -216,7 +216,7 @@ namespace rgat.Config
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Exception invoking callback for request {commandID} ({cmdref}): {e}", Logging.LogFilterType.Error);
+                        Logging.RecordException($"Exception invoking callback for request {commandID} ({cmdref}): {e.Message}", e);
                     }
                     if (!success)
                     {

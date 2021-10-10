@@ -176,7 +176,7 @@ namespace rgat
                     repo.LastRefreshError = "See Logs";
                 }
                 GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
-                Logging.RecordError($"Exception updating {repo.FetchPath} => {e.Message}");
+                Logging.RecordException($"Exception updating {repo.FetchPath} => {e.Message}", e;
             }
         }
 
@@ -213,7 +213,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Error initing signature directory for repo {repo.FetchPath}: {e.Message}");
+                Logging.RecordException($"Error initing signature directory for repo {repo.FetchPath}: {e.Message}", e);
                 return null;
             }
         }
@@ -239,7 +239,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Error: {e.Message} when cleaning directory {repoDirectory}");
+                Logging.RecordException($"Error: {e.Message} when cleaning directory {repoDirectory}", e);
                 return false;
             }
             return true;
@@ -386,7 +386,7 @@ namespace rgat
                     repo.LastDownloadError = "See Logs";
                 }
                 GlobalConfig.Settings.Signatures.UpdateSignatureSource(repo);
-                Logging.RecordError($"Exception downloading {repo.FetchPath} => {e.Message}");
+                Logging.RecordException($"Exception downloading {repo.FetchPath} => {e.Message}", e);
             }
             finally
             {
@@ -433,7 +433,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to purge signatures folder {repoDirectory} for path {repo.FetchPath}: {e.Message}");
+                Logging.RecordException($"Failed to purge signatures folder {repoDirectory} for path {repo.FetchPath}: {e.Message}", e);
             }
 
         }

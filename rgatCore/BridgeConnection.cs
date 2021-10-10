@@ -271,7 +271,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Exception {e} in StartConnectOut", Logging.LogFilterType.Error);
+                Logging.RecordException($"Exception {e} in StartConnectOut", e);
                 Teardown();
                 return;
             }
@@ -370,7 +370,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to authenticate connection: {e.Message}");
+                Logging.RecordException($"Failed to authenticate connection: {e.Message}", e);
                 AddNetworkDisplayLogMessage("Authentication Error", Themes.eThemeColour.eBadStateColour);
                 return false;
             }
@@ -398,7 +398,7 @@ namespace rgat
             catch (Exception e)
             {
                 AddNetworkDisplayLogMessage($"Failed to authenticate connection: {e}", Themes.eThemeColour.eBadStateColour);
-                Logging.RecordError($"Failed to authenticate connection: {e}");
+                Logging.RecordException($"Failed to authenticate connection: {e}", e);
             }
             return false;
         }
@@ -482,7 +482,7 @@ namespace rgat
                     return false;
                 }
 
-                Logging.RecordError($"ReadData Exception: {e.Message}");
+                Logging.RecordException($"ReadData Exception: {e.Message}", e);
             }
             Teardown("Read failed");
             data = null;
@@ -540,7 +540,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Exception during send: {e.Message}", Logging.LogFilterType.Error);
+                Logging.RecordException($"Exception during send: {e.Message}", e);
                 if (write != null && write.IsCanceled)
                 {
                     Logging.WriteConsole("Cancellation during send data");
@@ -674,7 +674,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.WriteConsole($"Exception {e} in StartConnectOut");
+                Logging.RecordException($"Exception '{e.Message}' in StartConnectOut", e);
                 Teardown();
                 return;
             }
@@ -1088,7 +1088,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Exception {e} parsing auth response", Logging.LogFilterType.Error);
+                Logging.RecordException($"Exception '{e}' parsing auth response", e);
                 return false;
             }
             string expectedConnectResponse = GUIMode ? connectResponseHeadless : connectResponseGUI;

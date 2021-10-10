@@ -712,7 +712,7 @@ namespace rgat
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordError($"Theme has invalid custom colour type {item.Key}-{e.Message}"); return false;
+                            Logging.RecordException($"Theme has invalid custom colour type {item.Key}-{e.Message}", e); return false;
                         }
                         if (customcolType >= eThemeColour.COUNT)
                         {
@@ -740,9 +740,9 @@ namespace rgat
                         {
                             stdcolType = (ImGuiCol)Enum.Parse(typeof(ImGuiCol), item.Key, true);
                         }
-                        catch (Exception)
+                        catch (Exception e)
                         {
-                            Logging.RecordError($"Theme has invalid standard colour type {item.Key}"); return false;
+                            Logging.RecordException($"Theme has invalid standard colour type {item.Key}", e); return false;
                         }
                         if (stdcolType >= ImGuiCol.COUNT)
                         {
@@ -770,9 +770,9 @@ namespace rgat
                         {
                             sizeType = (eThemeSize)Enum.Parse(typeof(eThemeSize), item.Key, true);
                         }
-                        catch (Exception)
+                        catch (Exception e)
                         {
-                            Logging.RecordError($"Theme has invalid size type {item.Key}"); return false;
+                            Logging.RecordException($"Theme has invalid size type {item.Key}", e); return false;
                         }
                         if (sizeType >= eThemeSize.COUNT)
                         {
@@ -801,9 +801,9 @@ namespace rgat
                         {
                             sizeType = (eThemeSize)Enum.Parse(typeof(eThemeSize), item.Key, true);
                         }
-                        catch (Exception)
+                        catch (Exception e)
                         {
-                            Logging.RecordError($"Theme has invalid sizelimit type {item.Key}"); return false;
+                            Logging.RecordException($"Theme has invalid sizelimit type {item.Key}", e); return false;
                         }
                         if (sizeType >= eThemeSize.COUNT)
                         {
@@ -1007,7 +1007,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Error restoring theme from JSON: {e.Message}");
+                Logging.RecordException($"Error restoring theme from JSON: {e.Message}", e);
                 error = "Error parsing JSON";
                 return false;
             }
@@ -1165,7 +1165,7 @@ namespace rgat
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Failed to load custom theme {item.Key}: {e.Message}");
+                        Logging.RecordException($"Failed to load custom theme {item.Key}: {e.Message}", e);
                     }
                 }
             }

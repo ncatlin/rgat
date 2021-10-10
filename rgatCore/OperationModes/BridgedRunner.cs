@@ -43,7 +43,7 @@ namespace rgat.OperationModes
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Exception in ConnectToListener: {e.Message}");
+                    Logging.RecordException($"Exception in ConnectToListener: {e.Message}", e);
                     rgatState.NetworkBridge.Teardown("Connection Failure");
                     return;
                 }
@@ -65,7 +65,7 @@ namespace rgat.OperationModes
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Exception in StartListenerMode: {e.Message}");
+                    Logging.RecordException($"Exception in StartListenerMode: {e.Message}", e);
                     rgatState.NetworkBridge.Teardown("Connection Failure");
                     return;
                 }
@@ -185,7 +185,7 @@ namespace rgat.OperationModes
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordLogEvent($"RunConnection Error: ProcessData exception {e.Message} <{item.msgType}>, data:{GetString(item.data)}", Logging.LogFilterType.Error);
+                            Logging.RecordException($"RunConnection Error: ProcessData exception {e.Message} <{item.msgType}>, data:{GetString(item.data)}", e);
                             connection.Teardown("RunConnection ProcessData Exception");
                             return;
                         }

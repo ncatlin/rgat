@@ -122,7 +122,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.WriteConsole($"Exception while trying to connect block pipe for PID {trace.PID}: {e.Message}");
+                Logging.RecordException($"Exception while trying to connect block pipe for PID {trace.PID}: {e.Message}", e);
             }
         }
 
@@ -342,7 +342,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordLogEvent($"BlockThread::RemoteListener exception {e.Message}");
+                    Logging.RecordException($"BlockThread::RemoteListener exception {e.Message}", e);
                     break;
                 }
                 lock (_lock)
@@ -354,18 +354,17 @@ namespace rgat
                 }
                 foreach (byte[] item in newItems)
                 {
-                    //try
+                    try
                     {
                         DissasembleBlock(item, item.Length);
                     }
-                    /*
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Remote Block processing exception: {e.Message}", Logging.LogFilterType.TextError);
+                        Logging.RecordException($"Block processing exception: {e.Message}", e);
                         rgatState.NetworkBridge.Teardown("Block Ingest Exception");
                         base.Finished();
                         return;
-                    }*/
+                    }
                 }
 
 
@@ -436,7 +435,7 @@ namespace rgat
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordError($"Local Block processing exception: {e}");
+                            Logging.RecordException($"Local Block processing exception: {e.Message}", e);
                             rgatState.NetworkBridge.Teardown();
                             base.Finished();
                             return;

@@ -1903,7 +1903,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Maingraph Compute error: {e.Message}");
+                Logging.RecordException($"Maingraph Compute error: {e.Message}", e);
                 return;
             }
 

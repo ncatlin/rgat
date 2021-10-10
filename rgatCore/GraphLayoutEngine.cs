@@ -355,10 +355,9 @@ namespace rgat
                     {
                         //when the nodes are near their targets, instead of bouncing around while coming to a stop, just snap them into position
                         float fastest = FindHighXYZ(layout.VelocitiesVRAM1, plot.ComputeBufferNodeCount, out int _);
-                        Logging.WriteConsole($"Presetspeed: {fastest}");
                         if (fastest < 1)
                         {
-                            Logging.WriteConsole("Preset done");
+                            Logging.RecordLogEvent("Preset done", filter: Logging.LogFilterType.Debug);
                             layout.CompleteLayoutChange();
                         }
                     }

@@ -31,7 +31,7 @@ namespace ImGuiNET
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordError($"Exception in outer GUI Runner: {e.Message}");
+                        Logging.RecordException($"Exception in outer GUI Runner: {e.Message}", e);
                     }
                     break;
 
@@ -44,7 +44,7 @@ namespace ImGuiNET
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordError($"Exception in outer RunHeadless: {e.Message}");
+                        Logging.RecordException($"Exception in outer RunHeadless: {e.Message}", e);
 
                     }
                     finally

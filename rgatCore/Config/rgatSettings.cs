@@ -854,7 +854,7 @@ namespace rgat.Config
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Failed to parse update version ({value}) from settings: {e.Message}");
+                        Logging.RecordException($"Failed to parse update version ({value}) from settings: {e.Message}", e);
                     }
 
                     MarkDirty();
@@ -875,7 +875,7 @@ namespace rgat.Config
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Failed to parse update version ({value}) from settings: {e.Message}");
+                        Logging.RecordException($"Failed to parse update version ({value}) from settings: {e.Message}", e);
                     }
 
                     MarkDirty();
@@ -1023,7 +1023,7 @@ namespace rgat.Config
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordLogEvent($"Failed to record recent directory containing {path}: {e.Message}");
+                            Logging.RecordException($"Failed to record recent directory containing {path}: {e.Message}", e);
                         }
                     }
                 }

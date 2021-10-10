@@ -931,16 +931,12 @@ private void DrawScalePopup()
                 ImGui.SetNextItemWidth(150);
                 ImGui.SliderFloat("##_replotSpread", ref _replotSpread, 0.001f, 5f);
 
-
-
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text("Edge Attraction");
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
                 ImGui.SliderFloat("##AttractionK", ref GlobalConfig.AttractionK, 0.001f, 1000);
-
-
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();

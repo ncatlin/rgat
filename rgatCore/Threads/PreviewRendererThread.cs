@@ -115,7 +115,7 @@ namespace rgat.Threads
             catch (Exception e)
             {
                 if (rgatState.rgatIsExiting is false)
-                    Logging.RecordError($"Preview renderer encountered error fetching new task: {e.Message}");
+                    Logging.RecordException($"Preview renderer encountered error fetching new task: {e.Message}", e);
             }
             return null;
         }
@@ -214,7 +214,7 @@ namespace rgat.Threads
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordError($"Preview Compute Error: {e.Message}");
+                            Logging.RecordException($"Preview Compute Error: {e.Message}", e);
                         }
 
                     }
@@ -225,7 +225,7 @@ namespace rgat.Threads
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordError($"Preview Render Error: {e.Message}");
+                        Logging.RecordException($"Preview Render Error: {e.Message}", e);
                     }
                 }
                 else

@@ -304,7 +304,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Error loading recent updates: {e.Message}");
+                Logging.RecordException($"Error loading recent updates: {e.Message}", e);
             }
         }
 
@@ -332,7 +332,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"LoadThemesFromResource: Failed to load manifest resource stream: {e.Message}");
+                Logging.RecordException($"LoadThemesFromResource: Failed to load manifest resource stream: {e.Message}", e);
                 return;
             }
             System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
@@ -347,7 +347,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordLogEvent($"Exception loading builtin themes: {e.Message}");
+                    Logging.RecordException($"Exception loading builtin themes: {e.Message}", e);
                 }
             }
         }
@@ -591,7 +591,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to save config: {e.Message}");
+                Logging.RecordException($"Failed to save config: {e.Message}", e);
             }
         }
 
@@ -724,12 +724,12 @@ namespace rgat
                     }
                     catch (Exception e2)
                     {
-                        Logging.RecordError($"Temporary settings {settingsPath} could not be created ({e2.Message})");
+                        Logging.RecordException($"Temporary settings {settingsPath} could not be created ({e2.Message})", e2);
                         return;
                     }
                 }
             }
-            Logging.WriteConsole($"Loading config from {settingsPath} {File.Exists(settingsPath)}");
+            Logging.RecordLogEvent($"Loading config from {settingsPath} {File.Exists(settingsPath)}");
 
             string settingsContents = File.ReadAllText(settingsPath);
             System.Text.Json.JsonSerializerOptions settingParserOptions = new System.Text.Json.JsonSerializerOptions() { AllowTrailingCommas = true };
@@ -741,7 +741,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Error: {e.Message} parsing exceptions file {settingsPath}");
+                Logging.RecordException($"Error: {e.Message} parsing exceptions file {settingsPath}", e);
             }
             if (Settings is null)
             {
@@ -799,7 +799,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Failed to create tools directory: {toolsDirectory}: {e.Message}");
+                    Logging.RecordException($"Failed to create tools directory: {toolsDirectory}: {e.Message}", e);
                     return;
                 }
             }
@@ -828,7 +828,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to install new pin tools: {e}");
+                Logging.RecordException($"Failed to install new pin tools: {e}", e);
             }
         }
     }

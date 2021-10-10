@@ -142,7 +142,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Unable to parse PE file: {settings.BinaryPath} - {e.Message}");
+                Logging.RecordException($"Unable to parse PE file: {settings.BinaryPath} - {e.Message}", e);
                 return null;
             }
 
@@ -208,7 +208,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to start process: {e.Message}");
+                Logging.RecordException($"Failed to start process: {e.Message}", e);
             }
             return result;
         }
@@ -221,7 +221,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Unable to delete loader {loader}: {e.Message}");
+                Logging.RecordException($"Unable to delete loader {loader}: {e.Message}", e);
             }
         }
 
@@ -254,7 +254,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to write loader to DLL directory: {e}");
+                Logging.RecordException($"Failed to write loader to DLL directory: {e.Message}", e);
                 return false;
             }
 
@@ -285,7 +285,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to start process: {e.Message}");
+                Logging.RecordException($"Failed to start process: {e.Message}", e);
             }
             return result;
 

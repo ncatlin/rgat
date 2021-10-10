@@ -300,7 +300,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to upload DIE signatures: {e.Message}");
+                Logging.RecordException($"Failed to upload DIE signatures: {e.Message}", e);
                 rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Failed to upload DIE signatures", Themes.eThemeColour.eBadStateColour);
             }
 
@@ -332,7 +332,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to replace signatures: {e.Message}");
+                Logging.RecordException($"Failed to replace signatures: {e.Message}", e);
                 rgatState.NetworkBridge.SendLog($"DIE signature sync failed: {e.Message}", Logging.LogFilterType.Error);
             }
         }

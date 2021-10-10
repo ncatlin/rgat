@@ -88,7 +88,7 @@ namespace rgat.OperationModes
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Exception in UI Update: {e.Message} - {e.StackTrace}");
+                    Logging.RecordException($"Exception in UI Update: {e.Message}", e);
                 }
             }
 
@@ -139,7 +139,7 @@ namespace rgat.OperationModes
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Error 2: unable to initialise the Vulkan drivers. {e.Message}");
+                Logging.RecordException($"Error 2: unable to initialise Vulkan driver. {e.Message}", e);
             }
 
             if (!loadSuccess || _gd is null || _window is null)
@@ -285,7 +285,7 @@ namespace rgat.OperationModes
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordLogEvent($"Unhandled exception while taking screenshot {_rgatUI.PendingScreenshot}: {e.Message}");
+                    Logging.RecordException($"Unhandled exception while taking screenshot {_rgatUI.PendingScreenshot}: {e.Message}", e);
                 }
                 if (savePath is not null)
                 {

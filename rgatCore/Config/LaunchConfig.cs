@@ -344,7 +344,6 @@ namespace rgat.Config
                 }
                 catch (Exception e)
                 {
-
                     error = $"Bad JSON file {path}: {e.Message}";
                     return false;
                 }

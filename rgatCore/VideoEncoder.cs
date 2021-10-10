@@ -174,7 +174,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Error stopping recording: {e}");
+                Logging.RecordException($"Error stopping recording: {e}", e);
             }
         }
 
@@ -229,7 +229,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Unable to use configured media path {currentPath}: {e.Message}");
+                    Logging.RecordException($"Unable to use configured media path {currentPath}: {e.Message}", e);
                 }
             }
 
@@ -353,7 +353,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Error saving image {targetfile} as format {format}: {e.Message}");
+                Logging.RecordException($"Error saving image {targetfile} as format {format}: {e.Message}", e);
             }
             return targetfile;
         }
@@ -367,7 +367,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Unable to parse video speed setting '{GlobalConfig.Settings.Media.VideoCodec_Speed}' into a speed preset: {e.Message}");
+                Logging.Exception($"Unable to parse video speed setting '{GlobalConfig.Settings.Media.VideoCodec_Speed}' into a speed preset: {e.Message}", e);
                 result = Speed.Medium;
                 GlobalConfig.Settings.Media.VideoCodec_Speed = GlobalConfig.Settings.Media.VideoCodec_Speed.ToString();
             }
@@ -427,11 +427,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError("FFMpeg Record Error: " + e.Message);
-                Logging.WriteConsole("-----------FFMPEG EXCEPTION-------------");
-                Logging.WriteConsole(e.Message);
-                Logging.WriteConsole(e.InnerException?.Message);
-                Logging.WriteConsole("-----------FFMPEG EXCEPTION-------------");
+                Logging.RecordException("FFMpeg Record Error: " + e.Message, e);
             }
 
 

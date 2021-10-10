@@ -258,7 +258,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Failed to load API call details: {e.Message}");
+                    Logging.RecordException($"Failed to load API call details: {e.Message}", e);
                     return false;
                 }
             }

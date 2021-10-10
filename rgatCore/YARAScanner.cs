@@ -84,7 +84,7 @@ namespace rgat
                 {
                     return false;
                 }
-                Logging.RecordLogEvent($"Unexpected error {e.Message} when checking for yara");
+                Logging.RecordException($"Unexpected error {e.Message} when checking for yara", e);
             }
 
             return false;
@@ -213,7 +213,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"Error starting YARA scan: {e}");
+                Logging.RecordException($"Error starting YARA scan: {e.Message}", e);
             }
         }
 
@@ -272,7 +272,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordLogEvent($"Loading precompiled yara rules failed ({e.Message}) - regenerating");
+                    Logging.RecordException($"Loading precompiled yara rules failed ({e.Message}) - regenerating", e);
                     recompile = true;
                 }
             }
@@ -352,7 +352,7 @@ namespace rgat
                         {
                             //a bad rule causes an exeption in compilation and cant be removed, so we have to remove the whole file and recompile all from scratch
                             failed = true;
-                            Logging.RecordLogEvent($"Failed to compile Yara rule in file {rulespath}: {e.Message}", Logging.LogFilterType.Error);
+                            Logging.RecordException($"Failed to compile Yara rule in file {rulespath}: {e.Message}", e);
                             ruleFiles.Remove(rulespath);
                             if (!ruleFiles.Any())
                             {
@@ -510,7 +510,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent("YARA Scan failed with exeption: " + e.Message, Logging.LogFilterType.Error);
+                Logging.RecordException("YARA Scan failed with exeption: " + e.Message, e);
                 targetScanProgress[targ] = eYaraScanProgress.eFailed;
             }
 
@@ -579,7 +579,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Failed to replace YARA signatures: {e.Message}");
+                Logging.RecordException($"Failed to replace YARA signatures: {e.Message}", e);
                 rgatState.NetworkBridge.SendLog($"YARA signature sync failed: {e.Message}", Logging.LogFilterType.Error);
             }
         }

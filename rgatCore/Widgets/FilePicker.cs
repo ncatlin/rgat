@@ -1538,7 +1538,7 @@ namespace rgatFilePicker
             catch (Exception e)
             {
                 Data.ErrMsg = $"Failed to list directory '{Data.CurrentDirectory}' contents: {e.Message}";
-                Logging.RecordLogEvent(Data.ErrMsg);
+                Logging.RecordException(Data.ErrMsg, e);
             }
             return newFileListing;
         }

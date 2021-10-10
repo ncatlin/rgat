@@ -805,7 +805,7 @@ namespace rgat.Widgets
             {
                 if (!rgatState.ExitToken.IsCancellationRequested)
                 {
-                    Logging.RecordError($"Error syncing signatures: {e.Message}");
+                    Logging.RecordException($"Error syncing signatures: {e.Message}", e);
                 }
             }
             _syncingSigs = false;

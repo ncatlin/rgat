@@ -816,7 +816,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"disas box exc {e}");
+                    Logging.RecordLogEvent($"Disassembly box exception: {e.Message}");
                 }
                 finally
                 {

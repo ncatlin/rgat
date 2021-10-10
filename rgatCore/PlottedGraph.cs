@@ -2434,7 +2434,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Exception regenerating edge buffers: {e.Message}");
+                    Logging.RecordException($"Exception regenerating edge buffers: {e.Message}", e);
                 }
                 finally
                 {

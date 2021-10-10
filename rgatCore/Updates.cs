@@ -407,7 +407,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Update from staged download failed: {e.Message}");
+                Logging.RecordException($"Update from staged download failed: {e.Message}", e);
                 GlobalConfig.Settings.Updates.StagedDownloadPath = "";
                 GlobalConfig.Settings.Updates.UpdateLastCheckVersion = new Version("0");
             }
@@ -464,10 +464,13 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError($"Download Failed: {e.Message}");
                 if (e.InnerException != null)
                 {
-                    Logging.RecordError($"Download Failed: {e.InnerException.Message}");
+                    Logging.RecordException($"Download Failed: {e.InnerException.Message}", e.InnerException);
+                }
+                else
+                {
+                    Logging.RecordException($"Download Failed: {e.Message}", e);
                 }
                 _update_in_progress = false;
 
@@ -511,7 +514,7 @@ namespace rgat
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordLogEvent($"Exception deleting bad update: {e.Message}", filter: Logging.LogFilterType.Error);
+                        Logging.RecordException($"Exception deleting bad update: {e.Message}", e);
                     }
                 }
             }

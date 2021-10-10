@@ -16,6 +16,7 @@ glslangValidator.exe  -V sim-nodePosition.glsl -o sim-nodePosition.spv -S comp
 struct PositionParams
 {
     float delta;
+    uint nodeCount;
 };
 layout(set = 0, binding=0) uniform Params{  PositionParams fieldParams;};
 layout(set = 0, binding=1) buffer bufpositions{vec4 positions[];};
@@ -27,7 +28,12 @@ layout (local_size_x = 256) in;
 
 void main()	{
     uvec3 id = gl_GlobalInvocationID;    
-    uint index = id.x;// id.y * 256 + id.x; //what should be done here?
-    vec4 selfPosition = positions[index];    
-    field_Destination[index] = vec4( selfPosition.xyz + velocities[index].xyz * fieldParams.delta * 50.0, selfPosition.w );
+    uint index = id.y * 256 + id.x;
+
+    if (index < fieldParams.nodeCount)
+    {
+        uint index = id.x;// id.y * 256 + id.x; //what should be done here?
+        vec4 selfPosition = positions[index];    
+        field_Destination[index] = vec4( selfPosition.xyz + velocities[index].xyz * fieldParams.delta * 50.0, selfPosition.w );
+    }
 }

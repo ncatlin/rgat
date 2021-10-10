@@ -117,7 +117,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Failed to load DiELib.NET: {e.Message}");
+                    Logging.RecordException($"Failed to load DiELib.NET: {e.Message}", e);
                 }
             }
             else
@@ -137,7 +137,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"Unable to load YARA: {e.Message}");
+                    Logging.RecordException($"Unable to load YARA: {e.Message}", e);
                 }
             }
             else
@@ -676,7 +676,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordError("Error loading trace file: " + e.Message);
+                Logging.RecordException("Error loading trace file: " + e.Message, e);
                 success = false;
             }
 
@@ -840,7 +840,7 @@ namespace rgat
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordError($"Error saving trace {trace.PID} - {e.Message}");
+                        Logging.RecordException($"Error saving trace {trace.PID} - {e.Message}", e);
                     }
                 }
             }
@@ -860,7 +860,7 @@ namespace rgat
             catch (Exception e)
             {
                 //Probably will be a thread safety issue
-                Logging.RecordError($"Failure exporting Pajek layout ({e.Message})");
+                Logging.RecordException($"Failure exporting Pajek layout ({e.Message})", e);
             }
         }
 

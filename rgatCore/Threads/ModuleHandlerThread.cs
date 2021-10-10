@@ -395,7 +395,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordLogEvent($"MH:SendCommand failed with exception {e.Message}");
+                    Logging.RecordException($"MH:SendCommand failed with exception {e.Message}", e);
                     return false;
                 }
 
@@ -422,7 +422,7 @@ namespace rgat
             try { commandPipe!.Write(buf, 0, buf.Length); }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"MH:CommandWrite Exception '{e.Message}' while writing command: {msg}");
+                Logging.RecordException($"MH:CommandWrite Exception '{e.Message}' while writing command: {msg}", e);
                 return false;
             }
             commandPipe.Flush();
@@ -541,7 +541,7 @@ namespace rgat
             }
             catch (Exception e)
             {
-                Logging.RecordLogEvent($"MH:{pipeType} pipe exception for PID {trace.PID}: + {e.Message}");
+                Logging.RecordException($"MH:{pipeType} pipe exception for PID {trace.PID}: + {e.Message}", e);
             }
         }
 
@@ -745,7 +745,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"BlockThread::RemoteCommandListener exception {e.Message}");
+                    Logging.RecordException($"BlockThread::RemoteCommandListener exception {e.Message}", e);
                     break;
                 }
                 lock (_lock)
@@ -764,7 +764,7 @@ namespace rgat
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordError($"Remote command processing exception: {e}");
+                        Logging.RecordException($"Remote command processing exception: {e.Message}", e);
                         rgatState.NetworkBridge.Teardown();
                         base.Finished();
                         return;
@@ -792,7 +792,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordError($"BlockThread::RemoteEventListener exception {e.Message}");
+                    Logging.RecordException($"BlockThread::RemoteEventListener exception {e.Message}", e);
                     break;
                 }
                 lock (_lock)
@@ -810,7 +810,7 @@ namespace rgat
                     }
                     catch (Exception e)
                     {
-                        Logging.RecordError($"Remote Event processing exception: {e}");
+                        Logging.RecordException($"Remote Event processing exception: {e.Message}", e);
                         rgatState.NetworkBridge.Teardown();
                         base.Finished();
                         return;
@@ -901,7 +901,7 @@ namespace rgat
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordError($"Local Event processing exception: {e}");
+                            Logging.RecordException($"Local Event processing exception: {e.Message}", e);
                             rgatState.NetworkBridge?.Teardown();
                             base.Finished();
                             return;
