@@ -64,7 +64,7 @@ namespace rgat
         private readonly Dictionary<LayoutStyles.Style, CPUBuffers> SavedStates = new Dictionary<LayoutStyles.Style, CPUBuffers>();
 
 
-        Random _rng = new Random();
+        readonly Random _rng = new Random();
 
 
         /// <summary>

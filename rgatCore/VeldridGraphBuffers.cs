@@ -358,8 +358,7 @@ namespace rgat
             public const uint SizeInBytes = 20;
         }
 
-        /// <s
-        /// ummary>
+        /// <summary>
         /// Raw colour and geometry in 2D
         /// </summary>
         public struct Position2DColour

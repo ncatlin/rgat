@@ -56,12 +56,16 @@ namespace rgat
         private DeviceBuffer? _FontVertBuffer;
         private DeviceBuffer? _paramsBuffer;
         private int latestWrittenTexture = 1;
+        private Vector2? _newGraphSize = null;
 
         public Vector2 WidgetPos { get; private set; }
 
         private Vector2 _MousePos;
 
         public int MouseoverNodeID { get; private set; } = -1;
+        private Action<bool>? _dialogStateChangeCallback = null;
+
+        private static readonly Dictionary<string, fontStruc[]> _cachedStrings = new();
 
 
         /// <summary>
@@ -106,7 +110,6 @@ namespace rgat
             _QuickMenu.SetStateChangeCallback(action);
         }
 
-        private Action<bool>? _dialogStateChangeCallback = null;
 
         public void Dispose()
         {
@@ -908,8 +911,6 @@ namespace rgat
             _renderingMode = newMode;
         }
 
-        private static readonly Dictionary<string, fontStruc[]> _cachedStrings = new();
-
 
         /// <summary>
         /// Convert a string to a List of fontStrucs describing the font glyphs to display the string
@@ -924,42 +925,45 @@ namespace rgat
         /// <param name="yOff">Vertical offset for the glyphs</param> //todo think caching wrecks this
         private static void RenderString(string inputString, uint nodeIdx, float fontScale, ImFontPtr font, List<fontStruc> stringVerts, uint colour, float yOff = 0)
         {
-            if (_cachedStrings.TryGetValue(inputString, out fontStruc[]? cached) && cached is not null)
+            if (!_cachedStrings.TryGetValue(inputString, out fontStruc[]? result) || result is null)
             {
-                stringVerts.AddRange(cached);
-                return;
+                float xPos = 0;
+                float yPos = 50;
+                float glyphYClip = 10;
+                WritableRgbaFloat fcolour = new WritableRgbaFloat(colour);
+                result = new fontStruc[6 * inputString.Length];
+                for (var i = 0; i < inputString.Length; i++)
+                {
+                    ImFontGlyphPtr glyph = font.FindGlyph(inputString[i]);
+                    float charWidth = glyph.AdvanceX * fontScale;
+                    float charHeight = fontScale * (glyph.Y1 - glyph.Y0);
+
+
+                    float xEnd = xPos + charWidth;
+                    float yBase = yPos + (glyphYClip - glyph.Y1) * fontScale;
+                    float yTop = yBase + charHeight;
+
+                    Vector2 uv0 = new Vector2(glyph.U0, glyph.V0);
+                    Vector2 uv1 = new Vector2(glyph.U1, glyph.V1);
+                    Vector3 topLeft = new Vector3(xPos, yTop, 0);
+                    Vector3 baseRight = new Vector3(xEnd, yBase, 0);
+                    result[i * 6] = new fontStruc { nodeIdx = nodeIdx, screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
+                    result[i * 6 + 1] = new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yBase, 0), fontCoord = new Vector2(glyph.U0, glyph.V1), yOffset = yOff, fontColour = fcolour };
+                    result[i * 6 + 2] = new fontStruc { nodeIdx = nodeIdx, screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
+                    result[i * 6 + 3] = new fontStruc { nodeIdx = nodeIdx, screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
+                    result[i * 6 + 4] = new fontStruc { nodeIdx = nodeIdx, screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
+                    result[i * 6 + 5] = new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yTop, 0), fontCoord = new Vector2(glyph.U1, glyph.V0), yOffset = yOff, fontColour = fcolour };
+                    xPos += charWidth;
+                }
+                _cachedStrings.Add(inputString, result);
             }
 
-            float xPos = 0;
-            float yPos = 50;
-            float glyphYClip = 10;
-            WritableRgbaFloat fcolour = new WritableRgbaFloat(colour);
-            fontStruc[] result = new fontStruc[6 * inputString.Length];
-            for (var i = 0; i < inputString.Length; i++)
+            for (var i = 0; i < result.Length; i++)
             {
-                ImFontGlyphPtr glyph = font.FindGlyph(inputString[i]);
-                float charWidth = glyph.AdvanceX * fontScale;
-                float charHeight = fontScale * (glyph.Y1 - glyph.Y0);
-
-
-                float xEnd = xPos + charWidth;
-                float yBase = yPos + (glyphYClip - glyph.Y1) * fontScale;
-                float yTop = yBase + charHeight;
-
-                Vector2 uv0 = new Vector2(glyph.U0, glyph.V0);
-                Vector2 uv1 = new Vector2(glyph.U1, glyph.V1);
-                Vector3 topLeft = new Vector3(xPos, yTop, 0);
-                Vector3 baseRight = new Vector3(xEnd, yBase, 0);
-                result[i * 6] = new fontStruc { nodeIdx = nodeIdx, screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
-                result[i * 6 + 1] = new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xPos, yBase, 0), fontCoord = new Vector2(glyph.U0, glyph.V1), yOffset = yOff, fontColour = fcolour };
-                result[i * 6 + 2] = new fontStruc { nodeIdx = nodeIdx, screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
-                result[i * 6 + 3] = new fontStruc { nodeIdx = nodeIdx, screenCoord = topLeft, fontCoord = uv0, yOffset = yOff, fontColour = fcolour };
-                result[i * 6 + 4] = new fontStruc { nodeIdx = nodeIdx, screenCoord = baseRight, fontCoord = uv1, yOffset = yOff, fontColour = fcolour };
-                result[i * 6 + 5] = new fontStruc { nodeIdx = nodeIdx, screenCoord = new Vector3(xEnd, yTop, 0), fontCoord = new Vector2(glyph.U1, glyph.V0), yOffset = yOff, fontColour = fcolour };
-                xPos += charWidth;
+                result[i].nodeIdx = nodeIdx;
+                result[i].yOffset = yOff;
+                stringVerts.Add(result[i]); //do this in the lower loop because this is wrong in the cached struct
             }
-            _cachedStrings.Add(inputString, result);
-            stringVerts.AddRange(result);
         }
 
 
@@ -992,7 +996,6 @@ namespace rgat
                     float charWidth = glyph.AdvanceX * fontScale;
                     float charHeight = fontScale * (glyph.Y1 - glyph.Y0);
 
-
                     float xEnd = xPos + charWidth;
                     float yBase = yPos + (glyphYClip - glyph.Y1) * fontScale;
                     float yTop = yBase + charHeight;
@@ -1016,6 +1019,7 @@ namespace rgat
             {
                 stringVerts[arrayIdx + i] = cached[i]; //do this in the lower loop because this is wrong in the cached struct
                 stringVerts[arrayIdx + i].nodeIdx = nodeIdx;
+                stringVerts[arrayIdx + i].yOffset = 0;
             }
         }
 
@@ -1098,7 +1102,8 @@ namespace rgat
             return higlightNodeVerts;
         }
 
-        private void MaintainRisingTexts(float fontScale, ref List<fontStruc> stringVerts)
+
+        private void MaintainRisingTexts(float fontScale, List<fontStruc> stringVerts)
         {
             _activeRisings.RemoveAll(x => x.remainingFrames == 0);
             PlottedGraph? graph = ActiveGraph;
@@ -1172,14 +1177,13 @@ namespace rgat
                     ar.currentY += GlobalConfig.ExternAnimRisePerFrame;
                     ar.remainingFrames -= 1;
                 }
-                //Logging.WriteConsole($"Drawing '{ar.text}' at y {ar.currentY}");
+                //Logging.WriteConsole($"Drawing '{ar.text}' at y {ar.nodeIdx}:{ar.currentY}");
                 RenderString(ar.text, (uint)ar.nodeIdx, fontScale, _controller._unicodeFont, stringVerts, risingSymColour, yOff: ar.currentY);
             }
         }
 
         private fontStruc[] renderGraphText(List<Tuple<string?, uint>> captions, float scale)
         {
-            List<fontStruc> stringVerts = new List<fontStruc>();
             PlottedGraph? graph = ActiveGraph;
             if (graph == null)
             {
@@ -1320,11 +1324,9 @@ namespace rgat
                 stringVerts = RenderHighlightedNodeText(captions, MouseoverNodeID).ToArray();
             }
 
-
             List<fontStruc> risingTextVerts = new List<fontStruc>();
-            MaintainRisingTexts(GlobalConfig.InsTextScale, ref risingTextVerts);
+            MaintainRisingTexts(GlobalConfig.InsTextScale, risingTextVerts);
             UploadFontVerts(stringVerts, risingTextVerts.ToArray(), cl);
-
 
             st.Stop();
             if (st.ElapsedMilliseconds > 100)
@@ -1387,17 +1389,14 @@ namespace rgat
             if (plot.Opt_TextEnabled)
             {
                 cl.SetViewport(0, new Viewport(0, 0, WidgetSize.X, WidgetSize.Y, -2200, 1000));
-
                 cl.SetPipeline(_fontPipeline);
                 cl.SetVertexBuffer(0, _FontVertBuffer);
                 cl.SetGraphicsResourceSet(0, crs_core);
                 cl.SetGraphicsResourceSet(1, _crs_font);
-
                 cl.Draw((uint)(stringVerts.Length + risingTextVerts.Count));
             }
 
             //update the picking framebuffer 
-            //todo - not every frame?
             cl.SetPipeline(_pickingPipeline);
             cl.SetGraphicsResourceSet(0, crs_core);
             cl.SetGraphicsResourceSet(1, crs_nodesEdges);
@@ -1434,9 +1433,6 @@ namespace rgat
         /// <returns>The texture for the drawn framebuffer. Useful for screenshots/videos</returns>
         public Texture DrawGraphImage()
         {
-
-            Stopwatch sw = new();
-            sw.Start();
             Vector2 currentRegionSize = ImGui.GetContentRegionAvail();
             if (currentRegionSize != WidgetSize)
             {
@@ -1449,36 +1445,20 @@ namespace rgat
             WidgetPos = ImGui.GetCursorScreenPos();
             _MousePos = ImGui.GetMousePos();
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
-            sw.Stop();
-            if (sw.ElapsedMilliseconds > 40)
-                Console.WriteLine($"DGI W?HAT 1 {sw.ElapsedMilliseconds}");
 
-            sw.Restart();
             GetLatestTexture(out Texture outputTexture);
 
-            sw.Stop();
-            if (sw.ElapsedMilliseconds > 40)
-                Console.WriteLine($"DGI W?HAT 2 {sw.ElapsedMilliseconds}");
-
-            sw.Restart();
             IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_gd!.ResourceFactory, outputTexture, "GraphMainPlot" + outputTexture.Name);
 
-            sw.Stop();
-            if (sw.ElapsedMilliseconds > 40)
-                Console.WriteLine($"DGI W?HAT 3 {sw.ElapsedMilliseconds}");
-
-            sw.Restart();
             imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: WidgetPos,
                 p_max: new Vector2(WidgetPos.X + outputTexture.Width, WidgetPos.Y + outputTexture.Height),
                 uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
 
             _isInputTarget = ImGui.IsItemActive();
 
-            sw.Stop();
-            if (sw.ElapsedMilliseconds > 40)
-                Console.WriteLine($"DGI W?HAT 4 {sw.ElapsedMilliseconds}");
             return outputTexture;
         }
+
 
         /// <summary>
         /// Get the current text colour as a Vector4
@@ -1557,7 +1537,6 @@ namespace rgat
         }
 
 
-
         struct EVTLABEL
         {
             public string text;
@@ -1565,6 +1544,7 @@ namespace rgat
             public double alpha;
             public float height;
         }
+
 
         /// <summary>
         /// Display trace events (process/thread stop/start) in the visualiser widget which are
@@ -1716,10 +1696,6 @@ namespace rgat
             }
 
             _QuickMenu.Draw(bottomLeft, 0.25f, activeGraph);
-
-
-            //Vector2 midRight = new Vector2(bottomLeft.X + widgetSize.X, bottomLeft.Y - widgetSize.Y / 2);
-            //DrawDisasmPreview(graph, midRight);
         }
 
         private bool _showLayoutSelectorPopup;
@@ -1837,8 +1813,6 @@ namespace rgat
                 if (!snappingToPreset && graph.SetLayout(LayoutStyles.Style.Circle)) { graph.BeginNewLayout(); }
             }
         }
-
-        private Vector2? _newGraphSize = null;
 
 
 

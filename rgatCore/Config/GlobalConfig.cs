@@ -184,7 +184,7 @@ namespace rgat
         /// <summary>
         /// How far API labels rise during animation frames [todo should be in consts]
         /// </summary>
-        public static float ExternAnimRisePerFrame = 1.4f;
+        public static float ExternAnimRisePerFrame = 15f;
 
         //public static uint MaximumLoadedGraphs = 1; //todo for dev - change to something like 20 later
 

@@ -6085,16 +6085,6 @@
             A count for this event
             </summary>
         </member>
-        <member name="F:rgat.ANIMATIONENTRY.targetAddr">
-            <summary>
-            The target address of the event
-            </summary>
-        </member>
-        <member name="F:rgat.ANIMATIONENTRY.targetID">
-            <summary>
-            The block ID of the target
-            </summary>
-        </member>
         <member name="T:rgat.ProtoGraph">
             <summary>
             The data structure representing a recorded process thread
@@ -6462,6 +6452,15 @@
             ReleaseSavedAnimationDataReference() must be called after being finished with the list
             </summary>
             <returns>The original list of entries</returns>
+        </member>
+        <member name="M:rgat.ProtoGraph.ModifyLastEntryThunkCaller(System.UInt32,System.UInt64)">
+            <summary>
+            Insert a target edge into the last animation entry
+            In practice this is used for adding a thunk edge
+            </summary>
+            <param name="source"></param>
+            <param name="target"></param>
+            <returns></returns>
         </member>
         <member name="M:rgat.ProtoGraph.ReleaseSavedAnimationDataReference">
             <summary>
@@ -8578,6 +8577,11 @@
             This trace (and its children) are not recording replay data
             </summary>
         </member>
+        <member name="P:rgat.TraceRecord.HideAPIThunks">
+            <summary>
+            Write thunks out of the graph (so an extern/API node is created next to each caller)
+            </summary>
+        </member>
         <member name="M:rgat.TraceRecord.SetTraceState(rgat.TraceRecord.ProcessState)">
             <summary>
             Set the trace state
@@ -8604,7 +8608,7 @@
             </summary>
             <returns>The latest PlottedGraph with nodes</returns>
         </member>
-        <member name="M:rgat.TraceRecord.Load(Newtonsoft.Json.JsonReader,Newtonsoft.Json.JsonSerializer,rgat.rgatState.SERIALISE_PROGRESS,Veldrid.GraphicsDevice)">
+        <member name="M:rgat.TraceRecord.Load(Newtonsoft.Json.JsonReader,Newtonsoft.Json.JsonSerializer,Newtonsoft.Json.Linq.JObject,rgat.rgatState.SERIALISE_PROGRESS,Veldrid.GraphicsDevice)">
             <summary>
             Deserialise a TraceRecord from JSON
             </summary>
@@ -8613,6 +8617,12 @@
             <param name="progress">A serialisation progress object</param>
             <param name="device">A GraphicsDevice to start rendering the graphs with</param>
             <returns>If load was successful</returns>
+        </member>
+        <member name="M:rgat.TraceRecord.LoadTraceMetadata(Newtonsoft.Json.Linq.JObject)">
+            <summary>
+            Load general trace metadata/settings from the save file metadata object
+            </summary>
+            <param name="mdobj"></param>
         </member>
         <member name="M:rgat.TraceRecord.RecordTimelineEvent(rgat.Logging.eTimelineEvent,rgat.TraceRecord,rgat.ProtoGraph)">
             <summary>
@@ -9009,7 +9019,11 @@
             Size of this structure in bytes
             </summary>
         </member>
-        <!-- Badly formed XML comment ignored for member "T:rgat.VeldridGraphBuffers.Position2DColour" -->
+        <member name="T:rgat.VeldridGraphBuffers.Position2DColour">
+            <summary>
+            Raw colour and geometry in 2D
+            </summary>
+        </member>
         <member name="F:rgat.VeldridGraphBuffers.Position2DColour.Position">
             <summary>
             Possitions buffer index

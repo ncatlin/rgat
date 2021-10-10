@@ -159,14 +159,6 @@ namespace rgat
         /// A count for this event
         /// </summary>
         public ulong count;
-        /// <summary>
-        /// The target address of the event
-        /// </summary>
-        public ulong targetAddr;
-        /// <summary>
-        /// The block ID of the target
-        /// </summary>
-        public uint targetID;
     };
 
 
@@ -1733,8 +1725,6 @@ namespace rgat
                     writer.WriteValue(repentry.blockAddr);
                     writer.WriteValue(repentry.blockID);
                     writer.WriteValue(repentry.count);
-                    writer.WriteValue(repentry.targetAddr);
-                    writer.WriteValue(repentry.targetID);
 
                     if (repentry.edgeCounts is null)
                     {
@@ -2117,8 +2107,6 @@ namespace rgat
                 entry.blockAddr = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
                 entry.blockID = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
                 entry.count = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
-                entry.targetAddr = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
-                entry.targetID = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
 
                 int edgeRepCount = serializer.Deserialize<int>(jsnReader); jsnReader.Read();
                 if (edgeRepCount is 0)
@@ -2187,6 +2175,30 @@ namespace rgat
             {
                 animDataRefs += 1;
                 return SavedAnimationData;
+            }
+        }
+
+
+        /// <summary>
+        /// Insert a target edge into the last animation entry
+        /// In practice this is used for adding a thunk edge
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        public void ModifyLastEntryThunkCaller(uint source, ulong target)
+        {
+            lock (AnimDataLock)
+            {
+                ANIMATIONENTRY entry = SavedAnimationData[^1];
+                if (entry.entryType is not eTraceUpdateType.eAnimExecTag) return;
+
+                if (entry.edgeCounts is null)
+                {
+                    entry.edgeCounts = new List<Tuple<uint, ulong>>();
+                }
+                entry.edgeCounts.Add(new Tuple<uint, ulong>(source, target));
+                SavedAnimationData[^1] = entry;
             }
         }
 

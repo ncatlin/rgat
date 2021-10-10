@@ -456,12 +456,6 @@ namespace rgat.Threads
                 return;
             }
 
-            if (nextBlockAddress is 0x7A6D9457 || thistag.blockaddr is 0x7A6D9457 ||
-                nextBlockAddress is 0x754a74b0 || thistag.blockaddr is 0x754a74b0)
-            {
-                Console.Write("here");
-            }
-
             thistag.InstrumentationState = eCodeInstrumentation.eInstrumentedCode;
             thistag.foundExtern = null;
             thistag.insCount = 0; //meaningless here
@@ -470,11 +464,8 @@ namespace rgat.Threads
             //fallen through/failed conditional jump
             if (_ignore_next_tag)
             {
-                if (_ignore_next_tag)
-                {
-                    Debug.Assert(thistag.blockID == _ignored_tag_blockID); //todo - happens singlestepping past call then continuing in functions test
-                    _ignore_next_tag = false;
-                }
+                Debug.Assert(thistag.blockID == _ignored_tag_blockID); //todo - happens singlestepping past call then continuing in functions test
+                _ignore_next_tag = false;
                 return;
             }
 
@@ -499,7 +490,7 @@ namespace rgat.Threads
                 {
                     sw.Restart();
                     List<InstructionData>? preExternBlock = protograph.TraceData.DisassemblyData.getDisassemblyBlock(thistag.blockID);
-                    if (this.protograph.TraceData.Target.LaunchSettings.HideAPIThunks is true && //todo trace specific
+                    if (protograph.TraceData.HideAPIThunks is true &&
                         preExternBlock is not null &&
                         preExternBlock.Count == 1 &&
                         preExternBlock[0].PossibleidataThunk)
@@ -528,10 +519,14 @@ namespace rgat.Threads
                         {
 
                             thunkInstruction.AddThreadVert(protograph.ThreadID, protograph.ProtoLastVertID);
-                            //todo this can be bad idx
+                            
                             if (protograph.ProtoLastLastVertID < protograph.NodeList.Count)
                             {
                                 protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller = true;
+
+                                // Add the mapping from thunk to created node to the animation entry
+                                // This allows us to replay the right node
+                                protograph.ModifyLastEntryThunkCaller(protograph.ProtoLastLastVertID, protograph.ProtoLastVertID);
                             }
                             else
                             {
@@ -713,8 +708,6 @@ namespace rgat.Threads
             ANIMATIONENTRY animUpdate;
             animUpdate.entryType = eTraceUpdateType.eAnimReinstrument;
             animUpdate.blockID = uint.Parse(entries[1], NumberStyles.HexNumber);
-            animUpdate.targetAddr = 0;
-            animUpdate.targetID = 0;
             animUpdate.count = 0;
             animUpdate.edgeCounts = null;
             animUpdate.blockAddr = 0;
@@ -757,8 +750,6 @@ namespace rgat.Threads
             ANIMATIONENTRY animUpdate;
             animUpdate.entryType = eTraceUpdateType.eAnimUnchained;
             animUpdate.blockID = uint.Parse(entries[1], NumberStyles.HexNumber);
-            animUpdate.targetAddr = 0;
-            animUpdate.targetID = 0;
             animUpdate.count = 0;
             animUpdate.edgeCounts = null;
             animUpdate.blockAddr = 0;
@@ -871,8 +862,6 @@ namespace rgat.Threads
             animUpdate.blockID = newRepeat.blockID;
             animUpdate.edgeCounts = newRepeat.targEdges;
             animUpdate.count = blockExecs;
-            animUpdate.targetAddr = ulong.MaxValue;
-            animUpdate.targetID = 0;
             protograph.PushAnimUpdate(animUpdate);
 
             if (blockExecs > protograph.BusiestBlockExecCount)
@@ -961,8 +950,6 @@ namespace rgat.Threads
             animUpdate.blockAddr = interruptedBlockTag.blockaddr;
             animUpdate.blockID = interruptedBlockTag.blockID;
             animUpdate.count = (ulong)instructionsUntilFault;
-            animUpdate.targetAddr = 0;
-            animUpdate.targetID = 0;
             animUpdate.edgeCounts = null;
             protograph.PushAnimUpdate(animUpdate);
         }

@@ -966,7 +966,7 @@ namespace rgat
         //Adapted from analytics textureGenerator.js 
         private float[] GenerateCircleLayout()
         {
-            
+
             int nodeCount = _graphStructureLinear.Count;
             uint textureSize = LinearIndexTextureSize();
 
@@ -1630,7 +1630,7 @@ namespace rgat
         /// <returns>Node geometry array</returns>
         public Position1DColour[] GetPreviewgraphNodeVerts(eRenderingMode renderingMode, out int nodeCount)
         {
-            
+
             int maxNodes = InternalProtoGraph.NodeCount;
             int textureWidth = (int)LinearIndexTextureSize();
             int textureSize = textureWidth * textureWidth * 4;
@@ -1953,9 +1953,10 @@ namespace rgat
                 AddPulseActiveNode(LinkingPair.Item1);
                 AddPulseActiveNode(LinkingPair.Item2);
             }
-
-
         }
+
+
+
 
         private void brighten_node_list(ANIMATIONENTRY entry, int brightTime, List<uint> nodeIDList)
         {
@@ -2185,7 +2186,9 @@ namespace rgat
             if (replayUpdateIndex > 0)
             {
                 ANIMATIONENTRY lastentry = animationDataList[replayUpdateIndex - 1];
-                if (lastentry.entryType == eTraceUpdateType.eAnimExecTag)
+                if (lastentry.entryType == eTraceUpdateType.eAnimExecTag &&
+                    _expectingThunk is false // if an API thunk is being called then this edge will be wrong
+                    )
                 {
                     brighten_next_block_edge(entry.blockID, entry.blockAddr);
                 }
@@ -2250,19 +2253,50 @@ namespace rgat
                 }
             }
 
-            if (nodeIDList is not null)
+            if (nodeIDList is not null && nodeIDList.Any())
             {
-                //add all the nodes+edges in the block to the brightening list
-                brighten_node_list(entry, brightTime, nodeIDList);
+
+                if (InternalProtoGraph.TraceData.HideAPIThunks)
+                {
+                    if (InternalProtoGraph.NodeList[(int)nodeIDList[^1]].ThunkCaller is true)
+                    {
+                        brighten_node_list(entry, brightTime, nodeIDList);
+                        _expectingThunk = true;
+                    }
+                    else
+                    {
+                        if (_expectingThunk && replayUpdateIndex < (animationDataList.Count - 1))
+                        {
+                            ANIMATIONENTRY nextAnim = animationDataList[replayUpdateIndex + 1];
+                            if (nextAnim.edgeCounts?.Count == 1 && nextAnim.blockID == uint.MaxValue)
+                            {
+                                brighten_node_list(entry, brightTime, new List<uint>() { (uint)nextAnim.edgeCounts[0].Item2 });
+                            }
+                            _expectingThunk = false;
+                        }
+                        else
+                        {
+                            brighten_node_list(entry, brightTime, nodeIDList);
+                        }
+                    }
+                }
+                else
+                {
+                    //add all the nodes+edges in the block to the brightening list
+                    brighten_node_list(entry, brightTime, nodeIDList);
+                }
             }
 
             //brighten edge to next unchained block
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
             {
-                brighten_next_block_edge(entry.targetID, entry.targetAddr);
+                //todo target edges
+                //brighten_next_block_edge(entry.blockID, entry.blockAddr);
             }
 
         }
+
+        bool _expectingThunk = false;
 
 
         /*
@@ -2293,7 +2327,7 @@ namespace rgat
         {
             if (Math.Abs(delta) > Math.Abs(CameraState.MainCameraZoom / 10))
             {
-                if (Math.Abs(CameraState.MainCameraZoom) > Math.Abs(FurthestNodeDimension/5))
+                if (Math.Abs(CameraState.MainCameraZoom) > Math.Abs(FurthestNodeDimension / 5))
                 {
                     delta = (delta > 0 ? 1 : -1) * Math.Abs(CameraState.MainCameraZoom / 10);
                 }
@@ -2309,8 +2343,8 @@ namespace rgat
             }
             else
             {
-                if (Math.Abs(resultAfter) > absFurthest*2)
-                    CameraState.MainCameraZoom = absFurthest*2;
+                if (Math.Abs(resultAfter) > absFurthest * 2)
+                    CameraState.MainCameraZoom = absFurthest * 2;
 
 
                 else if (absFurthest > 1000 && CameraState.MainCameraZoom < -10 * absFurthest)

@@ -200,6 +200,7 @@ namespace ImGuiNET
             fixed (byte* notoPtr = notoFontBytes)
             {
                 _splashButtonFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 40, null, ranges.Data);
+                //_splashButtonFont.Value.ConfigData.Name = "Google Noto 40";
 
                 _unicodeFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 17, null, ranges.Data);
 

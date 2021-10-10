@@ -870,7 +870,7 @@ namespace rgat.Widgets
             ImGuiIOPtr io = ImGui.GetIO();
             ImFontAtlasPtr atlas = io.Fonts;
 
-            ImGui.ShowFontSelector("fs");
+            ImGui.ShowFontSelector("Font");
 
             _controller.PushUnicodeFont();
 
@@ -1271,7 +1271,7 @@ namespace rgat.Widgets
             ImGui.Text("Valid key modifiers are: Ctrl, Shift and Alt");
             ImGui.Text("Only keybinds with the Alt modifier work with dialog windows open");
 
-            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2((ImGui.GetContentRegionMax().X / 2) - 70, -15));
+            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(ImGui.GetContentRegionMax().X - 150, -15));
             if (ImGui.Button("Restore Defaults", new Vector2(140, 34)))
             {
                 GlobalConfig.Settings.Keybinds.ResetKeybinds();

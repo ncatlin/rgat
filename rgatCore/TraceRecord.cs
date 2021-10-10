@@ -204,24 +204,30 @@ namespace rgat
         /// <param name="timeStarted">When the process was recorded starting</param>
         /// <param name="purpose">A purpose value for the trace [only visualiser is supported]</param>
         /// <param name="arch">32 or 64 bits, or 0 if unknown (remote)</param>
-        public TraceRecord(uint newPID, long randomNo, BinaryTarget binary, DateTime timeStarted, TracingPurpose purpose = TracingPurpose.eVisualiser, int arch = 0)
+        public TraceRecord(uint newPID, long randomNo, BinaryTarget target, DateTime timeStarted, TracingPurpose purpose = TracingPurpose.eVisualiser, int arch = 0)
         {
             PID = newPID;
             randID = randomNo;
             LaunchedTime = timeStarted;
             TraceType = purpose;
 
-            Target = binary;
-            if (arch != 0 && binary.BitWidth != arch)
+            Target = target;
+            if (arch != 0 && target.BitWidth != arch)
             {
-                binary.BitWidth = arch;
+                target.BitWidth = arch;
             }
 
-            DisassemblyData = new ProcessRecord(binary.BitWidth);
-            DiscardTraceData = binary.LaunchSettings.DiscardReplayData;
+            DisassemblyData = new ProcessRecord(target.BitWidth);
+            LoadTracingSettings(target);
 
             //_tlFilterCounts[Logging.LogFilterType.TimelineProcess] = 0;
             //_tlFilterCounts[Logging.LogFilterType.TimelineThread] = 0;
+        }
+
+        void LoadTracingSettings(BinaryTarget binary)
+        {
+            DiscardTraceData = binary.LaunchSettings.DiscardReplayData;
+            HideAPIThunks = binary.LaunchSettings.HideAPIThunks;
         }
 
         /// <summary>
@@ -245,6 +251,11 @@ namespace rgat
         /// This trace (and its children) are not recording replay data
         /// </summary>
         public bool DiscardTraceData { get; private set; }
+
+        /// <summary>
+        /// Write thunks out of the graph (so an extern/API node is created next to each caller)
+        /// </summary>
+        public bool HideAPIThunks { get; private set; }
 
         private string GetModpathID() { return PID.ToString() + randID.ToString(); }
 
@@ -397,10 +408,13 @@ namespace rgat
         /// <param name="progress">A serialisation progress object</param>
         /// <param name="device">A GraphicsDevice to start rendering the graphs with</param>
         /// <returns>If load was successful</returns>
-        public bool Load(JsonReader jsnReader, JsonSerializer serializer, rgatState.SERIALISE_PROGRESS progress, Veldrid.GraphicsDevice device)
+        public bool Load(JsonReader jsnReader, JsonSerializer serializer, JObject metadataObj,
+            rgatState.SERIALISE_PROGRESS progress, Veldrid.GraphicsDevice device)
         {
             try
             {
+                LoadTraceMetadata(metadataObj);
+
                 if (!DisassemblyData.Load(jsnReader, serializer, progress))
                 {
                     Logging.RecordLogEvent("Process data load failed");
@@ -433,6 +447,17 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Load general trace metadata/settings from the save file metadata object
+        /// </summary>
+        /// <param name="mdobj"></param>
+        public void LoadTraceMetadata(JObject mdobj)
+        {
+            if (mdobj.TryGetValue("OPT_HideAPIThunks", out JToken? hideThunksTok) && hideThunksTok.Type == JTokenType.Boolean)
+            {
+                HideAPIThunks = hideThunksTok.ToObject<bool>();
+            }
+        }
 
 
         private void KillTraceProcess() { if (IsRunning) { killed = true; } }
@@ -1007,7 +1032,7 @@ namespace rgat
 
             outfileWriter.WriteStartArray();
 
-            //Item 1 = metadata
+            //Item 1 = binary target and process trace metadata
             JObject metaDataObj = SerialiseMetadata();
             metaDataObj.WriteTo(outfileWriter);
             progress.SectionsComplete = 1;
@@ -1106,6 +1131,8 @@ namespace rgat
             metadata.Add("IsLibrary", Target.IsLibrary);
             metadata.Add("rgatVersion", CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC.ToString());
             metadata.Add("LaunchedTime", this.LaunchedTime);
+
+            metadata.Add("OPT_HideAPIThunks", this.HideAPIThunks);
             return metadata;
         }
 

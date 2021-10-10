@@ -568,6 +568,7 @@ namespace rgat
                 return false;
             }
 
+
             //updateActivityStatus("Loaded saved process: " + QString::number(tracePID), 15000);
             return true;
         }
@@ -736,7 +737,7 @@ namespace rgat
 
             Debug.Assert(_GraphicsDevice is not null);
 
-            if (!trace.Load(jsnReader, serializer, SerialisationProgress, _GraphicsDevice))
+            if (!trace.Load(jsnReader, serializer, mdObj, SerialisationProgress, _GraphicsDevice))
             {
                 target.DeleteTrace(trace.LaunchedTime);
                 trace = null;
