@@ -68,7 +68,7 @@ vec3 addAttraction(vec4 self, vec4 neighbor, int edgeIndex){
     vec3 diff = self.xyz - neighbor.xyz;
     float x = length( diff );
     float f = ( x * x ) / fieldParams.repulsionK;
-   // f *= edgeStrengths[edgeIndex];
+    f *= edgeStrengths[edgeIndex];
 
 
     return normalize(diff) * f;

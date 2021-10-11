@@ -949,10 +949,10 @@ private void DrawScalePopup()
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
-                ImGui.Text("Edge Attraction");
+                ImGui.Text("Clump Multiplier");
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                ImGui.SliderFloat("##AttractionK", ref GlobalConfig.AttractionK, 0.001f, 1000);
+                ImGui.SliderFloat("##AttractionK", ref GlobalConfig.NodeClumpForce, 0.00001f, 2, "%f6");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();

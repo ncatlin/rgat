@@ -134,15 +134,18 @@ namespace rgat
             if (shift && ctrl)
             {
                 float mainzoom = rgatState.ActiveGraph?.CameraState.MainCameraZoom ?? 1f;
-                float proportion = Math.Abs(mainzoom / 7);
-                if (proportion > CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER)
+
+                if (Math.Abs(mainzoom) > 1500)
                 {
-                    ctrlMultiplier = proportion;
-                    shiftMultiplier = 1;
-                } 
+                    float proportion = Math.Abs(mainzoom / 7);
+
+                    ActiveGraph?.ApplyMouseWheelDelta(proportion * (wheelClicks > 0 ? 1 : -1));
+                    return;
+                }
+
             }
 
-            ActiveGraph?.ApplyMouseWheelDelta(wheelClicks * shiftMultiplier * ctrlMultiplier );
+            ActiveGraph?.ApplyMouseWheelDelta(wheelClicks * shiftMultiplier * ctrlMultiplier);
         }
 
         private bool _isInputTarget = false;
@@ -1335,7 +1338,7 @@ namespace rgat
 
 
             GetOutputFramebuffer(out Framebuffer drawtarget);
-       
+
             //draw nodes and edges
             cl.SetFramebuffer(drawtarget);
             cl.ClearColorTarget(0, Themes.GetThemeColourWRF(Themes.eThemeColour.GraphBackground).ToRgbaFloat());
@@ -1412,15 +1415,15 @@ namespace rgat
             _gd.SubmitCommands(cl); //had a same key error here
             _gd.WaitForIdle();
 
-          st.Stop();
-          if (st.ElapsedMilliseconds > 100)
-              Console.WriteLine($"DG WaitForIdle took {st.ElapsedMilliseconds}");
+            st.Stop();
+            if (st.ElapsedMilliseconds > 100)
+                Console.WriteLine($"DG WaitForIdle took {st.ElapsedMilliseconds}");
 
-          ReleaseOutputFramebuffer();
+            ReleaseOutputFramebuffer();
 
-          crs_core.Dispose();
-          crs_nodesEdges.Dispose();
-          if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("rendergraph end", filter: Logging.LogFilterType.BulkDebugLogFile);
+            crs_core.Dispose();
+            crs_nodesEdges.Dispose();
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("rendergraph end", filter: Logging.LogFilterType.BulkDebugLogFile);
 
         }
 

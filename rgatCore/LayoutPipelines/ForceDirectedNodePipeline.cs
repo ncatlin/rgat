@@ -177,7 +177,7 @@ namespace rgat.Layouts
                 nodeCount = nodeCount
             };
 
-            Debug.Assert(nodeCount < (layout.VelocitiesVRAM1!.SizeInBytes/16));
+            Debug.Assert(nodeCount <= (layout.VelocitiesVRAM1!.SizeInBytes/16));
             //if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
 
             _cl.UpdateBuffer(_velocityParamsBuffer, 0, parameters);

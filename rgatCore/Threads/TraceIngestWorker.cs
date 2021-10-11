@@ -86,7 +86,7 @@ namespace rgat.Threads
             if (!StopFlag)
             {
                 StopFlag = true;
-                cancelTokens.Cancel();                
+                cancelTokens.Cancel();
             }
         }
 
@@ -169,6 +169,8 @@ namespace rgat.Threads
                     if (_incomingRates.Max() == 0)
                     {
                         StatsTimer.Stop();
+                        _incomingRates.Clear();
+                        _outgoingRates.Clear();
                     }
                 }
             }

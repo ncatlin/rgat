@@ -429,24 +429,20 @@ namespace rgat
                 inputAttributes = layout.AttributesVRAM2!;
             }
 
-            ResourceSet attribComputeResourceSet = _factory!.CreateResourceSet(attr_rsrc_desc);
-
             _attSetupTimer.Restart();
+            ResourceSet attribComputeResourceSet = _factory!.CreateResourceSet(attr_rsrc_desc);
             cl.Begin();
             RenderNodeAttribs(cl, graph, inputAttributes, attribComputeResourceSet, delta, mouseoverNodeID, isAnimated);
             cl.End();
             _attSetupTimer.Stop();
+            attributeSetupTime = _attSetupTimer.Elapsed.TotalMilliseconds;
 
             _attShaderTimer.Restart();
             _gd!.SubmitCommands(cl);
             _gd!.WaitForIdle();
-
             //should we be dispose/recreating these? probably not. todo
             _gd.DisposeWhenIdle(attribComputeResourceSet);
-
             _attShaderTimer.Stop();
-
-            attributeSetupTime = _attSetupTimer.Elapsed.TotalMilliseconds;
             attributeTime = _attShaderTimer.Elapsed.TotalMilliseconds;
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM1!, "Atts1", 32);
         }

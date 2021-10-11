@@ -1133,7 +1133,7 @@ namespace rgat
                     edgeTargetIndexes[edgeIndex] = (int)neigbours[nidx];
                     if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>((uint)currentNodeIndex, neigbours[nidx]), out EdgeData? edge) && edge is not null)
                     {
-                        edgeStrengths[edgeIndex] = 1;// GetAttractionForce(edge);
+                        edgeStrengths[edgeIndex] = GetAttractionForce(edge);
                     }
                     else
                     {
@@ -2320,39 +2320,14 @@ namespace rgat
             return waitFrames;
         }
 
+
         /// <summary>
         /// Action the movement of the mousewheel to zoom the graph in or out
         /// </summary>
-        /// <param name="delta">How far the mousewheel moved</param>
+        /// <param name="delta">How far to zoom the camera</param>
         public void ApplyMouseWheelDelta(float delta)
         {
-            if (Math.Abs(delta) > Math.Abs(CameraState.MainCameraZoom / 10))
-            {
-                if (Math.Abs(CameraState.MainCameraZoom) > Math.Abs(FurthestNodeDimension / 5))
-                {
-                    delta = (delta > 0 ? 1 : -1) * Math.Abs(CameraState.MainCameraZoom / 10);
-                }
-            }
-
-            float resultAfter = CameraState.MainCameraZoom + delta;
-            float absFurthest = Math.Abs(FurthestNodeDimension);
-
-            //Safeguard to stop the camera zooming pointlessly into oblivion
-            if (resultAfter < 0)
-            {
-                CameraState.MainCameraZoom = resultAfter;
-            }
-            else
-            {
-                if (Math.Abs(resultAfter) > absFurthest * 2)
-                    CameraState.MainCameraZoom = absFurthest * 2;
-
-
-                else if (absFurthest > 1000 && CameraState.MainCameraZoom < -10 * absFurthest)
-                    CameraState.MainCameraZoom = -10 * absFurthest;
-                else
-                    CameraState.MainCameraZoom = resultAfter;
-            }
+            CameraState.MainCameraZoom += delta;
         }
 
 
