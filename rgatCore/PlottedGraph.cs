@@ -538,6 +538,7 @@ namespace rgat
             }
         }
 
+
         private float[] GenerateCylinderLayout()
         {
 
@@ -1966,7 +1967,7 @@ namespace rgat
             {
                 if (Opt_TextEnabledLive && listOffset == 0 && InternalProtoGraph.GetNode(nodeIdx)!.HasSymbol)
                 {
-                    AddRisingSymbol(nodeIdx, (int)entry.count - 1, brightTime);
+                    AddRisingSymbol(nodeIdx, (int)entry.Count - 1, brightTime);
                 }
 
                 if (!(entry.entryType == eTraceUpdateType.eAnimUnchained) && listOffset == 0)
@@ -1991,7 +1992,7 @@ namespace rgat
                 LastAnimatedVert = nodeIdx;
 
                 ++listOffset;
-                if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (listOffset == (entry.count + 1)))
+                if ((entry.entryType == eTraceUpdateType.eAnimExecException) && (listOffset == (entry.Count + 1)))
                 {
                     break;
                 }
@@ -2002,7 +2003,7 @@ namespace rgat
         {
 
             remove_unchained_from_animation();
-            List<InstructionData>? firstChainedBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(entry.blockID);
+            List<InstructionData>? firstChainedBlock = InternalProtoGraph.ProcessData.getDisassemblyBlock(entry.BlockID);
             uint vertID = 0;
             bool found = firstChainedBlock is not null && firstChainedBlock[^1].GetThreadVert(TID, out vertID);
             Debug.Assert(found);
@@ -2058,7 +2059,7 @@ namespace rgat
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
             {
                 //sw.Start();
-                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Live update: eAnimUnchainedResults. Block {entry.blockID} executed {entry.count} times",
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Live update: eAnimUnchainedResults. Block {entry.BlockID} executed {entry.Count} times",
                     Logging.LogFilterType.BulkDebugLogFile);
                 ++updateProcessingIndex;
                 return true;
@@ -2076,7 +2077,7 @@ namespace rgat
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
             {
                 string s = "";
-                if (get_block_nodelist(0, entry.blockID, out List<uint>? nodeIDListUC) && nodeIDListUC is not null)
+                if (get_block_nodelist(0, entry.BlockID, out List<uint>? nodeIDListUC) && nodeIDListUC is not null)
                 {
                     foreach (int x in nodeIDListUC)
                     {
@@ -2084,7 +2085,7 @@ namespace rgat
                     }
                 }
 
-                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.blockID}: " + s, Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Live update: eAnimUnchained block {entry.BlockID}: " + s, Logging.LogFilterType.BulkDebugLogFile);
                 brightTime = (int)Anim_Constants.BRIGHTNESS.KEEP_BRIGHT;
             }
             else
@@ -2093,7 +2094,7 @@ namespace rgat
             }
 
             //break if block not rendered yet
-            if (!get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint>? nodeIDList) || nodeIDList is null)
+            if (!get_block_nodelist(entry.Address, entry.BlockID, out List<uint>? nodeIDList) || nodeIDList is null)
             {
                 //expect to get an incomplete block with exception or animation attempt before static rendering
                 if ((entry.entryType == eTraceUpdateType.eAnimExecException))// && (nodeIDList.Count > (int)entry.count))
@@ -2110,7 +2111,7 @@ namespace rgat
             //also add brighten edge to next unchained block
             if (entry.entryType == eTraceUpdateType.eAnimUnchained)
             {
-                brighten_next_block_edge(entry.blockID, entry.blockAddr);
+                brighten_next_block_edge(entry.BlockID, entry.Address);
             }
 
             ++updateProcessingIndex;
@@ -2190,7 +2191,7 @@ namespace rgat
                     _expectingThunk is false // if an API thunk is being called then this edge will be wrong
                     )
                 {
-                    brighten_next_block_edge(entry.blockID, entry.blockAddr);
+                    brighten_next_block_edge(entry.BlockID, entry.Address);
                 }
             }
 
@@ -2198,9 +2199,9 @@ namespace rgat
             if (entry.entryType == eTraceUpdateType.eAnimUnchainedResults)
             {
                 ProcessRecord piddata = InternalProtoGraph.ProcessData;
-                List<InstructionData>? block = piddata.getDisassemblyBlock(entry.blockID);
+                List<InstructionData>? block = piddata.getDisassemblyBlock(entry.BlockID);
                 Debug.Assert(block is not null);
-                unchainedWaitFrames += calculate_wait_frames(entry.count * (ulong)block.Count);
+                unchainedWaitFrames += calculate_wait_frames(entry.Count * (ulong)block.Count);
 
                 uint maxWait = (uint)Math.Floor(maxWaitFrames / stepSize); //todo test
                 if (unchainedWaitFrames > maxWait)
@@ -2234,7 +2235,7 @@ namespace rgat
 
 
 
-            if (!get_block_nodelist(entry.blockAddr, entry.blockID, out List<uint>? nodeIDList) &&
+            if (!get_block_nodelist(entry.Address, entry.BlockID, out List<uint>? nodeIDList) &&
                 entry.entryType != eTraceUpdateType.eAnimExecException)
             {
                 if (this.InternalProtoGraph.Terminated)
@@ -2242,10 +2243,10 @@ namespace rgat
                     return;
                 }
                 Thread.Sleep(5);
-                while (!get_block_nodelist(entry.blockAddr, entry.blockID, out nodeIDList))
+                while (!get_block_nodelist(entry.Address, entry.BlockID, out nodeIDList))
                 {
                     Thread.Sleep(15);
-                    Logging.WriteConsole($"[rgat] process_replay_update waiting for block 0x{entry.blockAddr:x}");
+                    Logging.WriteConsole($"[rgat] process_replay_update waiting for block 0x{entry.Address:x}");
                     if (rgatState.rgatIsExiting || this.InternalProtoGraph.Terminated)
                     {
                         return;
@@ -2268,7 +2269,7 @@ namespace rgat
                         if (_expectingThunk && replayUpdateIndex < (animationDataList.Count - 1))
                         {
                             ANIMATIONENTRY nextAnim = animationDataList[replayUpdateIndex + 1];
-                            if (nextAnim.edgeCounts?.Count == 1 && nextAnim.blockID == uint.MaxValue)
+                            if (nextAnim.edgeCounts?.Count == 1 && nextAnim.BlockID == uint.MaxValue)
                             {
                                 brighten_node_list(entry, brightTime, new List<uint>() { (uint)nextAnim.edgeCounts[0].Item2 });
                             }

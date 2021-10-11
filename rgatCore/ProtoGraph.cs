@@ -144,21 +144,21 @@ namespace rgat
         /// </summary>
         public eTraceUpdateType entryType;
         /// <summary>
-        /// The address of the basic block this happened in
+        /// The address of the basic block/instruction being referenced
         /// </summary>
-        public ulong blockAddr;
+        public ulong Address;
         /// <summary>
         /// The ID of the basic block
         /// </summary>
-        public uint blockID;
+        public uint BlockID;
         /// <summary>
         /// Which edges were involved, how many times
         /// </summary>
         public List<Tuple<uint, ulong>>? edgeCounts;
         /// <summary>
-        /// A count for this event
+        /// A count for this event, ususally the number of block executions
         /// </summary>
-        public ulong count;
+        public ulong Count;
     };
 
 
@@ -1722,9 +1722,9 @@ namespace rgat
                     ANIMATIONENTRY repentry = SavedAnimationData[i];
 
                     writer.WriteValue(repentry.entryType);
-                    writer.WriteValue(repentry.blockAddr);
-                    writer.WriteValue(repentry.blockID);
-                    writer.WriteValue(repentry.count);
+                    writer.WriteValue(repentry.Address);
+                    writer.WriteValue(repentry.BlockID);
+                    writer.WriteValue(repentry.Count);
 
                     if (repentry.edgeCounts is null)
                     {
@@ -2104,9 +2104,9 @@ namespace rgat
             {
                 ANIMATIONENTRY entry = new ANIMATIONENTRY();
                 entry.entryType = serializer.Deserialize<eTraceUpdateType>(jsnReader); jsnReader.Read();
-                entry.blockAddr = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
-                entry.blockID = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
-                entry.count = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
+                entry.Address = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
+                entry.BlockID = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                entry.Count = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
 
                 int edgeRepCount = serializer.Deserialize<int>(jsnReader); jsnReader.Read();
                 if (edgeRepCount is 0)

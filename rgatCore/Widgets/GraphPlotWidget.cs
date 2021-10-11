@@ -1182,6 +1182,7 @@ namespace rgat
             }
         }
 
+
         private fontStruc[] renderGraphText(List<Tuple<string?, uint>> captions, float scale)
         {
             PlottedGraph? graph = ActiveGraph;

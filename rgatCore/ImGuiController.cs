@@ -1018,6 +1018,9 @@ namespace ImGuiNET
         public static readonly char FA_STILL_CAMERA = '\uf030';
         public static readonly char FA_ICON_WARNING = '\uf071';
         public static readonly char FA_ICON_EYE = '\uF06E';
+        public static readonly char FA_ICON_BELL = '\uF0F3';
+        public static readonly char FA_ICON_LISTEN = '\uF2A0';
+        public static readonly char FA_ICON_BROADCAST = '\uF7C0';
         public static readonly char FA_ICON_EXCLAIM = '\uf12a';
         public static readonly char FA_ICON_DIRECTORY = '\uf07b';
         public static readonly char FA_ICON_FILEPLAIN = '\uf15b';

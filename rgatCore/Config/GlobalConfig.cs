@@ -343,6 +343,7 @@ namespace rgat
                 try
                 {
                     string preset = System.Text.Encoding.ASCII.GetString(themesjsn, 0, themesjsn.Length);
+                    preset = preset.Substring(preset.IndexOf("["));
                     Themes.LoadBuiltinThemes(Newtonsoft.Json.Linq.JArray.Parse(preset));
                 }
                 catch (Exception e)
@@ -768,7 +769,7 @@ namespace rgat
 
                 lock (_settingsLock)
                 {
-                    Themes.ActivateDefaultTheme();
+                    Themes.LoadCustomThemes();
                 }
 
                 progress?.Report(0.5f);

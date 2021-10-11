@@ -740,16 +740,16 @@ namespace rgat
 
                         ANIMATIONENTRY lastEntry = animData[lastAnimIdx];
 
-                        ImGui.Text($"Trace Tag: {lastEntry.entryType} Location: 0x{lastEntry.blockAddr} (Block {lastEntry.blockID})");
+                        ImGui.Text($"Trace Tag: {lastEntry.entryType} Location: 0x{lastEntry.Address} (Block {lastEntry.BlockID})");
                         switch (lastEntry.entryType)
                         {
                             case eTraceUpdateType.eAnimExecTag:
                                 {
-                                    uint blkID = lastEntry.blockID;
+                                    uint blkID = lastEntry.BlockID;
                                     if (blkID < uint.MaxValue)
                                     {
 
-                                        bool resolved = graph.ProcessData.ResolveSymbolAtAddress(lastEntry.blockAddr, out int moduleID2, out string modulenm, out string symbol);
+                                        bool resolved = graph.ProcessData.ResolveSymbolAtAddress(lastEntry.Address, out int moduleID2, out string modulenm, out string symbol);
                                         string moduleLabel = ((modulenm.Length > 0) ? modulenm : "Unknown module");
                                         ImGui.TextWrapped($"{moduleLabel}");
 
@@ -771,13 +771,13 @@ namespace rgat
                                     }
                                     else
                                     {
-                                        if (graph.ProcessData.ResolveSymbolAtAddress(lastEntry.blockAddr, out int moduleID2, out string modulenm, out string symbol))
+                                        if (graph.ProcessData.ResolveSymbolAtAddress(lastEntry.Address, out int moduleID2, out string modulenm, out string symbol))
                                         {
                                             ImGui.Text($"Location: {modulenm}::{symbol}");
                                         }
                                         else
                                         {
-                                            ImGui.Text($"Location: {modulenm}::0x{lastEntry.blockAddr:X}");
+                                            ImGui.Text($"Location: {modulenm}::0x{lastEntry.Address:X}");
                                         }
                                     }
                                 }
@@ -802,11 +802,11 @@ namespace rgat
                                 {
                                     if (lastEntry.edgeCounts.Count == 1)
                                     {
-                                        ImGui.Text($"Block executed in a region of {lastEntry.count} times");
+                                        ImGui.Text($"Block executed in a region of {lastEntry.Count} times");
                                     }
                                     else
                                     {
-                                        ImGui.Text($"{lastEntry.count} block executions in a region of {lastEntry.edgeCounts.Count} blocks");
+                                        ImGui.Text($"{lastEntry.Count} block executions in a region of {lastEntry.edgeCounts.Count} blocks");
                                     }
                                 }
                                 break;
@@ -909,7 +909,7 @@ namespace rgat
                 }
                 else
                 {
-                    ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Red), "(Terminated)");
+                    ImGui.TextColored(Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToVec4(), "(Terminated)");
                 }
             }
             else
@@ -970,7 +970,7 @@ namespace rgat
                             ImGui.Text("Queue + ");
                             SmallWidgets.MouseoverText("Average number of trace data items ingested recently for this thread");
                             ImGui.SameLine();
-                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"{incomingAvg:f1}");
+                            ImGui.TextColored(Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToVec4(), $"{incomingAvg:f1}");
                         }
 
                         graph.TraceReader.RecentProcessingRates(out float[] outgoing);
@@ -980,7 +980,7 @@ namespace rgat
                             ImGui.Text("Queue - ");
                             SmallWidgets.MouseoverText("Average number of trace data items processed recently for this thread");
                             ImGui.SameLine();
-                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.LightGreen), $"{outgoingAvg:f1}");
+                            ImGui.TextColored(Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour).ToVec4(), $"{outgoingAvg:f1}");
                         }
                     }
 

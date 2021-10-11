@@ -184,7 +184,7 @@ namespace rgat.Widgets
                 ImGui.TableSetupColumn("TextColumn", ImGuiTableColumnFlags.None);
                 ImGui.TableSetupColumn("TextColumnTog", ImGuiTableColumnFlags.WidthFixed, 35);
                 ImGui.TableSetupColumn("OtherColumn", ImGuiTableColumnFlags.None);
-                ImGui.TableSetupColumn("OtherColumnTog", ImGuiTableColumnFlags.WidthFixed, 35);
+                ImGui.TableSetupColumn("OtherColumnTog", ImGuiTableColumnFlags.WidthFixed, 60);
 
 
                 ImGui.TableNextRow();
@@ -213,6 +213,22 @@ namespace rgat.Widgets
                 {
                     ActivateAction(ActionName.ToggleTextInstructions, hotKey: false);
                 }
+
+
+                //ImGui.AlignTextToFramePadding();
+                ImGui.TableSetColumnIndex(4);
+                ImGui.Text("Text Scale");
+                ImGui.TableNextColumn();
+                float plotFontScale = GlobalConfig.InsTextScale;
+                ImGui.SetNextItemWidth(50);
+                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(1, 2));
+                if (ImGui.DragFloat("##PlotFont", ref plotFontScale, 0.5f, 1, 80))
+                {
+                    GlobalConfig.InsTextScale = plotFontScale;
+                    Themes.DeclareThemeChanged();
+                }
+                ImGui.PopStyleVar();
+
 
                 ImGui.TableNextRow();
                 if (ShowTooltipToggle(0, ActionName.ToggleActiveHighlight, _currentPlot.Opt_LiveNodeEdgeEnabled))

@@ -516,6 +516,9 @@ namespace rgat
             }
         }
 
+        static Dictionary<ImGuiCol, uint> _modifiedColoursImgui = new();
+        static Dictionary<eThemeColour, uint> _modifiedColoursCustom = new();
+
 
         /// <summary>
         /// Draw the theme colour customisation widget
@@ -541,11 +544,26 @@ namespace rgat
                 {
                     ImGuiCol stdCol = (ImGuiCol)colI;
                     Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourImGui(stdCol)).ToVec4();
+                    ImGui.SetNextItemWidth(215);
                     if (ImGui.ColorEdit4(Enum.GetName(typeof(ImGuiCol), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
                     {
                         changed = true;
+                        if (_modifiedColoursImgui.ContainsKey(stdCol) is false)
+                        {
+                            _modifiedColoursImgui[stdCol] = Themes.GetThemeColourImGui(stdCol);
+                        }
                         Themes.SetThemeColourImGui(stdCol, new WritableRgbaFloat(colval).ToUint());
                     }
+                    if (_modifiedColoursImgui.ContainsKey(stdCol))
+                    {
+                        ImGui.SameLine();
+                        if (ImGui.Button($"Revert##sc{colI}"))
+                        {
+                            Themes.SetThemeColourImGui(stdCol, _modifiedColoursImgui[stdCol]);
+                            _modifiedColoursImgui.Remove(stdCol);
+                        }
+                    }
+
 
                 }
 
@@ -554,10 +572,24 @@ namespace rgat
                 {
                     Themes.eThemeColour customCol = (Themes.eThemeColour)colI;
                     Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourUINT(customCol)).ToVec4();
+                    ImGui.SetNextItemWidth(215);
                     if (ImGui.ColorEdit4(Enum.GetName(typeof(Themes.eThemeColour), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
                     {
                         changed = true;
+                        if (_modifiedColoursCustom.ContainsKey(customCol) is false)
+                        {
+                            _modifiedColoursCustom[customCol] = Themes.GetThemeColourUINT(customCol);
+                        }
                         Themes.ThemeColoursCustom[customCol] = new WritableRgbaFloat(colval).ToUint();
+                    }
+                    if (_modifiedColoursCustom.ContainsKey(customCol))
+                    {
+                        ImGui.SameLine();
+                        if (ImGui.Button($"Revert##cc{colI}"))
+                        {
+                            Themes.ThemeColoursCustom[customCol] = _modifiedColoursCustom[customCol];
+                            _modifiedColoursCustom.Remove(customCol);
+                        }
                     }
 
                 }
@@ -915,6 +947,7 @@ namespace rgat
                 SaveMetadataChange("Name", name);
             }
 
+            RegenerateUIThemeJSON();
             CustomThemes[name] = currentThemeJSON!;
             ThemesMetadataCatalogue[name] = ThemeMetadata;
             UnsavedTheme = false;
@@ -927,10 +960,13 @@ namespace rgat
         }
 
         private static JObject? currentThemeJSON;
+
         /// <summary>
         /// Controls can compare this value with a cached value to see if the theme has changed
         /// </summary>
         public static ulong ThemeVariant { get; private set; } = 0;
+
+        public static void DeclareThemeChanged() => ThemeVariant += 1;
 
         /// <summary>
         /// Write all the current theme attributes into a JSON object
@@ -1152,7 +1188,7 @@ namespace rgat
         /// <summary>
         /// Activate the default theme
         /// </summary>
-        public static void ActivateDefaultTheme()
+        public static void LoadCustomThemes()
         {
             if (CustomThemes.Count != GlobalConfig.Settings.Themes.CustomThemes.Count)
             {
@@ -1161,7 +1197,19 @@ namespace rgat
                 {
                     try
                     {
-                        CustomThemes[item.Key] = JObject.Parse(item.Value);
+                        JObject themeObj = JObject.Parse(item.Value);
+                        if (themeObj.TryGetValue("Metadata", out JToken? mdtok) && mdtok is not null)
+                        {
+                            if (!LoadMetadataStrings(themeObj, out Dictionary<string, string> md, out string error))
+                            {
+                                Logging.RecordError($"Failed to load custom theme {item.Key}: {error}");
+                            }
+                            else
+                            {
+                                CustomThemes[item.Key] = themeObj;
+                                ThemesMetadataCatalogue[item.Key] = md;
+                            }
+                        }
                     }
                     catch (Exception e)
                     {

@@ -442,8 +442,8 @@ namespace rgat.Threads
             ANIMATIONENTRY animUpdate = new ANIMATIONENTRY
             {
                 entryType = eTraceUpdateType.eAnimExecTag,
-                blockAddr = thistag.blockaddr,
-                blockID = thistag.blockID
+                Address = thistag.blockaddr,
+                BlockID = thistag.blockID
             };
             protograph.PushAnimUpdate(animUpdate);
 
@@ -621,10 +621,10 @@ namespace rgat.Threads
             ANIMATIONENTRY animUpdate = new ANIMATIONENTRY
             {
                 entryType = eTraceUpdateType.eAnimRepExec,
-                blockID = uint.Parse(entries[1], NumberStyles.HexNumber)
+                BlockID = uint.Parse(entries[1], NumberStyles.HexNumber)
             };
             protograph.PushAnimUpdate(animUpdate);
-            Logging.RecordLogEvent($"A REP instruction (blkid {animUpdate.blockID}) has executed at least once. Need to action this as per trello 160", Logging.LogFilterType.Debug);
+            Logging.RecordLogEvent($"A REP instruction (blkid {animUpdate.BlockID}) has executed at least once. Need to action this as per trello 160", Logging.LogFilterType.Debug);
         }
 
 
@@ -643,19 +643,19 @@ namespace rgat.Threads
 
             ANIMATIONENTRY animUpdate = new ANIMATIONENTRY
             {
-                blockAddr = externAddr,
+                Address = externAddr,
                 entryType = eTraceUpdateType.eAnimExecTag,
-                blockID = uint.MaxValue
+                BlockID = uint.MaxValue
             };
             if (protograph.externFuncCallCounter.TryGetValue(callerBlock, out ulong prevCount))
             {
                 protograph.externFuncCallCounter[callerBlock] = prevCount + 1;
-                animUpdate.count = prevCount + 1;
+                animUpdate.Count = prevCount + 1;
             }
             else
             {
                 protograph.externFuncCallCounter.Add(callerBlock, 1);
-                animUpdate.count = 1;
+                animUpdate.Count = 1;
             }
             protograph.PushAnimUpdate(animUpdate);
 
@@ -707,14 +707,14 @@ namespace rgat.Threads
 
             ANIMATIONENTRY animUpdate;
             animUpdate.entryType = eTraceUpdateType.eAnimReinstrument;
-            animUpdate.blockID = uint.Parse(entries[1], NumberStyles.HexNumber);
-            animUpdate.count = 0;
+            animUpdate.BlockID = uint.Parse(entries[1], NumberStyles.HexNumber);
+            animUpdate.Count = 0;
             animUpdate.edgeCounts = null;
-            animUpdate.blockAddr = 0;
+            animUpdate.Address = 0;
             protograph.PushAnimUpdate(animUpdate);
 
             protograph.ProtoLastLastVertID = protograph.ProtoLastVertID;
-            var blockNodes = protograph.BlocksFirstLastNodeList[(int)animUpdate.blockID];
+            var blockNodes = protograph.BlocksFirstLastNodeList[(int)animUpdate.BlockID];
 
             if (blockNodes != null)
             { protograph.ProtoLastVertID = blockNodes.Item2; }
@@ -749,20 +749,20 @@ namespace rgat.Threads
 
             ANIMATIONENTRY animUpdate;
             animUpdate.entryType = eTraceUpdateType.eAnimUnchained;
-            animUpdate.blockID = uint.Parse(entries[1], NumberStyles.HexNumber);
-            animUpdate.count = 0;
+            animUpdate.BlockID = uint.Parse(entries[1], NumberStyles.HexNumber);
+            animUpdate.Count = 0;
             animUpdate.edgeCounts = null;
-            animUpdate.blockAddr = 0;
+            animUpdate.Address = 0;
             protograph.PushAnimUpdate(animUpdate);
 
-            currentUnchainedBlocks.Add(animUpdate.blockID);
+            currentUnchainedBlocks.Add(animUpdate.BlockID);
 
             protograph.ProtoLastLastVertID = protograph.ProtoLastVertID;
-            var blockNodes = protograph.BlocksFirstLastNodeList[(int)animUpdate.blockID];
+            var blockNodes = protograph.BlocksFirstLastNodeList[(int)animUpdate.BlockID];
 
             if (blockNodes == null)
             {
-                if (ApiThunks.TryGetValue((int)animUpdate.blockID, out APITHUNK? thunkInfo))
+                if (ApiThunks.TryGetValue((int)animUpdate.BlockID, out APITHUNK? thunkInfo))
                 {
                     if (thunkInfo.callerNodes.TryGetValue((int)protograph.ProtoLastVertID, out int thunkTargetAPINodeIdx))
                     {
@@ -775,7 +775,7 @@ namespace rgat.Threads
                     }
                     Debug.Assert(false, $"Bad thunk state, node {protograph.ProtoLastVertID} does not call this thunk");
                 }
-                Debug.Assert(false, $"Bad thunk state, block {animUpdate.blockID} has null listing but is not a thunk");
+                Debug.Assert(false, $"Bad thunk state, block {animUpdate.BlockID} has null listing but is not a thunk");
             }
 
             if (!protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller)
@@ -858,10 +858,10 @@ namespace rgat.Threads
 
             ANIMATIONENTRY animUpdate;
             animUpdate.entryType = eTraceUpdateType.eAnimUnchainedResults;
-            animUpdate.blockAddr = ulong.MaxValue;
-            animUpdate.blockID = newRepeat.blockID;
+            animUpdate.Address = ulong.MaxValue;
+            animUpdate.BlockID = newRepeat.blockID;
             animUpdate.edgeCounts = newRepeat.targEdges;
-            animUpdate.count = blockExecs;
+            animUpdate.Count = blockExecs;
             protograph.PushAnimUpdate(animUpdate);
 
             if (blockExecs > protograph.BusiestBlockExecCount)
@@ -947,9 +947,9 @@ namespace rgat.Threads
 
             ANIMATIONENTRY animUpdate;
             animUpdate.entryType = eTraceUpdateType.eAnimExecException;
-            animUpdate.blockAddr = interruptedBlockTag.blockaddr;
-            animUpdate.blockID = interruptedBlockTag.blockID;
-            animUpdate.count = (ulong)instructionsUntilFault;
+            animUpdate.Address = interruptedBlockTag.blockaddr;
+            animUpdate.BlockID = interruptedBlockTag.blockID;
+            animUpdate.Count = (ulong)instructionsUntilFault;
             animUpdate.edgeCounts = null;
             protograph.PushAnimUpdate(animUpdate);
         }

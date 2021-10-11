@@ -35,8 +35,8 @@ namespace rgat
             if (ImGui.BeginTable("#TaTTable", 3, ImGuiTableFlags.Resizable))
             {
                 ImGui.TableSetupColumn("#TaTTEntryList", ImGuiTableColumnFlags.None, sidePaneWidth * 2f );
-                ImGui.TableSetupColumn("#TaTTChart", ImGuiTableColumnFlags.NoDirectResize, width - 2 * sidePaneWidth);
-                ImGui.TableSetupColumn("#TaTTControlsFocus", ImGuiTableColumnFlags.NoDirectResize, sidePaneWidth);
+                ImGui.TableSetupColumn("#TaTTChart", ImGuiTableColumnFlags.NoDirectResize, width - 1.5f * sidePaneWidth);
+                ImGui.TableSetupColumn("#TaTTControlsFocus", ImGuiTableColumnFlags.NoDirectResize);
 
                 ImGui.TableNextRow();
 
@@ -56,7 +56,7 @@ namespace rgat
                 float tr_height = (height / 2) - 4;
                 float tb_height = (height / 2) - 4;
                 ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x5f88705f);
-                if (ImGui.BeginChild("#SandboxTabtopRightPane", new Vector2(sidePaneWidth, tr_height)))
+                if (ImGui.BeginChild("#SandboxTabtopRightPane", new Vector2(ImGui.GetContentRegionAvail().X, tr_height)))
                 {
                     //ImGui.Text("Filters");
 
@@ -79,7 +79,7 @@ namespace rgat
                 }
                 ImGui.PopStyleColor();
 
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x8f48009f);
+                //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x8f48009f);
                 if (ImGui.BeginChild("#SandboxTabbaseRightPane", new Vector2(sidePaneWidth, tb_height)))
                 {
 
@@ -113,7 +113,7 @@ namespace rgat
                     }
                     ImGui.EndChild();
                 }
-                ImGui.PopStyleColor();
+                //ImGui.PopStyleColor();
 
                 ImGui.EndTable();
             }

@@ -20,6 +20,7 @@ namespace rgat
             {
                 DrawTraceTab_FileInfo(activeTarget, ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y / 2);
 
+
                 ImGui.BeginGroup();
                 {
                     DrawTraceTab_InstrumentationSettings(activeTarget, ImGui.GetContentRegionAvail().X / 2.5f);
@@ -32,7 +33,7 @@ namespace rgat
 
         private void DrawTraceTab_FileInfo(BinaryTarget activeTarget, float width, float height)
         {
-            ImGui.BeginChildFrame(22, new Vector2(width, height), ImGuiWindowFlags.AlwaysAutoResize);
+            ImGui.BeginChild("#FileinfoChild", new Vector2(width, height));
 
             if (activeTarget.RemoteHost != null && !activeTarget.InitialisedFromRemote)
             {
@@ -45,7 +46,7 @@ namespace rgat
                     ImGuiUtils.DrawRegionCenteredText("Disconnected from remote host before metadata could be retrieved");
                 }
 
-                ImGui.EndChildFrame();
+                ImGui.EndChild();
                 return;
             }
 
@@ -171,7 +172,7 @@ namespace rgat
 
             // ImGui.Columns(1);
             ImGui.EndGroup();
-            ImGui.EndChildFrame();
+            ImGui.EndChild();
 
             if (_yaraPopupHit != null && !_hitHoverOnly)
             {
@@ -440,10 +441,12 @@ namespace rgat
 
                             ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(136, 35));
                             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 9));
+                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                             if (ImGui.Button($"{ImGuiController.FA_ICON_ADDFILE} Add Files/Directories"))
                             {
                                 ToggleTraceListSelectionWindow();
                             }
+                            ImGui.PopStyleColor();
                             ImGui.PopStyleVar();
                             SmallWidgets.MouseoverText("Add files/directories to this filter");
                         }
@@ -487,10 +490,12 @@ namespace rgat
 
                             ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(136, 35));
                             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 9));
+                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                             if (ImGui.Button($"{ImGuiController.FA_ICON_ADDFILE} Add Files/Directories"))
                             {
                                 ToggleTraceListSelectionWindow();
                             }
+                            ImGui.PopStyleColor();
                             ImGui.PopStyleVar();
                             SmallWidgets.MouseoverText("Add files/directories to this filter");
                         }
@@ -522,10 +527,10 @@ namespace rgat
             ImGui.BeginGroup();
             {
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
-                ImGui.BeginChildFrame(10, new Vector2(width, ImGui.GetContentRegionAvail().Y - 20));
+                ImGui.BeginChild("#ExeSettingsChild", new Vector2(width, ImGui.GetContentRegionAvail().Y - 20));
                 ImGui.Text("Execution Settings");
 
-                ImGui.BeginChildFrame(18, new Vector2(500, 150));
+                ImGui.BeginChild("#TraceSettingsChild", new Vector2(500, 150));
                 //ImGui.AlignTextToFramePadding();
                 /*
                 ImGui.Text("Instrumentation Engine: ");
@@ -587,7 +592,7 @@ namespace rgat
                     "This makes layouts look much cleaner, but may introduce errors.");
 
                 ImGui.PopStyleColor();
-                ImGui.EndChildFrame();
+                ImGui.EndChild();
 
                 ImGui.AlignTextToFramePadding();
 
@@ -595,7 +600,7 @@ namespace rgat
                 ImGui.SameLine();
                 ImGuiUtils.HelpMarker("Command line arguments passed to the program being executed");
                 ImGui.SameLine();
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBgHovered));
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
 
                 if (activeTarget != viewedTarget)
                 {
@@ -677,7 +682,7 @@ namespace rgat
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + width - 140);
                 StartButton(activeTarget, pintoolpath, 40);
 
-                ImGui.EndChildFrame();
+                ImGui.EndChild();
 
                 ImGui.EndGroup();
             }

@@ -406,7 +406,7 @@ namespace rgat.Widgets
 
             if (ImGui.BeginTabBar("#NetModeTabs")) // ImGui.GetID("NetworkContent"), new Vector2(itemsWidth, 180), flags: ImGuiWindowFlags.NoScrollbar))
             {
-                if (ImGui.BeginTabItem("Listen Mode"))
+                if (ImGui.BeginTabItem($"{ImGuiController.FA_ICON_LISTEN} Listen Mode"))
                 {
                     if (!ListenMode)
                     {
@@ -425,7 +425,7 @@ namespace rgat.Widgets
                     ImGui.EndTabItem();
                 }
 
-                if (ImGui.BeginTabItem("Connect Mode"))
+                if (ImGui.BeginTabItem($"{ImGuiController.FA_ICON_BROADCAST} Connect Mode"))
                 {
                     if (ListenMode)
                     {

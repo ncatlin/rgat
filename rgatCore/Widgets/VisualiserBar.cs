@@ -491,11 +491,11 @@ namespace rgat.Widgets
                 float Xoffset = (_width - pSep * backIdx) - tagWidth;
 
                 Xoffset -= scrollOffset;
-                int blkID = (int)ae.blockID;
+                int blkID = (int)ae.BlockID;
 
                 if (blkID < 0 || blkID >= graph.ProcessData.BasicBlocksList.Count)
                 {
-                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.blockAddr, out int moduleID, out string module, out string symbol);
+                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.Address, out int moduleID, out string module, out string symbol);
                     if (found)
                     {
                         CreateRect(new WritableRgbaFloat(Color.LightGreen), Xoffset + 1, 32, pSep+2, 48 - 32, ref triangles);
@@ -586,7 +586,7 @@ namespace rgat.Widgets
                             {
                                 //int blkct = blockTailIdx - (int)graph.BlocksFirstLastNodeList[(int)ae.blockID].Item1;
                                 //Logging.WriteConsole($"NodeID: {node.index} BlockID: {ae.blockID} BlkSz: {blkct} ThisExecCt:{ae.count} TotlExecCount: {node.executionCount} heatrank: {node.heatRank}");
-                                float ecountprop = 1 - (ae.count / (float)graph.BusiestBlockExecCount);
+                                float ecountprop = 1 - (ae.Count / (float)graph.BusiestBlockExecCount);
                                 if (busyCountLinePoints.Count > 0)
                                 {
                                     busyCountLinePoints.Add(busyCountLinePoints[^1]);
@@ -611,7 +611,7 @@ namespace rgat.Widgets
                 //Draw API icon - todo above i guess as it wont get here?
                 if (blkID == -1)
                 {
-                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.blockAddr, out int moduleID, out string module, out string symbol);
+                    bool found = graph.ProcessData.ResolveSymbolAtAddress(ae.Address, out int moduleID, out string module, out string symbol);
                     if (found)
                     {
                         DrawAPIEntry(Xoffset + 2, 33, pSep, moduleID, module, symbol, ref lines);
@@ -620,7 +620,7 @@ namespace rgat.Widgets
                 else
                 {
                     //Draw Module location bits
-                    ulong blockAddr = graph.ProcessData.GetAddressOfBlock((int)ae.blockID);
+                    ulong blockAddr = graph.ProcessData.GetAddressOfBlock((int)ae.BlockID);
                     bool found = graph.ProcessData.FindContainingModule(blockAddr, out int? moduleID);
                     if (!found)
                     {
@@ -725,9 +725,9 @@ namespace rgat.Widgets
                 switch (ae.entryType)
                 {
                     case eTraceUpdateType.eAnimExecTag:
-                        if ((int)ae.blockID != -1)
+                        if ((int)ae.BlockID != -1)
                         {
-                            ulong blockAddr = graph.ProcessData.GetAddressOfBlock((int)ae.blockID);
+                            ulong blockAddr = graph.ProcessData.GetAddressOfBlock((int)ae.BlockID);
                             bool found = graph.ProcessData.FindContainingModule(blockAddr, out int? moduleID);
                             if (!found)
                             {
@@ -752,12 +752,12 @@ namespace rgat.Widgets
                                 name = System.IO.Path.GetFileName(graph.ProcessData.GetModulePath(moduleID.Value))
                             });
 
-                            if (ae.blockID >= graph.BlocksFirstLastNodeList.Count)
+                            if (ae.BlockID >= graph.BlocksFirstLastNodeList.Count)
                             {
                                 continue;
                             }
 
-                            var block = graph.BlocksFirstLastNodeList[(int)ae.blockID];
+                            var block = graph.BlocksFirstLastNodeList[(int)ae.BlockID];
                             if (block is null)
                             {
                                 continue;
@@ -921,14 +921,14 @@ namespace rgat.Widgets
                     if (entryIdx >= animationData.Count) break;
 
                     ANIMATIONENTRY sample = animationData[entryIdx];
-                    if ((int)sample.blockID != -1)
+                    if ((int)sample.BlockID != -1)
                     {
-                        if (sample.blockID >= graph.BlocksFirstLastNodeList.Count)
+                        if (sample.BlockID >= graph.BlocksFirstLastNodeList.Count)
                         {
                             continue;
                         }
 
-                        Tuple<uint, uint>? blockNodes = graph.BlocksFirstLastNodeList[(int)sample.blockID];
+                        Tuple<uint, uint>? blockNodes = graph.BlocksFirstLastNodeList[(int)sample.BlockID];
                         if (blockNodes == null)
                         {
                             continue; //.idata thunk

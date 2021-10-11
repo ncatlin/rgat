@@ -1315,7 +1315,7 @@ namespace rgat.Widgets
             {
                 if (ImGui.IsItemHovered())
                 {
-                    ImGui.SetTooltip("Store the currently applied theme so it can be reloaded from the above dropdown.");
+                    ImGui.SetTooltip("Store the currently applied theme so it can be reloaded.");
                 }
             }
 
@@ -1340,6 +1340,7 @@ namespace rgat.Widgets
                     if (ImGui.Selectable(themeName, true))
                     {
                         ActivateUIThemePreset(themeName);
+                        RegenerateUIThemeJSON();
                     }
 
                     if (ImGui.IsItemHovered())
@@ -1412,12 +1413,14 @@ namespace rgat.Widgets
                 if (ImGui.InputText("", ref pendingPresetName, 255, ImGuiInputTextFlags.EnterReturnsTrue) && validName)
                 {
                     Themes.SavePresetTheme(pendingPresetName, doSetThemeDefaultOnSave);
+                    RegenerateUIThemeJSON();
                     ImGui.CloseCurrentPopup();
                 }
                 ImGui.SameLine();
                 if (validName && ImGui.Button("Save"))
                 {
                     Themes.SavePresetTheme(pendingPresetName, doSetThemeDefaultOnSave);
+                    RegenerateUIThemeJSON();
                     ImGui.CloseCurrentPopup();
                 }
                 if (!validName)
