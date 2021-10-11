@@ -783,6 +783,7 @@ namespace rgat
             }
             RecordLogEvent(text: message, graph: graph, trace: trace, filter: LogFilterType.Error);
             RecordLogEvent(text: e.ToString(), graph: graph, trace: trace, filter: LogFilterType.Info);
+            Console.WriteLine(e);
         }
 
 

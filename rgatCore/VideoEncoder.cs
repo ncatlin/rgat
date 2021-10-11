@@ -165,12 +165,12 @@ namespace rgat
         {
             try
             {
+                if (_recording is true && error is not null && rgatState.rgatIsExiting is false)
+                    Logging.RecordError($"Recording stopped: {error}");
                 _recordingStateChanged = DateTime.Now;
                 _recording = false;
                 Error = error;
                 _bmpQueue.Clear();
-                if (error is not null)
-                    Logging.RecordError($"Recording stopped: {error}");
             }
             catch (Exception e)
             {

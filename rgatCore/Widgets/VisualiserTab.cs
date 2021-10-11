@@ -593,7 +593,7 @@ namespace rgat
                 }
                 else
                 {
-                    if (ImGui.Button($"{ImGuiController.FA_BLANK_CIRCLE} Record", new Vector2(100, 25)))
+                    if (ImGui.Button($"{ImGuiController.FA_BLANK_CIRCLE} Record", new Vector2(100, 28)))
                     {
                         rgatState.VideoRecorder.StartRecording();
                     }
@@ -1396,7 +1396,7 @@ namespace rgat
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Velocity Time %");
+                        ImGui.Text($"Velocity Time %%");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{velpc * 100.0:0.#}%% ({velpc_all * 100.0:0.#}%% of total)");
                         ImGui.TableNextColumn();
@@ -1444,7 +1444,7 @@ namespace rgat
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Position Time %");
+                        ImGui.Text($"Position Time %%");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{pospc * 100.0:0.#}%% ({pospc_all * 100.0:0.#}%% of total)");
                         ImGui.TableNextColumn();
@@ -1493,7 +1493,7 @@ namespace rgat
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Attribute Time %");
+                        ImGui.Text($"Attribute Time %%");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{attpc * 100.0:0.#}%% ({attpc_all * 100.0:0.#}%% of total)");
                         ImGui.TableNextColumn();
@@ -1542,7 +1542,7 @@ namespace rgat
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.Text($"Misc Time %");
+                        ImGui.Text($"Misc Time %%");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{(unaccpc * 100.0):0.#} %% of total");
                         ImGui.TableNextColumn();

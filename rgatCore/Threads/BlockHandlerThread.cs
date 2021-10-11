@@ -342,7 +342,10 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordException($"BlockThread::RemoteListener exception {e.Message}", e);
+                    if (rgatState.rgatIsExiting is false)
+                    { 
+                        Logging.RecordException($"BlockThread::BlockProcessor exception {e.Message}", e); 
+                    }
                     break;
                 }
                 lock (_lock)

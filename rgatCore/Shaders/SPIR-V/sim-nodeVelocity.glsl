@@ -100,7 +100,8 @@ void main()	{
 
     
     uvec3 id = gl_GlobalInvocationID;
-    uint index = id.y * 256 + id.x;
+    //uint index = id.y * 256 + id.x;
+    uint index = id.x;
 
     if (index < fieldParams.nodeCount)
     {

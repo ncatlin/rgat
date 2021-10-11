@@ -1319,6 +1319,7 @@ namespace rgat
                     if (logItem.Filter == LogFilterType.Alert)
                     {
                         ImGui.PushStyleColor(ImGuiCol.Text, alertColour.ToUint(alpha));
+                        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 2);
                         ImGui.Text($" {ImGuiController.FA_ICON_BELL} ");
                         ImGui.PopStyleColor();
                     }

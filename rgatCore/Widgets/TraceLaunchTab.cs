@@ -779,35 +779,40 @@ namespace rgat
             {
                 ImGui.Text("Not Inited");
             }
-            else if (DEProgress.errored)
-            {
-                float dieProgress = DEProgress.scriptCount == 0 ? 0f : DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                string caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                uint errorColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
-                SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, errorColour, 0xff111111, textColour);
-            }
-            else if (DEProgress.loading)
-            {
-                SmallWidgets.ProgressBar("DieProgBar", $"Loading Scripts", 0, barSize, 0xff117711, 0xff111111);
-            }
-            else if (DEProgress.running)
-            {
-                float dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                string caption = $"DiE:{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
-                SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111);
-            }
-            else if (DEProgress.StopRequestFlag)
-            {
-                float dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                string caption = $"Cancelled ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                uint cancelColor = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
-                SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, cancelColor, 0xff111111, 0xff000000);
-            }
             else
             {
-                float dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                string caption = $"DIE:({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, 0xff117711, 0xff111111, textColour);
+                string caption; uint barColour; float dieProgress = 0;
+                if (DEProgress.errored)
+                {
+                    dieProgress = DEProgress.scriptCount == 0 ? 0f : DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                }
+                else if (DEProgress.loading)
+                {
+                    dieProgress = 0;
+                    caption = $"Loading Scripts";
+                    barColour = 0;
+                }
+                else if (DEProgress.running)
+                {
+                    dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    caption = $"DiE:{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
+                }
+                else if (DEProgress.StopRequestFlag)
+                {
+                    dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    caption = $"Cancelled ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
+                }
+                else
+                {
+                    dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
+                    caption = $"DIE:({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
+                }
+                SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, Themes.GetThemeColourImGui(ImGuiCol.ChildBg, 180), barColour);
             }
 
             if (DEProgress is not null)
@@ -915,7 +920,7 @@ namespace rgat
                     break;
             }
 
-            SmallWidgets.ProgressBar("YaraProgBar", caption, progressAmount, barSize, barColour, 0xff111111);
+            SmallWidgets.ProgressBar("YaraProgBar", caption, progressAmount, barSize, Themes.GetThemeColourImGui(ImGuiCol.ChildBg, 180), barColour);
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();

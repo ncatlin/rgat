@@ -36,7 +36,7 @@ namespace rgat.Widgets
                 ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(1, 1));
                 if (ImGui.BeginTable("#TraceSelectorTable",2))
                 {
-                    ImGui.TableSetupColumn("#IconsTraceSel", ImGuiTableColumnFlags.WidthFixed, 55);
+                    ImGui.TableSetupColumn("#IconsTraceSel", ImGuiTableColumnFlags.WidthFixed, 35);
                     ImGui.TableNextRow();
                     DrawTraceCombo(trace);
 
@@ -59,11 +59,11 @@ namespace rgat.Widgets
             var tracelist = trace.Target.GetTracesUIList();
             string selString = "PID " + trace.PID;
             ImGui.AlignTextToFramePadding();
-            ImGuiUtils.DrawHorizCenteredText($"{tracelist.Length}x {ImGuiController.FA_ICON_COGS}");
+            ImGuiUtils.DrawHorizCenteredText($"{tracelist.Length}x");
             SmallWidgets.MouseoverText($"This target binary has {tracelist.Length} loaded trace{(tracelist.Length != 1 ? 's' : "")} associated with it");
 
             ImGui.TableNextColumn();
-            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 35);
             if (ImGui.BeginCombo("##ProcessTraceCombo", selString))
             {
                 foreach (var selectableTrace in tracelist)
@@ -85,6 +85,8 @@ namespace rgat.Widgets
                 }
                 ImGui.EndCombo();
             }
+            ImGui.SameLine();
+            ImGui.Text($"{ImGuiController.FA_ICON_COGS}");
         }
 
 
@@ -115,11 +117,11 @@ namespace rgat.Widgets
                 ImGui.TableNextColumn();
                 string selString = $"TID {graph.ThreadID}: {graph.FirstInstrumentedModuleName}";
                 List<PlottedGraph> graphs = trace.GetPlottedGraphs();
-                ImGuiUtils.DrawHorizCenteredText($"{graphs.Count}x {ImGuiController.FA_ICON_COG}");
+                ImGuiUtils.DrawHorizCenteredText($"{graphs.Count}x");
                 SmallWidgets.MouseoverText($"This trace has {graphs.Count} thread{(graphs.Count != 1 ? 's' : "")} with instrumented trace data");
 
                 ImGui.TableNextColumn();
-                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 35);
                 if (ImGui.BeginCombo("##SelectorThreadCombo", selString))
                 {
                     foreach (PlottedGraph selectablegraph in graphs)
@@ -160,6 +162,8 @@ namespace rgat.Widgets
                     }
                     ImGui.EndCombo();
                 }
+                ImGui.SameLine();
+                ImGui.Text($"{ImGuiController.FA_ICON_COG}");
             }
         }
 

@@ -1295,8 +1295,8 @@ namespace rgat
 
             fixed (Position1DColour* vertsPtr = NodeVerts, pickingVertsPtr = nodePickingColors)
             {
-                cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)nodeCount * Position1DColour.SizeInBytes);
-                cl.UpdateBuffer(_NodePickingBuffer, 0, (IntPtr)pickingVertsPtr, (uint)nodeCount * Position1DColour.SizeInBytes);
+                cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)NodeVerts.Length * Position1DColour.SizeInBytes);
+                cl.UpdateBuffer(_NodePickingBuffer, 0, (IntPtr)pickingVertsPtr, (uint)NodeVerts.Length * Position1DColour.SizeInBytes);
             }
 
             if ((EdgeLineVerts.Length * Position1DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes)
@@ -1334,9 +1334,6 @@ namespace rgat
                 Console.WriteLine($"DGtexts took {st.ElapsedMilliseconds}");
 
 
-            Debug.Assert(NodeVerts.Length <= (_NodeVertexBuffer.SizeInBytes / 4));
-            int nodesToDraw = Math.Min(NodeVerts.Length, (int)(_NodeVertexBuffer.SizeInBytes / 4));
-
             GetOutputFramebuffer(out Framebuffer drawtarget);
        
             //draw nodes and edges
@@ -1349,7 +1346,7 @@ namespace rgat
                 cl.SetGraphicsResourceSet(0, crs_core);
                 cl.SetGraphicsResourceSet(1, crs_nodesEdges);
                 cl.SetVertexBuffer(0, _NodeVertexBuffer);
-                cl.Draw((uint)nodesToDraw);
+                cl.Draw((uint)nodeCount);
             }
 
             if (plot.Opt_EdgesVisible)

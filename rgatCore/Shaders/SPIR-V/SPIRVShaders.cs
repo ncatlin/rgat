@@ -41,7 +41,7 @@ namespace rgat.Shaders.SPIR_V
 
 layout(location = 0) in int PositionBufIndex;
 layout(location = 1) in vec4 Color;
-layout(location = 0) out vec2 PositionTexCoordOut;
+layout(location = 0) out int PositionTexCoordOut;
 layout(location = 1) out vec4 vColor;
 
 layout(set = 0, binding=0) uniform ParamsBuf
@@ -67,6 +67,7 @@ void main() {
         vColor = vec4(1.0,0.0,1.0,1.0);
     } else {
         vColor = vec4(Color.xyz, nodeAttribTexture[PositionBufIndex].y) ; //attrib.y == alpha
+        //vColor = vec4(1,0.5,0.5, nodeAttribTexture[PositionBufIndex].y) ; //attrib.y == alpha
     }
 
     vec4 worldPosition = World *  positionTexture[PositionBufIndex];
@@ -77,6 +78,7 @@ void main() {
     float nodeSize = 300.0; //remember to match the picking shader value to this
     float relativeNodeSize = nodeSize / length(gl_Position.xyz);
     gl_PointSize = nodeAttribTexture[PositionBufIndex].x * relativeNodeSize;
+    PositionTexCoordOut = PositionBufIndex;
 }
 ";
 
@@ -113,9 +115,7 @@ layout(set = 1, binding=0) uniform texture2D nodeTextures;
 
 void main() 
 {
-    //uint index = uint(PositionTexCoord.y * TexWidth + PositionTexCoord.x);
     float textureIdx = nodeAttribTexture[PositionBufIndex].w;    //the icon used for the node
-    
 
     //draw the sphere texture over the node point
 

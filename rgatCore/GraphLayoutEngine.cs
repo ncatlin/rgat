@@ -365,6 +365,7 @@ namespace rgat
 
                 if (GlobalConfig.LayoutPositionsActive)
                 {
+                    _stepTimer.Stop();
                     plot.RecordComputeTime(stepMSTotal: _stepTimer.Elapsed.TotalMilliseconds,
                         positionSetupTime: activePipeline.PositionSetupTime, positionShaderTime: activePipeline.PositionTime,
                         velocitySetupTime: activePipeline.VelocitySetupTime, velocityShaderTime: activePipeline.VelocityTime,
@@ -393,7 +394,7 @@ namespace rgat
             //DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 32);
             //DebugPrintOutputFloatBuffer(layout.PositionsVRAM1!, "pos1", 32);
             //DebugPrintOutputFloatBuffer(layout.PositionsVRAM2!, "pos2", 32);
-            //DebugPrintOutputFloatBuffer(layout.AttributesVRAM2, "Atts2", 32);
+            //DebugPrintOutputFloatBuffer(layout.AttributesVRAM, "Atts2", 32);
 
 
             lock (_lock)
@@ -447,6 +448,7 @@ namespace rgat
 
             attributeSetupTime = _attSetupTimer.Elapsed.TotalMilliseconds;
             attributeTime = _attShaderTimer.Elapsed.TotalMilliseconds;
+            //DebugPrintOutputFloatBuffer(layout.AttributesVRAM1!, "Atts1", 32);
         }
 
 
@@ -522,10 +524,10 @@ namespace rgat
             public float delta;            // requestAnimationFrame delta
             public int selectedNode;     // selectedNode
             public float hoverMode;     // selectedNode
-            public int edgesTexCount;     // will be the same for neighbors
+            public uint nodeCount;     
 
             public float MinimumAlpha;
-            public bool isAnimated;
+            public int isAnimated;
 
             private readonly uint _padding2b;
             private readonly uint _padding2c;
@@ -550,10 +552,10 @@ namespace rgat
             {
                 delta = delta,
                 selectedNode = mouseoverNodeID,
-                edgesTexCount = (int)graph.LayoutState.EdgeConnections!.SizeInBytes / 4,
+                nodeCount = (uint)Math.Min(graph.RenderedNodeCount(), graph.LayoutState.AttributesVRAM1!.SizeInBytes / 16),
                 MinimumAlpha = GlobalConfig.AnimatedFadeMinimumAlpha,
-                hoverMode = 1,
-                isAnimated = useAnimAttribs
+                hoverMode = (mouseoverNodeID != -1) ? 1 : 0,
+                isAnimated = useAnimAttribs ? 1: 0
             };
 
 
@@ -657,7 +659,6 @@ namespace rgat
             cl.SetComputeResourceSet(0, resources);
 
             cl.Dispatch((uint)Math.Ceiling(inputAttributes.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
-            //DebugPrintOutputFloatBuffer((int)textureSize, attribBufOut, "attrib Computation Done. Result: ", 32);
         }
 
 
