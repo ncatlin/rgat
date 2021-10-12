@@ -165,8 +165,8 @@ namespace rgat
         {
             try
             {
-                if (_recording is true && error is not null && rgatState.rgatIsExiting is false)
-                    Logging.RecordError($"Recording stopped: {error}");
+                if (_recording is true && rgatState.rgatIsExiting is false)
+                    Logging.RecordError($"Recording Stopped{((error?.Length > 0) ? ":"+error : "")}");
                 _recordingStateChanged = DateTime.Now;
                 _recording = false;
                 Error = error;

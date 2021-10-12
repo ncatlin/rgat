@@ -3675,31 +3675,6 @@
             Layout style of the stored state
             </summary>
         </member>
-        <member name="F:rgat.GraphLayoutState.CPUBuffers.EdgeConnections">
-            <summary>
-            Edge connection descriptors
-            </summary>
-        </member>
-        <member name="F:rgat.GraphLayoutState.CPUBuffers.EdgeConnectionIndexes">
-            <summary>
-            Edge connection buffer indexes
-            </summary>
-        </member>
-        <member name="F:rgat.GraphLayoutState.CPUBuffers.EdgeStrengths">
-            <summary>
-            The attraction strength of each edge 
-            </summary>
-        </member>
-        <member name="F:rgat.GraphLayoutState.CPUBuffers.BlockMetadata">
-            <summary>
-            Basic Block metadata
-            </summary>
-        </member>
-        <member name="F:rgat.GraphLayoutState.CPUBuffers.BlockMiddles">
-            <summary>
-            Basic Block middles
-            </summary>
-        </member>
         <member name="M:rgat.GraphLayoutState.LockedUploadStateToVRAM(rgat.GraphLayoutState.CPUBuffers)">
             <summary>
             Must hold writer lock
@@ -5002,7 +4977,7 @@
             <summary>
             Action the movement of the mousewheel to zoom the graph in or out
             </summary>
-            <param name="delta">How far the mousewheel moved</param>
+            <param name="delta">How far to zoom the camera</param>
         </member>
         <member name="M:rgat.PlottedGraph.ApplyMouseDragDelta(System.Numerics.Vector2)">
             <summary>

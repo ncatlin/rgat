@@ -1060,7 +1060,7 @@ namespace rgat
                     //fade out
                     uint alpha = MSago < StateChangeSolidTime ? 255 : (uint)(255.0 * (1.0 - ((MSago - StateChangeSolidTime) / StateChangeFadeTime)));
                     ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis2).ToUint(alpha));
-                    if (rgatState.VideoRecorder.Error is not null)
+                    if (rgatState.VideoRecorder.Error?.Length > 0)
                         ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Error");
                     else
                         ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Stopped");

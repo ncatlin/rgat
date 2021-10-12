@@ -249,11 +249,6 @@ namespace rgat
                 NodeAttribArray = Array.Empty<float>();
 
                 PresetPositions = Array.Empty<float>();
-                EdgeConnections = Array.Empty<int>();
-                EdgeConnectionIndexes = Array.Empty<int>();
-                EdgeStrengths = Array.Empty<float>();
-                BlockMetadata = Array.Empty<int>();
-                BlockMiddles = Array.Empty<int>();
 
                 RenderVersion = 0;
                 Style = style;
@@ -286,26 +281,6 @@ namespace rgat
             /// Layout style of the stored state
             /// </summary>
             public LayoutStyles.Style Style;
-            /// <summary>
-            /// Edge connection descriptors
-            /// </summary>
-            public int[] EdgeConnections; //unreferenced?
-            /// <summary>
-            /// Edge connection buffer indexes
-            /// </summary>
-            public int[] EdgeConnectionIndexes; //unreferenced?
-            /// <summary>
-            /// The attraction strength of each edge 
-            /// </summary>
-            public float[] EdgeStrengths; //unreferenced?
-            /// <summary>
-            /// Basic Block metadata
-            /// </summary>
-            public int[] BlockMetadata; //unreferenced?
-            /// <summary>
-            /// Basic Block middles
-            /// </summary>
-            public int[] BlockMiddles;
         }
 
         private void LockedUploadStateToVRAM(LayoutStyles.Style style)

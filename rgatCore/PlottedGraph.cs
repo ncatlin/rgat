@@ -1156,7 +1156,7 @@ namespace rgat
                     edgeTargetIndexes[edgeIndex] = (int)neigbours[nidx];
                     if (InternalProtoGraph.EdgeExists(new Tuple<uint, uint>(neigbours[nidx], (uint)currentNodeIndex), out EdgeData? edge) && edge is not null)
                     {
-                        edgeStrengths[edgeIndex] = 1;// GetAttractionForce(edge);
+                        edgeStrengths[edgeIndex] = GetAttractionForce(edge);
                     }
                     else
                     {

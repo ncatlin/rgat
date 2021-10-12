@@ -1105,6 +1105,9 @@ namespace rgat.Widgets
                 case CONSTANTS.PathKey.PinPath:
                     GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.PinPath, path);
                     break;
+                case CONSTANTS.PathKey.FFmpegPath:
+                    GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.FFmpegPath, path);
+                    break;
                 case CONSTANTS.PathKey.PinToolPath32:
                     GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.PinToolPath32, path);
                     break;

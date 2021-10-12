@@ -952,7 +952,7 @@ private void DrawScalePopup()
                 ImGui.Text("Clump Multiplier");
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                ImGui.SliderFloat("##AttractionK", ref GlobalConfig.NodeClumpForce, 0.00001f, 2, "%f6");
+                ImGui.SliderFloat("##ClumpFrc", ref GlobalConfig.NodeClumpForce, 0.00001f, 200, "%f6");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();

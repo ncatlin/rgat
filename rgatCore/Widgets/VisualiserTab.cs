@@ -575,7 +575,7 @@ namespace rgat
                     if (rgatState.VideoRecorder.CapturePaused)
                     {
                         ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
-                        if (ImGui.Button("Resume Capture")) //this is more intended as an indicator than a control
+                        if (ImGui.Button("Resume Capture", new Vector2(100, 28))) //this is more intended as an indicator than a control
                         {
                             rgatState.VideoRecorder.CapturePaused = false;
                         }
@@ -584,7 +584,7 @@ namespace rgat
                     else
                     {
                         ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
-                        if (ImGui.Button("Stop Capture"))
+                        if (ImGui.Button("Stop Capture", new Vector2(100, 28)))
                         {
                             rgatState.VideoRecorder.StopRecording();
                         }
@@ -664,7 +664,7 @@ namespace rgat
                     float mainzoom = plot.CameraState.MainCameraZoom;
                     if (ImGui.DragFloat("##Zm", ref mainzoom, 500, -9999999999, furthestNode, "%.f"))
                         plot.CameraState.MainCameraZoom = mainzoom;
-
+                    SmallWidgets.MouseoverText("Camera Zoom. Can be controlled by the mouse wheel (with ctrl, shift and ctrl+shift modifiers");
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
@@ -1236,7 +1236,7 @@ namespace rgat
                 if (ImGui.BeginTable("#StatsTable", 3, ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg))
                 {
                     ImGui.TableSetupColumn("Field", ImGuiTableColumnFlags.WidthFixed, 120);
-                    ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 220);
+                    ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 235);
                     ImGui.TableSetupColumn("Explain");
 
                     ImGui.TableNextRow();
@@ -1376,7 +1376,7 @@ namespace rgat
                     ImGui.TableNextColumn();
                     ImGui.Text("Total Layout Time");
                     ImGui.TableNextColumn();
-                    ImGui.Text($"{graphplot.ComputeLayoutTime:0.#} MS over ({graphplot.ComputeLayoutSteps} steps (Avg: {graphplot.ComputeLayoutTime / graphplot.ComputeLayoutSteps:0.#})");
+                    ImGui.Text($"{graphplot.ComputeLayoutTime:0.#} MS over {graphplot.ComputeLayoutSteps} steps (Avg: {graphplot.ComputeLayoutTime / graphplot.ComputeLayoutSteps:0.#})");
                     ImGui.TableNextColumn();
                     ImGui.Text("Total compute engine time used to generate this layout");
 
