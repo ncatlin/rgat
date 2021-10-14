@@ -15,7 +15,7 @@ namespace rgat.Widgets
             Vector2 origCursorPos = ImGui.GetCursorPos();
             Vector2 origScreenPos = ImGui.GetCursorScreenPos();
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 6));
-            ImGui.Button(id, barSize);
+            ImGui.InvisibleButton(id, barSize);
             ImGui.SetCursorScreenPos(new Vector2(ImGui.GetWindowPos().X + origCursorPos.X, ImGui.GetCursorScreenPos().Y));
 
             const float vertPadding = 3;
@@ -243,7 +243,7 @@ namespace rgat.Widgets
                 ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 5));
                 ImGui.SetTooltip(text);
                 ImGui.PopStyleVar();
-                ImGui.PopStyleColor();
+                ImGui.PopStyleColor(2);
             }
         }
 

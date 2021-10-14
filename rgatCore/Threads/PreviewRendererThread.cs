@@ -450,6 +450,7 @@ namespace rgat.Threads
                 plot.CameraState.PreviewCameraZoom = -1 * graphDepth;
                 return false;
             }
+            float zoomFactor = Math.Abs(plot.CameraState.PreviewCameraZoom) /20;
 
             //too zoomed in, zoom out
             if ((xoffsets.X < targXpadding && xoffsets.Y < targXpadding) || (yoffsets.X < targYpadding && yoffsets.Y < targYpadding))

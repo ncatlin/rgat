@@ -1241,6 +1241,41 @@
             work in progress 
             </summary>
         </member>
+        <member name="F:rgat.GlobalConfig.EdgeStrengthNewJump">
+            <summary>
+            Strength of new edges from jump nodes
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.EdgeStrengthNewOther">
+            <summary>
+            Strength of new edges from other nodes
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.EdgeStrengthLib">
+            <summary>
+            Strength of edges to library nodes
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.EdgeStrengthCall">
+            <summary>
+            Strength of edges from call ndoes
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.EdgeStrengthOld">
+            <summary>
+            Strength of edges to old ndoes
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.EdgeStrengthRet">
+            <summary>
+            Strength of edges from return nodes
+            </summary>
+        </member>
+        <member name="F:rgat.GlobalConfig.EdgeStrengthException">
+            <summary>
+            Strength of edges to exceptions
+            </summary>
+        </member>
         <member name="F:rgat.GlobalConfig.NewGraphLayout">
             <summary>
             The initial graph layout used for new traces
@@ -8503,6 +8538,11 @@
         <member name="T:rgat.TraceRecord.ProcessState">
             <summary>
             The state of the process being traced
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.ProcessState.eNew">
+            <summary>
+            The process has not been recorded starting yet
             </summary>
         </member>
         <member name="F:rgat.TraceRecord.ProcessState.eRunning">

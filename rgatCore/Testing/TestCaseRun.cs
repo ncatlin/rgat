@@ -192,6 +192,7 @@ namespace rgat.Testing
             if (FailedTestRequirements.Count > 0)
             {
                 _test.RecordFailed(Session, this, $"{FailedTestRequirements.Count} general test requirements were not met");
+                return;
             }
 
             TraceRequirements processThreadReqs = _test.TraceRequirements();

@@ -152,13 +152,18 @@ namespace rgat
         {
             if (rgatState.ActiveGraph == null)
             {
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xFF222222);
                 if (ImGui.BeginChild(ImGui.GetID("ControlsOther"), ImGui.GetContentRegionAvail()))// controlsHeight - vpadding)))
                 {
-                    ImGuiUtils.DrawRegionCenteredText("Waiting for trace data");
+                    if (rgatState.ActiveTrace is null)
+                    {
+                        ImGuiUtils.DrawRegionCenteredText("No traces recorded for this target yet");
+                    }
+                    else
+                    {
+                        ImGuiUtils.DrawRegionCenteredText("Waiting for instrumented trace data");
+                    }
                     ImGui.EndChild();
                 }
-                ImGui.PopStyleColor();
                 return;
             }
 
@@ -375,7 +380,7 @@ namespace rgat
                 ImGui.BeginGroup();
                 {
                     PlottedGraph.REPLAY_STATE replaystate = plot.ReplayState;
-                    string BtnText = replaystate == PlottedGraph.REPLAY_STATE.Playing ? $"{ImGuiController.FA_ICON_PAUSE} Pause" : $"{ImGuiController.FA_ICON_PLAY} Play";
+                    string BtnText = replaystate == PlottedGraph.REPLAY_STATE.Playing ? $"{ImGuiController.FA_ICON_MEDIAPAUSE} Pause" : $"{ImGuiController.FA_ICON_MEDIAPLAY} Play";
 
 
                     if (SmallWidgets.DisableableButton(BtnText, plot.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(58, 26)))
@@ -383,7 +388,7 @@ namespace rgat
                         plot.PlayPauseClicked();
                     }
                     ImGui.SameLine();
-                    if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_STOP} Reset", plot.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(58, 26)))
+                    if (SmallWidgets.DisableableButton($"{ImGuiController.FA_ICON_MEDIASTOP} Reset", plot.InternalProtoGraph.TraceData.DiscardTraceData is false, new Vector2(58, 26)))
                     {
                         plot.ResetClicked();
                     }

@@ -114,5 +114,11 @@ namespace rgat
 
             }
         }
+
+        public static void WriteToClipboard(string text)
+        {
+            ImGui.LogToClipboard();
+            ImGui.LogText(text);
+        }
     }
 }

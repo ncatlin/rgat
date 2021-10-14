@@ -928,7 +928,7 @@ private void DrawScalePopup()
                 ImGui.Text("Max Node Speed");
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                ImGui.SliderFloat("##MaxNodeSpeed", ref GlobalConfig.MaximumNodeTemperature, 0, GlobalConfig.TemperatureLimit);
+                ImGui.DragFloat("##MaxNodeSpeed", ref GlobalConfig.MaximumNodeTemperature, 1, 0, GlobalConfig.TemperatureLimit);
 
                 SmallWidgets.MouseoverText("Speed limit for node layout. High values make layout faster in the early stages,\n" +
                     "but cause nodes to vibrate violently when they are near equilibrium.");
@@ -945,14 +945,14 @@ private void DrawScalePopup()
                 }
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                ImGui.SliderFloat("##_replotSpread", ref _replotSpread, 0.001f, 5f);
+                ImGui.DragFloat("##_replotSpread", ref _replotSpread, 0.01f ,0.001f, 5f);
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text("Clump Multiplier");
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                ImGui.SliderFloat("##ClumpFrc", ref GlobalConfig.NodeClumpForce, 0.00001f, 200, "%f6");
+                ImGui.DragFloat("##ClumpFrc", ref GlobalConfig.NodeClumpForce, 0.01f, 0.00001f, 100f, "%f6");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -984,7 +984,7 @@ private void DrawScalePopup()
                     {
                         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
                         ImGui.PushStyleColor(ImGuiCol.Border, WritableRgbaFloat.CreateUint(1, proportion, proportion, 1));
-                        if (ImGui.SliderFloat("##TempBar", ref tempNow, 0, GlobalConfig.TemperatureLimit))
+                        if (ImGui.DragFloat("##TempBar", ref tempNow, 10, 0, GlobalConfig.TemperatureLimit))
                         {
                             graph.Temperature = tempNow;
                         }

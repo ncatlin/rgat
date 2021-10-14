@@ -429,6 +429,7 @@ namespace rgat
 
         private float GetAttractionForce(EdgeData edge)
         {
+            if (edge.edgeClass == EdgeNodeType.eEdgeOld) return 0;
             //don't attract node to other nodes with lots of connections.
             //todo: do this at edge creation time, add a flag to the edgedata class
             //GlobalConfig.NodeClumpLimit = 1;
@@ -464,28 +465,28 @@ namespace rgat
                 case EdgeNodeType.eEdgeNew:
                     if (edge.sourceNodeType == EdgeNodeType.eNodeJump)
                     {
-                        force = 0.4f;
+                        force = GlobalConfig.EdgeStrengthNewJump;
                     }
                     else
                     {
-                        force = 1f;
+                        force = GlobalConfig.EdgeStrengthNewOther;
                     }
 
                     break;
                 case EdgeNodeType.eEdgeLib:
-                    force = 1f;
+                    force = GlobalConfig.EdgeStrengthLib;
                     break;
                 case EdgeNodeType.eEdgeCall:
-                    force = 0.4f;
+                    force = GlobalConfig.EdgeStrengthCall;
                     break;
                 case EdgeNodeType.eEdgeOld:
-                    force = 0.3f;
+                    force = GlobalConfig.EdgeStrengthOld;
                     break;
                 case EdgeNodeType.eEdgeReturn:
-                    force = 0.2f;
+                    force = GlobalConfig.EdgeStrengthRet;
                     break;
                 case EdgeNodeType.eEdgeException:
-                    force = 2f;
+                    force = GlobalConfig.EdgeStrengthException;
                     break;
                 default:
                     Logging.WriteConsole($"Unhandled edgetype {edge.edgeClass} with edge {edge.EdgeListIndex}");

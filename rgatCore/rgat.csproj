@@ -87,8 +87,6 @@
     <PackageReference Include="ImGui.NET" Version="1.82.0" />
     <PackageReference Include="Jint" Version="3.0.0-beta-2034" />
     <PackageReference Include="KaitaiStruct.Runtime.CSharp" Version="0.9.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0-preview.7.21377.19" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0-preview.7.21377.19" />
     <PackageReference Include="NaCl.Core" Version="2.0.2" />
     <PackageReference Include="NativeLibraryLoader" Version="1.0.12" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />

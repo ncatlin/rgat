@@ -40,7 +40,8 @@ namespace rgat
         public void Draw(ref bool show)
         {
             ImGui.SetNextWindowSize(new Vector2(800, 500), ImGuiCond.Appearing);
-            if (ImGui.Begin("logtableframe", ref show))
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
+            if (ImGui.Begin("Logged Events", ref show))
             {
                 //string label = $"{msgs.Length} log entries displayed from ({activeCount}/{_LogFilters.Length}) sources";
 
@@ -93,15 +94,17 @@ namespace rgat
                     {
                         ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
                         ImGui.Indent(8);
-                        ImGui.Text("Log Text Filter");
+                        ImGui.Text("Filter");
                         ImGui.SameLine();
                         ImGui.SetNextItemWidth(Math.Min(ImGui.GetContentRegionAvail().X - 50, 350));
                         ImGui.InputText("##IT1", textFilterValue, (uint)textFilterValue.Length);
-
-                        ImGui.SameLine();
-                        if (ImGui.Button("Clear"))
+                        if (_textFilterLen > 0)
                         {
-                            textFilterValue = new byte[textFilterValue.Length];
+                            ImGui.SameLine();
+                            if (ImGui.Button("Clear"))
+                            {
+                                textFilterValue = new byte[textFilterValue.Length];
+                            }
                         }
 
                         ImGui.EndGroup();
@@ -110,15 +113,17 @@ namespace rgat
                 }
                 ImGui.End();
             }
+            ImGui.PopStyleColor();
         }
 
+        int _textFilterLen = 0;
         private void WriteLogContentTable()
         {
             Logging.LOG_EVENT[] msgs = Logging.GetLogMessages(null, _LogFilters);
-            int activeCount = _LogFilters.Where(x => x == true).Count();
+            int activeCount = _LogFilters.Where(x => x is true).Count();
 
-            int filterLen = Array.FindIndex(textFilterValue, x => x == '\0');
-            string textFilterString = Encoding.ASCII.GetString(textFilterValue, 0, filterLen);
+            _textFilterLen = Array.FindIndex(textFilterValue, x => x == '\0');
+            string textFilterString = Encoding.ASCII.GetString(textFilterValue, 0, _textFilterLen);
 
             ImGuiTableFlags tableFlags =
                 ImGuiTableFlags.SizingStretchProp |
@@ -144,13 +149,14 @@ namespace rgat
                 }
 
                 ImGui.TableSetupScrollFreeze(0, 1);
-                ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 150);// | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending);
+                ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 170);// | ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending);
                 ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 200);//;//", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Details");//, ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.NoSort);
                 ImGui.TableHeadersRow();
 
-                foreach (LOG_EVENT msg in _sortedMsgs)
+                for(var i = 0; i < _sortedMsgs.Count; i++)
                 {
+                    LOG_EVENT msg = _sortedMsgs[i];                
                     DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
                     string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
 
@@ -178,7 +184,7 @@ namespace rgat
                             break;
                     }
 
-                    if (filterLen > 0)
+                    if (_textFilterLen > 0)
                     {
                         string lowerFilter = textFilterString.ToLowerInvariant();
                         if (!msgString.ToLowerInvariant().Contains(textFilterString) &&
@@ -191,7 +197,13 @@ namespace rgat
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-                    ImGui.Text(timeString);
+                    ImGui.Text($"{ImGuiController.FA_ICON_ADDFILE} {timeString}");
+                    if (ImGui.BeginPopupContextItem($"#LogClick{i}", ImGuiPopupFlags.MouseButtonLeft)) // <-- This is using IsItemHovered()
+                    {
+                        if (ImGui.MenuItem("Copy Details")) { ImGuiUtils.WriteToClipboard(msgString); }
+                        if (ImGui.MenuItem("Copy Line")) { ImGuiUtils.WriteToClipboard($"{timeString}; {sourceString}; {msgString}"); }
+                        ImGui.EndPopup();
+                    }
                     ImGui.TableNextColumn();
                     ImGui.Text(sourceString);
                     ImGui.TableNextColumn();
@@ -219,7 +231,7 @@ namespace rgat
                 }
             }
 
-            _sortedMsgs = shownMsgs.OrderBy(o => o.EventTimeMS).ToList();
+            _sortedMsgs = shownMsgs.OrderBy(o => o.EventTimeMS).Reverse().ToList();
             /*
             var ss = ImGui.TableGetSortSpecs();
 

@@ -274,7 +274,7 @@ namespace rgat
         }
 
 
-        private void AddEdge_LastToTargetVert(bool alreadyExecuted, int instructionIndex, ulong repeats)
+        private void AddEdge_LastToTargetVert(bool targetAlreadyExecuted, int instructionIndex, ulong repeats)
         {
             Tuple<uint, uint> edgeIDPair = new Tuple<uint, uint>(ProtoLastVertID, targVertID);
 
@@ -309,11 +309,11 @@ namespace rgat
 
                 if (instructionIndex > 0)
                 {
-                    newEdge.edgeClass = alreadyExecuted ? EdgeNodeType.eEdgeOld : EdgeNodeType.eEdgeNew;
+                    newEdge.edgeClass = targetAlreadyExecuted ? EdgeNodeType.eEdgeOld : EdgeNodeType.eEdgeNew;
                 }
                 else
                 {
-                    if (alreadyExecuted)
+                    if (targetAlreadyExecuted)
                     {
                         newEdge.edgeClass = EdgeNodeType.eEdgeOld;
                     }

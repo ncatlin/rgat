@@ -388,10 +388,11 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 				threadObj->newEdgeSourceBlk = sourceBlock->blockID;
 
 			}
+			/*
 			else {
-
-				//printf("__recordedge2 abovelim targs old edge [0x%lx]\n", targblockAddr);
+				printf("__recordedge2 abovelim targs old edge [0x%lx]\n", targblockAddr);
 			}
+			*/
 		}
 		else
 		{
@@ -429,14 +430,12 @@ VOID RecordStep(threadObject* threadObj, BLOCKDATA* block, ADDRINT thisAddress, 
 
 VOID at_unconditional_branch(BLOCKDATA* block_data, ADDRINT targetBlockAddress, THREADID threadid)
 {
-	//std::cout << "at_unconditional_branch hit block " << block_data->blockID << std::endl;
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
 	RecordEdge(thread, block_data, targetBlockAddress);
 }
 
 VOID at_unconditional_branch_oneshot(BLOCKDATA* block_data, ADDRINT targetBlockAddress, THREADID threadid)
 {
-	//std::cout << "at_unconditional_branch hit block " << block_data->blockID << std::endl;
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
 	RecordEdge(thread, block_data, targetBlockAddress);
 	PIN_RemoveInstrumentationInRange(block_data->appc, block_data->appc);
@@ -445,24 +444,15 @@ VOID at_unconditional_branch_oneshot(BLOCKDATA* block_data, ADDRINT targetBlockA
 
 VOID at_conditional_branch(BLOCKDATA* block_data, bool taken, ADDRINT targetBlockAddress, ADDRINT fallthroughAddress, THREADID threadid)
 {
-	//std::cout << "at_conditional_branch hit block " << block_data->blockID << " address 0x"<<std::hex<<block_data->appc << std::endl;
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
 	RecordEdge(thread, block_data, taken ? targetBlockAddress : fallthroughAddress);
 }
 
 VOID at_conditional_branch_oneshot(BLOCKDATA* block_data, bool taken, ADDRINT targetBlockAddress, ADDRINT fallthroughAddress, THREADID threadid)
 {
-	//std::cout << "at_conditional_branch hit block " << block_data->blockID << " address 0x"<<std::hex<<block_data->appc << std::endl;
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
 	RecordEdge(thread, block_data, taken ? targetBlockAddress : fallthroughAddress);
 	PIN_RemoveInstrumentationInRange(block_data->appc, block_data->appc);
-}
-
-
-VOID at_non_branch(BLOCKDATA* block_data, ADDRINT nextIns, THREADID threadid)
-{
-	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
-	RecordEdge(thread, block_data, nextIns);
 }
 
 VOID at_non_branch_oneshot(BLOCKDATA* block_data, ADDRINT nextIns, THREADID threadid)
@@ -720,7 +710,7 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		{
 			std::string disas = INS_Disassemble(lastins);
 			writeEventPipe("!Non branch block end instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
-			INS_InsertCall(lastins, IPOINT_AFTER, (AFUNPTR)at_non_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
+			INS_InsertCall(lastins, IPOINT_AFTER, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
 				IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
 		}
 		else

@@ -22,9 +22,9 @@ namespace rgat.Widgets
         {
             if (trace is null)
             {
-                if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(ImGui.GetContentRegionAvail().X - 4, 52)))
+                if (ImGui.BeginChild(ImGui.GetID("TraceSelect"), new Vector2(ImGui.GetContentRegionAvail().X - 4, ImGui.GetContentRegionAvail().Y)))
                 {
-                    ImGui.Text($"No selected trace");
+                    ImGuiUtils.DrawRegionCenteredText($"No selected trace");
                     ImGui.EndChild();
                 }
                 return null;

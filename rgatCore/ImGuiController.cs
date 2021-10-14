@@ -993,14 +993,16 @@ namespace ImGuiNET
         public static readonly char FA_ICON_COG = '\uf013';
         public static readonly char FA_ICON_REFRESH = '\uf021';
         public static readonly char FA_ICON_LOCK = '\uf023';
-        public static readonly char FA_ICON_PLAY = '\uf04b';
-        public static readonly char FA_ICON_PAUSE = '\uf04c';
-        public static readonly char FA_ICON_STOP = '\uf04d';
+        public static readonly char FA_ICON_MEDIAPLAY = '\uf04b';
+        public static readonly char FA_ICON_MEDIAPAUSE = '\uf04c';
+        public static readonly char FA_ICON_MEDIASTOP = '\uf04d';
         public static readonly char FA_ICON_STEP = '\uf051';
         public static readonly char FA_ICON_LEFT = '\uf060';
         public static readonly char FA_ICON_RIGHT = '\uf061';
         public static readonly char FA_ICON_UP = '\uf062';
         public static readonly char FA_ICON_DOWN = '\uf063';
+        public static readonly char FA_ICON_NOENTRY = '\uf05e';
+
 
         public static readonly char FA_ICON_NETWORK = '\uf6ff';
         public static readonly char FA_ICON_LOCALCODE = '\uf5fc';
@@ -1022,10 +1024,14 @@ namespace ImGuiNET
         public static readonly char FA_ICON_LISTEN = '\uF2A0';
         public static readonly char FA_ICON_BROADCAST = '\uF7C0';
         public static readonly char FA_ICON_EXCLAIM = '\uf12a';
+        public static readonly char FA_ICON_LIGHTNING = '\uf0e7';
         public static readonly char FA_ICON_DIRECTORY = '\uf07b';
         public static readonly char FA_ICON_FILEPLAIN = '\uf15b';
         public static readonly char FA_ICON_FILECODE = '\uf1c9';
+        public static readonly char FA_ICON_COPY = '\uf0c5';
+        public static readonly char FA_ICON_TICK = '\uf00c';
         public static readonly char FA_ICON_CROSS = '\uf00d';
+        public static readonly char FA_ICON_STAR = '\uf005';
         public static readonly char FA_ICON_PLUS = '\uf067';
         public static readonly char FA_ICON_UPCIRCLE = '\uf0aa';
         public static readonly char FA_ICON_DOWNCIRCLE = '\uf0ab';

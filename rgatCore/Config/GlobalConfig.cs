@@ -238,6 +238,38 @@ namespace rgat
         public static float NodeClumpForce = 0.1f;
 
         /// <summary>
+        /// Strength of new edges from jump nodes
+        /// </summary>
+        public static float EdgeStrengthNewJump = 0.4f;
+        /// <summary>
+        /// Strength of new edges from other nodes
+        /// </summary>
+        public static float EdgeStrengthNewOther = 1f;
+        /// <summary>
+        /// Strength of edges to library nodes
+        /// </summary>
+        public static float EdgeStrengthLib = 1f;
+        /// <summary>
+        /// Strength of edges from call ndoes
+        /// </summary>
+        public static float EdgeStrengthCall = 1f;
+        /// <summary>
+        /// Strength of edges to old ndoes
+        /// </summary>
+        public static float EdgeStrengthOld = 1f;
+        /// <summary>
+        /// Strength of edges from return nodes
+        /// </summary>
+        public static float EdgeStrengthRet = 1f;
+        /// <summary>
+        /// Strength of edges to exceptions
+        /// </summary>
+        public static float EdgeStrengthException = 1f;
+
+        
+
+
+        /// <summary>
         /// The initial graph layout used for new traces
         /// </summary>
         public static CONSTANTS.LayoutStyles.Style NewGraphLayout = CONSTANTS.LayoutStyles.Style.ForceDirected3DNodes;

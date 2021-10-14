@@ -151,11 +151,36 @@ namespace rgat
         private bool _isInputTarget = false;
         public void ApplyMouseDrag(Vector2 delta)
         {
-            if (_isInputTarget)
+            PlottedGraph? activePlot = rgatState.ActiveGraph;
+            if (_isInputTarget && activePlot is not null)
             {
-                ActiveGraph?.ApplyMouseDragDelta(delta);
+                bool shift = ImGui.GetIO().KeyShift;
+                bool ctrl = ImGui.GetIO().KeyCtrl;
+                float shiftMultiplier = shift ? CONSTANTS.UI.MOUSEWHEEL_SHIFTKEY_MULTIPLIER : 1;
+                float ctrlMultiplier = ctrl ? CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER : 1;
+
+                float xDelta = delta.X * shiftMultiplier * ctrlMultiplier;
+                float yDelta = delta.Y * shiftMultiplier * ctrlMultiplier;
+
+                if (shift && ctrl)
+                {
+                    float zoom = Math.Abs(activePlot.CameraState.MainCameraZoom);
+                    float mainX = Math.Abs(activePlot.CameraState.MainCameraXOffset);
+                    float mainY = Math.Abs(activePlot.CameraState.MainCameraYOffset);
+                    if (zoom > 1500 && mainX > 1500)
+                    {
+                        xDelta = (mainX / 100) * (delta.X > 0 ? 1 : -1);
+                    }
+                    if (zoom > 1500 && mainY > 1500)
+                    {
+                        //yDelta = 0;
+                        yDelta = (mainY / 200) * (delta.Y > 0 ? 1 : -1);
+                    }
+                }
+                ActiveGraph?.ApplyMouseDragDelta(new Vector2(xDelta, yDelta));                
             }
         }
+
         public void ApplyMouseRotate(Vector2 delta)
         {
             if (ActiveGraph != null)

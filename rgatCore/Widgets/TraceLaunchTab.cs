@@ -348,8 +348,6 @@ namespace rgat
             ImGui.Indent(8);
             ImGui.BeginGroup();
             {
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF992200);
-
                 TraceChoiceSettings moduleChoices = activeTarget.LaunchSettings.TraceChoices;
                 if (ImGui.BeginChild("ModFilterToggleChild", new Vector2(ImGui.GetContentRegionAvail().X, 40)))
                 {
@@ -380,7 +378,6 @@ namespace rgat
 
                 void DrawClickablePaths(List<string> paths, Action<string> clicked)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToUint(160));
                     foreach (string fstr in paths)
                     {
                         ImGui.Selectable(fstr);
@@ -388,17 +385,14 @@ namespace rgat
                         {
                             moduleChoices.RemoveIgnoredDirectory(fstr);
                         }
+                        SmallWidgets.MouseoverText($"{ImGuiController.FA_ICON_TRASHCAN} Click to remove this path");
                     }
-                    ImGui.PopStyleColor();
                 }
 
                 if (ImGui.BeginChild("ModFilterContentChild", new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y)))
                 {
-                    ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFFdddddd);
-
                     if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
                         if (moduleChoices.TracingMode == ModuleTracingMode.eDefaultTrace)
                         {
                             int ignoredDirCount = moduleChoices.IgnoreDirsCount;
@@ -410,13 +404,10 @@ namespace rgat
                             }
                             if (ignoredDirCount > 0 && ImGui.BeginPopupContextItem("IgnoreDirsClear", ImGuiPopupFlags.MouseButtonRight))
                             {
-                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                                 if (ImGui.Selectable("Clear all ignored directories"))
                                 {
                                     moduleChoices.ClearIgnoredDirs();
                                 }
-
-                                ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
 
@@ -441,12 +432,10 @@ namespace rgat
 
                             ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(136, 35));
                             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 9));
-                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                             if (ImGui.Button($"{ImGuiController.FA_ICON_ADDFILE} Add Files/Directories"))
                             {
                                 ToggleTraceListSelectionWindow();
                             }
-                            ImGui.PopStyleColor();
                             ImGui.PopStyleVar();
                             SmallWidgets.MouseoverText("Add files/directories to this filter");
                         }
@@ -460,13 +449,10 @@ namespace rgat
                             }
                             if (ImGui.BeginPopupContextItem("TraceDirsClear", ImGuiPopupFlags.MouseButtonRight))
                             {
-                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                                 if (ImGui.Selectable("Clear all traced directories"))
                                 {
                                     moduleChoices.ClearTracedDirs();
                                 }
-
-                                ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
 
@@ -478,37 +464,26 @@ namespace rgat
                             }
                             if (ImGui.BeginPopupContextItem("TraceDirsClear", ImGuiPopupFlags.MouseButtonRight))
                             {
-                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                                 if (ImGui.Selectable("Clear all traced files"))
                                 {
                                     moduleChoices.ClearTracedFiles();
                                 }
-
-                                ImGui.PopStyleColor();
                                 ImGui.EndPopup();
                             }
 
                             ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(136, 35));
                             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 9));
-                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
                             if (ImGui.Button($"{ImGuiController.FA_ICON_ADDFILE} Add Files/Directories"))
                             {
                                 ToggleTraceListSelectionWindow();
                             }
-                            ImGui.PopStyleColor();
                             ImGui.PopStyleVar();
                             SmallWidgets.MouseoverText("Add files/directories to this filter");
                         }
-                        ImGui.PopStyleColor();
                         ImGui.EndChildFrame();
                     }
-                    ImGui.PopStyleColor();
-
                     ImGui.EndChild();
                 }
-
-
-                ImGui.PopStyleColor();
             }
             ImGui.EndGroup();
 
@@ -526,165 +501,167 @@ namespace rgat
         {
             ImGui.BeginGroup();
             {
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
-                ImGui.BeginChild("#ExeSettingsChild", new Vector2(width, ImGui.GetContentRegionAvail().Y - 20));
-                ImGui.Text("Execution Settings");
-
-                ImGui.BeginChild("#TraceSettingsChild", new Vector2(500, 150));
-                //ImGui.AlignTextToFramePadding();
-                /*
-                ImGui.Text("Instrumentation Engine: ");
-                ImGui.SameLine();
-                ImGui.RadioButton("Intel Pin", ref _selectedInstrumentationEngine, 0);
-                ImGui.SameLine();
-                ImGui.RadioButton("Qiling", ref _selectedInstrumentationEngine, 1);
-                ImGui.SameLine();
-                ImGui.RadioButton("IPT", ref _selectedInstrumentationEngine, 2);
-                */
-                /*
-                ImGui.Text("Diagnostic Mode");
-                ImGui.SameLine();
-                if (SmallWidgets.ToggleButton("#DiagnosticModeTog", _diagnosticMode, "Will perform some diagnostic tests to see if pin can run on this"))
+                if (ImGui.BeginChild("#ExeSettingsChild", new Vector2(width, ImGui.GetContentRegionAvail().Y - 20)))
                 {
-                    _diagnosticMode = !_diagnosticMode;
-                }
-                */
+                    ImGui.Text("Execution Settings");
+                    ExeSettingsFrame1(width, activeTarget);
+                    //ImGui.BeginChild
+                    ImGui.AlignTextToFramePadding();
 
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.ChildBg));
-                int _selectedInstrumentationLevel = 1;
-                ImGui.AlignTextToFramePadding();
-                ImGui.Text("Instrumentation Level: ");
-                ImGui.SameLine();
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
-                ImGui.RadioButton("Single Shot", ref _selectedInstrumentationLevel, 0);
-                ImGui.PopStyleColor(1);
-                SmallWidgets.MouseoverText($"Remove instrumenation from previously seen blocks for a quick code stucture overview. This mode is not available in rgat {CONSTANTS.PROGRAMVERSION.RGAT_VERSION}");
-                ImGui.SameLine();
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBgHovered));
-                ImGui.RadioButton("Continuous", ref _selectedInstrumentationLevel, 1);
-                ImGui.PopStyleColor(1);
-                SmallWidgets.MouseoverText($"Perform live control-flow visualisation. Processes large volumes of trace data with a high performance impact.");
-
-                string? startPausedVal = activeTarget.LaunchSettings!.GetInstrumentationSetting("PAUSE_ON_START");
-                bool startPaused = startPausedVal is not null && startPausedVal == "TRUE";
-                if (ImGui.Checkbox("Start Paused", ref startPaused))
-                {
-                    activeTarget.LaunchSettings.SetTraceConfig("PAUSE_ON_START", startPaused ? "TRUE" : "FALSE");
-                }
-                SmallWidgets.MouseoverText("The trace will start in a suspended state which can be resumed in the visualiser pane by pressing continue");
-
-
-                bool discardTraceVal = activeTarget.LaunchSettings!.DiscardReplayData;
-                if (ImGui.Checkbox("Discard Animation Data", ref discardTraceVal))
-                {
-                    activeTarget.LaunchSettings.DiscardReplayData = discardTraceVal;
-                }
-                SmallWidgets.MouseoverText("Trace data will be discarded after being used to build and animate the graph.\n" +
-                    "This drastically reduces the memory consumption of long-running traces, but replay will be unavailable.");
-
-
-                bool hideThunks = activeTarget.LaunchSettings!.HideAPIThunks;
-                if (ImGui.Checkbox("Hide API thunks", ref hideThunks))
-                {
-                    activeTarget.LaunchSettings.HideAPIThunks = hideThunks;
-                }
-                SmallWidgets.MouseoverText("This option causes graphs to be modified to hide idata thunks." +
-                    "This makes layouts look much cleaner, but may introduce errors.");
-
-                ImGui.PopStyleColor();
-                ImGui.EndChild();
-
-                ImGui.AlignTextToFramePadding();
-
-                ImGui.Text("Command Line");
-                ImGui.SameLine();
-                ImGuiUtils.HelpMarker("Command line arguments passed to the program being executed");
-                ImGui.SameLine();
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
-
-                if (activeTarget != viewedTarget)
-                {
-                    _cmdLineArgData = new byte[4096];
-                    if (activeTarget.LaunchSettings.CommandLineArgs is not null)
-                    {
-                        byte[] savedargs = Encoding.UTF8.GetBytes(activeTarget.LaunchSettings.CommandLineArgs);
-                        Array.Copy(savedargs, _cmdLineArgData, savedargs.Length);
-                    }
-                    viewedTarget = activeTarget;
-                }
-
-                if (ImGui.InputText("##cmdline", _cmdLineArgData, (uint)_cmdLineArgData.Length))
-                {
-                    int argsLen = Array.FindIndex(_cmdLineArgData, x => x == '\0');
-                    activeTarget.LaunchSettings!.CommandLineArgs = Encoding.UTF8.GetString(_cmdLineArgData, 0, argsLen);
-                }
-
-                ImGui.PopStyleColor(2);
-
-
-                if (rgatState.VideoRecorder.Loaded)
-                {
+                    ImGui.Text("Command Line");
                     ImGui.SameLine();
+                    ImGuiUtils.HelpMarker("Command line arguments passed to the program being executed");
+                    ImGui.SameLine();
+
+                    if (activeTarget != viewedTarget)
+                    {
+                        _cmdLineArgData = new byte[4096];
+                        if (activeTarget.LaunchSettings.CommandLineArgs is not null)
+                        {
+                            byte[] savedargs = Encoding.UTF8.GetBytes(activeTarget.LaunchSettings.CommandLineArgs);
+                            Array.Copy(savedargs, _cmdLineArgData, savedargs.Length);
+                        }
+                        viewedTarget = activeTarget;
+                    }
+
+                    if (ImGui.InputText("##cmdline", _cmdLineArgData, (uint)_cmdLineArgData.Length))
+                    {
+                        int argsLen = Array.FindIndex(_cmdLineArgData, x => x == '\0');
+                        activeTarget.LaunchSettings!.CommandLineArgs = Encoding.UTF8.GetString(_cmdLineArgData, 0, argsLen);
+                    }
+
+
+
                     if (rgatState.VideoRecorder.Loaded)
                     {
-                        ImGui.Checkbox("Capture Video", ref _recordVideoOnStart);
-                    }
-                    else
-                    {
-                        ImGui.PushStyleColor(ImGuiCol.Text, 0xFF858585);
-                        ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xFF454545);
-                        ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0xFF454545);
-                        _recordVideoOnStart = false;
-                        if (ImGui.Checkbox("Capture Video", ref _recordVideoOnStart))
+                        ImGui.SameLine();
+                        if (rgatState.VideoRecorder.Loaded)
                         {
-                            rgatState.RecordVideoOnNextTrace = _recordVideoOnStart;
+                            ImGui.Checkbox("Capture Video", ref _recordVideoOnStart);
                         }
-
-                        ImGui.PopStyleColor(3);
-                        SmallWidgets.MouseoverText("Requires FFmpeg - configure in settings");
-                    }
-                }
-
-
-
-                string pintoolpath = activeTarget.BitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
-                    GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
-
-                if (GlobalConfig.BadSigners(out List<Tuple<string, string>>? issues))
-                {
-                    string pinpath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath);
-                    issues = issues!.Where(i => (i.Item1 == pintoolpath || i.Item1 == pinpath)).ToList();
-                    if (issues.Any())
-                    {
-                        float height = 70 * issues.Count;
-                        float origY = ImGui.GetCursorPosY();
-                        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y - (height + 15));
-                        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
-                        ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
-                        if (ImGui.BeginChild("#WarnIssueFrame", new Vector2(600, height), true, ImGuiWindowFlags.AlwaysAutoResize))
+                        else
                         {
-                            //todo: be more specific on tooltip, but prevent a potential error dictionary reading race condition
-                            ImGui.TextWrapped("Warning: One or more tracing binaries does not have a validated signature");
-                            foreach (var issue in issues)
+                            ImGui.PushStyleColor(ImGuiCol.Text, 0xFF858585);
+                            _recordVideoOnStart = false;
+                            if (ImGui.Checkbox("Capture Video", ref _recordVideoOnStart))
                             {
-                                ImGui.TextWrapped($"    {Path.GetFileName(issue.Item1)}: {issue.Item2}");
+                                rgatState.RecordVideoOnNextTrace = _recordVideoOnStart;
                             }
-                            ImGui.EndChild();
+
+                            ImGui.PopStyleColor(1);
+                            SmallWidgets.MouseoverText("Requires FFmpeg - configure in settings");
                         }
-                        ImGui.PopStyleColor();
-                        ImGui.PopStyleVar();
-                        ImGui.SetCursorPosY(origY);
                     }
 
+
+
+                    string pintoolpath = activeTarget.BitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
+                        GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
+
+                    if (GlobalConfig.BadSigners(out List<Tuple<string, string>>? issues))
+                    {
+                        string pinpath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath);
+                        issues = issues!.Where(i => (i.Item1 == pintoolpath || i.Item1 == pinpath)).ToList();
+                        if (issues.Any())
+                        {
+                            float height = 70 * issues.Count;
+                            float origY = ImGui.GetCursorPosY();
+                            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y - (height + 15));
+                            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
+                            ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                            if (ImGui.BeginChild("#WarnIssueFrame", new Vector2(600, height), true, ImGuiWindowFlags.AlwaysAutoResize))
+                            {
+                                //todo: be more specific on tooltip, but prevent a potential error dictionary reading race condition
+                                ImGui.TextWrapped("Warning: One or more tracing binaries does not have a validated signature");
+                                foreach (var issue in issues)
+                                {
+                                    ImGui.TextWrapped($"    {Path.GetFileName(issue.Item1)}: {issue.Item2}");
+                                }
+                                ImGui.EndChild();
+                            }
+                            ImGui.PopStyleColor();
+                            ImGui.PopStyleVar();
+                            ImGui.SetCursorPosY(origY);
+                        }
+
+                    }
+
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y - (40 + 5));
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + width - 140);
+                    StartButton(activeTarget, pintoolpath, 40);
+
+                    ImGui.EndChild();
                 }
-
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y - (40 + 5));
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + width - 140);
-                StartButton(activeTarget, pintoolpath, 40);
-
-                ImGui.EndChild();
 
                 ImGui.EndGroup();
+            }
+
+            void ExeSettingsFrame1(float width, BinaryTarget activeTarget)
+            {
+
+                if (ImGui.BeginChild("#TraceSettingsChild", new Vector2(500, 150)))
+                {
+                    //ImGui.AlignTextToFramePadding();
+                    /*
+                    ImGui.Text("Instrumentation Engine: ");
+                    ImGui.SameLine();
+                    ImGui.RadioButton("Intel Pin", ref _selectedInstrumentationEngine, 0);
+                    ImGui.SameLine();
+                    ImGui.RadioButton("Qiling", ref _selectedInstrumentationEngine, 1);
+                    ImGui.SameLine();
+                    ImGui.RadioButton("IPT", ref _selectedInstrumentationEngine, 2);
+                    */
+                    /*
+                    ImGui.Text("Diagnostic Mode");
+                    ImGui.SameLine();
+                    if (SmallWidgets.ToggleButton("#DiagnosticModeTog", _diagnosticMode, "Will perform some diagnostic tests to see if pin can run on this"))
+                    {
+                        _diagnosticMode = !_diagnosticMode;
+                    }
+                    */
+
+                    //ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.ChildBg));
+                    int _selectedInstrumentationLevel = 1;
+                    ImGui.AlignTextToFramePadding();
+                    ImGui.Text("Instrumentation Level: ");
+                    ImGui.SameLine();
+                    ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
+                    ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
+                    ImGui.RadioButton("Single Shot", ref _selectedInstrumentationLevel, 0);
+                    ImGui.PopStyleColor(2);
+                    SmallWidgets.MouseoverText($"Remove instrumenation from previously seen blocks for a quick code stucture overview. This mode is not available in rgat {CONSTANTS.PROGRAMVERSION.RGAT_VERSION}");
+                    ImGui.SameLine();
+                    ImGui.RadioButton("Continuous", ref _selectedInstrumentationLevel, 1);
+                    SmallWidgets.MouseoverText($"Perform live control-flow visualisation. Processes large volumes of trace data with a high performance impact.");
+
+                    string? startPausedVal = activeTarget.LaunchSettings!.GetInstrumentationSetting("PAUSE_ON_START");
+                    bool startPaused = startPausedVal is not null && startPausedVal == "TRUE";
+                    if (ImGui.Checkbox("Start Paused", ref startPaused))
+                    {
+                        activeTarget.LaunchSettings.SetTraceConfig("PAUSE_ON_START", startPaused ? "TRUE" : "FALSE");
+                    }
+                    SmallWidgets.MouseoverText("The trace will start in a suspended state which can be resumed in the visualiser pane by pressing continue");
+
+
+                    bool discardTraceVal = activeTarget.LaunchSettings!.DiscardReplayData;
+                    if (ImGui.Checkbox("Discard Animation Data", ref discardTraceVal))
+                    {
+                        activeTarget.LaunchSettings.DiscardReplayData = discardTraceVal;
+                    }
+                    SmallWidgets.MouseoverText("Trace data will be discarded after being used to build and animate the graph.\n" +
+                        "This drastically reduces the memory consumption of long-running traces, but replay will be unavailable.");
+
+
+                    bool hideThunks = activeTarget.LaunchSettings!.HideAPIThunks;
+                    if (ImGui.Checkbox("Hide API thunks", ref hideThunks))
+                    {
+                        activeTarget.LaunchSettings.HideAPIThunks = hideThunks;
+                    }
+                    SmallWidgets.MouseoverText("This option causes graphs to be modified to hide idata thunks." +
+                        "This makes layouts look much cleaner, but may introduce errors.");
+    
+                }
+                ImGui.EndChild();
             }
         }
 

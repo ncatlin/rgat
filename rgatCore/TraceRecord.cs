@@ -181,6 +181,10 @@ namespace rgat
         public enum ProcessState
         {
             /// <summary>
+            /// The process has not been recorded starting yet
+            /// </summary>
+            eNew,
+            /// <summary>
             /// The process is running
             /// </summary>
             eRunning,
@@ -1492,7 +1496,7 @@ namespace rgat
         /// <summary>
         /// The state of the trace process
         /// </summary>
-        public ProcessState TraceState { private set; get; } = ProcessState.eTerminated;
+        public ProcessState TraceState { private set; get; } = ProcessState.eNew;
 
 
         /// <summary>
@@ -1547,7 +1551,7 @@ namespace rgat
                 }
                 else
                 {
-                    if (error != null)
+                    if (error != "")
                     {
                         string errmsg = $"Testing Error evaluating Process requirement {req.Name}: {error}";
                         results.ProcessResults.Errors.Add(new Tuple<TestRequirement, string>(req, errmsg));
