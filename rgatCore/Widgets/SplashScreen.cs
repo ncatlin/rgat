@@ -51,14 +51,14 @@ namespace rgat
 
 
             //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff0000ff);
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, new WritableRgbaFloat(0, 0, 0, 255).ToUint());
+            //ImGui.PushStyleColor(ImGuiCol.ChildBg, new WritableRgbaFloat(0, 0, 0, 255).ToUint());
 
             bool boxBorders = false;
 
-            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0x45ffffff);
+            //ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0x45ffffff);
 
             _splashHeaderHover = ImGui.GetMousePos().Y < (ImGui.GetWindowSize().Y / 3f);
-            ImGui.PopStyleColor();
+            //ImGui.PopStyleColor();
 
             //Run group
             float voidspace = Math.Max(0, (regionWidth - (2 * buttonBlockWidth)) / 3);
@@ -73,7 +73,7 @@ namespace rgat
             }
 
             ImGui.SetCursorPos(new Vector2(runGrpX, blockStart));
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowBackground));
             if (ImGui.BeginChild("##RunGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
             {
                 ImGui.PushFont(Controller.SplashLargeFont);

@@ -261,7 +261,6 @@ namespace rgat
 
         public void DrawMain()
         {
-
             if (rgatState.ActiveTarget == null)
             {
                 DrawStartSplash();
@@ -270,11 +269,11 @@ namespace rgat
             {
                 DrawWindowContent();
             }
+           
             if (MenuBarVisible)
             {
                 DrawMainMenu();
             }
-
             DrawLoadSaveModal();
         }
 
@@ -818,6 +817,7 @@ namespace rgat
 
         private unsafe void DrawMainMenu()
         {
+            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowText));
             float logMenuX = 0;
             if (ImGui.BeginMenuBar())
             {
@@ -827,6 +827,7 @@ namespace rgat
                 DrawOuterRightMenuItems(out logMenuX);
                 ImGui.EndMenuBar();
             }
+            ImGui.PopStyleColor(1);
             DrawAlerts(new Vector2(logMenuX, 18));
         }
 
@@ -920,7 +921,7 @@ namespace rgat
             }
             else
             {
-                uint iconColour = GlobalConfig.Loaded ? Themes.GetThemeColourImGui(ImGuiCol.Text) : Themes.GetThemeColourImGui(ImGuiCol.TextDisabled);
+                uint iconColour = GlobalConfig.Loaded ? Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowText) : Themes.GetThemeColourImGui(ImGuiCol.TextDisabled);
                 ImGui.PushStyleColor(ImGuiCol.Text, iconColour);
                 if (ImGui.MenuItem(ImGuiController.FA_ICON_LOCALCODE + " Local Mode", null, ref rdlgshown))
                 {
@@ -1159,7 +1160,7 @@ namespace rgat
             bool menuDrawn = _show_logs_window;
             ImGui.MenuItem($"Logs{(unseenErrors > 0 ? $" ({unseenErrors})" : "")}", null, ref menuDrawn);
             ImGui.PopStyleColor();
-            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup))
+            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup | ImGuiHoveredFlags.AllowWhenOverlapped))
             {
                 DrawLogMouseover();
             }
@@ -1185,18 +1186,17 @@ namespace rgat
                 return;
             }
             //
-            //Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), windowSize.X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
-            //ImGui.SetNextWindowPos(new Vector2(popupBR.X, popupBR.Y));
             int alertCount = Logging.GetAlerts(8, out LOG_EVENT[] alerts);
             if (alertCount == 0)
             {
                 return;
             }
+            //Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), windowSize.X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
 
             float origy = ImGui.GetCursorPosY();
             ImGui.SetCursorPosY(25);//SetNextWindowPos(new Vector2(ImGui.GetWindowSize().X - ( 600), 25));
             ImGui.OpenPopup("##AlertsCtx");
-
+            //ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos() + new Vector2(0, 60));
             if (ImGui.BeginPopup("##AlertsCtx", ImGuiWindowFlags.AlwaysAutoResize))
             {
                 if (ImGui.BeginTable("##AlertsCtxTbl", 2))
@@ -1414,6 +1414,7 @@ namespace rgat
             }
             return true;
         }
+
 
         // these are gross
         private bool _SwitchToTraceSelectTab = false;

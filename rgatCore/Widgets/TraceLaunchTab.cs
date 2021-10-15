@@ -50,123 +50,125 @@ namespace rgat
                 return;
             }
 
+            float sigBoxWidth = 800;
             ImGui.BeginGroup();
             {
-                if (ImGui.BeginTable("#BasicStaticFields", 2, ImGuiTableFlags.Borders, ImGui.GetContentRegionAvail()))
+                if (ImGui.BeginChild("StaticTables", new Vector2(950,ImGui.GetContentRegionAvail().Y)))
                 {
-                    ImGui.TableSetupColumn("#FieldName", ImGuiTableColumnFlags.WidthFixed, 135);
-                    ImGui.TableSetupColumn("#FieldValue");
-
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Filename");
-                    ImGui.TableNextColumn();
-
-
-                    byte[] _dataInput = Encoding.UTF8.GetBytes(activeTarget.FileName);
-                    ImGui.SetNextItemWidth(350);
-                    ImGui.InputText("##filenameinp", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
-
-
-                    ImGui.SameLine();
-                    ImGui.Text("Size: " + activeTarget.GetFileSizeString());
-
-                    if (activeTarget.IsRemoteBinary)
+                    if (ImGui.BeginTable("#BasicStaticFields", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp))
                     {
+                        ImGui.TableSetupColumn("#FieldName", ImGuiTableColumnFlags.WidthFixed, 135);
+                        ImGui.TableSetupColumn("#FieldValue", ImGuiTableColumnFlags.WidthFixed, sigBoxWidth);
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Filename");
+                        ImGui.TableNextColumn();
+
+
+                        byte[] _dataInput = Encoding.UTF8.GetBytes(activeTarget.FileName);
+                        ImGui.SetNextItemWidth(350);
+                        ImGui.InputText("##filenameinp", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
+
+
                         ImGui.SameLine();
-                        if (activeTarget.IsAccessible)
+                        ImGui.Text("Size: " + activeTarget.GetFileSizeString());
+
+                        if (activeTarget.IsRemoteBinary)
                         {
-                            ImGui.Text("[Remote Target]");
-                            SmallWidgets.MouseoverText($"This target is loaded on {activeTarget.RemoteHost}");
+                            ImGui.SameLine();
+                            if (activeTarget.IsAccessible)
+                            {
+                                ImGui.Text("[Remote Target]");
+                                SmallWidgets.MouseoverText($"This target is loaded on {activeTarget.RemoteHost}");
+                            }
+                            else
+                            {
+                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                                ImGui.Text("[Remote (Inaccessible)]");
+                                ImGui.PopStyleColor();
+                                SmallWidgets.MouseoverText($"This target was loaded on {activeTarget.RemoteHost} in remote tracing mode");
+                            }
                         }
                         else
                         {
-                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
-                            ImGui.Text("[Remote (Inaccessible)]");
-                            ImGui.PopStyleColor();
-                            SmallWidgets.MouseoverText($"This target was loaded on {activeTarget.RemoteHost} in remote tracing mode");
+                            ImGui.SameLine();
+                            if (rgatState.NetworkBridge.ActiveNetworking)
+                            {
+                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                                ImGui.Text("[Local]");
+                                ImGui.PopStyleColor();
+                            }
                         }
-                    }
-                    else
-                    {
-                        ImGui.SameLine();
-                        if (rgatState.NetworkBridge.ActiveNetworking)
+
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text("SHA1 Hash");
+                        ImGui.TableNextColumn();
+                        _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA1Hash());
+                        ImGui.SetNextItemWidth(550);
+                        ImGui.InputText("##s1hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text("SHA256 Hash");
+                        ImGui.TableNextColumn();
+                        _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA256Hash());
+                        ImGui.SetNextItemWidth(550);
+                        ImGui.InputText("##s256hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
+
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Hex Preview");
+                        ImGui.TableNextColumn();
+                        ImGui.SetNextItemWidth(550);
+                        Controller.PushOriginalFont(); //original imgui font is monospace and UTF8, good for this
                         {
-                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
-                            ImGui.Text("[Local]");
-                            ImGui.PopStyleColor();
+                            _dataInput = Encoding.UTF8.GetBytes(activeTarget.HexPreview);
+                            ImGui.InputText("##hexprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
+                            _tooltipScrollingActive = _tooltipScrollingActive || ImGui.IsItemHovered();
+                            if (ImGui.IsItemHovered())
+                            {
+                                ShowHexPreviewTooltip(activeTarget);
+                            }
                         }
-                    }
+                        ImGui.PopFont();
 
-
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text("SHA1 Hash");
-                    ImGui.TableNextColumn();
-                    _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA1Hash());
-                    ImGui.SetNextItemWidth(550);
-                    ImGui.InputText("##s1hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
-
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text("SHA256 Hash");
-                    ImGui.TableNextColumn();
-                    _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA256Hash());
-                    ImGui.SetNextItemWidth(550);
-                    ImGui.InputText("##s256hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
-
-
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Hex Preview");
-                    ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(550);
-                    Controller.PushOriginalFont(); //original imgui font is monospace and UTF8, good for this
-                    {
-                        _dataInput = Encoding.UTF8.GetBytes(activeTarget.HexPreview);
-                        ImGui.InputText("##hexprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
-                        _tooltipScrollingActive = _tooltipScrollingActive || ImGui.IsItemHovered();
-                        if (ImGui.IsItemHovered())
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text("ASCII Preview");
+                        ImGui.TableNextColumn();
+                        ImGui.SetNextItemWidth(550);
+                        Controller.PushOriginalFont();
                         {
-                            ShowHexPreviewTooltip(activeTarget);
+                            _dataInput = Encoding.ASCII.GetBytes(activeTarget.ASCIIPreview);
+                            ImGui.InputText("##ascprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
+                            _tooltipScrollingActive = _tooltipScrollingActive || ImGui.IsItemHovered();
+                            if (ImGui.IsItemHovered())
+                            {
+                                _tooltipScrollingActive = true;
+                                ShowHexPreviewTooltip(activeTarget);
+                            }
                         }
+                        ImGui.PopFont();
+
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Signature Scan");
+                        ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(8, 8));
+                        DrawDetectItEasyProgress(activeTarget, new Vector2(120, 28));
+                        DrawYARAProgress(activeTarget, new Vector2(120, 28));
+
+
+                        ImGui.TableNextColumn();
+                        DrawSignaturesBox(activeTarget, sigBoxWidth);
+
+                        ImGui.EndTable();
                     }
-                    ImGui.PopFont();
-
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text("ASCII Preview");
-                    ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(550);
-                    Controller.PushOriginalFont();
-                    {
-                        _dataInput = Encoding.ASCII.GetBytes(activeTarget.ASCIIPreview);
-                        ImGui.InputText("##ascprev", _dataInput, 400, ImGuiInputTextFlags.ReadOnly); ImGui.NextColumn();
-                        _tooltipScrollingActive = _tooltipScrollingActive || ImGui.IsItemHovered();
-                        if (ImGui.IsItemHovered())
-                        {
-                            _tooltipScrollingActive = true;
-                            ShowHexPreviewTooltip(activeTarget);
-                        }
-                    }
-                    ImGui.PopFont();
-
-
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Signature Scan");
-                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 8);
-
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 8);
-                    DrawDetectItEasyProgress(activeTarget, new Vector2(120, 28));
-                    DrawYARAProgress(activeTarget, new Vector2(120, 28));
-
-
-                    ImGui.TableNextColumn();
-
-                    DrawSignaturesBox(activeTarget, 800);
-
-                    ImGui.EndTable();
+                    ImGui.EndChild();
                 }
             }
 
@@ -353,26 +355,23 @@ namespace rgat
                 {
                     ImGui.AlignTextToFramePadding();
                     ImGui.Text("Module Selection Mode");
+                    SmallWidgets.MouseoverText("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
                     ImGui.SameLine();
-                    ImGuiUtils.HelpMarker("Customise which libraries rgat will instrument. Tracing more code affects performance and makes resulting graphs more complex.");
-                    ImGui.SameLine();
-                    string TraceLabel = $"Default Trace [{moduleChoices.TraceDirCount + moduleChoices.TraceFilesCount}]";
+                    string TraceLabel = $"Default Ignore [{moduleChoices.TraceDirCount + moduleChoices.TraceFilesCount}]";
 
                     int traceModeRef = moduleChoices.TracingMode == ModuleTracingMode.eDefaultIgnore ? 0 : 1;
                     if (ImGui.RadioButton(TraceLabel, ref traceModeRef, 0))
                     {
                         moduleChoices.TracingMode = (ModuleTracingMode)traceModeRef;
                     };
+                    SmallWidgets.MouseoverText("Only specified libraries will be traced");
                     ImGui.SameLine();
-                    ImGuiUtils.HelpMarker("Only specified libraries will be traced");
-                    ImGui.SameLine();
-                    string IgnoreLabel = $"Default Ignore [{moduleChoices.IgnoreDirsCount + moduleChoices.IgnoreFilesCount}]";
+                    string IgnoreLabel = $"Default Trace [{moduleChoices.IgnoreDirsCount + moduleChoices.IgnoreFilesCount}]";
                     if (ImGui.RadioButton(IgnoreLabel, ref traceModeRef, 1))
                     {
                         moduleChoices.TracingMode = (ModuleTracingMode)traceModeRef;
                     };
-                    ImGui.SameLine();
-                    ImGuiUtils.HelpMarker("All libraries will be traced except for those on the ignore list");
+                    SmallWidgets.MouseoverText("All libraries will be traced except for those on the ignore list");
                     ImGui.EndChild();
                 }
 
@@ -389,9 +388,10 @@ namespace rgat
                     }
                 }
 
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
                 if (ImGui.BeginChild("ModFilterContentChild", new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y)))
                 {
-                    if (ImGui.BeginChildFrame(ImGui.GetID("exclusionlist_contents"), ImGui.GetContentRegionAvail()))
+                    if (ImGui.BeginChild("#exclusionlist_contents", ImGui.GetContentRegionAvail(), true))
                     {
                         if (moduleChoices.TracingMode == ModuleTracingMode.eDefaultTrace)
                         {
@@ -430,12 +430,14 @@ namespace rgat
                                 ImGui.EndPopup();
                             }
 
-                            ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(136, 35));
+                            ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(140, 40));
                             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 9));
+                            ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 3);
                             if (ImGui.Button($"{ImGuiController.FA_ICON_ADDFILE} Add Files/Directories"))
                             {
                                 ToggleTraceListSelectionWindow();
                             }
+                            ImGui.PopStyleVar();
                             ImGui.PopStyleVar();
                             SmallWidgets.MouseoverText("Add files/directories to this filter");
                         }
@@ -471,7 +473,7 @@ namespace rgat
                                 ImGui.EndPopup();
                             }
 
-                            ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(136, 35));
+                            ImGui.SetCursorPos(ImGui.GetContentRegionMax() - new Vector2(140, 40));
                             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 9));
                             if (ImGui.Button($"{ImGuiController.FA_ICON_ADDFILE} Add Files/Directories"))
                             {
@@ -484,6 +486,7 @@ namespace rgat
                     }
                     ImGui.EndChild();
                 }
+                ImGui.PopStyleColor();
             }
             ImGui.EndGroup();
 
@@ -509,8 +512,7 @@ namespace rgat
                     ImGui.AlignTextToFramePadding();
 
                     ImGui.Text("Command Line");
-                    ImGui.SameLine();
-                    ImGuiUtils.HelpMarker("Command line arguments passed to the program being executed");
+                    SmallWidgets.MouseoverText("Command line arguments passed to the program being executed");
                     ImGui.SameLine();
 
                     if (activeTarget != viewedTarget)
@@ -538,6 +540,7 @@ namespace rgat
                         if (rgatState.VideoRecorder.Loaded)
                         {
                             ImGui.Checkbox("Capture Video", ref _recordVideoOnStart);
+                            SmallWidgets.MouseoverText("Start recording a video of the trace");
                         }
                         else
                         {
@@ -549,7 +552,7 @@ namespace rgat
                             }
 
                             ImGui.PopStyleColor(1);
-                            SmallWidgets.MouseoverText("Requires FFmpeg - configure in settings");
+                            SmallWidgets.MouseoverText("Requires FFmpeg to be configured in settings");
                         }
                     }
 
@@ -689,9 +692,9 @@ namespace rgat
         {
 
             bool runnable = _activeTargetRunnable && GlobalConfig.Loaded && rgatUI.StartupProgress >= 1;
-            ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourImGui(ImGuiCol.Button) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, runnable ? Themes.GetThemeColourImGui(ImGuiCol.ButtonHovered) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, runnable ? Themes.GetThemeColourImGui(ImGuiCol.ButtonActive) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
+            ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourUINT(Themes.eThemeColour.eControl) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, runnable ? Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, runnable ? Themes.GetThemeColourUINT(Themes.eThemeColour.eControlActive) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
             ImGui.AlignTextToFramePadding();
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
             string caption = $"Start Trace {ImGuiController.FA_PLAY_CIRCLE}";
@@ -789,7 +792,7 @@ namespace rgat
                     caption = $"DIE:({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
                     barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
                 }
-                SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, Themes.GetThemeColourImGui(ImGuiCol.ChildBg, 180), barColour);
+                SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame), barColour);
             }
 
             if (DEProgress is not null)
@@ -897,7 +900,7 @@ namespace rgat
                     break;
             }
 
-            SmallWidgets.ProgressBar("YaraProgBar", caption, progressAmount, barSize, Themes.GetThemeColourImGui(ImGuiCol.ChildBg, 180), barColour);
+            SmallWidgets.ProgressBar("YaraProgBar", caption, progressAmount, barSize, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame), barColour);
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();

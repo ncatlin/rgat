@@ -548,10 +548,14 @@ namespace rgat
             //settings
             if (ImGui.BeginTable("##VideoSettingsTable", 2, ImGuiTableFlags.Borders))
             {
+                ImGui.TableSetupColumn("Video Settings");
+                ImGui.TableSetupColumn("Image Capture Settings");
+
+                ImGui.TableHeadersRow();
+
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
 
-                ImGuiUtils.DrawHorizCenteredText("Video Settings");
 
                 ImGui.SetNextItemWidth(180);
                 if (ImGui.BeginCombo("Quality", GlobalConfig.Settings.Media.VideoCodec_Quality.ToString()))
@@ -605,12 +609,7 @@ namespace rgat
                 }
                 SmallWidgets.MouseoverText("Slower speed yields smaller video file sizes. Increase if you have performance issues");
 
-
-
-
                 ImGui.TableNextColumn();
-
-                ImGuiUtils.DrawHorizCenteredText("Image Settings");
 
                 if (ImGui.BeginCombo("Image Format", GlobalConfig.Settings.Media.ImageCapture_Format))
                 {

@@ -173,8 +173,8 @@ namespace rgat.Widgets
                         }
                     }
 
-                    ImGui.PushStyleColor(ImGuiCol.TableRowBg, Themes.GetThemeColourImGui(ImGuiCol.ChildBg, 190));
-                    ImGui.PushStyleColor(ImGuiCol.TableRowBgAlt, Themes.GetThemeColourImGui(ImGuiCol.ChildBg, 230));
+                    //ImGui.PushStyleColor(ImGuiCol.TableRowBg, Themes.GetThemeColourImGui(ImGuiCol.ChildBg, 190));
+                    //ImGui.PushStyleColor(ImGuiCol.TableRowBgAlt, Themes.GetThemeColourImGui(ImGuiCol.ChildBg, 230));
                     ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 3));
                     ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, new Vector2(0, 0));
                     TestSession session = _testingThread.GetTestSession(this._currentSession);
@@ -216,7 +216,7 @@ namespace rgat.Widgets
                             }
                         }
                     }
-                    ImGui.PopStyleColor(2);
+                    //ImGui.PopStyleColor(2);
                     ImGui.PopStyleVar(2);
 
                     ImGui.EndChild();
@@ -662,6 +662,8 @@ namespace rgat.Widgets
                         ImGui.PopStyleColor();
                         ImGui.EndMenuBar();
                     }
+
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlText));
                     if (ImGui.Button("+All"))
                     {
                         AddTestsToQueue(eCatFilter.All);
@@ -724,6 +726,7 @@ namespace rgat.Widgets
                         ImGui.SetTooltip("Empty the test queue");
                     }
                     ImGui.EndGroup();
+                    ImGui.PopStyleColor();
                     ImGui.PopStyleColor();
                     ImGui.EndChild();
                 }
@@ -1236,7 +1239,7 @@ namespace rgat.Widgets
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 4);
                 ImGui.Text($"{_queuedTests.Count} test{((_queuedTests.Count != 1) ? "s" : "")} in queue");
 
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff080808);
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
                 if (ImGui.BeginChild("##TestsQueueFrame", new Vector2(treeWidth, height - height * sizeMultiplier - 40), true))
                 {
                     ImGui.Indent(10);

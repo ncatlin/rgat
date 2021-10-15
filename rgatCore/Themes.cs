@@ -22,6 +22,19 @@ namespace rgat
         /// </summary>
         public enum eThemeColour
         {
+            eWindowBackground,
+            eWindowText,
+            eFrame,
+            eFrameHover,
+            eFrameActive,
+            eControl,
+            eControlText,
+            eControlHover,
+            eControlActive,
+            eMenuBar,
+            eMenuBarText,
+            
+
             /// <summary>
             /// Labels on preview graphs
             /// </summary>
@@ -262,12 +275,50 @@ namespace rgat
                 var themes = Themes.ThemeColoursStandard.ToList();
                 foreach (KeyValuePair<ImGuiCol, uint> kvp in themes)
                 {
+
                     ImGui.PushStyleColor(kvp.Key, kvp.Value);
                 }
+
+
                 _appliedThemeCount = themes.Count;
             }
         }
 
+        public static void ApplyGeneralThemeColours()
+        {
+            //4
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
+            ImGui.PushStyleColor(ImGuiCol.ResizeGrip, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrameActive));
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrameHover));
+            //3
+            ImGui.PushStyleColor(ImGuiCol.WindowBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowBackground));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowBackground));
+            ImGui.PushStyleColor(ImGuiCol.PopupBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowBackground));
+            //1
+            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowText));
+            //5
+            ImGui.PushStyleColor(ImGuiCol.TableHeaderBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
+            ImGui.PushStyleColor(ImGuiCol.Header, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
+            ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
+            ImGui.PushStyleColor(ImGuiCol.TabUnfocused, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
+            ImGui.PushStyleColor(ImGuiCol.TitleBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
+            //7
+            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
+            ImGui.PushStyleColor(ImGuiCol.HeaderActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
+            ImGui.PushStyleColor(ImGuiCol.TabHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
+            ImGui.PushStyleColor(ImGuiCol.ResizeGripHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
+            ImGui.PushStyleColor(ImGuiCol.TabActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
+            //3
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlActive));
+            ImGui.PushStyleColor(ImGuiCol.CheckMark, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlActive));
+            ImGui.PushStyleColor(ImGuiCol.ResizeGripActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlActive));
+
+
+            _appliedThemeCount = 23;
+        }
 
         /// <summary>
         /// Must be called every time the UI is drawn using ApplyThemeColours
@@ -527,12 +578,12 @@ namespace rgat
         public unsafe static bool DrawColourSelectors()
         {
             bool changed = false;
-
-            ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY;
-            Vector2 tableSize = new Vector2(ImGui.GetContentRegionAvail().X, 350);
+            ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.ScrollX;
+            float tableWidth = Math.Max(ImGui.GetContentRegionAvail().X, 650); 
+            Vector2 tableSize = new Vector2(tableWidth, 350);
             if (ImGui.BeginTable(str_id: "##SelectorsTable", column: 2, flags: tableFlags, outer_size: tableSize))
             {
-                float halfWidth = ImGui.GetContentRegionAvail().X / 2;
+                float halfWidth = Math.Max(300, tableWidth / 2.1f);
                 ImGui.TableSetupColumn("General Widget Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
                 ImGui.TableSetupColumn("Custom Widget Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
                 ImGui.TableSetupScrollFreeze(0, 1);
@@ -744,15 +795,18 @@ namespace rgat
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordException($"Theme has invalid custom colour type {item.Key}-{e.Message}", e); return false;
+                            Logging.RecordException($"Theme has invalid custom colour type {item.Key}-{e.Message}", e);
+                            continue;
                         }
                         if (customcolType >= eThemeColour.COUNT)
                         {
-                            Logging.RecordError($"Theme has invalid custom colour type {item.Key}"); return false;
+                            Logging.RecordError($"Theme has invalid custom colour type {item.Key}");
+                            continue;
                         }
                         if (item.Value is null || item.Value.Type != JTokenType.Integer)
                         {
-                            Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
+                            Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}");
+                            continue;
                         }
                         pendingColsCustom[customcolType] = item.Value.ToObject<uint>();
                     }
@@ -774,15 +828,15 @@ namespace rgat
                         }
                         catch (Exception e)
                         {
-                            Logging.RecordException($"Theme has invalid standard colour type {item.Key}", e); return false;
+                            Logging.RecordException($"Theme has invalid standard colour type {item.Key}", e); continue;
                         }
                         if (stdcolType >= ImGuiCol.COUNT)
                         {
-                            Logging.RecordError($"Theme has invalid standard colour type {item.Key}"); return false;
+                            Logging.RecordError($"Theme has invalid standard colour type {item.Key}"); continue;
                         }
                         if (item.Value is null || item.Value.Type != JTokenType.Integer)
                         {
-                            Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}"); return false;
+                            Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}"); continue; 
                         }
                         pendingColsStd[stdcolType] = item.Value.ToObject<uint>();
                     }

@@ -489,21 +489,23 @@ namespace rgat.OperationModes
             ImGui.SetNextWindowSize(new Vector2(_controller!.WindowWidth, _controller.WindowHeight), ImGuiCond.Always);
             //ImGui.SetNextWindowSize(new Vector2(1200, 800), ImGuiCond.Appearing);
 
-            Themes.ApplyThemeColours();
+            Themes.ApplyGeneralThemeColours();
+            //Themes.ApplyThemeColours();
 
-            ImGui.Begin("rgat Primary Window", window_flags);
 
+
+            if (ImGui.Begin("rgat Primary Window", window_flags))
             {
                 _rgatUI.HandleUserInput();
                 _rgatUI.DrawMain();
                 _rgatUI.DrawDialogs();
                 _rgatUI.CleanupFrame();
-
-
-
-                Themes.ResetThemeColours();
             }
             ImGui.End();
+
+
+            Themes.ResetThemeColours();
+
 
             timer.Stop();
             _rgatUI.UpdateFrameStats(timer.ElapsedMilliseconds);

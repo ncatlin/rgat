@@ -279,14 +279,14 @@ namespace rgat.Widgets
             ImGui.InputText("##SymFilter", ref _activeHighlights.SymFilterText, 255);
 
             ImGui.SameLine();
-            if (ImGui.Button("X")) //todo: icon
+            if (ImGui.Button($"{ImGuiController.FA_ICON_TRASHCAN}")) 
             {
                 _activeHighlights.SymFilterText = "";
             }
 
-            ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
+            //ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xfff7f7f7);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
             if (ImGui.BeginChild(ImGui.GetID("htSymsFrameHeader"), new Vector2(ImGui.GetContentRegionAvail().X - 3, 20)))
             {
                 ImGui.SameLine(10);
@@ -297,15 +297,15 @@ namespace rgat.Widgets
                 ImGui.Text("Unique Nodes");
                 ImGui.EndChild();
             }
-            ImGui.PopStyleColor();
+            //ImGui.PopStyleColor();
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
+            //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
             if (ImGui.BeginChild("htSymsFrame", new Vector2(ImGui.GetContentRegionAvail().X - 3, ImGui.GetContentRegionAvail().Y - reserveSize)))
             {
                 DrawModSymTreeNodes(graph);
                 ImGui.EndChild();
             }
-            ImGui.PopStyleColor();
+            //ImGui.PopStyleColor();
 
             ImGui.PopStyleColor();
         }
@@ -372,6 +372,7 @@ namespace rgat.Widgets
                 plot.RemoveHighlightedNodes(nodes, CONSTANTS.HighlightType.Addresses);
                 plot.LayoutState.Lock.ExitUpgradeableReadLock();
             }
+
 
         }
 
@@ -495,7 +496,7 @@ namespace rgat.Widgets
             Size.Y = ImGui.GetContentRegionAvail().Y;
 
             //ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xff0000ff);
-            if (ImGui.BeginChildFrame(ImGui.GetID("highlightControls"), Size))
+            if (ImGui.BeginChild("#highlightControls", Size))
             {
                 if (!PopoutHighlight && ImGui.Button("Popout"))
                 {
@@ -509,15 +510,16 @@ namespace rgat.Widgets
                     if (ImGui.BeginTabItem("Externals/Symbols"))
                     {
                         _activeHighlights.selectedHighlightTab = 0;
-                        DrawSymbolsSelectBox(reserveSize: 32); //todo: unbadify this height choice
+                        DrawSymbolsSelectBox(reserveSize: 40); //todo: unbadify this height choice
                         DrawSymbolsSelectControls(_ActiveGraph);
                         ImGui.EndTabItem();
                     }
                     if (ImGui.BeginTabItem("Addresses"))
                     {
                         _activeHighlights.selectedHighlightTab = 1;
-                        DrawAddressSelectBox(_ActiveGraph);
                         DrawAddressSelectControls(_ActiveGraph);
+                        if (_activeHighlights.SelectedAddresses.Any())
+                            DrawAddressSelectBox(_ActiveGraph);
                         ImGui.EndTabItem();
                     }
                     if (ImGui.BeginTabItem("Exceptions"))

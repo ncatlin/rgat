@@ -88,12 +88,9 @@ namespace rgat.Widgets
                 ImGui.PushStyleColor(ImGuiCol.TitleBgActive, 0xff2525FF);
             }
 
+
             ImGui.Begin(title + "###Settings", ref window_shown_flag, window_flags);
             {
-                //ImGui.BeginGroup();
-                //ImGui.EndGroup();
-
-
                 ImGui.BeginGroup();
                 {
                     if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y - 35)))
@@ -108,17 +105,20 @@ namespace rgat.Widgets
                         }
                         ImGui.EndChildFrame();
                     }
+
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlText));
                     if (ImGui.Button("Close##CloseSettings", new Vector2(65, 25)))
                     {
                         window_shown_flag = false;
                     }
+                    ImGui.PopStyleColor();
 
                     ImGui.EndGroup();
                 }
 
                 ImGui.SameLine();
 
-                if (ImGui.BeginChildFrame(ImGui.GetID("SettingContent"), ImGui.GetContentRegionAvail()))
+                if (ImGui.BeginChild("#SettingContent", ImGui.GetContentRegionAvail()))
                 {
                     for (var i = 0; i < optionsSelectStates.Length; i++)
                     {
@@ -130,7 +130,6 @@ namespace rgat.Widgets
                     }
                     ImGui.EndChildFrame();
                 }
-
 
                 ImGui.End();
             }
@@ -488,7 +487,7 @@ namespace rgat.Widgets
 
                                 ImGui.EndTable();
                                 Vector2 btnSizes = new Vector2(150, 24);
-                                if (ImGui.Button("Add Signature Source", btnSizes))
+                                if (ImGui.Button("Add YARA rule source", btnSizes))
                                 {
                                     _repoChangeState = _repoChangeState == eRepoChangeState.Add ? eRepoChangeState.Inactive : eRepoChangeState.Add;
                                 }
@@ -572,12 +571,13 @@ namespace rgat.Widgets
                     Vector2 btnSize = new Vector2(80, 25);
                     if (_githubSigDownloader == null || !_githubSigDownloader.Running)
                     {
-                        if (SmallWidgets.DisableableButton("Refresh", size: btnSize, enabled: _selectedRepos.Any()))
+                        bool enabled = _selectedRepos.Any();
+                        if (SmallWidgets.DisableableButton("Refresh", size: btnSize, enabled: enabled))
                         {
                             RefreshSelectedSignatureSources();
                         }
 
-                        SmallWidgets.MouseoverText("Check for new updates to the selected signature repositories");
+                        SmallWidgets.MouseoverText(enabled ? "Check for new updates to the selected signature repositories" : "No repos are selected");
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
@@ -586,7 +586,7 @@ namespace rgat.Widgets
                             DownloadSelectedSignatureSources();
                         }
 
-                        SmallWidgets.MouseoverText("Download signatures from the selected signature repositories");
+                        SmallWidgets.MouseoverText(enabled ? "Download signatures from the selected signature repositories" : "No repos are selected");
                         ImGui.TableNextColumn();
                         ImGui.TableNextColumn();
                     }
@@ -645,7 +645,7 @@ namespace rgat.Widgets
             switch (_repoChangeState)
             {
                 case eRepoChangeState.Add:
-                    ImGui.OpenPopup("Add Signature Source");
+                    ImGui.OpenPopup("Add YARA Rule Source");
                     popupOpen = true;
                     break;
                 case eRepoChangeState.Delete:
@@ -1238,6 +1238,8 @@ namespace rgat.Widgets
             int index = 0;
             ImGuiTableFlags tableFlags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.NoHostExtendX
                 | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable;
+            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
+            ImGui.PushStyleColor(ImGuiCol.HeaderActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
             if (ImGui.BeginTable("KeybindSelectTable", 3, tableFlags, ImGui.GetContentRegionAvail() - new Vector2(0, 80)))
             {
                 ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed, 350);
@@ -1273,6 +1275,7 @@ namespace rgat.Widgets
             }
             ImGui.Text("Valid key modifiers are: Ctrl, Shift and Alt");
             ImGui.Text("Only keybinds with the Alt modifier work with dialog windows open");
+            ImGui.PopStyleColor(2);
 
             ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(ImGui.GetContentRegionMax().X - 150, -15));
             if (ImGui.Button("Restore Defaults", new Vector2(140, 34)))
@@ -1337,10 +1340,11 @@ namespace rgat.Widgets
                     string themeLabel = themeName;
                     if (defaultTheme == themeName)
                     {
-                        themeLabel += "  [Default]";
+                        themeLabel += " [Default]";
                     }
 
-                    if (ImGui.Selectable(themeName, true))
+                    bool isActive = activeThemeName == themeLabel;
+                    if (ImGui.Selectable(themeName, isActive))
                     {
                         ActivateUIThemePreset(themeName);
                         RegenerateUIThemeJSON();
@@ -1458,6 +1462,7 @@ namespace rgat.Widgets
                 {
                     GlobalConfig.Settings.Logs.BulkLogging = debglog;
                 }
+                SmallWidgets.MouseoverText("High volume logs will be written to a file in the trace save directory");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -1467,6 +1472,7 @@ namespace rgat.Widgets
                 {
                     GlobalConfig.AnimatedFadeMinimumAlpha = minGraphAlpha;
                 }
+                SmallWidgets.MouseoverText("The minimum transparency for non-active geometry on animated graph plots");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -1686,15 +1692,11 @@ namespace rgat.Widgets
 
         private void CreateThemeTester()
         {
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.WindowBg));
             if (ImGui.BeginChild(ImGui.GetID("ThemeTestContainer2"), new Vector2(ImGui.GetContentRegionMax().X, 250), false, ImGuiWindowFlags.AlwaysAutoResize))
             {
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.ChildBg));
                 DrawThemeTestFrame();
-                ImGui.PopStyleColor();
                 ImGui.EndChild();
             }
-            ImGui.PopStyleColor();
         }
 
         private bool testCheck = true;
@@ -1746,16 +1748,14 @@ namespace rgat.Widgets
                             ImGui.BeginGroup();
                             {
                                 ImGui.Button("Button", new Vector2(120, 25));
-                                ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.ButtonHovered));
-                                ImGui.Button("Button (Hovered)", new Vector2(120, 25));
-                                ImGui.PopStyleColor();
-                                ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.ButtonActive));
-                                ImGui.Button("Button (Active)", new Vector2(120, 25));
-                                ImGui.PopStyleColor();
                                 ImGui.EndGroup();
                             }
 
-                            ImGui.SliderFloat("Slider", ref testSlider, 0, 100);
+                            ImGui.SetNextItemWidth(160);
+                            ImGui.SliderFloat("Slider", ref testSlider, 0, 100);;
+                            ImGui.SameLine();
+                            ImGui.SetNextItemWidth(160);
+                            ImGui.DragFloat("Drag", ref testSlider, 1, 0, 100);
                             ImGui.EndGroup();
                         }
 
@@ -1841,8 +1841,8 @@ namespace rgat.Widgets
             {
                 if (GlobalConfig.Settings.Keybinds.PrimaryKeybinds.TryGetValue(keyAction, out var kmval))
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button));
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlText));
                     if (kmval.Item2 != ModifierKeys.None)
                     {
                         kstring += kmval.Item2.ToString() + "+";
@@ -1852,16 +1852,15 @@ namespace rgat.Widgets
                 }
                 else
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, 0xffbb9999);
-                    ImGui.PushStyleColor(ImGuiCol.Text, 0xff000000);
-                    kstring = $"[Click To Set]##{rowIndex}1";
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrameHover));
+                    kstring = $"Click To Set]##{rowIndex}1";
                 }
                 if (ImGui.Button($"[{kstring}]"))
                 {
                     DoClickToSetKeybind(caption, action: keyAction, 1);
                 }
 
-                ImGui.PopStyleColor(2);
+                ImGui.PopStyleColor();
             }
 
             ImGui.TableNextColumn();
@@ -1870,8 +1869,8 @@ namespace rgat.Widgets
                 kstring = "";
                 if (GlobalConfig.Settings.Keybinds.AlternateKeybinds.TryGetValue(keyAction, out var kmval))
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button));
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlText));
                     if (kmval.Item2 != ModifierKeys.None)
                     {
                         kstring += kmval.Item2.ToString() + "+";
@@ -1881,19 +1880,17 @@ namespace rgat.Widgets
                 }
                 else
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, 0xffbb9999);
-                    ImGui.PushStyleColor(ImGuiCol.Text, 0xff000000);
-                    kstring = $"[Click To Set]##{rowIndex}2";
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrameHover));
+                    kstring = $"Click To Set]##{rowIndex}2";
                 }
                 if (ImGui.Button($"[{kstring}]"))
                 {
                     DoClickToSetKeybind(caption, action: keyAction, 2);
                 }
-
-                ImGui.PopStyleColor(2);
+                ImGui.PopStyleColor();
             }
 
-            ImGui.PopStyleColor();
+            ImGui.PopStyleColor(1);
         }
 
 

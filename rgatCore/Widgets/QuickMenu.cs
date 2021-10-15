@@ -556,9 +556,7 @@ namespace rgat.Widgets
 
             if (_activeMenuPopupName != null)
             {
-                ImGui.PushStyleColor(ImGuiCol.ModalWindowDimBg, 0x00000050);
                 DrawPopups();
-                ImGui.PopStyleColor();
             }
 
         }
@@ -892,10 +890,8 @@ private void DrawScalePopup()
             }
 
 
-            if (ImGui.BeginTable("ComputationSelectNodes", 2, ImGuiTableFlags.RowBg))
+            if (ImGui.BeginTable("ComputationSelectNodes", 2))
             {
-                ImGui.PushStyleColor(ImGuiCol.TableRowBg, 0xff111111);
-
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text("All Computation:");
@@ -939,7 +935,7 @@ private void DrawScalePopup()
                     if (spreadHighlight)
                         ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextEmphasis2));
                     else
-                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowText));
                     ImGui.Text("Replotting Spread");
                     ImGui.PopStyleColor();
                 }
@@ -1001,7 +997,6 @@ private void DrawScalePopup()
                     SmallWidgets.MouseoverText("Prevent the force layout rate from dropping over time");
                 }
 
-                ImGui.PopStyleColor(1);
                 ImGui.EndTable();
             }
         }

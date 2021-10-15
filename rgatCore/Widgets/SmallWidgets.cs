@@ -13,7 +13,6 @@ namespace rgat.Widgets
             uint BGColour = 0, uint textColour = 0xffffffff)
         {
             Vector2 origCursorPos = ImGui.GetCursorPos();
-            Vector2 origScreenPos = ImGui.GetCursorScreenPos();
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 6));
             ImGui.InvisibleButton(id, barSize);
             ImGui.SetCursorScreenPos(new Vector2(ImGui.GetWindowPos().X + origCursorPos.X, ImGui.GetCursorScreenPos().Y));
@@ -238,8 +237,8 @@ namespace rgat.Widgets
 
             if (text is not null && text.Length > 0 && ImGui.IsItemHovered())
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
+                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowText));
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
                 ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 5));
                 ImGui.SetTooltip(text);
                 ImGui.PopStyleVar();

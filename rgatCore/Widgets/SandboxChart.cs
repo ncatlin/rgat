@@ -467,8 +467,6 @@ namespace rgat.Widgets
 
 
 
-
-                ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.Button, 255));
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 5));
 
                 ImGui.SetCursorPos(chartSize - new Vector2(60,30));
@@ -490,7 +488,6 @@ namespace rgat.Widgets
                     SmallWidgets.MouseoverText("Center graph");
                 }
                 ImGui.EndGroup();
-                ImGui.PopStyleColor();
                 ImGui.PopStyleVar();
 
                 ImGui.SetCursorScreenPos(cursorPos);
