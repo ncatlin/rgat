@@ -504,7 +504,7 @@ namespace rgat
         {
             ImGui.BeginGroup();
             {
-                if (ImGui.BeginChild("#ExeSettingsChild", new Vector2(width, ImGui.GetContentRegionAvail().Y - 20)))
+                if (ImGui.BeginChild("#ExeSettingsChild", new Vector2(width, ImGui.GetContentRegionAvail().Y - 20), true))
                 {
                     ImGui.Text("Execution Settings");
                     ExeSettingsFrame1(width, activeTarget);

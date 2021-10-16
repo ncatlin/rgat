@@ -2058,6 +2058,46 @@
             getting into the dozens will exhaust the GPU allocator pool and crash us
             </summary>
         </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.UnicodeLoad_Korean">
+            <summary>
+            Enable loading of Korean characters in the main font
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.UnicodeLoad_ChineseSimplified">
+            <summary>
+            Enable loading of Chinese (simplified) characters in the main font
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.UnicodeLoad_ChineseFull">
+            <summary>
+            Enable loading of Chinese (full) characters in the main font
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.UnicodeLoad_Japanese">
+            <summary>
+            Enable loading of Japanese characters in the main font
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.UnicodeLoad_Thai">
+            <summary>
+            Enable loading of Thai characters in the main font
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.UnicodeLoad_Cyrillic">
+            <summary>
+            Enable loading of Cyrillic characters in the main font
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.UnicodeLoad_Vietnamese">
+            <summary>
+            Enable loading of Vietnamese characters in the main font
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.EnabledLanguageCount">
+            <summary>
+            Get the number of non-english language glyph toggles enabled
+            </summary>
+        </member>
         <member name="T:rgat.Config.rgatSettings.LogSettings">
             <summary>
             Logging settings
@@ -4538,6 +4578,11 @@
             Create an ImGui GUI rgat session
             </summary>
             <param name="state">rgat state obj</param>
+        </member>
+        <member name="F:rgat.OperationModes.ImGuiRunner.HeldResponsiveKeys">
+            <summary>
+            Keys where input repeats and lag isn't acceptable (mainly 3D camera movement related)
+            </summary>
         </member>
         <member name="M:rgat.OperationModes.ImGuiRunner.Run">
             <summary>
@@ -9973,6 +10018,11 @@
             The main loaded font
             </summary>
         </member>
+        <member name="P:ImGuiNET.ImGuiController.UnicodeFont">
+            <summary>
+            The main loaded font
+            </summary>
+        </member>
         <member name="F:ImGuiNET.ImGuiController._originalFont">
             <summary>
             The original imGui font
@@ -10008,7 +10058,7 @@
             <param name="width">window width</param>
             <param name="height">window height</param>
         </member>
-        <member name="M:ImGuiNET.ImGuiController.BuildFonts">
+        <member name="M:ImGuiNET.ImGuiController.BuildFonts(System.Boolean)">
             <summary>
             Load the fonts
             </summary>

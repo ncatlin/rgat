@@ -61,13 +61,27 @@ namespace ImGuiNET
         /// <summary>
         /// The main loaded font
         /// </summary>
-        public ImFontPtr _unicodeFont = null;
+        private ImFontPtr? _unicodeFont = null;
+
+        /// <summary>
+        /// The main loaded font
+        /// </summary>
+        public ImFontPtr UnicodeFont
+        {
+            get
+            {
+                return _unicodeFont.HasValue ? _unicodeFont.Value : _originalFont!.Value;
+            }
+            private set { _unicodeFont = value; }
+        }
+
+
+
         private ImFontPtr? _splashButtonFont = null;
         /// <summary>
         /// The original imGui font
         /// </summary>
-        public ImFontPtr _originalFont = null;
-        private bool _unicodeFontLoaded = false;
+        public ImFontPtr? _originalFont = null;
         private int _dialogsOpen = 0;
 
         /// <summary>
@@ -118,72 +132,47 @@ namespace ImGuiNET
             Logging.RecordLogEvent("Loading fonts", Logging.LogFilterType.Debug);
             var fonts = ImGui.GetIO().Fonts;
 
-            BuildFonts();
-            _originalFont = fonts.AddFontDefault();
 
 
             Logging.RecordLogEvent("Done Loading fonts", Logging.LogFilterType.Debug);
 
-            CreateDeviceResources(gd, outputDescription);
             SetKeyMappings();
             LoadImages();
             SetPerFrameImGuiData(1f / 60f);
 
             //should be fixed now
-
+            /*
             Debug.Assert(_unicodeFont.GetCharAdvance('a') == _unicodeFont.FindGlyph('a').AdvanceX,
                     "The ImGui.NET used is not handling bitfields properly, preventing fonts " +
                     "from rendering correctly in the graph. https://github.com/mellinoe/ImGui.NET/issues/206");
+            */
+
+            //OldBuildFonts();
+            BuildFonts(false);
+            _originalFont = fonts.AddFontDefault();
+            CreateDeviceResources(gd, outputDescription);
+            RecreateFontDeviceTexture(gd);
 
 
-            ImGui.NewFrame();
-            _frameBegun = true;
+            //ImGui.NewFrame();
+            //_frameBegun = true;
         }
 
+
+
+        byte[]? notoFontBytes;
 
         /// <summary>
         /// Load the fonts
         /// </summary>
-        public unsafe void BuildFonts()
+        public unsafe void BuildFonts(bool chooseGlyphsFromConfig)
         {
-            if (_unicodeFontLoaded)
-            {
-                return;
-            }
+            ImGuiIOPtr io = ImGui.GetIO();
+            var fonts = io.Fonts;
+            //fonts.Clear();   // memory leak! this crashes for some reason so we can't get rid of the fonts loaded earlier
+            fonts.ClearTexData();
 
-            Logging.RecordLogEvent($"Loading Unicode fonts", Logging.LogFilterType.Debug);
-            ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
-
-            //TODO - make these options
-            //TODO - see if they can be loaded on the side after start
-            var fonts = ImGui.GetIO().Fonts;
-            //for (ushort i = 0; i < 0xff; i++) builder.AddChar(i);
-            builder.AddRanges(fonts.GetGlyphRangesDefault());
-            //builder.AddRanges(fonts.GetGlyphRangesChineseSimplifiedCommon());
-            //builder.AddRanges(fonts.GetGlyphRangesChineseFull());  //crash - needs higher version of veldrid (update: updated!)
-            //builder.AddRanges(fonts.GetGlyphRangesCyrillic());
-
-
-            //builder.AddRanges(fonts.GetGlyphRangesJapanese());
-            //builder.AddRanges(fonts.GetGlyphRangesKorean());
-            //builder.AddRanges(fonts.GetGlyphRangesThai());
-            //builder.AddRanges(fonts.GetGlyphRangesVietnamese());
-            //builder.AddChar(0xe0dd);
-            //builder.AddChar(0xe0d3);
-            //for (ushort i = 0xe000; i < 0xe0fe; i++)
-            //    builder.AddChar((ushort)i);
-            ImVector ranges;
-            builder.BuildRanges(out ranges);
-
-            //embed in resource for distribution, once a font is settled on
-
-
-            byte[]? notoFontBytes = rgatState.ReadBinaryResource("NotoSansSC_Regular");
-            if (notoFontBytes == null)
-            {
-                Logging.RecordError($"No font resouce: \"NotoSansSC_Regular\"");
-                return;
-            }
+            _originalFont = fonts.AddFontDefault();
 
             ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
             fontConfig.MergeMode = true;
@@ -195,21 +184,42 @@ namespace ImGuiNET
             fontConfig.GlyphMaxAdvanceX = float.MaxValue;
             fontConfig.RasterizerMultiply = 1f;
 
-            //not a good use of memory, think there are other ways to resize?
+
+            Logging.RecordLogEvent($"Loading Unicode fonts", Logging.LogFilterType.Debug);
+            ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
+
+            builder.AddRanges(fonts.GetGlyphRangesDefault());
+            builder.BuildRanges(out ImVector basicRanges);
+
+            if (chooseGlyphsFromConfig)
+            {
+                AddConfiguredGlyphRanges(builder);
+            }
+
+            builder.BuildRanges(out ImVector fullRanges);
+
+            notoFontBytes = rgatState.ReadBinaryResource("NotoSansSC_Regular");
+            if (notoFontBytes == null)
+            {
+                Logging.RecordError($"No font resouce: \"NotoSansSC_Regular\"");
+                return;
+            }
 
             fixed (byte* notoPtr = notoFontBytes)
             {
-                _splashButtonFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 40, null, ranges.Data);
-                //_splashButtonFont.Value.ConfigData.Name = "Google Noto 40";
+                // The order of adding is important here due to merging
+                ImFontPtr splashFont = fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 40, null, basicRanges.Data);
+                _fontNameByIndex.Add("NotoSansSC_Regular_40");
 
-                _unicodeFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 17, null, ranges.Data);
+                ImFontPtr unicodeFont = fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 17, null, fullRanges.Data);
 
-                // These icons get merged into the unicode font so its important they are built here
                 byte[]? regularFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Regular_400");
                 byte[]? solidFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Solid_900");
+
                 if (regularFontBytes != null && solidFontBytes != null)
                 {
                     Logging.RecordLogEvent($"Loading font resources", Logging.LogFilterType.Debug);
+
                     System.Runtime.InteropServices.GCHandle rangeHandle =
                         System.Runtime.InteropServices.GCHandle.Alloc(new ushort[]
                         { 0xe000,0xffff,0}, System.Runtime.InteropServices.GCHandleType.Pinned);
@@ -217,12 +227,46 @@ namespace ImGuiNET
                     {
                         fixed (byte* solidPtr = solidFontBytes, regularPtr = regularFontBytes)
                         {
+                            // FontAwesome icons, add to the unicode texture atlas to they can be used alongside text
                             fontConfig.FontDataOwnedByAtlas = true;
                             IntPtr glyphRange = rangeHandle.AddrOfPinnedObject();
-                            _fafontSolid = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, 17, fontConfig, glyphRange);
-                            _fafontRegular = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)regularPtr, regularFontBytes.Length, 17, fontConfig, glyphRange);
+                            //_fafontSolid?.Destroy();
+                            _fafontSolid = fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, 17, fontConfig, glyphRange);
+
+                            _fontNameByIndex.Add("NotoSansSC_Solid_17");
+                            //_fafontRegular?.Destroy();
+                            _fafontRegular = fonts.AddFontFromMemoryTTF((IntPtr)regularPtr, regularFontBytes.Length, 17, fontConfig, glyphRange);
+                            _fontNameByIndex.Add("NotoSansSC_Regular_17");
+
+                            // Large icons for the title screen
                             fontConfig.MergeMode = false;
-                            _iconsLargeFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, LargeIconSize.X, fontConfig, glyphRange);
+                            builder.Clear();
+                            builder.AddChar(ImGuiController.FA_ICON_SAMPLE);
+                            builder.AddChar(ImGuiController.FA_ICON_LOADFILE);
+                            builder.BuildRanges(out ImVector splashBigIconRanges);
+                            //_iconsLargeFont?.Destroy();
+                            _iconsLargeFont = fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, LargeIconSize.X, fontConfig, splashBigIconRanges.Data);
+                            _fontNameByIndex.Add($"NotoSansSC_Solid_{LargeIconSize.X}");
+
+                            // Large text for the title screen, load in its own texture
+                            builder.Clear();
+                            builder.AddChar('r');
+                            builder.AddChar('g');
+                            builder.AddChar('a');
+                            builder.AddChar('t');
+                            ImVector rangesTitle;
+                            builder.BuildRanges(out rangesTitle);
+                            _titleFont = fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 70, null, rangesTitle.Data);
+                            _fontNameByIndex.Add("NotoSansSC_Regular_70");
+
+                            //_unicodeFont?.Destroy();
+                            _unicodeFont = unicodeFont;
+                            unsafe
+                            {
+                               io.NativePtr->FontDefault = _unicodeFont.Value;
+                            }
+                            fonts.Build();
+                            RecreateFontDeviceTexture(_gd);
                         }
                     }
                     finally
@@ -233,41 +277,47 @@ namespace ImGuiNET
                             rangeHandle.Free();
                         }
                     }
+                    //_splashButtonFont?.Destroy();
+                    _splashButtonFont = splashFont;
                 }
                 else
                 {
                     Logging.RecordError("Error loading font resources");
                 }
-
-
-                builder.Clear();
-                builder.AddChar('r');
-                builder.AddChar('g');
-                builder.AddChar('a');
-                builder.AddChar('t');
-                ImVector rangesTitle;
-                builder.BuildRanges(out rangesTitle);
-
-                _titleFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 70, null, rangesTitle.Data);
             }
-
-            unsafe
-            {
-                ImGui.GetIO().NativePtr->FontDefault = _unicodeFont;
-            }
-
-
-            _unicodeFontLoaded = true;
         }
+
+
+        void AddConfiguredGlyphRanges(ImFontGlyphRangesBuilderPtr builder)
+        {
+            var fonts = ImGui.GetIO().Fonts;
+            if (GlobalConfig.Settings.UI.UnicodeLoad_ChineseSimplified)
+                builder.AddRanges(fonts.GetGlyphRangesChineseSimplifiedCommon());
+            if (GlobalConfig.Settings.UI.UnicodeLoad_ChineseFull)
+                builder.AddRanges(fonts.GetGlyphRangesChineseFull());
+            if (GlobalConfig.Settings.UI.UnicodeLoad_Cyrillic)
+                builder.AddRanges(fonts.GetGlyphRangesCyrillic());
+            if (GlobalConfig.Settings.UI.UnicodeLoad_Japanese)
+                builder.AddRanges(fonts.GetGlyphRangesJapanese());
+            if (GlobalConfig.Settings.UI.UnicodeLoad_Korean)
+                builder.AddRanges(fonts.GetGlyphRangesKorean());
+            if (GlobalConfig.Settings.UI.UnicodeLoad_Thai)
+                builder.AddRanges(fonts.GetGlyphRangesThai());
+            if (GlobalConfig.Settings.UI.UnicodeLoad_Vietnamese)
+                builder.AddRanges(fonts.GetGlyphRangesVietnamese());
+        }
+
+
+        List<string> _fontNameByIndex = new();
 
 
         /// <summary>
         /// Size of large splash screen icons
         /// </summary>
         public readonly Vector2 LargeIconSize = new Vector2(65, 65);
-        private ImFontPtr _fafontSolid;
-        private ImFontPtr _fafontRegular;
-        private ImFontPtr _iconsLargeFont;
+        private ImFontPtr? _fafontSolid;
+        private ImFontPtr? _fafontRegular;
+        private ImFontPtr? _iconsLargeFont;
 
 
         /// <summary>
@@ -277,16 +327,17 @@ namespace ImGuiNET
         /// <returns>the glyph is in the unicode font</returns>
         public unsafe bool GlyphExists(ushort code)
         {
-            ImFontGlyphPtr result = _unicodeFont.FindGlyphNoFallback(code);
+            if (_unicodeFont is null) return false;
+            ImFontGlyphPtr result = _unicodeFont.Value.FindGlyphNoFallback(code);
             return (ulong)result.NativePtr != 0;
         }
 
         /// <summary>
         /// Large font for splash screen buttons
         /// </summary>
-        public ImFontPtr SplashLargeFont
+        public ImFontPtr? SplashLargeFont
         {
-            get { return _splashButtonFont!.Value; }
+            get { return _newFonts ? null : _splashButtonFont; }
             private set { _splashButtonFont = value; }
         }
 
@@ -294,11 +345,12 @@ namespace ImGuiNET
         /// <summary>
         /// Larger font for the splash screen title
         /// </summary>
-        public ImFontPtr rgatLargeFont
+        public ImFontPtr? rgatLargeFont
         {
-            get { return _titleFont!.Value; }
+            get { return _newFonts ? null : _titleFont; }
             private set { _titleFont = value; }
         }
+
 
         private void LoadImages()
         {
@@ -397,21 +449,21 @@ namespace ImGuiNET
         /// </summary>
         public void PushOriginalFont()
         {
-            ImGui.PushFont(_originalFont);
+            ImGui.PushFont(_originalFont!.Value);
         }
         /// <summary>
         /// Activate the custom unicode font
         /// </summary>
         public void PushUnicodeFont()
         {
-            ImGui.PushFont(_unicodeFont);
+            ImGui.PushFont((_newFonts || _unicodeFont.HasValue is false) ? _originalFont!.Value : _unicodeFont.Value);
         }
         /// <summary>
         /// Activate the big title font
         /// </summary>
         public void PushBigIconFont()
         {
-            ImGui.PushFont(_iconsLargeFont);
+            ImGui.PushFont((_newFonts || _iconsLargeFont.HasValue is false) ? null : _iconsLargeFont.Value);
         }
 
         /// <summary>
@@ -426,7 +478,6 @@ namespace ImGuiNET
             //can fail if we run out of graphics memory
             _vertexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 200000, BufferUsage.VertexBuffer | BufferUsage.Dynamic, name: "ImGui.NET Vertex Buffer");
             _indexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 2000, BufferUsage.IndexBuffer | BufferUsage.Dynamic, name: "ImGui.NET Index Buffer");
-            RecreateFontDeviceTexture(gd);
             _projMatrixBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(gd, 64, BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "ImGui.NET Projection Buffer");
 
             byte[]? vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-vertex", ShaderStages.Vertex);
@@ -462,14 +513,7 @@ namespace ImGuiNET
                 _projMatrixBuffer,
                 gd.PointSampler));
             _mainResourceSet.Name = "ImGuiControllerMain";
-
-            ResourceLayout _fontLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
-     new ResourceLayoutElementDescription("FontTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
-            _fontTextureResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_fontLayout, _fontTextureView));
-            _fontTextureResourceSet.Name = "ImGuiControllerMainFont";
         }
-
-
 
 
 
@@ -557,7 +601,7 @@ namespace ImGuiNET
             foreach (KeyValuePair<Texture, TextureView> view_tview in _autoViewsByTexture)
             {
 
-                Debug.Assert(!view_tview.Value.IsDisposed); 
+                Debug.Assert(!view_tview.Value.IsDisposed);
                 if (view_tview.Key.IsDisposed)
                 {
                     Texture staleTexture = view_tview.Key;
@@ -657,10 +701,12 @@ namespace ImGuiNET
             ImGuiIOPtr io = ImGui.GetIO();
             // Build
             //had a crash here on start up once, don't know why. added a waitforidle above in the hope it was just the earlier buffer operations being incomplete
+
             io.Fonts.GetTexDataAsRGBA32(out IntPtr pixels, out int width, out int height, out int bytesPerPixel);
+
             // Store our identifier
             io.Fonts.SetTexID(_fontAtlasID);
-
+            _fontTexture?.Dispose();
             TextureDescription td = TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled);
             _fontTexture = gd.ResourceFactory.CreateTexture(td);
             _fontTexture.Name = "ImGui.NET Font Texture";
@@ -669,8 +715,17 @@ namespace ImGuiNET
                 texture: _fontTexture, source: pixels, sizeInBytes: (uint)(bytesPerPixel * width * height),
                 x: 0, y: 0, z: 0, width: (uint)width,
                 height: (uint)height, depth: 1, mipLevel: 0, arrayLayer: 0);
+
+            _fontTextureView?.Dispose();
             _fontTextureView = gd.ResourceFactory.CreateTextureView(_fontTexture);
 
+            _fontTextureResourceSet?.Dispose();
+            ResourceLayout _fontLayout = _gd.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription(
+     new ResourceLayoutElementDescription("FontTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
+            _fontTextureResourceSet = _gd.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_fontLayout, _fontTextureView));
+            _fontTextureResourceSet.Name = "ImGuiControllerMainFont";
+
+            _gd.WaitForIdle();
             io.Fonts.ClearTexData();
 
 
@@ -692,11 +747,26 @@ namespace ImGuiNET
             }
         }
 
+        public void RebuildFonts() => _newFonts = true;
+        bool _newFonts = false;
+
         /// <summary>
         /// Updates ImGui input and IO configuration state.
         /// </summary>
         public void Update(float deltaSeconds, InputSnapshot snapshot)
         {
+            if (_newFonts)
+            {
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
+                BuildFonts(true);
+                Logging.RecordLogEvent($"Rebuilding fonts hung the UI for {sw.ElapsedMilliseconds} ms");
+                //_originalFont = ImGui.GetIO().Fonts.AddFontDefault();
+
+                _newFonts = false;
+
+            }
+
             if (_frameBegun)
             {
                 ImGui.Render();
@@ -707,6 +777,7 @@ namespace ImGuiNET
 
             _frameBegun = true;
             ImGui.NewFrame();
+
         }
 
         /// <summary>

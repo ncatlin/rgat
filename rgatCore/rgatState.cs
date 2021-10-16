@@ -105,13 +105,15 @@ namespace rgat
         /// <param name="completionCallback">An action to call when the load is complete</param>
         public static void LoadSignatures(IProgress<float>? progress = null, Action? completionCallback = null)
         {
+
+            
             //todo - inner progress reporting based on signature count
             Logging.RecordLogEvent("Loading DiELib", Logging.LogFilterType.Debug);
             string DiEscriptsDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory);
             if (Directory.Exists(DiEscriptsDir) || File.Exists(DiEscriptsDir))
             {
                 try
-                {
+                { 
                     DIELib = new DetectItEasy(DiEscriptsDir);
                     Logging.RecordLogEvent("DiELib loaded", Logging.LogFilterType.Debug);
                 }
@@ -124,7 +126,7 @@ namespace rgat
             {
                 Logging.RecordLogEvent($"Not loading DiE scripts: invalid path configured");
             }
-
+            
             progress?.Report(0.5f);
             Logging.RecordLogEvent("Loading YARA", Logging.LogFilterType.Debug);
 

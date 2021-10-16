@@ -1123,7 +1123,7 @@ namespace rgat
                 if (caption != null && caption.Item1 is not null)
                 {
                     higlightNodeVerts = new fontStruc[(int)(caption.Item1.Length * fontStruc.SizeInBytes)];
-                    RenderStringToArray(caption.Item1, (uint)nodeIdx, 0, fontScale, _controller._unicodeFont, stringVerts: higlightNodeVerts, colour: caption.Item2);
+                    RenderStringToArray(caption.Item1, (uint)nodeIdx, 0, fontScale, _controller.UnicodeFont, stringVerts: higlightNodeVerts, colour: caption.Item2);
                 }
             }
 
@@ -1206,7 +1206,7 @@ namespace rgat
                     ar.remainingFrames -= 1;
                 }
                 //Logging.WriteConsole($"Drawing '{ar.text}' at y {ar.nodeIdx}:{ar.currentY}");
-                RenderString(ar.text, (uint)ar.nodeIdx, fontScale, _controller._unicodeFont, stringVerts, risingSymColour, yOff: ar.currentY);
+                RenderString(ar.text, (uint)ar.nodeIdx, fontScale, _controller.UnicodeFont, stringVerts, risingSymColour, yOff: ar.currentY);
             }
         }
 
@@ -1241,7 +1241,7 @@ namespace rgat
                 var caption = captions[nodeIdx];
                 if (caption is not null && caption.Item1 is not null)
                 {
-                    RenderStringToArray(caption.Item1, (uint)nodeIdx, glyphIndex, scale, _controller._unicodeFont, glyphVerts, captions[nodeIdx].Item2);
+                    RenderStringToArray(caption.Item1, (uint)nodeIdx, glyphIndex, scale, _controller.UnicodeFont, glyphVerts, captions[nodeIdx].Item2);
                     glyphIndex += 6 * caption.Item1.Length;
                 }
             }

@@ -336,7 +336,7 @@ namespace rgat.Config
             /// </summary>
             public bool AlertAnimation { get => _AlertAnimation; set { _AlertAnimation = value; MarkDirty(); } }
             private bool _AlertAnimation = true;
-            
+
             /// <summary>
             /// The test dialog appears in the menu bar
             /// </summary>
@@ -358,6 +358,66 @@ namespace rgat.Config
             /// </summary>
             public int PreviewWorkers { get => _PreviewWorkers; set { _PreviewWorkers = value; MarkDirty(); } }
             private int _PreviewWorkers = 4;
+
+            //This should probably be a list
+            /// <summary>
+            /// Enable loading of Korean characters in the main font
+            /// </summary>
+            public bool UnicodeLoad_Korean { get => _UnicodeLoad_Korean; set { _UnicodeLoad_Korean = value; MarkDirty(); } }
+            bool _UnicodeLoad_Korean = false;
+            /// <summary>
+            /// Enable loading of Chinese (simplified) characters in the main font
+            /// </summary>
+            public bool UnicodeLoad_ChineseSimplified { get => _UnicodeLoad_ChineseSimplified; set { _UnicodeLoad_ChineseSimplified = value; MarkDirty(); } }
+            bool _UnicodeLoad_ChineseSimplified = false;
+
+            /// <summary>
+            /// Enable loading of Chinese (full) characters in the main font
+            /// </summary>
+            public bool UnicodeLoad_ChineseFull { get => _UnicodeLoad_ChineseFull; set { _UnicodeLoad_ChineseFull = value; MarkDirty(); } }
+            bool _UnicodeLoad_ChineseFull = false;
+
+            /// <summary>
+            /// Enable loading of Japanese characters in the main font
+            /// </summary>
+            public bool UnicodeLoad_Japanese { get => _UnicodeLoad_Japanese; set { _UnicodeLoad_Japanese = value; MarkDirty(); } }
+            bool _UnicodeLoad_Japanese = false;
+
+            /// <summary>
+            /// Enable loading of Thai characters in the main font
+            /// </summary>
+            public bool UnicodeLoad_Thai { get => _UnicodeLoad_Thai; set { _UnicodeLoad_Thai = value; MarkDirty(); } }
+            bool _UnicodeLoad_Thai = false;
+
+            /// <summary>
+            /// Enable loading of Cyrillic characters in the main font
+            /// </summary>
+            public bool UnicodeLoad_Cyrillic { get => _UnicodeLoad_Cyrillic; set { _UnicodeLoad_Cyrillic = value; MarkDirty(); } }
+            bool _UnicodeLoad_Cyrillic = false;
+
+            /// <summary>
+            /// Enable loading of Vietnamese characters in the main font
+            /// </summary>
+            public bool UnicodeLoad_Vietnamese { get => _UnicodeLoad_Vietnamese; set { _UnicodeLoad_Vietnamese = value; MarkDirty(); } }
+            bool _UnicodeLoad_Vietnamese = false;
+
+            /// <summary>
+            /// Get the number of non-english language glyph toggles enabled
+            /// </summary>
+            [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+            public int EnabledLanguageCount {
+                get {
+                    int total = 0;
+                    total += _UnicodeLoad_Korean ? 1 : 0;
+                    total += _UnicodeLoad_ChineseSimplified ? 1 : 0;
+                    total += _UnicodeLoad_ChineseFull ? 1 : 0;
+                    total += _UnicodeLoad_Japanese ? 1 : 0;
+                    total += _UnicodeLoad_Thai ? 1 : 0;
+                    total += _UnicodeLoad_Cyrillic ? 1 : 0;
+                    total += _UnicodeLoad_Vietnamese ? 1 : 0;
+                    return total;
+                }    
+            }
         }
 
         /// <summary>

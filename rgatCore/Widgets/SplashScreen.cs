@@ -42,8 +42,8 @@ namespace rgat
             float blockHeight = (regionHeight * 0.95f) - headerHeight;
             float blockStart = headerHeight + 40f;
 
-            //ImGui.PushFont(_controller.f)
-            ImGui.PushFont(Controller.rgatLargeFont);
+            ImFontPtr titleFont = Controller.rgatLargeFont ?? Controller._originalFont!.Value;
+            ImGui.PushFont(titleFont);
             Vector2 titleSize = ImGui.CalcTextSize("rgat");
             ImGui.SetCursorScreenPos(new Vector2((ImGui.GetWindowContentRegionMax().X / 2) - (titleSize.X / 2), (ImGui.GetWindowContentRegionMax().Y / 5) - (titleSize.Y / 2)));
             ImGui.Text("rgat");
@@ -76,7 +76,7 @@ namespace rgat
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowBackground));
             if (ImGui.BeginChild("##RunGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
             {
-                ImGui.PushFont(Controller.SplashLargeFont);
+                ImGui.PushFont(Controller.SplashLargeFont ?? Controller._originalFont!.Value);
                 float captionHeight = ImGui.CalcTextSize("Load Binary").Y;
                 if (ImGui.BeginTable("##LoadBinBtnBox", 3, tblflags))
                 {
@@ -104,7 +104,7 @@ namespace rgat
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTitleYSep);
 
                     Controller.PushBigIconFont();
-                    ImGui.Text($"{ImGuiController.FA_ICON_SAMPLE}");
+                    ImGui.Text($"{ImGuiController.FA_ICON_SAMPLE}"); //If you change this be sure to update ImGuiController.BuildFonts
                     ImGui.PopFont();
 
                     ImGui.EndTable();
@@ -157,7 +157,7 @@ namespace rgat
             ImGui.SetCursorPosX(runGrpX + buttonBlockWidth + voidspace);
             if (ImGui.BeginChild("##LoadGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
             {
-                ImGui.PushFont(Controller.SplashLargeFont);
+                ImGui.PushFont(Controller.SplashLargeFont ?? Controller._originalFont!.Value);
                 float captionHeight = ImGui.CalcTextSize("Load Trace").Y;
                 if (ImGui.BeginTable("##LoadBtnBox", 3, tblflags))
                 {
@@ -183,7 +183,7 @@ namespace rgat
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + iconTitleYSep);
 
                     Controller.PushBigIconFont();
-                    ImGui.Text($"{ImGuiController.FA_ICON_LOADFILE}");
+                    ImGui.Text($"{ImGuiController.FA_ICON_LOADFILE}");//If you change this be sure to update ImGuiController.BuildFonts
                     ImGui.PopFont();
 
                     ImGui.EndTable();

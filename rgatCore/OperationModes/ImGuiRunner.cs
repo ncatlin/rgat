@@ -48,6 +48,9 @@ namespace rgat.OperationModes
         // UI state
         private Vector3 _clearColor = new Vector3(0.15f, 0.15f, 0.16f);
         private static Vector2 _lastMousePos;
+        /// <summary>
+        /// Keys where input repeats and lag isn't acceptable (mainly 3D camera movement related)
+        /// </summary>
         private static readonly List<Key> HeldResponsiveKeys = new List<Key>();
 
         //perform rare events like freeing resources which havent been used in a while
@@ -327,16 +330,19 @@ namespace rgat.OperationModes
             float configProgress = 0, widgetProgress = 0;
             void UpdateProgressConfWidgets() { rgatUI.StartupProgress = Math.Max(rgatUI.StartupProgress, currentUIProgress + 0.2 * configProgress + 0.5 * widgetProgress); };
 
-            Progress<float> IProgressConfig = new(progress => { configProgress = progress; UpdateProgressConfWidgets(); });
+            Progress<float> IProgressConfig = new(progress => { configProgress = progress; UpdateProgressConfWidgets();});
             Progress<float> IProgressWidgets = new(progress => { widgetProgress = progress; UpdateProgressConfWidgets(); });
 
-            Task confloader = Task.Run(() => GlobalConfig.LoadConfig(GUI: true, progress: IProgressConfig)); // 900ms~ depending on themes
+            Task confloader = Task.Run(() => { GlobalConfig.LoadConfig(GUI: true, progress: IProgressConfig);}); // 900ms~ depending on themes
             Task widgetLoader = Task.Run(() => _rgatUI!.InitWidgets(IProgressWidgets)); //2000ms~ fairly flat
 
             await Task.WhenAll(widgetLoader, confloader);
+            if (GlobalConfig.Settings.UI.EnabledLanguageCount > 0)
+            {
+                _controller!.RebuildFonts();
+            }
 
             InitEventHandlers();
-
             Logging.RecordLogEvent($"Startup: Widgets+config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Restart();
 
@@ -345,6 +351,7 @@ namespace rgat.OperationModes
 
             rgatState.VideoRecorder.Load(); //0 ms
             _rgatUI!.InitSettingsMenu(); //50ms ish
+
 
             Logging.RecordLogEvent($"Startup: Settings menu loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Restart();
@@ -365,6 +372,7 @@ namespace rgat.OperationModes
 
             Task sigsTask = Task.Run(() => rgatState.LoadSignatures(IProgressSigs));
 
+            
             // api data is the startup item that can be loaded latest as it's only needed when looking at traces
             // we could load it in parallel with the widgets/config but if it gets big then it will be the limiting factor in start up speed
             // doing it last means the user can do stuff while it loads
@@ -401,7 +409,7 @@ namespace rgat.OperationModes
             Logging.RecordLogEvent($"Startup: Loading thread took {timerTotal.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             rgatUI.StartupProgress = 1;
             Logging.WriteConsole("Starup progress 1");
-
+            
         }
 
         public void Exit()
@@ -493,7 +501,6 @@ namespace rgat.OperationModes
             //Themes.ApplyThemeColours();
 
 
-
             if (ImGui.Begin("rgat Primary Window", window_flags))
             {
                 _rgatUI.HandleUserInput();
@@ -502,7 +509,6 @@ namespace rgat.OperationModes
                 _rgatUI.CleanupFrame();
             }
             ImGui.End();
-
 
             Themes.ResetThemeColours();
 

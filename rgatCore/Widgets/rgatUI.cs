@@ -138,7 +138,7 @@ namespace rgat
             Logging.RecordLogEvent($"Startup: Visualiser tab initialised in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Restart();
 
-            chart = new SandboxChart(Controller._unicodeFont);
+            chart = new SandboxChart(Controller.UnicodeFont);
 
             Logging.RecordLogEvent($"Startup: Analysis chart loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Stop();

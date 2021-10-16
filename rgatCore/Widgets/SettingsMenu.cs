@@ -866,38 +866,135 @@ namespace rgat.Widgets
 
         private void CreateOptionsPane_Text()
         {
+            if (ImGui.CollapsingHeader("Unicode Character Sets"))
+            {
+                ImGui.TextWrapped("These charactersets will be loaded on startup. If you are not dealing with binaries containing" +
+                    " these characters then disabling them will reduce rgat startup time and memory usage");
+                DrawGlyphToggles();
+            }
 
             ImGuiIOPtr io = ImGui.GetIO();
             ImFontAtlasPtr atlas = io.Fonts;
 
-            ImGui.ShowFontSelector("Font");
+            //ImGui.ShowFontSelector("Font");
 
-            _controller.PushUnicodeFont();
-
-            int ct = 0;
-            string s = "";
-            for (var i = 0xe000; i < 0xffff; i += 1)
+            if (ImGui.CollapsingHeader("Icon Atlas"))
             {
-                if (_controller.GlyphExists((ushort)(i)))
-                {
-                    ct += 1;
-                    s += $"{i:X}:{char.ConvertFromUtf32(i)},";
-                }
+                _controller.PushUnicodeFont();
 
-                if (ct % 16 == 0)
+                int ct = 0;
+                string s = "";
+                for (var i = 0xe000; i < 0xffff; i += 1)
                 {
-                    ImGui.Text(s);
-                    s = "";
-                    ct += 1;
+                    if (_controller.GlyphExists((ushort)(i)))
+                    {
+                        ct += 1;
+                        s += $"{i:X}:{char.ConvertFromUtf32(i)},";
+                    }
+
+                    if (ct % 16 == 0)
+                    {
+                        ImGui.Text(s);
+                        s = "";
+                        ct += 1;
+                    }
+                }
+                ImGui.PopFont();
+            }
+
+            if (ImGui.CollapsingHeader("Font Texture"))
+            {
+
+                if (ImGui.BeginChild("#FontAtlasTexHolder", new Vector2(800, 500), true, ImGuiWindowFlags.HorizontalScrollbar))
+                {
+                    Vector4 tint_col = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+                    Vector4 border_col = new Vector4(1.0f, 1.0f, 1.0f, 0.5f);
+                    ImGui.Image(atlas.TexID, new Vector2(atlas.TexWidth, atlas.TexHeight), new Vector2(0.0f, 0.0f), new Vector2(1.0f, 1.0f), tint_col, border_col);
                 }
             }
-            ImGui.PopFont();
-
-            Vector4 tint_col = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-            Vector4 border_col = new Vector4(1.0f, 1.0f, 1.0f, 0.5f);
-            ImGui.Image(atlas.TexID, new Vector2(atlas.TexWidth, atlas.TexHeight), new Vector2(0.0f, 0.0f), new Vector2(1.0f, 1.0f), tint_col, border_col);
+        }
 
 
+        void DrawGlyphToggles()
+        {
+            if (ImGui.BeginTable("Startup Unicode Font Loading", 4))
+            {
+                ImGui.TableSetupColumn("Lang1", ImGuiTableColumnFlags.WidthFixed, 150);
+                ImGui.TableSetupColumn("LangToggle1", ImGuiTableColumnFlags.WidthFixed, 50);
+                ImGui.TableSetupColumn("Lang2", ImGuiTableColumnFlags.WidthFixed, 150);
+                ImGui.TableSetupColumn("LangToggle2", ImGuiTableColumnFlags.WidthFixed, 50);
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text("Chinese Simplified");
+                ImGui.TableNextColumn();
+                if (SmallWidgets.ToggleButton("Chinese Simplified", GlobalConfig.Settings.UI.UnicodeLoad_ChineseSimplified,
+                    "Toggle loading of Chinese (Simplified/Common) unicode glyphs on startup"))
+                {
+                    GlobalConfig.Settings.UI.UnicodeLoad_ChineseSimplified = !GlobalConfig.Settings.UI.UnicodeLoad_ChineseSimplified;
+                }
+
+                ImGui.TableNextColumn();
+                ImGui.Text("Chinese Full");
+                ImGui.TableNextColumn();
+                if (SmallWidgets.ToggleButton("Chinese Full", GlobalConfig.Settings.UI.UnicodeLoad_ChineseFull,
+                    "Toggle loading of Chinese (Full) unicode glyphs on startup"))
+                {
+                    GlobalConfig.Settings.UI.UnicodeLoad_ChineseFull = !GlobalConfig.Settings.UI.UnicodeLoad_ChineseFull;
+                }
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text("Cyrillic");
+                ImGui.TableNextColumn();
+                if (SmallWidgets.ToggleButton("Cyrillic", GlobalConfig.Settings.UI.UnicodeLoad_Cyrillic,
+                    "Toggle loading of Cyrillic unicode glyphs on startup"))
+                {
+                    GlobalConfig.Settings.UI.UnicodeLoad_Cyrillic = !GlobalConfig.Settings.UI.UnicodeLoad_Cyrillic;
+                }
+
+                ImGui.TableNextColumn();
+                ImGui.Text("Japanese");
+                ImGui.TableNextColumn();
+                if (SmallWidgets.ToggleButton("Japanese", GlobalConfig.Settings.UI.UnicodeLoad_Japanese,
+                    "Toggle loading of Japanese unicode glyphs on startup"))
+                {
+                    GlobalConfig.Settings.UI.UnicodeLoad_Japanese = !GlobalConfig.Settings.UI.UnicodeLoad_Japanese;
+                }
+
+
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text("Korean");
+                ImGui.TableNextColumn();
+                if (SmallWidgets.ToggleButton("Korean", GlobalConfig.Settings.UI.UnicodeLoad_Korean,
+                    "Toggle loading of Korean unicode glyphs on startup"))
+                {
+                    GlobalConfig.Settings.UI.UnicodeLoad_Korean = !GlobalConfig.Settings.UI.UnicodeLoad_Korean;
+                }
+
+
+                ImGui.TableNextColumn();
+                ImGui.Text("Thai");
+                ImGui.TableNextColumn();
+                if (SmallWidgets.ToggleButton("Thai", GlobalConfig.Settings.UI.UnicodeLoad_Thai,
+                    "Toggle loading of Thai unicode glyphs on startup"))
+                {
+                    GlobalConfig.Settings.UI.UnicodeLoad_Thai = !GlobalConfig.Settings.UI.UnicodeLoad_Thai;
+                }
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text("Vietnamese");
+                ImGui.TableNextColumn();
+                if (SmallWidgets.ToggleButton("Vietnamese", GlobalConfig.Settings.UI.UnicodeLoad_Vietnamese,
+                    "Toggle loading of Vietnamese unicode glyphs on startup"))
+                {
+                    GlobalConfig.Settings.UI.UnicodeLoad_Vietnamese = !GlobalConfig.Settings.UI.UnicodeLoad_Vietnamese;
+                }
+                ImGui.EndTable();
+            }
         }
 
         private string _errorBanner = "";
@@ -1752,7 +1849,7 @@ namespace rgat.Widgets
                             }
 
                             ImGui.SetNextItemWidth(160);
-                            ImGui.SliderFloat("Slider", ref testSlider, 0, 100);;
+                            ImGui.SliderFloat("Slider", ref testSlider, 0, 100); ;
                             ImGui.SameLine();
                             ImGui.SetNextItemWidth(160);
                             ImGui.DragFloat("Drag", ref testSlider, 1, 0, 100);
