@@ -12,8 +12,9 @@ namespace rgat.Widgets
 {
     internal class SettingsMenu
     {
-        private bool[] optionsSelectStates = Array.Empty<bool>();
-        private List<string> settingsNames = new List<string>();
+        private Dictionary<eSettingsCategory, bool> optionsSelectStates = new Dictionary<eSettingsCategory, bool>();
+        private Dictionary<string, eSettingsCategory> settingsNames = new Dictionary<string, eSettingsCategory>();
+        private Dictionary<eSettingsCategory, char> settingsIcons = new Dictionary<eSettingsCategory, char>();
         private readonly ImGuiController _controller;
 
         private enum eSettingsCategory { eSignatures, eFiles, eText, eKeybinds, eUITheme, eMisc, eVideoEncode };
@@ -72,6 +73,7 @@ namespace rgat.Widgets
             _pendingKeybind.active = false;
         }
 
+        eSettingsCategory _selectedOption = eSettingsCategory.eFiles;
 
         public void Draw(ref bool window_shown_flag)
         {
@@ -95,13 +97,19 @@ namespace rgat.Widgets
                 {
                     if (ImGui.BeginChildFrame(ImGui.GetID("SettingsCategories"), new Vector2(200, ImGui.GetContentRegionAvail().Y - 35)))
                     {
-                        for (int i = 0; i < settingsNames.Count; i++)
+                        var settingNameArr = settingsNames.Keys.ToArray();
+                        foreach (KeyValuePair<string, eSettingsCategory> kvp in settingsNames)
                         {
-                            if (ImGui.Selectable(settingsNames[i], ref optionsSelectStates[i]))
+                            bool selState = optionsSelectStates[kvp.Value];
+                            if (ImGui.Selectable(kvp.Key, ref selState))
                             {
-                                Array.Clear(optionsSelectStates, 0, optionsSelectStates.Length);
-                                optionsSelectStates[i] = true;
+                                optionsSelectStates = optionsSelectStates.ToDictionary(p => p.Key, p => false);
+                                optionsSelectStates[kvp.Value] = selState;
+                                _selectedOption = kvp.Value;
                             }
+                            ImGui.SameLine();
+                            ImGui.SetCursorPosX(ImGui.GetContentRegionMax().X - 20);
+                            ImGui.Text($"{settingsIcons[kvp.Value]}");
                         }
                         ImGui.EndChildFrame();
                     }
@@ -120,14 +128,7 @@ namespace rgat.Widgets
 
                 if (ImGui.BeginChild("#SettingContent", ImGui.GetContentRegionAvail()))
                 {
-                    for (var i = 0; i < optionsSelectStates.Length; i++)
-                    {
-                        if (optionsSelectStates[i])
-                        {
-                            CreateSettingsContentPane(settingCategoryName: settingsNames[i]);
-                            break;
-                        }
-                    }
+                    CreateSettingsContentPane(settingCategory: _selectedOption);
                     ImGui.EndChildFrame();
                 }
 
@@ -144,24 +145,32 @@ namespace rgat.Widgets
         {
             RegenerateUIThemeJSON();
 
-            settingsNames = new List<string>
+            settingsIcons = new Dictionary<eSettingsCategory, char>
             {
-                "Files",
-                "Signatures",
-                "Text",
-                "Keybinds",
-                "Theme",
-                "Video Encoder",
-                "Miscellaneous"
+                { eSettingsCategory.eFiles , ImGuiController.FA_ICON_FILEPLAIN},
+                { eSettingsCategory.eSignatures , ImGuiController.FA_ICON_BARCODE},
+                { eSettingsCategory.eText , ImGuiController.FA_ICON_PUNCTUATION},
+                { eSettingsCategory.eKeybinds , ImGuiController.FA_ICON_KEYBOARD},
+                { eSettingsCategory.eUITheme , ImGuiController.FA_ICON_EYE},
+                { eSettingsCategory.eVideoEncode , ImGuiController.FA_VIDEO_CAMERA},
+                { eSettingsCategory.eMisc , ImGuiController.FA_ICON_LIST}
             };
-            optionsSelectStates = new bool[settingsNames.Count];
-            optionsSelectStates[(int)eSettingsCategory.eFiles] = false;
-            optionsSelectStates[(int)eSettingsCategory.eText] = false;
-            optionsSelectStates[(int)eSettingsCategory.eKeybinds] = false;
-            optionsSelectStates[(int)eSettingsCategory.eSignatures] = false;
-            optionsSelectStates[(int)eSettingsCategory.eUITheme] = true;
-            optionsSelectStates[(int)eSettingsCategory.eVideoEncode] = false;
-            optionsSelectStates[(int)eSettingsCategory.eMisc] = false;
+            settingsNames = new Dictionary<string, eSettingsCategory>
+            {
+                { "Files", eSettingsCategory.eFiles },
+                { "Signatures", eSettingsCategory.eSignatures },
+                { "Text", eSettingsCategory.eText },
+                { "Keybinds", eSettingsCategory.eKeybinds },
+                { "Theme", eSettingsCategory.eUITheme },
+                { "Video Encoder", eSettingsCategory.eVideoEncode },
+                { "Miscellaneous", eSettingsCategory.eMisc }
+            };
+            foreach(var value in settingsNames.Values)
+            {
+                optionsSelectStates[value] = false;
+            }
+            optionsSelectStates[eSettingsCategory.eFiles] = true;
+            _selectedOption = eSettingsCategory.eFiles;
         }
 
         private void DeclareError(string msg, long MSDuration = 5500)
@@ -170,33 +179,33 @@ namespace rgat.Widgets
             _errorBanner = msg;
         }
 
-        private void CreateSettingsContentPane(string settingCategoryName)
+        private void CreateSettingsContentPane(eSettingsCategory settingCategory)
         {
-            switch (settingCategoryName)
+            switch (settingCategory)
             {
-                case "Text":
+                case eSettingsCategory.eText:
                     CreateOptionsPane_Text();
                     break;
-                case "Keybinds":
+                case eSettingsCategory.eKeybinds:
                     CreateOptionsPane_Keybinds();
                     break;
-                case "Files":
+                case eSettingsCategory.eFiles:
                     CreateOptionsPane_Files();
                     break;
-                case "Signatures":
+                case eSettingsCategory.eSignatures:
                     CreateOptionsPane_Signatures();
                     break;
-                case "Theme":
+                case eSettingsCategory.eUITheme:
                     CreateOptionsPane_UITheme();
                     break;
-                case "Video Encoder":
+                case eSettingsCategory.eVideoEncode:
                     CreateOptionsPane_VideoEncode();
                     break;
-                case "Miscellaneous":
+                case eSettingsCategory.eMisc:
                     CreateOptionsPane_Miscellaneous();
                     break;
                 default:
-                    Logging.WriteConsole($"Warning: Bad option category '{settingCategoryName}' selected");
+                    Logging.WriteConsole($"Warning: Bad option category '{settingCategory}' selected");
                     break;
             }
         }

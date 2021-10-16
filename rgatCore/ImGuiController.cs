@@ -1090,6 +1090,7 @@ namespace ImGuiNET
         public static readonly char FA_VIDEO_CAMERA = '\uf03d';
         public static readonly char FA_STILL_CAMERA = '\uf030';
         public static readonly char FA_ICON_WARNING = '\uf071';
+        public static readonly char FA_ICON_LIST = '\uf0ca';
         public static readonly char FA_ICON_EYE = '\uF06E';
         public static readonly char FA_ICON_BELL = '\uF0F3';
         public static readonly char FA_ICON_LISTEN = '\uF2A0';
@@ -1098,6 +1099,9 @@ namespace ImGuiNET
         public static readonly char FA_ICON_LIGHTNING = '\uf0e7';
         public static readonly char FA_ICON_DIRECTORY = '\uf07b';
         public static readonly char FA_ICON_FILEPLAIN = '\uf15b';
+        public static readonly char FA_ICON_KEYBOARD = '\uf11c';
+        public static readonly char FA_ICON_BARCODE = '\uf02a';
+        public static readonly char FA_ICON_PUNCTUATION = '\uf1dd';
         public static readonly char FA_ICON_FILECODE = '\uf1c9';
         public static readonly char FA_ICON_COPY = '\uf0c5';
         public static readonly char FA_ICON_TICK = '\uf00c';
