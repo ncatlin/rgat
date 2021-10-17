@@ -7928,11 +7928,6 @@
             Theme has changes which have not been written to the config file
             </summary>
         </member>
-        <member name="M:rgat.Themes.ApplyThemeColours">
-            <summary>
-            Activate the themes ImGui colours
-            </summary>
-        </member>
         <member name="M:rgat.Themes.ApplyGeneralThemeColours">
             <summary>
             Set the UI element colours from the users theme
@@ -7955,7 +7950,7 @@
             Init a default theme if no valid custom one is found
             </summary>
         </member>
-        <member name="M:rgat.Themes.GetThemeColourUINT(rgat.Themes.eThemeColour)">
+        <member name="M:rgat.Themes.GetThemeColourUINT(rgat.Themes.eThemeColour,System.Nullable{System.UInt32})">
             <summary>
             Get a uint colour value of a specified custom theme item
             </summary>
@@ -7969,25 +7964,10 @@
             <param name="item">A theme attribute</param>
             <returns>WritableRgbaFloat colour</returns>
         </member>
-        <member name="M:rgat.Themes.GetThemeColourImGui(ImGuiNET.ImGuiCol,System.Nullable{System.UInt32})">
-            <summary>
-            Get a uint colour value of a specified imgui style colour item
-            </summary>
-            <param name="item">Am imGui style colour</param>
-            <param name="customAlpha">Optional custom alpha (0-255)</param>
-            <returns>uint colour</returns>
-        </member>
         <member name="P:rgat.Themes.ThemeVersion">
             <summary>
             Version of the active theme
             </summary>
-        </member>
-        <member name="M:rgat.Themes.SetThemeColourImGui(ImGuiNET.ImGuiCol,System.UInt32)">
-            <summary>
-            Set an ImGui theme colour
-            </summary>
-            <param name="item">The ImGuiCol colour type</param>
-            <param name="color">The colour value</param>
         </member>
         <member name="M:rgat.Themes.GetThemeSize(rgat.Themes.eThemeSize)">
             <summary>

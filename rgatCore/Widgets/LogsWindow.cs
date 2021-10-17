@@ -40,7 +40,7 @@ namespace rgat
         public void Draw(ref bool show)
         {
             ImGui.SetNextWindowSize(new Vector2(800, 500), ImGuiCond.Appearing);
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame));
             if (ImGui.Begin("Logged Events", ref show))
             {
                 //string label = $"{msgs.Length} log entries displayed from ({activeCount}/{_LogFilters.Length}) sources";

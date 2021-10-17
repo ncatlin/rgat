@@ -625,7 +625,7 @@ namespace rgat
             if (ImGui.BeginChild("CameraStatFrame1", new Vector2(150, ImGui.GetContentRegionAvail().Y - 2), true))
             {
                 float itemWidth = 60;
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg, 45));
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame, 45));
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4,3));
                 if (ImGui.BeginTable("#CameraStateTable", 3))
                 {
@@ -1335,7 +1335,7 @@ namespace rgat
                         uint fpscol;
                         if (fps >= 40)
                         {
-                            fpscol = Themes.GetThemeColourImGui(ImGuiCol.Text);
+                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText);
                         }
                         else if (fps < 40 && fps >= 10)
                         {

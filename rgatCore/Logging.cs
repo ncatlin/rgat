@@ -467,7 +467,7 @@ namespace rgat
                 _cachedLabel = new List<Tuple<string, WritableRgbaFloat>>();
                 _cachedLabelTheme = Themes.ThemeVariant;
 
-                WritableRgbaFloat textColour = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiNET.ImGuiCol.Text));
+                WritableRgbaFloat textColour = Themes.GetThemeColourWRF(Themes.eThemeColour.WindowText);
                 switch (_eventType)
                 {
                     case eTimelineEvent.ProcessStart:

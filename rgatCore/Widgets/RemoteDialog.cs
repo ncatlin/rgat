@@ -236,7 +236,7 @@ namespace rgat.Widgets
 
             ImGui.PushStyleColor(ImGuiCol.Border, col: rgatState.ConnectedToRemote ?
                 Themes.GetThemeColourUINT(Themes.eThemeColour.GoodStateColour) :
-                Themes.GetThemeColourImGui(ImGuiCol.Border));
+                Themes.GetThemeColourUINT(Themes.eThemeColour.Frame));
 
             if (ImGui.BeginChild("##RemoteActiveTogFrame", new Vector2(itemsWidth, 30), true, flags: ImGuiWindowFlags.NoScrollbar))
             {
@@ -717,7 +717,7 @@ namespace rgat.Widgets
 
         private static void DrawMessagesList(float itemsWidth)
         {
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame));
             if (ImGui.BeginChild("##MsgsFrame1", new Vector2(itemsWidth, ImGui.GetContentRegionAvail().Y - 30), false, ImGuiWindowFlags.HorizontalScrollbar))
             {
                 var messages = rgatState.NetworkBridge.GetRecentConnectEvents().TakeLast(5);

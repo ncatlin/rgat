@@ -514,7 +514,7 @@ namespace rgat
         /// </summary>
         /// <param name="item">A theme attribute</param>
         /// <returns>uint colour</returns>
-        public static uint GetThemeColourUINT(eThemeColour item)
+        public static uint GetThemeColourUINT(eThemeColour item, uint? customAlpha = null)
         {
             lock (_lock)
             {
@@ -522,7 +522,7 @@ namespace rgat
                 {
                     return 0xff000000;
                 }
-
+                if (customAlpha is not null) return WritableRgbaFloat.ToUint(ThemeColoursCustom[item], customAlpha.Value);
                 return ThemeColoursCustom[item];
             }
         }
