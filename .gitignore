@@ -305,3 +305,4 @@ healthchecksdb
 /rgatCore/cimgui.dll
 /rgatCore/libyara.dll
 /tests/BlockingAPI/No
+*.exe

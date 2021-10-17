@@ -208,12 +208,15 @@ namespace rgat
         /// <param name="timeStarted">When the process was recorded starting</param>
         /// <param name="purpose">A purpose value for the trace [only visualiser is supported]</param>
         /// <param name="arch">32 or 64 bits, or 0 if unknown (remote)</param>
-        public TraceRecord(uint newPID, long randomNo, BinaryTarget target, DateTime timeStarted, TracingPurpose purpose = TracingPurpose.eVisualiser, int arch = 0)
+        public TraceRecord(uint newPID, long randomNo, BinaryTarget target, 
+            DateTime timeStarted, TracingPurpose purpose = TracingPurpose.eVisualiser, 
+            int arch = 0, long testID = -1)
         {
             PID = newPID;
             randID = randomNo;
             LaunchedTime = timeStarted;
             TraceType = purpose;
+            TestRunID = testID;
 
             Target = target;
             if (arch != 0 && target.BitWidth != arch)
@@ -230,9 +233,22 @@ namespace rgat
 
         void LoadTracingSettings(BinaryTarget binary)
         {
-            DiscardTraceData = binary.LaunchSettings.DiscardReplayData;
-            HideAPIThunks = binary.LaunchSettings.HideAPIThunks;
+            if (TestRunID > -1 &&
+                rgatState.GetPendingTestSettings(TestRunID, out ProcessLaunchSettings? settings)
+                && settings is not null)
+            {
+                Logging.RecordLogEvent($"Found pending test settings for PID {this.PID} (testID: {TestRunID})");
+                DiscardTraceData = settings.DiscardReplayData;
+                HideAPIThunks = settings.HideAPIThunks;
+            }
+            else
+            {
+                Logging.RecordLogEvent($"Using target default trace settings for PID {this.PID}");
+                DiscardTraceData = binary.LaunchSettings.DiscardReplayData;
+                HideAPIThunks = binary.LaunchSettings.HideAPIThunks;
+            }
         }
+
 
         /// <summary>
         /// The ID of the test for this trace run

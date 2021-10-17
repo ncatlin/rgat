@@ -895,7 +895,7 @@ namespace rgat
         /// <param name="ID">The unique ID of the process recorded by the instrumentation tool</param>
         /// <param name="newRecord">The created TraceRecord</param>
         /// <returns>true is a new trace was created, false if an existing one was fetched</returns>
-        public bool CreateNewTrace(DateTime timeStarted, uint PID, long ID, out TraceRecord newRecord)
+        public bool CreateNewTrace(DateTime timeStarted, uint PID, long ID, out TraceRecord newRecord, long testID = -1)
         {
             lock (tracesLock)
             {
@@ -904,7 +904,7 @@ namespace rgat
                     newRecord = found;
                     return false;
                 }
-                newRecord = new TraceRecord(PID, ID, this, timeStarted);
+                newRecord = new TraceRecord(PID, ID, this, timeStarted, testID: testID);
                 RecordedTracesByTime.Add(timeStarted, newRecord);
                 RecordedTraces.Add(newRecord);
                 rgatState.IncreaseLoadedTraceCount();

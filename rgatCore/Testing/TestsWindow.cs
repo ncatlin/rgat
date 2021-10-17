@@ -34,7 +34,7 @@ namespace rgat.Widgets
         private readonly ImGuiController _controller;
         private readonly Dictionary<string, TestCategory> _testDirectories = new Dictionary<string, TestCategory>();
         private readonly Dictionary<string, TestCategory> _testCategories = new Dictionary<string, TestCategory>();
-        private List<string> _orderedTestDirs = new List<string>();
+        private List<string> _orderedCategories = new List<string>();
         private bool _testsRunning = false;
 
         private enum eCatFilter { All = 0, Remaining = 1, Complete = 2, Passing = 3, Failed = 4, StarredTest = 5, StarredCat = 6 }
@@ -64,7 +64,7 @@ namespace rgat.Widgets
 
                 _testDirectories.Clear();
                 _testCategories.Clear();
-                _orderedTestDirs.Clear();
+                _orderedCategories.Clear();
                 _allTests.Clear();
                 _queuedTests.Clear();
 
@@ -74,38 +74,17 @@ namespace rgat.Widgets
                     return;
                 }
 
-                string[] dirs = Directory.GetDirectories(testspath)
-                    .Select(x => Path.GetFileName(x))
-                    .Where(x => x.Contains("_"))
+                string[] testdirs = Directory.EnumerateDirectories(testspath, searchPattern: "*", SearchOption.AllDirectories)
+                    .Where(x => Directory.GetFiles(x).Any(file => file.EndsWith(CONSTANTS.TESTS.testextension)))
                     .ToArray();
 
                 List<Tuple<uint, string>> validDirs = new List<Tuple<uint, string>>();
-                foreach (string testdir in dirs)
+                foreach (string testdir in testdirs)
                 {
-                    string[] splitted = testdir.Split("_");
-                    if (splitted.Length < 2)
-                    {
-                        continue;
-                    }
 
                     try
                     {
-                        if (uint.TryParse(splitted[0], out uint num))
-                        {
-                            string categoryName = splitted[1];
-                            validDirs.Add(new Tuple<uint, string>(num, Path.Combine(testspath, testdir)));
-                            string fullpath = Path.Combine(testspath, testdir);
-                            TestCategory tests = new TestCategory
-                            {
-                                Tests = FindTests(fullpath, categoryName),
-                                CategoryName = categoryName,
-                                Path = fullpath,
-                                ID = categoryName + $"{_testCategories.Count}"
-                            };
-                            _testDirectories[fullpath] = tests;
-                            _testCategories[categoryName] = tests;
-                            _allTests.AddRange(tests.Tests);
-                        }
+                        LoadTestsInDir(testdir);
                     }
                     catch (Exception e)
                     {
@@ -115,7 +94,7 @@ namespace rgat.Widgets
                     }
                 }
 
-                _orderedTestDirs = validDirs.OrderBy(x => x.Item1).Select(x => x.Item2).ToList();
+                _orderedCategories = _testCategories.OrderBy(x => x.Key).Select(x => x.Key).ToList();
                 _currentSession += 1;
                 _testingThread.InitSession(_currentSession);
             }
@@ -125,15 +104,49 @@ namespace rgat.Widgets
 
         }
 
-        private List<TestCase> FindTests(string dirpath, string category)
+        
+        private void LoadTestsInDir(string testdir)
         {
-            List<TestCase> results = new List<TestCase>();
-            string[] tests = Directory.GetFiles(dirpath).Where(x => x.EndsWith(CONSTANTS.TESTS.testextension)).ToArray();
-            foreach (string testfile in tests)
+
+            string[] testfiles = Directory.GetFiles(testdir, searchPattern: "*"+CONSTANTS.TESTS.testextension, SearchOption.TopDirectoryOnly)
+                .ToArray();
+
+            List<TestCase> loadedTests = LoadTests(testfiles);
+
+            foreach (TestCase testspec in loadedTests)
+            {
+                string categoryName = testspec.CategoryName!;
+                if (_testCategories.TryGetValue(categoryName, out TestCategory? testcategory) is false || testcategory is null)
+                {
+                    testcategory = new TestCategory()
+                    {
+                        CategoryName = categoryName,
+                        Tests = new(),
+                        Starred = false,
+                        ID = categoryName + $"{_testCategories.Count}"
+                    };
+                    _testCategories[categoryName] = testcategory;
+                }
+                testcategory.Tests.Add(testspec);
+                _sessionStats["Loaded"] += 1;
+            }
+
+            foreach(var testsCategory in _testCategories)
+            {
+                _allTests.AddRange(testsCategory.Value.Tests);
+            }
+
+        }
+
+
+        private List<TestCase> LoadTests(string[] testfiles)
+        {
+            List<TestCase> results = new();
+            foreach (string testfile in testfiles)
             {
                 try
                 {
-                    TestCase t = new TestCase(testfile, category);
+                    TestCase t = new TestCase(testfile);
                     results.Add(t);
                 }
                 catch (Exception e)
@@ -141,7 +154,6 @@ namespace rgat.Widgets
                     Logging.RecordLogEvent($"Unhandled Exception parsing test file {testfile}: {e.Message}");
                     continue;
                 }
-                _sessionStats["Loaded"] += 1;
             }
             return results;
         }
@@ -991,14 +1003,15 @@ namespace rgat.Widgets
                 if (ImGui.BeginChild("#SelectionTree", new Vector2(ImGui.GetContentRegionAvail().X, height * sizeMultiplier)))
                 {
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 4);
-                    ImGui.TextWrapped($"Loaded {_sessionStats["Loaded"]} Tests in {_orderedTestDirs.Count} Categories");
+                    ImGui.TextWrapped($"Loaded {_sessionStats["Loaded"]} Tests in {_orderedCategories.Count} Categories");
                     ImGui.Separator();
                     ImGui.Indent(10);
                     {
-                        foreach (string testDir in _orderedTestDirs)
+                        foreach (string testDir in _orderedCategories)
                         {
 
-                            if (!_testDirectories.TryGetValue(testDir, out TestCategory? category) || !category.Tests.Any())
+                            
+                            if (!_testCategories.TryGetValue(testDir, out TestCategory? category) || !category.Tests.Any())
                             {
                                 continue;
                             }

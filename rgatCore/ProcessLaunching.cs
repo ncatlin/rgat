@@ -169,6 +169,7 @@ namespace rgat
             if (testID > -1)
             {
                 runargs += $"-T {testID} ";
+                rgatState.RegisterProcessTestSettings(testID, settings);
             }
 
             runargs += $"-P {rgatState.LocalCoordinatorPipeName!} ";
@@ -270,6 +271,7 @@ namespace rgat
             if (testID > -1)
             {
                 runargs += $"-T {testID} ";
+                rgatState.RegisterProcessTestSettings(testID, settings);
             }
 
             runargs += $"-P {rgatState.LocalCoordinatorPipeName!} ";

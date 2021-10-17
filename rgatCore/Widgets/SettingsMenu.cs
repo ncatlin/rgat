@@ -308,12 +308,11 @@ namespace rgat.Widgets
                         ImGui.EndTabItem();
                     }
 
-                    if (ImGui.BeginTabItem("Download Signatures"))
+                    if (ImGui.BeginTabItem($"Download Rules {ImGuiController.FA_ICON_DOWNLOAD}"))
                     {
                         tabType = 2;
                         if (ImGui.BeginChild("DownloadSigs", ImGui.GetContentRegionAvail(), true))
                         {
-
                             ImGuiTableFlags flags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg;
                             if (ImGui.BeginTable("#SettsDownloadSigRules", 5, flags, ImGui.GetContentRegionAvail() - new Vector2(0, 25)))
                             {
@@ -534,6 +533,9 @@ namespace rgat.Widgets
                     ImGui.TableSetupColumn("Scan File On Load", ImGuiTableColumnFlags.WidthFixed, 130);
                     ImGui.TableSetupColumn("Scan Memory", ImGuiTableColumnFlags.WidthFixed, 90);
 
+                    bool notImplementedFalse = false;
+                    bool notImplementedTrue = true;
+
                     ImGui.TableHeadersRow();
                     uint formatCellColour = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg)).ToUint(0xd0);
                     ImGui.TableNextRow();
@@ -542,9 +544,9 @@ namespace rgat.Widgets
                     uint yaraSigsCount = rgatState.YARALib.LoadedRuleCount();
                     ImGui.Text($"YARA ({yaraSigsCount} rules)");
                     ImGui.TableNextColumn();
-                    ImGui.Checkbox($"##fycheck", ref GlobalConfig.ScanFilesYARA);
+                    ImGui.Checkbox($"##fycheck", ref notImplementedTrue);//  ref GlobalConfig.ScanFilesYARA);
                     ImGui.TableNextColumn();
-                    ImGui.Checkbox($"##mycheck", ref GlobalConfig.ScanMemoryYARA);
+                    ImGui.Checkbox($"##mycheck", ref notImplementedFalse);// GlobalConfig.ScanMemoryYARA);
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
@@ -552,9 +554,9 @@ namespace rgat.Widgets
                     int dieFileSigsCount = rgatState.DIELib.NumScriptsLoaded;
                     ImGui.Text($"DiE ({dieFileSigsCount} scripts)");
                     ImGui.TableNextColumn();
-                    ImGui.Checkbox($"##fdcheck", ref GlobalConfig.ScanFilesDiE);
+                    ImGui.Checkbox($"##fdcheck", ref notImplementedTrue);// ref GlobalConfig.ScanFilesDiE);
                     ImGui.TableNextColumn();
-                    ImGui.Checkbox($"##mdcheck", ref GlobalConfig.ScanMemoryDiE);
+                    ImGui.Checkbox($"##mdcheck", ref notImplementedFalse);// GlobalConfig.ScanMemoryDiE);
 
                     ImGui.EndTable();
                 }
@@ -1607,6 +1609,8 @@ namespace rgat.Widgets
                 }
                 SmallWidgets.MouseoverText("Check for new rgat releases");
 
+                /*
+                // no longer meaningful now we have a fixed number of layout engines
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 int previewWorkers = GlobalConfig.Settings.UI.PreviewWorkers;
@@ -1620,7 +1624,7 @@ namespace rgat.Widgets
                 SmallWidgets.MouseoverText("How many preview workers to run. Increasing this makes " +
                     "rendering many previews snappier, but too may cause contention issues." +
                     $" [Valid range: {UI.MINIMUM_PREVIEW_WORKERS}-{UI.MAXIMUM_PREVIEW_WORKERS}]");
-
+                */
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();

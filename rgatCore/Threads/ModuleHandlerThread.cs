@@ -834,6 +834,7 @@ namespace rgat
                 commandPipe = new NamedPipeServerStream(cmdPipeName, PipeDirection.Out, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough);
                 IAsyncResult res1 = eventPipe.BeginWaitForConnection(new AsyncCallback(ConnectCallback), "Events");
                 commandPipe.WaitForConnection(); //todo async
+                //still need that todo done
             }
             catch (System.IO.IOException e)
             {

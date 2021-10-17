@@ -1,0 +1,37 @@
+{
+	"Meta": 
+	{
+		"BinaryName": "ConsolePrint32.exe",
+		"Bits": 32,
+		"OS": "Win",
+		"Comment": "The hello world of rgat tests, without API thunk hiding",
+		"Category": "Basic"		
+	},
+	"Configuration":{
+		"HideAPIThunks": false,
+		"DiscardTraceData": true
+	},
+	"FinalRequirements":{
+		"Test":{ 
+			"TotalGraphs": { "Value": 1, "Condition": "Eq" },
+			"TotalProcesses": { "Value": 1, "Condition": "Eq" }
+		},
+		"Process":{
+			"ProcessRequirements": { 
+			   "GraphCount":{"Value": 1, "Condition": "Eq"}
+			},
+			"ThreadRequirements": [
+				{
+				   "EdgeCount": { "Value": 31, "Condition": "Eq" },
+				   "NodeCount": { "Value": 30, "Condition": "Eq" },
+				   "UniqueExceptionCount": { "Value": 0, "Condition": "Eq" } ,
+				   "ExternalNodeCount": { "Value": 3, "Condition": "Eq", "Comment": "3 nodes, with GetStdHandle and WriteFile having 2 calls" } ,
+				   "InstructionExecs": { "Value": 29, "Condition": "Eq", "Comment": "29 nodes minus 5 API calls" }
+				}
+			]
+			
+		}
+	}
+	
+
+}

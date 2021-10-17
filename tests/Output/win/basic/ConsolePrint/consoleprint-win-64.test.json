@@ -1,0 +1,34 @@
+{
+	"Meta": 
+	{
+		"BinaryName": "ConsolePrint64.exe",
+		"Bits": 64,
+		"OS": "Win",
+		"Comment": "The hello world of rgat tests",
+		"Category": "Basic"		
+	},
+	
+	"FinalRequirements":{
+		"Test":{ 
+			"TotalGraphs": { "Value": 1, "Condition": "Eq" },
+			"TotalProcesses": { "Value": 1, "Condition": "Eq" }
+		},
+		"Process":{
+			"ProcessRequirements": { 
+			   "GraphCount":{"Value": 1, "Condition": "Eq"}
+			},
+			"ThreadRequirements": [
+				{
+				   "EdgeCount": { "Value": 15, "Condition": "Eq" },
+				   "NodeCount": { "Value": 16, "Condition": "Eq" },
+				   "UniqueExceptionCount": { "Value": 0, "Condition": "Eq" } ,
+				   "ExternalNodeCount": { "Value": 3, "Condition": "Eq" } ,
+				   "InstructionExecs": { "Value": 13, "Condition": "Eq", "Comment": "16 nodes minus 3 API calls" }
+				}
+			]
+			
+		}
+	}
+	
+
+}

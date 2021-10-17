@@ -238,7 +238,7 @@ namespace rgat.Threads
                 target.BitWidth = arch;
             }
 
-            target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr);
+            target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr, testID: testID);
 
 
             lock(_lock)
@@ -306,7 +306,6 @@ namespace rgat.Threads
             System.Diagnostics.Debug.Assert(_clientState is not null);
             if (testID != -1)
             {
-                trace.SetTestRunID(testID);
                 trace.Target.MarkTestBinary();
                 _clientState!.RecordTestRunConnection(testID, trace);
             }

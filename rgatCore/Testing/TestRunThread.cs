@@ -50,8 +50,7 @@ namespace rgat.Testing
             string pintool = _testCase.TestBits == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
 
-            ProcessLaunchSettings settings = new ProcessLaunchSettings(_testCase.BinaryPath);
-            settings.TraceChoices.InitDefaultExclusions();
+            ProcessLaunchSettings settings = _testCase.CreateSettings();
 
             System.Diagnostics.Process? testProcess = ProcessLaunching.StartLocalTrace(pintool, settings, testID: _thisTest.TestID);
             if (testProcess != null)

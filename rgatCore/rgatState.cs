@@ -106,14 +106,14 @@ namespace rgat
         public static void LoadSignatures(IProgress<float>? progress = null, Action? completionCallback = null)
         {
 
-            
+
             //todo - inner progress reporting based on signature count
             Logging.RecordLogEvent("Loading DiELib", Logging.LogFilterType.Debug);
             string DiEscriptsDir = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory);
             if (Directory.Exists(DiEscriptsDir) || File.Exists(DiEscriptsDir))
             {
                 try
-                { 
+                {
                     DIELib = new DetectItEasy(DiEscriptsDir);
                     Logging.RecordLogEvent("DiELib loaded", Logging.LogFilterType.Debug);
                 }
@@ -126,7 +126,7 @@ namespace rgat
             {
                 Logging.RecordLogEvent($"Not loading DiE scripts: invalid path configured");
             }
-            
+
             progress?.Report(0.5f);
             Logging.RecordLogEvent("Loading YARA", Logging.LogFilterType.Debug);
 
@@ -933,5 +933,62 @@ namespace rgat
             return result;
         }
 
+        struct PENDING_TRACE_SETTINGS
+        {
+            public DateTime RegisterTime;
+            public ProcessLaunchSettings Settings;
+            public long ID;
+        }
+        static List<PENDING_TRACE_SETTINGS> _registeredTraceSettings = new List<PENDING_TRACE_SETTINGS>();
+        static readonly object _staticLock = new();
+
+        public static void RegisterProcessTestSettings(long ID, ProcessLaunchSettings settings)
+        {
+            PENDING_TRACE_SETTINGS pts = new PENDING_TRACE_SETTINGS()
+            {
+                ID = ID,
+                RegisterTime = DateTime.Now,
+                Settings = settings
+            };
+            lock (_staticLock)
+            {
+                _registeredTraceSettings.Add(pts);
+            }
+        }
+
+
+        public static bool GetPendingTestSettings(long testID, out ProcessLaunchSettings? settings)
+        {
+            lock (_staticLock)
+            {
+                if (_registeredTraceSettings.Count == 1 && _registeredTraceSettings[0].ID == testID)
+                {
+                    settings = _registeredTraceSettings[0].Settings;
+                    _registeredTraceSettings.Clear();
+                    return true;
+                }
+                else
+                {
+                    settings = null;
+                    List<PENDING_TRACE_SETTINGS> expired = new();
+                    foreach (var pending in _registeredTraceSettings)
+                    {
+                        if (pending.ID == testID)
+                        {
+                            settings = pending.Settings;
+                            expired.Add(pending);
+                            continue;
+                        }
+
+                        if ((DateTime.Now - pending.RegisterTime).TotalSeconds > 25)
+                        {
+                            expired.Add(pending);
+                        }
+                    }
+                    _registeredTraceSettings.RemoveAll(x => expired.Contains(x));
+                    return settings is not null;
+                }
+            }
+        }
     }
 }

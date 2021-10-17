@@ -505,15 +505,101 @@ namespace rgat.Testing
     /// </summary>
     public class TestCase
     {
+
+        private bool _loadingError = false;
+
+        /// <summary>
+        /// Errors encountered loading the test case from JSON
+        /// </summary>
+        public List<string> LoadingErrors = new List<string>();
+        /// <summary>
+        /// If the test was sucessfully loaded
+        /// </summary>
+        public bool Loaded { get; private set; }
+
+
+        /// <summary>
+        /// The lastest result from running this test
+        /// </summary>
+        public eTestState LatestResultState = eTestState.NotRun;
+        /// <summary>
+        /// The latest run object for this test
+        /// </summary>
+        public TestCaseRun? LatestTestRun { get; private set; }
+        /// <summary>
+        /// The latest error from this test
+        /// </summary>
+        public string? LatestErrorReason { get; private set; }
+        /// <summary>
+        /// File path of the test description
+        /// </summary>
+        public string JSONPath { get; private set; }
+
+        /// <summary>
+        /// File path of the test binary
+        /// </summary>
+        public string BinaryPath { get; private set; } = "";
+        /// <summary>
+        /// Directory of the test binary
+        /// </summary>
+        public string? BinaryDirectory { get; private set; }
+        /// <summary>
+        /// Category of the test
+        /// </summary>
+        public string? CategoryName { get; private set; }
+        /// <summary>
+        /// Name of the test
+        /// </summary>
+        public string? TestName { get; private set; }
+        /// <summary>
+        /// The test is starred on the UI
+        /// </summary>
+        public bool Starred;
+        /// <summary>
+        /// The test writers comment for the test
+        /// </summary>
+        public string? Comment { get; private set; }
+        /// <summary>
+        /// Is the test binary 32 or 64 bits
+        /// </summary>
+        public int TestBits { get; private set; }
+        /// <summary>
+        /// What OS the test runs on
+        /// </summary>
+        public string? TestOS { get; private set; }
+        /// <summary>
+        /// Is the test currently running
+        /// </summary>
+        public int Running { get; private set; }
+
+        private readonly Dictionary<int, int> _passed = new Dictionary<int, int>();
+        private readonly Dictionary<int, int> _failed = new Dictionary<int, int>();
+
+        /// <summary>
+        /// A list of conditions met by the entire test itself
+        /// </summary>
+        private readonly List<TestRequirement> _TestRunRequirements = new List<TestRequirement>();
+
+        /// <summary>
+        /// A nested list of requirements for each thread
+        /// vague pseudo-json example [{C:6, [C:1, C:3]},{C:1, [C:7,C:12]}]
+        ///     This expects two processes, each producing 2 thread graphs
+        ///     One process must meet condtion C6 has threads meeting condition C1, the other meeting condition C3. 
+        ///     Ditto for the other process needing to meet condtion C1 with threads meeting conditions 7, 12
+        /// </summary>
+        private TraceRequirements _TraceRequirements = new TraceRequirements();
+
+        public readonly Dictionary<string, bool> ConfigToggles = new();
+
+
         /// <summary>
         /// Load a test case from a json file
         /// </summary>
         /// <param name="jsonpath">Path of a JSON test description file to load</param>
         /// <param name="category">The category of the test</param>
-        public TestCase(string jsonpath, string category)
+        public TestCase(string jsonpath)
         {
             JSONPath = jsonpath;
-            CategoryName = category;
             TestName = Path.GetFileName(jsonpath).Split(CONSTANTS.TESTS.testextension)[0];
             try
             {
@@ -557,88 +643,38 @@ namespace rgat.Testing
             }
         }
 
-        private bool _loadingError = false;
+        readonly List<string> ConfigurableOptionsBoolean = new List<string>()
+        {
+            "DiscardTraceData",
+            "HideAPIThunks"
+        };
 
-        /// <summary>
-        /// Errors encountered loading the test case from JSON
-        /// </summary>
-        public List<string> LoadingErrors = new List<string>();
-        /// <summary>
-        /// If the test was sucessfully loaded
-        /// </summary>
-        public bool Loaded { get; private set; }
+        public ProcessLaunchSettings CreateSettings()
+        {
+            ProcessLaunchSettings result = new ProcessLaunchSettings(BinaryPath);
+
+            result.DiscardReplayData = true;
+            result.TraceChoices.InitDefaultExclusions();
 
 
-        /// <summary>
-        /// The lastest result from running this test
-        /// </summary>
-        public eTestState LatestResultState = eTestState.NotRun;
-        /// <summary>
-        /// The latest run object for this test
-        /// </summary>
-        public TestCaseRun? LatestTestRun { get; private set; }
-        /// <summary>
-        /// The latest error from this test
-        /// </summary>
-        public string? LatestErrorReason { get; private set; }
-        /// <summary>
-        /// File path of the test description
-        /// </summary>
-        public string JSONPath { get; private set; }
+            foreach (string settingName in ConfigurableOptionsBoolean)
+            {
+                if (ConfigToggles.TryGetValue(settingName, out bool settingVal))
+                {
+                    switch (settingName)
+                    {
+                        case "DiscardTraceData":
+                            result.DiscardReplayData = settingVal;
+                            break;
+                        case "HideAPIThunks":
+                            result.HideAPIThunks = settingVal;
+                            break;
+                    }
+                }
+            }
 
-        /// <summary>
-        /// File path of the test binary
-        /// </summary>
-        public string BinaryPath { get; private set; } = "";
-        /// <summary>
-        /// Directory of the test binary
-        /// </summary>
-        public string? BinaryDirectory { get; private set; }
-        /// <summary>
-        /// Category of the test
-        /// </summary>
-        public string CategoryName { get; private set; }
-        /// <summary>
-        /// Name of the test
-        /// </summary>
-        public string TestName { get; private set; }
-        /// <summary>
-        /// The test is starred on the UI
-        /// </summary>
-        public bool Starred;
-        /// <summary>
-        /// The test writers comment for the test
-        /// </summary>
-        public string? Comment { get; private set; }
-        /// <summary>
-        /// Is the test binary 32 or 64 bits
-        /// </summary>
-        public int TestBits { get; private set; }
-        /// <summary>
-        /// What OS the test runs on
-        /// </summary>
-        public string? TestOS { get; private set; }
-        /// <summary>
-        /// Is the test currently running
-        /// </summary>
-        public int Running { get; private set; }
-
-        private readonly Dictionary<int, int> _passed = new Dictionary<int, int>();
-        private readonly Dictionary<int, int> _failed = new Dictionary<int, int>();
-
-        /// <summary>
-        /// A list of conditions met by the entire test itself
-        /// </summary>
-        private readonly List<TestRequirement> _TestRunRequirements = new List<TestRequirement>();
-
-        /// <summary>
-        /// A nested list of requirements for each thread
-        /// vague pseudo-json example [{C:6, [C:1, C:3]},{C:1, [C:7,C:12]}]
-        ///     This expects two processes, each producing 2 thread graphs
-        ///     One process must meet condtion C6 has threads meeting condition C1, the other meeting condition C3. 
-        ///     Ditto for the other process needing to meet condtion C1 with threads meeting conditions 7, 12
-        /// </summary>
-        private TraceRequirements _TraceRequirements = new TraceRequirements();
+            return result;
+        }
 
         private bool ParseTestSpec(string jsonpath, out Newtonsoft.Json.Linq.JObject? jsnobj)
         {
@@ -687,6 +723,17 @@ namespace rgat.Testing
             if (metadata is null || !LoadSpecMetadata(metadata))
             {
                 return false;
+            }
+
+            //optional: settings that will be applied before for the trace starts
+            if (testSpec.TryGetValue("Configuration", out JToken? configTok) && configTok.Type == JTokenType.Object)
+            {
+                JObject? confObj = configTok.ToObject<JObject>();
+                if (confObj is null || !LoadConfiguration(confObj))
+                {
+                    DeclareLoadingError($"Configuration were present in spec but failed to load");
+                    return false;
+                }
             }
 
             //optional: requirements for the trace state when the test execution has finished
@@ -750,6 +797,17 @@ namespace rgat.Testing
             {
                 DeclareLoadingError($"No test OS in metadata");
                 return false;
+            }  
+            
+            if (metaObj.TryGetValue("Category", out JToken? catTok) && catTok != null && catTok.Type == JTokenType.String )
+            {
+                CategoryName = catTok.ToObject<string>();
+            }
+
+            if(CategoryName is null)
+            {
+                DeclareLoadingError($"No valid test category in metadata");
+                return false;
             }
 
             //optional fields
@@ -757,6 +815,22 @@ namespace rgat.Testing
             {
                 Comment = descTok.ToObject<string>();
             }
+            return true;
+        }
+
+
+        private bool LoadConfiguration(JObject confObj)
+        {
+            foreach (string settingName in ConfigurableOptionsBoolean)
+            {
+                if (confObj.TryGetValue(settingName, out JToken? settingBool) &&
+                    settingBool is not null && 
+                    settingBool.Type == JTokenType.Boolean)
+                {
+                    ConfigToggles[settingName] = settingBool.ToObject<bool>();
+                }
+            }
+
             return true;
         }
 

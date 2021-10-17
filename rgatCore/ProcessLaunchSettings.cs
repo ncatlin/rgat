@@ -68,7 +68,7 @@ namespace rgat
         /// <summary>
         /// Traces (and their children) will not record replay data
         /// </summary>
-        public bool DiscardReplayData { get; set; }
+        public bool DiscardReplayData { get; set; } = false;
 
         /// <summary>
         /// idata thunks will be written out of the graph to make API calls look cleaner

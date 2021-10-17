@@ -688,8 +688,8 @@ namespace rgat
                         int idxAddrStart = insn.Operand.IndexOf('[') + 1;
                         int addrSize = (insn.Operand.IndexOf(']') - idxAddrStart);
                         string targMemAddr = insn.Operand.Substring(idxAddrStart, addrSize);
-                        insdata.branchAddress = Convert.ToUInt64(targMemAddr, 16);
                         insdata.PossibleidataThunk = true;
+                        insdata.branchAddress = Convert.ToUInt64(targMemAddr, 16);
                     } //todo: not a great idea actually... just point to the outgoing neighbours for labels
                     catch { insdata.branchAddress = 0; }
 

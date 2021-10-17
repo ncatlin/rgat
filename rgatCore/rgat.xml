@@ -652,7 +652,7 @@
             </summary>
             <returns>Humanised filesize string</returns>
         </member>
-        <member name="M:rgat.BinaryTarget.CreateNewTrace(System.DateTime,System.UInt32,System.Int64,rgat.TraceRecord@)">
+        <member name="M:rgat.BinaryTarget.CreateNewTrace(System.DateTime,System.UInt32,System.Int64,rgat.TraceRecord@,System.Int64)">
             <summary>
             Create and record a new TraceRecord for an instrumentation run of this binary
             </summary>
@@ -7132,13 +7132,6 @@
             A test consisting of a set of requirements and an associated binary to apply them to
             </summary>
         </member>
-        <member name="M:rgat.Testing.TestCase.#ctor(System.String,System.String)">
-            <summary>
-            Load a test case from a json file
-            </summary>
-            <param name="jsonpath">Path of a JSON test description file to load</param>
-            <param name="category">The category of the test</param>
-        </member>
         <member name="F:rgat.Testing.TestCase.LoadingErrors">
             <summary>
             Errors encountered loading the test case from JSON
@@ -7227,6 +7220,13 @@
                 One process must meet condtion C6 has threads meeting condition C1, the other meeting condition C3. 
                 Ditto for the other process needing to meet condtion C1 with threads meeting conditions 7, 12
             </summary>
+        </member>
+        <member name="M:rgat.Testing.TestCase.#ctor(System.String)">
+            <summary>
+            Load a test case from a json file
+            </summary>
+            <param name="jsonpath">Path of a JSON test description file to load</param>
+            <param name="category">The category of the test</param>
         </member>
         <member name="M:rgat.Testing.TestCase.LoadFinalRequirements(Newtonsoft.Json.Linq.JObject)">
             <summary>
@@ -8605,7 +8605,7 @@
             The process is terminated
             </summary>
         </member>
-        <member name="M:rgat.TraceRecord.#ctor(System.UInt32,System.Int64,rgat.BinaryTarget,System.DateTime,rgat.TraceRecord.TracingPurpose,System.Int32)">
+        <member name="M:rgat.TraceRecord.#ctor(System.UInt32,System.Int64,rgat.BinaryTarget,System.DateTime,rgat.TraceRecord.TracingPurpose,System.Int32,System.Int64)">
             <summary>
             Create a trace record
             </summary>

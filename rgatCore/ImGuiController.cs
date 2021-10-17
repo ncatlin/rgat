@@ -1085,6 +1085,7 @@ namespace ImGuiNET
 
         public static readonly char FA_ICON_SQUAREGRID = '\uf00a';
         public static readonly char FA_ICON_CLOCK = '\uf017';
+        public static readonly char FA_ICON_DOWNLOAD2 = '\uf019';
         public static readonly char FA_PLAY_CIRCLE = '\uf144';
         public static readonly char FA_BLANK_CIRCLE = '\uf111';
         public static readonly char FA_VIDEO_CAMERA = '\uf03d';
