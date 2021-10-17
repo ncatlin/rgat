@@ -567,7 +567,7 @@ namespace rgat
             }
         }
 
-        static Dictionary<eThemeColour, uint> _modifiedColoursCustom = new();
+        static readonly Dictionary<eThemeColour, uint> _modifiedColoursCustom = new();
 
         /// <summary>
         /// Draw the theme colour customisation widget

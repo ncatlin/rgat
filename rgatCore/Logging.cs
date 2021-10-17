@@ -57,7 +57,7 @@ namespace rgat
 
             long? _eventTimeMS;
 
-            private DateTimeOffset _eventTime;
+            private readonly DateTimeOffset _eventTime;
 
             /// <summary>
             /// The base type of log
@@ -550,7 +550,7 @@ namespace rgat
             private readonly eTimelineEvent _eventType;
             private ulong _ID;
             private ulong _parentID;
-            private object? _item;
+            private readonly object? _item;
         }
 
 

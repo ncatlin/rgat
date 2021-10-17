@@ -939,7 +939,7 @@ namespace rgat
             public ProcessLaunchSettings Settings;
             public long ID;
         }
-        static List<PENDING_TRACE_SETTINGS> _registeredTraceSettings = new List<PENDING_TRACE_SETTINGS>();
+        static readonly List<PENDING_TRACE_SETTINGS> _registeredTraceSettings = new List<PENDING_TRACE_SETTINGS>();
         static readonly object _staticLock = new();
 
         public static void RegisterProcessTestSettings(long ID, ProcessLaunchSettings settings)

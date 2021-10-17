@@ -1499,7 +1499,7 @@ namespace rgat
         /// <summary>
         /// A list of trace entries which can be replayed
         /// </summary>
-        private List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
+        private readonly List<ANIMATIONENTRY> SavedAnimationData = new List<ANIMATIONENTRY>();
         private readonly List<uint> ExceptionNodeIndexes = new List<uint>();
 
         /// <summary>
@@ -1587,7 +1587,7 @@ namespace rgat
                 for (var i = 0; i < NodeList.Count; i++)
                 {
                     NodeList[i].Serialise(writer);
-                    progress.SectionProgress = (float)i / (float)NodeList.Count;
+                    progress.SectionProgress = i / (float)NodeList.Count;
                     if (progress.Cancelled) return;
                 }
             }
@@ -1609,7 +1609,7 @@ namespace rgat
                 for (var ei = 0; ei < EdgeList.Count; ei++)
                 {
                     edgeObjList[ei].Serialise(EdgeList[ei], writer);
-                    progress.SectionProgress = (float)ei / (float)EdgeList.Count;
+                    progress.SectionProgress = ei / (float)EdgeList.Count;
                     if (progress.Cancelled) return;
                 }
                 writer.WriteEndArray();
@@ -1643,7 +1643,7 @@ namespace rgat
                         writer.WriteValue(blocktuple.Item1);
                         writer.WriteValue(blocktuple.Item2);
                     }
-                    progress.SectionProgress = (float)i / (float)BlocksFirstLastNodeList.Count;
+                    progress.SectionProgress = i / (float)BlocksFirstLastNodeList.Count;
                     if (progress.Cancelled) return;
                 }
                 writer.WriteEndArray();
@@ -1692,7 +1692,7 @@ namespace rgat
                     writer.WriteValue(arg.Item1); // arg idx
                     writer.WriteValue(arg.Item2); // arg
                 }
-                progress.SectionProgress = (float)i / (float)SymbolCallRecords.Count;
+                progress.SectionProgress = i / (float)SymbolCallRecords.Count;
                 if (progress.Cancelled) return;
             }
             writer.WriteEndArray();
@@ -1739,7 +1739,7 @@ namespace rgat
                             writer.WriteValue(targCount.Item2);
                         }
                     }
-                    progress.SectionProgress = (float)i / (float)SavedAnimationData.Count;
+                    progress.SectionProgress = i / (float)SavedAnimationData.Count;
                     if (progress.Cancelled) return;
                 }
                 writer.WriteEndArray();
@@ -1879,7 +1879,7 @@ namespace rgat
                 NodeData n = new NodeData();
                 n.Deserialise(nodeitem, processinfo: this.ProcessData);
                 InsertNode(n);
-                progress.SectionProgress = (float)i / (float)nodeCount;
+                progress.SectionProgress = i / (float)nodeCount;
                 if (progress.Cancelled) return false;
             }
 
@@ -1936,7 +1936,7 @@ namespace rgat
 
                 EdgeData edge = new EdgeData(edgeType, execCount, index: EdgeList.Count, sourceType: srcNode.VertType());
                 AddEdge(edge, srcNode, targNode);
-                progress.SectionProgress = (float)i / (float)edgeCount;
+                progress.SectionProgress = i / (float)edgeCount;
                 if (progress.Cancelled) return false;
             }
 
@@ -1972,7 +1972,7 @@ namespace rgat
                 uint firstNode = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
                 uint lastNode = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
                 BlocksFirstLastNodeList.Add(new Tuple<uint, uint>(firstNode, lastNode));
-                progress.SectionProgress = (float)i / (float)blockCount;
+                progress.SectionProgress = i / (float)blockCount;
                 if (progress.Cancelled) return false;
             }
 
@@ -2007,7 +2007,7 @@ namespace rgat
             {
                 uint nodeIdx = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
                 exceptionSet.Add(nodeIdx);
-                progress.SectionProgress = (float)i / (float)excCount;
+                progress.SectionProgress = i / (float)excCount;
                 if (progress.Cancelled) return false;
             }
 
@@ -2058,7 +2058,7 @@ namespace rgat
                         symcall.argList.Add(new Tuple<int, string>(argIdx, arg));
                 }
                 SymbolCallRecords.Add(symcall);
-                progress.SectionProgress = (float)calli / (float)count;
+                progress.SectionProgress = calli / (float)count;
                 if (progress.Cancelled) return false;
             }
 
@@ -2124,7 +2124,7 @@ namespace rgat
                     }
                 }
                 SavedAnimationData.Add(entry);
-                progress.SectionProgress = (float)entryi / (float)entryCount;
+                progress.SectionProgress = entryi / (float)entryCount;
                 if (progress.Cancelled) return false;
             }
 

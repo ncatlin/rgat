@@ -307,8 +307,7 @@ namespace ImGuiNET
                 builder.AddRanges(fonts.GetGlyphRangesVietnamese());
         }
 
-
-        List<string> _fontNameByIndex = new();
+        readonly List<string> _fontNameByIndex = new();
 
 
         /// <summary>

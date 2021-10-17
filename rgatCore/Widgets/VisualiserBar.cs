@@ -658,8 +658,8 @@ namespace rgat.Widgets
                     MODULE_SEGMENT ms = moduleAreas[i];
                     WritableRgbaFloat segColour = new WritableRgbaFloat(Color.GhostWhite);
 
-                    float startX = ((float)(ms.firstIdx + 1)) * pSep;
-                    float endX = ((float)ms.lastIdx) * pSep + 1;
+                    float startX = (ms.firstIdx + 1) * pSep;
+                    float endX = ms.lastIdx * pSep + 1;
                     MODULE_LABEL label = new MODULE_LABEL
                     {
                         startX = (_width - startX) + 2,
@@ -1073,7 +1073,7 @@ namespace rgat.Widgets
             if ((ulong)animationData.Count < graph.UpdateCount)
             {
                 WritableRgbaFloat discardedColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.Dull1));
-                float Xoffset = _width * ((float)animationData.Count / (float)graph.UpdateCount);
+                float Xoffset = _width * (animationData.Count / (float)graph.UpdateCount);
                 float width = _width - Xoffset;
                 CreateRect(discardedColour, Xoffset, 0, width, _height, ref triangles);
             }

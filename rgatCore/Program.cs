@@ -94,7 +94,7 @@ namespace ImGuiNET
             });
 
             ParserResult<LaunchConfig> result = Parser.Default.ParseArguments<LaunchConfig>(cmdlineParams)
-               .WithParsed((Action<LaunchConfig>)(cmdlineOpts =>
+               .WithParsed(cmdlineOpts =>
                {
                    if (!cmdlineOpts.ExtractJSONOptions(out string? error))
                    {
@@ -110,7 +110,7 @@ namespace ImGuiNET
                            Logging.WriteConsole($"Error: With GUI disabled and no valid network configuration or target to trace, I could not work out what to do. Quitting.");
                        }
                    }
-               }));
+               });
 
 
 

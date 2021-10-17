@@ -208,7 +208,7 @@ namespace rgat
         /// Camera position for main and preview cameras
         /// </summary>
         public CAMERA_STATE CameraState;
-        Dictionary<LayoutStyles.Style, CAMERA_STATE> _layoutCameraStates = new();
+        readonly Dictionary<LayoutStyles.Style, CAMERA_STATE> _layoutCameraStates = new();
 
 
         /// <summary>
@@ -710,7 +710,7 @@ namespace rgat
 
         private void GenerateCylinderWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
-            int CYLINDER_PIXELS_PER_ROW = (int)500;
+            int CYLINDER_PIXELS_PER_ROW = 500;
             float WF_POINTSPERLINE = 50f;
             int wireframe_loop_count = (int)Math.Ceiling((_lowestWireframeLoop * OPT_CYLINDER_PIXELS_PER_B) / CYLINDER_PIXELS_PER_ROW) + 1;
             float radius = OPT_CYLINDER_RADIUS;
@@ -1573,7 +1573,7 @@ namespace rgat
                 _cachedMainNodePickingVerts[index] = new Position1DColour
                 {
                     PositionIndex = index,
-                    Color = new WritableRgbaFloat(Rf: (float)index, Gf: 0, Bf: 0, Af: 1)
+                    Color = new WritableRgbaFloat(Rf: index, Gf: 0, Bf: 0, Af: 1)
                 };
             }
 
@@ -1584,7 +1584,7 @@ namespace rgat
                 {
                     if (!IsAnimated || _cachedMainNodeVerts[index].Color.A > 0)
                     {
-                        var caption = CreateNodeLabel((int)index, renderingMode, createNewLabels);
+                        var caption = CreateNodeLabel(index, renderingMode, createNewLabels);
                         captions.Add(caption);
                     }
                 }
@@ -1620,8 +1620,8 @@ namespace rgat
 
 
         Position1DColour[] _cachedPreviewNodeVerts = Array.Empty<Position1DColour>();
-        Position1DColour[] _cachedPreviewNodePickingVerts = Array.Empty<Position1DColour>();
-        uint[] _cachedPreviewNodeIndexes = Array.Empty<uint>();
+        readonly Position1DColour[] _cachedPreviewNodePickingVerts = Array.Empty<Position1DColour>();
+        readonly uint[] _cachedPreviewNodeIndexes = Array.Empty<uint>();
         int _cachedPreviewNodeVertCount = 0;
 
         /// <summary>
@@ -1669,7 +1669,7 @@ namespace rgat
                 _cachedPreviewNodeVerts[index] = new Position1DColour
                 {
                     PositionIndex = index,//new Vector2(x, y),
-                    Color = GetNodeColor((int)index, renderingMode, graphColoursCopy)
+                    Color = GetNodeColor(index, renderingMode, graphColoursCopy)
                 };
 
             }
@@ -1697,8 +1697,8 @@ namespace rgat
             public bool TexturiseRequired = false;
         }
 
-        CACHED_EDGE_SET _previewEdgesCache = new CACHED_EDGE_SET();
-        CACHED_EDGE_SET _mainEdgesCache = new CACHED_EDGE_SET();
+        readonly CACHED_EDGE_SET _previewEdgesCache = new CACHED_EDGE_SET();
+        readonly CACHED_EDGE_SET _mainEdgesCache = new CACHED_EDGE_SET();
 
 
         /// <summary>

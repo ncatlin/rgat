@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -93,7 +92,7 @@ namespace rgat.Threads
             IrregularActionTimer.Start();
         }
 
-        DateTime _lastTimerFired = DateTime.Now;
+        readonly DateTime _lastTimerFired = DateTime.Now;
 
         private void PerformIrregularActions()
         {
@@ -392,7 +391,7 @@ namespace rgat.Threads
             public ulong count;
         };
 
-        Stopwatch dbgStopwatch = new Stopwatch();
+        readonly Stopwatch dbgStopwatch = new Stopwatch();
         /// <summary>
         /// Handle execution of a basic block
         /// </summary>

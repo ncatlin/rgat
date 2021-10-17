@@ -369,7 +369,7 @@ namespace rgat
                         for (var i = 0; i < nCount; i++)
                         {
                             uint nidx = OutgoingNeighboursSet[i];
-                              EdgeData? targEdge = graph.GetEdge(Index, (uint)nidx);
+                              EdgeData? targEdge = graph.GetEdge(Index, nidx);
                             if (targEdge != null)
                             {
                                 Label += $" {nidx}:{targEdge.ExecutionCount}, ";

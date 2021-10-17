@@ -15,7 +15,7 @@ namespace rgat.Threads
         private readonly byte[] buf = new byte[1024];
         private NamedPipeServerStream? coordPipe = null;
         private static readonly object _lock = new();
-        private static Dictionary<uint, TraceRecord> _pendingProcessMappings = new();
+        private static readonly Dictionary<uint, TraceRecord> _pendingProcessMappings = new();
 
         /// <summary>
         /// Start work

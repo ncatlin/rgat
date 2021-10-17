@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-
-namespace rgat
+﻿namespace rgat
 {
     /// <summary>
     /// Data for a Node -> Node Edge

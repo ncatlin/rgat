@@ -90,7 +90,7 @@ namespace rgat
                 prev = new PreviewRendererThread(i, PreviewGraphWidget, _controller, background: false);
                 previewRenderers.Add(prev);
                 prev.Begin();
-                progress.Report(0.2f + ((float)i / (float)count));
+                progress.Report(0.2f + (i / (float)count));
             }
         }
 
@@ -146,8 +146,7 @@ namespace rgat
             }
         }
 
-
-        Stopwatch swdbg2 = new();
+        readonly Stopwatch swdbg2 = new();
         private void DrawMainVisualiser(float controlsHeight = 200)
         {
             if (rgatState.ActiveGraph == null)

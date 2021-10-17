@@ -656,7 +656,7 @@ namespace rgat
             graph.CameraState.RotationMatrix = world;
         }
 
-        Stopwatch st = new();
+        readonly Stopwatch st = new();
 
         /// <summary>
         /// Write the rendered graph/HUD items to the draw list

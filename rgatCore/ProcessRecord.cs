@@ -1016,7 +1016,7 @@ namespace rgat
                 }
                 writer.WriteEndArray();
                 doneCount += 1;
-                progress.SectionProgress = (float)doneCount / (float)modsymsPlain.Count;
+                progress.SectionProgress = doneCount / (float)modsymsPlain.Count;
                 if (progress.Cancelled) return;
             }
         }
@@ -1066,7 +1066,7 @@ namespace rgat
                 }
                 loaded += 1;
 
-                progress.SectionProgress = (float)loaded / (float)modulesToLoad;
+                progress.SectionProgress = loaded / (float)modulesToLoad;
                 if (progress.Cancelled) return false;
             }
             return true;
@@ -1114,7 +1114,7 @@ namespace rgat
                 }
                 insentry.WriteTo(writer);
                 doneCount += 1;
-                progress.SectionProgress = (float)doneCount / (float)disassembly.Count;
+                progress.SectionProgress = doneCount / (float)disassembly.Count;
                 if (progress.Cancelled) return;
             }
         }
@@ -1161,7 +1161,7 @@ namespace rgat
                 {
                     return false;
                 }
-                progress.SectionProgress = (float)i / (float)insCount;
+                progress.SectionProgress = i / (float)insCount;
                 if (progress.Cancelled) return false;
             }
 
@@ -1267,7 +1267,7 @@ namespace rgat
 
                 blockArray.WriteTo(writer);
                 doneCount += 1;
-                progress.SectionProgress = (float)doneCount / (float)BasicBlocksList.Count;
+                progress.SectionProgress = doneCount / (float)BasicBlocksList.Count;
                 if (progress.Cancelled) return;
             }
         }
@@ -1324,7 +1324,7 @@ namespace rgat
                     }
                     BasicBlocksList.Add(new Tuple<ulong, List<InstructionData>>(blockAddress, blkInstructions));
                 }
-                progress.SectionProgress = (float)blockID / (float)blockCount;
+                progress.SectionProgress = blockID / (float)blockCount;
                 if (progress.Cancelled) return false;
             }
 
@@ -1371,7 +1371,7 @@ namespace rgat
                 }
                 externArr.WriteTo(writer);
                 doneCount += 1;
-                progress.SectionProgress = (float)doneCount / (float)externdict.Count;
+                progress.SectionProgress = doneCount / (float)externdict.Count;
                 if (progress.Cancelled) return;
             }
         }
@@ -1433,7 +1433,7 @@ namespace rgat
                     }
                 }
                 externdict[externAddr] = externStruc;
-                progress.SectionProgress = (float)externI / (float)count;
+                progress.SectionProgress = externI / (float)count;
                 if (progress.Cancelled) return false;
             }
             return true;

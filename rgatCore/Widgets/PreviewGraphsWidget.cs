@@ -1,16 +1,12 @@
 ﻿using ImGuiNET;
-using rgat.Shaders.SPIR_V;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Timers;
 using Veldrid;
-using static rgat.VeldridGraphBuffers;
 
 namespace rgat
 {

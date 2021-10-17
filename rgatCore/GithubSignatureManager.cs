@@ -260,8 +260,8 @@ namespace rgat
             }
         }
 
-        static Dictionary<string, float> _downloadProgress = new();
-        static Dictionary<string, string> _repoDownloadUrls = new();
+        static readonly Dictionary<string, float> _downloadProgress = new();
+        static readonly Dictionary<string, string> _repoDownloadUrls = new();
         
 
         /// <summary>

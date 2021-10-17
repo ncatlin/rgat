@@ -1243,7 +1243,7 @@ namespace rgat
             for (var i = 0; i < count; i++)
             {
                 _timeline[i].Serialise(writer, serializer);
-                progress.SectionProgress = (float)i / (float)_timeline.Count;
+                progress.SectionProgress = i / (float)_timeline.Count;
                 if (progress.Cancelled) return;
             }
         }
@@ -1340,7 +1340,7 @@ namespace rgat
                 {
                     Debug.Assert(false, "Should not have this event type here");
                 }
-                progress.SectionProgress = (float)i / (float)timelineEntries;
+                progress.SectionProgress = i / (float)timelineEntries;
                 if (progress.Cancelled) return false;
             }
             return true;

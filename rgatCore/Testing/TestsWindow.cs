@@ -1,5 +1,4 @@
-﻿using Humanizer;
-using ImGuiNET;
+﻿using ImGuiNET;
 using rgat.Testing;
 using System;
 using System.Collections.Generic;
