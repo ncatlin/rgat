@@ -1,4 +1,9 @@
-﻿using Newtonsoft.Json.Linq;
+﻿/* 
+ * This file contains classes related to test cases - 
+ * the object loaded from a .test.json file, used to 
+ * describe how to run a test and what results to look for
+ */
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -33,7 +38,7 @@ namespace rgat.Testing
         /// <summary>
         /// The attribute exists in a collection
         /// </summary>
-        Exists,
+        ExistsIn,
         /// <summary>
         /// The attribute does not exist in a specified list of values 
         /// /// </summary>
@@ -190,7 +195,7 @@ namespace rgat.Testing
                                 ExpectedValueString += $"{arrayItem.ToObject<float>()}";
                                 break;
                             default:
-                                ExpectedValueString += "?";
+                                ExpectedValueString = $"[{name} list";
                                 break;
                         }
                     }
@@ -238,8 +243,10 @@ namespace rgat.Testing
                     Condition = RequirementCondition.LessThanOrEqualTo;
                     break;
 
-                case "exists":
-                    Condition = RequirementCondition.Exists;
+                case "existsin":
+                case "foundin":
+                case "containedin":
+                    Condition = RequirementCondition.ExistsIn;
                     break;
 
                 case "absent":
@@ -515,7 +522,7 @@ namespace rgat.Testing
         /// <summary>
         /// If the test was sucessfully loaded
         /// </summary>
-        public bool Loaded { get; private set; }
+        public bool Loaded { get; private set; } = false;
 
 
         /// <summary>

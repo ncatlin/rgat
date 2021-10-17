@@ -141,6 +141,21 @@ namespace rgat
             /// How much to multiply mousewheel clicks by to get the amount to zoom
             /// </summary>
             public const float GRAPH_ZOOM_MOUSEWHEEL_MULTIPLIER = 120;
+
+            /// <summary>
+            /// How much to multiply element colours by when the mouse is hovering them
+            /// </summary>
+            public const float THEME_COLOUR_HOVERED_MULTIPLIER = 1.3f;
+
+            /// <summary>
+            /// How much to multiply element colours by when the mouse is activating them
+            /// </summary>
+            public const float THEME_COLOUR_ACTIVE_MULTIPLIER = 1.5f;
+
+            /// <summary>
+            /// How much to multiply element colours by when their inactivity is being emphasised (eg: inactive tabs)
+            /// </summary>
+            public const float THEME_COLOUR_DULL_MULTIPLIER = 0.7f;
         }
 
         /// <summary>

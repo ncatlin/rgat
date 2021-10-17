@@ -1,4 +1,7 @@
-﻿using Humanizer;
+﻿/*
+ * A worker for a single execution of a test case
+ */
+using Humanizer;
 using System;
 using System.IO;
 using System.Threading;
@@ -14,9 +17,9 @@ namespace rgat.Testing
         public bool Running { get; private set; } = false;
         public bool Finished { get; private set; } = false;
 
-        private readonly TestHarnessThread _harness;
+        private readonly TestRunner _harness;
 
-        public TestRunThread(TestCaseRun testrun, rgatState rgatState, TestHarnessThread harness)
+        public TestRunThread(TestCaseRun testrun, rgatState rgatState, TestRunner harness)
         {
             _testCase = testrun.GetTestCase;
             _thisTest = testrun;
@@ -67,10 +70,11 @@ namespace rgat.Testing
                         while (!rgatState.rgatIsExiting && !Finished)
                         {
                             /*
-                             * This is quite awkward - main concern is something that does CreateProces(); ExitProcess()
-                             * and we exit thinking the job is done just before another child process connects. Of course
-                             * a 100 ms delay is not great at all but without actually instrumenting all the process creation
-                             * APIs it's difficult to come up with something to wait on
+                             * This is quite awkward - main concern is something that does CreateProces() => ExitProcess()
+                             * and we exit thinking the job is done just before another child process connects.
+                             * A 100 ms delay isn't foolproof but without actually instrumenting all the process creation
+                             * APIs it's difficult to come up with something to wait on.
+                             * Re-evaluate when multi-process tests are written
                              */
                             Thread.Sleep(100);
                             if (!testTrace.IsRunning && !testTrace.ProcessingRemaining_All)

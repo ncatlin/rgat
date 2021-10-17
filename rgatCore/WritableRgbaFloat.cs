@@ -184,6 +184,22 @@ namespace rgat
 
 
         /// <summary>
+        /// Brighten a uint colour of a UI theme
+        /// </summary>
+        /// <param name="inputColour">uint colour</param>
+        /// <param name="amount">How much to brighten it (0.0-2.0)</param>
+        /// <returns></returns>
+        public static uint Brighten(uint inputColour, float amount)
+        {
+            float A = ((inputColour & 0xff000000) >> 24) / 255f;
+            float B = ((inputColour & 0xff0000) >> 16) / 255f;
+            float G = ((inputColour & 0xff00) >> 8) / 255f;
+            float R = ((inputColour & 0xff)) / 255f;
+            return CreateUint(Math.Min(R * amount, 1), Math.Min(G * amount, 1), Math.Min(B * amount, 1), A);
+        }
+
+
+        /// <summary>
         /// Get this colour as a Veldrid RgbaFloat
         /// </summary>
         /// <returns>RgbaFloat</returns>

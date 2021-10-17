@@ -344,6 +344,12 @@ namespace rgat.Config
             private bool _EnableTestHarness = true;
 
             /// <summary>
+            /// The imgui demo dialog appears in the menu bar
+            /// </summary>
+            public bool EnableImGuiDemo { get => _EnableImGuiDemo; set { _EnableImGuiDemo = value; MarkDirty(); } }
+            private bool _EnableImGuiDemo = true;
+
+            /// <summary>
             /// The version of rgat this config file was created by
             /// Used on updating to trigger the writing of the latest tools to disk
             /// </summary>

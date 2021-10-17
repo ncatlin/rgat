@@ -202,7 +202,7 @@ namespace rgat.Widgets
             int[] triIndices = Enumerable.Range(0, _triangleVerts.Length).Select(i => i).ToArray();
             _cl.UpdateBuffer(_trisIndexBuffer, 0, triIndices);
             _cl.SetFramebuffer(_outputFramebuffer);
-            _cl.ClearColorTarget(0, new WritableRgbaFloat(Themes.GetThemeColourUINT(Themes.eThemeColour.eVisBarBg)).ToRgbaFloat());
+            _cl.ClearColorTarget(0, new WritableRgbaFloat(Themes.GetThemeColourUINT(Themes.eThemeColour.VisBarBg)).ToRgbaFloat());
 
             _cl.SetPipeline(_triPipeline);
             _cl.SetGraphicsResourceSet(0, _rsrcs);
@@ -457,7 +457,7 @@ namespace rgat.Widgets
             List<Position2DColour> lines = new List<Position2DColour>();
             List<Position2DColour> triangles = new List<Position2DColour>();
             List<Position2DColour> busyCountLinePoints = new List<Position2DColour>();
-            WritableRgbaFloat plotLineColour = Themes.GetThemeColourWRF(Themes.eThemeColour.eVisBarPlotLine);
+            WritableRgbaFloat plotLineColour = Themes.GetThemeColourWRF(Themes.eThemeColour.VisBarPlotLine);
             List<MODULE_SEGMENT> moduleAreas = new List<MODULE_SEGMENT>();
 
             //Draw Tag visualisation
@@ -577,7 +577,7 @@ namespace rgat.Widgets
                             NodeData node = graph.NodeList[blockTailIdx];
                             Debug.Assert(node.HeatRank >= 0 && node.HeatRank <= 9);
 
-                            heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.eHeat0Lowest + node.HeatRank));
+                            heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.Heat0Lowest + node.HeatRank));
 
                             CreateRect(heatColour, Xoffset, 15, pSep, 10, ref triangles);
 
@@ -858,7 +858,7 @@ namespace rgat.Widgets
             List<Position2DColour> lines = new List<Position2DColour>();
             List<Position2DColour> triangles = new List<Position2DColour>();
             List<Position2DColour> busyCountLinePoints = new List<Position2DColour>();
-            WritableRgbaFloat plotLineColour = Themes.GetThemeColourWRF(Themes.eThemeColour.eVisBarPlotLine);
+            WritableRgbaFloat plotLineColour = Themes.GetThemeColourWRF(Themes.eThemeColour.VisBarPlotLine);
             List<MODULE_SEGMENT> moduleAreas = new List<MODULE_SEGMENT>();
 
 
@@ -940,7 +940,7 @@ namespace rgat.Widgets
                             NodeData node = graph.NodeList[blockTailIdx];
                             Debug.Assert(node.HeatRank >= 0 && node.HeatRank <= 9);
                             WritableRgbaFloat heatColour = Themes.GetThemeColourWRF((Themes.eThemeColour)
-                                ((float)Themes.eThemeColour.eHeat0Lowest + node.HeatRank));
+                                ((float)Themes.eThemeColour.Heat0Lowest + node.HeatRank));
                             //Logging.WriteConsole($"x: {x}, animidx: {entryIdx} node:{node.index} rank:{node.heatRank}");
                             lines.Add(new Position2DColour()
                             {
@@ -1072,7 +1072,7 @@ namespace rgat.Widgets
             // Grey out any area of unsaved trace data
             if ((ulong)animationData.Count < graph.UpdateCount)
             {
-                WritableRgbaFloat discardedColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.eTextDull1));
+                WritableRgbaFloat discardedColour = Themes.GetThemeColourWRF((Themes.eThemeColour)((float)Themes.eThemeColour.Dull1));
                 float Xoffset = _width * ((float)animationData.Count / (float)graph.UpdateCount);
                 float width = _width - Xoffset;
                 CreateRect(discardedColour, Xoffset, 0, width, _height, ref triangles);

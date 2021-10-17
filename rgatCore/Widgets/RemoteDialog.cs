@@ -235,7 +235,7 @@ namespace rgat.Widgets
             Vector2 togStart = ImGui.GetCursorScreenPos();
 
             ImGui.PushStyleColor(ImGuiCol.Border, col: rgatState.ConnectedToRemote ?
-                Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour) :
+                Themes.GetThemeColourUINT(Themes.eThemeColour.GoodStateColour) :
                 Themes.GetThemeColourImGui(ImGuiCol.Border));
 
             if (ImGui.BeginChild("##RemoteActiveTogFrame", new Vector2(itemsWidth, 30), true, flags: ImGuiWindowFlags.NoScrollbar))

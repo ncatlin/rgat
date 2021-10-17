@@ -2364,8 +2364,15 @@ namespace rgat
                         compareValueString = $"{TotalInstructions}";
                         break;
                     case "Edges":
-                        JArray? expectedEdgeArr = req.ExpectedValue?.ToObject<JArray>();
-                        passed = expectedEdgeArr != null && ValidateEdgeTestList(expectedEdgeArr, out compareValueString);
+                        if (req.ExpectedValue is not null && req.ExpectedValue.Type is JTokenType.Array)
+                        {
+                            JArray? expectedEdgeArr = req.ExpectedValue?.ToObject<JArray>();
+                            passed = expectedEdgeArr != null && ValidateEdgeTestList(expectedEdgeArr, out compareValueString);
+                        }
+                        else
+                        {
+                            error = "Bad Thread Test Condition - Expected edges value must be an array ";
+                        }
                         break;
                     default:
                         compareValueString = "[?]";
@@ -2398,6 +2405,8 @@ namespace rgat
 
         private bool ValidateEdgeTestList(JArray testedges, out string failedComparison)
         {
+            string comparisonString = "";
+
             foreach (JToken testedge in testedges)
             {
                 if (testedge.Type != JTokenType.Object)
@@ -2434,22 +2443,28 @@ namespace rgat
                         return false;
                     }
                 }
-
-                //listing the edge without the count => just assert the edge exists
-                if (GetTestEdgeCount(edgeTestObj, out ulong requiredExecCount))
+                else
                 {
-                    EdgeData edge = GetEdge(edgeTuple);
-
-                    //just assume we want equals. could do a condition if anyone cares.
-                    if (edge.ExecutionCount != requiredExecCount)
+                    //listing the edge without the count => just assert the edge exists
+                    if (GetTestEdgeCount(edgeTestObj, out ulong requiredExecCount))
                     {
-                        failedComparison = $"Edge {src},{targ} executed {edge.ExecutionCount} times (!= {requiredExecCount}) ";
-                        return false;
+                        EdgeData edge = GetEdge(edgeTuple);
+
+                        //just assume we want equals. could do a condition if anyone cares.
+                        if (edge.ExecutionCount != requiredExecCount)
+                        {
+                            failedComparison = $"Edge {src},{targ} executed {edge.ExecutionCount} times (!= {requiredExecCount}) ";
+                            return false;
+                        }
+                        else
+                        {
+                            comparisonString += $"[{src},{targ}]x{requiredExecCount} ";
+                        }
                     }
                 }
             }
 
-            failedComparison = "";
+            failedComparison = comparisonString;
             return true;
         }
 

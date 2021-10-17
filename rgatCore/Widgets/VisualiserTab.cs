@@ -579,7 +579,7 @@ namespace rgat
                 {
                     if (rgatState.VideoRecorder.CapturePaused)
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
                         if (ImGui.Button("Resume Capture", new Vector2(100, 28))) //this is more intended as an indicator than a control
                         {
                             rgatState.VideoRecorder.CapturePaused = false;
@@ -588,7 +588,7 @@ namespace rgat
                     }
                     else
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eAlertWindowBg));
+                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.AlertWindowBg));
                         if (ImGui.Button("Stop Capture", new Vector2(100, 28)))
                         {
                             rgatState.VideoRecorder.StopRecording();
@@ -759,7 +759,7 @@ namespace rgat
                                         ImGui.TextWrapped($"{moduleLabel}");
 
                                         ImGui.Indent(8);
-                                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
+                                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1));
                                         List<InstructionData>? inslist = graph.ProcessData.getDisassemblyBlock(blockID: blkID);
                                         if (inslist is not null)
                                         {
@@ -914,7 +914,7 @@ namespace rgat
                 }
                 else
                 {
-                    ImGui.TextColored(Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToVec4(), "(Terminated)");
+                    ImGui.TextColored(Themes.GetThemeColourWRF(Themes.eThemeColour.BadStateColour).ToVec4(), "(Terminated)");
                 }
             }
             else
@@ -975,7 +975,7 @@ namespace rgat
                             ImGui.Text("Queue + ");
                             SmallWidgets.MouseoverText("Average number of trace data items ingested recently for this thread");
                             ImGui.SameLine();
-                            ImGui.TextColored(Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToVec4(), $"{incomingAvg:f1}");
+                            ImGui.TextColored(Themes.GetThemeColourWRF(Themes.eThemeColour.BadStateColour).ToVec4(), $"{incomingAvg:f1}");
                         }
 
                         graph.TraceReader.RecentProcessingRates(out float[] outgoing);
@@ -985,7 +985,7 @@ namespace rgat
                             ImGui.Text("Queue - ");
                             SmallWidgets.MouseoverText("Average number of trace data items processed recently for this thread");
                             ImGui.SameLine();
-                            ImGui.TextColored(Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour).ToVec4(), $"{outgoingAvg:f1}");
+                            ImGui.TextColored(Themes.GetThemeColourWRF(Themes.eThemeColour.GoodStateColour).ToVec4(), $"{outgoingAvg:f1}");
                         }
                     }
 
@@ -1116,8 +1116,8 @@ namespace rgat
         private unsafe void DrawPreviewVisualiser(float controlsHeight = 200)
         {
             Vector2 previewPaneSize = new Vector2(UI.PREVIEW_PANE_WIDTH, ImGui.GetContentRegionAvail().Y - controlsHeight);
-            ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewPaneBorder));
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewPaneBackground));
+            ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.PreviewPaneBorder));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.PreviewPaneBackground));
 
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, 0));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
@@ -1339,11 +1339,11 @@ namespace rgat
                         }
                         else if (fps < 40 && fps >= 10)
                         {
-                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
+                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.WarnStateColour);
                         }
                         else
                         {
-                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour);
                         }
 
                         ImGui.PushStyleColor(ImGuiCol.Text, fpscol);

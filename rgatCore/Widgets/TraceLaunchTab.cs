@@ -84,7 +84,7 @@ namespace rgat
                             }
                             else
                             {
-                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
                                 ImGui.Text("[Remote (Inaccessible)]");
                                 ImGui.PopStyleColor();
                                 SmallWidgets.MouseoverText($"This target was loaded on {activeTarget.RemoteHost} in remote tracing mode");
@@ -95,7 +95,7 @@ namespace rgat
                             ImGui.SameLine();
                             if (rgatState.NetworkBridge.ActiveNetworking)
                             {
-                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
                                 ImGui.Text("[Local]");
                                 ImGui.PopStyleColor();
                             }
@@ -388,7 +388,7 @@ namespace rgat
                     }
                 }
 
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame));
                 if (ImGui.BeginChild("ModFilterContentChild", new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y)))
                 {
                     if (ImGui.BeginChild("#exclusionlist_contents", ImGui.GetContentRegionAvail(), true))
@@ -420,7 +420,7 @@ namespace rgat
                             }
                             if (ignoredFileCount > 0 && ImGui.BeginPopupContextItem("IgnoreFilesClear", ImGuiPopupFlags.MouseButtonRight))
                             {
-                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText));
                                 if (ImGui.Selectable("Clear all ignored files"))
                                 {
                                     moduleChoices.ClearIgnoredFiles();
@@ -571,7 +571,7 @@ namespace rgat
                             float origY = ImGui.GetCursorPosY();
                             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y - (height + 15));
                             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
-                            ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                            ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
                             if (ImGui.BeginChild("#WarnIssueFrame", new Vector2(600, height), true, ImGuiWindowFlags.AlwaysAutoResize))
                             {
                                 //todo: be more specific on tooltip, but prevent a potential error dictionary reading race condition
@@ -628,8 +628,8 @@ namespace rgat
                     ImGui.AlignTextToFramePadding();
                     ImGui.Text("Instrumentation Level: ");
                     ImGui.SameLine();
-                    ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
-                    ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
+                    ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1));
+                    ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1));
                     ImGui.RadioButton("Single Shot", ref _selectedInstrumentationLevel, 0);
                     ImGui.PopStyleColor(2);
                     SmallWidgets.MouseoverText($"Remove instrumenation from previously seen blocks for a quick code stucture overview. This mode is not available in rgat {CONSTANTS.PROGRAMVERSION.RGAT_VERSION}");
@@ -692,9 +692,13 @@ namespace rgat
         {
 
             bool runnable = _activeTargetRunnable && GlobalConfig.Loaded && rgatUI.StartupProgress >= 1;
-            ImGui.PushStyleColor(ImGuiCol.Button, runnable ? Themes.GetThemeColourUINT(Themes.eThemeColour.eControl) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, runnable ? Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, runnable ? Themes.GetThemeColourUINT(Themes.eThemeColour.eControlActive) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
+            if (runnable is false)
+            {
+                uint dullColour = Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1);
+                ImGui.PushStyleColor(ImGuiCol.Button, dullColour);
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, dullColour);
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, dullColour);
+            }
             ImGui.AlignTextToFramePadding();
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1f);
             string caption = $"Start Trace {ImGuiController.FA_PLAY_CIRCLE}";
@@ -733,9 +737,9 @@ namespace rgat
                 }
             }
             ImGui.PopStyleVar();
-            ImGui.PopStyleColor(3);
             if (!runnable)
             {
+                ImGui.PopStyleColor(3);
                 if (rgatUI.StartupProgress < 1)
                     SmallWidgets.MouseoverText("rgat is still initialising");
                 else
@@ -754,7 +758,7 @@ namespace rgat
             }
             DiELibDotNet.DieScript.SCANPROGRESS? DEProgress = rgatState.DIELib.GetDIEScanProgress(activeTarget);
 
-            uint textColour = Themes.GetThemeColourImGui(ImGuiCol.Text);
+            uint textColour = Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText);
             if (DEProgress is null)
             {
                 ImGui.Text("Not Inited");
@@ -766,7 +770,7 @@ namespace rgat
                 {
                     dieProgress = DEProgress.scriptCount == 0 ? 0f : DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     caption = $"Failed ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour);
                 }
                 else if (DEProgress.loading)
                 {
@@ -778,21 +782,21 @@ namespace rgat
                 {
                     dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     caption = $"DiE:{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
-                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.GoodStateColour);
                 }
                 else if (DEProgress.StopRequestFlag)
                 {
                     dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     caption = $"Cancelled ({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour);
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.WarnStateColour);
                 }
                 else
                 {
                     dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
                     caption = $"DIE:({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
-                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.GoodStateColour);
                 }
-                SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame), barColour);
+                SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame), barColour);
             }
 
             if (DEProgress is not null)
@@ -879,28 +883,28 @@ namespace rgat
                     {
                         uint rulecount = rgatState.YARALib.LoadedRuleCount();
                         caption = $"YARA:{rulecount}/{rulecount}"; //wrong if reloaded?
-                        barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
+                        barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.GoodStateColour);
                         progressAmount = 1;
                         break;
                     }
                 case YARAScanner.eYaraScanProgress.eFailed:
                     caption = "YARA: Error";
-                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour);
                     progressAmount = 0;
                     break;
                 case YARAScanner.eYaraScanProgress.eRunning:
                     caption = "YARA: Scanning...";
-                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour);
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.GoodStateColour);
                     progressAmount = 0.5f;
                     break;
                 default:
-                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+                    barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour);
                     caption = "Bad State";
                     progressAmount = 0;
                     break;
             }
 
-            SmallWidgets.ProgressBar("YaraProgBar", caption, progressAmount, barSize, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame), barColour);
+            SmallWidgets.ProgressBar("YaraProgBar", caption, progressAmount, barSize, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame), barColour);
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();

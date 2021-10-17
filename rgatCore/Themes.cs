@@ -21,40 +21,69 @@ namespace rgat
         /// UI and Graph properties that can have a custom theme colour
         /// </summary>
         public enum eThemeColour
-        {
-            eWindowBackground,
-            eWindowText,
-            eFrame,
-            eFrameHover,
-            eFrameActive,
-            eControl,
-            eControlText,
-            eControlHover,
-            eControlActive,
-            eMenuBar,
-            eMenuBarText,
-            
+        {   // ---------------
+            //
+            //Widget Colours
+            //
+            // ---------------
+
+            /// <summary>
+            /// The base background for the UI
+            /// </summary>
+            WindowBackground,
+            /// <summary>
+            /// Text on the background
+            /// </summary>
+            WindowText,
+            /// <summary>
+            /// A region on the base background which needs to contrast with it
+            /// </summary>
+            Frame,
+            /// <summary>
+            /// An interactable element
+            /// </summary>
+            Control,
+            /// <summary>
+            /// Text on a control
+            /// </summary>
+            ControlText,
+            /// <summary>
+            /// The top menu
+            /// </summary>
+            MenuBar,
+            /// <summary>
+            /// Text on the top menu
+            /// </summary>
+            MenuBarText,
+            /// <summary>
+            /// Table rows (alternate 1)
+            /// </summary>
+            TableRow,
+            /// <summary>
+            /// Table rows (alternate 2)
+            /// </summary>
+            TableRowAlt,
 
             /// <summary>
             /// Labels on preview graphs
             /// </summary>
-            ePreviewText,
+            PreviewText,
             /// <summary>
             /// The background of text on preview graphs to provide contrast
             /// </summary>
-            ePreviewTextBackground,
+            PreviewTextBackground,
             /// <summary>
             /// The border of the preview pane
             /// </summary>
-            ePreviewPaneBorder,
+            PreviewPaneBorder,
             /// <summary>
             /// The background of the preview pane
             /// </summary>
-            ePreviewPaneBackground,
+            PreviewPaneBackground,
             /// <summary>
             /// The box used to show the camera location in the preview pane
             /// </summary>
-            ePreviewZoomEnvelope,
+            PreviewZoomEnvelope,
             /// <summary>
             /// The background of running thread preview graphs
             /// </summary>
@@ -68,93 +97,99 @@ namespace rgat
             /// </summary>
             PreviewBGSuspended,
             /// <summary>
-            /// Emphasised text style 1
+            /// Emphasised element style 1
             /// </summary>
-            eTextEmphasis1,
+            Emphasis1,
             /// <summary>
-            /// Emphasised text style 2
+            /// Emphasised element style 2
             /// </summary>
-            eTextEmphasis2,
+            Emphasis2,
             /// <summary>
-            /// Subtle text style 1
+            /// Subtle/inactive element style 1
             /// </summary>
-            eTextDull1,
+            Dull1,
             /// <summary>
-            /// Subtle text style 2
+            /// Subtle/inactive element style 2
             /// </summary>
-            eTextDull2,
-            /// <summary>
-            /// The lowest 10% active instructions
-            /// </summary>
-            eHeat0Lowest,
-            /// <summary>
-            /// 10-19% most active instructions
-            /// </summary>
-            eHeat1,
-            /// <summary>
-            /// 20-29% most active instructions
-            /// </summary>
-            eHeat2,
-            /// <summary>
-            /// 30-39% most active instructions
-            /// </summary>
-            eHeat3,
-            /// <summary>
-            /// 40-49% most active instructions
-            /// </summary>
-            eHeat4,
-            /// <summary>
-            /// 50-59% most active instructions
-            /// </summary>
-            eHeat5,
-            /// <summary>
-            /// 60-69% most active instructions
-            /// </summary>
-            eHeat6,
-            /// <summary>
-            /// 70-79% most active instructions
-            /// </summary>
-            eHeat7,
-            /// <summary>
-            /// 80-89% most active instructions
-            /// </summary>
-            eHeat8,
-            /// <summary>
-            /// The top 10% most active instructions
-            /// </summary>
-            eHeat9Highest,
-            /// <summary>
-            /// The instruction count plot line on the visualisation bar
-            /// </summary>
-            eVisBarPlotLine,
-            /// <summary>
-            /// The background of the visualiser bar
-            /// </summary>
-            eVisBarBg,
+            Dull2,            
             /// <summary>
             /// The background of the alert box
             /// </summary>
-            eAlertWindowBg,
+            AlertWindowBg,
             /// <summary>
             /// The border of the alert box
             /// </summary>
-            eAlertWindowBorder,
+            AlertWindowBorder,
             /// <summary>
             /// Colour for bad events/errors
             /// </summary>
-            eBadStateColour,
+            BadStateColour,
             /// <summary>
             /// Colour for warnings
             /// </summary>
-            eWarnStateColour,
+            WarnStateColour,
             /// <summary>
             /// Colour for successful events
             /// </summary>
-            eGoodStateColour,
+            GoodStateColour,
             /// <summary>
             /// Background of the analysis chart
             /// </summary>
-            eSandboxChartBG,
+            SandboxChartBG,
+
+            /// ---------------
+            //
+            //Graph/Rendered Colours
+            //
+            // ---------------
+            /// <summary>
+            /// The lowest 10% active instructions
+            /// </summary>
+            Heat0Lowest,
+            /// <summary>
+            /// 10-19% most active instructions
+            /// </summary>
+            Heat1,
+            /// <summary>
+            /// 20-29% most active instructions
+            /// </summary>
+            Heat2,
+            /// <summary>
+            /// 30-39% most active instructions
+            /// </summary>
+            Heat3,
+            /// <summary>
+            /// 40-49% most active instructions
+            /// </summary>
+            Heat4,
+            /// <summary>
+            /// 50-59% most active instructions
+            /// </summary>
+            Heat5,
+            /// <summary>
+            /// 60-69% most active instructions
+            /// </summary>
+            Heat6,
+            /// <summary>
+            /// 70-79% most active instructions
+            /// </summary>
+            Heat7,
+            /// <summary>
+            /// 80-89% most active instructions
+            /// </summary>
+            Heat8,
+            /// <summary>
+            /// The top 10% most active instructions
+            /// </summary>
+            Heat9Highest,
+            /// <summary>
+            /// The instruction count plot line on the visualisation bar
+            /// </summary>
+            VisBarPlotLine,
+            /// <summary>
+            /// The background of the visualiser bar
+            /// </summary>
+            VisBarBg,
             /// <summary>
             /// Background of the main graph visualiser
             /// </summary>
@@ -241,14 +276,14 @@ namespace rgat
             /// <summary>
             /// The weight of the border of selected preview graphs
             /// </summary>
-            ePreviewSelectedBorder,
+            PreviewSelectedBorder,
             /// <summary>
             /// The number of available sizes
             /// </summary>
             COUNT
         }
 
-        private static readonly Dictionary<ImGuiCol, uint> ThemeColoursStandard = new Dictionary<ImGuiCol, uint>();
+        //private static readonly Dictionary<ImGuiCol, uint> ThemeColoursStandard = new Dictionary<ImGuiCol, uint>();
         private static readonly Dictionary<eThemeColour, uint> ThemeColoursCustom = new Dictionary<eThemeColour, uint>();
         private static readonly Dictionary<eThemeSize, float> ThemeSizesCustom = new Dictionary<eThemeSize, float>();
         private static readonly Dictionary<eThemeSize, Vector2> ThemeSizeLimits = new Dictionary<eThemeSize, Vector2>();
@@ -264,60 +299,79 @@ namespace rgat
         public static bool UnsavedTheme = false;
         private static readonly object _lock = new object();
         private static int _appliedThemeCount = 0;
+
+        static Dictionary<ImGuiCol, uint>? _frameUIColours = null;
+        static ulong _frameTheme = 0;
+
         /// <summary>
-        /// Activate the themes ImGui colours
+        /// Set the UI element colours from the users theme
+        /// Should be called before every frame
+        /// Calling ResetThemeColours() at the end of every frame is mandatory
         /// </summary>
-        public static void ApplyThemeColours()
-        {
-            lock (_lock)
-            {
-
-                var themes = Themes.ThemeColoursStandard.ToList();
-                foreach (KeyValuePair<ImGuiCol, uint> kvp in themes)
-                {
-
-                    ImGui.PushStyleColor(kvp.Key, kvp.Value);
-                }
-
-
-                _appliedThemeCount = themes.Count;
-            }
-        }
-
         public static void ApplyGeneralThemeColours()
         {
-            //4
-            ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
-            ImGui.PushStyleColor(ImGuiCol.ResizeGrip, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
-            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrameActive));
-            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrameHover));
-            //3
-            ImGui.PushStyleColor(ImGuiCol.WindowBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowBackground));
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowBackground));
-            ImGui.PushStyleColor(ImGuiCol.PopupBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowBackground));
-            //1
-            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowText));
-            //5
-            ImGui.PushStyleColor(ImGuiCol.TableHeaderBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
-            ImGui.PushStyleColor(ImGuiCol.Header, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
-            ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
-            ImGui.PushStyleColor(ImGuiCol.TabUnfocused, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
-            ImGui.PushStyleColor(ImGuiCol.TitleBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
-            //7
-            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
-            ImGui.PushStyleColor(ImGuiCol.HeaderActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
-            ImGui.PushStyleColor(ImGuiCol.TabHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
-            ImGui.PushStyleColor(ImGuiCol.ResizeGripHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
-            ImGui.PushStyleColor(ImGuiCol.TabActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
-            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlHover));
-            //3
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlActive));
-            ImGui.PushStyleColor(ImGuiCol.CheckMark, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlActive));
-            ImGui.PushStyleColor(ImGuiCol.ResizeGripActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlActive));
+            uint windowBackground = Themes.GetThemeColourUINT(Themes.eThemeColour.WindowBackground);
 
+            uint frameColour = Themes.GetThemeColourUINT(Themes.eThemeColour.Frame);
+            uint frameHoverColour = WritableRgbaFloat.Brighten(frameColour, CONSTANTS.UI.THEME_COLOUR_HOVERED_MULTIPLIER);
+            uint frameActiveColour = WritableRgbaFloat.Brighten(frameColour, CONSTANTS.UI.THEME_COLOUR_ACTIVE_MULTIPLIER);
+            uint frameDullColour = WritableRgbaFloat.Brighten(frameColour, CONSTANTS.UI.THEME_COLOUR_DULL_MULTIPLIER);
 
-            _appliedThemeCount = 23;
+            uint controlColour = Themes.GetThemeColourUINT(Themes.eThemeColour.Control);
+            uint controlDullColour = WritableRgbaFloat.Brighten(controlColour, CONSTANTS.UI.THEME_COLOUR_DULL_MULTIPLIER);
+            uint controlHoverColour = WritableRgbaFloat.Brighten(controlColour, CONSTANTS.UI.THEME_COLOUR_HOVERED_MULTIPLIER);
+            uint controlActiveColour = WritableRgbaFloat.Brighten(controlColour, CONSTANTS.UI.THEME_COLOUR_ACTIVE_MULTIPLIER);
+
+            if (_frameUIColours is null || _frameTheme != ThemeVariant)
+            {
+                _frameTheme = ThemeVariant;
+                _frameUIColours = new Dictionary<ImGuiCol, uint>()
+            {
+            {ImGuiCol.Border, frameColour},
+            {ImGuiCol.BorderShadow, frameDullColour},
+            {ImGuiCol.Button, controlColour},
+            {ImGuiCol.ButtonActive, controlActiveColour},
+            {ImGuiCol.ButtonHovered, controlHoverColour},
+            {ImGuiCol.CheckMark, controlActiveColour},
+            {ImGuiCol.ChildBg, windowBackground},
+            {ImGuiCol.FrameBg, frameColour},
+            {ImGuiCol.FrameBgActive, frameActiveColour},
+            {ImGuiCol.FrameBgHovered, frameHoverColour},
+            {ImGuiCol.Header, controlColour},
+            {ImGuiCol.HeaderActive, controlHoverColour},
+            {ImGuiCol.HeaderHovered, controlHoverColour},
+            {ImGuiCol.PopupBg, windowBackground},
+            {ImGuiCol.ResizeGrip, frameColour},
+            {ImGuiCol.ResizeGripActive, controlActiveColour},
+            {ImGuiCol.ResizeGripHovered, controlHoverColour},
+            {ImGuiCol.ScrollbarBg, windowBackground},
+            {ImGuiCol.ScrollbarGrab, frameColour},
+            {ImGuiCol.ScrollbarGrabActive, frameActiveColour},
+            {ImGuiCol.ScrollbarGrabHovered, frameHoverColour},
+            {ImGuiCol.Separator, frameColour},
+            {ImGuiCol.SeparatorActive, frameActiveColour},
+            {ImGuiCol.SeparatorHovered, frameHoverColour},
+            {ImGuiCol.SliderGrab, controlColour},
+            {ImGuiCol.SliderGrabActive,controlActiveColour  },
+            {ImGuiCol.Tab, controlDullColour},
+            {ImGuiCol.TabActive, controlHoverColour},
+            {ImGuiCol.TabHovered, controlHoverColour},
+            {ImGuiCol.TabUnfocused, controlColour},
+            {ImGuiCol.TableBorderLight, frameDullColour},
+            {ImGuiCol.TableBorderStrong, frameActiveColour},
+            {ImGuiCol.TableHeaderBg, controlColour},
+            {ImGuiCol.TableRowBg, GetThemeColourUINT(Themes.eThemeColour.TableRow)},
+            {ImGuiCol.TableRowBgAlt, GetThemeColourUINT(Themes.eThemeColour.TableRowAlt)},
+            {ImGuiCol.Text, GetThemeColourUINT(Themes.eThemeColour.WindowText)},
+            {ImGuiCol.TitleBg, controlColour},
+            {ImGuiCol.TitleBgActive, controlHoverColour},
+            {ImGuiCol.TitleBgCollapsed, controlDullColour},
+            {ImGuiCol.WindowBg, windowBackground }
+        };
+            }
+
+            foreach (var itemCol in _frameUIColours) ImGui.PushStyleColor(itemCol.Key, itemCol.Value);
+            _appliedThemeCount = _frameUIColours.Count;
         }
 
         /// <summary>
@@ -336,19 +390,19 @@ namespace rgat
         {
             Dictionary<eThemeColour, uint> DefaultCustomColours = new Dictionary<eThemeColour, uint>
             {
-                [eThemeColour.ePreviewText] = new WritableRgbaFloat(Af: 1f, Gf: 1, Bf: 1, Rf: 1).ToUint(),
-                [eThemeColour.ePreviewTextBackground] = new WritableRgbaFloat(Af: 0.3f, Gf: 0, Bf: 0, Rf: 0).ToUint(),
-                [eThemeColour.ePreviewPaneBorder] = new WritableRgbaFloat(Af: 1f, Gf: 0, Bf: 0, Rf: 1).ToUint(),
-                [eThemeColour.ePreviewPaneBackground] = new WritableRgbaFloat(Af: 1f, Gf: 0.05f, Bf: 0.05f, Rf: 0.05f).ToUint(),
-                [eThemeColour.ePreviewZoomEnvelope] = new WritableRgbaFloat(Af: 0.7f, Gf: 0.7f, Bf: 0.7f, Rf: 0.7f).ToUint(),
+                [eThemeColour.PreviewText] = new WritableRgbaFloat(Af: 1f, Gf: 1, Bf: 1, Rf: 1).ToUint(),
+                [eThemeColour.PreviewTextBackground] = new WritableRgbaFloat(Af: 0.3f, Gf: 0, Bf: 0, Rf: 0).ToUint(),
+                [eThemeColour.PreviewPaneBorder] = new WritableRgbaFloat(Af: 1f, Gf: 0, Bf: 0, Rf: 1).ToUint(),
+                [eThemeColour.PreviewPaneBackground] = new WritableRgbaFloat(Af: 1f, Gf: 0.05f, Bf: 0.05f, Rf: 0.05f).ToUint(),
+                [eThemeColour.PreviewZoomEnvelope] = new WritableRgbaFloat(Af: 0.7f, Gf: 0.7f, Bf: 0.7f, Rf: 0.7f).ToUint(),
                 [eThemeColour.PreviewBGRunning] = new WritableRgbaFloat(Color.FromArgb(180, 0, 42, 0)).ToUint(),
                 [eThemeColour.PreviewBGSuspended] = new WritableRgbaFloat(Color.FromArgb(150, 245, 163, 71)).ToUint(),
                 [eThemeColour.PreviewBGTerminated] = new WritableRgbaFloat(Color.FromArgb(180, 42, 0, 0)).ToUint(),
 
-                [eThemeColour.eTextDull1] = new WritableRgbaFloat(Af: 1, Gf: 0.698f, Bf: 0.698f, Rf: 0.698f).ToUint(),
-                [eThemeColour.eTextDull2] = new WritableRgbaFloat(Af: 1, Gf: 0.494f, Bf: 0.494f, Rf: 0.537f).ToUint(),
-                [eThemeColour.eTextEmphasis1] = new WritableRgbaFloat(Af: 1, Gf: 1f, Bf: 0.9f, Rf: 0.6f).ToUint(),
-                [eThemeColour.eTextEmphasis2] = new WritableRgbaFloat(Af: 1, Gf: 0.773f, Bf: 01, Rf: 1f).ToUint(),
+                [eThemeColour.Dull1] = new WritableRgbaFloat(Af: 1, Gf: 0.698f, Bf: 0.698f, Rf: 0.698f).ToUint(),
+                [eThemeColour.Dull2] = new WritableRgbaFloat(Af: 1, Gf: 0.494f, Bf: 0.494f, Rf: 0.537f).ToUint(),
+                [eThemeColour.Emphasis1] = new WritableRgbaFloat(Af: 1, Gf: 1f, Bf: 0.9f, Rf: 0.6f).ToUint(),
+                [eThemeColour.Emphasis2] = new WritableRgbaFloat(Af: 1, Gf: 0.773f, Bf: 01, Rf: 1f).ToUint(),
 
                 [eThemeColour.edgeCall] = new WritableRgbaFloat(Color.Purple).ToUint(),
                 [eThemeColour.edgeOld] = new WritableRgbaFloat(Color.FromArgb(150, 150, 150, 150)).ToUint(),
@@ -370,26 +424,26 @@ namespace rgat
                 [eThemeColour.InstructionText] = new WritableRgbaFloat(Color.White).ToUint(),
                 [eThemeColour.WireFrame] = new WritableRgbaFloat(180, 180, 180, 76).ToUint(),
 
-                [eThemeColour.eHeat0Lowest] = new WritableRgbaFloat(0, 0, 155, 178).ToUint(),
-                [eThemeColour.eHeat1] = new WritableRgbaFloat(46, 28, 155, 255).ToUint(),
-                [eThemeColour.eHeat2] = new WritableRgbaFloat(95, 104, 226, 255).ToUint(),
-                [eThemeColour.eHeat3] = new WritableRgbaFloat(117, 143, 223, 255).ToUint(),
-                [eThemeColour.eHeat4] = new WritableRgbaFloat(255, 255, 255, 255).ToUint(),
-                [eThemeColour.eHeat5] = new WritableRgbaFloat(252, 196, 180, 255).ToUint(),
-                [eThemeColour.eHeat6] = new WritableRgbaFloat(242, 152, 152, 255).ToUint(),
-                [eThemeColour.eHeat7] = new WritableRgbaFloat(249, 107, 107, 255).ToUint(),
-                [eThemeColour.eHeat8] = new WritableRgbaFloat(255, 64, 64, 255).ToUint(),
-                [eThemeColour.eHeat9Highest] = new WritableRgbaFloat(255, 0, 0, 255).ToUint(),
+                [eThemeColour.Heat0Lowest] = new WritableRgbaFloat(0, 0, 155, 178).ToUint(),
+                [eThemeColour.Heat1] = new WritableRgbaFloat(46, 28, 155, 255).ToUint(),
+                [eThemeColour.Heat2] = new WritableRgbaFloat(95, 104, 226, 255).ToUint(),
+                [eThemeColour.Heat3] = new WritableRgbaFloat(117, 143, 223, 255).ToUint(),
+                [eThemeColour.Heat4] = new WritableRgbaFloat(255, 255, 255, 255).ToUint(),
+                [eThemeColour.Heat5] = new WritableRgbaFloat(252, 196, 180, 255).ToUint(),
+                [eThemeColour.Heat6] = new WritableRgbaFloat(242, 152, 152, 255).ToUint(),
+                [eThemeColour.Heat7] = new WritableRgbaFloat(249, 107, 107, 255).ToUint(),
+                [eThemeColour.Heat8] = new WritableRgbaFloat(255, 64, 64, 255).ToUint(),
+                [eThemeColour.Heat9Highest] = new WritableRgbaFloat(255, 0, 0, 255).ToUint(),
 
-                [eThemeColour.eVisBarPlotLine] = new WritableRgbaFloat(1f, 0f, 0f, 1f).ToUint(),
-                [eThemeColour.eVisBarBg] = new WritableRgbaFloat(Color.Black).ToUint(),
-                [eThemeColour.eAlertWindowBg] = new WritableRgbaFloat(Color.SlateBlue).ToUint(),
-                [eThemeColour.eAlertWindowBorder] = new WritableRgbaFloat(Color.GhostWhite).ToUint(),
-                [eThemeColour.eBadStateColour] = new WritableRgbaFloat(Color.Red).ToUint(),
-                [eThemeColour.eWarnStateColour] = new WritableRgbaFloat(Color.Yellow).ToUint(),
-                [eThemeColour.eGoodStateColour] = new WritableRgbaFloat(Color.Green).ToUint(),
+                [eThemeColour.VisBarPlotLine] = new WritableRgbaFloat(1f, 0f, 0f, 1f).ToUint(),
+                [eThemeColour.VisBarBg] = new WritableRgbaFloat(Color.Black).ToUint(),
+                [eThemeColour.AlertWindowBg] = new WritableRgbaFloat(Color.SlateBlue).ToUint(),
+                [eThemeColour.AlertWindowBorder] = new WritableRgbaFloat(Color.GhostWhite).ToUint(),
+                [eThemeColour.BadStateColour] = new WritableRgbaFloat(Color.Red).ToUint(),
+                [eThemeColour.WarnStateColour] = new WritableRgbaFloat(Color.Yellow).ToUint(),
+                [eThemeColour.GoodStateColour] = new WritableRgbaFloat(Color.Green).ToUint(),
                 [eThemeColour.GraphBackground] = new WritableRgbaFloat(Color.Black).ToUint(),
-                [eThemeColour.eSandboxChartBG] = new WritableRgbaFloat(1f, 1f, 1f, 1f).ToUint()
+                [eThemeColour.SandboxChartBG] = new WritableRgbaFloat(1f, 1f, 1f, 1f).ToUint()
             };
 
 
@@ -412,7 +466,7 @@ namespace rgat
 
             Dictionary<eThemeSize, float> DefaultCustomSizes = new Dictionary<eThemeSize, float>();
 
-            DefaultCustomSizes[eThemeSize.ePreviewSelectedBorder] = 1f;
+            DefaultCustomSizes[eThemeSize.PreviewSelectedBorder] = 1f;
 
             foreach (eThemeSize themeStyle in DefaultCustomSizes.Keys)
             {
@@ -425,7 +479,7 @@ namespace rgat
 
             Dictionary<eThemeSize, Vector2> DefaultSizeLimits = new Dictionary<eThemeSize, Vector2>
             {
-                [eThemeSize.ePreviewSelectedBorder] = new Vector2(0, 30)
+                [eThemeSize.PreviewSelectedBorder] = new Vector2(0, 30)
             };
             foreach (eThemeSize themeStyle in DefaultSizeLimits.Keys)
             {
@@ -444,8 +498,6 @@ namespace rgat
         {
             lock (_lock)
             {
-                InitDefaultImGuiColours();
-
                 ThemeMetadata["Name"] = "Fallback";
                 ThemeMetadata["Description"] = "Fallback theme for when preloaded and custom themes failed to load";
                 ThemeMetadata["Author"] = "rgat fallback theme";
@@ -453,27 +505,6 @@ namespace rgat
 
                 InitUnsetCustomColours();
                 IsBuiltinTheme = true;
-            }
-        }
-
-        private static unsafe void InitDefaultImGuiColours()
-        {
-            lock (_lock)
-            {
-                for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
-                {
-                    ImGuiCol col = (ImGuiCol)colI;
-                    Vector4 ced4vec = *ImGui.GetStyleColorVec4(col);
-                    if (ced4vec.W < 0.3)
-                    {
-                        ced4vec.W = 0.7f;
-                    }
-
-                    ThemeColoursStandard[col] = new WritableRgbaFloat(ced4vec).ToUint();
-                }
-                ThemeColoursStandard[ImGuiCol.TableRowBgAlt] = new WritableRgbaFloat(0xff222222).ToUint();
-                ThemeColoursStandard[ImGuiCol.Text] = new WritableRgbaFloat(0xffffffff).ToUint();
-                ThemeVersion++;
             }
         }
 
@@ -496,6 +527,7 @@ namespace rgat
             }
         }
 
+
         /// <summary>
         /// Get a WritableRgbaFloat colour value of a specified custom theme item
         /// </summary>
@@ -516,41 +548,9 @@ namespace rgat
 
 
         /// <summary>
-        /// Get a uint colour value of a specified imgui style colour item
-        /// </summary>
-        /// <param name="item">Am imGui style colour</param>
-        /// <param name="customAlpha">Optional custom alpha (0-255)</param>
-        /// <returns>uint colour</returns>
-        public static uint GetThemeColourImGui(ImGuiCol item, uint? customAlpha = null)
-        {
-            lock (_lock)
-            {
-                if (!ThemeColoursStandard.TryGetValue(item, out uint value))
-                {
-                    return 0x00000000;
-                }
-                Debug.Assert(ThemeColoursStandard.ContainsKey(item));
-                Debug.Assert((uint)item < ThemeColoursStandard.Count);
-                if (customAlpha is null)
-                    return ThemeColoursStandard[item];
-                return WritableRgbaFloat.ToUint(ThemeColoursStandard[item], customAlpha.Value);
-            }
-        }
-
-        /// <summary>
         /// Version of the active theme
         /// </summary>
         public static ulong ThemeVersion { get; private set; } = 0;
-
-        /// <summary>
-        /// Set an ImGui theme colour
-        /// </summary>
-        /// <param name="item">The ImGuiCol colour type</param>
-        /// <param name="color">The colour value</param>
-        public static void SetThemeColourImGui(ImGuiCol item, uint color)
-        {
-            lock (_lock) { ThemeColoursStandard[item] = color; ThemeVersion++; }
-        }
 
         /// <summary>
         /// Get a custom theme size
@@ -567,9 +567,7 @@ namespace rgat
             }
         }
 
-        static Dictionary<ImGuiCol, uint> _modifiedColoursImgui = new();
         static Dictionary<eThemeColour, uint> _modifiedColoursCustom = new();
-
 
         /// <summary>
         /// Draw the theme colour customisation widget
@@ -579,47 +577,45 @@ namespace rgat
         {
             bool changed = false;
             ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.ScrollX;
-            float tableWidth = Math.Max(ImGui.GetContentRegionAvail().X, 650); 
+            float tableWidth = Math.Max(ImGui.GetContentRegionAvail().X, 650);
             Vector2 tableSize = new Vector2(tableWidth, 350);
             if (ImGui.BeginTable(str_id: "##SelectorsTable", column: 2, flags: tableFlags, outer_size: tableSize))
             {
                 float halfWidth = Math.Max(300, tableWidth / 2.1f);
-                ImGui.TableSetupColumn("General Widget Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
-                ImGui.TableSetupColumn("Custom Widget Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
+                ImGui.TableSetupColumn("UI Element Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
+                ImGui.TableSetupColumn("Graph Element Colours", ImGuiTableColumnFlags.WidthFixed, halfWidth);
                 ImGui.TableSetupScrollFreeze(0, 1);
                 ImGui.TableHeadersRow();
 
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
-                for (int colI = 0; colI < (int)ImGuiCol.COUNT; colI++)
+                for (int colI = 0; colI < (int)Themes.eThemeColour.Heat0Lowest; colI++)
                 {
-                    ImGuiCol stdCol = (ImGuiCol)colI;
-                    Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourImGui(stdCol)).ToVec4();
+                    Themes.eThemeColour uiColour = (Themes.eThemeColour)colI;
+                    Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourUINT(uiColour)).ToVec4();
                     ImGui.SetNextItemWidth(215);
-                    if (ImGui.ColorEdit4(Enum.GetName(typeof(ImGuiCol), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
+                    if (ImGui.ColorEdit4(Enum.GetName(typeof(Themes.eThemeColour), colI), ref colval, ImGuiColorEditFlags.AlphaBar))
                     {
                         changed = true;
-                        if (_modifiedColoursImgui.ContainsKey(stdCol) is false)
+                        if (_modifiedColoursCustom.ContainsKey(uiColour) is false)
                         {
-                            _modifiedColoursImgui[stdCol] = Themes.GetThemeColourImGui(stdCol);
+                            _modifiedColoursCustom[uiColour] = Themes.GetThemeColourUINT(uiColour);
                         }
-                        Themes.SetThemeColourImGui(stdCol, new WritableRgbaFloat(colval).ToUint());
+                        Themes.ThemeColoursCustom[uiColour] = new WritableRgbaFloat(colval).ToUint();
                     }
-                    if (_modifiedColoursImgui.ContainsKey(stdCol))
+                    if (_modifiedColoursCustom.ContainsKey(uiColour))
                     {
                         ImGui.SameLine();
                         if (ImGui.Button($"Revert##sc{colI}"))
                         {
-                            Themes.SetThemeColourImGui(stdCol, _modifiedColoursImgui[stdCol]);
-                            _modifiedColoursImgui.Remove(stdCol);
+                            Themes.ThemeColoursCustom[uiColour] = _modifiedColoursCustom[uiColour];
+                            _modifiedColoursCustom.Remove(uiColour);
                         }
                     }
-
-
                 }
 
                 ImGui.TableSetColumnIndex(1);
-                for (int colI = 0; colI < Themes.ThemeColoursCustom.Count; colI++)
+                for (int colI = (int)Themes.eThemeColour.Heat0Lowest; colI < Themes.ThemeColoursCustom.Count; colI++)
                 {
                     Themes.eThemeColour customCol = (Themes.eThemeColour)colI;
                     Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourUINT(customCol)).ToVec4();
@@ -679,7 +675,7 @@ namespace rgat
 
                     if (!validValue)
                     {
-                        ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                        ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
                     }
                     IntPtr p = Marshal.StringToHGlobalUni(kvp.Key);
                     ImGuiInputTextFlags flags = ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackEdit;
@@ -836,7 +832,7 @@ namespace rgat
                         }
                         if (item.Value is null || item.Value.Type != JTokenType.Integer)
                         {
-                            Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}"); continue; 
+                            Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}"); continue;
                         }
                         pendingColsStd[stdcolType] = item.Value.ToObject<uint>();
                     }
@@ -917,11 +913,6 @@ namespace rgat
                 foreach (var kvp in pendingColsCustom)
                 {
                     ThemeColoursCustom[kvp.Key] = kvp.Value;
-                }
-
-                foreach (var kvp in pendingColsStd)
-                {
-                    ThemeColoursStandard[kvp.Key] = kvp.Value;
                 }
 
                 foreach (var kvp in pendingLimits)
@@ -1020,6 +1011,9 @@ namespace rgat
         /// </summary>
         public static ulong ThemeVariant { get; private set; } = 0;
 
+        /// <summary>
+        /// Some UI/Graph items regenerate if the theme is changed, this triggers that event
+        /// </summary>
         public static void DeclareThemeChanged() => ThemeVariant += 1;
 
         /// <summary>
@@ -1040,14 +1034,6 @@ namespace rgat
                 }
 
                 themeJsnObj.Add("CustomColours", themeCustom);
-
-                JObject themeImgui = new JObject();
-                foreach (var kvp in ThemeColoursStandard)
-                {
-                    themeImgui.Add(kvp.Key.ToString(), kvp.Value);
-                }
-
-                themeJsnObj.Add("StandardColours", themeImgui);
 
                 JObject sizesObj = new JObject();
                 foreach (var kvp in ThemeSizesCustom)
@@ -1288,7 +1274,6 @@ namespace rgat
                 Logging.RecordError($"Default theme {defaultTheme} is unavailable");
             }
 
-            InitDefaultImGuiColours();
             if (BuiltinThemes.Count > 0)
             {
                 LoadTheme(BuiltinThemes.Keys.First());
@@ -1301,7 +1286,7 @@ namespace rgat
                 return;
             }
 
-            if (ThemeColoursStandard.Count == 0)
+            if (ThemeColoursCustom.Count == 0)
             {
                 InitFallbackTheme();
             }

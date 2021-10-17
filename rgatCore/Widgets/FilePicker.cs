@@ -1089,7 +1089,7 @@ namespace rgatFilePicker
             for (var historyi = 0; historyi < _directoryHistory.Count; historyi++)
             {
                 string dir = _directoryHistory[historyi];
-                uint textcolour = historyi == _directoryHistoryPosition ? Themes.GetThemeColourUINT(Themes.eThemeColour.eTextEmphasis1) : Themes.GetThemeColourImGui(ImGuiCol.Text);
+                uint textcolour = historyi == _directoryHistoryPosition ? Themes.GetThemeColourUINT(Themes.eThemeColour.Emphasis1) : Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText);
                 ImGui.PushStyleColor(ImGuiCol.Text, textcolour);
                 ImGui.Text(dir);
                 ImGui.PopStyleColor();
@@ -1102,7 +1102,7 @@ namespace rgatFilePicker
         {
             ImGui.BeginGroup();
             {
-                ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull2));
+                ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.Dull2));
                 if (ImGui.Button("Cancel", new Vector2(50, btnHeight)))
                 {
                     ImGui.CloseCurrentPopup();
@@ -1474,8 +1474,8 @@ namespace rgatFilePicker
             {
                 if (ImGui.BeginTable("##RecentPathsTab", 1))
                 {
-                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg));
-                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg));
+                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.Control));
+                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, Themes.GetThemeColourUINT(Themes.eThemeColour.Control));
                     ImGui.TableSetupScrollFreeze(0, 1);
                     ImGui.TableSetupColumn("Recent Places");
                     ImGui.TableHeadersRow();
@@ -1687,8 +1687,8 @@ namespace rgatFilePicker
                 List<Tuple<string, string>> drives = GetDriveListStrings();
                 if (ImGui.BeginTable("##DrivesTable", 1))
                 {
-                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg));
-                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg));
+                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.Control));
+                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, Themes.GetThemeColourUINT(Themes.eThemeColour.Control));
                     ImGui.TableSetupScrollFreeze(0, 1);
                     ImGui.TableSetupColumn("Drives");
                     ImGui.TableHeadersRow();

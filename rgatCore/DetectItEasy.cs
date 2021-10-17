@@ -295,13 +295,13 @@ namespace rgat
                     paramObj.Add("Zip", zipfile);
                     rgatState.NetworkBridge.SendCommand("UploadSignatures", null, null, paramObj);
                     File.Delete(tempfile);
-                    rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Uploaded DIE signatures", Themes.eThemeColour.eGoodStateColour);
+                    rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Uploaded DIE signatures", Themes.eThemeColour.GoodStateColour);
                 }
             }
             catch (Exception e)
             {
                 Logging.RecordException($"Failed to upload DIE signatures: {e.Message}", e);
-                rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Failed to upload DIE signatures", Themes.eThemeColour.eBadStateColour);
+                rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Failed to upload DIE signatures", Themes.eThemeColour.BadStateColour);
             }
 
 

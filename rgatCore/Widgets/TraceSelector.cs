@@ -130,12 +130,12 @@ namespace rgat.Widgets
                         int nodeCount = selectablegraph.GraphNodeCount();
                         if (nodeCount == 0)
                         {
-                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
+                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1));
                             caption += " [Uninstrumented]";
                         }
                         else
                         {
-                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText));
                             caption += $" [{nodeCount} nodes]";
                         }
 

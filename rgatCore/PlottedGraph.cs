@@ -1424,7 +1424,7 @@ namespace rgat
                 case eRenderingMode.eHeatmap:
                     {
                         Debug.Assert(e.heatRank >= 0 && e.heatRank <= 9);
-                        Themes.eThemeColour heatColEnum = (Themes.eThemeColour)((float)Themes.eThemeColour.eHeat0Lowest + e.heatRank);
+                        Themes.eThemeColour heatColEnum = (Themes.eThemeColour)((float)Themes.eThemeColour.Heat0Lowest + e.heatRank);
                         return Themes.GetThemeColourWRF(heatColEnum);
                     }
                 case eRenderingMode.eConditionals:
@@ -1433,25 +1433,25 @@ namespace rgat
                 case eRenderingMode.eDegree:
                     if (InternalProtoGraph.NodeList[(int)nodePair.Item1].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
                     {
-                        return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
+                        return Themes.GetThemeColourWRF(Themes.eThemeColour.GoodStateColour);
                     }
 
                     if (InternalProtoGraph.NodeList[(int)nodePair.Item1].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
                     {
-                        return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
+                        return Themes.GetThemeColourWRF(Themes.eThemeColour.GoodStateColour);
                     }
 
                     if (InternalProtoGraph.NodeList[(int)nodePair.Item2].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
                     {
-                        return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
+                        return Themes.GetThemeColourWRF(Themes.eThemeColour.GoodStateColour);
                     }
 
                     if (InternalProtoGraph.NodeList[(int)nodePair.Item2].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
                     {
-                        return Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour);
+                        return Themes.GetThemeColourWRF(Themes.eThemeColour.GoodStateColour);
                     }
 
-                    return Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour);
+                    return Themes.GetThemeColourWRF(Themes.eThemeColour.BadStateColour);
                 default:
                     return graphColours[(int)e.edgeClass];
             }

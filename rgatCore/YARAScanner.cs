@@ -543,13 +543,13 @@ namespace rgat
                     paramObj.Add("Zip", zipfile);
                     rgatState.NetworkBridge.SendCommand("UploadSignatures", null, null, paramObj);
                     File.Delete(tempfile);
-                    rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Uploaded YARA signatures", Themes.eThemeColour.eGoodStateColour);
+                    rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Uploaded YARA signatures", Themes.eThemeColour.GoodStateColour);
                 }
             }
             catch (Exception e)
             {
                 Logging.RecordError($"Failed to upload YARA signatures: {e.Message}");
-                rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Failed to upload YARA signatures", Themes.eThemeColour.eBadStateColour);
+                rgatState.NetworkBridge.AddNetworkDisplayLogMessage("Failed to upload YARA signatures", Themes.eThemeColour.BadStateColour);
             }
 
         }

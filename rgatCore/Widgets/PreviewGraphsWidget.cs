@@ -154,7 +154,7 @@ namespace rgat
 
             DrawnPreviewGraphs = activeTrace.GetPlottedGraphs();
             List<int> indexes = GetGraphOrder(trace: activeTrace, graphs: DrawnPreviewGraphs);
-            uint captionBackgroundcolor = Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewTextBackground);
+            uint captionBackgroundcolor = Themes.GetThemeColourUINT(Themes.eThemeColour.PreviewTextBackground);
 
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, CONSTANTS.UI.PREVIEW_PANE_Y_SEP));
 
@@ -430,7 +430,7 @@ namespace rgat
             float C1Y = previewBaseY - TopLeft.Y;
             float C2Y = previewBaseY - BaseRight.Y;
 
-            uint colour = Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewZoomEnvelope);
+            uint colour = Themes.GetThemeColourUINT(Themes.eThemeColour.PreviewZoomEnvelope);
 
             C1Y = Math.Min(previewBaseY - 1, C1Y);
             C2Y = Math.Max(subGraphPosition.Y, C2Y);
@@ -499,7 +499,7 @@ namespace rgat
                 uv_min: new Vector2(0, 1),
                 uv_max: new Vector2(1, 0));
 
-            float borderThickness = Themes.GetThemeSize(Themes.eThemeSize.ePreviewSelectedBorder);
+            float borderThickness = Themes.GetThemeSize(Themes.eThemeSize.PreviewSelectedBorder);
             float halfBorderThickness = (float)Math.Floor(borderThickness / 2f);
 
             if (isSelected)
@@ -521,7 +521,7 @@ namespace rgat
             Vector2 captionBGStart = subGraphPosition + new Vector2(borderThickness, borderThickness);
             Vector2 captionBGEnd = new Vector2((captionBGStart.X + EachGraphWidth - borderThickness * 2), captionBGStart.Y + captionHeight);
             imdp.AddRectFilled(p_min: captionBGStart, p_max: captionBGEnd, col: captionBackgroundcolor);
-            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.ePreviewText));
+            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.PreviewText));
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + CONSTANTS.UI.PREVIEW_PANE_X_PADDING + borderThickness + 1);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + borderThickness);
             ImGui.Text(Caption);

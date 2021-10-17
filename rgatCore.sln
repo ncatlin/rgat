@@ -178,7 +178,6 @@ Global
 		{1C355499-318B-4000-B82E-A8F51CB1D03B}.Release|x64.ActiveCfg = Release|x64
 		{1C355499-318B-4000-B82E-A8F51CB1D03B}.Release|x64.Build.0 = Release|x64
 		{1C355499-318B-4000-B82E-A8F51CB1D03B}.Release|x86.ActiveCfg = Release|Win32
-		{1C355499-318B-4000-B82E-A8F51CB1D03B}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

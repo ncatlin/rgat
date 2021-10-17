@@ -498,7 +498,7 @@ namespace rgat
                         {
                             Logging.APICALL call = (Logging.APICALL)_item;
                             NodeData n = call.Node!;
-                            var labelitems = n.CreateColourisedSymbolCall(call.Graph, call.Index, textColour, Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1));
+                            var labelitems = n.CreateColourisedSymbolCall(call.Graph, call.Index, textColour, Themes.GetThemeColourWRF(Themes.eThemeColour.Emphasis1));
                             _cachedLabel.AddRange(labelitems);
                             break;
                         }

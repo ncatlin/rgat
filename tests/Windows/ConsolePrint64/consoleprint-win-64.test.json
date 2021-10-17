@@ -23,6 +23,7 @@
 				   "UniqueExceptionCount": { "Value": 0, "Condition": "Eq" } ,
 				   "ExternalNodeCount": { "Value": 5, "Condition": "Eq" } ,
 				   "InstructionExecs": { "Value": 24, "Condition": "Eq", "Comment": "29 nodes minus 5 API calls" }
+				   "Edges": [{"Source":0, "Target": 1, "Count":1}]
 				}
 			]
 			

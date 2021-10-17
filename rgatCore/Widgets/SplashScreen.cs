@@ -73,7 +73,7 @@ namespace rgat
             }
 
             ImGui.SetCursorPos(new Vector2(runGrpX, blockStart));
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowBackground));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.WindowBackground));
             if (ImGui.BeginChild("##RunGroup", new Vector2(buttonBlockWidth, blockHeight), boxBorders))
             {
                 ImGui.PushFont(Controller.SplashLargeFont ?? Controller._originalFont!.Value);

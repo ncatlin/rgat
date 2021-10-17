@@ -286,7 +286,7 @@ namespace rgat.Widgets
 
             //ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame));
             if (ImGui.BeginChild(ImGui.GetID("htSymsFrameHeader"), new Vector2(ImGui.GetContentRegionAvail().X - 3, 20)))
             {
                 ImGui.SameLine(10);

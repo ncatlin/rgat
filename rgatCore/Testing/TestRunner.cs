@@ -5,7 +5,7 @@ namespace rgat.Testing
 {
 
     /// <summary>
-    /// a collection of testcases run in a session of tests
+    /// A collection of testcase executions grouped into a session
     /// </summary>
     public class TestSession
     {
@@ -26,7 +26,7 @@ namespace rgat.Testing
         public string? text;
     }
 
-    internal class TestHarnessThread
+    internal class TestRunner
     {
         private readonly object _lock = new object();
         private readonly rgatState _rgatState;
@@ -36,7 +36,7 @@ namespace rgat.Testing
         private readonly Dictionary<long, TestRunThread> _runningTests = new Dictionary<long, TestRunThread>();
         private readonly int _maxRunningTests = 5;
         public int FreeTestSlots => _maxRunningTests - _runningTests.Count;
-        public TestHarnessThread(rgatState clientState)
+        public TestRunner(rgatState clientState)
         {
             _rgatState = clientState;
         }

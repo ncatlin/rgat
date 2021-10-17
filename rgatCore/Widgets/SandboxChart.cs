@@ -419,7 +419,7 @@ namespace rgat.Widgets
 
             }
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eSandboxChartBG));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.SandboxChartBG));
 
 
             Vector2 cursorPos = ImGui.GetCursorPos();

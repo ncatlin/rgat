@@ -24,13 +24,13 @@ namespace rgat.Widgets
         public TestsWindow(rgatState clientState, ImGuiController controller)
         {
 
-            _testingThread = new TestHarnessThread(clientState);
+            _testingThread = new TestRunner(clientState);
             _controller = controller;
             InitTestingSession();
 
         }
 
-        private readonly TestHarnessThread _testingThread;
+        private readonly TestRunner _testingThread;
         private readonly ImGuiController _controller;
         private readonly Dictionary<string, TestCategory> _testDirectories = new Dictionary<string, TestCategory>();
         private readonly Dictionary<string, TestCategory> _testCategories = new Dictionary<string, TestCategory>();
@@ -147,7 +147,10 @@ namespace rgat.Widgets
                 try
                 {
                     TestCase t = new TestCase(testfile);
-                    results.Add(t);
+                    if (t.Loaded)
+                    { 
+                        results.Add(t); 
+                    }
                 }
                 catch (Exception e)
                 {
@@ -303,7 +306,7 @@ namespace rgat.Widgets
             {
                 foreach (var req in processRequirements)
                 {
-                    ImGui.Text($"Process Requirement: {req.Name} [Actual] {req.Condition} {req.ExpectedValueString} [Expected]");
+                    ImGui.Text($"Process Requirement: {req.Name} {req.Condition} {req.ExpectedValueString}");
                     SmallWidgets.MouseoverText(req.Comment);
                 }
                 ImGui.TreePop();
@@ -318,7 +321,7 @@ namespace rgat.Widgets
                     {
                         foreach (var req in threadsReqList.value)
                         {
-                            ImGui.Text($"Thread Requirement: {req.Name} [Actual] {req.Condition} {req.ExpectedValueString} [Expected]");
+                            ImGui.Text($"Thread Requirement: {req.Name} {req.Condition} {req.ExpectedValueString}");
                             SmallWidgets.MouseoverText(req.Comment);
                         }
 
@@ -384,8 +387,8 @@ namespace rgat.Widgets
             ImGuiTreeNodeFlags headerflags = resultsCommentary.Verdict == eTestState.Passed ? ImGuiTreeNodeFlags.None : ImGuiTreeNodeFlags.DefaultOpen;
 
 
-            uint passHighlight = Themes.GetThemeColourWRF(Themes.eThemeColour.eGoodStateColour).ToUint(0x10);
-            uint failHighlight = Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToUint(0x30);
+            uint passHighlight = Themes.GetThemeColourWRF(Themes.eThemeColour.GoodStateColour).ToUint(0x10);
+            uint failHighlight = Themes.GetThemeColourWRF(Themes.eThemeColour.BadStateColour).ToUint(0x30);
 
             ImGui.TableNextRow();
             if (resultsCommentary.Verdict is eTestState.Failed)
@@ -442,7 +445,7 @@ namespace rgat.Widgets
 
         private static void ResultIconSameLine(bool pass)
         {
-            uint colour = pass ? Themes.GetThemeColourUINT(Themes.eThemeColour.eGoodStateColour) : Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour);
+            uint colour = pass ? Themes.GetThemeColourUINT(Themes.eThemeColour.GoodStateColour) : Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour);
             ImGui.PushStyleColor(ImGuiCol.Text, colour);
             ImGui.Text($"{(pass ? ImGuiController.FA_ICON_TICK : ImGuiController.FA_ICON_CROSS)}");
             ImGui.PopStyleColor();
@@ -455,7 +458,7 @@ namespace rgat.Widgets
             var threadRequirements = traceRequirements.ThreadRequirements;
             var childReqsList = traceRequirements.ChildProcessRequirements;
 
-            uint failHighlight = Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour).ToUint(0x30);
+            uint failHighlight = Themes.GetThemeColourWRF(Themes.eThemeColour.BadStateColour).ToUint(0x30);
 
             TRACE_TEST_RESULTS comments = commentary.traceResults;
 
@@ -658,10 +661,9 @@ namespace rgat.Widgets
 
         private void DrawQueueControls(float height)
         {
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.ChildBg));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.WindowBackground));
             if (ImGui.BeginChild("#TestsControls", new Vector2(ImGui.GetContentRegionAvail().X, height)))
             {
-                //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff772222);
                 ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(6, 4));
                 ImGui.BeginGroup();
                 ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 3f);
@@ -669,13 +671,13 @@ namespace rgat.Widgets
                 {
                     if (ImGui.BeginMenuBar())
                     {
-                        ImGui.PushStyleColor(ImGuiCol.TextDisabled, 0xffffffff);
+                        ImGui.PushStyleColor(ImGuiCol.TextDisabled, Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1));
                         ImGui.MenuItem("Queue Shortcuts", false);
                         ImGui.PopStyleColor();
                         ImGui.EndMenuBar();
                     }
 
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlText));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.ControlText));
                     if (ImGui.Button("+All"))
                     {
                         AddTestsToQueue(eCatFilter.All);
@@ -719,36 +721,30 @@ namespace rgat.Widgets
                     }
 
                     ImGui.SameLine();
-                    if (!_queuedTests.Any())
+                    if (_queuedTests.Any())
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourImGui(ImGuiCol.TextDisabled));
-                    }
-                    else
-                    {
-                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
-                    }
-
-                   
-                    if (this._queuedTests.Any() is true && ImGui.Button("-All"))
-                    {
-                        EmptyQueue();
-                    }
-                    if (ImGui.IsItemHovered())
-                    {
-                        ImGui.SetTooltip("Empty the test queue");
-                    }
+                        ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
+                        if (this._queuedTests.Any() is true && ImGui.Button("-All"))
+                        {
+                            EmptyQueue();
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Empty the test queue");
+                        }
+                        ImGui.PopStyleColor();
+                    }              
                     ImGui.EndGroup();
-                    ImGui.PopStyleColor();
                     ImGui.PopStyleColor();
                     ImGui.EndChild();
                 }
-                //ImGui.PopStyleColor();
+
                 ImGui.SameLine();
                 if (ImGui.BeginChild("FilterChecks", new Vector2(250, 80), true, ImGuiWindowFlags.MenuBar))
                 {
                     if (ImGui.BeginMenuBar())
                     {
-                        ImGui.PushStyleColor(ImGuiCol.TextDisabled, 0xffffffff);
+                        ImGui.PushStyleColor(ImGuiCol.TextDisabled, Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1));
                         ImGui.MenuItem("Test Filters", false);
                         ImGui.PopStyleColor();
                         ImGui.EndMenuBar();
@@ -770,11 +766,6 @@ namespace rgat.Widgets
                 ImGui.SetCursorPosY(buttonYStart);
                 if (_testsRunning)
                 {
-                    ImGui.Text("Test Workers Active");
-                    ImGui.SameLine();
-                    ImGui.PushStyleColor(ImGuiCol.Text, WritableRgbaFloat.ToUint(System.Drawing.Color.Yellow));
-                    ImGui.Text($"{ImGuiController.FA_ICON_LIGHTNING}");
-                    ImGui.PopStyleColor();
                     if (ImGui.Button($"Stop Testing {ImGuiController.FA_ICON_NOENTRY}", new Vector2(125, buttonSize)))
                     {
                         StopTests();
@@ -786,7 +777,6 @@ namespace rgat.Widgets
                 }
                 else
                 {
-                    ImGui.Text("Test Workers Inactive");
                     if (autoStopOnFailure && _sessionStats["Failed"] > 0)
                     {
                         ImGui.Button("Testing Stopped", new Vector2(125, buttonSize));
@@ -1143,8 +1133,10 @@ namespace rgat.Widgets
                                         if (!starredCategory)
                                         {
                                             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2);
-                                            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Themes.GetThemeColourImGui(ImGuiCol.Button));
-                                            ImGui.PushStyleColor(ImGuiCol.Text, starred ? Themes.GetThemeColourUINT(Themes.eThemeColour.eTextEmphasis1) : Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull1));
+                                            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.Control));
+                                            ImGui.PushStyleColor(ImGuiCol.Text, starred ? 
+                                                Themes.GetThemeColourUINT(Themes.eThemeColour.Emphasis1) : 
+                                                Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1));
                                             if (ImGui.Button($"{ImGuiController.FA_ICON_STAR}##{testi}", new Vector2(28, 28))) //todo valign
                                             {
                                                 testcase.Starred = !testcase.Starred;
@@ -1251,8 +1243,21 @@ namespace rgat.Widgets
                 ImGui.InvisibleButton("#MoveDownTree1", new Vector2(treeWidth, 8));
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 4);
                 ImGui.Text($"{_queuedTests.Count} test{((_queuedTests.Count != 1) ? "s" : "")} in queue");
+                ImGui.SameLine(ImGui.GetContentRegionAvail().X - 135, 0);
+                if (_testsRunning)
+                {
+                    ImGui.Text("Test Workers Active");
+                    ImGui.SameLine();
+                    ImGui.PushStyleColor(ImGuiCol.Text, WritableRgbaFloat.ToUint(System.Drawing.Color.Yellow));
+                    ImGui.Text($"{ImGuiController.FA_ICON_LIGHTNING}");
+                    ImGui.PopStyleColor();
+                }
+                else
+                {
+                    ImGui.Text("Test Workers Inactive");
+                }
 
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame));
                 if (ImGui.BeginChild("##TestsQueueFrame", new Vector2(treeWidth, height - height * sizeMultiplier - 40), true))
                 {
                     ImGui.Indent(10);

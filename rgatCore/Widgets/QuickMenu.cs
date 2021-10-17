@@ -933,9 +933,9 @@ private void DrawScalePopup()
                 ImGui.TableNextColumn();
                 {
                     if (spreadHighlight)
-                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextEmphasis2));
+                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.Emphasis2));
                     else
-                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowText));
+                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText));
                     ImGui.Text("Replotting Spread");
                     ImGui.PopStyleColor();
                 }

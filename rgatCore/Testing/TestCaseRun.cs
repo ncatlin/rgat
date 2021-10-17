@@ -1,4 +1,8 @@
-﻿using Humanizer;
+﻿/* 
+ * This file contains classes related to an execution of a test case
+ * and the evaluation of its results
+ */
+using Humanizer;
 using System;
 using System.Collections.Generic;
 using System.Linq;

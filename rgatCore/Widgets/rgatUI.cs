@@ -755,7 +755,7 @@ namespace rgat
             }
             if (isMissing || isBad)
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
             }
 
             if (menu)
@@ -817,7 +817,7 @@ namespace rgat
 
         private unsafe void DrawMainMenu()
         {
-            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowText));
+            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText));
             float logMenuX = 0;
             if (ImGui.BeginMenuBar())
             {
@@ -921,7 +921,9 @@ namespace rgat
             }
             else
             {
-                uint iconColour = GlobalConfig.Loaded ? Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowText) : Themes.GetThemeColourImGui(ImGuiCol.TextDisabled);
+                uint iconColour = GlobalConfig.Loaded ? 
+                    Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText) : 
+                    Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1);
                 ImGui.PushStyleColor(ImGuiCol.Text, iconColour);
                 if (ImGui.MenuItem(ImGuiController.FA_ICON_LOCALCODE + " Local Mode", null, ref rdlgshown))
                 {
@@ -984,7 +986,7 @@ namespace rgat
             double remainingProgress = 1.0 - progress;
 
             uint alpha = (uint)Math.Max((255.0 * remainingProgress), 255f * 0.25f);
-            uint textColour = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.Text)).ToUint(alpha);
+            uint textColour = Themes.GetThemeColourWRF(Themes.eThemeColour.WindowText).ToUint(alpha);
             ImGui.PushStyleColor(ImGuiCol.Text, textColour);
             ImGui.MenuItem($"{ImGuiController.FA_STILL_CAMERA}");
             ImGui.PopStyleColor();
@@ -1052,7 +1054,7 @@ namespace rgat
                 {
                     //fade in
                     uint alpha = MSago > StateChangeFadeTime ? 255 : (uint)(255.0 * (((MSago - StateChangeFadeTime) / StateChangeFadeTime)));
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1).ToUint(alpha));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourWRF(Themes.eThemeColour.Emphasis1).ToUint(alpha));
                     ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Started");
                     ImGui.PopStyleColor();
                 }
@@ -1060,7 +1062,7 @@ namespace rgat
                 {
                     //fade out
                     uint alpha = MSago < StateChangeSolidTime ? 255 : (uint)(255.0 * (1.0 - ((MSago - StateChangeSolidTime) / StateChangeFadeTime)));
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis2).ToUint(alpha));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourWRF(Themes.eThemeColour.Emphasis2).ToUint(alpha));
                     if (rgatState.VideoRecorder.Error?.Length > 0)
                         ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Error");
                     else
@@ -1078,7 +1080,7 @@ namespace rgat
                 ActivateNotification();
                 if (rgatState.VideoRecorder.CapturePaused)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourImGui(ImGuiCol.Text));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText));
                     ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Paused");
                     ImGui.PopStyleColor();
                 }
@@ -1136,7 +1138,11 @@ namespace rgat
             //draw right to left
             float X = ImGui.GetContentRegionMax().X - (ImGui.CalcTextSize("Demo ").X + 15);
             ImGui.SetCursorPosX(X);
-            ImGui.MenuItem("Demo", null, ref Controller.ShowDemoWindow, true);
+
+            if (GlobalConfig.Settings.UI.EnableImGuiDemo)
+            {
+                ImGui.MenuItem("Demo", null, ref Controller.ShowDemoWindow, true);
+            }
 
             if (GlobalConfig.Settings.UI.EnableTestHarness)
             {
@@ -1155,7 +1161,7 @@ namespace rgat
             logMenuX = X + logBtnTextSize.X / 2f;
             ImGui.SetCursorPosX(X);
             int unseenErrors = Logging.UnseenAlerts;
-            uint itemColour = unseenErrors > 0 ? Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour) : Themes.GetThemeColourImGui(ImGuiCol.Text);
+            uint itemColour = unseenErrors > 0 ? Themes.GetThemeColourUINT(Themes.eThemeColour.WarnStateColour) : Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText);
             ImGui.PushStyleColor(ImGuiCol.Text, itemColour);
             bool menuDrawn = _show_logs_window;
             ImGui.MenuItem($"Logs{(unseenErrors > 0 ? $" ({unseenErrors})" : "")}", null, ref menuDrawn);
@@ -1191,6 +1197,10 @@ namespace rgat
             {
                 return;
             }
+
+            // problem - can't find a way to force the dialog to appear at a minimum height without specifying an X value
+            // this causes the dialog to cover the logs button if the mouse comes down from above the window
+
             //Vector2 popupBR = new Vector2(Math.Min(ImGui.GetCursorPosX(), windowSize.X - (widestAlert + 100)), ImGui.GetCursorPosY() + 150);
 
             float origy = ImGui.GetCursorPosY();
@@ -1254,7 +1264,7 @@ namespace rgat
 
             if (GlobalConfig.Settings.UI.AlertAnimation && timeSinceLast < UI.ALERT_CIRCLE_ANIMATION_TIME)
             {
-                uint color = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.Text)).ToUint(150);
+                uint color = Themes.GetThemeColourWRF(Themes.eThemeColour.WindowText).ToUint(150);
                 float radius = (float)(UI.ALERT_CIRCLE_ANIMATION_RADIUS * (1 - (timeSinceLast / UI.ALERT_CIRCLE_ANIMATION_TIME)));
                 ImGui.GetForegroundDrawList().AddCircle(logMenuPosition, radius, color);
             }
@@ -1267,9 +1277,9 @@ namespace rgat
                 opacity = ((uint)(boxTimeRemaining / (float)fadeThreshold));
             }
 
-            uint textColour = Themes.GetThemeColourImGui(ImGuiCol.Text);
-            WritableRgbaFloat errColour = Themes.GetThemeColourWRF(Themes.eThemeColour.eBadStateColour);
-            WritableRgbaFloat alertColour = Themes.GetThemeColourWRF(Themes.eThemeColour.eTextEmphasis1);
+            uint textColour = Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText);
+            WritableRgbaFloat errColour = Themes.GetThemeColourWRF(Themes.eThemeColour.BadStateColour);
+            WritableRgbaFloat alertColour = Themes.GetThemeColourWRF(Themes.eThemeColour.Emphasis1);
 
             List<Tuple<TEXT_LOG_EVENT, uint>> displayItems = new();
 
@@ -1307,7 +1317,7 @@ namespace rgat
             Vector2 size = new Vector2(width, height);
             ImGui.SetCursorScreenPos(new Vector2(windowSize.X - width - 50, 32));
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourWRF(Themes.eThemeColour.eAlertWindowBg).ToUint(customAlpha: opacity));
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourWRF(Themes.eThemeColour.AlertWindowBg).ToUint(customAlpha: opacity));
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(1, 0));
             if (ImGui.BeginChild("##alertpopchildfrm", size))

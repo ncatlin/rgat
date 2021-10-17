@@ -2044,6 +2044,11 @@
             The test dialog appears in the menu bar
             </summary>
         </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.EnableImGuiDemo">
+            <summary>
+            The imgui demo dialog appears in the menu bar
+            </summary>
+        </member>
         <member name="P:rgat.Config.rgatSettings.UISettings.InstalledVersion">
             <summary>
             The version of rgat this config file was created by
@@ -2592,6 +2597,21 @@
         <member name="F:rgat.CONSTANTS.UI.GRAPH_ZOOM_MOUSEWHEEL_MULTIPLIER">
             <summary>
             How much to multiply mousewheel clicks by to get the amount to zoom
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.UI.THEME_COLOUR_HOVERED_MULTIPLIER">
+            <summary>
+            How much to multiply element colours by when the mouse is hovering them
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.UI.THEME_COLOUR_ACTIVE_MULTIPLIER">
+            <summary>
+            How much to multiply element colours by when the mouse is activating them
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.UI.THEME_COLOUR_DULL_MULTIPLIER">
+            <summary>
+            How much to multiply element colours by when their inactivity is being emphasised (eg: inactive tabs)
             </summary>
         </member>
         <member name="T:rgat.CONSTANTS.Anim_Constants">
@@ -6939,7 +6959,7 @@
             The attribute is greater than or equal to the specified value
             </summary>
         </member>
-        <member name="F:rgat.Testing.RequirementCondition.Exists">
+        <member name="F:rgat.Testing.RequirementCondition.ExistsIn">
             <summary>
             The attribute exists in a collection
             </summary>
@@ -7440,7 +7460,7 @@
         </member>
         <member name="T:rgat.Testing.TestSession">
             <summary>
-            a collection of testcases run in a session of tests
+            A collection of testcase executions grouped into a session
             </summary>
         </member>
         <member name="F:rgat.Testing.TestSession.tests">
@@ -7458,7 +7478,7 @@
             Result text
             </summary>
         </member>
-        <member name="M:rgat.Testing.TestHarnessThread.NotifyComplete(System.Int64)">
+        <member name="M:rgat.Testing.TestRunner.NotifyComplete(System.Int64)">
             <summary>
             Mark a test as complete
             </summary>
@@ -7593,27 +7613,72 @@
             UI and Graph properties that can have a custom theme colour
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.ePreviewText">
+        <member name="F:rgat.Themes.eThemeColour.WindowBackground">
+            <summary>
+            The base background for the UI
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.WindowText">
+            <summary>
+            Text on the background
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Frame">
+            <summary>
+            A region on the base background which needs to contrast with it
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Control">
+            <summary>
+            An interactable element
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.ControlText">
+            <summary>
+            Text on a control
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.MenuBar">
+            <summary>
+            The top menu
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.MenuBarText">
+            <summary>
+            Text on the top menu
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.TableRow">
+            <summary>
+            Table rows (alternate 1)
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.TableRowAlt">
+            <summary>
+            Table rows (alternate 2)
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.PreviewText">
             <summary>
             Labels on preview graphs
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.ePreviewTextBackground">
+        <member name="F:rgat.Themes.eThemeColour.PreviewTextBackground">
             <summary>
             The background of text on preview graphs to provide contrast
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.ePreviewPaneBorder">
+        <member name="F:rgat.Themes.eThemeColour.PreviewPaneBorder">
             <summary>
             The border of the preview pane
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.ePreviewPaneBackground">
+        <member name="F:rgat.Themes.eThemeColour.PreviewPaneBackground">
             <summary>
             The background of the preview pane
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.ePreviewZoomEnvelope">
+        <member name="F:rgat.Themes.eThemeColour.PreviewZoomEnvelope">
             <summary>
             The box used to show the camera location in the preview pane
             </summary>
@@ -7633,114 +7698,114 @@
             The background of suspended thread preview graphs
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.eTextEmphasis1">
+        <member name="F:rgat.Themes.eThemeColour.Emphasis1">
             <summary>
-            Emphasised text style 1
+            Emphasised element style 1
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.eTextEmphasis2">
+        <member name="F:rgat.Themes.eThemeColour.Emphasis2">
             <summary>
-            Emphasised text style 2
+            Emphasised element style 2
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.eTextDull1">
+        <member name="F:rgat.Themes.eThemeColour.Dull1">
             <summary>
-            Subtle text style 1
+            Subtle/inactive element style 1
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.eTextDull2">
+        <member name="F:rgat.Themes.eThemeColour.Dull2">
             <summary>
-            Subtle text style 2
+            Subtle/inactive element style 2
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.eHeat0Lowest">
-            <summary>
-            The lowest 10% active instructions
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eHeat1">
-            <summary>
-            10-19% most active instructions
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eHeat2">
-            <summary>
-            20-29% most active instructions
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eHeat3">
-            <summary>
-            30-39% most active instructions
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eHeat4">
-            <summary>
-            40-49% most active instructions
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eHeat5">
-            <summary>
-            50-59% most active instructions
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eHeat6">
-            <summary>
-            60-69% most active instructions
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eHeat7">
-            <summary>
-            70-79% most active instructions
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eHeat8">
-            <summary>
-            80-89% most active instructions
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eHeat9Highest">
-            <summary>
-            The top 10% most active instructions
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eVisBarPlotLine">
-            <summary>
-            The instruction count plot line on the visualisation bar
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eVisBarBg">
-            <summary>
-            The background of the visualiser bar
-            </summary>
-        </member>
-        <member name="F:rgat.Themes.eThemeColour.eAlertWindowBg">
+        <member name="F:rgat.Themes.eThemeColour.AlertWindowBg">
             <summary>
             The background of the alert box
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.eAlertWindowBorder">
+        <member name="F:rgat.Themes.eThemeColour.AlertWindowBorder">
             <summary>
             The border of the alert box
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.eBadStateColour">
+        <member name="F:rgat.Themes.eThemeColour.BadStateColour">
             <summary>
             Colour for bad events/errors
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.eWarnStateColour">
+        <member name="F:rgat.Themes.eThemeColour.WarnStateColour">
             <summary>
             Colour for warnings
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.eGoodStateColour">
+        <member name="F:rgat.Themes.eThemeColour.GoodStateColour">
             <summary>
             Colour for successful events
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeColour.eSandboxChartBG">
+        <member name="F:rgat.Themes.eThemeColour.SandboxChartBG">
             <summary>
             Background of the analysis chart
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Heat0Lowest">
+            <summary>
+            The lowest 10% active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Heat1">
+            <summary>
+            10-19% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Heat2">
+            <summary>
+            20-29% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Heat3">
+            <summary>
+            30-39% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Heat4">
+            <summary>
+            40-49% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Heat5">
+            <summary>
+            50-59% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Heat6">
+            <summary>
+            60-69% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Heat7">
+            <summary>
+            70-79% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Heat8">
+            <summary>
+            80-89% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.Heat9Highest">
+            <summary>
+            The top 10% most active instructions
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.VisBarPlotLine">
+            <summary>
+            The instruction count plot line on the visualisation bar
+            </summary>
+        </member>
+        <member name="F:rgat.Themes.eThemeColour.VisBarBg">
+            <summary>
+            The background of the visualiser bar
             </summary>
         </member>
         <member name="F:rgat.Themes.eThemeColour.GraphBackground">
@@ -7843,7 +7908,7 @@
             Customisable size values
             </summary>
         </member>
-        <member name="F:rgat.Themes.eThemeSize.ePreviewSelectedBorder">
+        <member name="F:rgat.Themes.eThemeSize.PreviewSelectedBorder">
             <summary>
             The weight of the border of selected preview graphs
             </summary>
@@ -7866,6 +7931,13 @@
         <member name="M:rgat.Themes.ApplyThemeColours">
             <summary>
             Activate the themes ImGui colours
+            </summary>
+        </member>
+        <member name="M:rgat.Themes.ApplyGeneralThemeColours">
+            <summary>
+            Set the UI element colours from the users theme
+            Should be called before every frame
+            Calling ResetThemeColours() at the end of every frame is mandatory
             </summary>
         </member>
         <member name="M:rgat.Themes.ResetThemeColours">
@@ -7961,6 +8033,11 @@
         <member name="P:rgat.Themes.ThemeVariant">
             <summary>
             Controls can compare this value with a cached value to see if the theme has changed
+            </summary>
+        </member>
+        <member name="M:rgat.Themes.DeclareThemeChanged">
+            <summary>
+            Some UI/Graph items regenerate if the theme is changed, this triggers that event
             </summary>
         </member>
         <member name="M:rgat.Themes.RegenerateUIThemeJSON">
@@ -9804,6 +9881,14 @@
             <param name="B">Blue component 0-1</param>
             <param name="A">Alpha component 0-1</param>
             <returns>uint colour</returns>
+        </member>
+        <member name="M:rgat.WritableRgbaFloat.Brighten(System.UInt32,System.Single)">
+            <summary>
+            Brighten a uint colour of a UI theme
+            </summary>
+            <param name="inputColour">uint colour</param>
+            <param name="amount">How much to brighten it (0.0-2.0)</param>
+            <returns></returns>
         </member>
         <member name="M:rgat.WritableRgbaFloat.ToRgbaFloat">
             <summary>

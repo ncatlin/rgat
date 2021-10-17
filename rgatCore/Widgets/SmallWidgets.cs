@@ -237,8 +237,8 @@ namespace rgat.Widgets
 
             if (text is not null && text.Length > 0 && ImGui.IsItemHovered())
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWindowText));
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrame));
+                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText));
+                ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame));
                 ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(6, 5));
                 ImGui.SetTooltip(text);
                 ImGui.PopStyleVar();
@@ -251,9 +251,9 @@ namespace rgat.Widgets
             bool activated = false;
             if (!enabled)
             {
-                ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull2));
-                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull2));
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eTextDull2));
+                ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.Dull2));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.Dull2));
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, Themes.GetThemeColourUINT(Themes.eThemeColour.Dull2));
             }
 
             activated = (size.HasValue) ? ImGui.Button(text, size.Value) : ImGui.Button(text);

@@ -4,9 +4,9 @@
 .data
 	 Message db "drgat test 1 64 bit", 0Dh, 0Ah, 0
 
-;bss/unitialised data
+;bss/uninitialised data
 .data? 
-	 tmp db 0
+	 tmp db ?
 
 extrn  GetStdHandle: PROC
 extrn  WriteFile: PROC

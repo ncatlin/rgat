@@ -114,7 +114,7 @@ namespace rgat.Widgets
                         ImGui.EndChildFrame();
                     }
 
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlText));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.ControlText));
                     if (ImGui.Button("Close##CloseSettings", new Vector2(65, 25)))
                     {
                         window_shown_flag = false;
@@ -537,7 +537,7 @@ namespace rgat.Widgets
                     bool notImplementedTrue = true;
 
                     ImGui.TableHeadersRow();
-                    uint formatCellColour = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg)).ToUint(0xd0);
+                    uint formatCellColour = Themes.GetThemeColourWRF(Themes.eThemeColour.Control).ToUint(0xd0);
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, formatCellColour);
@@ -566,7 +566,7 @@ namespace rgat.Widgets
                     ImGui.TableSetupColumn("SigDLBtns", ImGuiTableColumnFlags.WidthFixed, 85);
                     ImGui.TableSetupColumn("SigDLProgressTxt");
 
-                    uint formatCellColour = new WritableRgbaFloat(Themes.GetThemeColourImGui(ImGuiCol.TableHeaderBg)).ToUint(0xd0);
+                    uint formatCellColour = Themes.GetThemeColourWRF(Themes.eThemeColour.Control).ToUint(0xd0);
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
@@ -1043,11 +1043,11 @@ namespace rgat.Widgets
             {
                 if (signatureTimeWarning)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eWarnStateColour));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.WarnStateColour));
                 }
                 else
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
                 }
             }
             if (ImGui.Selectable(pathTxt + "##Sel" + caption, notSelected, ImGuiSelectableFlags.None))
@@ -1346,8 +1346,8 @@ namespace rgat.Widgets
             int index = 0;
             ImGuiTableFlags tableFlags = ImGuiTableFlags.ScrollY | ImGuiTableFlags.NoHostExtendX
                 | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable;
-            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
-            ImGui.PushStyleColor(ImGuiCol.HeaderActive, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
+            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Themes.GetThemeColourUINT(Themes.eThemeColour.Control));
+            ImGui.PushStyleColor(ImGuiCol.HeaderActive, Themes.GetThemeColourUINT(Themes.eThemeColour.Control));
             if (ImGui.BeginTable("KeybindSelectTable", 3, tableFlags, ImGui.GetContentRegionAvail() - new Vector2(0, 80)))
             {
                 ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed, 350);
@@ -1519,7 +1519,7 @@ namespace rgat.Widgets
 
                 if (!validName)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                    ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
                     ImGui.PushStyleColor(ImGuiCol.Button, 0xff333333);
                     ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xff333333);
                     ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xff333333);
@@ -1634,6 +1634,16 @@ namespace rgat.Widgets
                     GlobalConfig.Settings.UI.EnableTestHarness = testHarnessEnable;
                 }
                 SmallWidgets.MouseoverText("Allows use of the test framework from the menu bar");
+
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                bool imguiDemoEnable = GlobalConfig.Settings.UI.EnableImGuiDemo;
+                if (ImGui.Checkbox("Enable the ImGui development demo", ref imguiDemoEnable))
+                {
+                    GlobalConfig.Settings.UI.EnableImGuiDemo = imguiDemoEnable;
+                }
+                SmallWidgets.MouseoverText("Allows use of the imgui development demo dialog from the menu bar");
 
 
                 ImGui.TableNextRow();
@@ -1802,7 +1812,8 @@ namespace rgat.Widgets
 
         private void CreateThemeTester()
         {
-            if (ImGui.BeginChild(ImGui.GetID("ThemeTestContainer2"), new Vector2(ImGui.GetContentRegionMax().X, 250), false, ImGuiWindowFlags.AlwaysAutoResize))
+            if (ImGui.BeginChild(ImGui.GetID("ThemeTestContainer2"), new Vector2(ImGui.GetContentRegionMax().X, 215), 
+                false, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 DrawThemeTestFrame();
                 ImGui.EndChild();
@@ -1857,15 +1868,15 @@ namespace rgat.Widgets
                             ImGui.SameLine();
                             ImGui.BeginGroup();
                             {
-                                ImGui.Button("Button", new Vector2(120, 25));
+                                ImGui.Button("Button", new Vector2(120, 25)); 
+                                ImGui.SetNextItemWidth(120);
+                                ImGui.SliderFloat("Slider", ref testSlider, 0, 100);
+                                ImGui.SetNextItemWidth(120);
+                                ImGui.DragFloat("Drag", ref testSlider, 1, 0, 100);
                                 ImGui.EndGroup();
                             }
 
-                            ImGui.SetNextItemWidth(160);
-                            ImGui.SliderFloat("Slider", ref testSlider, 0, 100); ;
-                            ImGui.SameLine();
-                            ImGui.SetNextItemWidth(160);
-                            ImGui.DragFloat("Drag", ref testSlider, 1, 0, 100);
+
                             ImGui.EndGroup();
                         }
 
@@ -1945,14 +1956,16 @@ namespace rgat.Widgets
                 SmallWidgets.MouseoverText(tooltip);
             }
 
+            uint unsetBtnColour = WritableRgbaFloat.Brighten(Themes.GetThemeColourUINT(Themes.eThemeColour.Frame), 
+                CONSTANTS.UI.THEME_COLOUR_HOVERED_MULTIPLIER);
 
             ImGui.TableNextColumn();
             string kstring = "";
             {
                 if (GlobalConfig.Settings.Keybinds.PrimaryKeybinds.TryGetValue(keyAction, out var kmval))
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlText));
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.Control));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.ControlText));
                     if (kmval.Item2 != ModifierKeys.None)
                     {
                         kstring += kmval.Item2.ToString() + "+";
@@ -1962,7 +1975,7 @@ namespace rgat.Widgets
                 }
                 else
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrameHover));
+                    ImGui.PushStyleColor(ImGuiCol.Button, unsetBtnColour);
                     kstring = $"Click To Set]##{rowIndex}1";
                 }
                 if (ImGui.Button($"[{kstring}]"))
@@ -1979,8 +1992,8 @@ namespace rgat.Widgets
                 kstring = "";
                 if (GlobalConfig.Settings.Keybinds.AlternateKeybinds.TryGetValue(keyAction, out var kmval))
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eControl));
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.eControlText));
+                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.Control));
+                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.ControlText));
                     if (kmval.Item2 != ModifierKeys.None)
                     {
                         kstring += kmval.Item2.ToString() + "+";
@@ -1990,7 +2003,7 @@ namespace rgat.Widgets
                 }
                 else
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Themes.GetThemeColourUINT(Themes.eThemeColour.eFrameHover));
+                    ImGui.PushStyleColor(ImGuiCol.Button, unsetBtnColour);
                     kstring = $"Click To Set]##{rowIndex}2";
                 }
                 if (ImGui.Button($"[{kstring}]"))

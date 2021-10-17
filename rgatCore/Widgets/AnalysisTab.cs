@@ -64,7 +64,7 @@ namespace rgat
 
                     if (!APIDetailsWin.Loaded)
                     {
-                        ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                        ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
                         if (ImGui.BeginChild("#LoadErrFrame", new Vector2(ImGui.GetContentRegionAvail().X - 2, 80)))
                         {
                             ImGui.Indent(5);
@@ -152,8 +152,8 @@ namespace rgat
                     ImGui.TableNextRow();
                     if (TLevent.MetaError != null)
                     {
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, Themes.GetThemeColourUINT(Themes.eThemeColour.eBadStateColour));
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
                     }
 
                     ImGui.TableNextColumn();
