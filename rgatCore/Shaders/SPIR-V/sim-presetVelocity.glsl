@@ -2,9 +2,7 @@
 Copyright (c) 2014-2015, MetaStack Inc.
 All rights reserved.
 
-Copied from https://github.com/jaredmcqueen/analytics
-
-Diff with the December 2015 commit to see rgat modifications
+Vulkanised from https://github.com/jaredmcqueen/analytics/blob/7fa833bb07e2f145dba169b674f8865566970a68/shaders/sim-velocity.glslc
 
 See included licence: METASTACK ANALYTICS LICENSE
 */

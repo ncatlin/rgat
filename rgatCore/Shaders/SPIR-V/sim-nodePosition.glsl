@@ -2,7 +2,7 @@
 Copyright (c) 2014-2015, MetaStack Inc.
 All rights reserved.
 
-Code adapted from https://github.com/jaredmcqueen/analytics/blob/7fa833bb07e2f145dba169b674f8865566970a68/shaders/sim-position.glsl
+Code vulkanised from https://github.com/jaredmcqueen/analytics/blob/7fa833bb07e2f145dba169b674f8865566970a68/shaders/sim-position.glsl
 
 See included licence: METASTACK ANALYTICS LICENSE
 
@@ -26,13 +26,11 @@ layout(set = 0, binding=3) buffer resultData{  vec4 field_Destination[];};
 
 layout (local_size_x = 256) in;
 
-void main()	{
-    uvec3 id = gl_GlobalInvocationID;    
-    uint index = id.y * 256 + id.x;
+void main()	{ 
+    uint index = gl_GlobalInvocationID.x;
 
     if (index < fieldParams.nodeCount)
     {
-        uint index = id.x;// id.y * 256 + id.x; //what should be done here?
         vec4 selfPosition = positions[index];    
         field_Destination[index] = vec4( selfPosition.xyz + velocities[index].xyz * fieldParams.delta * 50.0, selfPosition.w );
     }

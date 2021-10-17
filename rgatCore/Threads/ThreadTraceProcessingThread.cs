@@ -392,7 +392,7 @@ namespace rgat.Threads
             public ulong count;
         };
 
-        Stopwatch sw = new Stopwatch();
+        Stopwatch dbgStopwatch = new Stopwatch();
         /// <summary>
         /// Handle execution of a basic block
         /// </summary>
@@ -411,7 +411,7 @@ namespace rgat.Threads
 
             thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry[1..(1+(tokenpos - 1))]), NumberStyles.HexNumber);
 
-            sw.Restart();
+            dbgStopwatch.Restart();
 
             //this may be a bad idea, could just be running faster than the dissassembler thread
             int waits = 0;
@@ -433,10 +433,10 @@ namespace rgat.Threads
                 return;
             }
 
-            sw.Stop();
-            if (sw.ElapsedMilliseconds > 64)
+            dbgStopwatch.Stop();
+            if (dbgStopwatch.ElapsedMilliseconds > 64)
             {
-                Console.WriteLine($"TP::Block wait took {sw.ElapsedMilliseconds}ms");
+                Console.WriteLine($"TP::Block wait took {dbgStopwatch.ElapsedMilliseconds}ms");
             }
 
             ANIMATIONENTRY animUpdate = new ANIMATIONENTRY
@@ -469,14 +469,14 @@ namespace rgat.Threads
                 return;
             }
 
-            sw.Restart();
+            dbgStopwatch.Restart();
             //this messy bit of code deals with uninstrumented APi code that has been called from a "jmp ptr [addr]" instruction
             eCodeInstrumentation targetCodeType = protograph.TraceData.FindContainingModule(nextBlockAddress, out int modnum);
 
-            sw.Stop();
-            if (sw.ElapsedMilliseconds > 4)
+            dbgStopwatch.Stop();
+            if (dbgStopwatch.ElapsedMilliseconds > 4)
             {
-                Console.WriteLine($"TP::FindContainingModule took {sw.ElapsedMilliseconds}ms");
+                Console.WriteLine($"TP::FindContainingModule took {dbgStopwatch.ElapsedMilliseconds}ms");
             }
 
             /*
@@ -488,7 +488,7 @@ namespace rgat.Threads
             {
                 if (protograph.NodeList[(int)protograph.ProtoLastVertID].VertType() == CONSTANTS.EdgeNodeType.eNodeCall)
                 {
-                    sw.Restart();
+                    dbgStopwatch.Restart();
                     List<InstructionData>? preExternBlock = protograph.TraceData.DisassemblyData.getDisassemblyBlock(thistag.blockID);
                     if (protograph.TraceData.HideAPIThunks is true &&
                         preExternBlock is not null &&
@@ -550,41 +550,41 @@ namespace rgat.Threads
                             //Debug.Assert(false, "Panik"); //todo: exceptions
                         }
 
-                        sw.Stop();
-                        if (sw.ElapsedMilliseconds > 4)
+                        dbgStopwatch.Stop();
+                        if (dbgStopwatch.ElapsedMilliseconds > 4)
                         {
-                            Console.WriteLine($"TP::Uninstru1 took {sw.ElapsedMilliseconds}ms");
+                            Console.WriteLine($"TP::Uninstru1 took {dbgStopwatch.ElapsedMilliseconds}ms");
                         }
                         return;
                     }
-                    sw.Stop();
-                    if (sw.ElapsedMilliseconds > 4)
+                    dbgStopwatch.Stop();
+                    if (dbgStopwatch.ElapsedMilliseconds > 4)
                     {
-                        Console.WriteLine($"TP::Uninstru2 took {sw.ElapsedMilliseconds}ms");
+                        Console.WriteLine($"TP::Uninstru2 took {dbgStopwatch.ElapsedMilliseconds}ms");
                     }
                 }
             }
 
 
-            sw.Restart();
+            dbgStopwatch.Restart();
             protograph.HandleTag(thistag, dontcountnextedge);
             if (dontcountnextedge)
             {
                 dontcountnextedge = false;
             }
-            sw.Stop();
-            if (sw.ElapsedMilliseconds > 40)
+            dbgStopwatch.Stop();
+            if (dbgStopwatch.ElapsedMilliseconds > 100)
             {
-                Console.WriteLine($"TP::handletag took {sw.ElapsedMilliseconds}ms (state:{thistag.InstrumentationState})");
+                Console.WriteLine($"TP::handletag took {dbgStopwatch.ElapsedMilliseconds}ms (state:{thistag.InstrumentationState})");
             }
             if (targetCodeType is eCodeInstrumentation.eUninstrumentedCode)
             {
-                sw.Restart();
+                dbgStopwatch.Restart();
                 ProcessExtern(nextBlockAddress, thistag.blockID);
-                sw.Stop();
-                if (sw.ElapsedMilliseconds > 84)
+                dbgStopwatch.Stop();
+                if (dbgStopwatch.ElapsedMilliseconds > 84)
                 {
-                    Console.WriteLine($"TP::ProcessExtern took {sw.ElapsedMilliseconds}ms");
+                    Console.WriteLine($"TP::ProcessExtern took {dbgStopwatch.ElapsedMilliseconds}ms");
                 }
             }
         }
@@ -1040,7 +1040,7 @@ namespace rgat.Threads
                     }
                 }
                 s.Stop();
-                if (s.ElapsedMilliseconds > 75)
+                if (s.ElapsedMilliseconds > 400)
                 {
                     Console.WriteLine($"Tag {(char)msg[0]} took {s.ElapsedMilliseconds}ms to process");
                 }

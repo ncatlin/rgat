@@ -7,9 +7,9 @@ Copied from https://github.com/jaredmcqueen/analytics
 Diff with the December 2015 commit to see rgat modifications
 
 See included licence: METASTACK ANALYTICS LICENSE
-*/
-/*
-C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\Shaders\SPIR-V\sim-blockVelocity.glsl -o sim-blockVelocity.spv -S comp
+
+To compile:
+    glslangValidator.exe  -V sim-blockVelocity.glsl -o sim-blockVelocity.spv -S comp
 */
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
@@ -21,33 +21,7 @@ struct VelocityParams
     float repulsionK;
     uint blockCount;
 };
-
-layout(set = 0, binding=0) uniform Params 
-{
-    VelocityParams fieldParams;
-};
-layout(set = 0, binding=1) buffer bufPositions{
-    vec4 positions[];
-};
-
-layout(set = 0, binding=2) buffer bufvelocities {   
-    vec4 velocities[];
-};
-
-
 struct EDGE_INDEX_LIST_OFFSETS{ int FirstEdgeIndex;  int LastEdgeIndex; };
-
-//edge data offsets
-layout(set = 0, binding=3) buffer bufedgeIndices {   EDGE_INDEX_LIST_OFFSETS edgeIndices[];};
-
-
-//edge data 
-layout(set = 0, binding=4) buffer bufedgeTargets {   
-    uint edgeTargets[];
-};
-layout(set = 0, binding=5) buffer bufEdgeStrengths {   
-    float edgeStrengths[];
-};
 
 /*
 one entry for each node, describing the block its in
@@ -60,36 +34,20 @@ w = pseudo node id, used for the center node to perform the attractions of the a
 
 struct BLOCK_METADATA{  int BlockID;  int OffsetFromCenterNode;  int CenterBlockTopEdges; int CenterBlockLastEdges; };
 
-layout(set = 0, binding=6) buffer blockDataBuf {   
-    BLOCK_METADATA blockData[];
-};
-
-layout(set = 0, binding=7) buffer blockMiddlesBuf {   
-    int blockMiddles[];
-};
-
-layout(set = 0, binding=8) buffer resultData
-{
-    vec4 field_Destination[];
-};
+layout(set = 0, binding=0) uniform Params {  VelocityParams fieldParams;};
+layout(set = 0, binding=1) buffer bufPositions{  vec4 positions[];};
+layout(set = 0, binding=2) buffer bufvelocities {  vec4 velocities[];};
+layout(set = 0, binding=3) buffer bufedgeIndices {   EDGE_INDEX_LIST_OFFSETS edgeIndices[];}; //edge data offsets
+layout(set = 0, binding=4) buffer bufedgeTargets {   uint edgeTargets[];}; //edge data list (node->(node,node,node)) 
+layout(set = 0, binding=5) buffer bufEdgeStrengths { float edgeStrengths[];};
+layout(set = 0, binding=6) buffer blockDataBuf { BLOCK_METADATA blockData[];};
+layout(set = 0, binding=7) buffer blockMiddlesBuf { int blockMiddles[];};
+layout(set = 0, binding=8) buffer resultData { vec4 field_Destination[];};
 
 
 
 vec4 getNeighbor(uint bufferIndex){
-    //vec2 uv = vec2(((mod(textureIndex, fieldParams.nodesTexWidth)) / fieldParams.nodesTexWidth), (floor(textureIndex / fieldParams.nodesTexWidth) / fieldParams.nodesTexWidth));
-    //vec4  r =  texture(sampler2D(positions, positionsView), uv );
-    
     return positions[bufferIndex];
-}
-
-
-
-vec3 addRepulsionOriginal(vec4 self, vec4 neighbor, float multiplier){
-    if (neighbor.w == -1) return vec3(0,0,0); 
-    vec3 diff = self.xyz - neighbor.xyz;
-    float x = length( diff );
-   float f = ( fieldParams.repulsionK * fieldParams.repulsionK ) / max(x, 0.001);
-    return normalize(diff) * f * multiplier;
 }
 
 
@@ -115,7 +73,7 @@ vec3 addAttraction(vec4 self, vec4 neighbor, int edgeIndex){
     return normalize(diff) * f;
 }
 
-
+// Not used, experiementing with biasing the graph to flow downwards
 vec3 addWorldGravity(vec4 self, float force)
 {
 
@@ -126,15 +84,7 @@ vec3 addWorldGravity(vec4 self, float force)
     float f = ( x * x ) / fieldParams.repulsionK;
     vec3 normalised = normalize(diff) * f;
 
-  
    return normalised;
-
-}
-
-vec3 addProportionalAttraction(vec3 self, vec4 neighbor, float speed){
-    if (neighbor.w == -1) return vec3(0,0,0); 
-    vec3 diff = self - neighbor.xyz;    
-    return normalize(diff) * speed;
 }
 
 
@@ -142,17 +92,13 @@ layout (local_size_x = 256) in;
 
 void main()	{
 
-    
-    uvec3 id = gl_GlobalInvocationID;
-
-    uint midListIndex =id.x;//id.y * 256 + id.x;
+    uint midListIndex = gl_GlobalInvocationID.x;
     if (midListIndex < fieldParams.blockCount)
     {
 
         vec4 nodePosition;
 
         const float speedLimit = 100000.0;
-        float attct = 0;
         float outputDebug = -100;
       
         int index = blockMiddles[midListIndex];
@@ -162,27 +108,18 @@ void main()	{
 
         //first repel 
         for(uint nodeIdx = 0; nodeIdx < fieldParams.blockCount; nodeIdx++)
-        {;
+        {
             if (nodeIdx != midListIndex)
             {
                 int compareNodeMidIndex = blockMiddles[nodeIdx];
                 vec4 compareNodePosition = positions[compareNodeMidIndex];
-            
-                //if distance below threshold, repel every node from every single node
-                //if (distance(compareNodePosition.xyz, selfPosition.xyz) > 0.001) 
-                //{
-                   velocity += addRepulsion(selfPosition, compareNodePosition);
-                //}
+                velocity += addRepulsion(selfPosition, compareNodePosition);
            }
 		}
             
             
-        float dbgval1 = 0;
-        float dbgval2 = 0;
-
         //now attract
-           
-                                        
+        
         //attract this center node towards any blocks linked to the top node 
         EDGE_INDEX_LIST_OFFSETS topEdgeIndices = edgeIndices[selfBlockData.CenterBlockTopEdges];
         if(topEdgeIndices.FirstEdgeIndex != -1)
@@ -196,7 +133,6 @@ void main()	{
                 if (neighborBlockData.BlockID != selfBlockData.BlockID)
                 { 
                     velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
-                    dbgval1 += 1;
                 }
             }
         }
@@ -214,7 +150,6 @@ void main()	{
                 if (neighborBlockData.BlockID != selfBlockData.BlockID)
                 {
                     velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
-                  dbgval2 += 1;
                 }
             }
         }
@@ -231,17 +166,11 @@ void main()	{
             velocity = normalize( velocity ) * speedLimit;
         }
     
-    
-    
         // add friction
         velocity *= 0.25;
     
     
-        //debugging
-
-        
-        field_Destination[index] = vec4(velocity,  dbgval1);//velocities[index].w);
-        //field_Destination[index] = vec4(midListIndex , 0,  dbgval1,  dbgval2);//velocities[index].w);
+        field_Destination[index] = vec4(velocity,  outputDebug);
     }
 }
 

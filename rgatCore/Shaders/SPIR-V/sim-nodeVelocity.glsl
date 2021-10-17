@@ -2,15 +2,11 @@
 Copyright (c) 2014-2015, MetaStack Inc.
 All rights reserved.
 
-Copied from https://github.com/jaredmcqueen/analytics
-
-Diff with the December 2015 commit to see rgat modifications
+Adapted from https://github.com/jaredmcqueen/analytics/blob/7fa833bb07e2f145dba169b674f8865566970a68/shaders/sim-velocity.glsl
 
 See included licence: METASTACK ANALYTICS LICENSE
-*/
 
-/*
-C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\Shaders\SPIR-V\sim-velocity.glsl -o sim-velocity.spv -S comp
+C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe -V C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\Shaders\SPIR-V\sim-nodeVelocity.glsl -o sim-nodeVelocity.spv -S comp
 */
 
 #version 450
@@ -22,16 +18,16 @@ struct VelocityParams
     float delta; //not used
     float temperature;
     float repulsionK;
-    uint snapToPreset;
     uint nodeCount;
 };
+struct EDGE_INDEX_LIST_OFFSETS{ int FirstEdgeIndex;  int LastEdgeIndex; };
 
 layout(set = 0, binding=0) uniform Params { VelocityParams fieldParams;};
 layout(set = 0, binding=1) buffer bufPositions{ vec4 positions[];};
 layout(set = 0, binding=2) buffer bufPresetPositions{ vec4 presetPositions[];};
 layout(set = 0, binding=3) buffer bufvelocities { vec4 velocities[];};
-layout(set = 0, binding=4) buffer bufedgeIndices { ivec2 edgeIndices[];};  //edge data list offsets (sacrifice space for time)
-layout(set = 0, binding=5) buffer bufedgeTargets { uint edgeTargets[];};   //edge data 
+layout(set = 0, binding=4) buffer bufedgeIndices { EDGE_INDEX_LIST_OFFSETS edgeIndices[];};  //edge data list start/end offsets (sacrifice space for time)
+layout(set = 0, binding=5) buffer bufedgeTargets { uint edgeTargets[];};   //edge data list (node->(node,node,node)) 
 layout(set = 0, binding=6) buffer bufEdgeStrengths { float edgeStrengths[];};
 layout(set = 0, binding=7) buffer resultData{ vec4 field_Destination[];};
 
@@ -69,12 +65,11 @@ vec3 addAttraction(vec4 self, vec4 neighbor, int edgeIndex){
     float x = length( diff );
     float f = ( x * x ) / fieldParams.repulsionK;
     f *= edgeStrengths[edgeIndex];
-
-
     return normalize(diff) * f;
 }
 
 
+// Not used, experiementing with biasing the graph to flow downwards
 vec3 addWorldGravity(vec4 self, float force)
 {
     vec3 bodyAbove = self.xyz;
@@ -98,10 +93,7 @@ layout (local_size_x = 256) in;
 
 void main()	{
 
-    
-    uvec3 id = gl_GlobalInvocationID;
-    //uint index = id.y * 256 + id.x;
-    uint index = id.x;
+    uint index = gl_GlobalInvocationID.x;
 
     if (index < fieldParams.nodeCount)
     {
@@ -114,79 +106,52 @@ void main()	{
         vec4 nodePosition;
 
         //const float speedLimit = 100000.0;
-        float outputDebug = -100;
+        const float outputDebug = -101;
      
          /*
          .w presetLayoutPosition values
      
             -1 = not a node
              0 = invalid
-             1 = preset, simple attraction towards target
+             1 = preset, simple attraction towards target (invalid in this shader)
              2 = free body subject to standard forces
          */
 
          if ( selfPosition.w > 0)// && (selfPosition.w < 2 || fieldParams.fixedInternalNodes == 0)) 
          {
-            //move towards preset layout position
-            if ( fieldParams.snapToPreset >= 1.0) 
+
+            // fruchterman reingold, force-directed n-body simulation
+
+            //first repel every single node away from this node. 
+            //this loop is the big bad bottleneck, in performance terms                
+            for(uint nodeIndex = 0; nodeIndex < fieldParams.nodeCount; nodeIndex++)
             {
-     
-                // node needs to move towards destination.
-                float distFromDest = distance(presetLayoutPosition.xyz, selfPosition.xyz);
-            
-                if (distFromDest > 0.001) 
-                {
-                    float speed = distFromDest/10;
-                    if (speed < 10) speed = distFromDest;
-                    velocity -= addProportionalAttraction(selfPosition.xyz, presetLayoutPosition, distFromDest/10);
-                }
-                velocity *= 0.75;
-            } 
-            else 
-            {
-            
-                // force-directed n-body simulation
-
-                //first repel every node away from each other                
-                for(uint nodeIndex = 0; nodeIndex < fieldParams.nodeCount; nodeIndex++)
-                {
-                  velocity += addRepulsion(selfPosition,  positions[nodeIndex]);
-                }
-           
-
-
-                //now iterate over each edge, attracting every connected node towards each other
-                //this loop has low impact on throughput (50-150k nodes/second)    
-                vec2 selfEdgeIndices = edgeIndices[index];
-                float start = selfEdgeIndices.x;
-                float end = selfEdgeIndices.y;
-
-                if(start != -1) //todo: get rid of this by making start == end?
-                {
-                    for(int edgeIndex  = int(start); edgeIndex < end; edgeIndex++)
-                    {
-                        uint neighbour = edgeTargets[edgeIndex];
-                        nodePosition = positions[neighbour];
-                        velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
-                    
-                    }
-                }
-                     
-            
-                // temperature gradually cools down to zero
-                velocity = normalize(velocity) * fieldParams.temperature;
-
-                // Speed Limits
-                //if ( length( velocity ) > speedLimit ) 
-               // {
-                //    velocity = normalize( velocity ) * speedLimit;
-               /// }
+                velocity += addRepulsion(selfPosition,  positions[nodeIndex]);
             }
+            
+            //now iterate over each edge of this nodes edges, attracting any connected nodes
+            //this operation is undirected - the force needs to be computed from both sides of the 
+            //edge or the forces will be unbalanced and drift off (the "my people need me" effect)
+            //this loop has low impact on throughput (50-150k nodes/second)    
+            EDGE_INDEX_LIST_OFFSETS selfEdgeIndices = edgeIndices[index];
+            if(selfEdgeIndices.FirstEdgeIndex != -1) //todo: get rid of this by making start == end?
+            {
+                for(int edgeIndex  = selfEdgeIndices.FirstEdgeIndex; edgeIndex < selfEdgeIndices.LastEdgeIndex; edgeIndex++)
+                {
+                    uint neighbour = edgeTargets[edgeIndex];
+                    nodePosition = positions[neighbour];
+                    velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));            
+                }
+            }
+            
+            // temperature gradually cools down to zero
+            velocity = normalize(velocity) * fieldParams.temperature;
+            
     
         // add friction
         velocity *= 0.25;
     
-        field_Destination[index] = vec4(velocity,  outputDebug);//velocities[index].w);
+        field_Destination[index] = vec4(velocity,  outputDebug);
         }
     }
 }

@@ -1394,8 +1394,8 @@ namespace rgat
                     if (graphplot.VelocitySteps is not 0)
                     {
 
-                        double velpc = ((graphplot.VelocitySetupTime + graphplot.VelocityShaderTime)) / accountedComputeTime;
-                        double velpc_all = ((graphplot.VelocitySetupTime + graphplot.VelocityShaderTime)) / graphplot.ComputeLayoutTime;
+                        double velpc = (graphplot.VelocitySetupTime + graphplot.VelocityShaderTime) / accountedComputeTime;
+                        double velpc_all = (graphplot.VelocitySetupTime + graphplot.VelocityShaderTime) / graphplot.ComputeLayoutTime;
                         uint bgColour = baseColour.ToUint((uint)(velpc_all * 255.0));
 
 

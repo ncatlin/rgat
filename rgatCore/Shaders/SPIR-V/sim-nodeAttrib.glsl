@@ -1,4 +1,14 @@
 /*
+Copyright (c) 2014-2015, MetaStack Inc.
+All rights reserved.
+
+Adapted from https://github.com/jaredmcqueen/analytics/blob/7fa833bb07e2f145dba169b674f8865566970a68/shaders/sim-nodeAttrib.glsl
+
+See included licence: METASTACK ANALYTICS LICENSE
+
+C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe -V C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\Shaders\SPIR-V\sim-nodeVelocity.glsl -o sim-nodeVelocity.spv -S comp
+*/
+/*
 The attributes buffer has a 4-float attribute descriptor for each graph node
 These describe the node texture diameter, base alpha, animation counter (for describing how the alpha differs from the base) and highlight state
 
@@ -13,8 +23,8 @@ struct attribShaderParams
 {
     // Time delta since the last update
     float delta;           
-    // Index of the selected node
-    int  selectedNode;     
+    // Index of the mouseover/selected node
+    int hoveredNodeID;     
     // nonzero if a node is hovered by the mouse
     float hoverMode;    
     uint nodeCount;     
@@ -34,19 +44,16 @@ struct nodeAttribute
     float currentAlpha;
     // counter which controls how the current alpha is adjusted towards the baseline on each attribute shader pass
     float animCounter;
-    // 
+    // specifies the highlight texture to use, if any
     float highlightFlag;
 };
 
+struct EDGE_INDEX_LIST_OFFSETS{ int FirstEdgeIndex;  int LastEdgeIndex; };
+
 layout(set = 0, binding=0) buffer bufParams{   attribShaderParams params;};
-
 layout(set = 0, binding=1) buffer bufnodeAttrib{   nodeAttribute nodeAttribs[]; };
-
-//for neighbor highlighting
-layout(set = 0, binding=2) buffer bufedgeIndices{  ivec2 edgeIndices[]; };
- // for neighbor highlighting
-layout(set = 0, binding=3) buffer bufedgeData{    int edgeData[];};
-
+layout(set = 0, binding=2) buffer bufedgeIndices{  EDGE_INDEX_LIST_OFFSETS edgeIndices[]; }; //for neighbor highlighting
+layout(set = 0, binding=3) buffer bufedgeData{    int edgeData[];};  // for neighbor highlighting
 layout(set = 0, binding=4) buffer bufresults{    nodeAttribute resultData[];};
 
 const float AnimNodeInflateSize = 11.0;
@@ -54,7 +61,7 @@ const float AnimNodeDeflateThreshold = 0.7;
 
 int NodeIndexIsSelected(int neighbor){
     int counter = 0;
-    if ( neighbor == params.selectedNode){
+    if ( neighbor == params.hoveredNodeID){
         counter = 1;
     }
     return counter;
@@ -63,19 +70,12 @@ int NodeIndexIsSelected(int neighbor){
 
 layout (local_size_x = 256) in;
 void main()	{
-    ///uint index = gl_LocalInvocationIndex;// gl_GlobalInvocationID.x;
-    uvec3 id = gl_GlobalInvocationID;
-    uint index = id.x;
+
+    uint index = gl_GlobalInvocationID.x;
     if (index < params.nodeCount)
     {
         nodeAttribute selfAttrib = nodeAttribs[index];  // just using x and y right now
 
-        // epoch time lookups
-
-        float start, end;
-
-        float neighborPixel = 0.0;
-   
         
         //if live trace or active replay
         //todo - different shaders for these
@@ -144,49 +144,21 @@ void main()	{
 
 
             //  neighbor highlighting of selected/hovered node
-            if (params.selectedNode >= 0 ){
-
-                ivec2 selfEdgeIndices =  edgeIndices[index];
-
-                int start = selfEdgeIndices.x;
-                int end = selfEdgeIndices.y;
-
-                for ( int i = start; i < end; i++){
+            if (params.hoveredNodeID >= 0 ){
+            
+                float neighborPixel = 0.0;
+                EDGE_INDEX_LIST_OFFSETS selfEdgeIndices =  edgeIndices[index];
+                for ( int i = selfEdgeIndices.FirstEdgeIndex; i < selfEdgeIndices.LastEdgeIndex; i++){
                        neighborPixel += NodeIndexIsSelected( edgeData[i] );               
                 }
 
                 // if you are a node or a neighbor
-                if ( neighborPixel > 0.0 || index == params.selectedNode){
+                if ( neighborPixel > 0.0 || index == params.hoveredNodeID){
                     selfAttrib.currentAlpha = 0.8; // light up *only* self or neighbors
                 }
 
             } 
-        } 
-        /*
-        else {
-
-            // i have selected a node
-            // completely black out the rest of the scene
-            if ( selfAttrib.currentAlpha > 0.0){
-                selfAttrib.currentAlpha -= params.delta * 2.5;
-            }
-
-            if ( selfAttrib.x > 200.0){
-                selfAttrib.x -= 4000.0 * params.delta;
-            }
-
-
-            if ( params.selectedNode >= 0.0 ){
-
-                // if you are a node or a neighbor
-                if ( neighborPixel > 0.0 || index == params.selectedNode){
-                    selfAttrib.currentAlpha = 0.3; // light up *only* self or neighbors
-                }
-            }
-        }
-        */
-    
-    
+        }     
 
         resultData[index] = selfAttrib;
     }

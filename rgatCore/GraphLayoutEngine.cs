@@ -147,11 +147,6 @@ namespace rgat
                 zoffsets = new Vector2(zlimits.X - zoom, zlimits.Y - zoom);
             }
 
-            if (isPreview is false)
-            {
-                Console.WriteLine($"xmin: {xmin}, xmax:{xmax} xoffsets:{xoffsets}");
-                Console.WriteLine($"ymin: {ymin}, ymax:{ymax} yoffsets:{yoffsets}");
-            }
 
             //Sometimes the position buffer is full of terrible data.
             //Seems to just be for the preview graph? Only happens at the start so must have gotten hold of uninitialised data
@@ -197,10 +192,6 @@ namespace rgat
         }
 
 
-
-
-
-
         /// <summary>
         /// Must have read lock to call
         /// Find the node with the highest x/y/z dimension. Ignores w.
@@ -243,6 +234,7 @@ namespace rgat
             VeldridGraphBuffers.VRAMDispose(destinationReadback);
             return highest;
         }
+
 
         readonly private Stopwatch _stepTimer = new Stopwatch();
         readonly private Stopwatch _attSetupTimer = new Stopwatch();
@@ -388,14 +380,11 @@ namespace rgat
             if (_stepTimer.ElapsedMilliseconds > 100)
                 Logging.RecordLogEvent($"Compute step took {_stepTimer.ElapsedMilliseconds}ms", Logging.LogFilterType.Debug);
 
-
-
             //DebugPrintOutputIntBuffer(layout.BlockMiddles!, "Middles", 100);
             //DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 32);
             //DebugPrintOutputFloatBuffer(layout.PositionsVRAM1!, "pos1", 32);
             //DebugPrintOutputFloatBuffer(layout.PositionsVRAM2!, "pos2", 32);
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM, "Atts2", 32);
-
 
             lock (_lock)
             {
@@ -411,6 +400,7 @@ namespace rgat
 
             return layout.RenderVersion;
         }
+
 
         void ComputeAttributes(bool flip, GraphLayoutState layout, CommandList cl, PlottedGraph graph, float delta, int mouseoverNodeID, bool isAnimated)
         {
@@ -474,40 +464,6 @@ namespace rgat
         }
 
 
-        /*
-         * 
-         * Position computation shader moves each node according to its velocity
-         * 
-         */
-        [StructLayout(LayoutKind.Sequential)]
-        private struct PositionShaderParams
-        {
-            public float delta;
-            public uint NodesTexWidth;
-            public float blockNodeSeperation;
-            public uint fixedInternalNodes;
-            public bool activatingPreset;
-            //must be multiple of 16
-            private readonly uint _padding1;
-            private readonly uint _padding3;
-            private readonly bool _padding4;
-
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         /*
          * 
@@ -517,9 +473,9 @@ namespace rgat
         [StructLayout(LayoutKind.Sequential)]
         private struct AttribShaderParams
         {
-            public float delta;            // requestAnimationFrame delta
-            public int selectedNode;     // selectedNode
-            public float hoverMode;     // selectedNode
+            public float delta;       
+            public int hoveredNodeID;     
+            public float hoverMode;     
             public uint nodeCount;     
 
             public float MinimumAlpha;
@@ -547,7 +503,7 @@ namespace rgat
             AttribShaderParams parms = new AttribShaderParams
             {
                 delta = delta,
-                selectedNode = mouseoverNodeID,
+                hoveredNodeID = mouseoverNodeID,
                 nodeCount = (uint)Math.Min(graph.RenderedNodeCount(), graph.LayoutState.AttributesVRAM1!.SizeInBytes / 16),
                 MinimumAlpha = GlobalConfig.AnimatedFadeMinimumAlpha,
                 hoverMode = (mouseoverNodeID != -1) ? 1 : 0,

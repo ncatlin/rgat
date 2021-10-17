@@ -665,33 +665,26 @@ namespace rgat
         /// <param name="graph">The graph being drawn</param>
         public void Draw(Vector2 graphSize, PlottedGraph? graph)
         {
-            st.Restart();
             _graphLock.EnterReadLock();
-            st.Stop();
-            if (st.ElapsedMilliseconds > 5)
-                Console.WriteLine($"gpw:Draw _graphLock contended for {st.ElapsedMilliseconds} ms");
-
-
-            if (graph != ActiveGraph)
+            try
             {
-                ActiveGraph = graph;
-            }
 
-            if (ActiveGraph != null)
+                if (graph != ActiveGraph)
+                {
+                    ActiveGraph = graph;
+                }
+
+                if (ActiveGraph != null)
+                {
+                    DrawGraphImage();
+                }
+
+                DrawHUD(graphSize, ActiveGraph);
+            }
+            finally
             {
-                st.Restart();
-                DrawGraphImage();
-                st.Stop();
-                if (st.ElapsedMilliseconds > 5)
-                    Console.WriteLine($"drawgraphimage took {st.ElapsedMilliseconds} ms");
+                _graphLock.ExitReadLock();
             }
-
-            st.Restart();
-            DrawHUD(graphSize, ActiveGraph);
-            st.Stop();
-            if (st.ElapsedMilliseconds > 5)
-                Console.WriteLine($"DrawHUD took {st.ElapsedMilliseconds} ms");
-            _graphLock.ExitReadLock();
         }
 
 

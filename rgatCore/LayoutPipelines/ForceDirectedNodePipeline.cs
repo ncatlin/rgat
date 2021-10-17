@@ -49,13 +49,7 @@ namespace rgat.Layouts
             public float delta;
             public float temperature;
             public float repulsionK;
-            public uint snappingToPreset;
-
             public uint nodeCount;
-            //must be multiple of 16
-            private readonly uint _padding1; 
-            private readonly uint _padding2;
-            private readonly uint _padding3;
         }
 
         private unsafe void SetupComputeResources()
@@ -93,10 +87,11 @@ namespace rgat.Layouts
 
 
             byte[]? positionShaderBytes;
-
-            positionShaderBytes = ImGuiNET.ImGuiController.LoadEmbeddedShaderCode(factory, "sim-nodePosition", ShaderStages.Compute);
-            //177ms~ ish for this simple shader - multiplied by the different pipelines and stages this would add a lot to startup time
-            //so for now going to keep embedding them in resources. This at least illustrates how to do startup-time compilation.
+            /*
+             * This is how we would compile the compute shaders instead of loading pre-compiled 
+             * 177ms~ ish for this simple shader - multiplied by the different pipelines and stages this would add a lot to startup time
+             *   so for now going to keep embedding them in resources. This at least illustrates how to do startup-time compilation.
+            */
             /*
             if (velocityShaderBytes is null)
             {
@@ -106,6 +101,8 @@ namespace rgat.Layouts
                 Logging.RecordLogEvent($"Compilation for ForceDirectedNode Position shader took {_timer.Elapsed.TotalMilliseconds:F1}ms");
             }
             */
+            positionShaderBytes = ImGuiNET.ImGuiController.LoadEmbeddedShaderCode(factory, "sim-nodePosition", ShaderStages.Compute);
+
             _positionShader = factory.CreateShader(new ShaderDescription(ShaderStages.Compute, positionShaderBytes, "main"));
             ComputePipelineDescription PositionCPD = new ComputePipelineDescription(_positionShader, _positionShaderRsrcLayout, 16, 16, 1);
             _positionComputePipeline = factory.CreateComputePipeline(PositionCPD);
@@ -170,10 +167,9 @@ namespace rgat.Layouts
             GraphLayoutState layout = plot.LayoutState;
             VelocityShaderParams parameters = new VelocityShaderParams
             {
-                delta = delta,
+                delta = delta, //not used
                 temperature = Math.Min(plot.Temperature, GlobalConfig.MaximumNodeTemperature),
                 repulsionK = GlobalConfig.RepulsionK,
-                snappingToPreset = (uint)(plot.LayoutState.ActivatingPreset ? 1 : 0),
                 nodeCount = nodeCount
             };
 
@@ -222,7 +218,6 @@ namespace rgat.Layouts
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, velocities));
 
             //if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderPosition  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-            var textureSize = plot.LinearIndexTextureSize();
 
             PositionShaderParams parameters = new PositionShaderParams
             {
@@ -230,7 +225,7 @@ namespace rgat.Layouts
                 nodeCount = (uint)plot.RenderedNodeCount()
             };
 
-            //Logging.WriteConsole($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
+            //Logging.WriteConsole($"RenderPosition Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
 
             _cl.UpdateBuffer(_positionParamsBuffer, 0, parameters);
             _cl.SetPipeline(_positionComputePipeline);
@@ -265,15 +260,22 @@ namespace rgat.Layouts
 
         }
 
-
+        /// <summary>
+        /// No real reason for this to be here - just illustrating that these can be compiled
+        /// at runtime
+        /// </summary>
         const string positionShaderSource = @"
 /*
 Copyright (c) 2014-2015, MetaStack Inc.
 All rights reserved.
 
-Code adapted from https://github.com/jaredmcqueen/analytics/blob/7fa833bb07e2f145dba169b674f8865566970a68/shaders/sim-position.glsl
+Code vulkanised from https://github.com/jaredmcqueen/analytics/blob/7fa833bb07e2f145dba169b674f8865566970a68/shaders/sim-position.glsl
 
 See included licence: METASTACK ANALYTICS LICENSE
+
+to compile 
+
+glslangValidator.exe  -V sim-nodePosition.glsl -o sim-nodePosition.spv -S comp
 */
 
 #version 450
@@ -281,24 +283,24 @@ See included licence: METASTACK ANALYTICS LICENSE
 struct PositionParams
 {
     float delta;
-    uint nodesTexWidth;
-    float blockNodeSeperation;
-    uint fixedInternalNodes;
-    bool activatingPreset;
+    uint nodeCount;
 };
 layout(set = 0, binding=0) uniform Params{  PositionParams fieldParams;};
 layout(set = 0, binding=1) buffer bufpositions{vec4 positions[];};
-layout(set = 0, binding=2) buffer  bufvelocities{vec4 velocities[];};
+layout(set = 0, binding=2) buffer bufvelocities{vec4 velocities[];};
 layout(set = 0, binding=3) buffer resultData{  vec4 field_Destination[];};
 
 
 layout (local_size_x = 256) in;
 
-void main()	{
-    uvec3 id = gl_GlobalInvocationID;    
-    uint index = id.x;// id.y * 256 + id.x; //what should be done here?
-    vec4 selfPosition = positions[index];    
-    field_Destination[index] = vec4( selfPosition.xyz + velocities[index].xyz * fieldParams.delta * 50.0, selfPosition.w );
+void main()	{ 
+    uint index = gl_GlobalInvocationID.x;
+
+    if (index < fieldParams.nodeCount)
+    {
+        vec4 selfPosition = positions[index];    
+        field_Destination[index] = vec4( selfPosition.xyz + velocities[index].xyz * fieldParams.delta * 50.0, selfPosition.w );
+    }
 }
 ";
 

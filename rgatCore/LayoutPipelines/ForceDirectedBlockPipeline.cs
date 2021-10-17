@@ -177,15 +177,12 @@ namespace rgat.Layouts
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, velocities));
 
             //if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderPosition  {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-            var textureSize = plot.LinearIndexTextureSize();
 
             PositionShaderParams parameters = new PositionShaderParams
             {
                 delta = delta,
-                NodesTexWidth = textureSize,
-                blockNodeSeperation = 160,
-                fixedInternalNodes = 1,
-                activatingPreset = plot.LayoutState.ActivatingPreset
+                NodeCount = (uint)plot.RenderedNodeCount(),
+                blockNodeSeperation = 160
             };
 
             //Logging.WriteConsole($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
@@ -227,21 +224,18 @@ namespace rgat.Layouts
         /*
          * 
          * Position computation shader moves each node according to its velocity
+         * For the block pipline it also places non-center nodes relative to their
+         * blocks center node
          * 
          */
         [StructLayout(LayoutKind.Sequential)]
         private struct PositionShaderParams
         {
             public float delta;
-            public uint NodesTexWidth;
+            public uint NodeCount;
             public float blockNodeSeperation;
-            public uint fixedInternalNodes;
-            public bool activatingPreset;
             //must be multiple of 16
             private readonly uint _padding1;
-            private readonly uint _padding3;
-            private readonly bool _padding4;
-
         }
 
 
