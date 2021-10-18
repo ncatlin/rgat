@@ -3979,6 +3979,12 @@
             <param name="plot">PlottedGraph to compute</param>
             <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         </member>
+        <member name="F:rgat.Layouts.ForceDirectedNodePipeline.positionShaderSource">
+            <summary>
+            No real reason for this to be here - just illustrating that these can be compiled
+            at runtime
+            </summary>
+        </member>
         <member name="M:rgat.Layouts.PresetSnappingPipeline.RenderVelocity(Veldrid.ResourceSetDescription,rgat.PlottedGraph,System.Single)">
             <summary>
             Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes

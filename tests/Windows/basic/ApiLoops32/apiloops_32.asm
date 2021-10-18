@@ -10,7 +10,7 @@ message_end db 0
         .code                   ;code 
 
 
-		        GetStdHandle PROTO STDCALL :DWORD
+		GetStdHandle PROTO STDCALL :DWORD
         ExitProcess PROTO STDCALL :DWORD
         
         WriteFile proto,  hFile:dword, lpBuffer:near32,      ;A handle to the device

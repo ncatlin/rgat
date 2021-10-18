@@ -700,7 +700,7 @@ namespace rgat
                 return DisassemblyData.ModuleTraceStates[localmodID];
             }
 
-            // Todo: the issue here is usually either code that hasn't been disasembled (full trace buffers?) or code executing in a buffer 
+            // Todo: the issue here is usually either code that hasn't been disassembled (full trace buffers?) or code executing in a buffer 
 
             localmodID = -1;
             Logging.WriteConsole($"Warning: Unknown module in traceRecord::FindContainingModule for address 0x{address:X}");

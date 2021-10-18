@@ -15,6 +15,12 @@ struct moduleData
 	UINT32 ID;
 };
 
+struct regionData
+{
+	ADDRINT start, end;
+	bool instrumented;
+};
+
 bool writeEventPipe(char *logText, ...);
 void setCommandPipe(NATIVE_FD newpipe);
 void setEventPipe(NATIVE_FD newpipe);

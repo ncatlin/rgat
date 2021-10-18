@@ -904,6 +904,7 @@ namespace rgat
             }
         }
 
+
         /// <summary>
         /// Read a bundled resouce as bytes
         /// </summary>

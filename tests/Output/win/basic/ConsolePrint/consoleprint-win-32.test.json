@@ -33,7 +33,7 @@
 							{"Source": 3, "Target":4, "Count":1, "Comment": "1st call GetStdHandle external node"},
 							{"Source": 15, "Target":16, "Count":1, "Comment": "2nd call GetStdHandle external node"},
 							{"Source": 17, "Target":4, "Count":0, "Comment":  "Ensure this doesn't exist when hiding thunks"}
-							], "Condition":"Contains"  }
+							], "Condition":"ExistsIn"  }
 				}
 			]
 			

@@ -2,8 +2,6 @@
         .xmm                    ;enable instructions
         .model flat, stdcall           ;use C naming convention (stdcall is default)
 
-;       include C libraries
-
         .data                   ;initialized data
 message     db      "drgat test 1 32 bit",0dh,0ah,0
 message_end db 0
@@ -11,7 +9,6 @@ message_end db 0
         .stack  4096            ;stack (optional, linker will default)
 
         .code                   ;code 
-       ; extrn   printf:near
 
         GetStdHandle PROTO STDCALL :DWORD
         ExitProcess PROTO STDCALL :DWORD

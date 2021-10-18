@@ -1,0 +1,37 @@
+{
+	"Meta": 
+	{
+		"BinaryName": "BufferExecution32.exe",
+		"Bits": 32,
+		"OS": "Win",
+		"Comment": "Tests rgats ability to dip in and out of instrumented code within a non-image buffer",
+		"Category": "Advanced"		
+	},
+	"Configuration":{
+		"HideAPIThunks": true,
+		"DiscardTraceData": true
+	},
+	"FinalRequirements":{
+		"Test":{ 
+			"TotalGraphs": { "Value": 1, "Condition": "Eq", "Comment": "Sometimes get a second thread here?" },
+			"TotalProcesses": { "Value": 1, "Condition": "Eq" }
+		},
+		"Process":{
+			"ProcessRequirements": { 
+			   "GraphCount":{"Value": 1, "Condition": "Eq"}
+			},
+			"ThreadRequirements": [
+				{
+				   "EdgeCount": { "Value": 34, "Condition": "Eq" },
+				   "NodeCount": { "Value": 34, "Condition": "Eq" },
+				   "UniqueExceptionCount": { "Value": 0, "Condition": "Eq" } ,
+				   "ExternalNodeCount": { "Value": 4, "Condition": "Eq", "Comment": "VAlloc, VFree, ExitProcess in the image, GetStdHandle in the buffer"} ,
+				   "InstructionExecs": { "Value": 50, "Condition": "Eq", "Comment": "34 nodes minus 4 API calls + 20 extras from the REP MOVSB" },
+				}
+			]
+			
+		}
+	}
+	
+
+}

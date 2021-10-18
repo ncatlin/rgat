@@ -30,8 +30,11 @@ a pin implementation of the drgat client
 
 //declared extern in modules.h
 std::vector <moduleData*> loadedModulesInfo;
+std::map <ADDRINT, regionData*> loadedRegionInfo;
 
-moduleData* lastBBModule;
+//Optimisations to reduce the time spent checking if code should be instrumented or not
+moduleData* lastBBModule = 0;
+regionData* lastNonImgRegion = 0;
 
 BLOCKIDMAP blockIDMap;
 
@@ -190,28 +193,83 @@ void write_sync_bb(char* buf, USIZE strsize)
 //benchmark to see if either is better
 bool address_is_in_targets_v1(ADDRINT addr)
 {
+	//if this address is in the range of the last module we looked at, return same result
 	//have to assume IMG_FindByAddress doesnt already have this optimisation. todo:benchmark
 	if (lastBBModule && addr >= lastBBModule->start && addr <= lastBBModule->end)
 	{
+		lastNonImgRegion = 0;
 		return lastBBModule->instrumented;
+	}
+
+	//if this address is in the range of the last non-image region we looked at, return same result
+	if (lastNonImgRegion &&
+		(addr >= (ADDRINT)lastNonImgRegion->start && addr < ((ADDRINT)lastNonImgRegion->end)))
+	{
+		lastBBModule = 0;
+		return lastNonImgRegion->instrumented;
 	}
 
 	IMG foundimage = IMG_FindByAddress(addr);
 	if (IMG_Valid(foundimage))
 	{
+		//Address is in executable mapped memory, return if we are interested in it
 		UINT32 imgid = IMG_Id(foundimage);
 		lastBBModule = loadedModulesInfo.at(imgid);
+
 		if (lastBBModule == 0) {
-			printf("Error: address 0x%lx is in valid image but has no entry in loadedModulesInfo\n", addr);
+			writeEventPipe("! Error: address 0x%lx is in valid image but has no entry in loadedModulesInfo\n", addr);
 			return false;
 		}
+
 		return (lastBBModule->instrumented);
 	}
-	else
+
+	//Address is not in an image region
+	NATIVE_PID pid;
+	OS_GetPid(&pid);
+	OS_MEMORY_AT_ADDR_INFORMATION info;
+	if (OS_QueryMemory(pid, (void*)addr, &info).generic_err == OS_RETURN_CODE_NO_ERROR)
 	{
-		std::cout << "[pingat]Warning: address 0x" << std::hex << addr << " not in valid image" << std::endl;
-		return false;
+		//If we have looked at this region before, return previous verdict
+		auto regionIt = loadedRegionInfo.find((ADDRINT)info.BaseAddress);
+		if (regionIt != loadedRegionInfo.end())
+		{
+			lastNonImgRegion = regionIt->second;
+			return lastNonImgRegion->instrumented;
+		}
+		else
+		{
+			//new memory region, record it
+			regionData* r = new regionData();
+			r->start = (ADDRINT)info.BaseAddress;
+			r->end = (ADDRINT)info.BaseAddress + info.MapSize;
+			/*
+			* TODO
+			This bit is dubious.We want to look at this memory if execution came from an instrumented area. 
+			What this *actually* does is test if the last analyzed code was from an instrumented area
+			Fix:       pass thread object to this function and, uh - figure it out
+			Next step: create a multi-threaded test case that breaks
+			*/
+			if (lastBBModule == 0 && lastNonImgRegion != 0)
+			{
+				r->instrumented = lastNonImgRegion->instrumented;
+			}
+			else if (lastBBModule != 0 && lastNonImgRegion == 0)
+			{
+				r->instrumented = lastBBModule->instrumented;
+			}
+			else
+			{
+				return false; //??
+			}
+			loadedRegionInfo[r->start] = r; //todo - size limit, better data structure (something with binary search)
+			lastNonImgRegion = r;
+			return r->instrumented;
+		}
 	}
+	writeEventPipe("! Warning: address 0x%lx not in valid image [%d] and mem query failed", addr, lastBBModule->instrumented);
+	return false;
+
 }
 
 bool address_is_in_targets_v2(ADDRINT addr)
@@ -309,7 +367,7 @@ Requirements:
 	1. As low CPU overhead as possible to reduce the burden on execution of every block
 	2. Compressed enough output to minimise the ability of small regions of code to generate disproportionately large traces
 	but
-	3. Output regularly enough to make live viewing responsive (ie: don't just cache the whole trace then 
+	3. Output regularly enough to make live viewing responsive (ie: don't just cache the whole trace then
 	output at termination). Low priority: The UI can just poll for this.
 
 Tradeoffs to achieve this:
@@ -849,13 +907,10 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 	{
 		if (tdata->threadpipeHandle == -1)
 		{
-			writeEventPipe("!T6%d Opening pipe %s", tdata->osthreadid, pname);
 			tdata->threadpipeHandle = (NATIVE_FD)WINDOWS::CreateFileA(pname, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
-			writeEventPipe("!T6%d A", tdata->osthreadid);
 			if (tdata->threadpipeHandle == -1 && time > 1600 && (time % 600 == 0))
 			{
-				writeEventPipe("!T6%d B", tdata->osthreadid);
 				std::stringstream errstr;
 				errstr << "Failing to connect to thread pipe [" << std::string(pname) << "]. Error:";
 				int err = WINDOWS::GetLastError();
@@ -865,13 +920,10 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 
 				writeEventPipe("! %s", errstr.str().c_str());
 			}
-			writeEventPipe("!T6%d C1", tdata->osthreadid);
 		}
 
-		writeEventPipe("!T6%d D1", tdata->osthreadid);
 		if (tdata->threadpipeHandle != -1)
 		{
-			writeEventPipe("!T7%d", tdata->osthreadid);
 			std::cout << "thread pipe connected!" << std::endl;
 
 			int fd = _open_osfhandle(tdata->threadpipeHandle, _O_APPEND);

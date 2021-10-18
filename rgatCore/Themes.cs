@@ -518,12 +518,12 @@ namespace rgat
         {
             lock (_lock)
             {
-                if (!ThemeColoursCustom.ContainsKey(item) || ((uint)item >= ThemeColoursCustom.Count))
+                if (!ThemeColoursCustom.ContainsKey(item) || ThemeColoursCustom.TryGetValue(item, out uint colResult) is false)
                 {
-                    return 0xff000000;
+                    return 0xffff0000;
                 }
-                if (customAlpha is not null) return WritableRgbaFloat.ToUint(ThemeColoursCustom[item], customAlpha.Value);
-                return ThemeColoursCustom[item];
+                if (customAlpha is not null) return WritableRgbaFloat.ToUint(colResult, customAlpha.Value);
+                return colResult;
             }
         }
 
@@ -615,7 +615,7 @@ namespace rgat
                 }
 
                 ImGui.TableSetColumnIndex(1);
-                for (int colI = (int)Themes.eThemeColour.Heat0Lowest; colI < Themes.ThemeColoursCustom.Count; colI++)
+                for (int colI = (int)Themes.eThemeColour.Heat0Lowest; colI < (int)Themes.eThemeColour.COUNT; colI++)
                 {
                     Themes.eThemeColour customCol = (Themes.eThemeColour)colI;
                     Vector4 colval = new WritableRgbaFloat(Themes.GetThemeColourUINT(customCol)).ToVec4();
