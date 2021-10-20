@@ -73,26 +73,35 @@ namespace rgat.Properties {
         /// <summary>
         ///   Looks up a localized string similar to [{
         ///  &quot;CustomColours&quot;: {
-        ///    &quot;ePreviewText&quot;: 4294967295,
-        ///    &quot;ePreviewTextBackground&quot;: 1275068416,
-        ///    &quot;ePreviewPaneBorder&quot;: 4278190335,
-        ///    &quot;ePreviewPaneBackground&quot;: 4278979596,
-        ///    &quot;ePreviewZoomEnvelope&quot;: 2998055602,
-        ///    &quot;eHeat0Lowest&quot;: 2996502528,
-        ///    &quot;eHeat1&quot;: 4288355374,
-        ///    &quot;eHeat2&quot;: 4293027935,
-        ///    &quot;eHeat3&quot;: 4292841333,
-        ///    &quot;eHeat4&quot;: 8703,
-        ///    &quot;eHeat5&quot;: 4290036988,
-        ///    &quot;eHeat6&quot;: 4288190706,
-        ///    &quot;eHeat7&quot;: 4285230073,
-        ///    &quot;eHeat8&quot;: 4282401023,
-        ///    &quot;eHeat9Highest&quot;: 4278190335,
-        ///    &quot;eVisB [rest of string was truncated]&quot;;.
+        ///    &quot;PreviewText&quot;: 4294967295,
+        ///    &quot;PreviewTextBackground&quot;: 1275068416,
+        ///    &quot;PreviewPaneBorder&quot;: 4278190335,
+        ///    &quot;PreviewPaneBackground&quot;: 4278979596,
+        ///    &quot;PreviewZoomEnvelope&quot;: 2998055602,
+        ///    &quot;Heat0Lowest&quot;: 2993500722,
+        ///    &quot;Heat1&quot;: 4284890151,
+        ///    &quot;Heat2&quot;: 4286269967,
+        ///    &quot;Heat3&quot;: 4290797890,
+        ///    &quot;Heat4&quot;: 4288161130,
+        ///    &quot;Heat5&quot;: 4290528431,
+        ///    &quot;Heat6&quot;: 4278543033,
+        ///    &quot;Heat7&quot;: 4278217208,
+        ///    &quot;Heat8&quot;: 4278190335,
+        ///    &quot;Heat9Highest&quot;: 4294901503,
+        ///    &quot;VisBarPlotLine [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string BuiltinJSONThemes {
             get {
                 return ResourceManager.GetString("BuiltinJSONThemes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [{&quot;Field&quot;:&quot;Metadata&quot;},{&quot;Field&quot;:&quot;ProcessRecord&quot;,&quot;BitWidth&quot;:32},{&quot;Field&quot;:&quot;Modules&quot;},[&quot;&quot;,&quot;&quot;],[0,1,2,3],[0,1],{&quot;Field&quot;:&quot;Symbols&quot;,&quot;ModuleCount&quot;:0,&quot;TotalSymbols&quot;:0},{&quot;Field&quot;:&quot;Disassembly&quot;,&quot;Count&quot;:5},[10,0,0,1,&quot;UA==&quot;,1,29628,1],[20,0,0,1,&quot;6D4AAAA=&quot;,1,29628,2],[30,0,1,1,&quot;/yUIIGQA&quot;,1,29628,3],[40,0,1,1,&quot;D4T8////&quot;,1,29628,4],[50,0,1,1,&quot;ww==&quot;,1,29628,5],{&quot;Field&quot;:&quot;BasicBlocks&quot;,&quot;Count&quot;:0},{&quot;Field&quot;:&quot;Externs&quot;,&quot;Count&quot;:0},{&quot;Field&quot;:&quot;Threads&quot;,&quot;Count&quot;:1},{&quot;Field&quot;:&quot;Thread&quot;,&quot;ThreadID&quot;:29628,&quot;StartAddress&quot;:0,&quot;TotalInstructions&quot;:0 [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string CompanionTrace {
+            get {
+                return ResourceManager.GetString("CompanionTrace", resourceCulture);
             }
         }
         

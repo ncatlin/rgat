@@ -536,7 +536,7 @@ namespace rgat
         /// <param name="plot"></param>
         void RegenerateCustomData(PlottedGraph plot)
         {
-            switch(this.Style)
+            switch (this.Style)
             {
                 case LayoutStyles.Style.ForceDirected3DBlocks:
                     Layouts.ForceDirectedBlockPipeline.CreateBlockMetadataBuffer(plot, _gd);
@@ -553,7 +553,8 @@ namespace rgat
         /// <param name="plot"></param>
         private void RegeneratePresetBuffer(PlottedGraph plot)
         {
-            if (!LayoutStyles.IsForceDirected(plot.ActiveLayoutStyle))
+            if (!LayoutStyles.IsForceDirected(plot.ActiveLayoutStyle) && 
+                plot.ActiveLayoutStyle != LayoutStyles.Style.Custom)
             {
                 VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.PresetPositions);
                 float[]? presetPositons = plot.GeneratePresetPositions(PresetStyle);
@@ -561,6 +562,19 @@ namespace rgat
                 _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(presetPositons, _gd, "Preset1");
             }
         }
+
+        /// <summary>
+        /// Prepare a preset buffer to generate a non-force directed layout
+        /// </summary>
+        /// <param name="plot"></param>
+        public void InitialisePresetBuffer(float[] presetPositons)
+        {
+            _lock.EnterWriteLock();
+            VeldridGraphBuffers.VRAMDispose(_VRAMBuffers.PresetPositions);
+            _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(presetPositons, _gd, "Preset1");
+            _lock.ExitWriteLock();
+        }
+
 
 
         /// <summary>
@@ -635,7 +649,7 @@ namespace rgat
 
         /// <summary>
         /// Takes new nodes from a graph with trace data and adds them to the compute buffers for layout
-        /// Must have upgradable readlock
+        /// Must have upgradeable readlock
         /// </summary>
         /// <param name="finalCount">how many nodes to add</param>
         /// <param name="plot">The graph with new nodes</param>
@@ -909,6 +923,7 @@ namespace rgat
             Debug.Assert(bufs.PresetPositions.Length == bufs.PositionsArray.Length);
 
             //possible todo here - shift Y down as the index increases
+
             float[] nodePositionEntry = {
                 ((float)_rng.NextDouble() * bounds) - bounds_half,
                 ((float)_rng.NextDouble() * bounds) - bounds_half,
@@ -1002,6 +1017,20 @@ namespace rgat
             _VRAMBuffers.PresetPositions = VeldridGraphBuffers.CreateFloatsDeviceBuffer(positions, _gd, "Preset1");
             ActivatingPreset = true;
 
+            Lock.ExitWriteLock();
+        }
+
+
+        /// <summary>
+        /// Initiate snapping to a custom-built preset
+        /// </summary>
+        public void ActivateRawPreset()
+        {
+            Lock.EnterWriteLock();
+            presetSteps = 0;
+            ActivatingPreset = true;
+            PresetStyle = LayoutStyles.Style.Custom;
+            _VRAMBuffers.Style = LayoutStyles.Style.Custom;
             Lock.ExitWriteLock();
         }
 
@@ -1203,9 +1232,10 @@ namespace rgat
         {
             Lock.EnterWriteLock();
             ActivatingPreset = false;
+            LayoutStyles.Style oldStyle = this._VRAMBuffers.Style;
             this._VRAMBuffers.Style = PresetStyle;
 
-            if (LayoutStyles.IsForceDirected(PresetStyle))
+            if (LayoutStyles.IsForceDirected(PresetStyle) && oldStyle is not LayoutStyles.Style.Custom)
             {
                 if (SavedStates.TryGetValue(PresetStyle, out CPUBuffers? cpubufs))
                 {

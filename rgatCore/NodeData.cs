@@ -19,7 +19,6 @@ namespace rgat
         {
             JArray nodearr = new JArray();
 
-            nodearr.Add(Index);
             nodearr.Add(BlockID);
             nodearr.Add(conditional);
             nodearr.Add(GlobalModuleID);
@@ -43,7 +42,7 @@ namespace rgat
 
             nodearr.Add(outgoing);
 
-            nodearr.Add(IsExternal);
+            nodearr.Add(IsExternal ? 1 : 0);
 
             if (!IsExternal)
             {
@@ -70,17 +69,11 @@ namespace rgat
         /// <param name="nodeData">JArray of node data</param>
         /// <param name="processinfo">The process record this node was generated with</param>
         /// <returns></returns>
-        public bool Deserialise(JArray nodeData, ProcessRecord processinfo)
+        public bool Deserialise(int index, JArray nodeData, ProcessRecord processinfo)
         {
+            Index = (uint)index;
+
             int jsnArrIdx = 0;
-            if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
-            {
-                return ErrorAtIndex(jsnArrIdx);
-            }
-
-            Index = nodeData[jsnArrIdx].ToObject<uint>();
-            jsnArrIdx++;
-
             if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
             {
                 return ErrorAtIndex(jsnArrIdx);
@@ -168,12 +161,12 @@ namespace rgat
             jsnArrIdx++;
 
 
-            if (nodeData[jsnArrIdx].Type != JTokenType.Boolean)
+            if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
             {
                 return ErrorAtIndex(jsnArrIdx);
             }
 
-            IsExternal = nodeData[jsnArrIdx].ToObject<bool>();
+            IsExternal = nodeData[jsnArrIdx].ToObject<int>() == 0 ? false: true;
             jsnArrIdx++;
 
             if (IsExternal)

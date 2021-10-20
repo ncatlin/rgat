@@ -388,8 +388,18 @@ namespace rgat
         /// </summary>
         private static void InitUnsetCustomColours()
         {
+
             Dictionary<eThemeColour, uint> DefaultCustomColours = new Dictionary<eThemeColour, uint>
             {
+                [eThemeColour.WindowBackground] = new WritableRgbaFloat(Af: 1f, Gf: 0, Bf: 0, Rf: 0).ToUint(),
+                [eThemeColour.Control] = 0x650017ff,
+                [eThemeColour.ControlText] = 0xffffffff,
+                [eThemeColour.WindowText] = 0xffffffff,
+                [eThemeColour.Frame] = 0x333333ff,
+
+
+
+
                 [eThemeColour.PreviewText] = new WritableRgbaFloat(Af: 1f, Gf: 1, Bf: 1, Rf: 1).ToUint(),
                 [eThemeColour.PreviewTextBackground] = new WritableRgbaFloat(Af: 0.3f, Gf: 0, Bf: 0, Rf: 0).ToUint(),
                 [eThemeColour.PreviewPaneBorder] = new WritableRgbaFloat(Af: 1f, Gf: 0, Bf: 0, Rf: 1).ToUint(),
@@ -520,7 +530,7 @@ namespace rgat
             {
                 if (!ThemeColoursCustom.ContainsKey(item) || ThemeColoursCustom.TryGetValue(item, out uint colResult) is false)
                 {
-                    return 0xffff0000;
+                    return 0xff000000;
                 }
                 if (customAlpha is not null) return WritableRgbaFloat.ToUint(colResult, customAlpha.Value);
                 return colResult;
@@ -804,6 +814,7 @@ namespace rgat
                             Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}");
                             continue;
                         }
+                        Console.WriteLine($"Loading {customcolType} {item.Value}");
                         pendingColsCustom[customcolType] = item.Value.ToObject<uint>();
                     }
                 }
@@ -929,6 +940,7 @@ namespace rgat
 
                 InitUnsetCustomColours();
 
+                RegenerateUIThemeJSON();
                 return true;
             }
         }
@@ -1257,7 +1269,7 @@ namespace rgat
                     }
                 }
             }
-
+            
             string defaultTheme = GlobalConfig.Settings.Themes.DefaultTheme;
             if (defaultTheme.Length > 0)
             {
@@ -1273,7 +1285,7 @@ namespace rgat
                 }
                 Logging.RecordError($"Default theme {defaultTheme} is unavailable");
             }
-
+            
             if (BuiltinThemes.Count > 0)
             {
                 LoadTheme(BuiltinThemes.Keys.First());
@@ -1288,9 +1300,10 @@ namespace rgat
 
             if (ThemeColoursCustom.Count == 0)
             {
-                InitFallbackTheme();
+               InitFallbackTheme();
             }
-            InitUnsetCustomColours();
+            InitUnsetCustomColours(); 
+            RegenerateUIThemeJSON();
         }
 
     }

@@ -642,6 +642,10 @@ namespace rgat
                 /// </summary>
                 Circle,
                 /// <summary>
+                /// Created from a builtin list of positions, no replotting performed
+                /// </summary>
+                Custom,
+                /// <summary>
                 /// No
                 /// </summary>
                 Invalid

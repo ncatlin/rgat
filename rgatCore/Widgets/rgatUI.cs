@@ -26,9 +26,11 @@ namespace rgat
         //hardware resources
         private readonly GraphicsDevice _gd;
 
+
         //widgets
         private SandboxChart? chart;
         private VisualiserTab? visualiserTab;
+        private readonly SplashScreenRenderer _splashRenderer;
 
         //dialogs
         private RemoteDialog? _RemoteDialog;
@@ -69,6 +71,7 @@ namespace rgat
         private readonly List<Tuple<Key, ModifierKeys>> _keyPresses = new List<Tuple<Key, ModifierKeys>>();
         private float _mouseWheelDelta = 0;
         private Vector2 _mouseDragDelta = new Vector2(0, 0);
+        private Vector2 _mousePos = new Vector2(0, 0);
 
         private static bool DialogOpen => Controller.DialogOpen;
         public bool MenuBarVisible => (rgatState.ActiveTarget is not null ||
@@ -114,6 +117,7 @@ namespace rgat
             _controller = controller;
             _gd = Controller.GraphicsDevice;
             _logsWindow = new LogsWindow(_rgatState);
+            _splashRenderer = new SplashScreenRenderer(_gd, controller);
         }
 
 
@@ -165,6 +169,15 @@ namespace rgat
             
             {
                 _mouseDragDelta += delta;
+            }
+        }
+        
+        public void SetMousePosition(Vector2 pos)
+        {
+            lock (_inputLock)
+            
+            {
+                _mousePos += pos;
             }
         }
 
@@ -590,7 +603,6 @@ namespace rgat
                                 break;
                         }
 
-
                         if (currentTabVisualiser)
                         {
                             visualiserTab.AlertKeybindPressed(boundAction, KeyModifierTuple);
@@ -885,6 +897,7 @@ namespace rgat
                         rgatState.ExportTraceAsPajek(record, graph.TID);
                     }
                 }
+                SmallWidgets.MouseoverText("Export the current graph in a format readable by other graph visualisers");
                 ImGui.Separator();
                 if (ImGui.MenuItem("Open Screenshot/Video Folder"))
                 {
@@ -901,6 +914,7 @@ namespace rgat
                 ToggleSettingsWindow();
             }
         }
+
 
         private void DrawInnerLeftMenuItems()
         {

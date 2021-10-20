@@ -42,10 +42,10 @@ namespace rgat.Layouts
         private struct VelocityShaderParams
         {
             public uint nodeCount;
+            public float speedDivisor;
             //must be multiple of 16
             private readonly uint _padding1;
             private readonly uint _padding2;
-            private readonly uint _padding3;
         }
 
         private unsafe void SetupComputeResources()
@@ -100,7 +100,7 @@ namespace rgat.Layouts
             {
 
                 velocity_rsrc_desc = new ResourceSetDescription(_velocityShaderRsrcLayout,
-                    _positionParamsBuffer, layout.PositionsVRAM1,  layout.PresetPositions, layout.VelocitiesVRAM1,
+                    _velocityParamsBuffer, layout.PositionsVRAM1,  layout.PresetPositions, layout.VelocitiesVRAM1,
                    layout.VelocitiesVRAM2
                 );
                 pos_rsrc_desc = new ResourceSetDescription(_positionShaderRsrcLayout,
@@ -111,7 +111,7 @@ namespace rgat.Layouts
             else
             {
                 velocity_rsrc_desc = new ResourceSetDescription(_velocityShaderRsrcLayout,
-                    _positionParamsBuffer, layout.PositionsVRAM2, layout.PresetPositions, layout.VelocitiesVRAM2,
+                    _velocityParamsBuffer, layout.PositionsVRAM2, layout.PresetPositions, layout.VelocitiesVRAM2,
                     layout.VelocitiesVRAM1);
 
 
@@ -145,7 +145,8 @@ namespace rgat.Layouts
             GraphLayoutState layout = plot.LayoutState;
             VelocityShaderParams parameters = new VelocityShaderParams
             {
-                nodeCount = (uint)plot.RenderedNodeCount()
+                nodeCount = (uint)plot.RenderedNodeCount(),
+                speedDivisor = GlobalConfig.PresetSpeedDivisor
             };
 
             //if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);

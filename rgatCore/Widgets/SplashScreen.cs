@@ -29,6 +29,7 @@ namespace rgat
 
         private void DrawSplash(rgatSettings.PathRecord[] recentBins, rgatSettings.PathRecord[] recentTraces)
         {
+
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
@@ -282,6 +283,10 @@ namespace rgat
             ImGui.EndGroup();
 
             ImGui.PopStyleColor();
+            if (GlobalConfig.Settings.UI.EnableTortoise)
+            {
+               _splashRenderer.Draw();
+            }
 
             if (StartupProgress < 1)
             {

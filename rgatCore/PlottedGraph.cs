@@ -413,7 +413,7 @@ namespace rgat
                 {
                     //if (e.edgeClass == eEdgeNodeType.eEdgeException)
                     //    NodesDisplayData.LastRenderedNode.lastVertType = eEdgeNodeType.eNodeException;
-                    AddNode(edgeNodes.Item2, e);
+                    AddNode(edgeNodes.Item2, edge: e);
 
                 }
 
@@ -1042,13 +1042,14 @@ namespace rgat
 
             textureLock.EnterReadLock();
 
-
-            Debug.Assert(nodeIdx == _graphStructureLinear.Count); //todo, asserting here on load. i dont remember if this is important
+            //todo, asserting here on load. i dont remember if this is important
+            //if it happens it means an edge is going to a from a node that didn't exist at the time it was created
+            Debug.Assert(nodeIdx == _graphStructureLinear.Count); 
             uint futureCount = (uint)_graphStructureLinear.Count + 1;
             var bufferWidth = indexTextureSize((int)futureCount);
 
             LayoutState.Lock.EnterUpgradeableReadLock();
-            LayoutState.AddNode(nodeIdx, futureCount, bufferWidth, edge);
+            LayoutState.AddNode(nodeIdx, futureCount, bufferWidth, edge: edge);
             LayoutState.Lock.ExitUpgradeableReadLock();
 
             lock (animationLock)
@@ -1524,16 +1525,17 @@ namespace rgat
             nodeCount = RenderedNodeCount();
 
             //theme changed, read in new colours
-            ulong themeVersion = Themes.ThemeVersion;
-            bool newColours = lastThemeVersion < themeVersion;
+            ulong themeVariant = Themes.ThemeVariant;
+            bool newColours = lastThemeVersion < themeVariant;
             if (newColours)
             {
+                _cachedMainNodeVertCount = 0;
                 InitGraphColours();
-                lastThemeVersion = themeVersion;
+                lastThemeVersion = themeVariant;
+                _mainEdgesCache.TexturiseRequired = true;
             }
 
             int textureSize = textureWidth * textureWidth;
-
             if (textureSize > _cachedMainNodeVerts.Length)
             {
                 Position1DColour[] NodeVerts = new Position1DColour[textureSize];
@@ -1721,9 +1723,6 @@ namespace rgat
                 cache.TexturiseRequired = false;
                 //GC.Collect();
             }
-
-            vertCount = 0;
-            uint textureSize = LinearIndexTextureSize();
 
             Stopwatch sw = new();
             sw.Start();
@@ -2412,7 +2411,6 @@ namespace rgat
         public void AddNewEdgesToLayoutBuffers(int edgesCount)
         {
             Stopwatch st = new();
-            long v1 = 0, v2 = 0, v3 = 0;
             bool doneRegen = false;
             if (edgesCount > RenderedEdgeCount || _rng.Next(0, 100) == 1) //todo this is a hack from when things were less reliable. disable and look for issues
             {
@@ -2433,7 +2431,6 @@ namespace rgat
                 }
                 st.Stop();
                 doneRegen = true;
-                v1 = st.ElapsedMilliseconds;
             }
 
             int graphNodeCount = RenderedNodeCount();
@@ -2442,7 +2439,6 @@ namespace rgat
                 st.Restart();
                 LayoutState.AddNewNodesToComputeBuffers(graphNodeCount, this);
                 st.Stop();
-                v2 = st.ElapsedMilliseconds;
 
                 if (!doneRegen)
                 {
@@ -2451,7 +2447,6 @@ namespace rgat
                     LayoutState.RegenerateEdgeDataBuffers(this); //todo change to upgradread
                     LayoutState.Lock.ExitWriteLock();
                     st.Stop();
-                    v3 = st.ElapsedMilliseconds;
                 }
             }
             //Console.WriteLine($"Addnewedgestolayout took regen1: {v1}, addnodes:{v2} regen2:{v3}");

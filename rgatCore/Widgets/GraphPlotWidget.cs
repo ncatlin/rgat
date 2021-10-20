@@ -20,14 +20,13 @@ namespace rgat
     /// </summary>
     internal class GraphPlotWidget : IDisposable
     {
-        public PlottedGraph? ActiveGraph { get; private set; }
+        public PlottedGraph? ActivePlot { get; private set; }
 
         private readonly QuickMenu _QuickMenu;
         private readonly ImGuiController _controller;
-        private readonly GraphLayoutEngine _layoutEngine;
         private readonly rgatState _clientState;
+        public readonly GraphLayoutEngine LayoutEngine;
 
-        public GraphLayoutEngine LayoutEngine => _layoutEngine;
         public bool Exiting = false;
         private GraphicsDevice? _gd;
         private ResourceFactory? _factory;
@@ -39,7 +38,7 @@ namespace rgat
         private bool _processingAnimatedGraph;
 
         /// <summary>
-        /// Edges pipeline = line list or line strp
+        /// Edges pipeline = line list or line strip
         /// Points pipeline = visible nodes where we draw sphere/etc texture
         /// Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
         /// Font pipeline = triangles
@@ -81,7 +80,7 @@ namespace rgat
             _QuickMenu = new QuickMenu(_controller);
 
             WidgetSize = initialSize ?? new Vector2(400, 400);
-            _layoutEngine = new GraphLayoutEngine("Main");
+            LayoutEngine = new GraphLayoutEngine("Main");
         }
 
 
@@ -93,7 +92,7 @@ namespace rgat
         {
             _gd = gdev;
             _factory = _gd.ResourceFactory;
-            _layoutEngine.Init(gdev);
+            LayoutEngine.Init(gdev);
             _QuickMenu.Init(_gd);
             _imageTextureView = _controller.IconTexturesView;  //todo crash if closed early in load
             SetupRenderingResources();
@@ -139,13 +138,13 @@ namespace rgat
                 {
                     float proportion = Math.Abs(mainzoom / 7);
 
-                    ActiveGraph?.ApplyMouseWheelDelta(proportion * (wheelClicks > 0 ? 1 : -1));
+                    ActivePlot?.ApplyMouseWheelDelta(proportion * (wheelClicks > 0 ? 1 : -1));
                     return;
                 }
 
             }
 
-            ActiveGraph?.ApplyMouseWheelDelta(wheelClicks * shiftMultiplier * ctrlMultiplier);
+            ActivePlot?.ApplyMouseWheelDelta(wheelClicks * shiftMultiplier * ctrlMultiplier);
         }
 
         private bool _isInputTarget = false;
@@ -177,13 +176,13 @@ namespace rgat
                         yDelta = (mainY / 200) * (delta.Y > 0 ? 1 : -1);
                     }
                 }
-                ActiveGraph?.ApplyMouseDragDelta(new Vector2(xDelta, yDelta));                
+                ActivePlot?.ApplyMouseDragDelta(new Vector2(xDelta, yDelta));                
             }
         }
 
         public void ApplyMouseRotate(Vector2 delta)
         {
-            if (ActiveGraph != null)
+            if (ActivePlot != null)
             {
                 _yawDelta -= delta.X * 0.03f;
                 _pitchDelta -= delta.Y * 0.03f;
@@ -213,7 +212,7 @@ namespace rgat
         /// </summary>
         private bool CenterGraphInFrameStep(Matrix4x4 worldView, out float MaxRemaining)
         {
-            PlottedGraph? graph = ActiveGraph;
+            PlottedGraph? graph = ActivePlot;
             if (graph == null || graph.LayoutState.Initialised is false)
             {
                 MaxRemaining = 0;
@@ -472,7 +471,7 @@ namespace rgat
         {
             _graphLock.EnterReadLock();
 
-            PlottedGraph? graph = ActiveGraph;
+            PlottedGraph? graph = ActivePlot;
             if (graph == null)
             {
                 _graphLock.ExitReadLock();
@@ -627,7 +626,7 @@ namespace rgat
         /// <param name="world"></param>
         private void UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world)
         {
-            PlottedGraph? graph = ActiveGraph;
+            PlottedGraph? graph = ActivePlot;
             if (graph == null)
             {
                 proj = Matrix4x4.Identity;
@@ -662,24 +661,24 @@ namespace rgat
         /// Write the rendered graph/HUD items to the draw list
         /// </summary>
         /// <param name="graphSize">Size of the graph area being drawn</param>
-        /// <param name="graph">The graph being drawn</param>
-        public void Draw(Vector2 graphSize, PlottedGraph? graph)
+        /// <param name="plot">The graph being drawn</param>
+        public void Draw(Vector2 graphSize, PlottedGraph? plot)
         {
             _graphLock.EnterReadLock();
             try
             {
 
-                if (graph != ActiveGraph)
+                if (plot != ActivePlot)
                 {
-                    ActiveGraph = graph;
+                    ActivePlot = plot;
                 }
 
-                if (ActiveGraph != null)
+                if (ActivePlot != null)
                 {
                     DrawGraphImage();
                 }
 
-                DrawHUD(graphSize, ActiveGraph);
+                DrawHUD(graphSize, ActivePlot);
             }
             finally
             {
@@ -732,12 +731,12 @@ namespace rgat
         {
             if (latestWrittenTexture == 1)
             {
-                if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph?.TID}  Returning latest written graph texture 1", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"GetLatestTexture {ActivePlot?.TID}  Returning latest written graph texture 1", Logging.LogFilterType.BulkDebugLogFile);
                 graphtexture = _outputTexture1!;
             }
             else
             {
-                if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"GetLatestTexture {ActiveGraph?.TID}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
+                if (GlobalConfig.BulkLog) Logging.RecordLogEvent($"GetLatestTexture {ActivePlot?.TID}  Returning latest written graph texture 2", Logging.LogFilterType.BulkDebugLogFile);
                 graphtexture = _outputTexture2!;
             }
         }
@@ -749,17 +748,16 @@ namespace rgat
         private unsafe void SetupRenderingResources()
         {
             Debug.Assert(_gd is not null, "Init not called");
-            ResourceFactory factory = _gd.ResourceFactory;
             _paramsBuffer = TrackedVRAMAlloc(_gd, (uint)Unsafe.SizeOf<GraphShaderParams>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic, name: "GraphPlotparamsBuffer");
 
-            _coreRsrcLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _coreRsrcLayout = _factory!.CreateResourceLayout(new ResourceLayoutDescription(
                new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Vertex),
                new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment),
                new ResourceLayoutElementDescription("Positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex),
                 new ResourceLayoutElementDescription("NodeAttribs", ResourceKind.StructuredBufferReadOnly, ShaderStages.Vertex)
                ));
 
-            _nodesEdgesRsrclayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _nodesEdgesRsrclayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                 new ResourceLayoutElementDescription("NodeTextures", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
 
 
@@ -789,10 +787,10 @@ namespace rgat
             pipelineDescription.Outputs = _outputFramebuffer1.OutputDescription;
 
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.PointList;
-            _pointsPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
+            _pointsPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
 
             pipelineDescription.ShaderSet = SPIRVShaders.CreateNodePickingShaders(_gd, out _NodePickingBuffer);
-            _pickingPipeline = factory.CreateGraphicsPipeline(pipelineDescription);
+            _pickingPipeline = _factory.CreateGraphicsPipeline(pipelineDescription);
 
 
             /*
@@ -801,22 +799,22 @@ namespace rgat
              */
             pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRelativeShaders(_gd, out _EdgeVertBuffer);
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
-            _edgesPipelineRelative = factory.CreateGraphicsPipeline(pipelineDescription);
+            _edgesPipelineRelative = _factory.CreateGraphicsPipeline(pipelineDescription);
 
             pipelineDescription.ShaderSet = SPIRVShaders.CreateEdgeRawShaders(_gd, out _RawEdgeVertBuffer, out _RawEdgeIndexBuffer);
             pipelineDescription.PrimitiveTopology = PrimitiveTopology.LineList;
-            _edgesPipelineRaw = factory.CreateGraphicsPipeline(pipelineDescription);
+            _edgesPipelineRaw = _factory.CreateGraphicsPipeline(pipelineDescription);
 
 
 
             //font -----------------------
 
-            _fontRsrcLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
+            _fontRsrcLayout = _factory.CreateResourceLayout(new ResourceLayoutDescription(
                 new ResourceLayoutElementDescription("FontTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)
                 ));
 
             ResourceSetDescription crs_font_rsd = new ResourceSetDescription(_fontRsrcLayout, _controller._fontTextureView);
-            _crs_font = factory.CreateResourceSet(crs_font_rsd);
+            _crs_font = _factory.CreateResourceSet(crs_font_rsd);
 
             ShaderSetDescription fontshader = SPIRVShaders.CreateFontShaders(_gd, out _FontVertBuffer);
 
@@ -827,7 +825,7 @@ namespace rgat
                 PrimitiveTopology.TriangleList, fontshader,
                 new ResourceLayout[] { _coreRsrcLayout, _fontRsrcLayout },
                 _outputFramebuffer1.OutputDescription);
-            _fontPipeline = factory.CreateGraphicsPipeline(fontpd);
+            _fontPipeline = _factory.CreateGraphicsPipeline(fontpd);
         }
 
 
@@ -1055,23 +1053,22 @@ namespace rgat
         /// <param name="world"></param>
         /// <param name="cl"></param>
         /// <returns></returns>
-        private GraphShaderParams updateShaderParams(PlottedGraph plot, uint textureSize, Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, CommandList cl)
+        public static void UpdateShaderParams(PlottedGraph plot, uint textureSize, int mousoverNode,
+            Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, CommandList cl, DeviceBuffer paramsBuffer)
         {
-            GraphShaderParams shaderParams = new GraphShaderParams
+            GraphShaderParams paramsObj = new GraphShaderParams
             {
                 TexWidth = textureSize,
-                pickingNode = MouseoverNodeID,
+                pickingNode = mousoverNode,
                 isAnimated = plot.IsAnimated
             };
 
-            shaderParams.proj = projection;
-            shaderParams.view = view;
-            shaderParams.world = world;
-            shaderParams.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), plot.CameraState.MainCameraTranslation);
+            paramsObj.proj = projection;
+            paramsObj.view = view;
+            paramsObj.world = world;
+            paramsObj.nonRotatedView = Matrix4x4.Multiply(Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, 0), plot.CameraState.MainCameraTranslation);
 
-            cl.UpdateBuffer(_paramsBuffer, 0, shaderParams);
-
-            return shaderParams;
+            cl.UpdateBuffer(paramsBuffer, 0, paramsObj);
         }
 
 
@@ -1127,7 +1124,7 @@ namespace rgat
         private void MaintainRisingTexts(float fontScale, List<fontStruc> stringVerts)
         {
             _activeRisings.RemoveAll(x => x.remainingFrames == 0);
-            PlottedGraph? graph = ActiveGraph;
+            PlottedGraph? graph = ActivePlot;
             if (graph == null)
             {
                 return;
@@ -1206,7 +1203,7 @@ namespace rgat
 
         private fontStruc[] renderGraphText(List<Tuple<string?, uint>> captions, float scale)
         {
-            PlottedGraph? graph = ActiveGraph;
+            PlottedGraph? graph = ActivePlot;
             if (graph == null)
             {
                 return Array.Empty<fontStruc>();
@@ -1287,7 +1284,7 @@ namespace rgat
             var textureSize = plot.LinearIndexTextureSize();
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
-            updateShaderParams(plot, textureSize, proj, view, world, cl);
+            UpdateShaderParams(plot, textureSize, MouseoverNodeID, proj, view, world, cl, _paramsBuffer!);
 
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer,
                 _gd.PointSampler, plot.LayoutState.PositionsVRAM1, plot.LayoutState.AttributesVRAM1);
@@ -1299,8 +1296,6 @@ namespace rgat
             st.Stop();
             if (st.ElapsedMilliseconds > 100)
                 Console.WriteLine($"DGGetMaingraphNodeVerts took {st.ElapsedMilliseconds}");
-
-            //_layoutEngine.GetScreenFitOffsets(WidgetSize, out _furthestX, out _furthestY, out _furthestZ);
 
             if (_NodeVertexBuffer!.SizeInBytes < NodeVerts.Length * Position1DColour.SizeInBytes)
             {
@@ -1430,7 +1425,7 @@ namespace rgat
             st.Restart();
 
             cl.End();
-            _gd.SubmitCommands(cl); //had a same key error here
+            _gd.SubmitCommands(cl); 
             _gd.WaitForIdle();
 
             st.Stop();
@@ -1573,7 +1568,7 @@ namespace rgat
         /// <param name="pos">Position to draw to</param>
         public void DisplayEventMessages(Vector2 pos)
         {
-            PlottedGraph? graph = ActiveGraph;
+            PlottedGraph? graph = ActivePlot;
             if (graph == null)
             {
                 return;
@@ -1800,7 +1795,7 @@ namespace rgat
 
         private void DrawLayoutSelectorIcons(Vector2 iconSize, bool snappingToPreset)
         {
-            PlottedGraph? graph = ActiveGraph;
+            PlottedGraph? graph = ActivePlot;
             if (graph == null)
             {
                 return;
@@ -1842,7 +1837,7 @@ namespace rgat
         {
             _graphLock.EnterUpgradeableReadLock();
 
-            PlottedGraph? graph = ActiveGraph;
+            PlottedGraph? graph = ActivePlot;
             if (graph == null || Exiting)
             {
                 _graphLock.ExitUpgradeableReadLock();
@@ -1850,15 +1845,13 @@ namespace rgat
             }
 
             Stopwatch st = new Stopwatch();
-            long v1 = 0, v2 = 0, v3 = 0, v4 = 0;
 
             st.Start();
             HandleGraphUpdates();
-            st.Stop(); v1 = st.ElapsedMilliseconds; st.Restart();
 
             try
             {
-                _layoutEngine.Compute(cl, graph, MouseoverNodeID, graph.IsAnimated);
+                LayoutEngine.Compute(cl, graph, MouseoverNodeID, graph.IsAnimated);
             }
             catch (Exception e)
             {
@@ -1866,12 +1859,9 @@ namespace rgat
                 return;
             }
 
-            st.Stop(); v2 = st.ElapsedMilliseconds; st.Restart();
-
             if (_controller.DialogOpen is false)
             {
                 DoMouseNodePicking(_gd!);
-                st.Stop(); v3 = st.ElapsedMilliseconds; st.Restart();
             }
 
             UpdateAndGetViewMatrix(out Matrix4x4 proj, out Matrix4x4 view, out Matrix4x4 world);
@@ -1912,11 +1902,6 @@ namespace rgat
 
             DrawGraph(cl, graph);
 
-            st.Stop(); v4 = st.ElapsedMilliseconds; st.Restart();
-
-            if (v4 > 200)
-                Console.WriteLine($"---------\n-----------\nGMG: v1:{v1}, v1:{v2}, v3:{v3}, DrawGraph:{v4}\n--------------\n---------------");
-
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("GenerateMainGraph upd then done", filter: Logging.LogFilterType.BulkDebugLogFile);
             graph.UpdatePreviewVisibleRegion(WidgetSize);
             _graphLock.ExitUpgradeableReadLock();
@@ -1940,7 +1925,7 @@ namespace rgat
         /// </summary>
         private void HandleGraphUpdates()
         {
-            PlottedGraph? graph = ActiveGraph;
+            PlottedGraph? graph = ActivePlot;
             if (graph == null || Exiting)
             {
                 return;
@@ -1988,7 +1973,7 @@ namespace rgat
         /// <param name="_gd"></param>
         private void DoMouseNodePicking(GraphicsDevice _gd)
         {
-            PlottedGraph? graph = ActiveGraph;
+            PlottedGraph? graph = ActivePlot;
             if (graph == null || Exiting)
             {
                 return;

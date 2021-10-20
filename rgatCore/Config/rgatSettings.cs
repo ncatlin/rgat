@@ -365,6 +365,12 @@ namespace rgat.Config
             public int PreviewWorkers { get => _PreviewWorkers; set { _PreviewWorkers = value; MarkDirty(); } }
             private int _PreviewWorkers = 4;
 
+            /// <summary>
+            /// Add a friendly tortoise to the splash screen
+            /// </summary>
+            public bool EnableTortoise { get => _EnableTortoise; set { _EnableTortoise = value; MarkDirty(); } }
+            private bool _EnableTortoise = true;
+
             //This should probably be a list
             /// <summary>
             /// Enable loading of Korean characters in the main font

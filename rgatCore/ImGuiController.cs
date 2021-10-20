@@ -672,7 +672,7 @@ namespace ImGuiNET
         }
 
 
-        private static byte[]? GetEmbeddedResourceBytes(string resourceName)
+        public static byte[]? GetEmbeddedResourceBytes(string resourceName)
         {
             Assembly assembly = typeof(ImGuiController).Assembly;
 
@@ -793,6 +793,15 @@ namespace ImGuiNET
             io.DeltaTime = deltaSeconds; // DeltaTime is in seconds.
             io.ConfigFlags |= ImGuiConfigFlags.DockingEnable; //doesnt work yet?
         }
+
+        public DateTime LastMouseMove { get; private set; } = DateTime.MinValue;
+        public bool MousePresent { get; private set; } = false;
+        public void SetMousePresent(bool state)
+        {
+            MousePresent = state;
+            LastMouseMove = DateTime.Now;
+        }
+        public double LastMouseActivityMS => (DateTime.Now  - LastMouseMove).TotalMilliseconds;
 
         private void UpdateImGuiInput(InputSnapshot snapshot)
         {
@@ -1117,6 +1126,9 @@ namespace ImGuiNET
         public static readonly char FA_ICON_ADDFILE = '\uf477';
         public static readonly char FA_ICON_DOWNLOAD = '\uf56d';
         public static readonly char FA_ICON_LOADFILE = '\uf56e';
+
+        public static readonly char FA_ICON_PLANT = '\uf4d8';
+        public static readonly char FA_ICON_EGG = '\uf7fb';
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
     }
 }

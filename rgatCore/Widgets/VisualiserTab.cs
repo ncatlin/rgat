@@ -1200,13 +1200,13 @@ namespace rgat
                 }
                 else
                 {
-                    if (MainGraphWidget.ActiveGraph != null)
+                    if (MainGraphWidget.ActivePlot != null)
                     {
                         PreviewGraphWidget.SetActiveTrace(null);
                     }
                 }
             }
-            else if (rgatState.ActiveGraph != MainGraphWidget.ActiveGraph)
+            else if (rgatState.ActiveGraph != MainGraphWidget.ActivePlot)
             {
 
                 if (rgatState.RecordVideoOnNextTrace)

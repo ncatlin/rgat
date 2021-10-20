@@ -1095,7 +1095,7 @@ namespace rgat
                 };
 
                 List<InstructionData> addrinstructions = addr_inslist.Value;
-                insentry.Add(addrinstructions.Count);
+                insentry.Add(addrinstructions.Count); //how many different instructions were seen at that address
 
                 foreach (var mutation in addr_inslist.Value)
                 {
@@ -1108,7 +1108,7 @@ namespace rgat
                     foreach (Tuple<uint, uint> thread_node in threadVerts)
                     {
                         insentry.Add(thread_node.Item1); // thread ID
-                        insentry.Add(thread_node.Item2); // node index f instruction on thread graph
+                        insentry.Add(thread_node.Item2); // node index of instruction on thread graph
                     }
 
                 }

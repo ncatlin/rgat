@@ -8,7 +8,7 @@ See included licence: METASTACK ANALYTICS LICENSE
 */
 
 /*
-C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\Shaders\SPIR-V\sim-velocity.glsl -o sim-velocity.spv -S comp
+C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\Shaders\SPIR-V\sim-presetVelocity.glsl -o sim-presetVelocity.spv -S comp
 */
 
 #version 450
@@ -18,6 +18,7 @@ C:\Users\nia\Desktop\rgatstuff\gslangvalidator\bin\glslangValidator.exe  -V C:\U
 struct VelocityParams
 {
     uint nodeCount;
+    float speedDivisor;
 };
 
 layout(set = 0, binding=0) uniform Params { VelocityParams fieldParams;};
@@ -38,8 +39,8 @@ layout (local_size_x = 256) in;
 
 void main()	{
 
-    uvec3 id = gl_GlobalInvocationID;
-    uint index = id.y * 256 + id.x;
+    //uvec3 id = gl_GlobalInvocationID;
+    uint index = gl_GlobalInvocationID.x;
 
     if (index < fieldParams.nodeCount)
     {
@@ -55,9 +56,10 @@ void main()	{
             
         if (distFromDest > 0.001) 
         {
-            float speed = distFromDest/10;
-            if (speed < 10) speed = distFromDest;
-            velocity -= addProportionalAttraction(selfPosition.xyz, presetLayoutPosition, distFromDest/10);
+            float speed = distFromDest/fieldParams.speedDivisor;
+            //if (speed < 10) speed = distFromDest;
+            outputDebug = fieldParams.speedDivisor;
+            velocity -= addProportionalAttraction(selfPosition.xyz, presetLayoutPosition, speed);
         }
         velocity *= 0.75;
             

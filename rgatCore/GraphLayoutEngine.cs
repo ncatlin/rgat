@@ -349,7 +349,10 @@ namespace rgat
                         float fastest = FindHighXYZ(layout.VelocitiesVRAM1, plot.ComputeBufferNodeCount, out int _);
                         if (fastest < 1)
                         {
-                            Logging.RecordLogEvent("Preset done", filter: Logging.LogFilterType.Debug);
+                            if (GlobalConfig.BulkLog)
+                            {
+                                Logging.RecordLogEvent("Preset done", graph: plot.InternalProtoGraph, filter: Logging.LogFilterType.BulkDebugLogFile);
+                            }
                             layout.CompleteLayoutChange();
                         }
                     }
@@ -454,10 +457,11 @@ namespace rgat
 
                 case CONSTANTS.LayoutStyles.Style.CylinderLayout:
                 case CONSTANTS.LayoutStyles.Style.Circle:
+                case CONSTANTS.LayoutStyles.Style.Custom:
                     return this.PresetLayout;
 
                 default:
-                    Logging.RecordError($"Layout {layout.Style} requested but not handled by SelectPipeline");
+                    Logging.RecordError($"Layout '{layout.Style}' requested but not handled by SelectPipeline");
                     return null;
             }
 

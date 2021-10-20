@@ -647,7 +647,7 @@ namespace rgat
 
 
                     bool discardTraceVal = activeTarget.LaunchSettings!.DiscardReplayData;
-                    if (ImGui.Checkbox("Discard Animation Data", ref discardTraceVal))
+                    if (ImGui.Checkbox("Discard Replay Data", ref discardTraceVal))
                     {
                         activeTarget.LaunchSettings.DiscardReplayData = discardTraceVal;
                     }

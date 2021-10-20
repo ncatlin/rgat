@@ -54,7 +54,7 @@ namespace ImGuiNET
                     }
                     break;
 
-                case LaunchConfig.RunMode.NoGPUTraceCommand:
+                case LaunchConfig.RunMode.NoGPUTraceCommand: //...did i implement this already? when did that happpen??
                     if (GlobalConfig.StartOptions.TargetPath is null)
                     {
                         Logging.RecordError("No target path"); return;
@@ -65,7 +65,7 @@ namespace ImGuiNET
                     CommandLineRunner.TraceBinary(GlobalConfig.StartOptions.TargetPath, saveDirectory: GlobalConfig.StartOptions.TraceSaveDirectory, recordVideo: false);
                     break;
 
-                case LaunchConfig.RunMode.GPURenderCommand:
+                case LaunchConfig.RunMode.GPURenderCommand://not supported in 0.6.0
                     rgatState.NetworkBridge.GUIMode = false;
                     Logging.RecordError("Command line media output not yet implemented");
                     return;

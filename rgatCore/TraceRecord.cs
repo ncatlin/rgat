@@ -1380,6 +1380,7 @@ namespace rgat
             return null;
         }
 
+
         /// <summary>
         /// Export the current trace in the pajek format, a simple graph serialisation format that other graph layout programs accept
         /// </summary>
@@ -1393,13 +1394,27 @@ namespace rgat
                 return;
             }
 
-            FileStream outfile = File.OpenWrite(Path.Combine(saveDir, "pajeksave" + TID.ToString() + ".net"));
+            string outPath = Path.Combine(saveDir, "pajeksave" + TID.ToString() + ".net");
+            FileStream outfile = File.OpenWrite(outPath);
             outfile.Write(Encoding.ASCII.GetBytes("%*Colnames \"Disassembly\"\n"));
             outfile.Write(Encoding.ASCII.GetBytes("*Vertices " + pgraph.NodeList.Count + "\n"));
 
             foreach (NodeData n in pgraph.NodeList)
             {
-                outfile.Write(Encoding.ASCII.GetBytes(n.Index + " \"" + n.ins!.InsText + "\"\n"));
+                if (n.ins is not null)
+                    outfile.Write(Encoding.ASCII.GetBytes(n.Index + " \"" + n.ins.InsText + "\"\n"));
+                else
+                {
+                    if (n.IsExternal)
+                    {
+
+                        outfile.Write(Encoding.ASCII.GetBytes($"{n.Index} - API call\n"));
+                    }
+                    else
+                    {
+                        outfile.Write(Encoding.ASCII.GetBytes($"{n.Index} - Unknown\n"));
+                    } 
+                }
             }
 
             outfile.Write(Encoding.ASCII.GetBytes("*edgeslist " + pgraph.NodeList.Count + "\n"));
@@ -1413,7 +1428,9 @@ namespace rgat
                 outfile.Write(Encoding.ASCII.GetBytes("\n"));
             }
             outfile.Close();
+            Logging.RecordLogEvent($"Exported thread {TID} to {outPath}");
         }
+
 
         /// <summary>
         /// Send a step command to execute a single instruction in a paused trace. Will step over function calls

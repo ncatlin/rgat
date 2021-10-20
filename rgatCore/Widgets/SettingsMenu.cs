@@ -165,7 +165,7 @@ namespace rgat.Widgets
                 { "Video Encoder", eSettingsCategory.eVideoEncode },
                 { "Miscellaneous", eSettingsCategory.eMisc }
             };
-            foreach(var value in settingsNames.Values)
+            foreach (var value in settingsNames.Values)
             {
                 optionsSelectStates[value] = false;
             }
@@ -1677,6 +1677,18 @@ namespace rgat.Widgets
                     }
                     SmallWidgets.MouseoverText("Specifiy how many replay events can be saved alongside each thread trace");
                 }
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+
+                ImGui.SetNextItemWidth(200);
+                bool tortoiseEnabled = GlobalConfig.Settings.UI.EnableTortoise;
+                if (ImGui.Checkbox("Enable Splash Screen Companion", ref tortoiseEnabled))
+                {
+                    GlobalConfig.Settings.UI.EnableTortoise = tortoiseEnabled;
+                }
+                SmallWidgets.MouseoverText("\"Why is rgat development taking so long?\"");
+
                 ImGui.EndTable();
 
             }
@@ -1812,7 +1824,7 @@ namespace rgat.Widgets
 
         private void CreateThemeTester()
         {
-            if (ImGui.BeginChild(ImGui.GetID("ThemeTestContainer2"), new Vector2(ImGui.GetContentRegionMax().X, 215), 
+            if (ImGui.BeginChild(ImGui.GetID("ThemeTestContainer2"), new Vector2(ImGui.GetContentRegionMax().X, 215),
                 false, ImGuiWindowFlags.AlwaysAutoResize))
             {
                 DrawThemeTestFrame();
@@ -1868,7 +1880,7 @@ namespace rgat.Widgets
                             ImGui.SameLine();
                             ImGui.BeginGroup();
                             {
-                                ImGui.Button("Button", new Vector2(120, 25)); 
+                                ImGui.Button("Button", new Vector2(120, 25));
                                 ImGui.SetNextItemWidth(120);
                                 ImGui.SliderFloat("Slider", ref testSlider, 0, 100);
                                 ImGui.SetNextItemWidth(120);
@@ -1956,7 +1968,7 @@ namespace rgat.Widgets
                 SmallWidgets.MouseoverText(tooltip);
             }
 
-            uint unsetBtnColour = WritableRgbaFloat.Brighten(Themes.GetThemeColourUINT(Themes.eThemeColour.Frame), 
+            uint unsetBtnColour = WritableRgbaFloat.Brighten(Themes.GetThemeColourUINT(Themes.eThemeColour.Frame),
                 CONSTANTS.UI.THEME_COLOUR_HOVERED_MULTIPLIER);
 
             ImGui.TableNextColumn();

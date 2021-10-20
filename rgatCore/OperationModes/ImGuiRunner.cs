@@ -177,6 +177,8 @@ namespace rgat.OperationModes
                 _controller.WindowResized(_window.Width, _window.Height);
                 AlertResized(new Vector2(_window.Width, _window.Height));
             };
+            _window.MouseLeft += () => { _controller.SetMousePresent(false); };
+            _window.MouseEntered += () => { _controller.SetMousePresent(true); };
 
             _window.KeyDown += (KeyEvent k) =>
             {
@@ -330,10 +332,10 @@ namespace rgat.OperationModes
             float configProgress = 0, widgetProgress = 0;
             void UpdateProgressConfWidgets() { rgatUI.StartupProgress = Math.Max(rgatUI.StartupProgress, currentUIProgress + 0.2 * configProgress + 0.5 * widgetProgress); };
 
-            Progress<float> IProgressConfig = new(progress => { configProgress = progress; UpdateProgressConfWidgets();});
+            Progress<float> IProgressConfig = new(progress => { configProgress = progress; UpdateProgressConfWidgets(); });
             Progress<float> IProgressWidgets = new(progress => { widgetProgress = progress; UpdateProgressConfWidgets(); });
 
-            Task confloader = Task.Run(() => { GlobalConfig.LoadConfig(GUI: true, progress: IProgressConfig);}); // 900ms~ depending on themes
+            Task confloader = Task.Run(() => { GlobalConfig.LoadConfig(GUI: true, progress: IProgressConfig); }); // 900ms~ depending on themes
             Task widgetLoader = Task.Run(() => _rgatUI!.InitWidgets(IProgressWidgets)); //2000ms~ fairly flat
 
             await Task.WhenAll(widgetLoader, confloader);
@@ -351,7 +353,6 @@ namespace rgat.OperationModes
 
             rgatState.VideoRecorder.Load(); //0 ms
             _rgatUI!.InitSettingsMenu(); //50ms ish
-
 
             Logging.RecordLogEvent($"Startup: Settings menu loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Restart();
@@ -372,7 +373,7 @@ namespace rgat.OperationModes
 
             Task sigsTask = Task.Run(() => rgatState.LoadSignatures(IProgressSigs));
 
-            
+
             // api data is the startup item that can be loaded latest as it's only needed when looking at traces
             // we could load it in parallel with the widgets/config but if it gets big then it will be the limiting factor in start up speed
             // doing it last means the user can do stuff while it loads
@@ -408,22 +409,19 @@ namespace rgat.OperationModes
             Logging.RecordLogEvent($"Startup: Signatures + API info inited in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             Logging.RecordLogEvent($"Startup: Loading thread took {timerTotal.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             rgatUI.StartupProgress = 1;
-            Logging.WriteConsole("Starup progress 1");
-            
+
         }
 
         public void Exit()
         {
-            if (GlobalConfig.Settings.Logs.BulkLogging)
-            {
-                if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("rgat Exit() triggered", Logging.LogFilterType.BulkDebugLogFile);
-            }
+
+            Logging.RecordLogEvent("rgat Exit() triggered", Logging.LogFilterType.BulkDebugLogFile);
 
             rgatState.Shutdown();
 
-            //wait for the ui stop stop and the main renderer to quit
-            while (
-                (!_UIStopped && Thread.CurrentThread.Name != "rgatUIMain") || _rgatUI!.ThreadsRunning)
+            //wait for the ui  rendering loop to stop and its threads to quit
+            while ((Thread.CurrentThread.Name is not "rgatUIMain" && _UIStopped is false) || 
+                _rgatUI!.ThreadsRunning is true)
             {
                 Thread.Sleep(10);
             }
@@ -454,6 +452,7 @@ namespace rgat.OperationModes
             _rgatUI!.AddMouseWheelDelta(mw.WheelDelta);
         }
 
+
         public void AlertMouseMove(MouseMoveEventArgs mm, Vector2 delta)
         {
             if (mm.State.IsButtonDown(MouseButton.Left) || mm.State.IsButtonDown(MouseButton.Right))
@@ -464,6 +463,10 @@ namespace rgat.OperationModes
                 delta = new Vector2(delta.X * shiftMultiplier * ctrlMultiplier, delta.Y * shiftMultiplier * ctrlMultiplier);
                 _rgatUI!.AddMouseDragDelta(delta);
             }
+            if (_controller is not null) 
+                _controller.SetMousePresent(true);
+
+            _rgatUI!.SetMousePosition(mm.MousePosition);
             _lastMousePos = mm.MousePosition;
         }
 

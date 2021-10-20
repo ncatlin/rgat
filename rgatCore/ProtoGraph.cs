@@ -1625,29 +1625,31 @@ namespace rgat
                 blocksMeta.Add("Count", BlocksFirstLastNodeList.Count);
                 blocksMeta.WriteTo(writer);
 
-                writer.WriteStartArray();
-                for (var i = 0; i < BlocksFirstLastNodeList.Count; i++)
+                if (BlocksFirstLastNodeList.Count > 0)
                 {
-                    var blocktuple = BlocksFirstLastNodeList[i];
-                    if (blocktuple == null)
+                    writer.WriteStartArray();
+                    for (var i = 0; i < BlocksFirstLastNodeList.Count; i++)
                     {
-                        var block = ProcessData.BasicBlocksList[i];
-                        Debug.Assert(block is not null);
-                        block.Item2[0].GetThreadVert(ThreadID, out uint startVert);
-                        block.Item2[^1].GetThreadVert(ThreadID, out uint endVert);
-                        writer.WriteValue(startVert);
-                        writer.WriteValue(endVert);
+                        var blocktuple = BlocksFirstLastNodeList[i];
+                        if (blocktuple == null)
+                        {
+                            var block = ProcessData.BasicBlocksList[i];
+                            Debug.Assert(block is not null);
+                            block.Item2[0].GetThreadVert(ThreadID, out uint startVert);
+                            block.Item2[^1].GetThreadVert(ThreadID, out uint endVert);
+                            writer.WriteValue(startVert);
+                            writer.WriteValue(endVert);
+                        }
+                        else
+                        {
+                            writer.WriteValue(blocktuple.Item1);
+                            writer.WriteValue(blocktuple.Item2);
+                        }
+                        progress.SectionProgress = i / (float)BlocksFirstLastNodeList.Count;
+                        if (progress.Cancelled) return;
                     }
-                    else
-                    {
-                        writer.WriteValue(blocktuple.Item1);
-                        writer.WriteValue(blocktuple.Item2);
-                    }
-                    progress.SectionProgress = i / (float)BlocksFirstLastNodeList.Count;
-                    if (progress.Cancelled) return;
+                    writer.WriteEndArray();
                 }
-                writer.WriteEndArray();
-
             }
 
             progress.SectionsComplete += 1;
@@ -1661,9 +1663,12 @@ namespace rgat
                 exceptionsMeta.Add("Field", "Exceptions");
                 exceptionsMeta.Add("Count", exceptionSet.Count);
                 exceptionsMeta.WriteTo(writer);
-                JArray exceptNodeArray;
-                exceptNodeArray = JArray.FromObject(exceptionSet);
-                exceptNodeArray.WriteTo(writer);
+                if (exceptionSet.Any())
+                {
+                    JArray exceptNodeArray;
+                    exceptNodeArray = JArray.FromObject(exceptionSet);
+                    exceptNodeArray.WriteTo(writer);
+                }
             }
 
             progress.SectionsComplete += 1;
@@ -1678,30 +1683,33 @@ namespace rgat
             symCallsMeta.Add("Count", SymbolCallRecords.Count);
             symCallsMeta.WriteTo(writer);
 
-            writer.WriteStartArray();
-            for (var i = 0; i < SymbolCallRecords.Count; i++)
+            if (SymbolCallRecords.Any())
             {
-                APICALLDATA ecd = SymbolCallRecords[i];
-
-                writer.WriteValue(ecd.edgeIdx.Item1); // caller idx
-                writer.WriteValue(ecd.edgeIdx.Item2); // api node idx
-                writer.WriteValue(ecd.argList.Count); // arg count
-
-                foreach (var arg in ecd.argList)
+                writer.WriteStartArray();
+                for (var i = 0; i < SymbolCallRecords.Count; i++)
                 {
-                    writer.WriteValue(arg.Item1); // arg idx
-                    writer.WriteValue(arg.Item2); // arg
+                    APICALLDATA ecd = SymbolCallRecords[i];
+
+                    writer.WriteValue(ecd.edgeIdx.Item1); // caller idx
+                    writer.WriteValue(ecd.edgeIdx.Item2); // api node idx
+                    writer.WriteValue(ecd.argList.Count); // arg count
+
+                    foreach (var arg in ecd.argList)
+                    {
+                        writer.WriteValue(arg.Item1); // arg idx
+                        writer.WriteValue(arg.Item2); // arg
+                    }
+                    progress.SectionProgress = i / (float)SymbolCallRecords.Count;
+                    if (progress.Cancelled) return;
                 }
-                progress.SectionProgress = i / (float)SymbolCallRecords.Count;
-                if (progress.Cancelled) return;
+                writer.WriteEndArray();
             }
-            writer.WriteEndArray();
 
             progress.SectionsComplete += 1;
 
 
             //Section 6: replay
-            progress.SectionName = $"Thread {ThreadID} repaly data";
+            progress.SectionName = $"Thread {ThreadID} replay data";
             lock (AnimDataLock)
             {
                 JObject replayMeta = new JObject();
@@ -1716,33 +1724,36 @@ namespace rgat
                 replayMeta.Add("Count", eventsToSave);
                 replayMeta.WriteTo(writer);
 
-                writer.WriteStartArray();
-                for (int i = 0; i < eventsToSave; i++)
+                if (eventsToSave > 0)
                 {
-                    ANIMATIONENTRY repentry = SavedAnimationData[i];
-
-                    writer.WriteValue(repentry.entryType);
-                    writer.WriteValue(repentry.Address);
-                    writer.WriteValue(repentry.BlockID);
-                    writer.WriteValue(repentry.Count);
-
-                    if (repentry.edgeCounts is null)
+                    writer.WriteStartArray();
+                    for (int i = 0; i < eventsToSave; i++)
                     {
-                        writer.WriteValue(0);
-                    }
-                    else
-                    {
-                        writer.WriteValue(repentry.edgeCounts.Count);
-                        foreach (var targCount in repentry.edgeCounts) //todo actually use blockID
+                        ANIMATIONENTRY repentry = SavedAnimationData[i];
+
+                        writer.WriteValue(repentry.entryType);
+                        writer.WriteValue(repentry.Address);
+                        writer.WriteValue(repentry.BlockID);
+                        writer.WriteValue(repentry.Count);
+
+                        if (repentry.edgeCounts is null)
                         {
-                            writer.WriteValue(targCount.Item1);
-                            writer.WriteValue(targCount.Item2);
+                            writer.WriteValue(0);
                         }
+                        else
+                        {
+                            writer.WriteValue(repentry.edgeCounts.Count);
+                            foreach (var targCount in repentry.edgeCounts) //todo actually use blockID
+                            {
+                                writer.WriteValue(targCount.Item1);
+                                writer.WriteValue(targCount.Item2);
+                            }
+                        }
+                        progress.SectionProgress = i / (float)SavedAnimationData.Count;
+                        if (progress.Cancelled) return;
                     }
-                    progress.SectionProgress = i / (float)SavedAnimationData.Count;
-                    if (progress.Cancelled) return;
+                    writer.WriteEndArray();
                 }
-                writer.WriteEndArray();
             }
             progress.SectionsComplete += 1;
         }
@@ -1771,14 +1782,14 @@ namespace rgat
             progress.SectionsComplete += 1;
             if (LoadNodes(jsnReader, serializer, progress) is false)
             {
-                Logging.WriteConsole("Failed to find valid Nodes in trace");
+                Logging.WriteConsole("Failed to rebuild nodes list");
                 return false;
             }
 
             progress.SectionsComplete += 1;
             if (LoadEdges(jsnReader, serializer, progress) is false)
             {
-                Logging.WriteConsole("Failed to find valid Nodes in trace");
+                Logging.WriteConsole("Failed to rebuild edge list");
                 return false;
             }
 
@@ -1877,7 +1888,7 @@ namespace rgat
                 }
 
                 NodeData n = new NodeData();
-                n.Deserialise(nodeitem, processinfo: this.ProcessData);
+                n.Deserialise(i, nodeitem, processinfo: this.ProcessData);
                 InsertNode(n);
                 progress.SectionProgress = i / (float)nodeCount;
                 if (progress.Cancelled) return false;
@@ -1962,8 +1973,9 @@ namespace rgat
 
             int blockCount = countTok.ToObject<int>();
             BlocksFirstLastNodeList.Capacity = blockCount;
-
+            if (blockCount is 0) return true;
             jsnReader.Read();
+
             if (jsnReader.TokenType is not JsonToken.StartArray) return false;
             jsnReader.Read();
 
@@ -1998,6 +2010,7 @@ namespace rgat
 
             int excCount = countTok.ToObject<int>();
             exceptionSet.Capacity = excCount;
+            if (excCount is 0) return true;
 
             jsnReader.Read();
             if (jsnReader.TokenType is not JsonToken.StartArray) return false;
@@ -2031,6 +2044,7 @@ namespace rgat
                 return false;
             }
             int count = countTok.ToObject<int>();
+            if (count is 0) return true;
 
             jsnReader.Read();
             if (jsnReader.TokenType is not JsonToken.StartArray) return false;
@@ -2082,7 +2096,7 @@ namespace rgat
                 return false;
             }
             int entryCount = countTok.ToObject<int>();
-
+            if (entryCount is 0) return true;
 
             jsnReader.Read();
             if (jsnReader.TokenType is not JsonToken.StartArray) return false;

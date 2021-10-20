@@ -851,6 +851,7 @@ namespace rgat
             return savedCount;
         }
 
+
         /// <summary>
         /// Export the current trace in the pajek format, a simple graph serialisation format that other graph layout programs accept
         /// </summary>
@@ -866,6 +867,7 @@ namespace rgat
                 Logging.RecordException($"Failure exporting Pajek layout ({e.Message})", e);
             }
         }
+
 
         private readonly object _testLock = new object();
         private readonly Dictionary<long, TraceRecord> _testConnections = new Dictionary<long, TraceRecord>();

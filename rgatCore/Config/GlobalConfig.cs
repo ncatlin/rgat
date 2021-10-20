@@ -266,6 +266,12 @@ namespace rgat
         /// </summary>
         public static float EdgeStrengthException = 1f;
 
+
+        /// <summary>
+        /// Smaller => faster snapping speed
+        /// </summary>
+        public static float PresetSpeedDivisor = 10f;
+
         
 
 
@@ -767,7 +773,7 @@ namespace rgat
                     }
                 }
             }
-            Logging.RecordLogEvent($"Loading config from {settingsPath} {File.Exists(settingsPath)}");
+            Logging.RecordLogEvent($"Loading config from {settingsPath} {File.Exists(settingsPath)}", Logging.LogFilterType.Debug);
 
             string settingsContents = File.ReadAllText(settingsPath);
             System.Text.Json.JsonSerializerOptions settingParserOptions = new System.Text.Json.JsonSerializerOptions() { AllowTrailingCommas = true };
@@ -789,7 +795,7 @@ namespace rgat
             rgatSettings.SetChangeCallback(MarkDirty);
             Settings.EnsureValidity();
 
-            Logging.WriteConsole("initial config load done after" + timer.ElapsedMilliseconds);
+            Logging.RecordLogEvent($"initial config load done after {timer.ElapsedMilliseconds}", Logging.LogFilterType.Debug);
             if (Settings.UI.InstalledVersion != CONSTANTS.PROGRAMVERSION.RGAT_VERSION)
             {
                 InstallNewTools();
@@ -806,7 +812,7 @@ namespace rgat
 
                 lock (_settingsLock)
                 {
-                    Themes.LoadCustomThemes();
+                   Themes.LoadCustomThemes();
                 }
 
                 progress?.Report(0.5f);

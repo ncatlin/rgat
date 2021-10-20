@@ -1276,6 +1276,11 @@
             Strength of edges to exceptions
             </summary>
         </member>
+        <member name="F:rgat.GlobalConfig.PresetSpeedDivisor">
+            <summary>
+            Smaller => faster snapping speed
+            </summary>
+        </member>
         <member name="F:rgat.GlobalConfig.NewGraphLayout">
             <summary>
             The initial graph layout used for new traces
@@ -2061,6 +2066,11 @@
             layout/render preview graphs.
             More will make rendering lots of graphs snappier, but too many adds contention issues and 
             getting into the dozens will exhaust the GPU allocator pool and crash us
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.EnableTortoise">
+            <summary>
+            Add a friendly tortoise to the splash screen
             </summary>
         </member>
         <member name="P:rgat.Config.rgatSettings.UISettings.UnicodeLoad_Korean">
@@ -3137,6 +3147,11 @@
             Plot nodes in a circle
             </summary>
         </member>
+        <member name="F:rgat.CONSTANTS.LayoutStyles.Style.Custom">
+            <summary>
+            Created from a builtin list of positions, no replotting performed
+            </summary>
+        </member>
         <member name="F:rgat.CONSTANTS.LayoutStyles.Style.Invalid">
             <summary>
             No
@@ -3821,6 +3836,12 @@
             </summary>
             <param name="plot"></param>
         </member>
+        <member name="M:rgat.GraphLayoutState.InitialisePresetBuffer(System.Single[])">
+            <summary>
+            Prepare a preset buffer to generate a non-force directed layout
+            </summary>
+            <param name="plot"></param>
+        </member>
         <member name="M:rgat.GraphLayoutState.CreateEdgeDataBuffers(rgat.PlottedGraph)">
             <summary>
             This buffer list the index of every node each node is connected to
@@ -3831,7 +3852,7 @@
         <member name="M:rgat.GraphLayoutState.AddNewNodesToComputeBuffers(System.Int32,rgat.PlottedGraph)">
             <summary>
             Takes new nodes from a graph with trace data and adds them to the compute buffers for layout
-            Must have upgradable readlock
+            Must have upgradeable readlock
             </summary>
             <param name="finalCount">how many nodes to add</param>
             <param name="plot">The graph with new nodes</param>
@@ -3885,6 +3906,11 @@
             </summary>
             <param name="newStyle">The style of the layout to change to</param>
             <param name="forceSame">If true then the same layout can be replot</param>
+        </member>
+        <member name="M:rgat.GraphLayoutState.ActivateRawPreset">
+            <summary>
+            Initiate snapping to a custom-built preset
+            </summary>
         </member>
         <member name="T:rgat.GraphLayoutState.PositionResetStyle">
             <summary>
@@ -4373,7 +4399,7 @@
             </summary>
             <returns>A JArray of ndoe data</returns>
         </member>
-        <member name="M:rgat.NodeData.Deserialise(Newtonsoft.Json.Linq.JArray,rgat.ProcessRecord)">
+        <member name="M:rgat.NodeData.Deserialise(System.Int32,Newtonsoft.Json.Linq.JArray,rgat.ProcessRecord)">
             <summary>
             Restore a node from JSON
             </summary>
@@ -5956,22 +5982,27 @@
             <summary>
               Looks up a localized string similar to [{
              &quot;CustomColours&quot;: {
-               &quot;ePreviewText&quot;: 4294967295,
-               &quot;ePreviewTextBackground&quot;: 1275068416,
-               &quot;ePreviewPaneBorder&quot;: 4278190335,
-               &quot;ePreviewPaneBackground&quot;: 4278979596,
-               &quot;ePreviewZoomEnvelope&quot;: 2998055602,
-               &quot;eHeat0Lowest&quot;: 2996502528,
-               &quot;eHeat1&quot;: 4288355374,
-               &quot;eHeat2&quot;: 4293027935,
-               &quot;eHeat3&quot;: 4292841333,
-               &quot;eHeat4&quot;: 8703,
-               &quot;eHeat5&quot;: 4290036988,
-               &quot;eHeat6&quot;: 4288190706,
-               &quot;eHeat7&quot;: 4285230073,
-               &quot;eHeat8&quot;: 4282401023,
-               &quot;eHeat9Highest&quot;: 4278190335,
-               &quot;eVisB [rest of string was truncated]&quot;;.
+               &quot;PreviewText&quot;: 4294967295,
+               &quot;PreviewTextBackground&quot;: 1275068416,
+               &quot;PreviewPaneBorder&quot;: 4278190335,
+               &quot;PreviewPaneBackground&quot;: 4278979596,
+               &quot;PreviewZoomEnvelope&quot;: 2998055602,
+               &quot;Heat0Lowest&quot;: 2993500722,
+               &quot;Heat1&quot;: 4284890151,
+               &quot;Heat2&quot;: 4286269967,
+               &quot;Heat3&quot;: 4290797890,
+               &quot;Heat4&quot;: 4288161130,
+               &quot;Heat5&quot;: 4290528431,
+               &quot;Heat6&quot;: 4278543033,
+               &quot;Heat7&quot;: 4278217208,
+               &quot;Heat8&quot;: 4278190335,
+               &quot;Heat9Highest&quot;: 4294901503,
+               &quot;VisBarPlotLine [rest of string was truncated]&quot;;.
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.CompanionTrace">
+            <summary>
+              Looks up a localized string similar to [{&quot;Field&quot;:&quot;Metadata&quot;},{&quot;Field&quot;:&quot;ProcessRecord&quot;,&quot;BitWidth&quot;:32},{&quot;Field&quot;:&quot;Modules&quot;},[&quot;&quot;,&quot;&quot;],[0,1,2,3],[0,1],{&quot;Field&quot;:&quot;Symbols&quot;,&quot;ModuleCount&quot;:0,&quot;TotalSymbols&quot;:0},{&quot;Field&quot;:&quot;Disassembly&quot;,&quot;Count&quot;:5},[10,0,0,1,&quot;UA==&quot;,1,29628,1],[20,0,0,1,&quot;6D4AAAA=&quot;,1,29628,2],[30,0,1,1,&quot;/yUIIGQA&quot;,1,29628,3],[40,0,1,1,&quot;D4T8////&quot;,1,29628,4],[50,0,1,1,&quot;ww==&quot;,1,29628,5],{&quot;Field&quot;:&quot;BasicBlocks&quot;,&quot;Count&quot;:0},{&quot;Field&quot;:&quot;Externs&quot;,&quot;Count&quot;:0},{&quot;Field&quot;:&quot;Threads&quot;,&quot;Count&quot;:1},{&quot;Field&quot;:&quot;Thread&quot;,&quot;ThreadID&quot;:29628,&quot;StartAddress&quot;:0,&quot;TotalInstructions&quot;:0 [rest of string was truncated]&quot;;.
             </summary>
         </member>
         <member name="P:rgat.Properties.Resources.DllLoader32">
@@ -6934,6 +6965,44 @@
             </summary>
             <param name="name">Resource name</param>
             <returns>null or the bytes of the found resource</returns>
+        </member>
+        <member name="M:rgat.SplashScreenRenderer.#ctor(Veldrid.GraphicsDevice,ImGuiNET.ImGuiController)">
+            <summary>
+            Create a tortoise renderer
+            </summary>
+            <param name="gdev">Veldrid Graphics device</param>
+            <param name="controller">ImGuiController</param>
+        </member>
+        <member name="M:rgat.SplashScreenRenderer.SetupRenderingResources">
+            <summary>
+            Initialise graphics resources
+            </summary>
+        </member>
+        <member name="M:rgat.SplashScreenRenderer.RecreateOutputTextures">
+            <summary>
+            Re-initialise graphics resources, for use when the size of the widget has changed
+            </summary>
+        </member>
+        <member name="M:rgat.SplashScreenRenderer.UpdateAndGetViewMatrix(System.Numerics.Matrix4x4@,System.Numerics.Matrix4x4@,System.Numerics.Matrix4x4@)">
+            <summary>
+            Must hold read lock
+            </summary>
+            <param name="proj"></param>
+            <param name="view"></param>
+            <param name="world"></param>
+        </member>
+        <member name="M:rgat.SplashScreenRenderer.DrawGraph(Veldrid.CommandList,rgat.PlottedGraph)">
+            <summary>
+            Draws the various nodes, edges, captions and illustrations to the framebuffer for display
+            </summary>
+            <param name="cl">A veldrid commandlist, for use by this thread only</param>
+            <param name="plot">The PlottedGraph to draw</param>
+        </member>
+        <member name="M:rgat.SplashScreenRenderer.GetLatestTexture(Veldrid.Texture@)">
+            <summary>
+            Get the most recently drawn framebuffer for displaying to the user
+            </summary>
+            <param name="graphtexture">Texture of the framebuffer contents</param>
         </member>
         <member name="T:rgat.Testing.RequirementCondition">
             <summary>
@@ -9397,7 +9466,7 @@
         </member>
         <member name="F:rgat.GraphPlotWidget._edgesPipelineRelative">
             <summary>
-            Edges pipeline = line list or line strp
+            Edges pipeline = line list or line strip
             Points pipeline = visible nodes where we draw sphere/etc texture
             Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
             Font pipeline = triangles
@@ -9405,7 +9474,7 @@
         </member>
         <member name="F:rgat.GraphPlotWidget._edgesPipelineRaw">
             <summary>
-            Edges pipeline = line list or line strp
+            Edges pipeline = line list or line strip
             Points pipeline = visible nodes where we draw sphere/etc texture
             Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
             Font pipeline = triangles
@@ -9413,7 +9482,7 @@
         </member>
         <member name="F:rgat.GraphPlotWidget._pointsPipeline">
             <summary>
-            Edges pipeline = line list or line strp
+            Edges pipeline = line list or line strip
             Points pipeline = visible nodes where we draw sphere/etc texture
             Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
             Font pipeline = triangles
@@ -9421,7 +9490,7 @@
         </member>
         <member name="F:rgat.GraphPlotWidget._pickingPipeline">
             <summary>
-            Edges pipeline = line list or line strp
+            Edges pipeline = line list or line strip
             Points pipeline = visible nodes where we draw sphere/etc texture
             Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
             Font pipeline = triangles
@@ -9429,7 +9498,7 @@
         </member>
         <member name="F:rgat.GraphPlotWidget._fontPipeline">
             <summary>
-            Edges pipeline = line list or line strp
+            Edges pipeline = line list or line strip
             Points pipeline = visible nodes where we draw sphere/etc texture
             Picking pipleine = same as points but different data, not drawn to screen. Seperate shaders to reduce branching
             Font pipeline = triangles
@@ -9483,7 +9552,7 @@
             Write the rendered graph/HUD items to the draw list
             </summary>
             <param name="graphSize">Size of the graph area being drawn</param>
-            <param name="graph">The graph being drawn</param>
+            <param name="plot">The graph being drawn</param>
         </member>
         <member name="M:rgat.GraphPlotWidget.GetOutputFramebuffer(Veldrid.Framebuffer@)">
             <summary>
@@ -9557,7 +9626,7 @@
             <param name="colour">Text colour</param>
             <param name="yOff">Vertical offset for the glyphs</param> //todo think caching wrecks this
         </member>
-        <member name="M:rgat.GraphPlotWidget.updateShaderParams(rgat.PlottedGraph,System.UInt32,System.Numerics.Matrix4x4,System.Numerics.Matrix4x4,System.Numerics.Matrix4x4,Veldrid.CommandList)">
+        <member name="M:rgat.GraphPlotWidget.UpdateShaderParams(rgat.PlottedGraph,System.UInt32,System.Int32,System.Numerics.Matrix4x4,System.Numerics.Matrix4x4,System.Numerics.Matrix4x4,Veldrid.CommandList,Veldrid.DeviceBuffer)">
             <summary>
             Update graph drawing parameters used by the shaders
             </summary>
