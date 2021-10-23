@@ -279,15 +279,16 @@ namespace rgat.Widgets
             ImGui.InputText("##SymFilter", ref _activeHighlights.SymFilterText, 255);
 
             ImGui.SameLine();
-            if (ImGui.Button($"{ImGuiController.FA_ICON_TRASHCAN}")) 
+            if (ImGui.Button($"{ImGuiController.FA_ICON_TRASHCAN}"))
             {
                 _activeHighlights.SymFilterText = "";
             }
 
             //ImGui.PushStyleColor(ImGuiCol.Text, 0xFF000000);
 
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame));
-            if (ImGui.BeginChild(ImGui.GetID("htSymsFrameHeader"), new Vector2(ImGui.GetContentRegionAvail().X - 3, 20)))
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.WindowBackground));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
+            if (ImGui.BeginChild(ImGui.GetID("htSymsFrameHeader"), new Vector2(ImGui.GetContentRegionAvail().X - 3, 20), true))
             {
                 ImGui.SameLine(10);
                 ImGui.Text("Symbol");
@@ -297,9 +298,10 @@ namespace rgat.Widgets
                 ImGui.Text("Unique Nodes");
                 ImGui.EndChild();
             }
-            //ImGui.PopStyleColor();
+            ImGui.PopStyleVar();
+            ImGui.PopStyleColor();
 
-            //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xffffffff);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame));
             if (ImGui.BeginChild("htSymsFrame", new Vector2(ImGui.GetContentRegionAvail().X - 3, ImGui.GetContentRegionAvail().Y - reserveSize)))
             {
                 DrawModSymTreeNodes(graph);
@@ -439,23 +441,26 @@ namespace rgat.Widgets
                     {
 
                         ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        if(ImGui.Selectable($"0x{n.Address:X}", _activeHighlights.SelectedExceptionNodes.Contains(nodeidx), ImGuiSelectableFlags.SpanAllColumns))                        
+                        if (ImGui.TableNextColumn())
                         {
-                            if (_activeHighlights.SelectedExceptionNodes.Contains(nodeidx))
+                            if (ImGui.Selectable($"0x{n.Address:X}", _activeHighlights.SelectedExceptionNodes.Contains(nodeidx), ImGuiSelectableFlags.SpanAllColumns))
                             {
-                                _activeHighlights.SelectedExceptionNodes.Remove(nodeidx);
-                                plot.RemoveHighlightedNodes(new List<uint> { nodeidx }, CONSTANTS.HighlightType.Exceptions);
-                            }
-                            else
-                            {
-                                _activeHighlights.SelectedExceptionNodes.Add(nodeidx);
-                                plot.AddHighlightedNodes(new List<uint> { nodeidx }, CONSTANTS.HighlightType.Exceptions);
+                                if (_activeHighlights.SelectedExceptionNodes.Contains(nodeidx))
+                                {
+                                    _activeHighlights.SelectedExceptionNodes.Remove(nodeidx);
+                                    plot.RemoveHighlightedNodes(new List<uint> { nodeidx }, CONSTANTS.HighlightType.Exceptions);
+                                }
+                                else
+                                {
+                                    _activeHighlights.SelectedExceptionNodes.Add(nodeidx);
+                                    plot.AddHighlightedNodes(new List<uint> { nodeidx }, CONSTANTS.HighlightType.Exceptions);
+                                }
                             }
                         }
-                        ImGui.TableNextColumn();
-                        ImGui.Text(System.IO.Path.GetFileName(plot.InternalProtoGraph.ProcessData.GetModulePath(n.GlobalModuleID)));
-                        
+                        if (ImGui.TableNextColumn())
+                        {
+                            ImGui.Text(System.IO.Path.GetFileName(plot.InternalProtoGraph.ProcessData.GetModulePath(n.GlobalModuleID)));
+                        }
                     }
                 }
                 ImGui.EndTable();
@@ -473,6 +478,7 @@ namespace rgat.Widgets
         }
 
         public bool PopoutHighlight = false;
+        public bool PopoutHighlightSkipFrame = false;
 
         public void Draw(PlottedGraph LatestActiveGraph)
         {
@@ -495,45 +501,50 @@ namespace rgat.Widgets
             Vector2 Size = ImGui.GetWindowSize();
             Size.Y = ImGui.GetContentRegionAvail().Y;
 
-            //ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xff0000ff);
             if (ImGui.BeginChild("#highlightControls", Size))
             {
                 if (!PopoutHighlight && ImGui.Button("Popout"))
                 {
                     ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - 50);
                     PopoutHighlight = true;
+                    PopoutHighlightSkipFrame = true;
+
                 }
 
-                ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
-                if (ImGui.BeginTabBar("Highlights Tab Bar", tab_bar_flags))
+                
+                else
                 {
-                    if (ImGui.BeginTabItem("Externals/Symbols"))
+
+                    ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.AutoSelectNewTabs;
+                    if (ImGui.BeginTabBar("Highlights Tab Bar", tab_bar_flags))
                     {
-                        _activeHighlights.selectedHighlightTab = 0;
-                        DrawSymbolsSelectBox(reserveSize: 40); //todo: unbadify this height choice
-                        DrawSymbolsSelectControls(_ActiveGraph);
-                        ImGui.EndTabItem();
+                        if (ImGui.BeginTabItem("Externals/Symbols"))
+                        {
+                            _activeHighlights.selectedHighlightTab = 0;
+                            DrawSymbolsSelectBox(reserveSize: 40); //todo: unbadify this height choice
+                            DrawSymbolsSelectControls(_ActiveGraph);
+                            ImGui.EndTabItem();
+                        }
+                        if (ImGui.BeginTabItem("Addresses"))
+                        {
+                            _activeHighlights.selectedHighlightTab = 1;
+                            DrawAddressSelectControls(_ActiveGraph);
+                            if (_activeHighlights.SelectedAddresses.Any())
+                                DrawAddressSelectBox(_ActiveGraph);
+                            ImGui.EndTabItem();
+                        }
+                        if (ImGui.BeginTabItem("Exceptions"))
+                        {
+                            _activeHighlights.selectedHighlightTab = 2;
+                            DrawExceptionSelectBox(_ActiveGraph);
+                            DrawExceptionSelectControls();
+                            ImGui.EndTabItem();
+                        }
+                        ImGui.EndTabBar();
                     }
-                    if (ImGui.BeginTabItem("Addresses"))
-                    {
-                        _activeHighlights.selectedHighlightTab = 1;
-                        DrawAddressSelectControls(_ActiveGraph);
-                        if (_activeHighlights.SelectedAddresses.Any())
-                            DrawAddressSelectBox(_ActiveGraph);
-                        ImGui.EndTabItem();
-                    }
-                    if (ImGui.BeginTabItem("Exceptions"))
-                    {
-                        _activeHighlights.selectedHighlightTab = 2;
-                        DrawExceptionSelectBox(_ActiveGraph);
-                        DrawExceptionSelectControls();
-                        ImGui.EndTabItem();
-                    }
-                    ImGui.EndTabBar();
                 }
-                ImGui.EndChildFrame();
+                ImGui.EndChild();
             }
-            //ImGui.PopStyleColor();
         }
     }
 }

@@ -630,56 +630,62 @@ namespace rgatFilePicker
         {
             bool wasActivated = false;
             ImGui.TableNextRow();
-            ImGui.TableNextColumn();
-            ImGui.PushStyleColor(ImGuiCol.Text, filemeta.ListingColour());
-            bool isSelected = SelectedFile == path || (AllowMultiSelect && SelectedFiles.Contains(path));
-            string label = filemeta.filename;
-            if (filemeta.extension == "exe" || filemeta.extension == "dll")
+            if (ImGui.TableNextColumn())
             {
-                label = $"{ImGuiController.FA_ICON_FILECODE} {label}";
-            }
-            else if (filemeta.extension == "rgat")
-            {
-                label = $"{ImGuiController.FA_ICON_FILEPLAIN} {label}";
-            }
-
-
-            if (ImGui.Selectable(label, isSelected, ImGuiSelectableFlags.SpanAllColumns)
-                || ImGui.IsItemClicked(ImGuiMouseButton.Right))
-            {
-                if (!isSelected)
+                ImGui.PushStyleColor(ImGuiCol.Text, filemeta.ListingColour());
+                bool isSelected = SelectedFile == path || (AllowMultiSelect && SelectedFiles.Contains(path));
+                string label = filemeta.filename;
+                if (filemeta.extension == "exe" || filemeta.extension == "dll")
                 {
-                    if (this.AllowMultiSelect && !this.SelectedFiles.Contains(path))
+                    label = $"{ImGuiController.FA_ICON_FILECODE} {label}";
+                }
+                else if (filemeta.extension == "rgat")
+                {
+                    label = $"{ImGuiController.FA_ICON_FILEPLAIN} {label}";
+                }
+
+                if (ImGui.Selectable(label, isSelected, ImGuiSelectableFlags.SpanAllColumns)
+                    || ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                {
+                    if (!isSelected)
                     {
-                        this.SelectedFiles.Add(path);
+                        if (this.AllowMultiSelect && !this.SelectedFiles.Contains(path))
+                        {
+                            this.SelectedFiles.Add(path);
+                        }
+                        else
+                        {
+                            this.SelectedFile = path;
+                        }
                     }
                     else
                     {
-                        this.SelectedFile = path;
+                        if (this.AllowMultiSelect)
+                        {
+                            this.SelectedFiles.RemoveAll(x => x == path);
+                        }
+                        else
+                        {
+                            this.SelectedFile = null;
+                        }
                     }
                 }
-                else
-                {
-                    if (this.AllowMultiSelect)
-                    {
-                        this.SelectedFiles.RemoveAll(x => x == path);
-                    }
-                    else
-                    {
-                        this.SelectedFile = null;
-                    }
-                }
+                wasActivated = (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(0));
+                wasActivated = wasActivated || (isSelected && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Enter)));
             }
-            wasActivated = (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(0));
-            wasActivated = wasActivated || (isSelected && ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.Enter)));
-            ImGui.TableNextColumn();
-            ImGui.Text(filemeta.extension);
-            ImGui.TableNextColumn();
-            ImGui.Text(filemeta.size_str);
-            ImGui.TableNextColumn();
-            string modified = filemeta.LastWriteTime.ToShortTimeString() + " " + filemeta.LastWriteTime.ToShortDateString();
-            ImGui.Text(modified);
-            ImGui.TableNextColumn();
+            if (ImGui.TableNextColumn())
+            {
+                ImGui.Text(filemeta.extension);
+            }
+            if (ImGui.TableNextColumn())
+            {
+                ImGui.Text(filemeta.size_str);
+            }
+            if (ImGui.TableNextColumn())
+            {
+                string modified = filemeta.LastWriteTime.ToShortTimeString() + " " + filemeta.LastWriteTime.ToShortDateString();
+                ImGui.Text(modified);
+            }
 
             ImGui.PopStyleColor();
             return wasActivated;
@@ -1257,14 +1263,13 @@ namespace rgatFilePicker
                             if (Data.CurrentDirectoryParent != null && Data.CurrentDirectory != Path.GetPathRoot(Data.CurrentDirectory))
                             {
                                 ImGui.TableNextRow();
-                                ImGui.TableNextColumn();
-                                if (ImGui.Selectable("../", false, ImGuiSelectableFlags.SpanAllColumns))
+                                if (ImGui.TableNextColumn())
                                 {
-                                    SetActiveDirectory(Data.CurrentDirectoryParent);
+                                    if (ImGui.Selectable("../", false, ImGuiSelectableFlags.SpanAllColumns))
+                                    {
+                                        SetActiveDirectory(Data.CurrentDirectoryParent);
+                                    }
                                 }
-                                ImGui.TableNextColumn();
-                                ImGui.TableNextColumn();
-                                ImGui.TableNextColumn();
                             }
 
 
@@ -1436,12 +1441,15 @@ namespace rgatFilePicker
                 }
 
                 ImGui.TableNextColumn();
-                ImGui.TableNextColumn();
-                //size
-                ImGui.Text(path_data.Value.size_str);
-                ImGui.TableNextColumn();
-                ImGui.Text("");
-                ImGui.TableNextColumn();
+                if (ImGui.TableNextColumn())
+                {
+                    //size
+                    ImGui.Text(path_data.Value.size_str);
+                }
+                if (ImGui.TableNextColumn())
+                {
+                    ImGui.Text("");
+                }
                 ImGui.PopStyleColor();
             }
 
@@ -1485,13 +1493,15 @@ namespace rgatFilePicker
                     foreach (var dir in recentDirs)
                     {
                         ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        string label = Path.GetFileName(dir.Path);
-                        if (ImGui.Selectable(label, false, ImGuiSelectableFlags.SpanAllColumns))
+                        if (ImGui.TableNextColumn())
                         {
-                            SetActiveDirectory(dir.Path);
+                            string label = Path.GetFileName(dir.Path);
+                            if (ImGui.Selectable(label, false, ImGuiSelectableFlags.SpanAllColumns))
+                            {
+                                SetActiveDirectory(dir.Path);
+                            }
+                            SmallWidgets.MouseoverText(dir.Path);
                         }
-                        SmallWidgets.MouseoverText(dir.Path);
                     }
                     ImGui.EndTable();
                 }

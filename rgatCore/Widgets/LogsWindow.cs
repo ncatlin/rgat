@@ -70,8 +70,10 @@ namespace rgat
                     }
                     foreach (var filter in filters)
                     {
-                        ImGui.TableNextColumn();
-                        ImGui.Selectable($"{filter.Item1} ({textFilterCounts[filter.Item2]})", ref _LogFilters[(int)filter.Item2], flags, boxSize);
+                        if (ImGui.TableNextColumn())
+                        {
+                            ImGui.Selectable($"{filter.Item1} ({textFilterCounts[filter.Item2]})", ref _LogFilters[(int)filter.Item2], flags, boxSize);
+                        }
                     }
                     ImGui.EndTable();
 

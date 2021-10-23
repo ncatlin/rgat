@@ -598,7 +598,7 @@ namespace rgat
                     break;
             }
 
-            if (GlobalConfig.ShowKeystrokes)
+            if (GlobalConfig.Settings.UI.ShowVisualiserKeybinds)
             {
                 string caption = boundAction.ToString();
                 if (resultText != null)
@@ -1704,7 +1704,7 @@ namespace rgat
                 return;
             }
 
-            if (GlobalConfig.ShowKeystrokes)
+            if (GlobalConfig.Settings.UI.ShowVisualiserKeybinds)
             {
                 DrawKeystrokes(topLeft);
             }
@@ -1801,7 +1801,7 @@ namespace rgat
                 return;
             }
 
-            float buttonWidth = 150f;
+            float buttonWidth = 165;
 
             if (SmallWidgets.ImageCaptionButton(GetLayoutIcon(LayoutStyles.Style.ForceDirected3DNodes),
                 iconSize, buttonWidth, "Force Directed Nodes", graph.ActiveLayoutStyle == LayoutStyles.Style.ForceDirected3DNodes))

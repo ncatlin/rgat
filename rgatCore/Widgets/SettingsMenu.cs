@@ -1076,7 +1076,7 @@ namespace rgat.Widgets
             ImGui.TableNextColumn();
             if (hasPath)
             {
-                SmallWidgets.DrawIcon($"{ImGuiController.FA_ICON_TRASHCAN}", Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1) );
+                SmallWidgets.DrawIcon($"{ImGuiController.FA_ICON_TRASHCAN}", Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1));
                 clearFlag = ImGui.IsItemClicked();
                 if (ImGui.IsItemHovered())
                 {
@@ -1695,6 +1695,16 @@ namespace rgat.Widgets
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
+                bool showkeybinds = GlobalConfig.Settings.UI.ShowVisualiserKeybinds;
+                if (ImGui.Checkbox("Show Keybind Activations", ref showkeybinds))
+                {
+                    GlobalConfig.Settings.UI.ShowVisualiserKeybinds = showkeybinds;
+                }
+                SmallWidgets.MouseoverText("Show keybind activation information in the top left of the maingraph visualiser");
+
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
 
                 ImGui.SetNextItemWidth(200);
                 bool tortoiseEnabled = GlobalConfig.Settings.UI.EnableTortoise;
@@ -2007,7 +2017,7 @@ namespace rgat.Widgets
                 }
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2);
                 string btnText = $"[{kstring}]";
-                if (ImGui.Button(btnText, new Vector2(Math.Max(ImGui.CalcTextSize(btnText).X+10, 110),24)))
+                if (ImGui.Button(btnText, new Vector2(Math.Max(ImGui.CalcTextSize(btnText).X + 10, 110), 24)))
                 {
                     DoClickToSetKeybind(caption, action: keyAction, 1);
                 }
@@ -2037,7 +2047,7 @@ namespace rgat.Widgets
                 }
 
                 string btnText = $"[{kstring}]";
-                
+
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2);
                 if (ImGui.Button(btnText, new Vector2(Math.Max(ImGui.CalcTextSize(btnText).X + 10, 110), 24)))
                 {

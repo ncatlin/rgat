@@ -253,6 +253,7 @@ namespace rgat.Widgets
                 imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: pos,
                     p_max: new Vector2(pos.X + _outputTexture.Width, pos.Y + _outputTexture.Height),
                     uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
+                
             }
 
             MODULE_LABEL[]? labels;
@@ -271,8 +272,6 @@ namespace rgat.Widgets
                     i = mtxt.startX + ImGui.CalcTextSize(mtxt.name).X;
                 }
             }
-
-
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + _height);
         }
 

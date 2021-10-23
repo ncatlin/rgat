@@ -129,20 +129,22 @@ namespace rgat
                         {
                             var entry = recentBins[bini];
                             ImGui.TableNextRow();
-                            ImGui.TableNextColumn();
-                            if (DrawRecentPathEntry(entry, false))
+                            if (ImGui.TableNextColumn())
                             {
-                                if (File.Exists(entry.Path))
+                                if (DrawRecentPathEntry(entry, false))
                                 {
-                                    if (!LoadSelectedBinary(entry.Path, rgatState.ConnectedToRemote) && !_badPaths.Contains(entry.Path))
+                                    if (File.Exists(entry.Path))
                                     {
-                                        _badPaths.Add(entry.Path);
+                                        if (!LoadSelectedBinary(entry.Path, rgatState.ConnectedToRemote) && !_badPaths.Contains(entry.Path))
+                                        {
+                                            _badPaths.Add(entry.Path);
+                                        }
                                     }
-                                }
-                                else if (!_missingPaths.Contains(entry.Path))
-                                {
-                                    _scheduleMissingPathCheck = true;
-                                    _missingPaths.Add(entry.Path);
+                                    else if (!_missingPaths.Contains(entry.Path))
+                                    {
+                                        _scheduleMissingPathCheck = true;
+                                        _missingPaths.Add(entry.Path);
+                                    }
                                 }
                             }
                         }
@@ -210,22 +212,24 @@ namespace rgat
                         {
                             var entry = recentTraces[traceI];
                             ImGui.TableNextRow();
-                            ImGui.TableNextColumn();
-                            if (DrawRecentPathEntry(entry, false))
+                            if (ImGui.TableNextColumn())
                             {
-                                if (File.Exists(entry.Path))
+                                if (DrawRecentPathEntry(entry, false))
                                 {
-                                    System.Threading.Tasks.Task.Run(() => LoadTraceByPath(entry.Path));
-                                    /*
-                                    if (!LoadTraceByPath(entry.Path) && !_badPaths.Contains(entry.Path))
+                                    if (File.Exists(entry.Path))
                                     {
-                                        _badPaths.Add(entry.Path);
-                                    }*/
-                                }
-                                else if (!_missingPaths.Contains(entry.Path))
-                                {
-                                    _scheduleMissingPathCheck = true;
-                                    _missingPaths.Add(entry.Path);
+                                        System.Threading.Tasks.Task.Run(() => LoadTraceByPath(entry.Path));
+                                        /*
+                                        if (!LoadTraceByPath(entry.Path) && !_badPaths.Contains(entry.Path))
+                                        {
+                                            _badPaths.Add(entry.Path);
+                                        }*/
+                                    }
+                                    else if (!_missingPaths.Contains(entry.Path))
+                                    {
+                                        _scheduleMissingPathCheck = true;
+                                        _missingPaths.Add(entry.Path);
+                                    }
                                 }
                             }
                         }

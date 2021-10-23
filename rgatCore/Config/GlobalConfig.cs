@@ -210,11 +210,6 @@ namespace rgat
         /// </summary>
         public static int KeystrokeDisplayMaxCount = 5;
         /// <summary>
-        /// Show keyboard shortcut activations
-        /// </summary>
-        public static bool ShowKeystrokes = true;
-
-        /// <summary>
         /// How long to display in-visualiser messages
         /// </summary>
         public static int VisMessageMaxLingerTime = 6500;
@@ -226,7 +221,7 @@ namespace rgat
         /// <summary>
         /// Whether a tooltip should be shown on graph node mouseover
         /// </summary>
-        public static bool ShowNodeMouseoverTooltip = true;
+        public static bool ShowNodeMouseover = true;
 
         /// <summary>
         ///  work in progress  

@@ -439,6 +439,8 @@ namespace rgat
 
         private void DrawWindowContent()
         {
+            Vector2 available = ImGui.GetContentRegionAvail();
+            if (available.X < 200 || available.Y < 200) return;
             if (ImGui.BeginChild("MainWindow", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoScrollbar))
             {
                 DrawTargetBar();
@@ -578,7 +580,7 @@ namespace rgat
                                 {
                                     rgatState.VideoRecorder.StartRecording();
                                 }
-                                continue;
+                                break;
 
                             case KeybindAction.PauseVideo:
 
@@ -587,19 +589,19 @@ namespace rgat
                                 {
                                     rgatState.VideoRecorder.CapturePaused = !rgatState.VideoRecorder.CapturePaused;
                                 }
-                                continue;
+                                break;
 
                             case KeybindAction.CaptureGraphImage:
                                 PendingScreenshot = VideoEncoder.CaptureContent.Graph;
-                                continue;
+                                break;
 
                             case KeybindAction.CaptureGraphPreviewImage:
                                 PendingScreenshot = VideoEncoder.CaptureContent.GraphAndPreviews;
-                                continue;
+                                break;
 
                             case KeybindAction.CaptureWindowImage:
                                 PendingScreenshot = VideoEncoder.CaptureContent.Window;
-                                continue;
+                                break;
 
                             default:
                                 break;
@@ -1248,12 +1250,16 @@ namespace rgat
                     {
                         TEXT_LOG_EVENT msg = (TEXT_LOG_EVENT)log;
                         ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
-                        string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
-                        ImGui.Text(timeString);
-                        ImGui.TableNextColumn();
-                        ImGui.Text(msg.Text);
+                        if (ImGui.TableNextColumn())
+                        {
+                            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(msg.EventTimeMS);
+                            string timeString = dateTimeOffset.ToString("HH:mm:ss:ff");
+                            ImGui.Text(timeString);
+                        }
+                        if (ImGui.TableNextColumn())
+                        {
+                            ImGui.Text(msg.Text);
+                        }
                     }
                     ImGui.EndTable();
                 }

@@ -1212,11 +1212,6 @@
             Max keyboard shortcuts to display
             </summary>
         </member>
-        <member name="F:rgat.GlobalConfig.ShowKeystrokes">
-            <summary>
-            Show keyboard shortcut activations
-            </summary>
-        </member>
         <member name="F:rgat.GlobalConfig.VisMessageMaxLingerTime">
             <summary>
             How long to display in-visualiser messages
@@ -1227,7 +1222,7 @@
             When to fade in-visualiser messages as they approach the end of their display
             </summary>
         </member>
-        <member name="F:rgat.GlobalConfig.ShowNodeMouseoverTooltip">
+        <member name="F:rgat.GlobalConfig.ShowNodeMouseover">
             <summary>
             Whether a tooltip should be shown on graph node mouseover
             </summary>
@@ -2043,6 +2038,11 @@
         <member name="P:rgat.Config.rgatSettings.UISettings.AlertAnimation">
             <summary>
             Display a ring around alerts
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.UISettings.ShowVisualiserKeybinds">
+            <summary>
+            Show keybind activations in the top left of the visualiser
             </summary>
         </member>
         <member name="P:rgat.Config.rgatSettings.UISettings.EnableTestHarness">
@@ -6083,6 +6083,16 @@
               Looks up a localized resource of type System.Drawing.Bitmap.
             </summary>
         </member>
+        <member name="P:rgat.Properties.Resources.UpdateFinaliserDLL">
+            <summary>
+              Looks up a localized resource of type System.Byte[].
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.UpdateFinaliserEXE">
+            <summary>
+              Looks up a localized resource of type System.Byte[].
+            </summary>
+        </member>
         <member name="P:rgat.Properties.Resources.vertexSpherePNG">
             <summary>
               Looks up a localized resource of type System.Drawing.Bitmap.
@@ -9838,7 +9848,7 @@
             do it via Draw so events are handled by the same thread
             </summary>
         </member>
-        <member name="M:rgat.PreviewGraphsWidget.DrawWidget">
+        <member name="M:rgat.PreviewGraphsWidget.DrawWidget(System.Numerics.Vector2)">
             <summary>
             Draw the preview graph widget
             </summary>
@@ -9853,7 +9863,7 @@
             The preview graph the mouse is hovering over
             </summary>
         </member>
-        <member name="M:rgat.PreviewGraphsWidget.DrawPreviewGraph(rgat.PlottedGraph,System.Single,System.Single,System.UInt32,System.Boolean@)">
+        <member name="M:rgat.PreviewGraphsWidget.DrawPreviewGraph(rgat.PlottedGraph,System.Single,System.Single,System.UInt32,System.Boolean@,System.Numerics.Vector2)">
             <summary>
             Draw a preview graph texture on the preview pane
             </summary>
@@ -9862,6 +9872,7 @@
             <param name="captionHeight">height of the caption</param>
             <param name="captionBackgroundcolor">contrast background colour of the caption</param>
             <param name="canHover">output flag states if we can safely draw a mouseover tooltip</param>
+            <param name="mainWidgetSize">Size of the maingraph widget, used for projecting the zoom envelope</param>
             <returns>The graph was clicked</returns>
         </member>
         <member name="P:rgat.PreviewGraphsWidget.PreviewProjection">

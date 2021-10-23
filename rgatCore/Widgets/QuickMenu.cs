@@ -116,7 +116,7 @@ namespace rgat.Widgets
         private enum ActionName
         {
             ToggleEdges, ToggleNodes, ToggleTextAll, ToggleTextInstructions, ToggleTextSymbols, ToggleTextSymbolsLive, ToggleNodeAddresses,
-            ToggleNodeIndexes, ToggleSymbolModules, ToggleSymbolFullPaths, ToggleNodeTooltips, ToggleActiveHighlight,
+            ToggleNodeIndexes, ToggleSymbolModules, ToggleSymbolFullPaths, ToggleNodeMouseover, ToggleActiveHighlight,
             ToggleMenu, ToggleVisMenu, ToggleSearchMenu, ToggleLayoutMenu
         };
 
@@ -147,7 +147,7 @@ namespace rgat.Widgets
             visEntries.Add(new MenuEntry { Shortcut = Key.M, CloseMenu = true, Action = ActionName.ToggleSymbolModules, Label = "Modules", ToolTip = "Display of the module API nodes are located in" });
             visEntries.Add(new MenuEntry { Shortcut = Key.P, CloseMenu = true, Action = ActionName.ToggleSymbolFullPaths, Label = "Full Module Paths", ToolTip = "Display the full path on disk of API modules instead of just the filename" });
             visEntries.Add(new MenuEntry { Shortcut = Key.H, CloseMenu = true, Action = ActionName.ToggleActiveHighlight, Label = "Highlight Active", ToolTip = "Display a highlight line indicating the most recently executed instruction." });
-            visEntries.Add(new MenuEntry { Shortcut = Key.O, CloseMenu = true, Action = ActionName.ToggleNodeTooltips, Label = "Node Tooltips", ToolTip = "Show information about a node on mouseover" });
+            visEntries.Add(new MenuEntry { Shortcut = Key.O, CloseMenu = true, Action = ActionName.ToggleNodeMouseover, Label = "Node Mouseover", ToolTip = "Show information about a node on mouseover" });
             visEntries.Add(new MenuEntry { Shortcut = Key.R, CloseMenu = true, Action = ActionName.ToggleTextSymbolsLive, Label = "Rising API text", ToolTip = "Show animated API information when an API node is activated" });
 
 
@@ -198,9 +198,9 @@ namespace rgat.Widgets
                     ActivateAction(ActionName.ToggleTextAll, hotKey: false);
                 }
 
-                if (ShowTooltipToggle(4, ActionName.ToggleNodeTooltips, GlobalConfig.ShowNodeMouseoverTooltip))
+                if (ShowTooltipToggle(4, ActionName.ToggleNodeMouseover, GlobalConfig.ShowNodeMouseover))
                 {
-                    ActivateAction(ActionName.ToggleNodeTooltips, hotKey: false);
+                    ActivateAction(ActionName.ToggleNodeMouseover, hotKey: false);
                 }
 
                 ImGui.TableNextRow();
@@ -218,17 +218,18 @@ namespace rgat.Widgets
                 //ImGui.AlignTextToFramePadding();
                 ImGui.TableSetColumnIndex(4);
                 ImGui.Text("Text Scale");
-                ImGui.TableNextColumn();
-                float plotFontScale = GlobalConfig.InsTextScale;
-                ImGui.SetNextItemWidth(50);
-                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(1, 2));
-                if (ImGui.DragFloat("##PlotFont", ref plotFontScale, 0.5f, 1, 80))
+                if (ImGui.TableNextColumn())
                 {
-                    GlobalConfig.InsTextScale = plotFontScale;
-                    Themes.DeclareThemeChanged();
+                    float plotFontScale = GlobalConfig.InsTextScale;
+                    ImGui.SetNextItemWidth(50);
+                    ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(1, 2));
+                    if (ImGui.DragFloat("##PlotFont", ref plotFontScale, 0.5f, 1, 80))
+                    {
+                        GlobalConfig.InsTextScale = plotFontScale;
+                        Themes.DeclareThemeChanged();
+                    }
+                    ImGui.PopStyleVar();
                 }
-                ImGui.PopStyleVar();
-
 
                 ImGui.TableNextRow();
                 if (ShowTooltipToggle(0, ActionName.ToggleActiveHighlight, _currentPlot.Opt_LiveNodeEdgeEnabled))
@@ -362,8 +363,8 @@ namespace rgat.Widgets
                 case ActionName.ToggleMenu:
                     MenuPressed();
                     break;
-                case ActionName.ToggleNodeTooltips:
-                    GlobalConfig.ShowNodeMouseoverTooltip = !GlobalConfig.ShowNodeMouseoverTooltip;
+                case ActionName.ToggleNodeMouseover:
+                    GlobalConfig.ShowNodeMouseover = !GlobalConfig.ShowNodeMouseover;
                     break;
                 case ActionName.ToggleVisMenu:
                 case ActionName.ToggleSearchMenu:
@@ -709,9 +710,14 @@ namespace rgat.Widgets
 
             if (HighlightDialogWidget.PopoutHighlight)
             {
+                if (HighlightDialogWidget.PopoutHighlightSkipFrame)
+                {
+                    HighlightDialogWidget.PopoutHighlightSkipFrame = false; //todo delete this, didn't help
+                    return;
+                }
                 //ImGui.SetNextWindowSize(new Vector2(500, 300), ImGuiCond.Appearing);
                 //ImGui.SetNextWindowSizeConstraints(new Vector2(500, 300), new Vector2(800, 700));
-
+                
                 if (ImGui.Begin("Search/Highlighting", ref HighlightDialogWidget.PopoutHighlight, ImGuiWindowFlags.NoCollapse))
                 {
                     DrawSearchHighlightFrame();
@@ -868,7 +874,7 @@ private void DrawScalePopup()
             if (ImGui.IsItemHovered())
             {
                 spreadHighlight = true;
-                ImGui.SetTooltip("Scatter the nodes randomly. Control how far apart by adjusting the Replotting Spread");
+                ImGui.SetTooltip("Place the nodes together in a single point. They will explode out into a new layout.");
             }
             ImGui.SameLine();
             if (ImGui.Button("Replot: Implode", btnsize))
@@ -878,7 +884,7 @@ private void DrawScalePopup()
             if (ImGui.IsItemHovered())
             {
                 spreadHighlight = true;
-                ImGui.SetTooltip("Scatter the nodes randomly. Control how far apart by adjusting the Replotting Spread");
+                ImGui.SetTooltip("Scatter the nodes in a spherical shell around a center point. The will implode into a new layout.");
             }
             if (ImGui.Button("Replot: Pillar", btnsize))
             {
@@ -887,7 +893,7 @@ private void DrawScalePopup()
             if (ImGui.IsItemHovered())
             {
                 spreadHighlight = true;
-                ImGui.SetTooltip("Scatter the nodes randomly. Control how far apart by adjusting the Replotting Spread");
+                ImGui.SetTooltip("Distribute the nodes vertically. May be useful on graphs with minimal control flow.");
             }
 
 

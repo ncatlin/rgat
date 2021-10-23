@@ -116,26 +116,28 @@ namespace rgat
             {
                 ManageActiveGraph();
 
-
                 sw.Start();
                 ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
-                if (ImGui.BeginTable("MainVisPanelsTable", 2))
+                if (ImGui.GetContentRegionAvail().Y > 300 && ImGui.BeginTable("MainVisPanelsTable", 2))
                 {
                     ImGui.TableSetupColumn("MainVisTCol");
                     ImGui.TableSetupColumn("PrevVisTCol", ImGuiTableColumnFlags.WidthFixed, CONSTANTS.UI.PREVIEW_PANE_WIDTH);
                     ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.PopStyleVar();
+                        DrawMainVisualiser(200);
+                        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
 
-                    ImGui.PopStyleVar();
-                    DrawMainVisualiser(200);
-                    ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
-
-                    sw.Stop();
-                    if (sw.ElapsedMilliseconds > 40)
-                        Console.WriteLine($"DrawVisualiserGraphs took {sw.ElapsedMilliseconds}ms");
-                    sw.Restart();
-                    ImGui.TableNextColumn();
-                    DrawPreviewVisualiser(controlsHeight: 200);
+                        sw.Stop();
+                        if (sw.ElapsedMilliseconds > 40)
+                            Console.WriteLine($"DrawVisualiserGraphs took {sw.ElapsedMilliseconds}ms");
+                        sw.Restart();
+                    }
+                    if (ImGui.TableNextColumn())
+                    {
+                        DrawPreviewVisualiser(controlsHeight: 200);
+                    }
                     ImGui.EndTable();
                 }
                 ImGui.PopStyleVar();
@@ -171,7 +173,7 @@ namespace rgat
             bool drawVisualiserBar = trace is not null && trace.TraceState is TraceRecord.ProcessState.eTerminated && trace.DiscardTraceData;
             if (drawVisualiserBar)
                 controlsHeight -= 50;
-            Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X, mainHeight - (controlsHeight ));
+            Vector2 graphSize = new Vector2(ImGui.GetContentRegionAvail().X, mainHeight - (controlsHeight));
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
@@ -191,27 +193,28 @@ namespace rgat
                     Console.WriteLine($"MainGraphWidget.DisplayEventMessages took {swdbg2.ElapsedMilliseconds}ms");
                 ImGui.EndChild();
             }
+            else
+            {
+                Console.WriteLine("Fail2B");
+            }
             ImGui.PopStyleVar();
 
             PlottedGraph activeGraph = rgatState.ActiveGraph;
-            if (activeGraph != null)
+            if (activeGraph != null && graphSize.X > 50)
             {
                 if (ImGui.BeginChild("ControlsInner", new Vector2(graphSize.X, controlsHeight)))
                 {
-                    if (activeGraph.InternalProtoGraph.TraceData.TraceState is not TraceRecord.ProcessState.eTerminated)
+                    Vector2 availRegion = ImGui.GetContentRegionAvail();
+                    if (availRegion.X > 200)
                     {
-                        DrawLiveTraceControls(controlsHeight - 5, ImGui.GetContentRegionAvail().X, activeGraph);
-                    }
-                    else
-                    {
-                        /*
-                        if (rgatState.ActiveTrace?.TraceState == TraceRecord.ProcessState.eTerminated && rgatState.ActiveTrace.DiscardTraceData)
+                        if (activeGraph.InternalProtoGraph.TraceData.TraceState is not TraceRecord.ProcessState.eTerminated)
                         {
-                            frameHeight -= 50;
-                            //ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 50);
+                            DrawLiveTraceControls(controlsHeight - 5, availRegion.X, activeGraph);
                         }
-                        */
-                        DrawPlaybackControls(controlsHeight - 5, ImGui.GetContentRegionAvail().X);
+                        else
+                        {
+                            DrawPlaybackControls(controlsHeight - 5, availRegion.X);
+                        }
                     }
                     ImGui.EndChild();
                 }
@@ -298,6 +301,7 @@ namespace rgat
 
         private unsafe void DrawPlaybackControls(float otherControlsHeight, float width)
         {
+            if (width < 200) return;
             PlottedGraph? activeGraph = rgatState.ActiveGraph;
             if (activeGraph == null)
             {
@@ -310,10 +314,9 @@ namespace rgat
                 return;
             }
 
-
             if (ImGui.BeginChild(ImGui.GetID("ReplayControlPanel"), new Vector2(width, otherControlsHeight)))
             {
-                if (activeGraph.InternalProtoGraph.TraceData.DiscardTraceData is false)
+                if (width > 50 && activeGraph.InternalProtoGraph.TraceData.DiscardTraceData is false)
                 {
                     _visualiserBar!.DrawReplaySlider(width: width - 10, height: 50, graph: activeGraph);
                 }
@@ -322,27 +325,37 @@ namespace rgat
                 ImGui.BeginGroup();
                 {
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
-                    //ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourImGui(ImGuiCol.FrameBg));
-                    if (ImGui.BeginChild("ReplayControls", new Vector2(660, ImGui.GetContentRegionAvail().Y - 2)))
+                    Vector2 available = ImGui.GetContentRegionAvail();
+                    if (ImGui.BeginChild("ReplayControls", new Vector2(Math.Min(available.X, 660), available.Y - 2)))
                     {
-
-                        DrawReplayControlsPanel(activeGraph);
-                        ImGui.SameLine();
-                        DrawRenderControlPanel(activeGraph);
-                        ImGui.SameLine();
-                        DrawVideoControlPanel(activeGraph);
-                        ImGui.SameLine();
-                        DrawCameraPanel(activeGraph);
-
+                        if (available.X > 240)
+                        {
+                            DrawReplayControlsPanel(activeGraph);
+                        }
+                        if (available.X > 400)
+                        {
+                            ImGui.SameLine();
+                            DrawRenderControlPanel(activeGraph);
+                        }
+                        if (available.X > 520)
+                        {
+                            ImGui.SameLine();
+                            DrawVideoControlPanel(activeGraph);
+                        }
+                        if (available.X > 700)
+                        {
+                            ImGui.SameLine();
+                            DrawCameraPanel(activeGraph);
+                        }
                         ImGui.EndChild();
                     }
-                    //ImGui.PopStyleColor();
                     ImGui.EndGroup();
                 }
-                ImGui.SameLine();
-                //ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 8);
-                DrawDiasmPreviewBox(activeGraph.InternalProtoGraph, (int)Math.Floor(activeGraph.AnimationIndex));
-
+                if (width > 700)
+                {
+                    ImGui.SameLine();
+                    DrawDiasmPreviewBox(activeGraph.InternalProtoGraph, (int)Math.Floor(activeGraph.AnimationIndex));
+                }
                 ImGui.EndChild();
             }
 
@@ -625,7 +638,7 @@ namespace rgat
             {
                 float itemWidth = 60;
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame, 45));
-                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4,3));
+                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 3));
                 if (ImGui.BeginTable("#CameraStateTable", 3))
                 {
                     ImGui.TableSetupColumn("MovIcon", ImGuiTableColumnFlags.WidthFixed, 20);
@@ -636,52 +649,66 @@ namespace rgat
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-                    ImGui.TableNextColumn();
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"X");
-                    ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(itemWidth);
-                    float xoff = plot.CameraState.MainCameraXOffset;
-                    if (ImGui.DragFloat("##Xm", ref xoff, 150, -3 * furthestNode, 3 * furthestNode, "%.f"))
-                        plot.CameraState.MainCameraXOffset = xoff;
-
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"{ImGuiController.FA_ICON_MOVEMENT}");
-                    ImGui.TableNextColumn();
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"Y");
-                    ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(itemWidth);
-                    float yoff = plot.CameraState.MainCameraYOffset;
-                    if (ImGui.DragFloat("##Ym", ref yoff, 150, -3 * furthestNode, 3 * furthestNode, "%.f"))
-                        plot.CameraState.MainCameraYOffset = yoff;
-
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.TableNextColumn();
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"Z");
-                    ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(itemWidth);
-                    float mainzoom = plot.CameraState.MainCameraZoom;
-                    if (ImGui.DragFloat("##Zm", ref mainzoom, 500, -9999999999, furthestNode, "%.f"))
-                        plot.CameraState.MainCameraZoom = mainzoom;
-                    SmallWidgets.MouseoverText("Camera Zoom. Can be controlled by the mouse wheel (with ctrl, shift and ctrl+shift modifiers");
-
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"{ImGuiController.FA_ICON_ROTATION}");
-                    ImGui.TableNextColumn();
-                    ImGui.TableNextColumn();
-                    if (ImGui.Button("Reset", new Vector2(itemWidth, 25)))
+                    if (ImGui.TableNextColumn())
                     {
-                        plot.CameraState.RotationMatrix = Matrix4x4.Identity;
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text($"X");
                     }
-                    SmallWidgets.MouseoverText("Reset the rotation of the graph");
-
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.SetNextItemWidth(itemWidth);
+                        float xoff = plot.CameraState.MainCameraXOffset;
+                        if (ImGui.DragFloat("##Xm", ref xoff, 150, -3 * furthestNode, 3 * furthestNode, "%.f"))
+                            plot.CameraState.MainCameraXOffset = xoff;
+                    }
+                    ImGui.TableNextRow();
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text($"{ImGuiController.FA_ICON_MOVEMENT}");
+                    }
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text($"Y");
+                    }
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.SetNextItemWidth(itemWidth);
+                        float yoff = plot.CameraState.MainCameraYOffset;
+                        if (ImGui.DragFloat("##Ym", ref yoff, 150, -3 * furthestNode, 3 * furthestNode, "%.f"))
+                            plot.CameraState.MainCameraYOffset = yoff;
+                    }
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text($"Z");
+                    }
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.SetNextItemWidth(itemWidth);
+                        float mainzoom = plot.CameraState.MainCameraZoom;
+                        if (ImGui.DragFloat("##Zm", ref mainzoom, 500, -9999999999, furthestNode, "%.f"))
+                            plot.CameraState.MainCameraZoom = mainzoom;
+                        SmallWidgets.MouseoverText("Camera Zoom. Can be controlled by the mouse wheel (with ctrl, shift and ctrl+shift modifiers");
+                    }
+                    ImGui.TableNextRow();
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text($"{ImGuiController.FA_ICON_ROTATION}");
+                    }
+                    ImGui.TableNextColumn();
+                    if (ImGui.TableNextColumn())
+                    {
+                        if (ImGui.Button("Reset", new Vector2(itemWidth, 25)))
+                        {
+                            plot.CameraState.RotationMatrix = Matrix4x4.Identity;
+                        }
+                        SmallWidgets.MouseoverText("Reset the rotation of the graph");
+                    }
                     ImGui.EndTable();
                 }
                 ImGui.PopStyleColor();
@@ -843,28 +870,45 @@ namespace rgat
             float replayControlsSize = ImGui.GetContentRegionAvail().X;
             if (ImGui.BeginChild(ImGui.GetID("LiveTraceControlPanel"), new Vector2(replayControlsSize, otherControlsHeight)))
             {
-
                 _visualiserBar!.Draw(width, 50);
-                //ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
+                ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 6, ImGui.GetCursorPosY() + 6));
                 ImGui.Indent(6);
-                if (ImGui.BeginChild("LiveControlsPane", new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y - 2)))
+
+                float availX = ImGui.GetContentRegionAvail().X;
+                if (availX > 200 && ImGui.BeginChild("LiveControlsPane", new Vector2(availX, ImGui.GetContentRegionAvail().Y - 2)))
                 {
-                    ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX(), ImGui.GetCursorPosY() + 6));
-                    DrawActiveTraceControlPanel(plot);
-                    ImGui.SameLine();
-                    DrawRenderControlPanel(plot);
-                    ImGui.SameLine();
-                    DrawVideoControlPanel(plot);
-                    ImGui.SameLine();
-                    DrawCameraPanel(plot);
-                    ImGui.SameLine();
-                    DrawDiasmPreviewBox(plot.InternalProtoGraph, plot.InternalProtoGraph.StoredUpdateCount - 1);
+                    if (availX > 200)
+                    {
+                        ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX(), ImGui.GetCursorPosY() + 6));
+                        DrawActiveTraceControlPanel(plot);
+                    }
+                    if (availX > 360)
+                    {
+                        ImGui.SameLine();
+                        DrawRenderControlPanel(plot);
+                    }
+                    if (availX > 480)
+                    {
+                        ImGui.SameLine();
+                        DrawVideoControlPanel(plot);
+                    }
+                    if (availX > 670)
+                    {
+                        ImGui.SameLine();
+                        DrawCameraPanel(plot);
+                    }
+                    if (availX > 700)
+                    {
+                        ImGui.SameLine();
+                        DrawDiasmPreviewBox(plot.InternalProtoGraph, plot.InternalProtoGraph.StoredUpdateCount - 1);
+                    }
                     ImGui.EndChild();
                 }
                 else
                 {
                     Console.WriteLine("Fail4");
                 }
+                
                 ImGui.EndChild();
             }
 
@@ -1060,22 +1104,33 @@ namespace rgat
                     if (n is not null)
                     {
                         ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        ImGui.Text("Address");
-                        ImGui.TableNextColumn();
-                        ImGui.Text($"0x{n.Address:X}");
+                        if (ImGui.TableNextColumn())
+                        {
+                            ImGui.Text("Address");
+                        }
+                        if (ImGui.TableNextColumn())
+                        {
+                            ImGui.Text($"0x{n.Address:X}");
+                        }
 
                         ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        ImGui.Text("Sources");
-                        ImGui.TableNextColumn();
-                        ImGui.TextWrapped(GetNeighbourString(plot.InternalProtoGraph, n, incoming: true));
-
+                        if (ImGui.TableNextColumn())
+                        {
+                            ImGui.Text("Sources");
+                        }
+                        if (ImGui.TableNextColumn())
+                        {
+                            ImGui.TextWrapped(GetNeighbourString(plot.InternalProtoGraph, n, incoming: true));
+                        }
                         ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        ImGui.Text("Targets");
-                        ImGui.TableNextColumn();
-                        ImGui.TextWrapped(GetNeighbourString(plot.InternalProtoGraph, n, incoming: false));
+                        if (ImGui.TableNextColumn())
+                        {
+                            ImGui.Text("Targets");
+                        }
+                        if (ImGui.TableNextColumn())
+                        {
+                            ImGui.TextWrapped(GetNeighbourString(plot.InternalProtoGraph, n, incoming: false));
+                        }
                     }
                     ImGui.EndTable();
                 }
@@ -1125,7 +1180,7 @@ namespace rgat
             if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, false, ImGuiWindowFlags.NoScrollbar))
             {
                 swdbg2.Restart();
-                PreviewGraphWidget!.DrawWidget();
+                PreviewGraphWidget!.DrawWidget(MainGraphWidget.WidgetSize);
                 if (PreviewGraphWidget.clickedGraph != null)
                 {
                     SetActiveGraph(PreviewGraphWidget.clickedGraph);
@@ -1151,7 +1206,9 @@ namespace rgat
                 if (activeGraph is not null)
                 {
                     int mouseNode = MainGraphWidget.MouseoverNodeID;
-                    if (mouseNode is -1 || ImGui.GetIO().KeyShift || ImGui.GetIO().KeyCtrl)
+                    if (mouseNode is -1 ||
+                        GlobalConfig.ShowNodeMouseover is false ||
+                        ImGui.GetIO().KeyShift || ImGui.GetIO().KeyCtrl)
                     {
                         DrawPlotStatColumns(activeGraph);
                     }
@@ -1244,113 +1301,137 @@ namespace rgat
                     ImGui.TableSetupColumn("Explain");
 
                     ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text($"Trace Backlog");
-                    ImGui.TableNextColumn();
-
-                    if (graph.TraceReader != null)
+                    if (ImGui.TableNextColumn())
                     {
-                        if (graph.TraceReader.QueueSize > 0)
+                        ImGui.Text($"Trace Backlog");
+                    }
+                    if (ImGui.TableNextColumn())
+                    {
+                        if (graph.TraceReader != null)
                         {
-                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"{graph.TraceReader.QueueSize}");
+                            if (graph.TraceReader.QueueSize > 0)
+                            {
+                                ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.OrangeRed), $"{graph.TraceReader.QueueSize}");
+                            }
+                            else
+                            {
+                                ImGui.Text($"{graph.TraceReader.QueueSize}");
+                            }
+                        }
+                    }
+
+
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.Text("Number of items in trace data backlog");
+                    }
+
+                    ImGui.TableNextRow();
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.Text($"Disassembly Backlog");
+                    }
+                    if (ImGui.TableNextColumn())
+                    {
+                        if (graph.TraceData.ProcessThreads.BBthread is not null && graph.TraceData.ProcessThreads.BBthread.QueueSize > 0)
+                        {
+                            ImGui.Text($"{graph.TraceData.ProcessThreads.BBthread.QueueSize}");
                         }
                         else
                         {
-                            ImGui.Text($"{graph.TraceReader.QueueSize}");
+                            ImGui.Text("0");
                         }
                     }
-
-
-
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Number of items in trace data backlog");
-
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.Text("Blocks waiting for disassembly");
+                    }
                     ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text($"Disassembly Backlog");
-                    ImGui.TableNextColumn();
-
-                    if (graph.TraceData.ProcessThreads.BBthread is not null && graph.TraceData.ProcessThreads.BBthread.QueueSize > 0)
+                    if (ImGui.TableNextColumn())
                     {
-                        ImGui.Text($"{graph.TraceData.ProcessThreads.BBthread.QueueSize}");
+                        ImGui.Text("Busy");
                     }
-                    else
+                    if (ImGui.TableNextColumn())
                     {
-                        ImGui.Text("0");
-                    }
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Blocks waiting for disassembly");
-
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Busy");
-                    ImGui.TableNextColumn();
-
-                    if (graph.PerformingUnchainedExecution)
-                    {
-                        ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"True");
-                    }
-                    else
-                    {
-                        ImGui.Text("False");
-                    }
-
-                    ImGui.TableNextColumn();
-                    ImGui.Text("The thread is in a lightly instrumented high-CPU usage area");
-
-
-                    ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                    ImGui.Text($"Repeat Queue");
-                    ImGui.TableNextColumn();
-
-                    ThreadTraceProcessingThread? traceProcessor = graph.TraceProcessor;
-                    if (traceProcessor != null)
-                    {
-                        string BrQlab = $"{traceProcessor.PendingBlockRepeats}";
-                        if (traceProcessor.PendingBlockRepeats > 0)
+                        if (graph.PerformingUnchainedExecution)
                         {
-                            BrQlab += $" {traceProcessor.LastBlockRepeatsTime}";
-                        }
-                        ImGui.Text($"{BrQlab}");
-                    }
-
-                    ImGui.TableNextColumn();
-                    ImGui.Text("Deinstrumented execution counts awaiting assignment to the graph");
-
-                    ImGui.TableNextRow();
-
-                    ImGui.TableNextColumn();
-                    ImGui.Text($"UI FPS");
-                    ImGui.TableNextColumn();
-
-                    double fps = rgatUI.UIDrawFPS;
-                    if (fps >= 100)
-                    {
-                        ImGui.Text("100+");
-                    }
-                    else
-                    {
-                        uint fpscol;
-                        if (fps >= 40)
-                        {
-                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText);
-                        }
-                        else if (fps < 40 && fps >= 10)
-                        {
-                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.WarnStateColour);
+                            ImGui.TextColored(WritableRgbaFloat.ToVec4(Color.Yellow), $"True");
                         }
                         else
                         {
-                            fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour);
+                            ImGui.Text("False");
                         }
-
-                        ImGui.PushStyleColor(ImGuiCol.Text, fpscol);
-                        ImGui.Text($"{fps:0.#}");
-                        ImGui.PopStyleColor();
                     }
-                    ImGui.TableNextColumn();
-                    ImGui.Text("How many frames the UI can render in one second");
+
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.Text("The thread is in a lightly instrumented high-CPU usage area");
+                    }
+
+                    ImGui.TableNextRow();
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.Text($"Repeat Queue");
+                    }
+                    if (ImGui.TableNextColumn())
+                    {
+
+                        ThreadTraceProcessingThread? traceProcessor = graph.TraceProcessor;
+                        if (traceProcessor != null)
+                        {
+                            string BrQlab = $"{traceProcessor.PendingBlockRepeats}";
+                            if (traceProcessor.PendingBlockRepeats > 0)
+                            {
+                                BrQlab += $" {traceProcessor.LastBlockRepeatsTime}";
+                            }
+                            ImGui.Text($"{BrQlab}");
+                        }
+                    }
+
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.Text("Deinstrumented execution counts awaiting assignment to the graph");
+                    }
+                    ImGui.TableNextRow();
+
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.Text($"UI FPS");
+                    }
+                    if (ImGui.TableNextColumn())
+                    {
+
+                        double fps = rgatUI.UIDrawFPS;
+                        if (fps >= 100)
+                        {
+                            ImGui.Text("100+");
+                        }
+                        else
+                        {
+                            uint fpscol;
+                            if (fps >= 40)
+                            {
+                                fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText);
+                            }
+                            else if (fps < 40 && fps >= 10)
+                            {
+                                fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.WarnStateColour);
+                            }
+                            else
+                            {
+                                fpscol = Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour);
+                            }
+
+                            ImGui.PushStyleColor(ImGuiCol.Text, fpscol);
+                            ImGui.Text($"{fps:0.#}");
+                            ImGui.PopStyleColor();
+                        }
+                    }
+
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.Text("How many frames the UI can render in one second");
+                    }
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();

@@ -511,7 +511,6 @@ namespace rgat
             switch (style)
             {
                 case LayoutStyles.Style.CylinderLayout:
-                    Logging.WriteConsole("Generating cylinder presets");
                     return GenerateCylinderLayout();
 
                 case LayoutStyles.Style.Circle:
@@ -522,12 +521,10 @@ namespace rgat
                     {
                         if (!LayoutState.GetSavedLayout(style, out float[]? layout))
                         {
-                            Logging.WriteConsole("Generating forcedir presets");
                             return CreateRandomPresetLayout();
                         }
                         else
                         {
-                            Logging.WriteConsole("Returning old forcedir presets");
                             return layout;
                         }
                     }
@@ -3019,9 +3016,9 @@ namespace rgat
 
             float XDiff = (mainGraphWidgetSize.X / 2f) - clickMainViewCoord.X;
             float YDiff = (mainGraphWidgetSize.Y / 2f) - clickMainViewCoord.Y;
-
-            CameraState.MainCameraXOffset += XDiff;
-            CameraState.MainCameraYOffset += YDiff;
+            float ZoomMultiplier = 1 + Math.Abs(CameraState.MainCameraZoom / 50000);
+            CameraState.MainCameraXOffset += (XDiff * ZoomMultiplier);
+            CameraState.MainCameraYOffset += (YDiff * ZoomMultiplier);
         }
 
         /// <summary>

@@ -338,6 +338,12 @@ namespace rgat.Config
             private bool _AlertAnimation = true;
 
             /// <summary>
+            /// Show keybind activations in the top left of the visualiser
+            /// </summary>
+            public bool ShowVisualiserKeybinds { get => _showVisualiserKeybinds; set { _showVisualiserKeybinds = value; MarkDirty(); } }
+            private bool _showVisualiserKeybinds = true;
+
+            /// <summary>
             /// The test dialog appears in the menu bar
             /// </summary>
             public bool EnableTestHarness { get => _EnableTestHarness; set { _EnableTestHarness = value; MarkDirty(); } }

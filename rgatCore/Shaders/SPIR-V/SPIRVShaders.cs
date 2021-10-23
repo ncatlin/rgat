@@ -265,8 +265,14 @@ void main() {
     /*
         each edge has two verts, one for each node
     */    
-    vColor = vec4(Color.xyz, nodeAttribTexture[PositionBufIndex].y);
-
+    if (isAnimated)
+    {
+        vColor = vec4(Color.xyz, nodeAttribTexture[PositionBufIndex].y);
+    }
+    else
+    {
+        vColor = vec4(Color.xyz, Color.w);
+    }
     vec4 worldPosition = World *  vec4(positionTexture[PositionBufIndex].xyz,1);
     vec4 viewPosition = View * worldPosition;
     vec4 clipPosition = Projection * viewPosition;

@@ -134,7 +134,7 @@ namespace rgat
         /// <summary>
         /// Draw the preview graph widget
         /// </summary>
-        public void DrawWidget()
+        public void DrawWidget(Vector2 mainWidgetSize)
         {
 
             bool showToolTip = false;
@@ -144,7 +144,7 @@ namespace rgat
             {
                 return;
             }
-
+            
 
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
 
@@ -169,7 +169,7 @@ namespace rgat
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
 
-                    if (DrawPreviewGraph(plot, xPadding, captionHeight, captionBackgroundcolor, out bool canHover))
+                    if (DrawPreviewGraph(plot, xPadding, captionHeight, captionBackgroundcolor, out bool canHover, mainWidgetSize))
                     {
                         var MainGraphs = plot.InternalProtoGraph.TraceData.GetPlottedGraphs();
                         HandleClickedGraph(MainGraphs[graphIdx]);
@@ -426,10 +426,13 @@ namespace rgat
             float C1Y = previewBaseY - TopLeft.Y;
             float C2Y = previewBaseY - BaseRight.Y;
 
-            uint colour = Themes.GetThemeColourUINT(Themes.eThemeColour.PreviewZoomEnvelope);
+            bool verySmall = Math.Abs(C1Y - C2Y) < 20;
+            uint colour = verySmall ? Themes.GetThemeColourUINT(Themes.eThemeColour.Emphasis1) :
+                Themes.GetThemeColourUINT(Themes.eThemeColour.PreviewZoomEnvelope);
 
             C1Y = Math.Min(previewBaseY - 1, C1Y);
             C2Y = Math.Max(subGraphPosition.Y, C2Y);
+
 
             if (C1Y > subGraphPosition.Y && C1Y < previewBaseY)
             {
@@ -458,8 +461,9 @@ namespace rgat
         /// <param name="captionHeight">height of the caption</param>
         /// <param name="captionBackgroundcolor">contrast background colour of the caption</param>
         /// <param name="canHover">output flag states if we can safely draw a mouseover tooltip</param>
+        /// <param name="mainWidgetSize">Size of the maingraph widget, used for projecting the zoom envelope</param>
         /// <returns>The graph was clicked</returns>
-        private bool DrawPreviewGraph(PlottedGraph plot, float xPadding, float captionHeight, uint captionBackgroundcolor, out bool canHover)
+        private bool DrawPreviewGraph(PlottedGraph plot, float xPadding, float captionHeight, uint captionBackgroundcolor, out bool canHover, Vector2 mainWidgetSize)
         {
             ImDrawListPtr imdp = ImGui.GetWindowDrawList(); //draw on and clipped to this window 
             bool clicked = false;
@@ -502,6 +506,7 @@ namespace rgat
             {
                 DrawPreviewZoomEnvelope(plot, subGraphPosition);
 
+                //Draw the thicker selected graph border
                 if (borderThickness > 0)
                 {
                     imdp.AddRect(
@@ -563,7 +568,8 @@ namespace rgat
                     Vector2 clickPos = ImGui.GetMousePos();
                     Vector2 clickOffset = clickPos - subGraphPosition;
                     clickOffset.Y = EachGraphHeight - clickOffset.Y;
-                    plot.MoveCameraToPreviewClick(clickOffset, new Vector2(EachGraphWidth, EachGraphHeight), new Vector2(884, 454), PreviewProjection);//todo widget size
+                    plot.MoveCameraToPreviewClick(clickOffset, new Vector2(EachGraphWidth, EachGraphHeight), 
+                        mainGraphWidgetSize: mainWidgetSize, PreviewProjection);
                 }
 
             }
