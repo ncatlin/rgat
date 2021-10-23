@@ -272,7 +272,7 @@ namespace rgat
         /// </summary>
         public static float PresetSpeedDivisor = 10f;
 
-        
+
 
 
         /// <summary>
@@ -362,38 +362,17 @@ namespace rgat
         {
             Logging.RecordLogEvent($"Loading Resources", Logging.LogFilterType.Debug);
 
-            System.Reflection.Assembly assembly = typeof(ImGuiController).Assembly;
-            System.IO.Stream? fs;
             try
             {
-                fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
-                if (fs is null)
-                {
-                    Logging.RecordError("LoadThemesFromResource: Failed to load manifest resource stream");
-                    return;
-                }
+                string preset = global::rgat.Properties.Resources.BuiltinJSONThemes;
+                preset = preset.Substring(preset.IndexOf("["));
+                Themes.LoadBuiltinThemes(Newtonsoft.Json.Linq.JArray.Parse(preset));
             }
             catch (Exception e)
             {
-                Logging.RecordException($"LoadThemesFromResource: Failed to load manifest resource stream: {e.Message}", e);
-                return;
+                Logging.RecordException($"Exception loading builtin themes: {e.Message}", e);
             }
-            System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
 
-            r.GetResourceData("BuiltinJSONThemes", out string? type, out byte[] themesjsn);
-            if (themesjsn != null && type == "ResourceTypeCode.String" && themesjsn.Length > 0)
-            {
-                try
-                {
-                    string preset = System.Text.Encoding.ASCII.GetString(themesjsn, 0, themesjsn.Length);
-                    preset = preset.Substring(preset.IndexOf("["));
-                    Themes.LoadBuiltinThemes(Newtonsoft.Json.Linq.JArray.Parse(preset));
-                }
-                catch (Exception e)
-                {
-                    Logging.RecordException($"Exception loading builtin themes: {e.Message}", e);
-                }
-            }
         }
 
 
@@ -697,7 +676,7 @@ namespace rgat
         /// These keys trigger actions that need to be reacted to repeatedly and immediately (mainly graphical actions like rotation)
         /// </summary>
         public static List<Key> ResponsiveKeys = new List<Key>();
-        
+
         /// <summary>
         /// Keybinds triggered by responsive keys
         /// </summary>
@@ -812,7 +791,7 @@ namespace rgat
 
                 lock (_settingsLock)
                 {
-                   Themes.LoadCustomThemes();
+                    Themes.LoadCustomThemes();
                 }
 
                 progress?.Report(0.5f);
@@ -850,23 +829,23 @@ namespace rgat
 
             try
             {
-                string tool32Path = Path.Combine(BaseDirectory, "tools", "pintool32.dll");
-                byte[]? tool32bytes = rgatState.ReadBinaryResource("PinTool32");
+                byte[]? tool32bytes = global::rgat.Properties.Resources.PinTool32;
                 if (tool32bytes is null)
                 {
                     throw new EndOfStreamException("No PinTool32 resource available");
                 }
 
+                string tool32Path = Path.Combine(BaseDirectory, "tools", "pintool32.dll");
                 File.WriteAllBytes(tool32Path, tool32bytes);
                 SetBinaryPath(CONSTANTS.PathKey.PinToolPath32, tool32Path);
 
-                string tool64Path = Path.Combine(BaseDirectory, "tools", "pintool64.dll");
-                byte[]? tool64bytes = rgatState.ReadBinaryResource("PinTool64");
+                byte[]? tool64bytes = global::rgat.Properties.Resources.PinTool64;
                 if (tool64bytes is null)
                 {
                     throw new EndOfStreamException("No PinTool64 resource available");
                 }
 
+                string tool64Path = Path.Combine(BaseDirectory, "tools", "pintool64.dll");
                 File.WriteAllBytes(tool64Path, tool64bytes);
                 SetBinaryPath(CONSTANTS.PathKey.PinToolPath64, tool64Path);
             }

@@ -848,8 +848,9 @@ private void DrawScalePopup()
 
         private void DrawForceDirectedOptions()
         {
+            Vector2 btnsize = new Vector2(100, 23);
             bool spreadHighlight = false;
-            if (ImGui.Button("Rerender: Scatter"))
+            if (ImGui.Button("Replot: Scatter", btnsize))
             {
                 InitGraphForceLayoutReplot(resetStyle: GraphLayoutState.PositionResetStyle.Scatter, _replotSpread);
             }
@@ -859,7 +860,7 @@ private void DrawScalePopup()
                 ImGui.SetTooltip("Scatter the nodes randomly. Control how far apart by adjusting the Replotting Spread");
             }
             ImGui.SameLine();
-            if (ImGui.Button("Rerender: Explode"))
+            if (ImGui.Button("Replot: Explode", btnsize))
             {
                 spreadHighlight = true;
                 InitGraphForceLayoutReplot(resetStyle: GraphLayoutState.PositionResetStyle.Explode);
@@ -870,7 +871,7 @@ private void DrawScalePopup()
                 ImGui.SetTooltip("Scatter the nodes randomly. Control how far apart by adjusting the Replotting Spread");
             }
             ImGui.SameLine();
-            if (ImGui.Button("Rerender: Implode"))
+            if (ImGui.Button("Replot: Implode", btnsize))
             {
                 InitGraphForceLayoutReplot(resetStyle: GraphLayoutState.PositionResetStyle.Implode, _replotSpread);
             }
@@ -879,7 +880,7 @@ private void DrawScalePopup()
                 spreadHighlight = true;
                 ImGui.SetTooltip("Scatter the nodes randomly. Control how far apart by adjusting the Replotting Spread");
             }
-            if (ImGui.Button("Rerender: Pillar"))
+            if (ImGui.Button("Replot: Pillar", btnsize))
             {
                 InitGraphForceLayoutReplot(resetStyle: GraphLayoutState.PositionResetStyle.Pillar, _replotSpread);
             }

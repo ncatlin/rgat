@@ -473,9 +473,9 @@ namespace rgat.Threads
             eCodeInstrumentation targetCodeType = protograph.TraceData.FindContainingModule(nextBlockAddress, out int modnum);
 
             dbgStopwatch.Stop();
-            if (dbgStopwatch.ElapsedMilliseconds > 4)
+            if (dbgStopwatch.ElapsedMilliseconds > 100)
             {
-                Console.WriteLine($"TP::FindContainingModule took {dbgStopwatch.ElapsedMilliseconds}ms");
+                Logging.RecordLogEvent($"TP::FindContainingModule took {dbgStopwatch.ElapsedMilliseconds}ms", graph: this.protograph, filter: Logging.LogFilterType.Debug);
             }
 
             /*
@@ -678,7 +678,6 @@ namespace rgat.Threads
             //Logging.WriteConsole($"Handling arg index {argIdx} of symbol address 0x{funcpc:x} from source block {sourceBlockID} :'{argstring}'");
 
             protograph.CacheIncomingCallArgument(funcpc, sourceBlockID, argpos: argIdx, contents: argstring, isLastArgInCall: moreArgsFlag == 'E');
-
         }
 
 

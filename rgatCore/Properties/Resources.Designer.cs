@@ -97,11 +97,31 @@ namespace rgat.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap circlePNG {
+            get {
+                object obj = ResourceManager.GetObject("circlePNG", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to [{&quot;Field&quot;:&quot;Metadata&quot;},{&quot;Field&quot;:&quot;ProcessRecord&quot;,&quot;BitWidth&quot;:32},{&quot;Field&quot;:&quot;Modules&quot;},[&quot;&quot;,&quot;&quot;],[0,1,2,3],[0,1],{&quot;Field&quot;:&quot;Symbols&quot;,&quot;ModuleCount&quot;:0,&quot;TotalSymbols&quot;:0},{&quot;Field&quot;:&quot;Disassembly&quot;,&quot;Count&quot;:5},[10,0,0,1,&quot;UA==&quot;,1,29628,1],[20,0,0,1,&quot;6D4AAAA=&quot;,1,29628,2],[30,0,1,1,&quot;/yUIIGQA&quot;,1,29628,3],[40,0,1,1,&quot;D4T8////&quot;,1,29628,4],[50,0,1,1,&quot;ww==&quot;,1,29628,5],{&quot;Field&quot;:&quot;BasicBlocks&quot;,&quot;Count&quot;:0},{&quot;Field&quot;:&quot;Externs&quot;,&quot;Count&quot;:0},{&quot;Field&quot;:&quot;Threads&quot;,&quot;Count&quot;:1},{&quot;Field&quot;:&quot;Thread&quot;,&quot;ThreadID&quot;:29628,&quot;StartAddress&quot;:0,&quot;TotalInstructions&quot;:0 [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string CompanionTrace {
             get {
                 return ResourceManager.GetString("CompanionTrace", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap crosshairPNG {
+            get {
+                object obj = ResourceManager.GetObject("crosshairPNG", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
             }
         }
         
@@ -126,6 +146,16 @@ namespace rgat.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap eyeWhitePNG {
+            get {
+                object obj = ResourceManager.GetObject("eyeWhitePNG", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
         internal static byte[] Font_Awesome_5_Free_Regular_400 {
@@ -142,6 +172,36 @@ namespace rgat.Properties {
             get {
                 object obj = ResourceManager.GetObject("Font_Awesome_5_Free_Solid_900", resourceCulture);
                 return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap forceDirectedPNG {
+            get {
+                object obj = ResourceManager.GetObject("forceDirectedPNG", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap menuBlackLinesPNG {
+            get {
+                object obj = ResourceManager.GetObject("menuBlackLinesPNG", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap menuWhiteLinesPNG {
+            get {
+                object obj = ResourceManager.GetObject("menuWhiteLinesPNG", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
             }
         }
         
@@ -172,6 +232,56 @@ namespace rgat.Properties {
             get {
                 object obj = ResourceManager.GetObject("PinTool64", resourceCulture);
                 return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap searchPNG {
+            get {
+                object obj = ResourceManager.GetObject("searchPNG", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap springPNG {
+            get {
+                object obj = ResourceManager.GetObject("springPNG", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] UpdateFinaliserDLL {
+            get {
+                object obj = ResourceManager.GetObject("UpdateFinaliserDLL", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] UpdateFinaliserEXE {
+            get {
+                object obj = ResourceManager.GetObject("UpdateFinaliserEXE", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap vertexSpherePNG {
+            get {
+                object obj = ResourceManager.GetObject("vertexSpherePNG", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
             }
         }
     }

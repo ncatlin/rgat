@@ -240,10 +240,12 @@ namespace rgat
                 }
             }
 
-            string loaderName = (loaderWidth == BitWidth.Arch32) ? "DllLoader32" : "DllLoader64";
-            byte[]? loaderBytes = rgatState.ReadBinaryResource(loaderName);
+            byte[]? loaderBytes = (loaderWidth == BitWidth.Arch32) ? 
+                global::rgat.Properties.Resources.DllLoader32 : 
+                global::rgat.Properties.Resources.DllLoader64;
             if (loaderBytes == null)
             {
+                string loaderName = (loaderWidth == BitWidth.Arch32) ? "DllLoader32" : "DllLoader64";
                 Logging.RecordError($"Unable to retrieve loader {loaderName} from resources");
                 return false;
             }

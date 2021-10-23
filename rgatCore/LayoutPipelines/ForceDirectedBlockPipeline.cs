@@ -11,7 +11,7 @@ namespace rgat.Layouts
     class ForceDirectedBlockPipeline : LayoutPipelines.LayoutPipeline
     {
 
-        public ForceDirectedBlockPipeline(GraphicsDevice gdev) : base(gdev)
+        public ForceDirectedBlockPipeline(GraphicsDevice gdev) : base(gdev, "ForceDirectedBlock")
         {
             SetupComputeResources();
         }
@@ -81,7 +81,7 @@ namespace rgat.Layouts
         }
 
 
-        public override void Compute(PlottedGraph plot, bool flip, float delta)
+        public override void Compute(PlottedGraph plot, CommandList cl, bool flip, float delta)
         {
             GraphLayoutState layout = plot.LayoutState;
             ResourceSetDescription velocity_rsrc_desc, pos_rsrc_desc;
@@ -110,17 +110,17 @@ namespace rgat.Layouts
                     layout.PositionsVRAM1);
             }
 
-            RenderVelocity(velocity_rsrc_desc, plot);
-            RenderPosition(pos_rsrc_desc, plot, delta);   
+            RenderVelocity(velocity_rsrc_desc, cl, plot);
+            RenderPosition(pos_rsrc_desc, cl, plot, delta);   
         }
 
 
 
 
-        private void RenderVelocity(ResourceSetDescription RSetDesc, PlottedGraph plot)
+        private void RenderVelocity(ResourceSetDescription RSetDesc, CommandList cl, PlottedGraph plot)
         {
             _timer.Restart();
-            _cl.Begin();
+            cl.Begin();
 
             ResourceSet resourceSet = _gd.ResourceFactory.CreateResourceSet(RSetDesc);
 
@@ -135,20 +135,20 @@ namespace rgat.Layouts
 
             //if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} submit", Logging.LogFilterType.BulkDebugLogFile);
 
-            _cl.UpdateBuffer(_velocityParamsBuffer, 0, parameters);
-            _cl.SetPipeline(_velocityComputePipeline);
-            _cl.SetComputeResourceSet(0, resourceSet);
+            cl.UpdateBuffer(_velocityParamsBuffer, 0, parameters);
+            cl.SetPipeline(_velocityComputePipeline);
+            cl.SetComputeResourceSet(0, resourceSet);
 
             //16 == sizeof(Vector4)
-            _cl.Dispatch((uint)Math.Ceiling(layout.VelocitiesVRAM1!.SizeInBytes / (256.0 * 16)), 1, 1);
+            cl.Dispatch((uint)Math.Ceiling(layout.VelocitiesVRAM1!.SizeInBytes / (256.0 * 16)), 1, 1);
             //if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RenderVelocity  {this.EngineID} done in {watch.ElapsedMilliseconds} MS", Logging.LogFilterType.BulkDebugLogFile);
 
-            _cl.End();
+            cl.End();
             _timer.Stop();
             VelocitySetupTime = _timer.Elapsed.TotalMilliseconds;
 
             _timer.Restart();
-            _gd!.SubmitCommands(_cl);
+            _gd!.SubmitCommands(cl);
             _gd!.WaitForIdle();
 
             _gd.DisposeWhenIdle(resourceSet);
@@ -164,10 +164,10 @@ namespace rgat.Layouts
         /// <param name="plot">PlottedGraph to compute</param>
         /// <param name="RSetDesc">Position shader resource set</param>
         /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
-        private unsafe void RenderPosition(ResourceSetDescription RSetDesc, PlottedGraph plot, float delta)
+        private unsafe void RenderPosition(ResourceSetDescription RSetDesc, CommandList cl, PlottedGraph plot, float delta)
         {
             _timer.Restart();
-            _cl.Begin();
+            cl.Begin();
 
             ResourceSet resourceSet = _gd.ResourceFactory.CreateResourceSet(RSetDesc);
             //Debug.Assert(!VeldridGraphBuffers.DetectNaN(_gd, positions));
@@ -184,17 +184,17 @@ namespace rgat.Layouts
 
             //Logging.WriteConsole($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
 
-            _cl.UpdateBuffer(_positionParamsBuffer, 0, parameters);
-            _cl.SetPipeline(_positionComputePipeline);
-            _cl.SetComputeResourceSet(0, resourceSet);
-            _cl.Dispatch((uint)Math.Ceiling(plot.LayoutState.PositionsVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
-            _cl.End();
+            cl.UpdateBuffer(_positionParamsBuffer, 0, parameters);
+            cl.SetPipeline(_positionComputePipeline);
+            cl.SetComputeResourceSet(0, resourceSet);
+            cl.Dispatch((uint)Math.Ceiling(plot.LayoutState.PositionsVRAM1!.SizeInBytes / (256.0 * sizeof(Vector4))), 1, 1);
+            cl.End();
             _timer.Stop();
             PositionSetupTime = _timer.Elapsed.TotalMilliseconds;
 
 
             _timer.Restart();
-            _gd!.SubmitCommands(_cl);
+            _gd!.SubmitCommands(cl);
             _gd!.WaitForIdle();
             _gd.DisposeWhenIdle(resourceSet);
             _timer.Stop();

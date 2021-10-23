@@ -23,7 +23,7 @@ namespace ImGuiNET
 
         // Veldrid objects
         private DeviceBuffer? _vertexBuffer, _indexBuffer, _projMatrixBuffer;
-        private Texture? _fontTexture;
+        public Texture? _fontTexture;
         /// <summary>
         /// Shader accessible font texture
         /// </summary>
@@ -184,7 +184,7 @@ namespace ImGuiNET
 
             ImGuiIOPtr io = ImGui.GetIO();
             var fonts = io.Fonts;
-            fonts.Clear(); 
+            fonts.Clear();
 
             _originalFont = fonts.AddFontDefault();
 
@@ -201,7 +201,7 @@ namespace ImGuiNET
 
             builder.BuildRanges(out ImVector fullRanges);
 
-            notoFontBytes = rgatState.ReadBinaryResource("NotoSansSC_Regular");
+            notoFontBytes = global::rgat.Properties.Resources.NotoSansSC_Regular;
             if (notoFontBytes == null)
             {
                 Logging.RecordError($"No font resouce: \"NotoSansSC_Regular\"");
@@ -218,8 +218,8 @@ namespace ImGuiNET
                 fontConfig = CreateNewFontConfig();
                 ImFontPtr unicodeFont = fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 17, fontConfig, fullRanges.Data);
 
-                byte[]? regularFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Regular_400");
-                byte[]? solidFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Solid_900");
+                byte[]? regularFontBytes = global::rgat.Properties.Resources.Font_Awesome_5_Free_Regular_400;
+                byte[]? solidFontBytes = global::rgat.Properties.Resources.Font_Awesome_5_Free_Solid_900;
 
                 if (regularFontBytes != null && solidFontBytes != null)
                 {
@@ -284,7 +284,7 @@ namespace ImGuiNET
                         {
                             rangeHandle.Free();
                         }
-                    }                  
+                    }
                     _splashButtonFont = splashFont;
                 }
                 else
@@ -363,61 +363,25 @@ namespace ImGuiNET
             Logging.RecordLogEvent("Loading textures", Logging.LogFilterType.Debug);
 
             ResourceFactory factory = _gd.ResourceFactory;
-            string imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\forceDirected.png";
-            _imageTextures["Force3D"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+            //These icons are mostly for the visualiser menu buttons and shaders where we sometimes want something
+            //a bit more custom than what FontAwesome can give us
 
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\spring.png";
-            _imageTextures["Cylinder"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\circle.png";
-            _imageTextures["Circle"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\eye-white.png";
-            _imageTextures["Eye"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\menu2.png";
-            _imageTextures["Menu"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\menu3.png";
-            _imageTextures["Menu2"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\search.png";
-            _imageTextures["Search"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\crosshair.png";
-            _imageTextures["Crosshair"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+            _imageTextures["Force3D"] = BitmapToTexture(global::rgat.Properties.Resources.forceDirectedPNG);
+            _imageTextures["Cylinder"] = BitmapToTexture(global::rgat.Properties.Resources.springPNG);
+            _imageTextures["Circle"] = BitmapToTexture(global::rgat.Properties.Resources.circlePNG);
+            _imageTextures["Eye"] = BitmapToTexture(global::rgat.Properties.Resources.eyeWhitePNG);
+            _imageTextures["Menu"] = BitmapToTexture(global::rgat.Properties.Resources.menuBlackLinesPNG);
+            _imageTextures["Menu2"] = BitmapToTexture(global::rgat.Properties.Resources.menuWhiteLinesPNG);
+            _imageTextures["Search"] = BitmapToTexture(global::rgat.Properties.Resources.searchPNG);
+            _imageTextures["Crosshair"] = BitmapToTexture(global::rgat.Properties.Resources.crosshairPNG);
             _textureViews["Crosshair"] = factory.CreateTextureView(_imageTextures["Crosshair"]);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\new_circle.png";
-            _imageTextures["VertCircle"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
+            _imageTextures["VertCircle"] = BitmapToTexture(global::rgat.Properties.Resources.vertexSpherePNG);
             _textureViews["VertCircle"] = factory.CreateTextureView(_imageTextures["VertCircle"]);
 
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\loading-arrow.png";
-            _imageTextures["ArrowSpin"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\check.png";
-            _imageTextures["Check"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\cancel.png";
-            _imageTextures["Cross"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\star_full.png";
-            _imageTextures["StarFull"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\star_empty.png";
-            _imageTextures["StarEmpty"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-
-            imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\GreenPlus.png";
-            _imageTextures["GreenPlus"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
-
-
-            //can't figure out how to make texture arrays work with veldrid+vulkan, inconclusive+error results from searching
-            //instead make a simple 2D texture atlas
+            //These are used in shaders
             uint textureCount = 2;
             TextureDescription td = new TextureDescription(64 * textureCount, 64, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm_SRgb, TextureUsage.Sampled, TextureType.Texture2D);
-
             _imagesTextureArray = factory.CreateTexture(td);
-
             CommandList cl = factory.CreateCommandList();
             cl.Begin();
             cl.CopyTexture(_imageTextures["VertCircle"], 0, 0, 0, 0, 0, _imagesTextureArray, 0, 0, 0, 0, 0, 64, 64, 1, 1);
@@ -426,6 +390,18 @@ namespace ImGuiNET
             _gd.SubmitCommands(cl);
             cl.Dispose();
         }
+
+        //Todo: linux compatible
+        Texture BitmapToTexture(System.Drawing.Bitmap bitmap)
+        {
+            //Not much we can do to keep rgat going if there is a bad image resource so let the outer exception handler deal with it
+            using var memoryStream = new MemoryStream();
+            bitmap.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png); //windows only?
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            var img = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(memoryStream);
+            return new ImageSharpTexture(img, true, true).CreateDeviceTexture(_gd, _gd.ResourceFactory);
+        }
+
 
         /// <summary>
         /// Get an icon/image texture

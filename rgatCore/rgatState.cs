@@ -936,7 +936,7 @@ namespace rgat
             }
         }
 
-
+        /*
         /// <summary>
         /// Read a bundled resouce as bytes
         /// </summary>
@@ -965,6 +965,8 @@ namespace rgat
             stream.Read(result, 0, result.Length);
             return result;
         }
+        */
+
 
         struct PENDING_TRACE_SETTINGS
         {

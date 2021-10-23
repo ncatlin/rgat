@@ -5,6 +5,7 @@ namespace rgat.LayoutPipelines
 {
     abstract class LayoutPipeline : IDisposable
     {
+        public string Name { get; private set; } = "Unset";
         protected Pipeline? _positionComputePipeline, _velocityComputePipeline;
         protected Shader? _positionShader, _velocityShader;
         protected DeviceBuffer? _velocityParamsBuffer, _positionParamsBuffer;
@@ -13,7 +14,6 @@ namespace rgat.LayoutPipelines
 
         protected readonly object _lock = new object();
         protected readonly GraphicsDevice _gd;
-        protected readonly CommandList _cl;
 
 
         readonly protected System.Diagnostics.Stopwatch _timer = new();
@@ -24,10 +24,10 @@ namespace rgat.LayoutPipelines
         public double? VelocitySetupTime { get; protected set; } = null;
         bool _disposed = false;
 
-        protected LayoutPipeline(GraphicsDevice gdev)
+        protected LayoutPipeline(GraphicsDevice gdev, string name)
         {
             _gd = gdev;
-            _cl = _gd.ResourceFactory.CreateCommandList();
+            Name = name;
         }
 
         public void Dispose()
@@ -44,11 +44,11 @@ namespace rgat.LayoutPipelines
 
             if (disposing)
             {
-                _cl.Dispose();
+                //there used to be a command list here
             }
             _disposed = true;
         }
 
-        public abstract void Compute(PlottedGraph plot, bool flip, float delta);
+        public abstract void Compute(PlottedGraph plot, CommandList cl, bool flip, float delta);
     }
 }

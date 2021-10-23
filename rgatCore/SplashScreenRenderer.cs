@@ -94,49 +94,27 @@ namespace rgat
             graph = null;
             positions = null;
 
-            Stream? fs;
-            try
+            string companionTrace = global::rgat.Properties.Resources.CompanionTrace;
+            using var sr = new StringReader(companionTrace);
+            using (JsonTextReader jsnReader = new JsonTextReader(sr) { SupportMultipleContent = true })
             {
-                System.Reflection.Assembly assembly = typeof(ImGuiController).Assembly;
-                fs = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames()[0]);
-                if (fs is null)
+                jsnReader.Read();
+                jsnReader.Read();
+                JsonSerializer serializer = new JsonSerializer();
+                Newtonsoft.Json.Linq.JToken? mdTok = serializer.Deserialize<Newtonsoft.Json.Linq.JObject>(jsnReader);
+                if (!animTrace.Load(jsnReader, serializer,
+                    new Newtonsoft.Json.Linq.JObject(), new rgatState.SERIALISE_PROGRESS("Splash"), _gd))
                 {
-                    Logging.RecordError("SplashScreenRenderer: Failed to load manifest resource stream");
+                    Logging.RecordError("Splash animation data not loaded");
+                }
+                graph = animTrace.GetFirstGraph();
+                if (graph is null)
+                {
+                    Logging.RecordLogEvent("Failed to init companion graph");
                     return false;
                 }
-            }
-            catch (Exception e)
-            {
-                Logging.RecordException($"SplashScreenRenderer: Failed to load manifest resource stream: {e.Message}", e);
-                return false;
-            }
-            System.Resources.ResourceReader r = new System.Resources.ResourceReader(fs);
 
-            r.GetResourceData("CompanionTrace", out string? type, out byte[] traceJsn);
-
-            using (MemoryStream stream = new MemoryStream(traceJsn))
-            {
-                stream.Seek(2, SeekOrigin.Begin);
-                using (var sr = new StreamReader(stream, Encoding.Default))
-                using (JsonTextReader jsnReader = new JsonTextReader(sr) { SupportMultipleContent = true })
-                {
-                    jsnReader.Read();
-                    jsnReader.Read();
-                    JsonSerializer serializer = new JsonSerializer();
-                    Newtonsoft.Json.Linq.JToken? mdTok = serializer.Deserialize<Newtonsoft.Json.Linq.JObject>(jsnReader);
-                    if (!animTrace.Load(jsnReader, serializer,
-                        new Newtonsoft.Json.Linq.JObject(), new rgatState.SERIALISE_PROGRESS("Splash"), _gd))
-                    {
-                        Logging.RecordError("Splash animation data not loaded");
-                    }
-                    graph = animTrace.GetFirstGraph();
-                    if (graph is null)
-                    {
-                        Logging.RecordLogEvent("Failed to init companion graph");
-                        return false;
-                    }
-
-                    double[,] tortoiseVertPositions = new double[,] {
+                double[,] tortoiseVertPositions = new double[,] {
                            {0.684366, -0.375652, -0.104415}, {0.539007, -0.403717, -0.154739}, {0.621004, -0.297949, 0.0154483}, {0.457796, -0.26336, 0.0361917}, {0.397283, -0.341337, -0.0894762}, {0.337585, -0.132361, 0.128244},
                            {0.20818, -0.299482, -0.140751}, {0.053128, -0.19975, -0.0355903}, {0.127465, -0.103752, 0.118539}, {-0.155024, -0.150253, -0.0815675}, {-0.0119269, 0.0347639, 0.214581}, {-0.297253, -0.0252586, 0.0302964},
                            {-0.22639, 0.0662863, 0.176859}, {-0.489235, 0.0338762, -0.0235115}, {-0.353252, 0.209655, 0.257919},{-0.593099, 0.157446, 0.0663563}, {-0.526765, 0.243093, 0.203655}, {-0.715248, 0.223708, -0.00565106},
@@ -156,20 +134,20 @@ namespace rgat
                            {0.107026, 0.145696, 0.0974845}, {0.30235, -0.0427412, -0.0209518}, {0.238263, -0.125437, -0.154059}, {-0.213565, 0.306647, 0.130161}, {-0.186664, 0.177031, -0.030708}, {-0.349792, 0.130655, -0.151891},
                            {-0.355244, 0.298206, -0.0250737}, {-0.524182, 0.374988, 0.00859916}, {-0.243625, 0.118804, 0.0332106}, {-0.274597, 0.0399616, 0.097577}, {0.354125, -0.0793953, 0.0586848}, {0.242005, -0.224462, -0.17633}};
 
-                    int nodeCount = tortoiseVertPositions.Length / 3;
-                    float[] presetPositions = new float[4 * nodeCount];
-                    int size = 4000;
-                    for (var i = 0; i < nodeCount; i++)
-                    {
-                        presetPositions[i * 4] = (float)tortoiseVertPositions[i, 0] * size;
-                        presetPositions[i * 4 + 1] = (float)tortoiseVertPositions[i, 1] * size;
-                        presetPositions[i * 4 + 2] = (float)tortoiseVertPositions[i, 2] * size;
-                        presetPositions[i * 4 + 3] = 1;
-                    }
-                    positions = presetPositions;
-                    return true;
+                int nodeCount = tortoiseVertPositions.Length / 3;
+                float[] presetPositions = new float[4 * nodeCount];
+                int size = 4000;
+                for (var i = 0; i < nodeCount; i++)
+                {
+                    presetPositions[i * 4] = (float)tortoiseVertPositions[i, 0] * size;
+                    presetPositions[i * 4 + 1] = (float)tortoiseVertPositions[i, 1] * size;
+                    presetPositions[i * 4 + 2] = (float)tortoiseVertPositions[i, 2] * size;
+                    presetPositions[i * 4 + 3] = 1;
                 }
+                positions = presetPositions;
+                return true;
             }
+
         }
 
 
@@ -260,7 +238,7 @@ namespace rgat
                 Debug.Assert(_cl is not null);
                 tortoise.RenderGraph();
                 bool recentTreat = (DateTime.Now - _lastTreatTime).Seconds < 15;
-                
+
                 if (recentTreat is false &&     //follow the mouse if we are hungry
                     treats.Any() is false &&    // and there is nothing to eat
                     _controller.MousePresent && // and the mouse is in the window 
@@ -274,7 +252,7 @@ namespace rgat
                     if (_explore is false) _targetDestination = RandomPosition;
                     _explore = true;
                 }
-                
+
                 MoveTortoise();
                 OrientTortoise();
                 AnimateWalking();
@@ -292,7 +270,7 @@ namespace rgat
                 if (IO.MouseClicked.Count > 0 &&
                    IO.MouseClicked[0])
                 {
-                    if (recentTreat is false || IO.KeyShift )
+                    if (recentTreat is false || IO.KeyShift)
                     {
                         treats.Add(IO.MouseClickedPos[0]);
                         _lastTreatTime = DateTime.Now;
@@ -440,7 +418,7 @@ namespace rgat
                     treats.RemoveAt(0);
                 }
 
-                if(_explore)
+                if (_explore)
                 {
                     _targetDestination = RandomPosition;
                 }
@@ -452,7 +430,8 @@ namespace rgat
             float maxSpeedX = 2;
             speed = 1;
             float maxSpeedY = 1.3f;
-            if (chasingTreat){
+            if (chasingTreat)
+            {
                 maxSpeedX = 12;
                 maxSpeedY = 7;
                 speed = 2;
@@ -465,7 +444,7 @@ namespace rgat
             _isWalking = true;
 
             Vector2 tortoiseVelocity = Vector2.Zero;
-            tortoiseVelocity.X =  (_targetDestination.X - centerPosition.X) /( chasingTreat ? 5 : 150);
+            tortoiseVelocity.X = (_targetDestination.X - centerPosition.X) / (chasingTreat ? 5 : 150);
             tortoiseVelocity.Y = (_targetDestination.Y - centerPosition.Y) / (chasingTreat ? 20 : 150);
             if (Math.Abs(tortoiseVelocity.X) > maxSpeedX) tortoiseVelocity.X = tortoiseVelocity.X > 0 ? maxSpeedX : -1 * maxSpeedX;
             if (Math.Abs(tortoiseVelocity.Y) > maxSpeedY) tortoiseVelocity.Y = tortoiseVelocity.Y > 0 ? maxSpeedY : -1 * maxSpeedY;

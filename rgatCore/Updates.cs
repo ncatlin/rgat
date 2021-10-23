@@ -552,13 +552,28 @@ namespace rgat
 
         public static void PerformFileSwap(string new_rgatPath)
         {
-            Logging.WriteConsole("Do actual fileswap " + new_rgatPath);
-            string tool = @"C:\Users\nia\Source\Repos\rgatPrivate\UpdateFinaliser\bin\Debug\net5.0\UpdateFinaliser.exe";
-            System.Diagnostics.Process.Start(tool, new List<string>(){
-                System.Diagnostics.Process.GetCurrentProcess().Id.ToString(),
-                GlobalConfig.BaseDirectory,
-                new_rgatPath,
-                "true"
+            Logging.RecordLogEvent("Performing fileswap of old rgat with " + new_rgatPath);
+
+            string exeName = Path.Combine(GlobalConfig.BaseDirectory, "UpdateFinaliser.exe");
+            try
+            {
+                byte[]? installFinaliserEXE = global::rgat.Properties.Resources.UpdateFinaliserEXE;
+                File.WriteAllBytes(exeName, installFinaliserEXE);
+                string dllName = Path.Combine(GlobalConfig.BaseDirectory, "UpdateFinaliser.dll");
+                byte[]? installFinaliserDLL = global::rgat.Properties.Resources.UpdateFinaliserDLL;
+                File.WriteAllBytes(dllName, installFinaliserEXE);
+            }
+            catch (Exception e)
+            {
+                Logging.RecordException($"Failed to write update finaliser to disk directory: {e.Message}", e);
+                return;
+            }
+
+            System.Diagnostics.Process.Start(exeName, new List<string>(){
+                System.Diagnostics.Process.GetCurrentProcess().Id.ToString(), //wait for this process to be gone
+                GlobalConfig.BaseDirectory, //put the update here
+                new_rgatPath, //the downloaded update
+                "true" //relaunch rgat after the update
             });
             rgatUI.RequestExit();
         }

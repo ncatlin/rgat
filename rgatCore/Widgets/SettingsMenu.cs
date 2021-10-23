@@ -1076,7 +1076,7 @@ namespace rgat.Widgets
             ImGui.TableNextColumn();
             if (hasPath)
             {
-                SmallWidgets.DrawClickableIcon(controller: _controller, "Cross", offset: new Vector2(0, -2));
+                SmallWidgets.DrawIcon($"{ImGuiController.FA_ICON_TRASHCAN}", Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1) );
                 clearFlag = ImGui.IsItemClicked();
                 if (ImGui.IsItemHovered())
                 {

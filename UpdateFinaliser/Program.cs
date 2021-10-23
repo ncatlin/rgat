@@ -13,18 +13,20 @@ namespace UpdateFinaliser
 
         private static void Main(string[] args)
         {
+            if (args.Length != 4)
+            {
+                ArgError();
+                return;
+            }
+
             string logf = Path.Combine(Path.GetDirectoryName(args[1]), "rgatupdatelog.txt");
             using FileStream log = File.OpenWrite(logf);
             log.Write(Encoding.ASCII.GetBytes($"Started with args len {args.Length} {string.Join(",", args)}\n"));
 
-            if (args.Length != 4)
-            {
-                return;
-            }
-
             log.Write(Encoding.ASCII.GetBytes("Parsing Parent PID\n"));
             if (!int.TryParse(args[0], out int PID))
             {
+                ArgError();
                 return;
             }
 
@@ -32,19 +34,22 @@ namespace UpdateFinaliser
             string originalrgat = args[1];
             if (!File.Exists(originalrgat))
             {
+                log.Write(Encoding.ASCII.GetBytes($"Error: {originalrgat} did not exist\n"));
                 return;
             }
 
-            log.Write(Encoding.ASCII.GetBytes("Checkign updated rgat exists\n"));
+            log.Write(Encoding.ASCII.GetBytes("Checking updated rgat exists\n"));
             string newrgat = args[2];
             if (!File.Exists(newrgat))
             {
+                log.Write(Encoding.ASCII.GetBytes($"Error: {newrgat} did not exist\n"));
                 return;
             }
 
             log.Write(Encoding.ASCII.GetBytes("Parsing relaunch option\n"));
             if (!bool.TryParse(args[3], out bool reLaunch))
             {
+                log.Write(Encoding.ASCII.GetBytes($"Error: Couldn't parse {args[3]} as boolean relaunch option\n"));
                 return;
             }
 
@@ -108,6 +113,12 @@ namespace UpdateFinaliser
                 log.Close();
                 File.Delete(logf); //got here without an error, no log needed
             }
+        }
+
+        static void ArgError()
+        {
+            Console.WriteLine("This utility is for finalising rgat updates once a new version has been downloaded");
+            Console.WriteLine("It is intended to be used by rgat, not launched directly");
         }
 
         public static void PerformValidatedFileReplace(string oldfile, string newfile)

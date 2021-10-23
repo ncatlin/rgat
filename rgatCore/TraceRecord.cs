@@ -236,8 +236,8 @@ namespace rgat
                 }
             }
 
-            DisassemblyData = new ProcessRecord(target.BitWidth);
-            LoadTracingSettings(target);
+            DisassemblyData = new ProcessRecord(Target.BitWidth);
+            LoadTracingSettings(Target);
 
             //_tlFilterCounts[Logging.LogFilterType.TimelineProcess] = 0;
             //_tlFilterCounts[Logging.LogFilterType.TimelineThread] = 0;

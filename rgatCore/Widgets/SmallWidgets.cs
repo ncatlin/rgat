@@ -155,12 +155,14 @@ namespace rgat.Widgets
         }
 
 
-        public static void DrawSpinner(ImGuiController controller, int count)
+        public static void DrawSpinner(ImGuiController controller, int count, uint colour)
         {
-            Texture btnIcon = controller.GetImage("ArrowSpin");
-            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.GraphicsDevice.ResourceFactory, btnIcon, "Spinner");
+            ImFontGlyphPtr glyph = controller.UnicodeFont.FindGlyph(ImGuiController.FA_ICON_ROTATION);
 
-            Vector2 size = new Vector2(btnIcon.Width, btnIcon.Height);
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
+            IntPtr CPUframeBufferTextureId = controller.GetOrCreateImGuiBinding(controller.GraphicsDevice.ResourceFactory, controller._fontTexture, "Spinner");
+            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(3, 3));
+            Vector2 size = new Vector2(18, 18);
             Vector2 corner = ImGui.GetCursorScreenPos() + new Vector2(0, size.Y);
             Vector2 center = corner + new Vector2(size.X * 0.5f, size.Y * -0.5f);
 
@@ -177,21 +179,21 @@ namespace rgat.Widgets
             };
 
             ImGui.GetWindowDrawList().AddImageQuad(CPUframeBufferTextureId, pos[0], pos[1], pos[2], pos[3],
-                Vector2.Zero, new Vector2(1, 0), Vector2.One, new Vector2(0, 1));
+                new Vector2(glyph.U0, glyph.V0) , new Vector2(glyph.U1, glyph.V0), new Vector2(glyph.U1, glyph.V1), new Vector2(glyph.U0, glyph.V1), colour);
             if (count > 1)
             {
-                ImGui.SetCursorScreenPos(corner + new Vector2(9, -size.Y));
+                ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(size.X, 4));
                 ImGui.Text($"{count}");
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 12);
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - size.Y);
                 ImGui.InvisibleButton($"#invisBtn{rotation}", new Vector2(18, 18));
             }
             else
             {
                 //tooltip hover target
-                ImGui.InvisibleButton($"#invisBtn{rotation}", new Vector2(18, 18));
+                ImGui.InvisibleButton($"#invisBtn{rotation}", new Vector2(18, 24));
             }
-
-
+           
+            ImGui.PopStyleVar();
         }
 
 
@@ -211,6 +213,23 @@ namespace rgat.Widgets
             }
         }
 
+        public static void DrawIcon(string textIcon, uint colour, int countCaption = 1, Vector2? offset = null)
+        {
+            Vector2 start = ImGui.GetCursorPos();
+            ImGui.SetCursorPos(start + new Vector2(4, 2));
+            Vector2 corner = start + (offset ?? Vector2.Zero);
+
+            ImGui.PushStyleColor(ImGuiCol.Text, colour);
+            ImGui.Text(textIcon);
+            ImGui.PopStyleColor();
+            if (countCaption > 1)
+            {
+                ImGui.SetCursorPos(start + new Vector2(18, 10));
+                ImGui.Text($"{countCaption}");
+            }
+        }
+
+        //No longer used
         public static void DrawClickableIcon(ImGuiController controller, string name, int countCaption = 1, Vector2? offset = null)
         {
             Texture btnIcon = controller.GetImage(name);
@@ -219,9 +238,8 @@ namespace rgat.Widgets
             Vector2 size = new Vector2(btnIcon.Width, btnIcon.Height);
             Vector2 thispos = ImGui.GetCursorScreenPos();
             ImGui.InvisibleButton($"#{name + ImGui.GetCursorPosY()}", size + new Vector2(-2, -4));
-            bool hoverred = ImGui.IsItemHovered();
 
-            uint iconcol = hoverred ? 0xaaafafaf : 0xffffffff;
+            uint iconcol = ImGui.IsItemHovered() ? 0xaaafafaf : 0xffffffff;
             ImGui.SetCursorScreenPos(thispos);
             Vector2 corner = ImGui.GetCursorScreenPos() + offset ?? Vector2.Zero;
             ImGui.GetWindowDrawList().AddImage(CPUframeBufferTextureId, corner, corner + size, Vector2.Zero, Vector2.One, iconcol);

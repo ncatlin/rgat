@@ -660,6 +660,7 @@
             <param name="PID">The OS process ID of the first process</param>
             <param name="ID">The unique ID of the process recorded by the instrumentation tool</param>
             <param name="newRecord">The created TraceRecord</param>
+            <param name="testID">Optional ID of the test being traced</param>
             <returns>true is a new trace was created, false if an existing one was fetched</returns>
         </member>
         <member name="M:rgat.BinaryTarget.GetFirstTrace">
@@ -3968,7 +3969,7 @@
             Start moving the existing nodes towards them
             </summary>
         </member>
-        <member name="M:rgat.Layouts.ForceDirectedBlockPipeline.RenderPosition(Veldrid.ResourceSetDescription,rgat.PlottedGraph,System.Single)">
+        <member name="M:rgat.Layouts.ForceDirectedBlockPipeline.RenderPosition(Veldrid.ResourceSetDescription,Veldrid.CommandList,rgat.PlottedGraph,System.Single)">
             <summary>
             Used the velocity buffer to move the nodes in the positions buffer
             </summary>
@@ -3991,7 +3992,7 @@
             <param name="blockData">Output description of basic block information for each node</param>
             <param name="blockMiddles">Output List of basic block middle nodes</param>
         </member>
-        <member name="M:rgat.Layouts.ForceDirectedNodePipeline.RenderVelocity(Veldrid.ResourceSetDescription,rgat.PlottedGraph,System.Single)">
+        <member name="M:rgat.Layouts.ForceDirectedNodePipeline.RenderVelocity(Veldrid.ResourceSetDescription,Veldrid.CommandList,rgat.PlottedGraph,System.Single)">
             <summary>
             Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
             </summary>
@@ -3999,7 +4000,7 @@
             <param name="plot">PlottedGraph to compute</param>
             <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         </member>
-        <member name="M:rgat.Layouts.ForceDirectedNodePipeline.RenderPosition(Veldrid.ResourceSetDescription,rgat.PlottedGraph,System.Single)">
+        <member name="M:rgat.Layouts.ForceDirectedNodePipeline.RenderPosition(Veldrid.ResourceSetDescription,Veldrid.CommandList,rgat.PlottedGraph,System.Single)">
             <summary>
             Used the velocity buffer to move the nodes in the positions buffer
             </summary>
@@ -4013,7 +4014,7 @@
             at runtime
             </summary>
         </member>
-        <member name="M:rgat.Layouts.PresetSnappingPipeline.RenderVelocity(Veldrid.ResourceSetDescription,rgat.PlottedGraph,System.Single)">
+        <member name="M:rgat.Layouts.PresetSnappingPipeline.RenderVelocity(Veldrid.ResourceSetDescription,Veldrid.CommandList,rgat.PlottedGraph,System.Single)">
             <summary>
             Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
             </summary>
@@ -4021,7 +4022,7 @@
             <param name="plot">PlottedGraph to compute</param>
             <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         </member>
-        <member name="M:rgat.Layouts.PresetSnappingPipeline.RenderPosition(Veldrid.ResourceSetDescription,rgat.PlottedGraph,System.Single)">
+        <member name="M:rgat.Layouts.PresetSnappingPipeline.RenderPosition(Veldrid.ResourceSetDescription,Veldrid.CommandList,rgat.PlottedGraph,System.Single)">
             <summary>
             Used the velocity buffer to move the nodes in the positions buffer
             </summary>
@@ -6002,9 +6003,19 @@
                &quot;VisBarPlotLine [rest of string was truncated]&quot;;.
             </summary>
         </member>
+        <member name="P:rgat.Properties.Resources.circlePNG">
+            <summary>
+              Looks up a localized resource of type System.Drawing.Bitmap.
+            </summary>
+        </member>
         <member name="P:rgat.Properties.Resources.CompanionTrace">
             <summary>
               Looks up a localized string similar to [{&quot;Field&quot;:&quot;Metadata&quot;},{&quot;Field&quot;:&quot;ProcessRecord&quot;,&quot;BitWidth&quot;:32},{&quot;Field&quot;:&quot;Modules&quot;},[&quot;&quot;,&quot;&quot;],[0,1,2,3],[0,1],{&quot;Field&quot;:&quot;Symbols&quot;,&quot;ModuleCount&quot;:0,&quot;TotalSymbols&quot;:0},{&quot;Field&quot;:&quot;Disassembly&quot;,&quot;Count&quot;:5},[10,0,0,1,&quot;UA==&quot;,1,29628,1],[20,0,0,1,&quot;6D4AAAA=&quot;,1,29628,2],[30,0,1,1,&quot;/yUIIGQA&quot;,1,29628,3],[40,0,1,1,&quot;D4T8////&quot;,1,29628,4],[50,0,1,1,&quot;ww==&quot;,1,29628,5],{&quot;Field&quot;:&quot;BasicBlocks&quot;,&quot;Count&quot;:0},{&quot;Field&quot;:&quot;Externs&quot;,&quot;Count&quot;:0},{&quot;Field&quot;:&quot;Threads&quot;,&quot;Count&quot;:1},{&quot;Field&quot;:&quot;Thread&quot;,&quot;ThreadID&quot;:29628,&quot;StartAddress&quot;:0,&quot;TotalInstructions&quot;:0 [rest of string was truncated]&quot;;.
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.crosshairPNG">
+            <summary>
+              Looks up a localized resource of type System.Drawing.Bitmap.
             </summary>
         </member>
         <member name="P:rgat.Properties.Resources.DllLoader32">
@@ -6017,6 +6028,11 @@
               Looks up a localized resource of type System.Byte[].
             </summary>
         </member>
+        <member name="P:rgat.Properties.Resources.eyeWhitePNG">
+            <summary>
+              Looks up a localized resource of type System.Drawing.Bitmap.
+            </summary>
+        </member>
         <member name="P:rgat.Properties.Resources.Font_Awesome_5_Free_Regular_400">
             <summary>
               Looks up a localized resource of type System.Byte[].
@@ -6025,6 +6041,21 @@
         <member name="P:rgat.Properties.Resources.Font_Awesome_5_Free_Solid_900">
             <summary>
               Looks up a localized resource of type System.Byte[].
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.forceDirectedPNG">
+            <summary>
+              Looks up a localized resource of type System.Drawing.Bitmap.
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.menuBlackLinesPNG">
+            <summary>
+              Looks up a localized resource of type System.Drawing.Bitmap.
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.menuWhiteLinesPNG">
+            <summary>
+              Looks up a localized resource of type System.Drawing.Bitmap.
             </summary>
         </member>
         <member name="P:rgat.Properties.Resources.NotoSansSC_Regular">
@@ -6040,6 +6071,21 @@
         <member name="P:rgat.Properties.Resources.PinTool64">
             <summary>
               Looks up a localized resource of type System.Byte[].
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.searchPNG">
+            <summary>
+              Looks up a localized resource of type System.Drawing.Bitmap.
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.springPNG">
+            <summary>
+              Looks up a localized resource of type System.Drawing.Bitmap.
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.vertexSpherePNG">
+            <summary>
+              Looks up a localized resource of type System.Drawing.Bitmap.
             </summary>
         </member>
         <member name="T:rgat.APICALLDATA">
@@ -6967,12 +7013,13 @@
             <param name="trace">The associated TraceRecord of the test</param>
             <returns>true if found, false otherwise</returns>
         </member>
-        <member name="M:rgat.rgatState.ReadBinaryResource(System.String)">
+        <member name="M:rgat.rgatState.RegisterProcessTestSettings(System.Int64,rgat.ProcessLaunchSettings)">
             <summary>
-            Read a bundled resouce as bytes
+            Tests are setup differently to user launched binaries due to their parallel nature so 
+            we have to stage tracing settings for when they connect
             </summary>
-            <param name="name">Resource name</param>
-            <returns>null or the bytes of the found resource</returns>
+            <param name="ID">Test ID being set up</param>
+            <param name="settings">Settings for the test</param>
         </member>
         <member name="M:rgat.SplashScreenRenderer.#ctor(Veldrid.GraphicsDevice,ImGuiNET.ImGuiController)">
             <summary>
@@ -7324,12 +7371,16 @@
                 Ditto for the other process needing to meet condtion C1 with threads meeting conditions 7, 12
             </summary>
         </member>
+        <member name="F:rgat.Testing.TestCase.ConfigToggles">
+            <summary>
+            Boolean configuration values
+            </summary>
+        </member>
         <member name="M:rgat.Testing.TestCase.#ctor(System.String)">
             <summary>
             Load a test case from a json file
             </summary>
             <param name="jsonpath">Path of a JSON test description file to load</param>
-            <param name="category">The category of the test</param>
         </member>
         <member name="M:rgat.Testing.TestCase.LoadFinalRequirements(Newtonsoft.Json.Linq.JObject)">
             <summary>
@@ -7665,6 +7716,7 @@
             Draw a trace selector
             </summary>
             <param name="trace">Parent trace</param>
+            <param name="abbreviate">Make the label a bit shorter to fit in the preview pane width</param>
             <returns>Selected graph or null</returns>
         </member>
         <member name="T:rgat.Widgets.VisualiserBar">
@@ -8047,6 +8099,7 @@
             Get a uint colour value of a specified custom theme item
             </summary>
             <param name="item">A theme attribute</param>
+            <param name="customAlpha">Optional alpha value to apply to the colour</param>
             <returns>uint colour</returns>
         </member>
         <member name="M:rgat.Themes.GetThemeColourWRF(rgat.Themes.eThemeColour)">
@@ -8764,6 +8817,7 @@
             <param name="timeStarted">When the process was recorded starting</param>
             <param name="purpose">A purpose value for the trace [only visualiser is supported]</param>
             <param name="arch">32 or 64 bits, or 0 if unknown (remote)</param>
+            <param name="testID">Optional test ID to apply to the record</param>
         </member>
         <member name="P:rgat.TraceRecord.TestRunID">
             <summary>

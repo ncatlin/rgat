@@ -261,7 +261,7 @@ namespace rgat
                 return plot.LayoutState.RenderVersion;
             }
 
-            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Marker Compute start {EngineID} graph {plot.TID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Compute start {EngineID} graph {plot.PID}:{plot.TID}", Logging.LogFilterType.BulkDebugLogFile);
 
             int edgesCount = plot.DrawnEdgesCount;
             Debug.Assert(plot != null, "Layout engine called to compute without active graph");
@@ -305,9 +305,15 @@ namespace rgat
                     DebugPrintOutputFloatBuffer(layout.PositionsVRAM2!, "pos2b4", 32);
                     DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM2!, "vel2b4", 32);
                     */
-                    if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Layout computation starting in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
-                    activePipeline.Compute(plot, flip, delta);
-                    if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Layout computation finished in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+
+                    if (GlobalConfig.Settings.Logs.BulkLogging) 
+                        Logging.RecordLogEvent($"Layout {activePipeline.Name} computation starting in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
+
+                    //Actual computation happens here
+                    activePipeline.Compute(plot, cl, flip, delta);
+
+                    if (GlobalConfig.Settings.Logs.BulkLogging) 
+                        Logging.RecordLogEvent($"Layout {activePipeline.Name} computation finished in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
 
                     layout.IncrementVersion();
 
@@ -347,6 +353,8 @@ namespace rgat
                     if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Attribute computation finished in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
                 }
 
+                //If activating a preset, find the fasted node. If below a threshold, move the positions to their targets
+                //This avoids preset snapping taking too long at low speeds
                 if (layout.ActivatingPreset && layout.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
                 {
                     if (layout.VelocitiesVRAM1 is not null && (plot.ComputeBufferNodeCount * 4 * sizeof(float)) <= layout.VelocitiesVRAM1.SizeInBytes)
@@ -405,7 +413,7 @@ namespace rgat
                 AverageComputeTime = _lastComputeMS.Average();
             }
 
-            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Marker Compute end {EngineID} graph {plot.TID}", Logging.LogFilterType.BulkDebugLogFile);
+            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Compute end {EngineID} graph  {plot.PID}:{plot.TID}", Logging.LogFilterType.BulkDebugLogFile);
 
             return layout.RenderVersion;
         }

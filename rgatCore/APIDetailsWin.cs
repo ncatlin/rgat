@@ -87,7 +87,7 @@ namespace rgat
                     return candidate;
                 }
 
-                byte[]? apiFileBytes = rgatState.ReadBinaryResource("APIDataWin");
+                byte[]? apiFileBytes = global::rgat.Properties.Resources.APIDataWin;
                 if (apiFileBytes != null)
                 {
                     File.WriteAllBytes(candidate, apiFileBytes);
