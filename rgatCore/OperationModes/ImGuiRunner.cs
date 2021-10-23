@@ -77,7 +77,7 @@ namespace rgat.OperationModes
                 Logging.WriteConsole($"If https://github.com/skeeto/vulkan-test doesn't work then neither will rgat rendering.");
                 Logging.WriteConsole($"If your GPU or analysis environment does does not support this then you can still perform\n" +
                     $"tracing and load the result using rgat on another machine, or perform tracing directly over a network.");
-                Logging.WriteConsole("Run 'rgat.exe ?' for the available options");
+                Logging.WriteConsole("Run 'rgat.exe --help' for the available options");
                 Logging.WriteConsole($"------------------------------------------------------------------------------------");
                 return;
             }
@@ -367,7 +367,7 @@ namespace rgat.OperationModes
             currentUIProgress = rgatUI.StartupProgress;
 
             float apiProgress = 0, sigProgress = 0;
-            void UpdateProgressAPISig() { rgatUI.StartupProgress = currentUIProgress + 0.07 * sigProgress + 0.7f * apiProgress; };
+            void UpdateProgressAPISig() { rgatUI.StartupProgress = currentUIProgress + 0.07 * sigProgress + 0.07f * apiProgress; };
             Progress<float> IProgressAPI = new(progress => { apiProgress = progress; UpdateProgressAPISig(); });
             Progress<float> IProgressSigs = new(progress => { sigProgress = progress; UpdateProgressAPISig(); });
 

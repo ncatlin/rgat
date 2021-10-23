@@ -34,7 +34,7 @@ namespace rgat
         private TraceRecord animTrace;
         private PlottedGraph? tortoise;
 
-        CommandList _cl;
+        CommandList? _cl;
         float _baseRoll = 0.39209974f;
         float _wiggleRoll = 0;
 
@@ -66,8 +66,8 @@ namespace rgat
             WidgetSize = new Vector2(250, 250);
             SetupRenderingResources();
 
-            animTrace = new TraceRecord(0, 0, new BinaryTarget(""), DateTime.MinValue);
-            if (!GetData(out tortoise, out float[]? presetPositions) || tortoise is null || presetPositions is null)
+            animTrace = new TraceRecord(0, 0, null, DateTime.MinValue);
+            if (!GetModelData(out tortoise, out float[]? presetPositions) || tortoise is null || presetPositions is null)
             {
                 return;
             }
@@ -83,12 +83,14 @@ namespace rgat
             _baseRoll = 0.39209974f;
             _rollDelta = _baseRoll;
             _pitchDelta = -1f;
-            _tortoisePosition = new Vector2(400, 0);
+            _tortoisePosition = new Vector2(_rnd.Next(0, _controller.WindowWidth), _rnd.Next(0, controller.WindowHeight));
 
         }
 
-        bool GetData(out PlottedGraph? graph, out float[]? positions)
+        bool GetModelData(out PlottedGraph? graph, out float[]? positions)
         {
+            Debug.Assert(_gd is not null);
+
             graph = null;
             positions = null;
 
@@ -255,6 +257,7 @@ namespace rgat
         {
             if (tortoise is not null)
             {
+                Debug.Assert(_cl is not null);
                 tortoise.RenderGraph();
                 bool recentTreat = (DateTime.Now - _lastTreatTime).Seconds < 15;
                 

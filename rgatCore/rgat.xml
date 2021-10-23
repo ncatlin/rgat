@@ -3214,11 +3214,12 @@
             Get the array of loaded signatures
             </summary>
         </member>
-        <member name="M:rgat.DetectItEasy.ReloadDIEScripts(System.String)">
+        <member name="M:rgat.DetectItEasy.ReloadDIEScripts(System.String,System.String@)">
             <summary>
             Reload the scripts database
             </summary>
-            <param name="path"></param>
+            <param name="path">Path of the db folder</param>
+            <param name="error">Any error encountered</param>
         </member>
         <member name="M:rgat.DetectItEasy.DetectItScanThread(System.Object)">
             <summary>
@@ -3370,12 +3371,13 @@
             <param name="workerCount">Number of workers to run in parallel</param>
             <param name="cancelToken">token to listen for for cancellation</param>
         </member>
-        <member name="M:rgat.GithubSignatureManager.StartDownloads(System.Collections.Generic.List{rgat.GlobalConfig.SignatureSource},System.Int32,System.Threading.CancellationToken)">
+        <member name="M:rgat.GithubSignatureManager.StartDownloads(System.Collections.Generic.List{rgat.GlobalConfig.SignatureSource},System.Int32,System.Action,System.Threading.CancellationToken)">
             <summary>
             Download selected repos
             </summary>
             <param name="repos">List of SignatureSource repos</param>
             <param name="workerCount">Number of workers to run in parallel</param>
+            <param name="completeCallback">Action to perform when all downloads are finished</param>
             <param name="cancelToken">token to listen for for cancellation</param>
         </member>
         <member name="M:rgat.GithubSignatureManager.GetProgress(System.String)">
@@ -6939,6 +6941,12 @@
             </summary>
             <param name="targ">A binaryTarget to save traces of</param>
         </member>
+        <member name="M:rgat.rgatState.SaveTrace(rgat.TraceRecord)">
+            <summary>
+            Serialise the active trace to the trace directory
+            </summary>
+            <param name="targ">A binaryTarget to save traces of</param>
+        </member>
         <member name="M:rgat.rgatState.ExportTraceAsPajek(rgat.TraceRecord,System.UInt32)">
             <summary>
             Export the current trace in the pajek format, a simple graph serialisation format that other graph layout programs accept
@@ -7632,6 +7640,15 @@
             Create a dialog for configuring remote tracing
             </summary>
         </member>
+        <member name="M:rgat.Widgets.SandboxChart.DrawNode(rgat.Widgets.SandboxChart.ItemNode,System.Numerics.Vector2,ImGuiNET.ImFontPtr)">
+            <summary>
+            Draw a chart node
+            </summary>
+            <param name="node">The node</param>
+            <param name="position">Where on the chart to draw it</param>
+            <param name="font">The font to use for text</param>
+            <returns>If the node was clicked</returns>
+        </member>
         <member name="M:rgat.Widgets.SettingsMenu.#ctor(ImGuiNET.ImGuiController)">
             <summary>
             Init a settings menu
@@ -7643,7 +7660,7 @@
             Double dropdown for selecting traces/graphs in the active target
             </summary>
         </member>
-        <member name="M:rgat.Widgets.TraceSelector.Draw(rgat.TraceRecord)">
+        <member name="M:rgat.Widgets.TraceSelector.Draw(rgat.TraceRecord,System.Boolean)">
             <summary>
             Draw a trace selector
             </summary>
@@ -10308,6 +10325,11 @@
             This method requires a <see cref="T:Veldrid.GraphicsDevice"/> because it may create new DeviceBuffers if the size of vertex
             or index data has increased beyond the capacity of the existing buffers.
             A <see cref="T:Veldrid.CommandList"/> is needed to submit drawing and resource update commands.
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.RebuildFonts">
+            <summary>
+            Trigger recreation of font textures on the next UI frame
             </summary>
         </member>
         <member name="M:ImGuiNET.ImGuiController.Update(System.Single,Veldrid.InputSnapshot)">

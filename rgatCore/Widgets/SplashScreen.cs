@@ -285,7 +285,7 @@ namespace rgat
             ImGui.PopStyleColor();
             if (GlobalConfig.Settings.UI.EnableTortoise)
             {
-               _splashRenderer.Draw();
+                _splashRenderer?.Draw();
             }
 
             if (StartupProgress < 1)

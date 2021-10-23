@@ -572,18 +572,18 @@ namespace rgat.Threads
                 dontcountnextedge = false;
             }
             dbgStopwatch.Stop();
-            if (dbgStopwatch.ElapsedMilliseconds > 100)
+            if (dbgStopwatch.ElapsedMilliseconds > 250)
             {
-                Console.WriteLine($"TP::handletag took {dbgStopwatch.ElapsedMilliseconds}ms (state:{thistag.InstrumentationState})");
+                Logging.RecordLogEvent($"TP::handletag took {dbgStopwatch.ElapsedMilliseconds}ms (state:{thistag.InstrumentationState})", Logging.LogFilterType.Debug);
             }
             if (targetCodeType is eCodeInstrumentation.eUninstrumentedCode)
             {
                 dbgStopwatch.Restart();
                 ProcessExtern(nextBlockAddress, thistag.blockID);
                 dbgStopwatch.Stop();
-                if (dbgStopwatch.ElapsedMilliseconds > 84)
+                if (dbgStopwatch.ElapsedMilliseconds > 150)
                 {
-                    Console.WriteLine($"TP::ProcessExtern took {dbgStopwatch.ElapsedMilliseconds}ms");
+                    Logging.RecordLogEvent($"TP::ProcessExtern took {dbgStopwatch.ElapsedMilliseconds}ms", Logging.LogFilterType.Debug);
                 }
             }
         }
@@ -606,7 +606,7 @@ namespace rgat.Threads
             }
             else
             {
-                Logging.WriteConsole($"AddSingleStepUpdate Error: Entries had length {entries.Length}: {entry}");
+                Logging.RecordLogEvent($"AddSingleStepUpdate Error: Entries had length {entries.Length}: {entry}");
             }
         }
 

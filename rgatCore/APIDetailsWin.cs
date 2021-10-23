@@ -291,7 +291,7 @@ namespace rgat
                     _configuredSymbols.Add(moduleReference, moduleSyms);
                 }
 
-                progress?.Report(moduleCount / moduleI);
+                progress?.Report(moduleI / moduleCount);
             }
         }
 

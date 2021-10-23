@@ -173,7 +173,7 @@ namespace rgat
                     IgnoreDirs.Add(windowsDir);
                 }
 
-                IgnoreFiles.Add("shf篸籊籔籲.txtui@siojf췳츲췥췂췂siojfios.dll"); //TODO: make+trace a test program loading this, fix whatever breaks
+                //IgnoreFiles.Add("shf篸籊籔籲.txtui@siojf췳츲췥췂췂siojfios.dll"); //TODO: make+trace a test program loading this, fix whatever breaks
             }
         }
     }
@@ -894,6 +894,7 @@ namespace rgat
         /// <param name="PID">The OS process ID of the first process</param>
         /// <param name="ID">The unique ID of the process recorded by the instrumentation tool</param>
         /// <param name="newRecord">The created TraceRecord</param>
+        /// <param name="testID">Optional ID of the test being traced</param>
         /// <returns>true is a new trace was created, false if an existing one was fetched</returns>
         public bool CreateNewTrace(DateTime timeStarted, uint PID, long ID, out TraceRecord newRecord, long testID = -1)
         {

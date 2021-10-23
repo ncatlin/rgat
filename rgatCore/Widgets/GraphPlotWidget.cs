@@ -1005,14 +1005,14 @@ namespace rgat
                 //Console.WriteLine("Cache miss " + inputString);
                 cached = new fontStruc[inputString.Length * 6];
 
-                float xPos = 0;
+                float xPos = 35;
                 float yPos = 50;
                 float glyphYClip = 10;
                 WritableRgbaFloat fcolour = new WritableRgbaFloat(colour);
                 for (var i = 0; i < inputString.Length; i++)
                 {
                     ImFontGlyphPtr glyph = font.FindGlyph(inputString[i]);
-                    float charWidth = glyph.AdvanceX * fontScale;
+                    float charWidth = glyph.AdvanceX * fontScale * 0.5f ;
                     float charHeight = fontScale * (glyph.Y1 - glyph.Y0);
 
                     float xEnd = xPos + charWidth;

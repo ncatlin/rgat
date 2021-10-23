@@ -11,7 +11,7 @@ namespace rgat
 
         private void DrawAnalysisTab(TraceRecord? activeTrace)
         {
-            if (activeTrace == null || !ImGui.BeginTabItem("Timeline"))
+            if (activeTrace == null || !ImGui.BeginTabItem("Timeline") || chart is null)
             {
                 return;
             }
@@ -32,37 +32,67 @@ namespace rgat
             chart!.InitChartFromTrace(activeTrace);
 
             SandboxChart.ItemNode? selectedNode = chart.GetSelectedNode;
-            if (ImGui.BeginTable("#TaTTable", 3, ImGuiTableFlags.Resizable))
+            if (ImGui.BeginTable("#TaTTable", 2, ImGuiTableFlags.Resizable))
             {
-                ImGui.TableSetupColumn("#TaTTEntryList", ImGuiTableColumnFlags.None, sidePaneWidth * 2f );
-                ImGui.TableSetupColumn("#TaTTChart", ImGuiTableColumnFlags.NoDirectResize, width - 1.5f * sidePaneWidth);
-                ImGui.TableSetupColumn("#TaTTControlsFocus", ImGuiTableColumnFlags.NoDirectResize);
+                ImGui.TableSetupColumn("#TaTTEntryList", ImGuiTableColumnFlags.None | ImGuiTableColumnFlags.WidthFixed, sidePaneWidth * 2f);
+                ImGui.TableSetupColumn("#TaTTChart");
 
                 ImGui.TableNextRow();
-
                 ImGui.TableNextColumn();
                 //ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, 0xff99ff77);
-                ImGui.Text("Event Listing");
-
-                DrawEventListTable(activeTrace, selectedNode);
 
 
-                ImGui.TableNextColumn();
-                ImGui.Text("Timeline Graph");
-
-                chart.Draw();
-
-                ImGui.TableNextColumn();
-                float tr_height = (height / 2) - 4;
-                float tb_height = (height / 2) - 4;
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x5f88705f);
-                if (ImGui.BeginChild("#SandboxTabtopRightPane", new Vector2(ImGui.GetContentRegionAvail().X, tr_height)))
+                if (ImGui.BeginChild("#ijdcccfgo", ImGui.GetContentRegionAvail() - new Vector2(0, 5)))
                 {
-                    //ImGui.Text("Filters");
 
                     TraceSelector.Draw(activeTrace);
+                    ImGui.Separator();
+                    ImGui.Text("Event Listing");
 
-                    if (!APIDetailsWin.Loaded)
+                    if (ImGui.BeginChild("#iosfjhvs", ImGui.GetContentRegionAvail() - new Vector2(0, selectedNode is null ? 0 : 250)))
+                    {
+                        DrawEventListTable(activeTrace, selectedNode);
+                        ImGui.EndChild();
+                    }
+
+
+                    if (selectedNode is not null)
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame));
+                        if (ImGui.BeginChild(ImGui.GetID("#ijdcccfgo"), new Vector2(ImGui.GetContentRegionAvail().X, 245)))
+                        {
+                            DrawEventInfoPanel(height, activeTrace, selectedNode);
+                            ImGui.EndChild();
+                        }
+                        ImGui.PopStyleColor();
+                    }
+                    ImGui.EndChild();
+                }
+
+                ImGui.TableNextColumn();
+                //ImGui.TableNextRow();
+                //ImGui.Text("Timeline Graph");
+
+                chart.Draw(_controller!.UnicodeFont);
+
+                //ImGui.PopStyleColor();
+
+                ImGui.EndTable();
+            }
+
+
+            ImGui.EndTabItem();
+        }
+
+        void DrawEventInfoPanel(float height, TraceRecord activeTrace, SandboxChart.ItemNode? selectedNode)
+        {
+            if (ImGui.BeginChild("#SandboxTabbaseRightPane", ImGui.GetContentRegionAvail() - new Vector2(0, 0), true))
+            {
+
+                if (!APIDetailsWin.Loaded)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x5f88705f);
+                    if (ImGui.BeginChild("#SandboxTabtopRightPane", new Vector2(100, 100)))// new Vector2(ImGui.GetContentRegionAvail().X, tr_height)))
                     {
                         ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
                         if (ImGui.BeginChild("#LoadErrFrame", new Vector2(ImGui.GetContentRegionAvail().X - 2, 80)))
@@ -75,51 +105,46 @@ namespace rgat
                         ImGui.PopStyleColor();
                     }
 
+                    //ImGui.EndTable();
                     ImGui.EndChild();
+                    ImGui.PopStyleColor();
                 }
-                ImGui.PopStyleColor();
+
 
                 //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0x8f48009f);
-                if (ImGui.BeginChild("#SandboxTabbaseRightPane", new Vector2(sidePaneWidth, tb_height)))
+
+                if (selectedNode != null)
                 {
-
-                    if (selectedNode != null)
+                    switch (selectedNode.TLtype)
                     {
-                        switch (selectedNode.TLtype)
-                        {
-                            case eTimelineEvent.ProcessStart:
-                                DrawProcessNodeTable((TraceRecord)selectedNode.reference);
-                                break;
+                        case eTimelineEvent.ProcessStart:
+                            DrawProcessNodeTable((TraceRecord)selectedNode.reference);
+                            break;
 
-                            case eTimelineEvent.ThreadStart:
-                                DrawThreadNodeTable((ProtoGraph)selectedNode.reference);
-                                break;
+                        case eTimelineEvent.ThreadStart:
+                            DrawThreadNodeTable((ProtoGraph)selectedNode.reference);
+                            break;
 
-                            case eTimelineEvent.APICall:
-                                DrawAPIInfoTable((Logging.TIMELINE_EVENT)selectedNode.reference);
-                                break;
-                            default:
-                                ImGui.Text($"We don't do {selectedNode.TLtype} here");
-                                break;
-                        }
+                        case eTimelineEvent.APICall:
+                            DrawAPIInfoTable((Logging.TIMELINE_EVENT)selectedNode.reference);
+                            break;
+                        default:
+                            ImGui.Text($"We don't do {selectedNode.TLtype} here");
+                            break;
                     }
-                    else
-                    {
-                        if (chart.SelectedAPIEvent != null)
-                        {
-
-                            DrawAPIInfoTable(chart.SelectedAPIEvent);
-                        }
-                    }
-                    ImGui.EndChild();
                 }
-                //ImGui.PopStyleColor();
-
-                ImGui.EndTable();
+                else
+                {
+                    if (chart!.SelectedAPIEvent != null)
+                    {
+                        DrawAPIInfoTable(chart.SelectedAPIEvent);
+                    }
+                }
+                ImGui.EndChild();
             }
 
-            ImGui.EndTabItem();
         }
+
 
         private void DrawEventListTable(TraceRecord trace, SandboxChart.ItemNode? selectedNode)
         {
@@ -129,7 +154,8 @@ namespace rgat
             }
 
             TIMELINE_EVENT[] events = trace.GetTimeLineEntries();
-            if (ImGui.BeginTable("#TaTTFullList", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg))
+            if (ImGui.BeginTable("#TaTTFullList", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY |
+                ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg))
             {
                 ImGui.TableSetupScrollFreeze(0, 1);
                 ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 50);
@@ -237,8 +263,8 @@ namespace rgat
                     }
                     ImGui.PopStyleVar();
                 }
-                ImGui.EndTable();
 
+                ImGui.EndTable();
             }
         }
 

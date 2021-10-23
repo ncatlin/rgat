@@ -35,8 +35,7 @@ namespace rgat.Layouts
 
         /*
          * 
-         * Velocity computation shader assigns a velocity to each node based on nearby nodes, edges
-         * or preset target positions
+         * Velocity computation shader assigns a velocity to each node based on nearby nodes and edges
          * 
          */
         [StructLayout(LayoutKind.Sequential)]
@@ -62,7 +61,6 @@ namespace rgat.Layouts
             _velocityShaderRsrcLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Params", ResourceKind.UniformBuffer, ShaderStages.Compute),
             new ResourceLayoutElementDescription("positions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
-            new ResourceLayoutElementDescription("presetPositions", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("velocities", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("edgeIndices", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
             new ResourceLayoutElementDescription("edgeData", ResourceKind.StructuredBufferReadOnly, ShaderStages.Compute),
@@ -116,7 +114,7 @@ namespace rgat.Layouts
             if (flip)
             {
                 velocity_rsrc_desc = new ResourceSetDescription(_velocityShaderRsrcLayout,
-                    _velocityParamsBuffer, layout.PositionsVRAM1, layout.VelocitiesVRAM1, layout.PresetPositions, layout.EdgeConnectionIndexes,
+                    _velocityParamsBuffer, layout.PositionsVRAM1, layout.VelocitiesVRAM1,layout.EdgeConnectionIndexes,
                     layout.EdgeConnections, layout.EdgeStrengths, 
                 layout.VelocitiesVRAM2
                 );
@@ -128,7 +126,7 @@ namespace rgat.Layouts
             else
             {
                 velocity_rsrc_desc = new ResourceSetDescription(_velocityShaderRsrcLayout,
-                _velocityParamsBuffer, layout.PositionsVRAM2, layout.VelocitiesVRAM2, layout.PresetPositions, layout.EdgeConnectionIndexes,
+                _velocityParamsBuffer, layout.PositionsVRAM2, layout.VelocitiesVRAM2, layout.EdgeConnectionIndexes,
                 layout.EdgeConnections, layout.EdgeStrengths, 
                 layout.VelocitiesVRAM1
                 );

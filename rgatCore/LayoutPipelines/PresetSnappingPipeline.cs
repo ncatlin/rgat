@@ -34,8 +34,7 @@ namespace rgat.Layouts
 
         /*
          * 
-         * Velocity computation shader assigns a velocity to each node based on nearby nodes, edges
-         * or preset target positions
+         * Velocity computation shader assigns a velocity to each node based on proximity to its target position
          * 
          */
         [StructLayout(LayoutKind.Sequential)]

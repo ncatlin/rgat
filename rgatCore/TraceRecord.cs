@@ -108,6 +108,7 @@ namespace rgat
         /// </summary>
         public int NumBytes => Opcodes!.Length;
 
+
         /// <summary>
         /// The index of the node containing this instruction in each thread [Thread ID/instruction index]
         /// </summary>
@@ -199,6 +200,8 @@ namespace rgat
         };
 
 
+        public bool InvalidTrace { get; private set; } = false;
+
         /// <summary>
         /// Create a trace record
         /// </summary>
@@ -208,7 +211,8 @@ namespace rgat
         /// <param name="timeStarted">When the process was recorded starting</param>
         /// <param name="purpose">A purpose value for the trace [only visualiser is supported]</param>
         /// <param name="arch">32 or 64 bits, or 0 if unknown (remote)</param>
-        public TraceRecord(uint newPID, long randomNo, BinaryTarget target, 
+        /// <param name="testID">Optional test ID to apply to the record</param>
+        public TraceRecord(uint newPID, long randomNo, BinaryTarget? target, 
             DateTime timeStarted, TracingPurpose purpose = TracingPurpose.eVisualiser, 
             int arch = 0, long testID = -1)
         {
@@ -218,10 +222,18 @@ namespace rgat
             TraceType = purpose;
             TestRunID = testID;
 
-            Target = target;
-            if (arch != 0 && target.BitWidth != arch)
+            if (target is null)
             {
-                target.BitWidth = arch;
+                Target = new BinaryTarget("");
+                InvalidTrace = true;
+            }
+            else
+            {
+                Target = target;
+                if (arch != 0 && target.BitWidth != arch)
+                {
+                    target.BitWidth = arch;
+                }
             }
 
             DisassemblyData = new ProcessRecord(target.BitWidth);
@@ -1012,7 +1024,10 @@ namespace rgat
 
             lock (GraphListLock)
             {
-                PreviewRendererThread.AddGraphToPreviewRenderQueue(standardRenderedGraph);
+                if (!InvalidTrace)
+                {
+                    PreviewRendererThread.AddGraphToPreviewRenderQueue(standardRenderedGraph);
+                }
                 PlottedGraphs.Add(GraphThreadID, standardRenderedGraph);
             }
 

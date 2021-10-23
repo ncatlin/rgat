@@ -1146,7 +1146,7 @@ namespace rgat
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 1);
 
                 PlottedGraph? activeGraph = rgatState.ActiveGraph;
-                TraceSelector.Draw(activeGraph?.InternalProtoGraph.TraceData);
+                TraceSelector.Draw(activeGraph?.InternalProtoGraph.TraceData, abbreviate: true);
 
                 if (activeGraph is not null)
                 {

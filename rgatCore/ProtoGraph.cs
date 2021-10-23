@@ -612,17 +612,19 @@ namespace rgat
             public bool finalEntry;
             public string argstring;
             public bool isReturnVal;
+            public int SourceNode;
+            public int HiddenThunkSourceNode;
         }
 
-        private void RemoveProcessedArgsFromCache(uint completeCount)
+        private void RemoveProcessedArgsFromCache(int completeCount)
         {
             lock (argsLock)
             {
-                _unprocessedCallArguments.RemoveRange(0, (int)completeCount);
+                _unprocessedCallArguments.RemoveRange(0, completeCount);
             }
         }
 
-
+        //todo: This has grown unwieldly and needs refactoring
         /// <summary>
         /// Runs through the cached API call arguments and attempts to match complete
         /// sets up to corresponding nodes on the graph once they have been inserted
@@ -642,7 +644,7 @@ namespace rgat
 
             ulong currentTarget = _unprocessedCallArguments[0].calledAddress;
 
-            uint completecount = 0;
+            int completecount = 0;
             int currentIndex = -1;
             int maxCacheI = _unprocessedCallArguments.Count;
 
@@ -656,7 +658,10 @@ namespace rgat
                     _unprocessedCallArguments.RemoveRange(0, cacheI);
                     return;
                 }
-
+                if (!arg.finalEntry)
+                {
+                    continue;
+                }
                 Debug.Assert(arg.sourceBlock == currentSourceBlock, "ProcessIncomingCallArguments() unexpected change of source");
                 Debug.Assert(arg.argIndex > currentIndex || arg.isReturnVal, "ProcessIncomingCallArguments() unexpected change of source");
                 if (BlocksFirstLastNodeList.Count <= (int)currentSourceBlock)
@@ -665,71 +670,80 @@ namespace rgat
                 }
 
                 Tuple<uint, uint>? blockIndexes = BlocksFirstLastNodeList[(int)currentSourceBlock];
-                if (blockIndexes == null)
-                {
-                    break;
-                }
 
-                uint callerNodeIdx = blockIndexes.Item2;
-                currentIndex = arg.argIndex; //uh
-                if (!arg.finalEntry)
-                {
-                    continue;
-                }
-
-
-                //each API call target can have multiple nodes in a thread, so we have to get the list of 
-                //every edge that has this extern as a target
-                if (!lookup_extern_func_calls(arg.calledAddress, out List<Tuple<uint, uint>>? threadCalls) || threadCalls is null)
-                {
-                    //Logging.WriteConsole($"\n---\tProcessIncomingCallArguments - Failed to find *any* callers of 0x{arg.calledAddress:X} in current thread. Leaving until it appears.\n---");
-                    RemoveProcessedArgsFromCache(completecount);
-                    return;
-                }
-
-                //run through each edge, trying to match args to the right caller-callee pair
-                //running backwards should be more efficient as the lastest node is likely to hit the latest arguments
                 bool sequenceProcessed = false;
-                for (var i = threadCalls.Count - 1; i >= 0; i--)
+                List<Tuple<uint, uint>>? threadCalls;
+                if (blockIndexes is not null)
                 {
-                    //ulong callerAddress = callerNode.ins.address;
+                    uint callerNodeIdx = blockIndexes.Item2;
 
-                    if (threadCalls[i].Item1 != callerNodeIdx)
+                    //each API call target can have multiple nodes in a thread, so we have to get the list of 
+                    //every edge that has this extern as a target
+                    if (!lookup_extern_func_calls(arg.calledAddress, out threadCalls) || threadCalls is null)
                     {
-                        continue;
+                        //Logging.WriteConsole($"\n---\tProcessIncomingCallArguments - Failed to find *any* callers of 0x{arg.calledAddress:X} in current thread. Leaving until it appears.\n---");
+                        RemoveProcessedArgsFromCache(completecount);
+                        return;
                     }
 
-                    NodeData? functionNode = GetNode(threadCalls[i].Item2);
-                    Debug.Assert(functionNode is not null);
-
-                    //each node can only have a certain number of arguments to prevent simple denial of service
-                    if (functionNode.callRecordsIndexs.Count < GlobalConfig.Settings.Tracing.ArgStorageMax)
+                    //run through each edge, trying to match args to the right caller-callee pair
+                    //running backwards should be more efficient as the lastest node is likely to hit the latest arguments
+                    for (var i = threadCalls.Count - 1; i >= 0; i--)
                     {
-                        if (functionNode.callRecordsIndexs.Count >= (GlobalConfig.Settings.Tracing.ArgStorageMax - 1))
-                            Logging.RecordLogEvent($"Warning, dropping future args to extern 0x{currentTarget:X} because the storage limit is {GlobalConfig.Settings.Tracing.ArgStorageMax}");
-
-                        List<Tuple<int, string>> argStringsList = new List<Tuple<int, string>>();
-                        for (var aI = 0; aI <= cacheI; aI++)
+                        if (threadCalls[i].Item1 != callerNodeIdx)
                         {
-                            argStringsList.Add(new Tuple<int, string>(_unprocessedCallArguments[aI].argIndex, _unprocessedCallArguments[aI].argstring));
-                            completecount++;
+                            continue;
                         }
 
-                        APICALLDATA callRecord;
-                        callRecord.edgeIdx = threadCalls[i];
-                        callRecord.argList = argStringsList;
+                        NodeData? functionNode = GetNode(threadCalls[i].Item2);
+                        Debug.Assert(functionNode is not null);
 
-                        functionNode.callRecordsIndexs.Add((ulong)SymbolCallRecords.Count);
-                        SymbolCallRecords.Add(callRecord);
-                        //RecordSystemInteraction(functionNode, callRecord);
+                        //each node can only have a certain number of arguments to prevent simple denial of service
+                        if (functionNode.callRecordsIndexs.Count < GlobalConfig.Settings.Tracing.ArgStorageMax)
+                        {
+                            if (functionNode.callRecordsIndexs.Count >= (GlobalConfig.Settings.Tracing.ArgStorageMax - 1))
+                                Logging.RecordLogEvent($"Warning, dropping future args to extern 0x{currentTarget:X} because the storage limit is {GlobalConfig.Settings.Tracing.ArgStorageMax}");
 
-                        // this toggle isn't thread safe so slight chance for renderer to not notice the final arg
-                        // not worth faffing around with locks though - maybe just re-read at tracereader thread termination
-                        functionNode.Dirty = true;
+                            APICALLDATA callRecord;
+                            callRecord.edgeIdx = threadCalls[i];
+                            callRecord.argList = BuildArgStringList(cacheI);
+                            completecount += callRecord.argList.Count;
+
+                            functionNode.callRecordsIndexs.Add((ulong)SymbolCallRecords.Count);
+                            SymbolCallRecords.Add(callRecord);
+                            //RecordSystemInteraction(functionNode, callRecord);
+
+                            // this toggle isn't thread safe so slight chance for renderer to not notice the final arg
+                            // not worth faffing around with locks though - maybe just re-read at tracereader thread termination
+                            functionNode.Dirty = true;
+                        }
+                        sequenceProcessed = true;
+                        break;
                     }
-                    sequenceProcessed = true;
-                    break;
                 }
+                else
+                {
+                    if (TraceData.HideAPIThunks is false) break;
+                    if ((int)currentSourceBlock >= TraceData.DisassemblyData.BasicBlocksList.Count) break;
+                    var blockInsList = TraceData.DisassemblyData.BasicBlocksList[(int)currentSourceBlock];
+                    if (blockInsList is null || blockInsList.Item2.Count is not 1) break;
+                    threadCalls = blockInsList.Item2[0].ThreadVerts;
+
+                    uint callerNodeIdx = (uint)arg.HiddenThunkSourceNode;
+
+                    APICALLDATA callRecord;
+                    callRecord.edgeIdx = new Tuple<uint, uint>(callerNodeIdx, (uint) arg.SourceNode);
+                    callRecord.argList = BuildArgStringList(cacheI);
+                    completecount += callRecord.argList.Count;
+
+                    NodeData? functionNode = GetNode((uint)arg.SourceNode);
+                    Debug.Assert(functionNode is not null);
+
+                    functionNode.callRecordsIndexs.Add((ulong)SymbolCallRecords.Count);
+                    SymbolCallRecords.Add(callRecord);
+                    sequenceProcessed = true;
+                }
+
 
                 if (!sequenceProcessed)
                 {
@@ -755,6 +769,17 @@ namespace rgat
 
             RemoveProcessedArgsFromCache(completecount);
         }
+
+        List<Tuple<int, string>> BuildArgStringList(int cacheI)
+        {
+            List<Tuple<int, string>> argStringsList = new List<Tuple<int, string>>();
+            for (var argI = 0; argI <= cacheI; argI++)
+            {
+                argStringsList.Add(new Tuple<int, string>(_unprocessedCallArguments[argI].argIndex, _unprocessedCallArguments[argI].argstring));
+            }
+            return argStringsList;
+        }
+
 
         private void RecordSystemInteraction(NodeData node, APICALLDATA APIcall)
         {
@@ -786,7 +811,9 @@ namespace rgat
                 argstring = contents,
                 finalEntry = isLastArgInCall,
                 sourceBlock = sourceBlockID,
-                isReturnVal = argpos == -1
+                isReturnVal = argpos == -1,
+                SourceNode = (int)ProtoLastVertID,
+                HiddenThunkSourceNode = (int)ProtoLastLastVertID                
             };
             lock (argsLock)
             {
@@ -798,6 +825,9 @@ namespace rgat
                 ProcessIncomingCallArguments();
             }
         }
+
+
+
 
 
         private bool lookup_extern_func_calls(ulong called_function_address, out List<Tuple<uint, uint>>? callEdges)
@@ -824,6 +854,11 @@ namespace rgat
                 if (node.IsExternal)
                 {
                     externalNodeList.Add(node.Index);
+                }
+                else if (node.ins is null)
+                {
+                    Logging.RecordLogEvent($"Bad node at index {NodeList.Count}");
+                    return;
                 }
                 else if (node.ins!.hasSymbol)
                 {
@@ -1118,7 +1153,7 @@ namespace rgat
                 sw.Start();
                 addBlockToGraph(thistag.blockID, 1, !skipFirstEdge);
                 sw.Stop();
-                if (sw.ElapsedMilliseconds > 70)
+                if (sw.ElapsedMilliseconds > 250)
                     Console.WriteLine($"HandleTag::addblock to graph took {sw.ElapsedMilliseconds} ms");
             }
 

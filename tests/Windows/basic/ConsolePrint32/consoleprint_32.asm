@@ -3,8 +3,10 @@
         .model flat, stdcall           ;use C naming convention (stdcall is default)
 
         .data                   ;initialized data
-message     db      "drgat test 1 32 bit",0dh,0ah,0
-message_end db 0
+message1     db      "consoleprint long test message 1",0dh,0ah,0
+message1_end db 0               
+message2     db      "consoleprint short msg 2",0dh,0ah,0
+message2_end db 0
         .data?                  ;uinitialized data
         .stack  4096            ;stack (optional, linker will default)
 
@@ -39,10 +41,10 @@ main:
         push    0
         lea     eax, [ebp-4]
         push    eax
-        push    (message_end - message)
-        push    offset  message
+        push    (message1_end - message1)
+        push    offset  message1
         push    ebx
-        call    writefile
+        call    Writefile
 
         ;basic block 4
         ; 3x nodes [14,15,GetStdHandle]
@@ -56,10 +58,10 @@ main:
         push    0
         lea     eax, [ebp-4]
         push    eax
-        push    (message_end - message)
-        push    offset  message
+        push    (message2_end - message2)
+        push    offset  message2
         push    ebx
-        call    writefile
+        call    Writefile
 
 
         ;basic blocks 8

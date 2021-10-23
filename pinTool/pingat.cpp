@@ -389,6 +389,7 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 
 	//printf("recordedge. src_%d -> targ 0x%lx blk->execs[%d] blck->act[%d] thread->act[%d]\n", sourceBlock->blockID, targblockAddr,
 	//	blockStats->execCount, blockStats->activityLevel, threadObj->activityLevel);
+	
 	//PART 1: Do basic count for every block
 	//record block execution and increase block activity
 	blockStats->execCount += 1;
@@ -399,7 +400,7 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 	{
 		if (blockStats->activityLevel > threadObj->activityLevel) // block is more active than thread
 		{
-			if (blockStats->activityLevel == (threadObj->activityLevel + 1)) //thread is one behind busy blocks
+			if (blockStats->activityLevel == (threadObj->activityLevel + 1)) //if thread is 1 level behind busy blocks
 			{
 				//printf("__recordedge1 b>t [blkact == threadact+1] => threadact++\n");
 				threadObj->activityLevel += 1; //bump thread activity level to match
@@ -414,7 +415,7 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 		{
 			//printf("__recordedge1 b<t => t=b\n");
 			threadObj->activityLevel = blockStats->activityLevel; //busy thread moved to a lower activity block, lower thread busy level
-			if (threadObj->hasBusyBlocks && threadObj->activityLevel < DEINSTRUMENTATION_LIMIT) //did this take us out of a busy area?
+			if (threadObj->hasBusyBlocks && threadObj->activityLevel < DEINSTRUMENTATION_LIMIT) //if this block took the thread out of a busy area
 			{
 				//printf("____recordedge1 hasbusy+ta<LIM => oe\n");
 				outputUnchained(threadObj, sourceBlock->blockID); //output everything that happened while deinstrumented
@@ -458,7 +459,7 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 			// record the edge
 			threadObj->busyBlocks.push_back(sourceBlock);
 			blockStats->targets.push_back(std::make_pair(targblockAddr, 1));
-			// tell rgat this block is busy 
+			// tell rgat this block has become busy 
 			fprintf(threadObj->threadpipeFILE, UNCHAIN_MARKER",%lx\x01", sourceBlock->blockID);
 			fflush(threadObj->threadpipeFILE);
 			threadObj->newEdgeSourceBlk = sourceBlock->blockID;
@@ -479,6 +480,7 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 	}
 }
 
+
 VOID RecordStep(threadObject* threadObj, BLOCKDATA* block, ADDRINT thisAddress, ADDRINT nextAddress)
 {
 	fprintf(threadObj->threadpipeFILE, STEP_MARKER"%lx," PTR_prefix "," PTR_prefix "\x01", block->blockID, thisAddress, nextAddress);
@@ -491,6 +493,7 @@ VOID at_unconditional_branch(BLOCKDATA* block_data, ADDRINT targetBlockAddress, 
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
 	RecordEdge(thread, block_data, targetBlockAddress);
 }
+
 
 VOID at_unconditional_branch_oneshot(BLOCKDATA* block_data, ADDRINT targetBlockAddress, THREADID threadid)
 {
@@ -506,12 +509,14 @@ VOID at_conditional_branch(BLOCKDATA* block_data, bool taken, ADDRINT targetBloc
 	RecordEdge(thread, block_data, taken ? targetBlockAddress : fallthroughAddress);
 }
 
+
 VOID at_conditional_branch_oneshot(BLOCKDATA* block_data, bool taken, ADDRINT targetBlockAddress, ADDRINT fallthroughAddress, THREADID threadid)
 {
 	threadObject* thread = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadid));
 	RecordEdge(thread, block_data, taken ? targetBlockAddress : fallthroughAddress);
 	PIN_RemoveInstrumentationInRange(block_data->appc, block_data->appc);
 }
+
 
 VOID at_non_branch_oneshot(BLOCKDATA* block_data, ADDRINT nextIns, THREADID threadid)
 {

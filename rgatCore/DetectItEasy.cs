@@ -73,6 +73,15 @@ namespace rgat
                 return;
             }
 
+            if (reload)
+            {
+                dielib.ReloadScriptDatabase(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory), out string? error);
+                if(error is not null)
+                {
+
+                }
+            }
+
             if (!dielib.DatabaseLoaded)
             {
                 return;
@@ -143,10 +152,11 @@ namespace rgat
         /// <summary>
         /// Reload the scripts database
         /// </summary>
-        /// <param name="path"></param>
-        public void ReloadDIEScripts(string path)
+        /// <param name="path">Path of the db folder</param>
+        /// <param name="error">Any error encountered</param>
+        public void ReloadDIEScripts(string path, out string? error)
         {
-            dielib.ReloadScriptDatabase(GetScriptsPath(path));
+            dielib.ReloadScriptDatabase(GetScriptsPath(path), out error);
         }
 
         /// <summary>

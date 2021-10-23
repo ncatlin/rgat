@@ -261,7 +261,7 @@ namespace rgat.Widgets
                 }
                 ImGui.SameLine();
                 if (SmallWidgets.ToggleButton("NwkListenActive", activeNetworking, null) && KeyIsSet)
-                {    
+                {
                     if (activeNetworking)
                     {
                         rgatState.NetworkBridge.Teardown("Manual Disconnect");
@@ -647,11 +647,16 @@ namespace rgat.Widgets
                 ImGui.EndTooltip();
             }
 
+            List<string>? recentAddrs = null;
             bool closeSuggestor = false;
             if (ImGui.IsItemActive())
             {
-                ImGui.OpenPopup("##prevAddrSearchBar");
-                _remoteDropdownOpen = true;
+                recentAddrs = GlobalConfig.Settings.Network.RecentConnectedAddresses(); //todo cache?
+                if (recentAddrs.Any())
+                {
+                    ImGui.OpenPopup("##prevAddrSearchBar");
+                    _remoteDropdownOpen = true;
+                }
             }
             else
             {
@@ -665,41 +670,40 @@ namespace rgat.Widgets
             ImGui.TableNextColumn();
             DrawInterfaceSelector();
 
-            if (_remoteDropdownOpen)
+            if (_remoteDropdownOpen && recentAddrs is not null)
             {
                 ImGui.SetNextWindowPos(textPos);
-            }
-            if (ImGui.BeginPopup("##prevAddrSearchBar", ImGuiWindowFlags.ChildWindow))
-            {
-                ImGui.PushAllowKeyboardFocus(false);
-
-                int numHints = 0;
-                List<string> recentAddrs = GlobalConfig.Settings.Network.RecentConnectedAddresses(); //todo cache
-                foreach (string address in recentAddrs)
+                if (ImGui.BeginPopup("##prevAddrSearchBar", ImGuiWindowFlags.ChildWindow))
                 {
-                    ImGui.Selectable(address + "##" + numHints.ToString());
-                    if (ImGui.IsItemActivated()) //selectable() doesn't return true for some reason
+                    ImGui.PushAllowKeyboardFocus(false);
+
+                    int numHints = 0;
+                    foreach (string address in recentAddrs)
                     {
-                        currentAddress = address;
-                        SelectRemoteAddress(address);
+                        ImGui.Selectable(address + "##" + numHints.ToString());
+                        if (ImGui.IsItemActivated()) //selectable() doesn't return true for some reason
+                        {
+                            currentAddress = address;
+                            SelectRemoteAddress(address);
+                            ImGui.CloseCurrentPopup();
+                        }
+                        ++numHints;
+
+                        if (numHints > 6)
+                        {
+                            ImGui.Text("...");
+                            break;
+                        }
+                    }
+
+                    ImGui.PopAllowKeyboardFocus();
+                    if (!_remoteDropdownOpen)
+                    {
                         ImGui.CloseCurrentPopup();
                     }
-                    ++numHints;
 
-                    if (numHints > 6)
-                    {
-                        ImGui.Text("...");
-                        break;
-                    }
+                    ImGui.EndPopup();
                 }
-
-                ImGui.PopAllowKeyboardFocus();
-                if (!_remoteDropdownOpen)
-                {
-                    ImGui.CloseCurrentPopup();
-                }
-
-                ImGui.EndPopup();
             }
 
             if (closeSuggestor)

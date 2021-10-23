@@ -13,8 +13,9 @@ namespace rgat.Widgets
         /// Draw a trace selector
         /// </summary>
         /// <param name="trace">Parent trace</param>
+        /// <param name="abbreviate">Make the label a bit shorter to fit in the preview pane width</param>
         /// <returns>Selected graph or null</returns>
-        public static PlottedGraph? Draw(TraceRecord? trace)
+        public static PlottedGraph? Draw(TraceRecord? trace, bool abbreviate = false)
         {
             if (trace is null)
             {
@@ -34,10 +35,10 @@ namespace rgat.Widgets
                 {
                     ImGui.TableSetupColumn("#IconsTraceSel", ImGuiTableColumnFlags.WidthFixed, 35);
                     ImGui.TableNextRow();
-                    DrawTraceCombo(trace);
+                    DrawTraceCombo(trace, abbreviate);
 
                     ImGui.TableNextRow();
-                    DrawThreadSelectorCombo(trace, out selectedGraph);
+                    DrawThreadSelectorCombo(trace, out selectedGraph, abbreviate);
                     ImGui.EndTable();
                 }
                 ImGui.PopStyleVar();
@@ -49,11 +50,11 @@ namespace rgat.Widgets
             return selectedGraph;
         }
 
-        private static void DrawTraceCombo(TraceRecord trace)
+        private static void DrawTraceCombo(TraceRecord trace, bool abbreviate)
         {
             ImGui.TableNextColumn();
             var tracelist = trace.Target.GetTracesUIList();
-            string selString = "PID " + trace.PID;
+            string selString = (abbreviate ? "PID " : "Process ") + trace.PID;
             ImGui.AlignTextToFramePadding();
             ImGuiUtils.DrawHorizCenteredText($"{tracelist.Length}x");
             SmallWidgets.MouseoverText($"This target binary has {tracelist.Length} loaded trace{(tracelist.Length != 1 ? 's' : "")} associated with it");
@@ -104,14 +105,14 @@ namespace rgat.Widgets
         }
 
 
-        private static void DrawThreadSelectorCombo(TraceRecord? trace, out PlottedGraph? selectedGraph)
+        private static void DrawThreadSelectorCombo(TraceRecord? trace, out PlottedGraph? selectedGraph, bool abbreviate)
         {
             selectedGraph = null;
             ProtoGraph? graph = rgatState.ActiveGraph?.InternalProtoGraph;
             if (trace is not null && graph is not null)
             {
                 ImGui.TableNextColumn();
-                string selString = $"TID {graph.ThreadID}: {graph.FirstInstrumentedModuleName}";
+                string selString = $"{(abbreviate ? "TID" : "Thread")} {graph.ThreadID}: {graph.FirstInstrumentedModuleName}";
                 List<PlottedGraph> graphs = trace.GetPlottedGraphs();
                 ImGuiUtils.DrawHorizCenteredText($"{graphs.Count}x");
                 SmallWidgets.MouseoverText($"This trace has {graphs.Count} thread{(graphs.Count != 1 ? 's' : "")} with instrumented trace data");

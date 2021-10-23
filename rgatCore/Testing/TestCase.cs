@@ -596,6 +596,9 @@ namespace rgat.Testing
         /// </summary>
         private TraceRequirements _TraceRequirements = new TraceRequirements();
 
+        /// <summary>
+        /// Boolean configuration values
+        /// </summary>
         public readonly Dictionary<string, bool> ConfigToggles = new();
 
 
@@ -603,7 +606,6 @@ namespace rgat.Testing
         /// Load a test case from a json file
         /// </summary>
         /// <param name="jsonpath">Path of a JSON test description file to load</param>
-        /// <param name="category">The category of the test</param>
         public TestCase(string jsonpath)
         {
             JSONPath = jsonpath;

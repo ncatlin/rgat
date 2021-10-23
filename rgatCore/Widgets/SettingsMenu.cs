@@ -872,7 +872,21 @@ namespace rgat.Widgets
             _cancelTokens = new CancellationTokenSource();
             var allSources = GlobalConfig.Settings.Signatures.GetSignatureSources();
             var repos = allSources.Where(x => _selectedRepos.Contains(x.FetchPath)).ToList();
-            _githubSigDownloader.StartDownloads(repos, 3, _cancelTokens.Token);
+            bool hasYara = repos.Any(x => x.SignatureType == eSignatureType.YARA);
+            bool hasDIE = repos.Any(x => x.SignatureType == eSignatureType.DIE);
+            void onComplete()
+            {
+                if (hasYara && rgatState.YARALib is not null) rgatState.YARALib.RefreshRules(GlobalConfig.GetSettingPath(PathKey.YaraRulesDirectory), true);
+                if (hasDIE && rgatState.DIELib is not null)
+                {
+                    rgatState.DIELib.ReloadDIEScripts(GlobalConfig.GetSettingPath(PathKey.DiESigsDirectory), out string? error);
+                    if (error is not null)
+                    {
+                        Logging.RecordError("DIE reload error: " + error);
+                    }
+                }
+            }
+            _githubSigDownloader.StartDownloads(repos, 3, onComplete, _cancelTokens.Token);
         }
 
         private void CreateOptionsPane_Text()
@@ -980,7 +994,7 @@ namespace rgat.Widgets
                 ImGui.Text("Korean");
                 ImGui.TableNextColumn();
                 if (SmallWidgets.ToggleButton("Korean", GlobalConfig.Settings.UI.UnicodeLoad_Korean,
-                    "Toggle loading of Korean unicode glyphs on startup"))
+                    "Toggle loading of Korean unicode glyphs on startup", false))
                 {
                     GlobalConfig.Settings.UI.UnicodeLoad_Korean = !GlobalConfig.Settings.UI.UnicodeLoad_Korean;
                 }
@@ -990,7 +1004,7 @@ namespace rgat.Widgets
                 ImGui.Text("Thai");
                 ImGui.TableNextColumn();
                 if (SmallWidgets.ToggleButton("Thai", GlobalConfig.Settings.UI.UnicodeLoad_Thai,
-                    "Toggle loading of Thai unicode glyphs on startup"))
+                    "Toggle loading of Thai unicode glyphs on startup", false))
                 {
                     GlobalConfig.Settings.UI.UnicodeLoad_Thai = !GlobalConfig.Settings.UI.UnicodeLoad_Thai;
                 }
@@ -1112,12 +1126,12 @@ namespace rgat.Widgets
 
             if (ImGui.BeginTable("#PathsTable", 3, ImGuiTableFlags.RowBg))//, ImGuiTableFlags.PreciseWidths, ImGui.GetContentRegionAvail()))
             {
+                ImGui.Indent(4);
                 ImGui.TableSetupColumn("Setting", ImGuiTableColumnFlags.WidthFixed, 180);
                 ImGui.TableSetupColumn("Path");
                 ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 35);
 
                 ImGui.TableHeadersRow();
-
 
                 if (DrawPathMenuOption("Pin Executable", GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath), settingTips[CONSTANTS.PathKey.PinPath], out bool clearFlag))
                 { choosePath = CONSTANTS.PathKey.PinPath; doClear |= clearFlag; }
@@ -1152,6 +1166,7 @@ namespace rgat.Widgets
                 { choosePath = CONSTANTS.PathKey.MediaCapturePath; doClear |= clearFlag; }
 
 
+                ImGui.Indent(-4);
                 ImGui.EndTable();
             }
 
@@ -1958,7 +1973,7 @@ namespace rgat.Widgets
 
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
-
+            ImGui.AlignTextToFramePadding();
             ImGui.Text(caption);
             if (tooltip != null)
             {
@@ -1990,7 +2005,9 @@ namespace rgat.Widgets
                     ImGui.PushStyleColor(ImGuiCol.Button, unsetBtnColour);
                     kstring = $"Click To Set]##{rowIndex}1";
                 }
-                if (ImGui.Button($"[{kstring}]"))
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2);
+                string btnText = $"[{kstring}]";
+                if (ImGui.Button(btnText, new Vector2(Math.Max(ImGui.CalcTextSize(btnText).X+10, 110),24)))
                 {
                     DoClickToSetKeybind(caption, action: keyAction, 1);
                 }
@@ -2018,10 +2035,15 @@ namespace rgat.Widgets
                     ImGui.PushStyleColor(ImGuiCol.Button, unsetBtnColour);
                     kstring = $"Click To Set]##{rowIndex}2";
                 }
-                if (ImGui.Button($"[{kstring}]"))
+
+                string btnText = $"[{kstring}]";
+                
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2);
+                if (ImGui.Button(btnText, new Vector2(Math.Max(ImGui.CalcTextSize(btnText).X + 10, 110), 24)))
                 {
                     DoClickToSetKeybind(caption, action: keyAction, 2);
                 }
+
                 ImGui.PopStyleColor();
             }
 

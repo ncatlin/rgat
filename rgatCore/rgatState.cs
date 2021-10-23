@@ -662,8 +662,7 @@ namespace rgat
                     {
                         if (!jsnReader.Read() || jsnReader.TokenType is not JsonToken.StartArray)
                         {
-                            Logging.RecordError($"Trace file {path} started with unexpected data");
-                            return false;
+                            throw new InvalidDataException("Trace file did not start with an array");
                         }
                         success = DeserialiseTrace(jsnReader, SerialisationProgress, out trace);
                         if (success is false)
@@ -851,6 +850,37 @@ namespace rgat
             return savedCount;
         }
 
+        /// <summary>
+        /// Serialise the active trace to the trace directory
+        /// </summary>
+        /// <param name="targ">A binaryTarget to save traces of</param>
+        public static int SaveTrace(TraceRecord? trace)
+        {
+            if (trace is null) return 0;
+            if (!trace.WasLoadedFromSave)
+            {
+                SerialisationProgress = new SERIALISE_PROGRESS("Saving Trace")
+                {
+                    FileCount = 1
+                };
+
+                try
+                {
+                    if (trace.Save(SerialisationProgress, out string? path))
+                    {
+                        Logging.RecordLogEvent($"Saved Process {trace.PID} to {path}", Logging.LogFilterType.Alert);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordException($"Error saving trace {trace.PID} - {e.Message}", e);
+                }
+            }
+
+            SerialisationProgress = null;
+            return 1;
+        }
+
 
         /// <summary>
         /// Export the current trace in the pajek format, a simple graph serialisation format that other graph layout programs accept
@@ -945,6 +975,13 @@ namespace rgat
         static readonly List<PENDING_TRACE_SETTINGS> _registeredTraceSettings = new List<PENDING_TRACE_SETTINGS>();
         static readonly object _staticLock = new();
 
+
+        /// <summary>
+        /// Tests are setup differently to user launched binaries due to their parallel nature so 
+        /// we have to stage tracing settings for when they connect
+        /// </summary>
+        /// <param name="ID">Test ID being set up</param>
+        /// <param name="settings">Settings for the test</param>
         public static void RegisterProcessTestSettings(long ID, ProcessLaunchSettings settings)
         {
             PENDING_TRACE_SETTINGS pts = new PENDING_TRACE_SETTINGS()

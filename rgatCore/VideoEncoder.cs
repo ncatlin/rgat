@@ -166,7 +166,16 @@ namespace rgat
             try
             {
                 if (_recording is true && rgatState.rgatIsExiting is false)
-                    Logging.RecordError($"Recording Stopped{((error?.Length > 0) ? ":"+error : "")}");
+                {
+                    if (error?.Length > 0)
+                    {
+                        Logging.RecordError($"Recording Stopped{((error?.Length > 0) ? ": " + error : "")}");
+                    }
+                    else
+                    {
+                        Logging.RecordLogEvent($"Recording Stopped", Logging.LogFilterType.Alert);
+                    }
+                }
                 _recordingStateChanged = DateTime.Now;
                 _recording = false;
                 Error = error;
@@ -336,6 +345,8 @@ namespace rgat
                 string targetname = Path.GetFileNameWithoutExtension(graph.InternalProtoGraph.TraceData.Target.FilePath);
                 vidname = $"rgat_{targetname}_{graph.PID}_{DateTime.Now:MMdd_HHMMss}";
             }
+
+            extension = extension.ToLower();
             string targetfile = Path.Combine(storedir, $"{vidname}.{extension}");
             int attempt = 1;
             while (File.Exists(targetfile))

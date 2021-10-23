@@ -129,16 +129,15 @@ namespace ImGuiNET
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
 
+            SetKeyMappings();
+
+            LoadImages();
+
+            SetPerFrameImGuiData(1f / 60f);
+
             Logging.RecordLogEvent("Loading fonts", Logging.LogFilterType.Debug);
             var fonts = ImGui.GetIO().Fonts;
 
-
-
-            Logging.RecordLogEvent("Done Loading fonts", Logging.LogFilterType.Debug);
-
-            SetKeyMappings();
-            LoadImages();
-            SetPerFrameImGuiData(1f / 60f);
 
             //should be fixed now
             /*
@@ -153,37 +152,41 @@ namespace ImGuiNET
             CreateDeviceResources(gd, outputDescription);
             RecreateFontDeviceTexture(gd);
 
-
-            //ImGui.NewFrame();
-            //_frameBegun = true;
+            Logging.RecordLogEvent("Done Loading fonts", Logging.LogFilterType.Debug);
         }
 
 
+        unsafe ImFontConfigPtr CreateNewFontConfig()
+        {
+            ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+            fontConfig.MergeMode = false;
+            fontConfig.FontDataOwnedByAtlas = false;
+            fontConfig.OversampleH = 2;
+            fontConfig.PixelSnapH = true;
+            fontConfig.OversampleV = 1;
+            fontConfig.GlyphOffset = new Vector2(0, 0);
+            fontConfig.GlyphMaxAdvanceX = float.MaxValue;
+            fontConfig.RasterizerMultiply = 1f;
+            return fontConfig;
+        }
+
 
         byte[]? notoFontBytes;
+
+        int take = 0;
 
         /// <summary>
         /// Load the fonts
         /// </summary>
         public unsafe void BuildFonts(bool chooseGlyphsFromConfig)
         {
+            take++;
+
             ImGuiIOPtr io = ImGui.GetIO();
             var fonts = io.Fonts;
-            //fonts.Clear();   // memory leak! this crashes for some reason so we can't get rid of the fonts loaded earlier
-            fonts.ClearTexData();
+            fonts.Clear(); 
 
             _originalFont = fonts.AddFontDefault();
-
-            ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
-            fontConfig.MergeMode = true;
-            fontConfig.FontDataOwnedByAtlas = true;
-            fontConfig.OversampleH = 2;
-            fontConfig.PixelSnapH = true;
-            fontConfig.OversampleV = 1;
-            fontConfig.GlyphOffset = new Vector2(0, 2);
-            fontConfig.GlyphMaxAdvanceX = float.MaxValue;
-            fontConfig.RasterizerMultiply = 1f;
-
 
             Logging.RecordLogEvent($"Loading Unicode fonts", Logging.LogFilterType.Debug);
             ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
@@ -208,10 +211,12 @@ namespace ImGuiNET
             fixed (byte* notoPtr = notoFontBytes)
             {
                 // The order of adding is important here due to merging
-                ImFontPtr splashFont = fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 40, null, basicRanges.Data);
+                ImFontConfigPtr fontConfig = CreateNewFontConfig();
+                ImFontPtr splashFont = fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 40, fontConfig, basicRanges.Data);
                 _fontNameByIndex.Add("NotoSansSC_Regular_40");
 
-                ImFontPtr unicodeFont = fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 17, null, fullRanges.Data);
+                fontConfig = CreateNewFontConfig();
+                ImFontPtr unicodeFont = fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 17, fontConfig, fullRanges.Data);
 
                 byte[]? regularFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Regular_400");
                 byte[]? solidFontBytes = rgatState.ReadBinaryResource("Font_Awesome_5_Free_Solid_900");
@@ -228,23 +233,26 @@ namespace ImGuiNET
                         fixed (byte* solidPtr = solidFontBytes, regularPtr = regularFontBytes)
                         {
                             // FontAwesome icons, add to the unicode texture atlas to they can be used alongside text
-                            fontConfig.FontDataOwnedByAtlas = true;
+                            fontConfig = CreateNewFontConfig();
+                            fontConfig.MergeMode = true;
+                            fontConfig.GlyphOffset = new Vector2(0, 2); //move them down a bit to align with button text
                             IntPtr glyphRange = rangeHandle.AddrOfPinnedObject();
-                            //_fafontSolid?.Destroy();
                             _fafontSolid = fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, 17, fontConfig, glyphRange);
 
+                            fontConfig = CreateNewFontConfig();
+                            fontConfig.MergeMode = true;
+                            fontConfig.GlyphOffset = new Vector2(0, 2); //move them down a bit to align with button text
                             _fontNameByIndex.Add("NotoSansSC_Solid_17");
-                            //_fafontRegular?.Destroy();
                             _fafontRegular = fonts.AddFontFromMemoryTTF((IntPtr)regularPtr, regularFontBytes.Length, 17, fontConfig, glyphRange);
                             _fontNameByIndex.Add("NotoSansSC_Regular_17");
 
                             // Large icons for the title screen
-                            fontConfig.MergeMode = false;
+                            fontConfig = CreateNewFontConfig();
                             builder.Clear();
                             builder.AddChar(ImGuiController.FA_ICON_SAMPLE);
                             builder.AddChar(ImGuiController.FA_ICON_LOADFILE);
                             builder.BuildRanges(out ImVector splashBigIconRanges);
-                            //_iconsLargeFont?.Destroy();
+
                             _iconsLargeFont = fonts.AddFontFromMemoryTTF((IntPtr)solidPtr, solidFontBytes.Length, LargeIconSize.X, fontConfig, splashBigIconRanges.Data);
                             _fontNameByIndex.Add($"NotoSansSC_Solid_{LargeIconSize.X}");
 
@@ -256,28 +264,27 @@ namespace ImGuiNET
                             builder.AddChar('t');
                             ImVector rangesTitle;
                             builder.BuildRanges(out rangesTitle);
-                            _titleFont = fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 70, null, rangesTitle.Data);
+
+                            fontConfig = CreateNewFontConfig();
+                            _titleFont = fonts.AddFontFromMemoryTTF((IntPtr)notoPtr, notoFontBytes.Length, 70, fontConfig, rangesTitle.Data);
                             _fontNameByIndex.Add("NotoSansSC_Regular_70");
 
-                            //_unicodeFont?.Destroy();
                             _unicodeFont = unicodeFont;
                             unsafe
                             {
-                               io.NativePtr->FontDefault = _unicodeFont.Value;
+                                io.NativePtr->FontDefault = _unicodeFont.Value;
                             }
-                            fonts.Build();
+                            bool built = fonts.Build();
                             RecreateFontDeviceTexture(_gd);
                         }
                     }
                     finally
                     {
-                        fontConfig.Destroy();
-                        if (rangeHandle.IsAllocated)
+                        if (rangeHandle.IsAllocated) //not sure this is a good idea. if font related crashing happens, purge this first
                         {
                             rangeHandle.Free();
                         }
-                    }
-                    //_splashButtonFont?.Destroy();
+                    }                  
                     _splashButtonFont = splashFont;
                 }
                 else
@@ -353,6 +360,8 @@ namespace ImGuiNET
 
         private void LoadImages()
         {
+            Logging.RecordLogEvent("Loading textures", Logging.LogFilterType.Debug);
+
             ResourceFactory factory = _gd.ResourceFactory;
             string imgpath = @"C:\Users\nia\Desktop\rgatstuff\icons\forceDirected.png";
             _imageTextures["Force3D"] = new ImageSharpTexture(imgpath, true, true).CreateDeviceTexture(_gd, factory);
@@ -701,7 +710,14 @@ namespace ImGuiNET
             // Build
             //had a crash here on start up once, don't know why. added a waitforidle above in the hope it was just the earlier buffer operations being incomplete
 
+            Logging.RecordLogEvent("About to fetch font data from ImGui. If there are no logs after this then this is what crashed us.", Logging.LogFilterType.BulkDebugLogFile);
             io.Fonts.GetTexDataAsRGBA32(out IntPtr pixels, out int width, out int height, out int bytesPerPixel);
+            if (width == 0 || height == 0)
+            {
+                Logging.RecordError("Not recreating fonts - 0 texture size!");
+                return;
+            }
+            Logging.RecordLogEvent("Sucessfully fetched font texture data", Logging.LogFilterType.BulkDebugLogFile);
 
             // Store our identifier
             io.Fonts.SetTexID(_fontAtlasID);
@@ -746,7 +762,12 @@ namespace ImGuiNET
             }
         }
 
+
+        /// <summary>
+        /// Trigger recreation of font textures on the next UI frame
+        /// </summary>
         public void RebuildFonts() => _newFonts = true;
+
         bool _newFonts = false;
 
         /// <summary>
@@ -754,7 +775,7 @@ namespace ImGuiNET
         /// </summary>
         public void Update(float deltaSeconds, InputSnapshot snapshot)
         {
-            if (_newFonts)
+            if (_newFonts && rgatUI.StartupProgress >= 1)
             {
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
@@ -766,14 +787,9 @@ namespace ImGuiNET
 
             }
 
-            if (_frameBegun)
-            {
-                ImGui.Render();
-            }
 
             SetPerFrameImGuiData(deltaSeconds);
             UpdateImGuiInput(snapshot);
-
             _frameBegun = true;
             ImGui.NewFrame();
 
@@ -801,7 +817,7 @@ namespace ImGuiNET
             MousePresent = state;
             LastMouseMove = DateTime.Now;
         }
-        public double LastMouseActivityMS => (DateTime.Now  - LastMouseMove).TotalMilliseconds;
+        public double LastMouseActivityMS => (DateTime.Now - LastMouseMove).TotalMilliseconds;
 
         private void UpdateImGuiInput(InputSnapshot snapshot)
         {

@@ -12,7 +12,6 @@ namespace rgat.Widgets
     internal class TestCategory
     {
         public List<TestCase> Tests = new List<TestCase>();
-        public string? Path;
         public bool Starred;
         public string? CategoryName;
         public string? ID;
@@ -891,7 +890,9 @@ namespace rgat.Widgets
 
                             break;
                         case eCatFilter.StarredCat:
-                            if (_testCategories[test.CategoryName].Starred)
+                            if (test.CategoryName is not null &&
+                                _testCategories.TryGetValue(test.CategoryName, out TestCategory? testcat) 
+                                && testcat is not null && testcat.Starred)
                             {
                                 AddTestToQueue(test);
                             }

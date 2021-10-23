@@ -32,11 +32,9 @@ namespace rgat.Widgets
         private readonly float padding = 15;
         private double _scaleX = 1;
         private readonly float nodeSize = 8;
-        private readonly ImFontPtr _fontptr;
 
         public SandboxChart(ImFontPtr font)
         {
-            _fontptr = font;
             chartSize = new Vector2(300, 300);
 
             KKLayoutParameters layoutParams = new KKLayoutParameters()
@@ -111,12 +109,14 @@ namespace rgat.Widgets
         private Vector2 chartOffset = Vector2.Zero;
 
 
-        public ItemNode GetInteractedEntity(Logging.TIMELINE_EVENT evt)
+        public ItemNode? GetInteractedEntity(Logging.TIMELINE_EVENT evt)
         {
             lock (_lock)
             {
-                return _timelineEventEntities[evt];
+                if (_timelineEventEntities.TryGetValue(evt, out ItemNode? evtNode) && evtNode is not null)
+                    return evtNode;
             }
+            return null;
         }
 
         private void AddThreadItems(ItemNode? parentProcess, TraceRecord trace)
@@ -126,7 +126,7 @@ namespace rgat.Widgets
             ItemNode? startProcess = null;
             lock (_lock)
             {
-                
+
                 if (!addedNodes.TryGetValue(nodeName, out startProcess))
                 {
                     startProcess = new ItemNode(nodeName, Logging.eTimelineEvent.ProcessStart, trace);
@@ -395,7 +395,7 @@ namespace rgat.Widgets
         private bool _layoutActive = false;
         private bool _computeRequired = false;
 
-        public void Draw()
+        public void Draw(ImFontPtr font)
         {
             Vector2 availArea = ImGui.GetContentRegionAvail();
             Vector2 targetSize = availArea - new Vector2(0, 6);
@@ -421,6 +421,7 @@ namespace rgat.Widgets
 
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Themes.GetThemeColourUINT(Themes.eThemeColour.SandboxChartBG));
 
+            bool nodeClicked = false;
 
             Vector2 cursorPos = ImGui.GetCursorPos();
             Vector2 chartPos = cursorPos + chartOffset + new Vector2(padding, padding);
@@ -458,18 +459,15 @@ namespace rgat.Widgets
                     }
                 }
 
-
                 foreach (var node in positions)
                 {
                     Vector2 nCenter = chartPos + Point2Vec(node.Value);
-                    DrawNode(node.Key, nCenter);
+                    nodeClicked = nodeClicked || DrawNode(node.Key, nCenter, font);
                 }
-
-
 
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, 5));
 
-                ImGui.SetCursorPos(chartSize - new Vector2(60,30));
+                ImGui.SetCursorPos(chartSize - new Vector2(60, 30));
                 ImGui.BeginGroup();
                 if (ImGui.Button($"{ImGuiController.FA_ICON_REFRESH}", new Vector2(26, 27))) //refresh button
                 {
@@ -481,7 +479,7 @@ namespace rgat.Widgets
                 if (!_fittingActive)
                 {
                     ImGui.SameLine(30);
-                    if (ImGui.Button($"{ImGuiController.FA_ICON_MOVEMENT}", new Vector2(26,27))) //centering button
+                    if (ImGui.Button($"{ImGuiController.FA_ICON_MOVEMENT}", new Vector2(26, 27))) //centering button
                     {
                         FitNodesToChart();
                     }
@@ -494,14 +492,26 @@ namespace rgat.Widgets
                 ImGui.EndChild();
             }
             ImGui.PopStyleColor();
+           if(ImGui.IsMouseClicked(ImGuiMouseButton.Left) is true && nodeClicked is false)
+            {
+                _selectedNode = null;
+            }
         }
 
-        private void DrawNode(ItemNode node, Vector2 position)
+
+        /// <summary>
+        /// Draw a chart node
+        /// </summary>
+        /// <param name="node">The node</param>
+        /// <param name="position">Where on the chart to draw it</param>
+        /// <param name="font">The font to use for text</param>
+        /// <returns>If the node was clicked</returns>
+        private bool DrawNode(ItemNode node, Vector2 position, ImFontPtr font)
         {
             Vector2 cursor = ImGui.GetCursorScreenPos();
             if (!InFrame(position - cursor))
             {
-                return;
+                return false;
             }
 
             var DrawList = ImGui.GetWindowDrawList();
@@ -517,19 +527,19 @@ namespace rgat.Widgets
                         {
                             case TraceRecord.ProcessState.eTerminated:
                                 DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
-                                DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff0000ff, $"{ImGuiController.FA_ICON_COGS}");
+                                DrawList.AddText(font, 25, position - new Vector2(12.5f, 12.5f), 0xff0000ff, $"{ImGuiController.FA_ICON_COGS}");
                                 DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Process {trace.PID} (Exited)");
                                 break;
 
                             case TraceRecord.ProcessState.eRunning:
                                 DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
-                                DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff00ff00, $"{ImGuiController.FA_ICON_COGS}");
+                                DrawList.AddText(font, 25, position - new Vector2(12.5f, 12.5f), 0xff00ff00, $"{ImGuiController.FA_ICON_COGS}");
                                 DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Process {trace.PID} (Running)");
                                 break;
 
                             case TraceRecord.ProcessState.eSuspended:
                                 DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
-                                DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff00ffff, $"{ImGuiController.FA_ICON_COGS}");
+                                DrawList.AddText(font, 25, position - new Vector2(12.5f, 12.5f), 0xff00ffff, $"{ImGuiController.FA_ICON_COGS}");
                                 DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Process {trace.PID} (Suspended)");
                                 break;
                             default:
@@ -545,13 +555,13 @@ namespace rgat.Widgets
                         if (graph.Terminated)
                         {
                             DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
-                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff0000ff, $"{ImGuiController.FA_ICON_COG}");
+                            DrawList.AddText(font, 25, position - new Vector2(12.5f, 12.5f), 0xff0000ff, $"{ImGuiController.FA_ICON_COG}");
                             DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Thread {graph.ThreadID} (Exited)");
                         }
                         else
                         {
                             DrawList.AddCircleFilled(position, 18, isSelected ? 0xffDDDDDD : 0xFFFFFFFF);
-                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff00ff00, $"{ImGuiController.FA_ICON_COG}");
+                            DrawList.AddText(font, 25, position - new Vector2(12.5f, 12.5f), 0xff00ff00, $"{ImGuiController.FA_ICON_COG}");
                             DrawList.AddText(position + new Vector2(20, -14), 0xff000000, $"Thread {graph.ThreadID} (Active)");
                         }
                     }
@@ -562,7 +572,7 @@ namespace rgat.Widgets
                     Logging.APICALL apicall = (Logging.APICALL)apiEvent.Item;
                     if (!apicall.APIDetails.HasValue)
                     {
-                        return;
+                        return false;
                     }
                     APIDetailsWin.API_ENTRY details = apicall.APIDetails.Value;
 
@@ -570,27 +580,27 @@ namespace rgat.Widgets
                     switch (details.FilterType)
                     {
                         case "File":
-                            DrawList.AddText(_fontptr, 20, position - new Vector2(10f, 10f), 0xff000000, $"{ImGuiController.FA_ICON_FILECODE}");
+                            DrawList.AddText(font, 20, position - new Vector2(10f, 10f), 0xff000000, $"{ImGuiController.FA_ICON_FILECODE}");
                             DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "File Interaction");
                             DrawList.AddText(position + new Vector2(20, 5), 0xff000000, node.label);
                             break;
                         case "Registry":
-                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_SQUAREGRID}");
+                            DrawList.AddText(font, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_SQUAREGRID}");
                             DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "Registry Interaction");
                             DrawList.AddText(position + new Vector2(20, 5), 0xff000000, node.label);
                             break;
                         case "Process":
-                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_COGS}");
+                            DrawList.AddText(font, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_COGS}");
                             DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "Process Interaction");
                             DrawList.AddText(position + new Vector2(20, 5), 0xff000000, node.label);
                             break;
                         case "Network":
-                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_NETWORK}");
+                            DrawList.AddText(font, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_NETWORK}");
                             DrawList.AddText(position + new Vector2(20, -15), 0xff000000, "Network Interaction");
                             DrawList.AddText(position + new Vector2(20, 5), 0xff000000, node.label);
                             break;
                         default:
-                            DrawList.AddText(_fontptr, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_UP}");
+                            DrawList.AddText(font, 25, position - new Vector2(12.5f, 12.5f), 0xff000000, $"{ImGuiController.FA_ICON_UP}");
                             DrawList.AddText(position + new Vector2(20, -15), 0xff000000, details.FilterType);
                             DrawList.AddText(position + new Vector2(20, 5), 0xff000000, node.label);
                             break;
@@ -611,8 +621,10 @@ namespace rgat.Widgets
             }
             ImGui.SetCursorScreenPos(position - new Vector2(12, 12));
             ImGui.InvisibleButton($"##{position.X}-{position.Y}", new Vector2(25, 25));
+            bool clicked = false;
             if (ImGui.IsItemClicked())
             {
+                clicked = true;
                 _selectedNode = node;
                 if (_selectedNode.TLtype == Logging.eTimelineEvent.APICall)
                 {
@@ -629,6 +641,7 @@ namespace rgat.Widgets
             //Vector2 labelSize = ImGui.CalcTextSize(node.label);
             //DrawList.AddRectFilled(position, position + labelSize, 0xddffffff);
             ImGui.SetCursorScreenPos(cursor);
+            return clicked;
         }
 
         private bool InFrame(Vector2 ScreenPosition)

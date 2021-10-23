@@ -30,7 +30,7 @@ namespace rgat
         //widgets
         private SandboxChart? chart;
         private VisualiserTab? visualiserTab;
-        private readonly SplashScreenRenderer _splashRenderer;
+        private SplashScreenRenderer? _splashRenderer;
 
         //dialogs
         private RemoteDialog? _RemoteDialog;
@@ -56,8 +56,10 @@ namespace rgat
         private static double _StartupProgress = 0;
         public static double StartupProgress
         {
-            get => _StartupProgress; set
+            get => _StartupProgress; 
+            set
             {
+                Debug.Assert(value <= 1);
                 if (_StartupProgress < 1)
                 {
                     _StartupProgress = value;
@@ -117,7 +119,6 @@ namespace rgat
             _controller = controller;
             _gd = Controller.GraphicsDevice;
             _logsWindow = new LogsWindow(_rgatState);
-            _splashRenderer = new SplashScreenRenderer(_gd, controller);
         }
 
 
@@ -131,6 +132,7 @@ namespace rgat
 
             Logging.RecordLogEvent("Startup: Initing graph display widgets", Logging.LogFilterType.Debug);
 
+            _splashRenderer = new SplashScreenRenderer(_gd, Controller);
             visualiserTab = new VisualiserTab(_rgatState, Controller);
 
 
@@ -294,7 +296,7 @@ namespace rgat
         void DrawLoadSaveModal()
         {
             rgatState.SERIALISE_PROGRESS? progress = rgatState.SerialisationProgress;
-            if (progress is null) return;
+            if (progress is null || progress.Cancelled is true) return;
 
             bool isOpen = true;
             ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration;
@@ -862,6 +864,8 @@ namespace rgat
                     ImGui.EndMenu();
                 }
 
+                if (ImGui.MenuItem("Open Saved Trace")) { ToggleLoadTraceWindow(); }
+
                 var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Trace);
                 if (ImGui.BeginMenu("Recent Traces", recenttraces.Any()))
                 {
@@ -874,19 +878,24 @@ namespace rgat
                     }
                     ImGui.EndMenu();
                 }
-                if (ImGui.MenuItem("Open Saved Trace")) { ToggleLoadTraceWindow(); }
 
                 ImGui.Separator();
 
-                if (rgatState.ActiveTarget is not null && ImGui.MenuItem("Save This Trace") && rgatState.SerialisationProgress is null)
+                if (rgatState.ActiveTrace is not null && ImGui.MenuItem("Save Trace") && rgatState.SerialisationProgress is null)
+                {
+                    System.Threading.Tasks.Task.Run(() => rgatState.SaveTrace(rgatState.ActiveTrace));
+                }  
+                
+                if (rgatState.ActiveTarget is not null && ImGui.MenuItem("Save Target") && rgatState.SerialisationProgress is null)
                 {
                     System.Threading.Tasks.Task.Run(() => rgatState.SaveTarget(rgatState.ActiveTarget));
                 }
 
-                if (ImGui.MenuItem("Save All Traces"))
+                if (ImGui.MenuItem("Save All"))
                 {
                     System.Threading.Tasks.Task.Run(() => rgatState.SaveAllTargets());
-                }
+                } 
+
 
                 if (ImGui.MenuItem("Export Pajek"))
                 {
@@ -923,10 +932,17 @@ namespace rgat
             bool rdlgshown = _show_remote_dialog;
             if (rgatState.ConnectedToRemote)
             {
+                ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.Emphasis1));
                 if (ImGui.MenuItem(ImGuiController.FA_ICON_NETWORK + " Remote Mode", null, ref rdlgshown))
                 {
+                    ImGui.PopStyleColor();
                     ToggleRemoteDialog();
                 }
+                else
+                {
+                    ImGui.PopStyleColor();
+                }
+                
                 System.Net.IPEndPoint? endpoint = rgatState.NetworkBridge.RemoteEndPoint;
                 if (endpoint is not null)
                 {
@@ -1412,10 +1428,15 @@ namespace rgat
 
             List<string> paths = rgatState.targets.GetTargetPaths();
             ImGuiComboFlags flags = 0;
-            float textWidth = Math.Max(ImGui.GetContentRegionAvail().X / 2.5f, ImGui.CalcTextSize(activeString).X + 50);
-            textWidth = Math.Min(ImGui.GetContentRegionAvail().X - 300, textWidth);
+            float textWidth = ImGui.CalcTextSize(activeString).X;
+            float ctrlWidth = Math.Max(ImGui.GetContentRegionAvail().X / 2.5f, textWidth + 50);
+            textWidth = Math.Min(ImGui.GetContentRegionAvail().X - 300, ctrlWidth);
             ImGui.SetNextItemWidth(textWidth);
-            if (ImGui.BeginCombo("Selected Binary", activeString, flags))
+            if (textWidth < ctrlWidth && activeTarget !=  null)
+            {
+                activeString = activeTarget.FileName;
+            }
+            if (ImGui.BeginCombo("Active Target", activeString, flags))
             {
                 foreach (string path in paths)
                 {

@@ -39,6 +39,7 @@ namespace rgat
         private readonly object _lock = new object();
         private readonly List<string> _currentRepos = new List<string>();
         private Action<GlobalConfig.SignatureSource>? activeTaskAction;
+        private Action? _tasksCompleteCallback = null;
 
         /// <summary>
         /// Get the list of signaturesources
@@ -72,11 +73,13 @@ namespace rgat
         /// </summary>
         /// <param name="repos">List of SignatureSource repos</param>
         /// <param name="workerCount">Number of workers to run in parallel</param>
+        /// <param name="completeCallback">Action to perform when all downloads are finished</param>
         /// <param name="cancelToken">token to listen for for cancellation</param>
-        public void StartDownloads(List<GlobalConfig.SignatureSource> repos, int workerCount, CancellationToken cancelToken)
+        public void StartDownloads(List<GlobalConfig.SignatureSource> repos, int workerCount, Action? completeCallback, CancellationToken cancelToken)
         {
             TaskType = "Download";
             activeTaskAction = DownloadRepo;
+            _tasksCompleteCallback = completeCallback;
             StartWorkers(repos, workerCount, cancelToken);
         }
 
@@ -96,6 +99,7 @@ namespace rgat
                 Task.Factory.StartNew(StartWork);
             }
         }
+
 
         private void StartWork()
         {
@@ -121,9 +125,12 @@ namespace rgat
                 if (_activeWorkers == 0)
                 {
                     Running = false;
+                    if (CompletedTaskCount > 0)
+                        _tasksCompleteCallback?.Invoke();
                 }
             }
         }
+
 
         private void GetRepoLastUpdated(GlobalConfig.SignatureSource repo)
         {
@@ -323,7 +330,7 @@ namespace rgat
                 client.DownloadProgressChanged += DownloadProgressCallback;
 
                 repobytes.Wait(cancellationToken: _token);
-                Logging.WriteConsole($"Downloaded {repobytes.Result.Length} bytes of signaturedata");
+                Logging.RecordLogEvent($"Downloaded {repobytes.Result.Length} bytes of signature data from {downloadAddr}");
                 string tempname = Path.GetTempFileName();
                 using (var fs = new FileStream(tempname, FileMode.Open, FileAccess.Write, FileShare.None, 4096))
                 {

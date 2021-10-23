@@ -299,6 +299,12 @@ namespace rgat
                 bool flip = layout.flip();
                 if (forceComputationActive)
                 {
+                    /*
+                    DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1b4", 32);
+                    DebugPrintOutputFloatBuffer(layout.PositionsVRAM1!, "pos1b4", 32);
+                    DebugPrintOutputFloatBuffer(layout.PositionsVRAM2!, "pos2b4", 32);
+                    DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM2!, "vel2b4", 32);
+                    */
                     if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Layout computation starting in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);
                     activePipeline.Compute(plot, flip, delta);
                     if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"Layout computation finished in engine {this.EngineID}", Logging.LogFilterType.BulkDebugLogFile);

@@ -53,7 +53,7 @@ namespace rgat
             float sigBoxWidth = 800;
             ImGui.BeginGroup();
             {
-                if (ImGui.BeginChild("StaticTables", new Vector2(950,ImGui.GetContentRegionAvail().Y)))
+                if (width > 680 && ImGui.BeginChild("StaticTables", new Vector2(950,ImGui.GetContentRegionAvail().Y)))
                 {
                     if (ImGui.BeginTable("#BasicStaticFields", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp))
                     {
@@ -107,8 +107,30 @@ namespace rgat
                         ImGui.Text("SHA1 Hash");
                         ImGui.TableNextColumn();
                         _dataInput = Encoding.UTF8.GetBytes(activeTarget.GetSHA1Hash());
-                        ImGui.SetNextItemWidth(550);
+                        ImGui.SetNextItemWidth(492);
                         ImGui.InputText("##s1hash", _dataInput, 400, ImGuiInputTextFlags.ReadOnly);
+                        ImGui.SameLine();
+                        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
+                        ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.Emphasis2));
+                        if (ImGui.BeginChild("#TargBitFrm", new Vector2(50,23), border: true, flags: ImGuiWindowFlags.NoScrollbar))
+                        {
+                            ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX()+ 9, ImGui.GetCursorPosY() +2 ));
+                            if (activeTarget.BitWidth is 32)
+                            {
+                                ImGui.Text("32 Bit");
+                            }
+                            else if (activeTarget.BitWidth is 64)
+                            {
+                                ImGui.Text("64 Bit");
+                            }
+                            else
+                            {
+                                ImGui.Text("? Bits");
+                            }
+                            ImGui.EndChild();
+                        }
+                        ImGui.PopStyleColor();
+                        ImGui.PopStyleVar();
 
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
@@ -383,6 +405,7 @@ namespace rgat
                         if (ImGui.IsItemClicked())
                         {
                             moduleChoices.RemoveIgnoredDirectory(fstr);
+                            moduleChoices.RemoveIgnoredFile(fstr);
                         }
                         SmallWidgets.MouseoverText($"{ImGuiController.FA_ICON_TRASHCAN} Click to remove this path");
                     }
@@ -534,30 +557,6 @@ namespace rgat
 
 
 
-                    if (rgatState.VideoRecorder.Loaded)
-                    {
-                        ImGui.SameLine();
-                        if (rgatState.VideoRecorder.Loaded)
-                        {
-                            ImGui.Checkbox("Capture Video", ref _recordVideoOnStart);
-                            SmallWidgets.MouseoverText("Start recording a video of the trace");
-                        }
-                        else
-                        {
-                            ImGui.PushStyleColor(ImGuiCol.Text, 0xFF858585);
-                            _recordVideoOnStart = false;
-                            if (ImGui.Checkbox("Capture Video", ref _recordVideoOnStart))
-                            {
-                                rgatState.RecordVideoOnNextTrace = _recordVideoOnStart;
-                            }
-
-                            ImGui.PopStyleColor(1);
-                            SmallWidgets.MouseoverText("Requires FFmpeg to be configured in settings");
-                        }
-                    }
-
-
-
                     string pintoolpath = activeTarget.BitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                         GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
 
@@ -572,7 +571,7 @@ namespace rgat
                             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y - (height + 15));
                             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
                             ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
-                            if (ImGui.BeginChild("#WarnIssueFrame", new Vector2(600, height), true, ImGuiWindowFlags.AlwaysAutoResize))
+                            if (ImGui.BeginChild("#WarnIssueFrame", new Vector2(450, height), true, ImGuiWindowFlags.AlwaysAutoResize))
                             {
                                 //todo: be more specific on tooltip, but prevent a potential error dictionary reading race condition
                                 ImGui.TextWrapped("Warning: One or more tracing binaries does not have a validated signature");
@@ -637,31 +636,77 @@ namespace rgat
                     ImGui.RadioButton("Continuous", ref _selectedInstrumentationLevel, 1);
                     SmallWidgets.MouseoverText($"Perform live control-flow visualisation. Processes large volumes of trace data with a high performance impact.");
 
-                    string? startPausedVal = activeTarget.LaunchSettings!.GetInstrumentationSetting("PAUSE_ON_START");
-                    bool startPaused = startPausedVal is not null && startPausedVal == "TRUE";
-                    if (ImGui.Checkbox("Start Paused", ref startPaused))
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 12);
+
+                    if (ImGui.BeginTable("#InstruSettingsTabl", 2))
                     {
-                        activeTarget.LaunchSettings.SetTraceConfig("PAUSE_ON_START", startPaused ? "TRUE" : "FALSE");
+                        ImGui.TableSetupColumn("ISettCol1", ImGuiTableColumnFlags.WidthFixed, 180);
+                        ImGui.TableSetupColumn("ISettCol2", ImGuiTableColumnFlags.WidthFixed, 180);
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
+
+                        string? startPausedVal = activeTarget.LaunchSettings!.GetInstrumentationSetting("PAUSE_ON_START");
+                        bool startPaused = startPausedVal is not null && startPausedVal == "TRUE";
+                        if (ImGui.Checkbox("Start Paused", ref startPaused))
+                        {
+                            activeTarget.LaunchSettings.SetTraceConfig("PAUSE_ON_START", startPaused ? "TRUE" : "FALSE");
+                        }
+                        SmallWidgets.MouseoverText("The trace will start in a suspended state which can be resumed in the visualiser pane by pressing continue");
+
+
+                        ImGui.TableNextColumn();
+
+
+                        if (rgatState.VideoRecorder.Loaded)
+                        {
+                            if (rgatState.VideoRecorder.Loaded)
+                            {
+                                ImGui.Checkbox("Capture Video", ref _recordVideoOnStart);
+                                SmallWidgets.MouseoverText("Begin recording a video of the trace when it starts");
+                            }
+                            else
+                            {
+                                ImGui.PushStyleColor(ImGuiCol.Text, 0xFF858585);
+                                _recordVideoOnStart = false;
+                                if (ImGui.Checkbox("Capture Video", ref _recordVideoOnStart))
+                                {
+                                    rgatState.RecordVideoOnNextTrace = _recordVideoOnStart;
+                                }
+
+                                ImGui.PopStyleColor(1);
+                                SmallWidgets.MouseoverText("Requires FFmpeg to be configured in settings");
+                            }
+                        }
+
+                        ImGui.TableNextRow();
+
+                        ImGui.TableNextColumn();
+
+
+                        bool discardTraceVal = activeTarget.LaunchSettings!.DiscardReplayData;
+                        if (ImGui.Checkbox("Discard Replay Data", ref discardTraceVal))
+                        {
+                            activeTarget.LaunchSettings.DiscardReplayData = discardTraceVal;
+                        }
+                        SmallWidgets.MouseoverText("Trace data will be discarded after being used to build and animate the graph.\n" +
+                            "This drastically reduces the memory consumption of long-running traces, but replay will be unavailable.");
+
+
+                        ImGui.TableNextColumn();
+
+
+                        bool hideThunks = activeTarget.LaunchSettings!.HideAPIThunks;
+                        if (ImGui.Checkbox("Hide API thunks", ref hideThunks))
+                        {
+                            activeTarget.LaunchSettings.HideAPIThunks = hideThunks;
+                        }
+                        SmallWidgets.MouseoverText("This option causes graphs to be modified to hide idata thunks." +
+                            "This makes layouts look much cleaner, but may introduce errors.");
+
+
+
+                        ImGui.EndTable();
                     }
-                    SmallWidgets.MouseoverText("The trace will start in a suspended state which can be resumed in the visualiser pane by pressing continue");
-
-
-                    bool discardTraceVal = activeTarget.LaunchSettings!.DiscardReplayData;
-                    if (ImGui.Checkbox("Discard Replay Data", ref discardTraceVal))
-                    {
-                        activeTarget.LaunchSettings.DiscardReplayData = discardTraceVal;
-                    }
-                    SmallWidgets.MouseoverText("Trace data will be discarded after being used to build and animate the graph.\n" +
-                        "This drastically reduces the memory consumption of long-running traces, but replay will be unavailable.");
-
-
-                    bool hideThunks = activeTarget.LaunchSettings!.HideAPIThunks;
-                    if (ImGui.Checkbox("Hide API thunks", ref hideThunks))
-                    {
-                        activeTarget.LaunchSettings.HideAPIThunks = hideThunks;
-                    }
-                    SmallWidgets.MouseoverText("This option causes graphs to be modified to hide idata thunks." +
-                        "This makes layouts look much cleaner, but may introduce errors.");
     
                 }
                 ImGui.EndChild();
@@ -781,7 +826,7 @@ namespace rgat
                 else if (DEProgress.running)
                 {
                     dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    caption = $"DiE:{DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
+                    caption = $"DiE {DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
                     barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.GoodStateColour);
                 }
                 else if (DEProgress.StopRequestFlag)
@@ -793,7 +838,7 @@ namespace rgat
                 else
                 {
                     dieProgress = DEProgress.scriptsFinished / (float)DEProgress.scriptCount;
-                    caption = $"DIE:({DEProgress.scriptsFinished}/{DEProgress.scriptCount})";
+                    caption = $"DIE {DEProgress.scriptsFinished}/{DEProgress.scriptCount}";
                     barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.GoodStateColour);
                 }
                 SmallWidgets.ProgressBar("DieProgBar", caption, dieProgress, barSize, Themes.GetThemeColourUINT(Themes.eThemeColour.Frame), barColour);
@@ -882,7 +927,7 @@ namespace rgat
                 case YARAScanner.eYaraScanProgress.eComplete:
                     {
                         uint rulecount = rgatState.YARALib.LoadedRuleCount();
-                        caption = $"YARA:{rulecount}/{rulecount}"; //wrong if reloaded?
+                        caption = $"YARA {rulecount}/{rulecount}"; //wrong if reloaded?
                         barColour = Themes.GetThemeColourUINT(Themes.eThemeColour.GoodStateColour);
                         progressAmount = 1;
                         break;

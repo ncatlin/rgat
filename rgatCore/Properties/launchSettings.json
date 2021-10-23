@@ -1,7 +1,8 @@
 {
   "profiles": {
     "rgat": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "nativeDebugging": false
     },
     "HeadlessListen": {
       "commandName": "Project",

@@ -24,12 +24,11 @@ struct EDGE_INDEX_LIST_OFFSETS{ int FirstEdgeIndex;  int LastEdgeIndex; };
 
 layout(set = 0, binding=0) uniform Params { VelocityParams fieldParams;};
 layout(set = 0, binding=1) buffer bufPositions{ vec4 positions[];};
-layout(set = 0, binding=2) buffer bufPresetPositions{ vec4 presetPositions[];};
-layout(set = 0, binding=3) buffer bufvelocities { vec4 velocities[];};
-layout(set = 0, binding=4) buffer bufedgeIndices { EDGE_INDEX_LIST_OFFSETS edgeIndices[];};  //edge data list start/end offsets (sacrifice space for time)
-layout(set = 0, binding=5) buffer bufedgeTargets { uint edgeTargets[];};   //edge data list (node->(node,node,node)) 
-layout(set = 0, binding=6) buffer bufEdgeStrengths { float edgeStrengths[];};
-layout(set = 0, binding=7) buffer resultData{ vec4 field_Destination[];};
+layout(set = 0, binding=2) buffer bufvelocities { vec4 velocities[];};
+layout(set = 0, binding=3) buffer bufedgeIndices { EDGE_INDEX_LIST_OFFSETS edgeIndices[];};  //edge data list start/end offsets (sacrifice space for time)
+layout(set = 0, binding=4) buffer bufedgeTargets { uint edgeTargets[];};   //edge data list (node->(node,node,node)) 
+layout(set = 0, binding=5) buffer bufEdgeStrengths { float edgeStrengths[];};
+layout(set = 0, binding=6) buffer resultData{ vec4 field_Destination[];};
 
 
 vec4 getNeighbor(uint bufferIndex){
@@ -99,7 +98,6 @@ void main()	{
     {
 
         vec4 selfPosition = positions[index];
-        vec4 presetLayoutPosition = presetPositions[index];
         vec3 selfVelocity = velocities[index].xyz;
         vec3 velocity = selfVelocity;
 
@@ -107,16 +105,7 @@ void main()	{
 
         //const float speedLimit = 100000.0;
         const float outputDebug = -101;
-     
-         /*
-         .w presetLayoutPosition values
-     
-            -1 = not a node
-             0 = invalid
-             1 = preset, simple attraction towards target (invalid in this shader)
-             2 = free body subject to standard forces
-         */
-
+    
          if ( selfPosition.w > 0)// && (selfPosition.w < 2 || fieldParams.fixedInternalNodes == 0)) 
          {
 
@@ -145,7 +134,7 @@ void main()	{
             }
             
             // temperature gradually cools down to zero
-            velocity = normalize(velocity) * fieldParams.temperature;
+           velocity = normalize(velocity) * fieldParams.temperature;
             
     
         // add friction

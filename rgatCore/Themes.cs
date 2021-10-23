@@ -523,6 +523,7 @@ namespace rgat
         /// Get a uint colour value of a specified custom theme item
         /// </summary>
         /// <param name="item">A theme attribute</param>
+        /// <param name="customAlpha">Optional alpha value to apply to the colour</param>
         /// <returns>uint colour</returns>
         public static uint GetThemeColourUINT(eThemeColour item, uint? customAlpha = null)
         {
@@ -618,6 +619,7 @@ namespace rgat
                         ImGui.SameLine();
                         if (ImGui.Button($"Revert##sc{colI}"))
                         {
+                            changed = true;
                             Themes.ThemeColoursCustom[uiColour] = _modifiedColoursCustom[uiColour];
                             _modifiedColoursCustom.Remove(uiColour);
                         }
@@ -644,6 +646,7 @@ namespace rgat
                         ImGui.SameLine();
                         if (ImGui.Button($"Revert##cc{colI}"))
                         {
+                            changed = true;
                             Themes.ThemeColoursCustom[customCol] = _modifiedColoursCustom[customCol];
                             _modifiedColoursCustom.Remove(customCol);
                         }
@@ -814,7 +817,6 @@ namespace rgat
                             Logging.RecordError($"Theme has custom colour with non-integer colour entry {item.Key}");
                             continue;
                         }
-                        Console.WriteLine($"Loading {customcolType} {item.Value}");
                         pendingColsCustom[customcolType] = item.Value.ToObject<uint>();
                     }
                 }
