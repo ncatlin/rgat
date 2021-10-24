@@ -188,7 +188,7 @@ namespace rgat
                     isLibrary = isLibTok.ToObject<bool>();
                 }
 
-                target = AddTargetByPath(binaryPath, isLibrary: isLibrary);
+                target = rgatState.AddTargetByPath(binaryPath, isLibrary: isLibrary);
             }
 
             targetResult = target;

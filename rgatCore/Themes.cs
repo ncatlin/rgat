@@ -338,7 +338,7 @@ namespace rgat
             {ImGuiCol.FrameBgActive, frameActiveColour},
             {ImGuiCol.FrameBgHovered, frameHoverColour},
             {ImGuiCol.Header, controlColour},
-            {ImGuiCol.HeaderActive, controlHoverColour},
+            {ImGuiCol.HeaderActive, controlActiveColour},
             {ImGuiCol.HeaderHovered, controlHoverColour},
             {ImGuiCol.PopupBg, windowBackground},
             {ImGuiCol.ResizeGrip, frameColour},
@@ -396,9 +396,6 @@ namespace rgat
                 [eThemeColour.ControlText] = 0xffffffff,
                 [eThemeColour.WindowText] = 0xffffffff,
                 [eThemeColour.Frame] = 0x333333ff,
-
-
-
 
                 [eThemeColour.PreviewText] = new WritableRgbaFloat(Af: 1f, Gf: 1, Bf: 1, Rf: 1).ToUint(),
                 [eThemeColour.PreviewTextBackground] = new WritableRgbaFloat(Af: 0.3f, Gf: 0, Bf: 0, Rf: 0).ToUint(),

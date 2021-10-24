@@ -1133,6 +1133,22 @@ namespace rgat.Config
             private Dictionary<string, SignatureSource>? _signatureSources;
 
             /// <summary>
+            /// Scan files on load with Yara
+            /// </summary>
+            public bool ScanOnLoadYara { get => _ScanOnLoadYara; set { _ScanOnLoadYara = value; MarkDirty(); } }
+            bool _ScanOnLoadYara = true;
+
+            /// <summary>
+            /// Scan files on load with DIELib
+            /// </summary>
+            public bool ScanOnLoadDIE { get => _ScanOnLoadDIE; set { _ScanOnLoadDIE = value; MarkDirty(); } }
+            bool _ScanOnLoadDIE = true;
+
+            //public bool ScanMemYara { get; set; } = true;
+
+            //public bool ScanMemDIE { get; set; } = true;
+
+            /// <summary>
             /// github signature repos with the url as key
             /// </summary>
             [JsonPropertyName("SignatureSources")]

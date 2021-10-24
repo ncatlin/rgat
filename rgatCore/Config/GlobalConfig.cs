@@ -595,16 +595,26 @@ namespace rgat
             }
         }
 
+
         private static void SaveConfig()
         {
             try
             {
                 string? path = Settings.FilePath;
-                if (path is not null && File.Exists(path))
+                if (path is not null)
                 {
+                    string temp = path + ".tmp";
                     JsonSerializerOptions serialiseOpts = new JsonSerializerOptions() { WriteIndented = true };
-                    string saveText = JsonSerializer.Serialize(Settings, options: serialiseOpts);
-                    File.WriteAllText(path, saveText);
+                    string settingsSaveText = JsonSerializer.Serialize(Settings, options: serialiseOpts);
+
+                    //Avoid settings file corruption by writing to a temp file then moving it
+                    if (File.Exists(temp)) 
+                        File.Delete(temp);
+                    File.WriteAllText(temp, settingsSaveText); 
+                    File.Delete(path);
+                    File.Move(temp, path);
+                    if (File.Exists(path)) 
+                        File.Delete(temp);
                 }
             }
             catch (Exception e)
@@ -612,6 +622,7 @@ namespace rgat
                 Logging.RecordException($"Failed to save config: {e.Message}", e);
             }
         }
+
 
         private static void MarkDirty()
         {
@@ -631,7 +642,6 @@ namespace rgat
                 }
             }
         }
-
 
 
         /// <summary>

@@ -267,8 +267,8 @@ namespace rgat
             Debug.Assert(plot != null, "Layout engine called to compute without active graph");
             GraphLayoutState layout = plot.LayoutState;
 
-            _stepTimer.Restart();
             layout.Lock.EnterUpgradeableReadLock();
+            _stepTimer.Restart();
             try
             {
                 if (!layout.ActivatingPreset)
@@ -379,6 +379,9 @@ namespace rgat
                         positionSetupTime: activePipeline.PositionSetupTime, positionShaderTime: activePipeline.PositionTime,
                         velocitySetupTime: activePipeline.VelocitySetupTime, velocityShaderTime: activePipeline.VelocityTime,
                         attributeSetupTime: attributeSetupTime, attributeShaderTime: attributeTime);
+                    activePipeline.ResetTimers();
+                    attributeSetupTime = 0;
+                    attributeTime = 0;
                 }
 
             }
@@ -389,11 +392,11 @@ namespace rgat
             }
             finally
             {
+                _stepTimer.Stop();
                 layout.Lock.ExitUpgradeableReadLock();
             }
 
 
-            _stepTimer.Stop();
             if (_stepTimer.ElapsedMilliseconds > 100)
                 Logging.RecordLogEvent($"Compute step took {_stepTimer.ElapsedMilliseconds}ms", Logging.LogFilterType.Debug);
 

@@ -18,6 +18,15 @@ namespace rgat.LayoutPipelines
 
         readonly protected System.Diagnostics.Stopwatch _timer = new();
 
+        public void ResetTimers()
+        {
+            PositionTime = 0;
+            PositionSetupTime = 0;
+            VelocityTime = 0;
+            VelocitySetupTime = 0;
+            _timer.Reset();
+        }
+
         public double? PositionTime { get; protected set; } = null;
         public double? VelocityTime { get; protected set; } = null;
         public double? PositionSetupTime { get; protected set; } = null;

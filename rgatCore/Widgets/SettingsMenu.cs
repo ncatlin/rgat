@@ -544,7 +544,11 @@ namespace rgat.Widgets
                     uint yaraSigsCount = rgatState.YARALib.LoadedRuleCount();
                     ImGui.Text($"YARA ({yaraSigsCount} rules)");
                     ImGui.TableNextColumn();
-                    ImGui.Checkbox($"##fycheck", ref notImplementedTrue);//  ref GlobalConfig.ScanFilesYARA);
+                    bool scanYFile = GlobalConfig.Settings.Signatures.ScanOnLoadYara;
+                    if (ImGui.Checkbox($"##fycheck", ref scanYFile))
+                    {
+                        GlobalConfig.Settings.Signatures.ScanOnLoadYara = scanYFile;
+                    }
                     ImGui.TableNextColumn();
                     ImGui.Checkbox($"##mycheck", ref notImplementedFalse);// GlobalConfig.ScanMemoryYARA);
 
@@ -554,7 +558,11 @@ namespace rgat.Widgets
                     int dieFileSigsCount = rgatState.DIELib.NumScriptsLoaded;
                     ImGui.Text($"DiE ({dieFileSigsCount} scripts)");
                     ImGui.TableNextColumn();
-                    ImGui.Checkbox($"##fdcheck", ref notImplementedTrue);// ref GlobalConfig.ScanFilesDiE);
+                    bool scanDFile = GlobalConfig.Settings.Signatures.ScanOnLoadDIE;
+                    if (ImGui.Checkbox($"##fdcheck", ref scanDFile))
+                    {
+                        GlobalConfig.Settings.Signatures.ScanOnLoadDIE = scanDFile;
+                    }
                     ImGui.TableNextColumn();
                     ImGui.Checkbox($"##mdcheck", ref notImplementedFalse);// GlobalConfig.ScanMemoryDiE);
 
@@ -1043,12 +1051,9 @@ namespace rgat.Widgets
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
 
-
-            ImGui.PushStyleColor(ImGuiCol.Text, 0xeeeeeeee);
             bool notSelected = false;
             ImGui.Text(caption);
             hovered = hovered || ImGui.IsItemHovered();
-            ImGui.PopStyleColor();
             ImGui.TableNextColumn();
 
             bool signatureError = signerror?.Length > 0 && signerror != "No Error";
@@ -1423,6 +1428,7 @@ namespace rgat.Widgets
         private unsafe void CreateOptionsPane_UITheme()
         {
             Themes.GetMetadataValue("Name", out string? activeThemeName);
+            ImGui.AlignTextToFramePadding();
             if (Themes.UnsavedTheme)
             {
                 ImGui.Text($"Current Theme: {activeThemeName} [Modified - Unsaved]. Save as a preset to keep changes.");
@@ -1505,12 +1511,6 @@ namespace rgat.Widgets
                 ImGui.NextColumn();
             }
 
-            if (ImGui.CollapsingHeader("Test Theme"))
-            {
-                CreateThemeTester();
-                ImGui.NextColumn();
-            }
-
             if (ImGui.CollapsingHeader("Customise Theme"))
             {
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, 0xff000000);
@@ -1520,6 +1520,11 @@ namespace rgat.Widgets
                 ImGui.NextColumn();
             }
 
+            if (ImGui.CollapsingHeader("Test Theme"))
+            {
+                CreateThemeTester();
+                ImGui.NextColumn();
+            }
 
         }
 
@@ -1859,7 +1864,7 @@ namespace rgat.Widgets
 
         private bool testCheck = true;
         private float testSlider = 25f;
-
+        private int selectableActive = -1;
 
         private void DrawThemeTestFrame()
         {
@@ -1896,7 +1901,7 @@ namespace rgat.Widgets
                                 {
                                     ImGui.TableNextRow();
                                     ImGui.TableNextColumn();
-                                    ImGui.Text($"Cell{i * 2}");
+                                    if (ImGui.Selectable($"Selectable{i * 2}", selectableActive == i)) { selectableActive = i; }
                                     ImGui.TableNextColumn();
                                     ImGui.Text($"Cell{i * 2 + 1}");
                                 }

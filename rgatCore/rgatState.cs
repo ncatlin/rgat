@@ -241,8 +241,14 @@ namespace rgat
         public static BinaryTarget AddTargetByPath(string path, int arch = 0, bool isLibrary = false, bool makeActive = true)
         {
             BinaryTarget targ = targets.AddTargetByPath(path, isLibrary: isLibrary, arch: arch);
-            DIELib?.StartDetectItEasyScan(targ);
-            YARALib?.StartYARATargetScan(targ);
+            if (GlobalConfig.Settings.Signatures.ScanOnLoadDIE)
+            {
+                DIELib?.StartDetectItEasyScan(targ);
+            }
+            if (GlobalConfig.Settings.Signatures.ScanOnLoadYara)
+            {
+                YARALib?.StartYARATargetScan(targ);
+            }
 
             if (makeActive)
             {

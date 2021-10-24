@@ -148,6 +148,7 @@ namespace rgat
                 return;
             }
 
+            ImGui.PushStyleColor(ImGuiCol.Header, Themes.GetThemeColourUINT(Themes.eThemeColour.Emphasis2, 40));
             TIMELINE_EVENT[] events = trace.GetTimeLineEntries();
             if (ImGui.BeginTable("#TaTTFullList", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY |
                 ImGuiTableFlags.Resizable | ImGuiTableFlags.RowBg))
@@ -164,6 +165,7 @@ namespace rgat
 
                 bool ThreadNodeSelected = selectedNode is not null && Equals(selectedNode.reference.GetType(), typeof(ProtoGraph));
                 bool ProcessNodeSelected = selectedNode is not null && Equals(selectedNode.reference.GetType(), typeof(TraceRecord));
+
 
                 int i = 0;
                 foreach (TIMELINE_EVENT TLevent in events)
@@ -268,6 +270,7 @@ namespace rgat
 
                 ImGui.EndTable();
             }
+            ImGui.PopStyleColor();
         }
 
         private static void DrawProcessNodeTable(TraceRecord trace)

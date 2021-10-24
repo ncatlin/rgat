@@ -3083,6 +3083,7 @@ namespace rgat
             double? velocitySetupTime, double? velocityShaderTime,
             double? attributeSetupTime, double? attributeShaderTime)
         {
+            Debug.Assert(stepMSTotal >= (positionSetupTime + positionShaderTime + velocitySetupTime + velocityShaderTime + attributeSetupTime + attributeShaderTime));
             ComputeLayoutTime += stepMSTotal;
             ComputeLayoutSteps += 1;
 

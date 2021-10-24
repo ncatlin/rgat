@@ -2406,6 +2406,16 @@
             Configuration for signature scanning
             </summary>
         </member>
+        <member name="P:rgat.Config.rgatSettings.SignatureSettings.ScanOnLoadYara">
+            <summary>
+            Scan files on load with Yara
+            </summary>
+        </member>
+        <member name="P:rgat.Config.rgatSettings.SignatureSettings.ScanOnLoadDIE">
+            <summary>
+            Scan files on load with DIELib
+            </summary>
+        </member>
         <member name="P:rgat.Config.rgatSettings.SignatureSettings.SignatureSources">
             <summary>
             github signature repos with the url as key

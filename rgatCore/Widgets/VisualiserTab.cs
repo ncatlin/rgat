@@ -620,9 +620,6 @@ namespace rgat
                 SmallWidgets.DisableableButton("Add Caption", false, new Vector2(100, 25));
                 SmallWidgets.MouseoverText("Not available in this version of rgat");
 
-                ImGui.Text($"Ctrl: {ImGui.GetIO().KeyCtrl}");
-                ImGui.Text($"Shft: {ImGui.GetIO().KeyShift}");
-
                 //ImGui.Button("Capture Settings");
                 ImGui.EndChild();
             }

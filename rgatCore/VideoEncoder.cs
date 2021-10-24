@@ -480,37 +480,46 @@ namespace rgat
         /// </summary>
         public void DrawSettingsPane()
         {
+            if (found)
+            {
+                DrawSettingsPane(true);
+                return;
+            }
+
+            if (DateTime.Now < _lastCheck.AddSeconds(5))
+            {
+                DrawSettingsPane(false);
+                return;
+            }
+
+            _lastCheck = DateTime.Now;
             if (File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath)))
             {
-                DrawHaveLibSettingsPane();
+                found = true;
+                DrawSettingsPane(true);
             }
             else
             {
                 if (DetectFFmpeg(out string? path) && path is not null)
                 {
+                    found = true;
                     Loaded = true;
                     GlobalConfig.SetBinaryPath(CONSTANTS.PathKey.FFmpegPath, path);
-                    DrawHaveLibSettingsPane();
+                    DrawSettingsPane(true);
                 }
                 else
                 {
-                    DrawNoLibSettingsPane();
+                    DrawSettingsPane(false);
                 }
             }
         }
 
+        private bool found = false;
         private DateTime _lastCheck = DateTime.MinValue;
 
         private bool DetectFFmpeg(out string? path)
         {
             path = "";
-            if (DateTime.Now < _lastCheck.AddSeconds(5))
-            {
-                return false;
-            }
-
-            _lastCheck = DateTime.Now;
-
             string extension = "";
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -533,21 +542,12 @@ namespace rgat
 
         private static void DrawNoLibSettingsPane()
         {
-
-            ImGui.Text("Use of video capture requires the FFmpeg.exe executable, which has to be downloaded seperately");
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                ImGui.TextWrapped($"Go to https://ffmpeg.org/download.html to find downloads and place ffmpeg.exe in the relevant rgat directory or configure it in the Settings->Paths pane");
-            }
-            else
-            {
-                ImGui.TextWrapped($"Go to https://ffmpeg.org/download.html to find downloads and place ffmpeg in the relevant rgat directory or configure it in the Settings->Paths pane");
-            }
-            //todo downloader
+            bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            ImGui.TextWrapped($"Use of video capture requires the FFmpeg{(isWindows ? ".exe": "")} executable, which has to be downloaded seperately");
+            ImGui.TextWrapped("It can be fetched from https://ffmpeg.org/download.html and configured in Settings->Paths once downloaded");
         }
 
-        private void DrawHaveLibSettingsPane()
+        private void DrawSettingsPane(bool havelib)
         {
 
             if (Error is not null && Error.Length > 0)
@@ -555,7 +555,7 @@ namespace rgat
                 ImGui.Text(Error);
                 return;
             }
-
+            ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new System.Numerics.Vector2(8, 8));
             //settings
             if (ImGui.BeginTable("##VideoSettingsTable", 2, ImGuiTableFlags.Borders))
             {
@@ -567,58 +567,64 @@ namespace rgat
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
 
-
-                ImGui.SetNextItemWidth(180);
-                if (ImGui.BeginCombo("Quality", GlobalConfig.Settings.Media.VideoCodec_Quality.ToString()))
+                if (havelib)
                 {
-                    foreach (int CRF_Modifier in Enumerable.Range(0, 11 + 1))
+                    ImGui.SetNextItemWidth(180);
+                    if (ImGui.BeginCombo("Quality", GlobalConfig.Settings.Media.VideoCodec_Quality.ToString()))
                     {
-                        if (ImGui.Selectable(CRF_Modifier.ToString()))
+                        foreach (int CRF_Modifier in Enumerable.Range(0, 11 + 1))
                         {
-                            GlobalConfig.Settings.Media.VideoCodec_Quality = CRF_Modifier;
+                            if (ImGui.Selectable(CRF_Modifier.ToString()))
+                            {
+                                GlobalConfig.Settings.Media.VideoCodec_Quality = CRF_Modifier;
+                            }
                         }
+                        ImGui.EndCombo();
                     }
-                    ImGui.EndCombo();
-                }
-                SmallWidgets.MouseoverText("0 is bad quality, 11 is near lossless");
+                    SmallWidgets.MouseoverText("0 is bad quality, 11 is near lossless");
 
-                ImGui.SetNextItemWidth(180);
-                if (ImGui.BeginCombo("Compression Speed", GlobalConfig.Settings.Media.VideoCodec_Speed))
-                {
-                    foreach (var speed in Enum.GetNames(typeof(Speed)).Select(x => x.ToString()))
+                    ImGui.SetNextItemWidth(180);
+                    if (ImGui.BeginCombo("Compression Speed", GlobalConfig.Settings.Media.VideoCodec_Speed))
                     {
-                        if (ImGui.Selectable(speed))
+                        foreach (var speed in Enum.GetNames(typeof(Speed)).Select(x => x.ToString()))
                         {
-                            GlobalConfig.Settings.Media.VideoCodec_Speed = speed;
+                            if (ImGui.Selectable(speed))
+                            {
+                                GlobalConfig.Settings.Media.VideoCodec_Speed = speed;
+                            }
                         }
+                        ImGui.EndCombo();
                     }
-                    ImGui.EndCombo();
-                }
-                SmallWidgets.MouseoverText("Slower speed yields smaller video file sizes. Increase if you have performance issues");
+                    SmallWidgets.MouseoverText("Slower speed yields smaller video file sizes. Increase if you have performance issues");
 
-                ImGui.SetNextItemWidth(180);
-                double min = 0, max = 500;
-                double current = GlobalConfig.Settings.Media.VideoCodec_FPS;
-                if (ImGuiUtils.DragDouble("Framerate", ref current, 0.25f, ref min, ref max))
-                {
-                    GlobalConfig.Settings.Media.VideoCodec_FPS = current;
-                }
-                SmallWidgets.MouseoverText("Number of frames to record per second of video. Increase to increase quality and file size");
-
-
-                ImGui.SetNextItemWidth(180);
-                if (ImGui.BeginCombo("Recorded Content", GlobalConfig.Settings.Media.VideoCodec_Content))
-                {
-                    foreach (var content in new string[] { "Graph", "Graph and previews", "Whole window" })
+                    ImGui.SetNextItemWidth(180);
+                    double min = 0, max = 500;
+                    double current = GlobalConfig.Settings.Media.VideoCodec_FPS;
+                    if (ImGuiUtils.DragDouble("Framerate", ref current, 0.25f, ref min, ref max))
                     {
-                        if (ImGui.Selectable(content))
-                        {
-                            GlobalConfig.Settings.Media.VideoCodec_Content = content;
-                        }
+                        GlobalConfig.Settings.Media.VideoCodec_FPS = current;
                     }
-                    ImGui.EndCombo();
+                    SmallWidgets.MouseoverText("Number of frames to record per second of video. Increase to increase quality and file size");
+
+
+                    ImGui.SetNextItemWidth(180);
+                    if (ImGui.BeginCombo("Recorded Content", GlobalConfig.Settings.Media.VideoCodec_Content))
+                    {
+                        foreach (var content in new string[] { "Graph", "Graph and previews", "Whole window" })
+                        {
+                            if (ImGui.Selectable(content))
+                            {
+                                GlobalConfig.Settings.Media.VideoCodec_Content = content;
+                            }
+                        }
+                        ImGui.EndCombo();
+                    }
+                    SmallWidgets.MouseoverText("Slower speed yields smaller video file sizes. Increase if you have performance issues");
                 }
-                SmallWidgets.MouseoverText("Slower speed yields smaller video file sizes. Increase if you have performance issues");
+                else
+                {
+                    DrawNoLibSettingsPane();
+                }
 
                 ImGui.TableNextColumn();
 
@@ -637,6 +643,7 @@ namespace rgat
 
                 ImGui.EndTable();
             }
+            ImGui.PopStyleVar();
         }
 
     }
