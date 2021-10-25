@@ -1316,6 +1316,7 @@ namespace rgat
                     if (keepCamera is false)
                     {
                         this.CameraState = new CAMERA_STATE();
+                        this.CameraState.MainCameraZoom = -100 * InternalProtoGraph.NodeCount;
                         this.CameraState.RotationMatrix = Matrix4x4.Identity;
                     }
                 }
@@ -1379,13 +1380,13 @@ namespace rgat
                     {
                         if (n.IsConditional is false)
                         {
-                            return new WritableRgbaFloat(0, 0, 0, 0.7f);
+                            return new WritableRgbaFloat(0, 0, 0, 0f);
                         }
                         else
                         {
                             if (n.conditional == ConditionalType.CONDCOMPLETE)
                             {
-                                return new WritableRgbaFloat(1, 1, 1, .7f);
+                                return new WritableRgbaFloat(1, 1, 1, 1f);
                             }
 
                             if (((int)n.conditional & (int)ConditionalType.CONDTAKEN) != 0)
@@ -1441,8 +1442,9 @@ namespace rgat
                         return Themes.GetThemeColourWRF(Themes.eThemeColour.Emphasis2);
                     }
 
-                    float heatProportion = 10 * (highestDegree / InternalProtoGraph.MostConnections);
-                    int colourIndex = (int)heatProportion + (int)Themes.eThemeColour.Heat0Lowest;
+                    float heatProportion = 10* ((float)highestDegree / (float)InternalProtoGraph.MostConnections);
+                    Debug.Assert(heatProportion >= 0 && heatProportion <= 10);
+                    int colourIndex = (int)Math.Floor(heatProportion) + (int)Themes.eThemeColour.Heat0Lowest;
                     return Themes.GetThemeColourWRF((Themes.eThemeColour)colourIndex);
                 default:
                     return graphColours[(int)e.edgeClass];
@@ -3077,7 +3079,7 @@ namespace rgat
             double? velocitySetupTime, double? velocityShaderTime,
             double? attributeSetupTime, double? attributeShaderTime)
         {
-            Debug.Assert(stepMSTotal >= (positionSetupTime + positionShaderTime + velocitySetupTime + velocityShaderTime + attributeSetupTime + attributeShaderTime));
+            //Debug.Assert(stepMSTotal >= (positionSetupTime + positionShaderTime + velocitySetupTime + velocityShaderTime + attributeSetupTime + attributeShaderTime));
             ComputeLayoutTime += stepMSTotal;
             ComputeLayoutSteps += 1;
 

@@ -906,6 +906,14 @@ namespace rgat
 
             //Debug.Assert(!BufferDownloadActive);
             Debug.Assert(bufs.VelocityArray is not null && bufs.PositionsArray.Length == bufs.VelocityArray.Length);
+
+            if (bufs.NodeAttribArray.Length < bufs.PositionsArray.Length)
+            {
+                _lock.EnterWriteLock();
+                bufs.NodeAttribArray = new float[bufs.PositionsArray.Length];
+                _lock.ExitWriteLock();
+            }
+
             Debug.Assert(bufs.NodeAttribArray.Length == bufs.PositionsArray.Length);
 
             if (bufferSize > oldVelocityArraySize ||

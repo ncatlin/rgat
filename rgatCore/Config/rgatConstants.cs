@@ -86,7 +86,7 @@ namespace rgat
             /// <summary>
             /// How long the screenshot icon will stay on the status bar
             /// </summary>
-            public const double SCREENSHOT_ICON_LINGER_TIME = 3;
+            public const double SCREENSHOT_ICON_LINGER_TIME = 6;
             /// <summary>
             /// How fast the screenshot feedback rectangle will collapse
             /// 10 = it will linger for 1/10th of a second
@@ -250,6 +250,11 @@ namespace rgat
             /// Size of the tag cache allocated for each message part
             /// </summary>
             public const int TagCacheSize = 1024;
+
+            /// <summary>
+            ///used for the connection message, including program path, rgat version, etc
+            /// </summary>
+            public const int InitialExchangeSize = 2048;
         }
 
 

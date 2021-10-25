@@ -283,17 +283,18 @@ namespace rgat
 
                 IntPtr CPUframeBufferTextureId = _controller.GetOrCreateImGuiBinding(_factory!, outputTexture, "SplashTex" + outputTexture.Name);
 
+                foreach (var pos in treats)
+                {
+                    imdp.AddText(pos, 0xff257c24, $"{ImGuiController.FA_ICON_PLANT}");
+                    imdp.AddText(pos + new Vector2(2, 12), 0xff0000ff, $"{ImGuiController.FA_ICON_EGG}"); //don't have the effort reserves to find a way to flip this to look like a strawberry
+                }
+
                 //draw our tortoise
                 imdp.AddImage(user_texture_id: CPUframeBufferTextureId, p_min: _tortoisePosition,
                     p_max: _tortoisePosition + new Vector2(outputTexture.Width, outputTexture.Height),
                     uv_min: new Vector2(0, 1), uv_max: new Vector2(1, 0));
 
-                foreach (var pos in treats)
-                {
-                    imdp.AddText(pos, 0xff257c24, $"{ImGuiController.FA_ICON_PLANT}");
-                    imdp.AddText(pos + new Vector2(2, 12), 0xff0000ff, $"{ImGuiController.FA_ICON_EGG}"); //don't have the effort reserves to find a way to flip this to look like a strawberry
 
-                }
             }
 
         }

@@ -661,6 +661,7 @@ namespace rgat.Threads
             {
                 TexWidth = textureSize,
                 pickingNode = -1,
+                nodeSize = 300f,
                 isAnimated = false
             };
 

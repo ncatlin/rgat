@@ -12,7 +12,7 @@ namespace rgat.Threads
     /// </summary>
     public class ProcessCoordinatorThread : TraceProcessorWorker
     {
-        private readonly byte[] buf = new byte[1024];
+        private readonly byte[] buf = new byte[CONSTANTS.TRACING.InitialExchangeSize];
         private NamedPipeServerStream? coordPipe = null;
         private static readonly object _lock = new();
         private static readonly Dictionary<uint, TraceRecord> _pendingProcessMappings = new();
@@ -37,7 +37,7 @@ namespace rgat.Threads
 
             bytesRead = Array.FindIndex(buf, elem => elem == 0);
 
-            if (bytesRead > 0 && bytesRead < 1024)
+            if (bytesRead > 0 && bytesRead < CONSTANTS.TRACING.InitialExchangeSize)
             {
 
                 string csString = System.Text.Encoding.UTF8.GetString(buf[0..bytesRead]);
@@ -108,7 +108,17 @@ namespace rgat.Threads
                         string blockPipeName = BlockHandlerThread.GetBlockPipeName(PID, randno);
 
                         string response = $"CM@{cmdPipeName}@CR@{eventPipeName}@BB@{blockPipeName}@\x00";
-                        coordPipe.Write(System.Text.Encoding.UTF8.GetBytes(response));
+                        try
+                        {
+                            coordPipe.Write(System.Text.Encoding.UTF8.GetBytes(response));
+
+                        }
+                        catch (Exception e)
+                        {
+                            Logging.RecordException($"Failed to write to coordinator pipe: {e.Message}", e);
+                            if (coordPipe.IsConnected) coordPipe.Disconnect();
+                            return;
+                        }
 
                         Task startTask = Task.Run(() => ProcessNewPinConnection(PID, arch, libraryFlag == 1, randno, programName, testRunID));
                         Logging.RecordLogEvent($"Coordinator connection initiated", Logging.LogFilterType.Debug);
@@ -190,7 +200,7 @@ namespace rgat.Threads
                 {
                     Logging.RecordLogEvent($"rgatCoordinator pipe connected", Logging.LogFilterType.Debug);
 
-                    var readres = coordPipe.BeginRead(buf, 0, 1024, new AsyncCallback(GotMessage), null);
+                    var readres = coordPipe.BeginRead(buf, 0, CONSTANTS.TRACING.InitialExchangeSize, new AsyncCallback(GotMessage), null);
 
                     Logging.RecordLogEvent("rgatCoordinator began read", Logging.LogFilterType.Debug);
 

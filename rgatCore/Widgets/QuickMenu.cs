@@ -228,7 +228,9 @@ namespace rgat.Widgets
                         GlobalConfig.InsTextScale = plotFontScale;
                         Themes.DeclareThemeChanged();
                     }
+
                     ImGui.PopStyleVar();
+                    
                 }
 
                 ImGui.TableNextRow();
@@ -240,6 +242,24 @@ namespace rgat.Widgets
                 if (ShowTooltipToggle(2, ActionName.ToggleTextSymbols, _currentPlot.Opt_TextEnabledSym))
                 {
                     ActivateAction(ActionName.ToggleTextSymbols, hotKey: false);
+                }
+
+
+                ImGui.TableSetColumnIndex(4);
+                ImGui.Text("Node Size");
+                if (ImGui.TableNextColumn())
+                {
+                    float plotNodeSize = GlobalConfig.NodeSize;
+
+                    ImGui.SetNextItemWidth(50);
+                    ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(1, 2));
+                    if (ImGui.DragFloat("##NodeSize", ref plotNodeSize, 5f, 1, 10000))
+                    {
+                        GlobalConfig.NodeSize = plotNodeSize;
+                        Themes.DeclareThemeChanged();
+                    }
+                    ImGui.PopStyleVar();
+
                 }
 
                 ImGui.TableNextRow();
@@ -823,21 +843,21 @@ private void DrawScalePopup()
             if (graph is null) return;
 
             float radius = graph.OPT_CYLINDER_RADIUS;
-            if (ImGui.DragFloat("Radius", ref radius, 200, 10, 100000))
+            if (ImGui.DragFloat("Radius", ref radius, 250, 100, 500000) && radius is not 0)
             {
                 graph.OPT_CYLINDER_RADIUS = radius;
                 InitGraphCylinderLayoutReplot();
             }
 
             float APix = graph.OPT_CYLINDER_PIXELS_PER_A;
-            if (ImGui.DragFloat("Horizontal Separation", ref APix, 1, 1, 10000))
+            if (ImGui.DragFloat("Horizontal Separation", ref APix, 0.5f, 1, 10000) && APix is not 0)
             {
                 graph.OPT_CYLINDER_PIXELS_PER_A = APix;
                 InitGraphCylinderLayoutReplot();
             }
 
             float BPix = graph.OPT_CYLINDER_PIXELS_PER_B;
-            if (ImGui.DragFloat("Vertical Separation", ref BPix, 1, 1, 10000))
+            if (ImGui.DragFloat("Vertical Separation", ref BPix, 0.5f, 1, 10000) && BPix is not 0)
             {
                 graph.OPT_CYLINDER_PIXELS_PER_B = BPix;
                 InitGraphCylinderLayoutReplot();
@@ -948,7 +968,7 @@ private void DrawScalePopup()
                 }
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                ImGui.DragFloat("##_replotSpread", ref _replotSpread, 0.01f ,0.001f, 5f);
+                ImGui.DragFloat("##_replotSpread", ref _replotSpread, 0.01f ,0.001f, 100f);
                 SmallWidgets.MouseoverText("How far nodes are spread when replot");
 
                 ImGui.TableNextRow();
@@ -956,7 +976,7 @@ private void DrawScalePopup()
                 ImGui.Text("Clump Degree");
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                if(ImGui.DragInt("##ClumpFrc", ref GlobalConfig.NodeClumpLimit, 1f, 0, 300)){
+                if(ImGui.DragInt("##ClumpLim", ref GlobalConfig.NodeClumpLimit, 1f, 0, 300)){
                     Themes.DeclareThemeChanged();
                 }
                 SmallWidgets.MouseoverText("How many connections a highly connected node has");

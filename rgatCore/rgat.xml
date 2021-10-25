@@ -1177,6 +1177,11 @@
             Upper limit on how far a symbol can be from the camera to be drawn [todo: reimplement]
             </summary>
         </member>
+        <member name="F:rgat.GlobalConfig.NodeSize">
+            <summary>
+            Custom node size
+            </summary>
+        </member>
         <member name="F:rgat.GlobalConfig.ExternAnimDisplayFrames">
             <summary>
             How many frames to animate API calls for
@@ -2722,6 +2727,11 @@
             <summary>
             Size of the tag cache allocated for each message part
             </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.TRACING.InitialExchangeSize">
+             <summary>
+            used for the connection message, including program path, rgat version, etc
+             </summary>
         </member>
         <member name="T:rgat.CONSTANTS.SIGNERS">
             <summary>
@@ -9449,6 +9459,11 @@
         <member name="M:rgat.VideoEncoder.StopRecording(System.Boolean,System.String)">
             <summary>
             Stop recording video to the file
+            </summary>
+        </member>
+        <member name="M:rgat.VideoEncoder.DumpFrames">
+            <summary>
+            Empty the frame queue
             </summary>
         </member>
         <member name="P:rgat.VideoEncoder.RecordingStateChangeTimeAgo">

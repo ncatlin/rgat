@@ -197,6 +197,14 @@ namespace rgat
 
 
         /// <summary>
+        /// Empty the frame queue
+        /// </summary>
+        public void DumpFrames()
+        {
+            _bmpQueue.Clear();
+        }
+
+        /// <summary>
         /// How long ago the recording stopped/started in milliseconds
         /// </summary>
         public double RecordingStateChangeTimeAgo => (DateTime.Now - _recordingStateChanged).TotalMilliseconds;

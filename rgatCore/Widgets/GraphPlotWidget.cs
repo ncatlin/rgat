@@ -895,9 +895,10 @@ namespace rgat
             public uint TexWidth;
             public int pickingNode;
             public bool isAnimated;
-            //must be multiple of 16
+            public float nodeSize;
 
-            private readonly ulong _padding1;
+            private readonly bool _padding3a;
+            private readonly bool _padding3b;
             private readonly bool _padding3c;
         }
 
@@ -1060,6 +1061,7 @@ namespace rgat
             {
                 TexWidth = textureSize,
                 pickingNode = mousoverNode,
+                nodeSize = GlobalConfig.NodeSize,
                 isAnimated = plot.IsAnimated
             };
 

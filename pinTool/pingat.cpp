@@ -763,29 +763,23 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		else if (INS_IsSyscall(lastins))
 		{
 			std::string disas = INS_Disassemble(lastins);
-			writeEventPipe("!Error: Unhandled block end syscall instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
+			//writeEventPipe("!Error: Unhandled block end syscall instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
 			//COUNTER *pedg = Lookup(EDGE(INS_Address(ins), ADDRINT(~0), INS_NextAddress(ins), ETYPE_SYSCALL));
 			//INS_InsertPredicatedCall(lastins, IPOINT_BEFORE, (AFUNPTR)docount, IARG_ADDRINT, pedg, IARG_END);
-			std::cout << "syscall end" << std::endl;
+			INS_InsertCall(lastins, IPOINT_AFTER, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
+				IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
 		}
 		else if (!INS_IsBranch(lastins))
 		{
 			std::string disas = INS_Disassemble(lastins);
-			writeEventPipe("!Non branch block end instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
+			//writeEventPipe("!Non branch block end instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
 			INS_InsertCall(lastins, IPOINT_AFTER, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
 				IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
 		}
 		else
 		{
-			printf("------------HALP------------------\n");
-			printf("------------%x------------------\n", &lastins);
 			std::string disas = INS_Disassemble(lastins);
 			writeEventPipe("!Error: Unhandled block end instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
-			std::cout << "------------------------------" << std::endl;
-			std::cout << "------------------------------" << std::endl;
-			std::cout << "WARNING: non branch/call/syscall block end at " << std::hex << block_data->lastInsAddress << std::endl;
-			std::cout << "------------------------------" << std::endl;
-			std::cout << "------------------------------" << std::endl;
 		}
 	}
 }

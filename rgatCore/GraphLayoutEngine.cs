@@ -286,7 +286,7 @@ namespace rgat
                 //todo set this on layout change
                 bool isForceDirected = CONSTANTS.LayoutStyles.IsForceDirected(plot.ActiveLayoutStyle);
 
-                bool forceComputationActive = GlobalConfig.LayoutPositionsActive && plot.Temperature > 0 && (layout.ActivatingPreset || isForceDirected);
+                bool forceComputationActive = layout.ActivatingPreset || (GlobalConfig.LayoutPositionsActive && plot.Temperature > 0 && isForceDirected);
 
                 LayoutPipelines.LayoutPipeline? activePipeline = SelectPipeline(layout);
                 if (activePipeline is null)
@@ -554,7 +554,7 @@ namespace rgat
                     break;
                 }
 
-                valArray[0] = 300f; //start big
+                valArray[0] = GlobalConfig.NodeSize; //start big
                 valArray[1] = 1.0f; //full alpha
                 valArray[2] = 1.0f; //pulse
                 fixed (float* dataPtr = valArray)

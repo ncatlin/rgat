@@ -741,7 +741,6 @@ namespace rgat
 
         private void ToggleLogsWindow()
         {
-            Logging.WriteConsole($"Logwindow toggle {_show_logs_window}");
             _show_logs_window = !_show_logs_window;
             Controller.DialogChange(_show_logs_window);
         }
@@ -1140,7 +1139,12 @@ namespace rgat
             }
             if (ImGui.IsItemClicked(mouse_button: ImGuiMouseButton.Right))
             {
-                rgatState.VideoRecorder.StopRecording();
+                if (rgatState.VideoRecorder.Recording)
+                    rgatState.VideoRecorder.StopRecording();
+                else if (rgatState.VideoRecorder.FrameQueueSize > 0)
+                {
+                    rgatState.VideoRecorder.DumpFrames();
+                }
             }
         }
 

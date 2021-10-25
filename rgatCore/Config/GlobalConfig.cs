@@ -176,6 +176,10 @@ namespace rgat
         /// Upper limit on how far a symbol can be from the camera to be drawn [todo: reimplement]
         /// </summary>
         public static float FurthestSymbol = 5000f;
+        /// <summary>
+        /// Custom node size
+        /// </summary>
+        public static float NodeSize = 300f;
 
         /// <summary>
         /// How many frames to animate API calls for

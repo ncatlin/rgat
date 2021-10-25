@@ -53,6 +53,7 @@ layout(set = 0, binding=0) uniform ParamsBuf
     uint TexWidth;
     int pickingNodeID;
     bool isAnimated;
+    float nodeSize;
 };
 layout(set = 0, binding=1) uniform sampler nodeTexView; //point sampler
 layout(set = 0, binding=2) buffer bufpositionTexture{
@@ -70,14 +71,22 @@ void main() {
         //vColor = vec4(1,0.5,0.5, nodeAttribTexture[PositionBufIndex].y) ; //attrib.y == alpha
     }
 
+ 
     vec4 worldPosition = World *  positionTexture[PositionBufIndex];
     vec4 viewPosition = View * worldPosition;
     vec4 clipPosition = Projection * viewPosition;
     gl_Position = clipPosition;
 
-    float nodeSize = 300.0; //remember to match the picking shader value to this
     float relativeNodeSize = nodeSize / length(gl_Position.xyz);
-    gl_PointSize = nodeAttribTexture[PositionBufIndex].x * relativeNodeSize;
+    if (vColor.w != 0)
+    {
+        gl_PointSize = nodeAttribTexture[PositionBufIndex].x * relativeNodeSize;
+    }
+    else
+    {
+        gl_PointSize = 1;
+    }
+
     PositionTexCoordOut = PositionBufIndex;
 }
 ";
@@ -106,6 +115,7 @@ layout(set = 0, binding=0) uniform ParamsBuf
     uint TexWidth;
     int pickingNodeID;
     bool isAnimated;
+    float nodeSize;
 };
 layout(set = 0, binding=1) uniform sampler nodeTexView; //point sampler
 layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
@@ -121,8 +131,6 @@ void main()
 
     vec4 node = texture(sampler2D(nodeTextures, nodeTexView), vec2((gl_PointCoord.x/2)+(0.5*textureIdx), gl_PointCoord.y)); //
     fsout_Color = vec4( fsin_Color.xyzw ) * node;
-
-
 }
 ";
 
@@ -175,6 +183,7 @@ layout(set = 0, binding=0) uniform ParamsBuf
     uint TexWidth;
     int pickingNodeID;
     bool isAnimated;
+    float nodeSize;
 };
 layout(set = 0, binding=2) buffer bufpositionTexture{
     vec4 positionTexture[];
@@ -253,6 +262,7 @@ layout(set = 0, binding=0) uniform ViewBuffer
     uint TexWidth;
     int pickingNodeID;
     bool isAnimated;
+    float nodeSize;
 };
 
 layout(set = 0, binding=2) buffer bufpositionTexture{  vec4 positionTexture[];};
@@ -323,6 +333,7 @@ layout(set = 0, binding=0) uniform ViewBuffer
     uint TexWidth;
     int pickingNodeID;
     bool isAnimated;
+    float nodeSize;
 };
 layout(set = 0, binding=2) buffer bufpositionTexture{  vec4 positionTexture[];};
 layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
@@ -415,6 +426,7 @@ layout(set = 0, binding=0) uniform ParamsBuf
     uint TexWidth;
     int pickingNodeID;
     bool isAnimated;
+    float nodeSize;
 };
 layout(set = 0, binding=1) uniform sampler nodeTexView; //point sampler
 layout(set = 0, binding=2) buffer bufpositionTexture{  vec4 positionTexture[]; };
