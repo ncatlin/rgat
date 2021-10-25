@@ -9440,7 +9440,7 @@
             Begin capture of the selected content to the video file
             </summary>
         </member>
-        <member name="M:rgat.VideoEncoder.StopRecording(System.String)">
+        <member name="M:rgat.VideoEncoder.StopRecording(System.Boolean,System.String)">
             <summary>
             Stop recording video to the file
             </summary>

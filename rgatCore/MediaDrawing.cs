@@ -44,22 +44,18 @@ namespace rgat
             gd.SubmitCommands(_commandList);
             gd.WaitForIdle();
 
-
-            //draw it onto a bitmap
-            Bitmap bmp = new Bitmap((int)_recordingStager.Width, (int)_recordingStager.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
             if (drawWidth == -1 || drawHeight == -1)
             {
                 drawHeight = _recordingStager.Height;
                 drawWidth = _recordingStager.Width;
             }
-            else
-            {
-                drawWidth = Math.Min(drawWidth, bmp.Width);
-                drawHeight = Math.Min(drawHeight, bmp.Height);
-            }
 
-            System.Drawing.Imaging.BitmapData data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, (int)_recordingStager.Width, (int)_recordingStager.Height),
+            //draw it onto a bitmap
+            Bitmap bmp = new Bitmap((int)drawWidth, (int)drawHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+
+
+            System.Drawing.Imaging.BitmapData data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, (int)drawWidth, (int)drawHeight),
                 System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             byte* scan0 = (byte*)data.Scan0;
 
@@ -72,7 +68,7 @@ namespace rgat
                     int xPixel = (int)startX + x;
                     int yPixel = (int)startY + y;
                     SixLabors.ImageSharp.PixelFormats.Rgba32 px = res[xPixel, yPixel];
-                    byte* ptr = scan0 + yPixel * data.Stride + (xPixel * 4);
+                    byte* ptr = scan0 + y * data.Stride + (x * 4);
                     ptr[0] = px.R;
                     ptr[1] = px.G;
                     ptr[2] = px.B;

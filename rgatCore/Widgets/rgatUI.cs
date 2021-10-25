@@ -56,7 +56,7 @@ namespace rgat
         private static double _StartupProgress = 0;
         public static double StartupProgress
         {
-            get => _StartupProgress; 
+            get => _StartupProgress;
             set
             {
                 Debug.Assert(value <= 1);
@@ -168,16 +168,16 @@ namespace rgat
         public void AddMouseDragDelta(Vector2 delta)
         {
             lock (_inputLock)
-            
+
             {
                 _mouseDragDelta += delta;
             }
         }
-        
+
         public void SetMousePosition(Vector2 pos)
         {
             lock (_inputLock)
-            
+
             {
                 _mousePos += pos;
             }
@@ -284,7 +284,7 @@ namespace rgat
             {
                 DrawWindowContent();
             }
-           
+
             if (MenuBarVisible)
             {
                 DrawMainMenu();
@@ -886,8 +886,8 @@ namespace rgat
                 if (rgatState.ActiveTrace is not null && ImGui.MenuItem("Save Trace") && rgatState.SerialisationProgress is null)
                 {
                     System.Threading.Tasks.Task.Run(() => rgatState.SaveTrace(rgatState.ActiveTrace));
-                }  
-                
+                }
+
                 if (rgatState.ActiveTarget is not null && ImGui.MenuItem("Save Target") && rgatState.SerialisationProgress is null)
                 {
                     System.Threading.Tasks.Task.Run(() => rgatState.SaveTarget(rgatState.ActiveTarget));
@@ -896,7 +896,7 @@ namespace rgat
                 if (ImGui.MenuItem("Save All"))
                 {
                     System.Threading.Tasks.Task.Run(() => rgatState.SaveAllTargets());
-                } 
+                }
 
 
                 if (ImGui.MenuItem("Export Pajek"))
@@ -944,7 +944,7 @@ namespace rgat
                 {
                     ImGui.PopStyleColor();
                 }
-                
+
                 System.Net.IPEndPoint? endpoint = rgatState.NetworkBridge.RemoteEndPoint;
                 if (endpoint is not null)
                 {
@@ -953,8 +953,8 @@ namespace rgat
             }
             else
             {
-                uint iconColour = GlobalConfig.Loaded ? 
-                    Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText) : 
+                uint iconColour = GlobalConfig.Loaded ?
+                    Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText) :
                     Themes.GetThemeColourUINT(Themes.eThemeColour.Dull1);
                 ImGui.PushStyleColor(ImGuiCol.Text, iconColour);
                 if (ImGui.MenuItem(ImGuiController.FA_ICON_LOCALCODE + " Local Mode", null, ref rdlgshown))
@@ -1079,7 +1079,7 @@ namespace rgat
             const double StateChangeFadeTime = 400;
             const double StateChangeSolidTime = StateChangeLingerTime - StateChangeFadeTime;
 
-            if (MSago < StateChangeLingerTime)
+            if (MSago < StateChangeLingerTime || rgatState.VideoRecorder.FrameQueueSize > 0)
             {
                 ActivateNotification();
                 if (rgatState.VideoRecorder.Recording)
@@ -1092,14 +1092,25 @@ namespace rgat
                 }
                 else
                 {
-                    //fade out
-                    uint alpha = MSago < StateChangeSolidTime ? 255 : (uint)(255.0 * (1.0 - ((MSago - StateChangeSolidTime) / StateChangeFadeTime)));
-                    ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourWRF(Themes.eThemeColour.Emphasis2).ToUint(alpha));
-                    if (rgatState.VideoRecorder.Error?.Length > 0)
-                        ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Error");
+                    if (rgatState.VideoRecorder.FrameQueueSize > 0)
+                    {
+                        ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Finalising Video [{rgatState.VideoRecorder.FrameQueueSize}]");
+                    }
                     else
-                        ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Stopped");
-                    ImGui.PopStyleColor();
+                    {
+                        //fade out
+                        uint alpha = MSago < StateChangeSolidTime ? 255 : (uint)(255.0 * (1.0 - ((MSago - StateChangeSolidTime) / StateChangeFadeTime)));
+                        ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourWRF(Themes.eThemeColour.Emphasis2).ToUint(alpha));
+                        if (rgatState.VideoRecorder.Error?.Length > 0)
+                        {
+                            ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Error");
+                        }
+                        else
+                        {
+                            ImGui.MenuItem($"{ImGuiController.FA_VIDEO_CAMERA} Recording Stopped");
+                        }
+                        ImGui.PopStyleColor();
+                    }
                 }
             }
             else
@@ -1438,7 +1449,7 @@ namespace rgat
             float ctrlWidth = Math.Max(ImGui.GetContentRegionAvail().X / 2.5f, textWidth + 50);
             textWidth = Math.Min(ImGui.GetContentRegionAvail().X - 300, ctrlWidth);
             ImGui.SetNextItemWidth(textWidth);
-            if (textWidth < ctrlWidth && activeTarget !=  null)
+            if (textWidth < ctrlWidth && activeTarget != null)
             {
                 activeString = activeTarget.FileName;
             }

@@ -1275,7 +1275,10 @@ namespace rgat.Widgets
         {
             if (ImGui.BeginPopupModal("##FilesDLG", ref _popupActive))
             {
-                var picker = rgatFilePicker.FilePicker.GetFilePicker(_filePickHandle, Path.Combine(Environment.CurrentDirectory));
+
+                var currentPath = GlobalConfig.GetSettingPath(_pendingPathSetting);
+                var startPath = Directory.Exists(Path.GetDirectoryName(currentPath)) ? Path.GetDirectoryName(currentPath) : Environment.CurrentDirectory;
+                var picker = rgatFilePicker.FilePicker.GetFilePicker(_filePickHandle, startPath ?? GlobalConfig.BaseDirectory);
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(_filePickHandle);
 
                 if (result == rgatFilePicker.FilePicker.PickerResult.eTrue)

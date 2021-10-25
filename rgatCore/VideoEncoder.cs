@@ -152,6 +152,11 @@ namespace rgat
         /// </summary>
         public void StartRecording()
         {
+            if (_bmpQueue.Any())
+            {
+                Logging.RecordError($"{_bmpQueue.Count} frames awaiting processing for previous video");
+                return;
+            }
             System.Diagnostics.Debug.Assert(!_recording);
             _recording = true;
             _recordingStateChanged = DateTime.Now;
@@ -161,7 +166,7 @@ namespace rgat
         /// <summary>
         /// Stop recording video to the file
         /// </summary>
-        public void StopRecording(string? error = "")
+        public void StopRecording(bool processQueue = true, string? error = "")
         {
             try
             {
@@ -179,7 +184,10 @@ namespace rgat
                 _recordingStateChanged = DateTime.Now;
                 _recording = false;
                 Error = error;
-                _bmpQueue.Clear();
+                if (processQueue is false)
+                {
+                    _bmpQueue.Clear();
+                }
             }
             catch (Exception e)
             {
@@ -201,7 +209,7 @@ namespace rgat
                 {
                     if (_bmpQueue.Count > 1024)
                     {
-                        StopRecording($"Recording has amassed {_bmpQueue.Count} frames in backlog, stopping recording");
+                        StopRecording(processQueue: false, error: $"Recording has amassed {_bmpQueue.Count} frames in backlog, stopping recording");
                     }
                     if (_bmpQueue.TryDequeue(out Bitmap? frame) && frame is not null)
                     {
@@ -211,7 +219,11 @@ namespace rgat
                         yield return new BitmapVideoFrameWrapper(frame);
                     }
                 }
-                Thread.Sleep(15);
+                else
+                {
+                    Thread.Sleep(15);
+                }
+
             }
             yield break;
         }
@@ -279,7 +291,7 @@ namespace rgat
                 targetfile = Path.Combine(storedir, $"{vidname}({attempt++}).mp4");
                 if (attempt == 255)
                 {
-                    StopRecording("Bizarre error finding place to store saved media.");
+                    StopRecording(processQueue: false, error: "Strange error finding place to store saved media.");
                     return Path.GetRandomFileName();
                 }
             }
@@ -395,7 +407,7 @@ namespace rgat
         {
             if (!File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.FFmpegPath)))
             {
-                StopRecording($"Unable to start recording: Path to ffmpeg.exe not configured");
+                StopRecording(processQueue: false, error: $"Unable to start recording: Path to ffmpeg.exe not configured");
                 Loaded = false;
                 Initialised = false;
                 return;
@@ -408,14 +420,14 @@ namespace rgat
                 { GlobalFFOptions.Configure(new FFOptions { BinaryFolder = dirname }); }
                 else
                 {
-                    StopRecording($"Unable to start recording: FFMpeg not found");
+                    StopRecording(processQueue: false, error: $"Unable to start recording: FFMpeg not found");
                     Loaded = false;
                     return;
                 }
             }
             catch (Exception e)
             {
-                StopRecording($"Unable to start recording: Exception '{e.Message}' configuring recorder");
+                StopRecording(processQueue: false, error: $"Unable to start recording: Exception '{e.Message}' configuring recorder");
                 Loaded = false;
                 return;
             }
@@ -454,6 +466,7 @@ namespace rgat
             _capturedContent = CaptureContent.Invalid;
         }
 
+
         /// <summary>
         /// Add a bitmap to record to video
         /// </summary>
@@ -470,7 +483,6 @@ namespace rgat
                     Task.Run(() => { Go(graph); });
                 }
                 _bmpQueue.Enqueue(frame);
-
             }
         }
 
@@ -540,12 +552,14 @@ namespace rgat
             return false;
         }
 
+
         private static void DrawNoLibSettingsPane()
         {
             bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-            ImGui.TextWrapped($"Use of video capture requires the FFmpeg{(isWindows ? ".exe": "")} executable, which has to be downloaded seperately");
+            ImGui.TextWrapped($"Use of video capture requires the FFmpeg{(isWindows ? ".exe" : "")} executable, which has to be downloaded seperately");
             ImGui.TextWrapped("It can be fetched from https://ffmpeg.org/download.html and configured in Settings->Paths once downloaded");
         }
+
 
         private void DrawSettingsPane(bool havelib)
         {
@@ -555,7 +569,7 @@ namespace rgat
                 ImGui.Text(Error);
                 return;
             }
-            ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new System.Numerics.Vector2(8, 8));
+            ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new System.Numerics.Vector2(8, 4));
             //settings
             if (ImGui.BeginTable("##VideoSettingsTable", 2, ImGuiTableFlags.Borders))
             {

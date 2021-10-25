@@ -20,7 +20,7 @@ namespace rgat.Config
         /// if present - trace target file and exit
         /// this mode does not require a GPU, unless paired with the draw or mp4 options
         /// </summary>
-        [Option('t', "target", SetName = "HeadlessMode", MetaValue = "\"path_to_binary\"", Required = false,
+        [Option('t', "target", SetName = "HeadlessMode", MetaValue = "\"path_to_binary\"", Required = false, Hidden = true,
             HelpText = "Run rgat in Headless tracing mode. Requires the file path of the target binary to generate a trace for.\n" +
             "Traces are saved to the standard save directory, unless accompanied by the -o option.\n" +
             "This mode does not require a GPU, unless accompanied by the 'draw' and/or 'mp4' options"
@@ -71,7 +71,7 @@ namespace rgat.Config
             HelpText = "Pre-shared key for remote control tracing. This key is stored so it is not required in future invocations.\n" +
             "------Security note------\n" +
             "\tNetwork tracing is intended to facilitate tracing between VM Host/Guest or between machines on a private analysis network.\n" +
-            "\tWhile rgat expects malicious traffic and heavily rate-limits connection attempts, exposing the listener port to the internet is not advisable. " +
+            "\tWhile rgat expects malicious traffic and deactivates on receiving a bad key, exposing the listener port to the internet is not advisable. " +
             "Anyone able to connect to this port with the specified key can execute abitrary code. Standard sensible password choice warnings apply.")]
         public string NetworkKey { get; set; } = "";
 
@@ -81,7 +81,7 @@ namespace rgat.Config
         /// <summary>
         /// Write the collected trace to this path, for opening later by rgat in UI mode
         /// </summary>
-        [Option('o', "output", SetName = "HeadlessMode", Required = false, MetaValue = "\"filepath\"",
+        [Option('o', "output", SetName = "HeadlessMode", Required = false, MetaValue = "\"filepath\"", Hidden = true,
             HelpText = "Optional destination directory for saving the output traces, videos and images when in headless tracing mode")]
         public string? TraceSaveDirectory { get; set; }
 
@@ -112,7 +112,7 @@ namespace rgat.Config
         /// <summary>
         /// if set to true, rgat will not trace child processes
         /// </summary>
-        [Option("nofollow", Required = false, HelpText = "If specified, rgat will not trace new processes spawned by the initial process")]
+        [Option("nofollow", Required = false, Hidden = true, HelpText = "If specified, rgat will not trace new processes spawned by the initial process")]
         public bool NoFollowDescendants { get; set; } = false;
 
 
