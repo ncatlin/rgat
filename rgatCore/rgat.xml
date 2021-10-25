@@ -4416,6 +4416,7 @@
             <summary>
             Restore a node from JSON
             </summary>
+            <param name="index">Index of the node being loaded</param>
             <param name="nodeData">JArray of node data</param>
             <param name="processinfo">The process record this node was generated with</param>
             <returns></returns>
@@ -6324,6 +6325,21 @@
             Used by the heat solver to mark heat ranking as complete
             </summary>
         </member>
+        <member name="F:rgat.ProtoGraph.SymbolCallRecords">
+            <summary>
+            The API calls made by the thread
+            </summary>
+        </member>
+        <member name="P:rgat.ProtoGraph.TotalInstructions">
+            <summary>
+            A count of the total number of instrumented instructions (including repeats) executed in the thread
+            </summary>
+        </member>
+        <member name="P:rgat.ProtoGraph.MostConnections">
+            <summary>
+            Node with most neighbours neighbour count
+            </summary>
+        </member>
         <member name="M:rgat.ProtoGraph.SetTerminated">
             <summary>
             Mark this thread as having completed execution
@@ -6651,16 +6667,6 @@
         <member name="M:rgat.ProtoGraph.PurgeSavedAnimationData">
             <summary>
             Clear the trace replay data, or mark it for clearing when the locks are released
-            </summary>
-        </member>
-        <member name="F:rgat.ProtoGraph.SymbolCallRecords">
-            <summary>
-            The API calls made by the thread
-            </summary>
-        </member>
-        <member name="P:rgat.ProtoGraph.TotalInstructions">
-            <summary>
-            A count of the total number of instrumented instructions (including repeats) executed in the thread
             </summary>
         </member>
         <member name="P:rgat.ProtoGraph.ProtoLastVertID">

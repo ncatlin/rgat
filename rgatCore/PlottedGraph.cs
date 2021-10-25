@@ -1041,7 +1041,7 @@ namespace rgat
 
             //todo, asserting here on load. i dont remember if this is important
             //if it happens it means an edge is going to a from a node that didn't exist at the time it was created
-            Debug.Assert(nodeIdx == _graphStructureLinear.Count); 
+            Debug.Assert(nodeIdx == _graphStructureLinear.Count);
             uint futureCount = (uint)_graphStructureLinear.Count + 1;
             var bufferWidth = indexTextureSize((int)futureCount);
 
@@ -1429,27 +1429,21 @@ namespace rgat
                     return new WritableRgbaFloat(0.8f, 0.8f, 0.8f, 1);
 
                 case eRenderingMode.eDegree:
-                    if (InternalProtoGraph.NodeList[(int)nodePair.Item1].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
+                    //todo 
+
+                    int degree1 = InternalProtoGraph.NodeList[(int)nodePair.Item1].IncomingNeighboursSet.Count +
+                        InternalProtoGraph.NodeList[(int)nodePair.Item1].OutgoingNeighboursSet.Count;
+                    int degree2 = InternalProtoGraph.NodeList[(int)nodePair.Item2].IncomingNeighboursSet.Count +
+                        InternalProtoGraph.NodeList[(int)nodePair.Item2].OutgoingNeighboursSet.Count;
+                    int highestDegree = Math.Max(degree1, degree2);
+                    if (highestDegree > GlobalConfig.NodeClumpLimit)
                     {
-                        return Themes.GetThemeColourWRF(Themes.eThemeColour.GoodStateColour);
+                        return Themes.GetThemeColourWRF(Themes.eThemeColour.Emphasis2);
                     }
 
-                    if (InternalProtoGraph.NodeList[(int)nodePair.Item1].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
-                    {
-                        return Themes.GetThemeColourWRF(Themes.eThemeColour.GoodStateColour);
-                    }
-
-                    if (InternalProtoGraph.NodeList[(int)nodePair.Item2].IncomingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
-                    {
-                        return Themes.GetThemeColourWRF(Themes.eThemeColour.GoodStateColour);
-                    }
-
-                    if (InternalProtoGraph.NodeList[(int)nodePair.Item2].OutgoingNeighboursSet.Count > GlobalConfig.NodeClumpLimit)
-                    {
-                        return Themes.GetThemeColourWRF(Themes.eThemeColour.GoodStateColour);
-                    }
-
-                    return Themes.GetThemeColourWRF(Themes.eThemeColour.BadStateColour);
+                    float heatProportion = 10 * (highestDegree / InternalProtoGraph.MostConnections);
+                    int colourIndex = (int)heatProportion + (int)Themes.eThemeColour.Heat0Lowest;
+                    return Themes.GetThemeColourWRF((Themes.eThemeColour)colourIndex);
                 default:
                     return graphColours[(int)e.edgeClass];
             }

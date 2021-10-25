@@ -26,6 +26,9 @@ namespace rgat
             nodearr.Add(ExecutionCount);
             nodearr.Add(ParentIdx);
 
+            //this needs to be rebuilt from the edge list
+            //restore if loaded saves have different neighbour counts
+            /*
             JArray incoming = new JArray();
             foreach (var nidx in IncomingNeighboursSet)
             {
@@ -41,6 +44,7 @@ namespace rgat
             }
 
             nodearr.Add(outgoing);
+            */
 
             nodearr.Add(IsExternal ? 1 : 0);
 
@@ -63,9 +67,11 @@ namespace rgat
             nodearr.WriteTo(writer);
         }
 
+
         /// <summary>
         /// Restore a node from JSON
         /// </summary>
+        /// <param name="index">Index of the node being loaded</param>
         /// <param name="nodeData">JArray of node data</param>
         /// <param name="processinfo">The process record this node was generated with</param>
         /// <returns></returns>
@@ -123,6 +129,7 @@ namespace rgat
             ParentIdx = nodeData[jsnArrIdx].ToObject<uint>();
             jsnArrIdx++;
 
+            /*
             //execution comes from these nodes to this node
             if (nodeData[jsnArrIdx].Type != JTokenType.Array)
             {
@@ -159,8 +166,8 @@ namespace rgat
                 OutgoingNeighboursSet.Add(outgoingIdx.ToObject<uint>());
             }
             jsnArrIdx++;
-
-
+            
+            */
             if (nodeData[jsnArrIdx].Type != JTokenType.Integer)
             {
                 return ErrorAtIndex(jsnArrIdx);
@@ -219,6 +226,7 @@ namespace rgat
             BlockIndex = nodeData[jsnArrIdx].ToObject<int>();
             return true;
         }
+
 
         private static bool ErrorAtIndex(int index)
         {

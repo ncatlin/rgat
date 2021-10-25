@@ -229,14 +229,22 @@ namespace rgat
         /// </summary>
         public void MarkHeatSolvingComplete() => HeatSolvingComplete = true;
 
-        /*
-        public List<InteractionTarget> SystemInteractions = new List<InteractionTarget>();
-        public Dictionary<ulong, InteractionTarget> Interacted_FileHandles = new Dictionary<ulong, InteractionTarget>();
-        public Dictionary<string, InteractionTarget> Interacted_FilePaths = new Dictionary<string, InteractionTarget>();
-        public Dictionary<string, InteractionTarget> Interacted_RegistryPaths = new Dictionary<string, InteractionTarget>();
-        public Dictionary<string, InteractionTarget> Interacted_NetworkPaths = new Dictionary<string, InteractionTarget>();
-        public Dictionary<string, InteractionTarget> Interacted_Mutexes = new Dictionary<string, InteractionTarget>();
- */
+        /// <summary>
+        /// The API calls made by the thread
+        /// </summary>
+        public List<APICALLDATA> SymbolCallRecords = new List<APICALLDATA>();
+
+        /// <summary>
+        /// A count of the total number of instrumented instructions (including repeats) executed in the thread
+        /// </summary>
+        public ulong TotalInstructions { get; set; } = 0;
+
+        /// <summary>
+        /// Node with most neighbours neighbour count
+        /// </summary>
+        public int MostConnections { get; set; } = 1;
+        //todo check if node added and ncount can be > this
+
 
         /// <summary>
         /// Mark this thread as having completed execution
@@ -1089,13 +1097,23 @@ namespace rgat
                     if (!target.IncomingNeighboursSet.Contains(edgePair.Item1))
                     {
                         target.IncomingNeighboursSet.Add(edgePair.Item1);
+                        int targetConnections = target.OutgoingNeighboursSet.Count + target.IncomingNeighboursSet.Count;
+                        if (targetConnections > (int)MostConnections)
+                        {
+                            MostConnections = targetConnections;
+                        }
                     }
                     if (!source.OutgoingNeighboursSet.Contains(edgePair.Item2))
                     {
                         source.OutgoingNeighboursSet.Add(edgePair.Item2);
+                        int sourceConnections = source.OutgoingNeighboursSet.Count + source.IncomingNeighboursSet.Count;
+                        if (sourceConnections > (int)MostConnections)
+                        {
+                            MostConnections = sourceConnections;
+                        }
                     }
                 }
-
+         
                 _edgeDict.Add(edgePair, e);
                 EdgeList.Add(edgePair);
                 edgeObjList.Add(e);
@@ -2288,16 +2306,6 @@ namespace rgat
                 }
             }
         }
-
-        /// <summary>
-        /// The API calls made by the thread
-        /// </summary>
-        public List<APICALLDATA> SymbolCallRecords = new List<APICALLDATA>();
-
-        /// <summary>
-        /// A count of the total number of instrumented instructions (including repeats) executed in the thread
-        /// </summary>
-        public ulong TotalInstructions { get; set; } = 0;
 
 
         //important state variables!

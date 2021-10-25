@@ -561,7 +561,7 @@ namespace rgat
         }
 
 
-        private static void DrawRenderControlPanel(PlottedGraph plot)
+        private void DrawRenderControlPanel(PlottedGraph plot)
         {
             if (ImGui.BeginChild("GraphRenderControlsFrame1", new Vector2(150, ImGui.GetContentRegionAvail().Y - 2), true))
             {
@@ -578,9 +578,28 @@ namespace rgat
                 }
                 ImGui.SameLine();
                 ImGui.Text(GlobalConfig.LayoutPositionsActive ? "Layout Enabled" : "Layout Disabled");
-                ImGui.EndChild();
+
+                ImGui.SetNextItemWidth(140);
+                int currentModeIndex = Array.IndexOf(rendermodes, plot.RenderingMode);
+                if (ImGui.Combo("##RenderModeSelect", ref currentModeIndex, modestrings, modestrings.Length))
+                {
+                    MainGraphWidget.ToggleRenderingMode(rendermodes[currentModeIndex]);
+                }
+                SmallWidgets.MouseoverText(modetips[currentModeIndex]);
             }
+
+            ImGui.EndChild();
         }
+
+
+        private static readonly string[] modetips = new string[] {
+            "Colours show how instructions connect to each other",
+            "Colours show how often instructions executed",
+            "Colours show the status of conditional jumps",
+            "Colours show highly-connected nodes"};
+        private static readonly string[] modestrings = new string[] { "Control Flow", "Heatmap", "Conditionals", "Degree" };
+        private static readonly eRenderingMode[] rendermodes = new eRenderingMode[] {eRenderingMode.eStandardControlFlow,
+            eRenderingMode.eHeatmap, eRenderingMode.eConditionals, eRenderingMode.eDegree };
 
 
         private static void DrawVideoControlPanel(PlottedGraph plot)
@@ -905,7 +924,7 @@ namespace rgat
                 {
                     Console.WriteLine("Fail4");
                 }
-                
+
                 ImGui.EndChild();
             }
 
@@ -1094,7 +1113,7 @@ namespace rgat
             {
                 if (ImGui.BeginTable("#MouseInfoFrameTable", 2))
                 {
-                    ImGui.TableSetupColumn("MouseItem", ImGuiTableColumnFlags.WidthFixed, 45);
+                    ImGui.TableSetupColumn("MouseItem", ImGuiTableColumnFlags.WidthFixed, 30);
                     ImGui.TableSetupColumn("MouseValue");
 
                     NodeData? n = plot.InternalProtoGraph.GetNode((uint)mouseNode);
@@ -1103,17 +1122,20 @@ namespace rgat
                         ImGui.TableNextRow();
                         if (ImGui.TableNextColumn())
                         {
-                            ImGui.Text("Address");
+                            ImGui.Text("Addr");
                         }
                         if (ImGui.TableNextColumn())
                         {
-                            ImGui.Text($"0x{n.Address:X}");
+                            if (n.ins is not null)
+                                ImGui.Text($"0x{n.Address:X} - {n.ins.InsText}");
+                            else
+                                ImGui.Text($"0x{n.Address:X}");
                         }
 
                         ImGui.TableNextRow();
                         if (ImGui.TableNextColumn())
                         {
-                            ImGui.Text("Sources");
+                            ImGui.Text("In");
                         }
                         if (ImGui.TableNextColumn())
                         {
@@ -1122,7 +1144,7 @@ namespace rgat
                         ImGui.TableNextRow();
                         if (ImGui.TableNextColumn())
                         {
-                            ImGui.Text("Targets");
+                            ImGui.Text("Out");
                         }
                         if (ImGui.TableNextColumn())
                         {

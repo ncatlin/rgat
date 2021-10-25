@@ -1,6 +1,4 @@
-
-/*!
-
+/*
 a pin implementation of the drgat client
 */
 
@@ -20,6 +18,7 @@ a pin implementation of the drgat client
 #include <iostream>
 #include <string>
 
+#define RGAT_VERSION "0.6.0"
 
 #ifdef WIN32
 #include "moduleload_windows.h"
@@ -1087,7 +1086,7 @@ void getSetupString(std::string programName, char* buf, int bufSize)
 		if (testRunID < 0 || testRunID >= LONG_MAX)
 			testRunID = -1;
 	}
-	snprintf_s(buf, bufSize, "PID@%u@%d@%d@%ld@%s@%ld", pid, arch, LibraryFlag.Value(), instanceID, programName.c_str(), testRunID);
+	snprintf_s(buf, bufSize, "PID@%s@%u@%d@%d@%ld@%s@%ld", RGAT_VERSION, pid, arch, LibraryFlag.Value(), instanceID, programName.c_str(), testRunID);
 }
 
 
@@ -1138,9 +1137,9 @@ DWORD extract_pipes(std::string programname, std::string coordinatorPipeName, st
 		return false;
 	}
 
-	char msg[1024];
+	char msg[2048];
 	memset(msg, 0, sizeof(msg));
-	getSetupString(programname, msg, 1024);
+	getSetupString(programname, msg, 2048);
 	USIZE count = sizeof(msg);
 
 	OS_RETURN_CODE result = OS_WriteFD(coordinatorPipe, msg, &count);

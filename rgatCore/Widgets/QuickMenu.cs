@@ -949,6 +949,17 @@ private void DrawScalePopup()
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
                 ImGui.DragFloat("##_replotSpread", ref _replotSpread, 0.01f ,0.001f, 5f);
+                SmallWidgets.MouseoverText("How far nodes are spread when replot");
+
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.Text("Clump Degree");
+                ImGui.TableNextColumn();
+                ImGui.SetNextItemWidth(150);
+                if(ImGui.DragInt("##ClumpFrc", ref GlobalConfig.NodeClumpLimit, 1f, 0, 300)){
+                    Themes.DeclareThemeChanged();
+                }
+                SmallWidgets.MouseoverText("How many connections a highly connected node has");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -956,6 +967,7 @@ private void DrawScalePopup()
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
                 ImGui.DragFloat("##ClumpFrc", ref GlobalConfig.NodeClumpForce, 0.01f, 0.00001f, 100f, "%f6");
+                SmallWidgets.MouseoverText("Control the forces acting on highly-connected nodes");
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -972,6 +984,8 @@ private void DrawScalePopup()
                 {
                     if (repulsion > 0) GlobalConfig.RepulsionK = repulsion;
                 }
+
+                SmallWidgets.MouseoverText("Increase to increase the spread of the graph");
 
                 PlottedGraph? graph = this._currentPlot;
 

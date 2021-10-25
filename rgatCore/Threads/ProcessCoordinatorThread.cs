@@ -42,10 +42,23 @@ namespace rgat.Threads
 
                 string csString = System.Text.Encoding.UTF8.GetString(buf[0..bytesRead]);
 
-                //	"PID,%u,%d,%ld,%s,%ld", pid, arch, libraryFlag, instanceID, programName, testRunID
+                //	"PID, rgat version, pid, arch, libraryFlag, instanceID, programName, testRunID
                 string[] fields = csString.Split('@');
-                const int expectedFieldCount = 7;
+                const int expectedFieldCount = 8;
                 Logging.RecordLogEvent($"Coordinator thread read: {bytesRead} bytes, {fields.Length} fields: {fields}", Logging.LogFilterType.Debug);
+
+                //sanity check pintool version. don't error if wrong, but the user will know why it failed if it fails
+                if (fields.Length > 1)
+                {
+                    if (!Version.TryParse(fields[1], out Version? versionResult) || versionResult is null)
+                    {
+                        Logging.RecordError("Unable to parse version of new trace");
+                    }
+                    else if (versionResult != CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC)
+                    {
+                        Logging.RecordError($"Incoming trace version {versionResult} mismatch with current {CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC}");
+                    }
+                }
 
                 if (fields.Length == expectedFieldCount)
                 {
@@ -55,34 +68,36 @@ namespace rgat.Threads
                         success = false;
                     }
 
-                    if (!uint.TryParse(fields[1], out uint PID))
+
+
+                    if (!uint.TryParse(fields[2], out uint PID))
                     {
                         success = false;
                     }
 
-                    if (!int.TryParse(fields[2], out int arch))
+                    if (!int.TryParse(fields[3], out int arch))
                     {
                         success = false;
                     }
 
-                    if (!int.TryParse(fields[3], out int libraryFlag))
+                    if (!int.TryParse(fields[4], out int libraryFlag))
                     {
                         success = false;
                     }
 
-                    if (!long.TryParse(fields[4], out long randno))
+                    if (!long.TryParse(fields[5], out long randno))
                     {
                         success = false;
                     }
 
-                    if (!long.TryParse(fields[6], out long testRunID))
+                    if (!long.TryParse(fields[7], out long testRunID))
                     {
                         success = false;
                     }
 
                     if (success)
                     {
-                        string programName = fields[5];
+                        string programName = fields[6];
                         if (libraryFlag == 1)
                         {
                             programName = programName.Split(',')[0];
@@ -241,7 +256,7 @@ namespace rgat.Threads
             target.CreateNewTrace(DateTime.Now, PID, (uint)ID, out TraceRecord tr, testID: testID);
 
 
-            lock(_lock)
+            lock (_lock)
             {
                 if (_pendingProcessMappings.TryGetValue(PID, out TraceRecord? parent))
                 {
@@ -328,9 +343,9 @@ namespace rgat.Threads
         /// </summary>
         /// <param name="child">Child process ID</param>
         /// <param name="parent">Parent Trace</param>
-        public static void RegisterIncomingChild( uint child, TraceRecord parent)
+        public static void RegisterIncomingChild(uint child, TraceRecord parent)
         {
-            lock(_lock)
+            lock (_lock)
             {
                 _pendingProcessMappings[child] = parent;
             }

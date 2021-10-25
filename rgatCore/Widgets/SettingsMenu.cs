@@ -1384,10 +1384,10 @@ namespace rgat.Widgets
                 CreateKeybindInput("Move Graph Right", KeybindAction.MoveRight, index++);
                 CreateKeybindInput("Graph Pitch + (X axis)", KeybindAction.PitchXFwd, index++);
                 CreateKeybindInput("Graph Pitch - (X axis)", KeybindAction.PitchXBack, index++);
-                CreateKeybindInput("Graph Roll +  (Y axis)", KeybindAction.RollGraphZClock, index++);
-                CreateKeybindInput("Graph Roll -  (Y axis)", KeybindAction.RollGraphZAnti, index++);
-                CreateKeybindInput("Graph Yaw +   (Z axis)", KeybindAction.YawYRight, index++);
-                CreateKeybindInput("Graph Yaw -   (Z axis)", KeybindAction.YawYLeft, index++);
+                CreateKeybindInput("Graph Roll +  (Z axis)", KeybindAction.RollGraphZClock, index++);
+                CreateKeybindInput("Graph Roll -  (Z axis)", KeybindAction.RollGraphZAnti, index++);
+                CreateKeybindInput("Graph Yaw +   (Y axis)", KeybindAction.YawYRight, index++);
+                CreateKeybindInput("Graph Yaw -   (Y axis)", KeybindAction.YawYLeft, index++);
                 CreateKeybindInput("Toggle Heatmap", KeybindAction.ToggleHeatmap, index++, "Toggle heatmap mode, illustrating how busy different areas of the graph are");
                 CreateKeybindInput("Toggle Conditionals", KeybindAction.ToggleConditionals, index++, "Toggle conditional instruction mode, showing the status of conditional jumps");
                 CreateKeybindInput("Force Direction Temperature +", KeybindAction.RaiseForceTemperature, index++, "Increase the temperature of a force directed graph, increasing the rate of layout");
