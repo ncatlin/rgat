@@ -316,7 +316,7 @@ namespace rgat.Threads
                 }
             }
 
-            Position1DColour[] EdgeLineVerts = plot.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow,  out int edgeVertCount, preview: true);
+            Position1DColourMultiVert[] EdgeLineVerts = plot.GetEdgeLineVerts(CONSTANTS.eRenderingMode.eStandardControlFlow,  out int edgeVertCount, preview: true);
             if (edgeVertCount == 0 || !plot.LayoutState.Initialised)
             {
                 return;
@@ -345,21 +345,21 @@ namespace rgat.Threads
                 cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)nodeCount * Position1DColour.SizeInBytes);
             }
 
-            if ((edgeVertCount * Position1DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes)
+            if ((edgeVertCount * Position1DColourMultiVert.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes)
             {
                 if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("disposeremake edgeverts", filter: Logging.LogFilterType.BulkDebugLogFile);
 
                 VeldridGraphBuffers.VRAMDispose(_EdgeVertBuffer);
-                _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)EdgeLineVerts.Length * Position1DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewEdgeVertexBuffer");
+                _EdgeVertBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gdev, (uint)EdgeLineVerts.Length * Position1DColourMultiVert.SizeInBytes, BufferUsage.VertexBuffer, name: "PreviewEdgeVertexBuffer");
             }
 
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("render preview 3", filter: Logging.LogFilterType.BulkDebugLogFile);
 
 
             //todo - only do this on changes
-            fixed (Position1DColour* vertsPtr = EdgeLineVerts)
+            fixed (Position1DColourMultiVert* vertsPtr = EdgeLineVerts)
             {
-                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position1DColour.SizeInBytes); 
+                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)edgeVertCount * Position1DColourMultiVert.SizeInBytes); 
             }
 
             ResourceSetDescription crs_core_rsd = new ResourceSetDescription(_coreRsrcLayout, _paramsBuffer, _gdev.PointSampler,

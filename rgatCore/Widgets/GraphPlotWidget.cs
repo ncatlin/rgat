@@ -1254,7 +1254,7 @@ namespace rgat
         {
             Stopwatch st = new();
             st.Start();
-            Position1DColour[] EdgeLineVerts = plot.GetEdgeLineVerts(_renderingMode, out int edgeVertCount);
+            Position1DColourMultiVert[] EdgeLineVerts = plot.GetEdgeLineVerts(_renderingMode, out int edgeVertCount);
             if (plot.LayoutState.Initialised is false || edgeVertCount == 0 || Exiting)
             {
                 return;
@@ -1317,17 +1317,17 @@ namespace rgat
                 cl.UpdateBuffer(_NodePickingBuffer, 0, (IntPtr)pickingVertsPtr, (uint)NodeVerts.Length * Position1DColour.SizeInBytes);
             }
 
-            if ((EdgeLineVerts.Length * Position1DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes)
+            if ((EdgeLineVerts.Length * Position1DColourMultiVert.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes)
             {
                 VRAMDispose(_EdgeVertBuffer);
-                _EdgeVertBuffer = TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position1DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
+                _EdgeVertBuffer = TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position1DColourMultiVert.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
             }
 
-            ReadOnlySpan<Position1DColour> elvSpan = new ReadOnlySpan<Position1DColour>(EdgeLineVerts, 0, edgeVertCount);
-            fixed (Position1DColour* vertsPtr = elvSpan)
+            ReadOnlySpan<Position1DColourMultiVert> elvSpan = new ReadOnlySpan<Position1DColourMultiVert>(EdgeLineVerts, 0, edgeVertCount);
+            fixed (Position1DColourMultiVert* vertsPtr = elvSpan)
             {
-                if ((uint)(elvSpan.Length * Position1DColour.SizeInBytes) > _EdgeVertBuffer.SizeInBytes) Console.WriteLine("PROBLEM4");
-                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(edgeVertCount * Position1DColour.SizeInBytes));
+                if ((uint)(elvSpan.Length * Position1DColourMultiVert.SizeInBytes) > _EdgeVertBuffer.SizeInBytes) Console.WriteLine("PROBLEM4");
+                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(edgeVertCount * Position1DColourMultiVert.SizeInBytes));
             }
 
 

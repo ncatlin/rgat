@@ -358,6 +358,25 @@ namespace rgat
             public const uint SizeInBytes = 20;
         }
 
+        public struct Position1DColourMultiVert
+        {
+            /// <summary>
+            /// Possitions buffer index
+            /// </summary>
+            public float SrcPositionIndex;
+            public float DestPositionIndex;
+            public float EdgeProgress;
+            /// <summary>
+            /// Colour of the geometry
+            /// </summary>
+            public WritableRgbaFloat Color;
+            /// <summary>
+            /// Size of this structure in bytes
+            /// </summary>
+            public const uint SizeInBytes = 28;
+        }
+
+
         /// <summary>
         /// Raw colour and geometry in 2D
         /// </summary>

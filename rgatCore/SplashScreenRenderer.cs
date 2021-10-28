@@ -506,7 +506,7 @@ namespace rgat
         {
             Debug.Assert(_gd is not null);
 
-            Position1DColour[] EdgeLineVerts = plot.GetEdgeLineVerts(eRenderingMode.eStandardControlFlow, out int edgeVertCount);
+            Position1DColourMultiVert[] EdgeLineVerts = plot.GetEdgeLineVerts(eRenderingMode.eStandardControlFlow, out int edgeVertCount);
             if (plot.LayoutState.Initialised is false || edgeVertCount == 0 || rgatState.rgatIsExiting)
             {
                 return;
@@ -545,16 +545,16 @@ namespace rgat
                 cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)nodeCount * Position1DColour.SizeInBytes);
             }
 
-            if ((EdgeLineVerts.Length * Position1DColour.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes)
+            if ((EdgeLineVerts.Length * Position1DColourMultiVert.SizeInBytes) > _EdgeVertBuffer!.SizeInBytes)
             {
                 VRAMDispose(_EdgeVertBuffer);
-                _EdgeVertBuffer = TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position1DColour.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
+                _EdgeVertBuffer = TrackedVRAMAlloc(_gd, (uint)EdgeLineVerts.Length * Position1DColourMultiVert.SizeInBytes, BufferUsage.VertexBuffer, name: "EdgeVertexBuffer");
             }
 
-            ReadOnlySpan<Position1DColour> elvSpan = new ReadOnlySpan<Position1DColour>(EdgeLineVerts, 0, edgeVertCount);
-            fixed (Position1DColour* vertsPtr = elvSpan)
+            ReadOnlySpan<Position1DColourMultiVert> elvSpan = new ReadOnlySpan<Position1DColourMultiVert>(EdgeLineVerts, 0, edgeVertCount);
+            fixed (Position1DColourMultiVert* vertsPtr = elvSpan)
             {
-                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(edgeVertCount * Position1DColour.SizeInBytes));
+                cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(edgeVertCount * Position1DColourMultiVert.SizeInBytes));
             }
 
             Framebuffer drawtarget = latestWrittenTexture == 1 ? _outputFramebuffer2! : _outputFramebuffer1!;

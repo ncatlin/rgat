@@ -9319,6 +9319,21 @@
             Size of this structure in bytes
             </summary>
         </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position1DColourMultiVert.SrcPositionIndex">
+            <summary>
+            Possitions buffer index
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position1DColourMultiVert.Color">
+            <summary>
+            Colour of the geometry
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position1DColourMultiVert.SizeInBytes">
+            <summary>
+            Size of this structure in bytes
+            </summary>
+        </member>
         <member name="T:rgat.VeldridGraphBuffers.Position2DColour">
             <summary>
             Raw colour and geometry in 2D

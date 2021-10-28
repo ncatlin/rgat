@@ -223,7 +223,7 @@ void main() {
         */
         public static ShaderSetDescription CreateEdgeRelativeShaders(GraphicsDevice gd, out DeviceBuffer vertBuffer)
         {
-            VertexElementDescription VEDpos = new VertexElementDescription("PositionBufIndex", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Int1);
+            VertexElementDescription VEDpos = new VertexElementDescription("PositionBufIndex", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3);
             VertexElementDescription VEDcol = new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4);
             VertexLayoutDescription vertexLayout = new VertexLayoutDescription(VEDpos, VEDcol);
 
@@ -248,7 +248,8 @@ void main() {
 #extension GL_ARB_shading_language_420pack : enable
 
 
-layout(location = 0) in int PositionBufIndex;
+//layout(location = 0) in int PositionBufIndex;
+layout(location = 0) in vec3 PositionsOffset;
 layout(location = 1) in vec4 Color;
 layout(location = 0) out vec4 vColor;
 
@@ -268,22 +269,43 @@ layout(set = 0, binding=0) uniform ViewBuffer
 layout(set = 0, binding=2) buffer bufpositionTexture{  vec4 positionTexture[];};
 layout(set = 0, binding=3) buffer bufnodeAttribTexture{ vec4 nodeAttribTexture[];};
 
+const float pi = 3.14159265359;
 
 void main() {
 
-    //uint index = uint(Position.y * TexWidth + Position.x);
-    /*
-        each edge has two verts, one for each node
-    */    
+    int srcIndex = int(PositionsOffset.x);
+    int destIndex =int( PositionsOffset.y);
+    float edgePosition = PositionsOffset.z;
+
     if (isAnimated)
     {
-        vColor = vec4(Color.xyz, nodeAttribTexture[PositionBufIndex].y);
+        vColor = vec4(Color.xyz, nodeAttribTexture[srcIndex].y);
     }
     else
     {
         vColor = vec4(Color.xyz, Color.w);
     }
-    vec4 worldPosition = World *  vec4(positionTexture[PositionBufIndex].xyz,1);
+
+    vec3 nodePos;
+    if (edgePosition == 0)
+    {
+        nodePos = positionTexture[srcIndex].xyz;
+    }
+    else if (edgePosition == 1)
+    {
+        nodePos = positionTexture[destIndex].xyz;
+    }
+    else
+    {
+        //first get the position on the line between the two nodes
+        nodePos = positionTexture[srcIndex].xyz + (positionTexture[destIndex].xyz -positionTexture[srcIndex].xyz) * edgePosition;
+        //now offset it in an arc
+        float edgelength =  abs(length(positionTexture[destIndex].xyz - positionTexture[srcIndex].xyz));
+        float multiplier = sin(pi * edgePosition)* (1.3/log(edgelength))*edgelength; 
+        nodePos += vec3(multiplier , 0, multiplier);
+    }
+
+    vec4 worldPosition = World *  vec4(nodePos,1);
     vec4 viewPosition = View * worldPosition;
     vec4 clipPosition = Projection * viewPosition;
     gl_Position = clipPosition;
@@ -343,9 +365,12 @@ void main() {
     vColor = Color;
     vec3 nodePosition;
 
-    if (Position.w == 0){
+    if (Position.w == 0)
+    {
         nodePosition = vec3(Position.xyz);
-    } else {
+    } 
+   else 
+    {
        uint index = uint(Position.y * TexWidth + Position.x);
        nodePosition = positionTexture[index].xyz;
     }

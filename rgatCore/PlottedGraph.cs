@@ -1686,7 +1686,7 @@ namespace rgat
         class CACHED_EDGE_SET
         {
             public int ELVertIndex = 0;
-            public Position1DColour[] EdgeLineVerts = Array.Empty<Position1DColour>();
+            public Position1DColourMultiVert[] EdgeLineVerts = Array.Empty<Position1DColourMultiVert>();
             public bool TexturiseRequired = false;
         }
 
@@ -1701,7 +1701,7 @@ namespace rgat
         /// <param name="vertCount">Output number of edge vertics to draw</param>
         /// <param name="preview">Use the preview data. If false - use the main node data</param>
         /// <returns>Position/Colour geometry of the edges</returns>
-        public Position1DColour[] GetEdgeLineVerts(eRenderingMode renderingMode, out int vertCount, bool preview = false)
+        public Position1DColourMultiVert[] GetEdgeLineVerts(eRenderingMode renderingMode, out int vertCount, bool preview = false)
         {
             CACHED_EDGE_SET cache = preview ? _previewEdgesCache : _mainEdgesCache;
 
@@ -1709,10 +1709,9 @@ namespace rgat
             uint evTexSize = evTexWidth * evTexWidth * 16;
             if (evTexSize > cache.EdgeLineVerts.Length || cache.TexturiseRequired)
             {
-                cache.EdgeLineVerts = new Position1DColour[evTexSize];
+                cache.EdgeLineVerts = new Position1DColourMultiVert[evTexSize];
                 cache.ELVertIndex = 0;
                 cache.TexturiseRequired = false;
-                //GC.Collect();
             }
 
             Stopwatch sw = new();
@@ -1727,6 +1726,23 @@ namespace rgat
                 Console.WriteLine($"gelv GetEdgelistSpans took {sw.ElapsedMilliseconds}ms ");
             sw.Restart();
 
+
+
+            int finalVertCount = 0;
+            foreach(var edge in edges)
+            {
+                if (edge.edgeClass == EdgeNodeType.eEdgeOld || edge.edgeClass == EdgeNodeType.eEdgeReturn)
+                {
+                    finalVertCount += 3;
+                }
+                else
+                {
+                    finalVertCount += 2;
+                }
+            }
+            cache.ELVertIndex = 0;
+
+            List<Position1DColourMultiVert> templist = new();
             for (var i = cache.ELVertIndex; i < lastEdgeIdx; i++)
             {
                 Tuple<uint, uint> edgeNodes = nodePairs[i];
@@ -1734,22 +1750,93 @@ namespace rgat
                 int srcNodeIdx = (int)edgeNodes.Item1;
                 int destNodeIdx = (int)edgeNodes.Item2;
                 WritableRgbaFloat ecol = GetEdgeColor(edgeNodes, edges[i], renderingMode);
-                cache.EdgeLineVerts[i * 2] =
-                        new Position1DColour
-                        {
-                            PositionIndex = srcNodeIdx,
-                            Color = ecol
-                        };
-
-                cache.EdgeLineVerts[i * 2 + 1] =
-                    new Position1DColour
+                EdgeData edge = edges[i];
+                if (edge.edgeClass == EdgeNodeType.eEdgeOld || edge.edgeClass == EdgeNodeType.eEdgeReturn)
+                {
+                    // cache.EdgeLineVerts[i * 2] =
+                    templist.Add(
+                    new Position1DColourMultiVert
                     {
-                        PositionIndex = destNodeIdx,
+                        SrcPositionIndex = srcNodeIdx,
+                        DestPositionIndex = destNodeIdx,
+                        EdgeProgress = 0,
                         Color = ecol
+                    });
+
+                    const float arcInnerVertCount = 8;
+                    List<WritableRgbaFloat> colors = new()
+                    {
+                        new WritableRgbaFloat(Color.Red),
+                        new WritableRgbaFloat(Color.Green),
+                        new WritableRgbaFloat(Color.Gray),
+                        new WritableRgbaFloat(Color.Yellow),
+                        new WritableRgbaFloat(Color.DeepPink),
+                        new WritableRgbaFloat(Color.Blue),
+                        new WritableRgbaFloat(Color.Orange)
                     };
+                    for (var arcI = 0; arcI < arcInnerVertCount; arcI++)
+                    {
+
+                        // cache.EdgeLineVerts[i * 2] =
+                        templist.Add(
+                        new Position1DColourMultiVert
+                        {
+                            SrcPositionIndex = srcNodeIdx,
+                            DestPositionIndex = destNodeIdx,
+                            EdgeProgress = ((float)(arcI + 1)) / (arcInnerVertCount),
+                            Color = ecol
+                        });
+                        templist.Add(
+                        new Position1DColourMultiVert
+                        {
+                            SrcPositionIndex = srcNodeIdx,
+                            DestPositionIndex = destNodeIdx,
+                            EdgeProgress = ((float)(arcI + 1)) / (arcInnerVertCount),
+                            //Color = colors[arcI]// ecol
+                            Color = ecol
+                        });
+                    }
+
+
+                    //cache.EdgeLineVerts[i * 2 + 1] =
+
+                    templist.Add(
+                        new Position1DColourMultiVert
+                        {
+                            SrcPositionIndex = srcNodeIdx,
+                            DestPositionIndex = destNodeIdx,
+                            EdgeProgress = 1,
+                            Color = ecol
+                        });
+                }
+                else
+                {
+                    //cache.EdgeLineVerts[i * 2] =
+
+                    templist.Add(new Position1DColourMultiVert
+                            {
+                            //PositionIndex = srcNodeIdx,
+                            SrcPositionIndex = srcNodeIdx,
+                                DestPositionIndex = destNodeIdx,
+                                EdgeProgress = 0,
+                                Color = ecol
+                            });
+
+                    // cache.EdgeLineVerts[i * 2 + 1] =
+
+                    templist.Add(new Position1DColourMultiVert
+                        {
+                            SrcPositionIndex = srcNodeIdx,
+                            DestPositionIndex = destNodeIdx,
+                            EdgeProgress = 1,
+                            Color = ecol
+                        });
+                }
             }
-            vertCount = lastEdgeIdx * 2;
-            cache.ELVertIndex = lastEdgeIdx;
+            //vertCount = lastEdgeIdx * 2;
+            //cache.ELVertIndex = lastEdgeIdx;
+            vertCount = templist.Count;
+            cache.EdgeLineVerts = templist.ToArray();
 
             sw.Stop();
             if (sw.ElapsedMilliseconds > 60)
