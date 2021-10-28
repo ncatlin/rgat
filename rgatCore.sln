@@ -45,6 +45,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BufferExecution32", "tests\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiELibDotNet", "..\..\..\Desktop\rgatstuff\nugetlesspackages\DiELibDotNet\DiELibDotNet.csproj", "{339DA6E4-19E9-4C07-9C0C-C56802CE0C53}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NestedLoops32", "NestedLoops32\NestedLoops32.vcxproj", "{13569016-5A7A-4882-A777-55EB72A88314}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -190,6 +192,14 @@ Global
 		{339DA6E4-19E9-4C07-9C0C-C56802CE0C53}.Release|x64.Build.0 = Release|Any CPU
 		{339DA6E4-19E9-4C07-9C0C-C56802CE0C53}.Release|x86.ActiveCfg = Release|Any CPU
 		{339DA6E4-19E9-4C07-9C0C-C56802CE0C53}.Release|x86.Build.0 = Release|Any CPU
+		{13569016-5A7A-4882-A777-55EB72A88314}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{13569016-5A7A-4882-A777-55EB72A88314}.Debug|x64.ActiveCfg = Debug|x64
+		{13569016-5A7A-4882-A777-55EB72A88314}.Debug|x64.Build.0 = Debug|x64
+		{13569016-5A7A-4882-A777-55EB72A88314}.Debug|x86.ActiveCfg = Debug|Win32
+		{13569016-5A7A-4882-A777-55EB72A88314}.Release|Any CPU.ActiveCfg = Release|Win32
+		{13569016-5A7A-4882-A777-55EB72A88314}.Release|x64.ActiveCfg = Release|x64
+		{13569016-5A7A-4882-A777-55EB72A88314}.Release|x86.ActiveCfg = Release|Win32
+		{13569016-5A7A-4882-A777-55EB72A88314}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -207,6 +217,7 @@ Global
 		{6428EFF6-1A40-4157-A713-F92B7E868241} = {DBC2EA77-65BC-499C-88F8-292971674B51}
 		{1C355499-318B-4000-B82E-A8F51CB1D03B} = {DBC2EA77-65BC-499C-88F8-292971674B51}
 		{15232649-52AD-428B-9251-005D5DD6B1B9} = {DBC2EA77-65BC-499C-88F8-292971674B51}
+		{13569016-5A7A-4882-A777-55EB72A88314} = {DBC2EA77-65BC-499C-88F8-292971674B51}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {21095FE3-868B-4302-8C79-0573A3EAF4F3}

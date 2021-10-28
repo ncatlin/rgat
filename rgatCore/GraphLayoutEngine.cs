@@ -401,8 +401,8 @@ namespace rgat
                 Logging.RecordLogEvent($"Compute step took {_stepTimer.ElapsedMilliseconds}ms", Logging.LogFilterType.Debug);
 
             //DebugPrintOutputIntBuffer(layout.BlockMiddles!, "Middles", 100);
-            //DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 32);
-            //DebugPrintOutputFloatBuffer(layout.PositionsVRAM1!, "pos1", 32);
+            //DebugPrintOutputFloatBuffer(layout.VelocitiesVRAM1!, "Vel1", 140);
+            //DebugPrintOutputFloatBuffer(layout.PositionsVRAM1!, "pos1", 140);
             //DebugPrintOutputFloatBuffer(layout.PositionsVRAM2!, "pos2", 32);
             //DebugPrintOutputFloatBuffer(layout.AttributesVRAM, "Atts2", 32);
 

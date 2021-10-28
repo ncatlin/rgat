@@ -1,29 +1,14 @@
         .686p                   ;enable instructions
         .xmm                    ;enable instructions
         .model flat, stdcall           ;use C naming convention (stdcall is default)
-		        .data                   ;initialized data
-message     db      "delmefff",0dh,0ah,0
-message_end db 0
+		.data                   ;initialized data
         .data?         
         .stack  4096            ;stack (optional, linker will default)
 
         .code                   ;code 
 
-
-		        GetStdHandle PROTO STDCALL :DWORD
-        ExitProcess PROTO STDCALL :DWORD
-        
-        WriteFile proto,  hFile:dword, lpBuffer:near32,      ;A handle to the device
-            nNumberOfCharsToWrite:dword,       ;The maximum number of bytes to be written.
-            lpNumberOfbytesWritten:near32,     ;A pointer to the variable that receives the number of bytes written
-            lpOverlapped:near32 
-
         public  main
 		
-        includelib      msvcrtd
-        includelib      oldnames
-        includelib      kernel32
-        includelib      legacy_stdio_definitions.lib    ;for scanf, printf, ...
 main:    
 
 	; exec count now 0

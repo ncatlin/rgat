@@ -450,6 +450,28 @@ namespace rgat.Layouts
                     {
                         blockTopNodeIndex = (int)FirstLastIdx.Item1;
                     }
+                    else
+                    {
+                        //these are all back edges, which have 0 force
+                        /*
+                        //the top of the block wasnt connected to anything
+                        //there might be a connection below though
+                        List<InstructionData>? blockInslist = graph.ProcessData.BasicBlocksList[(int)n.BlockID]?.Item2;
+                        if (blockInslist is not null)
+                        {
+                            for (var i = 1; i < blockInslist.Count; i++)
+                            {
+                                uint n2Idx = (uint)(FirstLastIdx.Item1 + i);
+                                NodeData? n2 = graph.GetNode(n2Idx);
+                                if (n2 is not null && n2.IncomingNeighboursSet.Count > 0)
+                                {
+                                    blockTopNodeIndex = (int)n2Idx;
+                                    break;
+                                }
+                            }
+                        } 
+                        */
+                    }
 
                     if (graph.GetNode(FirstLastIdx.Item2)?.OutgoingNeighboursSet.Count > 0)
                     {

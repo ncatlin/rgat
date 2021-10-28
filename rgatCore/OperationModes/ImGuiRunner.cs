@@ -367,7 +367,7 @@ namespace rgat.OperationModes
             currentUIProgress = rgatUI.StartupProgress;
 
             float apiProgress = 0, sigProgress = 0;
-            void UpdateProgressAPISig() { rgatUI.StartupProgress = currentUIProgress + 0.07 * sigProgress + 0.07f * apiProgress; };
+            void UpdateProgressAPISig() { rgatUI.StartupProgress = Math.Max(rgatUI.StartupProgress, currentUIProgress + 0.07 * sigProgress + 0.07f * apiProgress); };
             Progress<float> IProgressAPI = new(progress => { apiProgress = progress; UpdateProgressAPISig(); });
             Progress<float> IProgressSigs = new(progress => { sigProgress = progress; UpdateProgressAPISig(); });
 

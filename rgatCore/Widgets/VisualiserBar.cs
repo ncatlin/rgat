@@ -346,7 +346,6 @@ namespace rgat.Widgets
                 {
                     graph.SeekToAnimationPosition(sliderBarPosition);
                 }
-                Logging.WriteConsole($"User changed animation position to: {sliderBarPosition * 100}%");
             }
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 0);
 

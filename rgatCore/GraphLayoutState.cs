@@ -674,10 +674,12 @@ namespace rgat
             cl.Begin();
 
 
-            if (!_VRAMBuffers.Initialised || (offset + updateSize) > VelocitiesVRAM1!.SizeInBytes)
+            if (!_VRAMBuffers.Initialised || (offset + updateSize) > VelocitiesVRAM1!.SizeInBytes ||
+                (offset + updateSize) > _VRAMBuffers.Attributes1!.SizeInBytes)
             {
                 _lock.EnterWriteLock();
-                if (!_VRAMBuffers.Initialised || (offset + updateSize) > VelocitiesVRAM1!.SizeInBytes)
+                if (!_VRAMBuffers.Initialised || (offset + updateSize) > VelocitiesVRAM1!.SizeInBytes ||
+                (offset + updateSize) > _VRAMBuffers.Attributes1!.SizeInBytes)
                 {
                     var bufferWidth = plot.NestedIndexTextureSize();
                     var bufferFloatCount = bufferWidth * bufferWidth * 4;
@@ -699,7 +701,7 @@ namespace rgat
             }
 
             Debug.Assert(VelocitiesVRAM1 is not null);
-
+            Debug.Assert((offset + updateSize) <= _VRAMBuffers.Attributes1!.SizeInBytes);
 
             uint endOfComputeBufferOffset = (uint)plot.ComputeBufferNodeCount * 4;
             float[] newPositions = RAMbufs.PositionsArray;

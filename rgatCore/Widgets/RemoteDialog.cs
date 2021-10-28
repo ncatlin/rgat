@@ -493,7 +493,7 @@ namespace rgat.Widgets
                 ImGui.EndTooltip();
             }
             ImGui.SameLine();
-            if (ImGui.Button("O##rkeybtn"))
+            if (ImGui.Button($"{ImGuiController.FA_ICON_ROTATION}##rkeybtn"))
             {
                 RegenerateKey();
             }

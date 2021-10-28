@@ -99,7 +99,7 @@ void main()	{
         vec4 nodePosition;
 
         const float speedLimit = 100000.0;
-        float outputDebug = -100;
+        float outputDebug = 0;
       
         int index = blockMiddles[midListIndex];
         BLOCK_METADATA selfBlockData = blockData[index];
@@ -118,7 +118,11 @@ void main()	{
 		}
             
             
-        //now attract
+        //anchor the first block to the center of the space
+        if (midListIndex == 0)
+        {
+            velocity -= addAttraction(selfPosition, vec4(0,0,0,0), 1);
+        }
         
         //attract this center node towards any blocks linked to the top node 
         EDGE_INDEX_LIST_OFFSETS topEdgeIndices = edgeIndices[selfBlockData.CenterBlockTopEdges];
@@ -129,10 +133,9 @@ void main()	{
                 uint neighbourID = edgeTargets[edgeIndex];
                 nodePosition = positions[neighbourID];
                 BLOCK_METADATA neighborBlockData = blockData[neighbourID];
-                //attract center to another block
                 if (neighborBlockData.BlockID != selfBlockData.BlockID)
                 { 
-                    velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
+                   velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
                 }
             }
         }
@@ -149,7 +152,7 @@ void main()	{
                 //attract center of this block to center of another block (not this block)
                 if (neighborBlockData.BlockID != selfBlockData.BlockID)
                 {
-                    velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));
+                    velocity -= addAttraction(selfPosition, nodePosition, int(edgeIndex));                
                 }
             }
         }

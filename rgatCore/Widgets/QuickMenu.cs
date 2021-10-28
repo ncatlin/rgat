@@ -986,7 +986,7 @@ private void DrawScalePopup()
                 ImGui.Text("Clump Multiplier");
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                ImGui.DragFloat("##ClumpFrc", ref GlobalConfig.NodeClumpForce, 0.01f, 0.00001f, 100f, "%f6");
+                ImGui.DragFloat("##ClumpFrc", ref GlobalConfig.NodeClumpForce, 0.01f, 0.00001f, 2f, "%f6");
                 SmallWidgets.MouseoverText("Control the forces acting on highly-connected nodes");
 
                 ImGui.TableNextRow();

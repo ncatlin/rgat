@@ -239,8 +239,6 @@ namespace rgat
 
             int NewPosition = (int)(position * InternalProtoGraph.UpdateCount);
             _userSelectedAnimPosition = NewPosition;
-            Logging.WriteConsole($"Animation set index: {NewPosition}, last: {_lastReplayedIndex}");
-
         }
 
         /// <summary>
@@ -1739,14 +1737,14 @@ namespace rgat
                 cache.EdgeLineVerts[i * 2] =
                         new Position1DColour
                         {
-                            PositionIndex = srcNodeIdx,// = new Vector2(srcNodeIdx % textureSize, (float)Math.Floor((float)(srcNodeIdx / textureSize))),
+                            PositionIndex = srcNodeIdx,
                             Color = ecol
                         };
 
                 cache.EdgeLineVerts[i * 2 + 1] =
                     new Position1DColour
                     {
-                        PositionIndex = destNodeIdx,// new Vector2(destNodeIdx % textureSize, (float)Math.Floor((float)(destNodeIdx / textureSize))),
+                        PositionIndex = destNodeIdx,
                         Color = ecol
                     };
             }

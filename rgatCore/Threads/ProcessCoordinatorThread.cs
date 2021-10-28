@@ -52,11 +52,11 @@ namespace rgat.Threads
                 {
                     if (!Version.TryParse(fields[1], out Version? versionResult) || versionResult is null)
                     {
-                        Logging.RecordError("Unable to parse version of new trace");
+                        Logging.RecordError("Unable to parse version of incoming trace");
                     }
                     else if (versionResult != CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC)
                     {
-                        Logging.RecordError($"Incoming trace version {versionResult} mismatch with current {CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC}");
+                        Logging.RecordError($"Incoming trace version {versionResult} mismatch with expected {CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC}");
                     }
                 }
 
