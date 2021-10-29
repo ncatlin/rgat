@@ -5020,9 +5020,9 @@
             </summary>
             <returns></returns>
         </member>
-        <member name="M:rgat.PlottedGraph.EdgeVertsTextureWidth">
+        <member name="M:rgat.PlottedGraph.EdgeVertsBufferSize(System.Int32,System.Int32,System.Int32@,System.Int32@)">
             <summary>
-            Power of 2 buffer size to fit the vector4 graph node data
+            Size of the buffer to hold edge verts
             </summary>
             <returns></returns>
         </member>
@@ -5103,7 +5103,8 @@
         </member>
         <member name="M:rgat.PlottedGraph.dataTextureSize(System.Int32)">
             <summary>
-            Size of data textures for compute shaders
+            Size of data textures for compute shaders, input is number of vector 4 entries the buffer is expected to hold
+            Output is the lowest power of two size that will hold it
             </summary>
             <param name="num">Node count</param>
             <returns>Texture size</returns>
@@ -6501,6 +6502,17 @@
             <summary>
             Arguments have been recorded for an API call which we haven't consolidated yet
             </summary>
+        </member>
+        <member name="F:rgat.ProtoGraph._edgeTypes">
+            <summary>
+            Number of edges of each type
+            </summary>
+        </member>
+        <member name="M:rgat.ProtoGraph.GetEdgeTypeCounts">
+            <summary>
+            Get a dictionary describing the number of edges of each type
+            </summary>
+            <returns>Copy of edge type count dictionary</returns>
         </member>
         <member name="F:rgat.ProtoGraph.EdgeList">
             <summary>

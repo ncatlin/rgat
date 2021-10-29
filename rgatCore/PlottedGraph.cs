@@ -1041,7 +1041,7 @@ namespace rgat
             //if it happens it means an edge is going to a from a node that didn't exist at the time it was created
             Debug.Assert(nodeIdx == _graphStructureLinear.Count);
             uint futureCount = (uint)_graphStructureLinear.Count + 1;
-            var bufferWidth = indexTextureSize((int)futureCount);
+            var bufferWidth = powerOfTwoContaining((int)futureCount);
 
             LayoutState.Lock.EnterUpgradeableReadLock();
             LayoutState.AddNode(nodeIdx, futureCount, bufferWidth, edge: edge);
@@ -1113,7 +1113,7 @@ namespace rgat
             {
                 nodeNeighboursArray = _graphStructureBalanced.ToList();
             }
-            var textureSize2 = indexTextureSize(nodeCount * 2);
+            var textureSize2 = powerOfTwoContaining(nodeCount * 2);
             edgeIndexLookups = new EDGE_INDEX_FIRSTLAST[(int)(textureSize2 * textureSize2 * 0.5f)];// * textureSize2 * 2];
 
             st.Stop(); v1 = st.ElapsedMilliseconds; st.Restart();
@@ -1238,7 +1238,7 @@ namespace rgat
         /// <returns>Positions of the preset nodes</returns>
         public float[] CreateBlankPresetLayout()
         {
-            var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
+            var bufferWidth = powerOfTwoContaining(_graphStructureLinear.Count);
             var bufferFloatCount = bufferWidth * bufferWidth * 4;
             float[] presetPositionsArray = new float[bufferFloatCount];
 
@@ -1267,7 +1267,7 @@ namespace rgat
         private float[] CreateRandomPresetLayout()
         {
 
-            var bufferWidth = indexTextureSize(_graphStructureLinear.Count);
+            var bufferWidth = powerOfTwoContaining(_graphStructureLinear.Count);
             var bufferFloatCount = bufferWidth * bufferWidth * 4;
             float[] positions = new float[bufferFloatCount];
 
@@ -1328,18 +1328,43 @@ namespace rgat
         /// Power of 2 buffer size to fit the uint graph node indexes
         /// </summary>
         /// <returns></returns>
-        public uint LinearIndexTextureSize() { return indexTextureSize(_graphStructureLinear.Count); }
+        public uint LinearIndexTextureSize() { return powerOfTwoContaining(_graphStructureLinear.Count); }
+
         /// <summary>
-        /// Power of 2 buffer size to fit the vector4 graph node data
+        /// Size of the buffer to hold edge verts
         /// </summary>
         /// <returns></returns>
-        public uint EdgeVertsTextureWidth() { return dataTextureSize(InternalProtoGraph.EdgeCount); }
+        public uint EdgeVertsBufferSize(int longSize, int shortSize, out int vertexCount, out int edgeCount)
+        {
+            var edgeCounts = InternalProtoGraph.GetEdgeTypeCounts();
+            vertexCount = 0;
+            edgeCount = 0;
+            foreach (KeyValuePair<EdgeNodeType, int> count in edgeCounts)
+            {
+                edgeCount += count.Value;
+                switch (count.Key)
+                {
+                    case EdgeNodeType.eEdgeOld:
+                    case EdgeNodeType.eEdgeReturn:
+                        vertexCount += longSize * count.Value;
+                        break;
+                    default:
+                        vertexCount += shortSize * count.Value;
+                        break;
+                }
+            }
+
+            //originally this was to have a square texture, now it just gives us slack space to put more verts to space out resizes
+            uint width = powerOfTwoContaining((int)(vertexCount * Position1DColourMultiVert.SizeInBytes));
+            uint itemCount = (uint)Math.Floor(((double)(width * width) / (double)Position1DColourMultiVert.SizeInBytes));
+            return itemCount;
+        }
 
         /// <summary>
         /// Power of 2 buffer size to fit the uint graph edge indexes
         /// </summary>
         /// <returns></returns>
-        public uint NestedIndexTextureSize() { return indexTextureSize(_graphStructureBalanced.Count); }
+        public uint NestedIndexTextureSize() { return powerOfTwoContaining(_graphStructureBalanced.Count); }
 
         /// <summary>
         /// Power of 2 buffer size to fit the vector4 graph edges
@@ -1440,7 +1465,7 @@ namespace rgat
                         return Themes.GetThemeColourWRF(Themes.eThemeColour.Emphasis2);
                     }
 
-                    float heatProportion = 10* ((float)highestDegree / (float)InternalProtoGraph.MostConnections);
+                    float heatProportion = 10 * ((float)highestDegree / (float)InternalProtoGraph.MostConnections);
                     Debug.Assert(heatProportion >= 0 && heatProportion <= 10);
                     int colourIndex = (int)Math.Floor(heatProportion) + (int)Themes.eThemeColour.Heat0Lowest;
                     return Themes.GetThemeColourWRF((Themes.eThemeColour)colourIndex);
@@ -1523,7 +1548,7 @@ namespace rgat
                 _cachedMainNodeVertCount = 0;
                 InitGraphColours();
                 lastThemeVersion = themeVariant;
-                _mainEdgesCache.TexturiseRequired = true;
+                _mainEdgesCache.RegenerationRequired = true;
             }
 
             int textureSize = textureWidth * textureWidth;
@@ -1535,8 +1560,13 @@ namespace rgat
                 Position1DColour[] NodePickingVerts = new Position1DColour[textureSize];
                 _cachedMainNodePickingVerts = NodePickingVerts;
                 _cachedMainNodeVertCount = 0;
-                _mainEdgesCache.TexturiseRequired = true;
+                _mainEdgesCache.RegenerationRequired = true;
             }
+            if (_mainEdgesCache.cachedRenderMode != renderingMode)
+            {
+                _mainEdgesCache.RegenerationRequired = true;
+            }
+
 
             nodePickingColors = _cachedMainNodePickingVerts;
             captions = new List<Tuple<string?, uint>>();
@@ -1633,7 +1663,7 @@ namespace rgat
             if (textureSize > _cachedPreviewNodeVerts.Length)
             {
                 _cachedPreviewNodeVerts = new Position1DColour[textureSize];
-                _mainEdgesCache.TexturiseRequired = true;
+                _mainEdgesCache.RegenerationRequired = true;
                 _cachedPreviewNodeVertCount = 0;
             }
 
@@ -1680,14 +1710,17 @@ namespace rgat
         {
             _mainEdgesCache.ELVertIndex = 0;
             _cachedMainNodeVertCount = 0;
+            _mainEdgesCache.EdgesRendered = 0;
         }
 
 
         class CACHED_EDGE_SET
         {
             public int ELVertIndex = 0;
+            public int EdgesRendered = 0;
             public Position1DColourMultiVert[] EdgeLineVerts = Array.Empty<Position1DColourMultiVert>();
-            public bool TexturiseRequired = false;
+            public bool RegenerationRequired = false;
+            public eRenderingMode cachedRenderMode;
         }
 
         readonly CACHED_EDGE_SET _previewEdgesCache = new CACHED_EDGE_SET();
@@ -1705,13 +1738,20 @@ namespace rgat
         {
             CACHED_EDGE_SET cache = preview ? _previewEdgesCache : _mainEdgesCache;
 
-            uint evTexWidth = EdgeVertsTextureWidth();
-            uint evTexSize = evTexWidth * evTexWidth * 16;
-            if (evTexSize > cache.EdgeLineVerts.Length || cache.TexturiseRequired)
+            uint evTexSize = EdgeVertsBufferSize(18, 2, out vertCount, out int edgeCount);
+            if (InternalProtoGraph.EdgeCount > cache.EdgesRendered || cache.RegenerationRequired)
             {
+                if (evTexSize > cache.EdgeLineVerts.Length)
+                {
+                    cache.EdgeLineVerts = new Position1DColourMultiVert[evTexSize];
+                }
+                Logging.RecordLogEvent($"Graph {PID}:{TID} has {edgeCount} edges with {vertCount} verts ({vertCount * Position1DColourMultiVert.SizeInBytes} bytes) -" +
+                    $" Buffer allocated for it is {evTexSize} verts - {evTexSize * Position1DColourMultiVert.SizeInBytes} bytes", Logging.LogFilterType.Debug);
                 cache.EdgeLineVerts = new Position1DColourMultiVert[evTexSize];
                 cache.ELVertIndex = 0;
-                cache.TexturiseRequired = false;
+                cache.EdgesRendered = 0;
+                cache.RegenerationRequired = false;
+                cache.cachedRenderMode = renderingMode;
             }
 
             Stopwatch sw = new();
@@ -1719,144 +1759,98 @@ namespace rgat
 
             //var edgeList = InternalProtoGraph.GetEdgelistCopy();
             InternalProtoGraph.GetEdgelistSpans(out Span<Tuple<uint, uint>> nodePairs, out Span<EdgeData> edges);
-            int lastEdgeIdx = Math.Min(nodePairs.Length, edges.Length);
-
-            sw.Stop();
-            if (sw.ElapsedMilliseconds > 60)
-                Console.WriteLine($"gelv GetEdgelistSpans took {sw.ElapsedMilliseconds}ms ");
-            sw.Restart();
-
-
-
-            int finalVertCount = 0;
-            foreach(var edge in edges)
+            int vertI = cache.ELVertIndex;
+            for (var edgeI = cache.EdgesRendered; edgeI < edgeCount; edgeI++)
             {
-                if (edge.edgeClass == EdgeNodeType.eEdgeOld || edge.edgeClass == EdgeNodeType.eEdgeReturn)
-                {
-                    finalVertCount += 3;
-                }
-                else
-                {
-                    finalVertCount += 2;
-                }
-            }
-            cache.ELVertIndex = 0;
-
-            List<Position1DColourMultiVert> templist = new();
-            for (var i = cache.ELVertIndex; i < lastEdgeIdx; i++)
-            {
-                Tuple<uint, uint> edgeNodes = nodePairs[i];
+                Tuple<uint, uint> edgeNodes = nodePairs[edgeI];
 
                 int srcNodeIdx = (int)edgeNodes.Item1;
                 int destNodeIdx = (int)edgeNodes.Item2;
-                WritableRgbaFloat ecol = GetEdgeColor(edgeNodes, edges[i], renderingMode);
-                EdgeData edge = edges[i];
+                EdgeData edge = edges[edgeI];
+                WritableRgbaFloat ecol = GetEdgeColor(edgeNodes, edge, renderingMode);
                 if (edge.edgeClass == EdgeNodeType.eEdgeOld || edge.edgeClass == EdgeNodeType.eEdgeReturn)
                 {
-                    // cache.EdgeLineVerts[i * 2] =
-                    templist.Add(
+                    cache.EdgeLineVerts[vertI++] =
                     new Position1DColourMultiVert
                     {
                         SrcPositionIndex = srcNodeIdx,
                         DestPositionIndex = destNodeIdx,
                         EdgeProgress = 0,
                         Color = ecol
-                    });
+                    };
 
                     const float arcInnerVertCount = 8;
-                    List<WritableRgbaFloat> colors = new()
-                    {
-                        new WritableRgbaFloat(Color.Red),
-                        new WritableRgbaFloat(Color.Green),
-                        new WritableRgbaFloat(Color.Gray),
-                        new WritableRgbaFloat(Color.Yellow),
-                        new WritableRgbaFloat(Color.DeepPink),
-                        new WritableRgbaFloat(Color.Blue),
-                        new WritableRgbaFloat(Color.Orange)
-                    };
                     for (var arcI = 0; arcI < arcInnerVertCount; arcI++)
                     {
+                        cache.EdgeLineVerts[vertI++] = new Position1DColourMultiVert
+                        {
+                            SrcPositionIndex = srcNodeIdx,
+                            DestPositionIndex = destNodeIdx,
+                            EdgeProgress = ((float)(arcI + 1)) / (arcInnerVertCount),
+                            Color = ecol
+                        };
 
-                        // cache.EdgeLineVerts[i * 2] =
-                        templist.Add(
-                        new Position1DColourMultiVert
+                        cache.EdgeLineVerts[vertI++] = new Position1DColourMultiVert
                         {
                             SrcPositionIndex = srcNodeIdx,
                             DestPositionIndex = destNodeIdx,
                             EdgeProgress = ((float)(arcI + 1)) / (arcInnerVertCount),
                             Color = ecol
-                        });
-                        templist.Add(
-                        new Position1DColourMultiVert
-                        {
-                            SrcPositionIndex = srcNodeIdx,
-                            DestPositionIndex = destNodeIdx,
-                            EdgeProgress = ((float)(arcI + 1)) / (arcInnerVertCount),
-                            //Color = colors[arcI]// ecol
-                            Color = ecol
-                        });
+                        };
                     }
 
 
-                    //cache.EdgeLineVerts[i * 2 + 1] =
-
-                    templist.Add(
-                        new Position1DColourMultiVert
-                        {
-                            SrcPositionIndex = srcNodeIdx,
-                            DestPositionIndex = destNodeIdx,
-                            EdgeProgress = 1,
-                            Color = ecol
-                        });
+                    cache.EdgeLineVerts[vertI++] = new Position1DColourMultiVert
+                    {
+                        SrcPositionIndex = srcNodeIdx,
+                        DestPositionIndex = destNodeIdx,
+                        EdgeProgress = 1,
+                        Color = ecol
+                    };
                 }
                 else
                 {
-                    //cache.EdgeLineVerts[i * 2] =
+                    cache.EdgeLineVerts[vertI++] = new Position1DColourMultiVert
+                    {
+                        SrcPositionIndex = srcNodeIdx,
+                        DestPositionIndex = destNodeIdx,
+                        EdgeProgress = 0,
+                        Color = ecol
+                    };
 
-                    templist.Add(new Position1DColourMultiVert
-                            {
-                            //PositionIndex = srcNodeIdx,
-                            SrcPositionIndex = srcNodeIdx,
-                                DestPositionIndex = destNodeIdx,
-                                EdgeProgress = 0,
-                                Color = ecol
-                            });
-
-                    // cache.EdgeLineVerts[i * 2 + 1] =
-
-                    templist.Add(new Position1DColourMultiVert
-                        {
-                            SrcPositionIndex = srcNodeIdx,
-                            DestPositionIndex = destNodeIdx,
-                            EdgeProgress = 1,
-                            Color = ecol
-                        });
+                    cache.EdgeLineVerts[vertI++] = new Position1DColourMultiVert
+                    {
+                        SrcPositionIndex = srcNodeIdx,
+                        DestPositionIndex = destNodeIdx,
+                        EdgeProgress = 1,
+                        Color = ecol
+                    };
                 }
+                cache.EdgesRendered += 1;
             }
-            //vertCount = lastEdgeIdx * 2;
-            //cache.ELVertIndex = lastEdgeIdx;
-            vertCount = templist.Count;
-            cache.EdgeLineVerts = templist.ToArray();
+            Debug.Assert(cache.EdgesRendered == edgeCount);
+            cache.ELVertIndex = vertI;
 
             sw.Stop();
             if (sw.ElapsedMilliseconds > 60)
-                Console.WriteLine($"GetEdgeLineVertsloop took {sw.ElapsedMilliseconds}ms over {vertCount} verts ({sw.ElapsedMilliseconds / vertCount} avg)");
+                Console.WriteLine($"GetEdgeLineVertsloop took {sw.ElapsedMilliseconds}ms over {vertCount} verts ({sw.ElapsedMilliseconds / vertI} avg)");
             return cache.EdgeLineVerts;
         }
 
 
 
         /// <summary>
-        /// Size of data textures for compute shaders
+        /// Size of data textures for compute shaders, input is number of vector 4 entries the buffer is expected to hold
+        /// Output is the lowest power of two size that will hold it
         /// </summary>
         /// <param name="num">Node count</param>
         /// <returns>Texture size</returns>
         private static uint dataTextureSize(int num)
         {
-            return indexTextureSize((int)Math.Ceiling(num / 4.0));
+            return powerOfTwoContaining((int)Math.Ceiling(num / 4.0));
         }
 
-        private static uint indexTextureSize(int nodesEdgesLength)
+        private static uint powerOfTwoContaining(int nodesEdgesLength)
         {
             var power = 1;
             while (power * power < nodesEdgesLength)

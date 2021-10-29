@@ -1326,7 +1326,7 @@ namespace rgat
             ReadOnlySpan<Position1DColourMultiVert> elvSpan = new ReadOnlySpan<Position1DColourMultiVert>(EdgeLineVerts, 0, edgeVertCount);
             fixed (Position1DColourMultiVert* vertsPtr = elvSpan)
             {
-                if ((uint)(elvSpan.Length * Position1DColourMultiVert.SizeInBytes) > _EdgeVertBuffer.SizeInBytes) Console.WriteLine("PROBLEM4");
+                Debug.Assert((uint)(elvSpan.Length * Position1DColourMultiVert.SizeInBytes) <= _EdgeVertBuffer.SizeInBytes);
                 cl.UpdateBuffer(_EdgeVertBuffer, 0, (IntPtr)vertsPtr, (uint)(edgeVertCount * Position1DColourMultiVert.SizeInBytes));
             }
 
@@ -1389,7 +1389,6 @@ namespace rgat
                     _RawEdgeIndexBuffer = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)illusEdgeDrawIndexes.Count * sizeof(uint), BufferUsage.IndexBuffer, name: "IllustrateIndexBuffer");
                 }
 
-                //todo - only do this on changes
                 cl.UpdateBuffer(_RawEdgeVertBuffer, 0, IllustrationEdges);
                 cl.UpdateBuffer(_RawEdgeIndexBuffer, 0, illusEdgeDrawIndexes.ToArray());
 

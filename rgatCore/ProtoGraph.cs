@@ -183,6 +183,14 @@ namespace rgat
             Terminated = terminated;
             StartAddress = startAddr;
             AssignModulePath();
+
+            foreach (EdgeNodeType ent in (EdgeNodeType[])Enum.GetValues(typeof(EdgeNodeType)))
+            {
+                if (ent.ToString().Contains("Edge"))
+                {
+                    _edgeTypes[ent] = 0;
+                }
+            }
         }
 
         /// <summary>
@@ -1117,9 +1125,12 @@ namespace rgat
                 _edgeDict.Add(edgePair, e);
                 EdgeList.Add(edgePair);
                 edgeObjList.Add(e);
+                _edgeTypes[e.edgeClass] += 1;
+                Debug.Assert(_edgeTypes.Values.Sum() == EdgeList.Count);
             }
-
         }
+
+
 
         /// <summary>
         /// Record an exception in the instruented process
@@ -1214,6 +1225,23 @@ namespace rgat
 
         //node id pairs to edge data
         private readonly Dictionary<Tuple<uint, uint>, EdgeData> _edgeDict = new Dictionary<Tuple<uint, uint>, EdgeData>();
+        /// <summary>
+        /// Number of edges of each type
+        /// </summary>
+        private readonly Dictionary<EdgeNodeType, int> _edgeTypes = new Dictionary<EdgeNodeType, int>();
+
+        /// <summary>
+        /// Get a dictionary describing the number of edges of each type
+        /// </summary>
+        /// <returns>Copy of edge type count dictionary</returns>
+        public Dictionary<EdgeNodeType, int> GetEdgeTypeCounts() 
+        {
+            lock (edgeLock)
+            {
+                return new Dictionary<EdgeNodeType, int>(_edgeTypes);
+            }
+        }
+
 
         /// <summary>
         /// Ordered list of executing edges
