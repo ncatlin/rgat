@@ -373,7 +373,7 @@ namespace rgat
                               EdgeData? targEdge = graph.GetEdge(Index, nidx);
                             if (targEdge != null)
                             {
-                                Label += $" {nidx}:{targEdge.ExecutionCount}, ";
+                                Label += $" {nidx}:{targEdge.ExecutionCount}{(i < (nCount-1)? "," : "")} ";
                             }
                         }
                         if (OutgoingNeighboursSet.Count > nCount)
