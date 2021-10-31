@@ -51,6 +51,10 @@ jobs:
     - name: Print Pindir contents
       run: dir
       working-directory: pindir\pinexdir\${{env.PIN_VERSION}}
+      
+    # do this now or the resource builder will fail
+    - name: Build UpdateFinaliser
+      run: dotnet build --no-restore UpdateFinaliser
     
     - name: Build 32 bit compiled
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="x86" /p:PINDIR="${{github.workspace}}\pindir\pinexdir\${{env.PIN_VERSION}}" rgatCore.sln
