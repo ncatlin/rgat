@@ -22,7 +22,7 @@ struct PositionParams
 {
     float delta;
     uint nodeCount;
-    float blockNodeSeperation;
+    float blockNodeSeparation;
 };
 
 struct BLOCK_METADATA{  int BlockID;  int OffsetFromCenterNode;  int CenterBlockTopEdges; int CenterBlockLastEdges; };
@@ -52,7 +52,7 @@ void main()	{
             vec4 parent = positions[index-offsetFromCenter];
             res.x = parent.x;
             res.z = parent.z;
-            res.y = parent.y - offsetFromCenter*fieldParams.blockNodeSeperation;
+            res.y = parent.y - offsetFromCenter*fieldParams.blockNodeSeparation;
             res.w = selfPosition.w;
         }
         else

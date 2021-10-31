@@ -540,12 +540,12 @@ namespace rgat
             Updates.PendingInstallPath = new_rgatPath;
             if (_update_style == "ONDOWNLOAD")
             {
-                Logging.RecordLogEvent($"Requesting exit to begin update", filter: Logging.LogFilterType.Debug);
+                Logging.RecordLogEvent($"Requesting exit to begin update");
                 rgatUI.RequestExit();
             }
             else
             {
-                Logging.RecordLogEvent($"Update staged for install on exit", filter: Logging.LogFilterType.Debug);
+                Logging.RecordLogEvent($"Update staged for install on exit");
             }
         }
 

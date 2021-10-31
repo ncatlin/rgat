@@ -1094,7 +1094,7 @@
             Checks that a binary has a valid code signing certificate issued to one of the expected subject names
             </summary>
             <param name="path">Path of binary to be tested</param>
-            <param name="expectedSigners">Comma seperated list of valid certificate subject names</param>
+            <param name="expectedSigners">Comma separated list of valid certificate subject names</param>
             <param name="error">Errors encountered in validating the certificate (no or invalid signer)</param>
             <param name="warning">Warnings encountered validating the certificate (time issues)</param>
             <returns>Whether the certificate was valid. Expired/Not yet valid certs will return true with the warning field set</returns>
@@ -1311,7 +1311,7 @@
         <member name="F:rgat.GlobalConfig.TemperatureLimit">
             <summary>
             Maximum temperature available on the GUI
-            This is seperate from maximum node temperature because it also controls how long the activity lasts
+            This is separate from maximum node temperature because it also controls how long the activity lasts
             </summary>
         </member>
         <member name="F:rgat.GlobalConfig.AttractionK">
@@ -2519,6 +2519,11 @@
         <member name="P:rgat.CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC">
             <summary>
             The SemVer version of rgat
+            </summary>
+        </member>
+        <member name="F:rgat.CONSTANTS.PROGRAMVERSION.EXPECTED_PIN_VERISON">
+            <summary>
+            In future updates this can be compared to the value at the start of the README file to see if a replacement is needed
             </summary>
         </member>
         <member name="T:rgat.CONSTANTS.UI">
@@ -6081,6 +6086,11 @@
             </summary>
         </member>
         <member name="P:rgat.Properties.Resources.NotoSansSC_Regular">
+            <summary>
+              Looks up a localized resource of type System.Byte[].
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.pin_redistrib">
             <summary>
               Looks up a localized resource of type System.Byte[].
             </summary>

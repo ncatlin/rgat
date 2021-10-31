@@ -36,19 +36,12 @@ namespace rgat.OperationModes
 
             System.Diagnostics.Stopwatch timer = new();
             timer.Start();
-            //float configProgress = 0, widgetProgress = 0;
 
             GlobalConfig.LoadConfig(GUI: false); // 900ms~ depending on themes
-
-
-            //InitEventHandlers();
 
             Logging.RecordLogEvent($"Startup: config loaded in {timer.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
             timer.Restart();
 
-            //rgatState.VideoRecorder.Load(); //0 ms
-
-            //todo - conditional thread here instead of new trace
             rgatState.processCoordinatorThreadObj = new ProcessCoordinatorThread();
             rgatState.processCoordinatorThreadObj.Begin();
 

@@ -40,12 +40,15 @@ namespace rgat
             /// </summary>
             public static string RGAT_VERSION_LONG => $"{RGAT_VERSION}{((PATCHNAME.Length > 0) ? (" " + PATCHNAME) : "")}";
 
-
-
             /// <summary>
             /// The SemVer version of rgat
             /// </summary>
             public static System.Version RGAT_VERSION_SEMANTIC => new System.Version(RGAT_VERSION);
+
+            /// <summary>
+            /// In future updates this can be compared to the value at the start of the README file to see if a replacement is needed
+            /// </summary>
+            public static string EXPECTED_PIN_VERISON = "3.20";
         }
 
 

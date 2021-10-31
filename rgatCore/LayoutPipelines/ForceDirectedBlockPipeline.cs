@@ -179,7 +179,7 @@ namespace rgat.Layouts
             {
                 delta = delta,
                 NodeCount = (uint)plot.RenderedNodeCount(),
-                blockNodeSeperation = 160
+                blockNodeSeparation = 160
             };
 
             //Logging.WriteConsole($"POS Parambuffer Size is {(uint)Unsafe.SizeOf<PositionShaderParams>()}");
@@ -230,7 +230,7 @@ namespace rgat.Layouts
         {
             public float delta;
             public uint NodeCount;
-            public float blockNodeSeperation;
+            public float blockNodeSeparation;
             //must be multiple of 16
             private readonly uint _padding1;
         }

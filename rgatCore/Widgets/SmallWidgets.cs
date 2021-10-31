@@ -157,6 +157,8 @@ namespace rgat.Widgets
 
         public static void DrawSpinner(ImGuiController controller, int count, uint colour)
         {
+            if (controller._fontTexture is null) return;
+
             ImFontGlyphPtr glyph = controller.UnicodeFont.FindGlyph(ImGuiController.FA_ICON_ROTATION);
 
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);

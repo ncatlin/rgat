@@ -218,6 +218,16 @@ namespace rgat.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] pin_redistrib {
+            get {
+                object obj = ResourceManager.GetObject("pin_redistrib", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] PinTool32 {
             get {
                 object obj = ResourceManager.GetObject("PinTool32", resourceCulture);

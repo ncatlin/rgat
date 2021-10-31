@@ -34,7 +34,7 @@ namespace rgat
         /// Checks that a binary has a valid code signing certificate issued to one of the expected subject names
         /// </summary>
         /// <param name="path">Path of binary to be tested</param>
-        /// <param name="expectedSigners">Comma seperated list of valid certificate subject names</param>
+        /// <param name="expectedSigners">Comma separated list of valid certificate subject names</param>
         /// <param name="error">Errors encountered in validating the certificate (no or invalid signer)</param>
         /// <param name="warning">Warnings encountered validating the certificate (time issues)</param>
         /// <returns>Whether the certificate was valid. Expired/Not yet valid certs will return true with the warning field set</returns>
@@ -300,7 +300,7 @@ namespace rgat
 
         /// <summary>
         /// Maximum temperature available on the GUI
-        /// This is seperate from maximum node temperature because it also controls how long the activity lasts
+        /// This is separate from maximum node temperature because it also controls how long the activity lasts
         /// </summary>
         public static readonly float TemperatureLimit = 8000f;
 
@@ -612,12 +612,12 @@ namespace rgat
                     string settingsSaveText = JsonSerializer.Serialize(Settings, options: serialiseOpts);
 
                     //Avoid settings file corruption by writing to a temp file then moving it
-                    if (File.Exists(temp)) 
+                    if (File.Exists(temp))
                         File.Delete(temp);
-                    File.WriteAllText(temp, settingsSaveText); 
+                    File.WriteAllText(temp, settingsSaveText);
                     File.Delete(path);
                     File.Move(temp, path);
-                    if (File.Exists(path)) 
+                    if (File.Exists(path))
                         File.Delete(temp);
                 }
             }
@@ -808,8 +808,15 @@ namespace rgat
                 Settings.Keybinds.ApplyUserKeybinds();
 
                 progress?.Report(0.7f);
+
+
             }
 
+            string pinpath = GlobalConfig.GetSettingPath(PathKey.PinPath);
+            if (pinpath.Length is 0 || !File.Exists(pinpath))
+            {
+                InstallNewPin();
+            }
 
             progress?.Report(0.9f);
 
@@ -819,6 +826,49 @@ namespace rgat
 
             Loaded = true;
         }
+
+
+        private static void InstallNewPin(bool forceNew = false)
+        {
+
+            string toolsDir = Path.Combine(GlobalConfig.BaseDirectory, "tools");
+            string newPinDir = Path.Combine(toolsDir, "pin-redistrib");
+            string newPinExe = Path.Combine(newPinDir, "pin.exe");
+            if (forceNew is false && File.Exists(newPinExe))
+            {
+                GlobalConfig.SetBinaryPath(PathKey.PinPath, newPinExe);
+            }
+            else
+            {
+                try
+                {
+                    if (!Directory.Exists(toolsDir))
+                    {
+                        Directory.CreateDirectory(toolsDir);
+                    }
+
+                    byte[]? pinredistZip = global::rgat.Properties.Resources.pin_redistrib;
+                    string tmpfile = Path.GetTempFileName();
+                    File.WriteAllBytes(tmpfile, pinredistZip);
+
+                    System.IO.Compression.ZipArchive arch = System.IO.Compression.ZipFile.OpenRead(tmpfile);
+                    var pindirZip = arch.GetEntry("pin-redistrib/");
+
+                    if (pindirZip is not null)
+                    {
+                        System.IO.Compression.ZipFile.ExtractToDirectory(tmpfile, toolsDir);
+                        GlobalConfig.SetBinaryPath(PathKey.PinPath, newPinExe);
+                        arch.Dispose();
+                        File.Delete(tmpfile);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordException("Failed to unpack Pin redistributable from resources, it will need configuring separately", e);
+                }
+            }
+        }
+
 
         private static void InstallNewTools()
         {

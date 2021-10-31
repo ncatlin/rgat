@@ -534,7 +534,6 @@ namespace rgat.Widgets
                     ImGui.TableSetupColumn("Scan Memory", ImGuiTableColumnFlags.WidthFixed, 90);
 
                     bool notImplementedFalse = false;
-                    bool notImplementedTrue = true;
 
                     ImGui.TableHeadersRow();
                     uint formatCellColour = Themes.GetThemeColourWRF(Themes.eThemeColour.Control).ToUint(0xd0);
@@ -683,7 +682,7 @@ namespace rgat.Widgets
                 ImGui.Indent(15);
                 ImGui.Text("Specify a repo, eg: https://github.com/Neo23x0/signature-base");
                 ImGui.Text("Or a repo directory, eg: https://github.com/h3x2b/yara-rules/tree/master/malware");
-                ImGui.Text("You can also add a comma seperated list of sources");
+                ImGui.Text("You can also add a comma separated list of sources");
                 ImGui.Indent(-15);
 
                 if (ImGui.BeginChild("#RepoAddControls", new Vector2(500, 200), true))
