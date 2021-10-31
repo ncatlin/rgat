@@ -305,4 +305,10 @@ healthchecksdb
 /rgatCore/cimgui.dll
 /rgatCore/libyara.dll
 /tests/BlockingAPI/No
-*.exe
+/tests/*.exe
+/tests/Windows/basic/ConsolePrint64/tests/win/ConsolePrint64.exe
+/tests/Output/win/advanced/BufferExecution32/BufferExecution32.exe
+/tests/Output/win/advanced/BufferExecution/BufferExecution3232.exe
+/tests/Output/win/basic/ConsolePrint/ConsolePrint32.exe
+/tests/Output/win/basic/ConsolePrint/ConsolePrint64.exe
+/tests/Output/win/basic/NestedLoops/NestedLoops32.exe
