@@ -562,6 +562,9 @@ namespace rgat
                 string dllName = Path.Combine(GlobalConfig.BaseDirectory, "UpdateFinaliser.dll");
                 byte[]? installFinaliserDLL = global::rgat.Properties.Resources.UpdateFinaliserDLL;
                 File.WriteAllBytes(dllName, installFinaliserEXE);
+                string runconfig = Path.Combine(GlobalConfig.BaseDirectory, "UpdateFinaliser.runtimeconfig.json");
+                byte[]? runconfigJson = global::rgat.Properties.Resources.UpdateFinaliser_runtimeconfig;
+                File.WriteAllBytes(runconfig, runconfigJson);
             }
             catch (Exception e)
             {

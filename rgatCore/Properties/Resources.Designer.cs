@@ -268,6 +268,16 @@ namespace rgat.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] UpdateFinaliser_runtimeconfig {
+            get {
+                object obj = ResourceManager.GetObject("UpdateFinaliser_runtimeconfig", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] UpdateFinaliserDLL {
             get {
                 object obj = ResourceManager.GetObject("UpdateFinaliserDLL", resourceCulture);
