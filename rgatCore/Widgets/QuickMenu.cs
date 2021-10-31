@@ -437,6 +437,7 @@ namespace rgat.Widgets
             {
                 ImGui.CloseCurrentPopup();
                 _activeMenuPopupName = null;
+                _controller.DialogChange(false);
             }
         }
 
@@ -487,6 +488,7 @@ namespace rgat.Widgets
 
             if (keyModTuple.Item1 == _activeEntry.Shortcut)
             {
+                CancelPressed();
                 Logging.WriteConsole($"Closing menu {_activeEntry.Action} because it is the active entry");
                 _activeEntry.active = false;
                 _activeEntry = _activeEntry.parent;
@@ -499,6 +501,12 @@ namespace rgat.Widgets
                 if (keyCombo.Any() && keyCombo.Last() == keyModTuple.Item1)
                 {
                     keyCombo.RemoveAt(keyCombo.Count - 1);
+                }
+
+                if(_activeEntry is null && stateChangeCallback is not null)
+                {
+                    Contract();
+                   // stateChangeCallback(false);
                 }
 
                 return true;
@@ -540,6 +548,8 @@ namespace rgat.Widgets
 
             if (ExpansionFinished)
             {
+                ImGui.CloseCurrentPopup();
+                _controller.DialogChange(false);
                 _expanded = false;
                 _stayExpanded = false;
                 _activeMenuPopupName = null;

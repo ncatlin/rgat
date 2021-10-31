@@ -389,7 +389,7 @@ namespace rgat
             /// <summary>
             /// Colour of the geometry
             /// </summary>
-            public WritableRgbaFloat Color;
+            public WritableRgbaFloat Colour;
             /// <summary>
             /// Size of this structure in bytes
             /// </summary>

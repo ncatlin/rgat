@@ -350,11 +350,11 @@ namespace rgat
             {
                 if (IsExternal)
                 {
-                    Label += $" {CreateSymbolLabel(graph, specificCallIndex)}";
+                    Label += $" {CreateSymbolLabel(plot, specificCallIndex)}";
                 }
                 else
                 {
-                    Label += $" <{CreateSymbolLabel(graph, specificCallIndex)}>";
+                    Label += $" <{CreateSymbolLabel(plot, specificCallIndex)}>";
                 }
             }
 
@@ -390,10 +390,11 @@ namespace rgat
         /// <param name="graph">The graph for the thread the call was made in</param>
         /// <param name="specificCallIndex">The index of the API call in the graph</param>
         /// <returns>The label</returns>
-        public string CreateSymbolLabel(ProtoGraph graph, int specificCallIndex = -1)
+        public string CreateSymbolLabel(PlottedGraph plot, int specificCallIndex = -1)
         {
             string? symbolText = "";
             bool found = false;
+            ProtoGraph graph = plot.InternalProtoGraph;
             if (graph.ProcessData.GetSymbol(GlobalModuleID, Address, out symbolText))
             {
                 found = true;
@@ -418,6 +419,24 @@ namespace rgat
                 return $"[No Symbol]0x{Address:x}";
             }
 
+
+            if (plot.Opt_ShowSymbolModules)
+            {
+                string module = graph.ProcessData.GetModulePath(GlobalModuleID);
+                if(plot.Opt_ShowSymbolModulePaths)
+                {
+                    symbolText = $"{module}:{symbolText}";
+                }
+                else
+                {
+                    try
+                    {
+                        string moduleName = System.IO.Path.GetFileName(module);
+                        symbolText = $"{moduleName}:{symbolText}";
+                    }
+                    catch { }
+                }
+            }
 
             if (callRecordsIndexs.Count == 0)
             {

@@ -1103,9 +1103,11 @@ namespace rgat
         {
             if (mouseNode is -1) return;
 
+            NodeData? n = plot.InternalProtoGraph.GetNode((uint)mouseNode);
 
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 6);
-            ImGui.Text($"Mouseover Node: {mouseNode}");
+            string addrString = n is not null ? $"0x{n.Address:X}" : "";
+            ImGui.Text($"Mouseover Node: {mouseNode} {addrString}");
             ImGui.Indent(12);
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(8, 4));
@@ -1116,20 +1118,17 @@ namespace rgat
                     ImGui.TableSetupColumn("MouseItem", ImGuiTableColumnFlags.WidthFixed, 30);
                     ImGui.TableSetupColumn("MouseValue");
 
-                    NodeData? n = plot.InternalProtoGraph.GetNode((uint)mouseNode);
                     if (n is not null)
                     {
                         ImGui.TableNextRow();
                         if (ImGui.TableNextColumn())
                         {
-                            ImGui.Text("Addr");
                         }
                         if (ImGui.TableNextColumn())
                         {
                             if (n.ins is not null)
-                                ImGui.Text($"0x{n.Address:X} - {n.ins.InsText}");
-                            else
-                                ImGui.Text($"0x{n.Address:X}");
+                                ImGui.Text($"'{n.ins.InsText}'");
+
                         }
 
                         ImGui.TableNextRow();

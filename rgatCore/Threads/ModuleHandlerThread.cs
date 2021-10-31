@@ -201,7 +201,6 @@ namespace rgat
 
             PlottedGraph MainGraph = new PlottedGraph(graph, _clientState!._GraphicsDevice!);
 
-            Console.WriteLine("ModuleHandlerThread STarting processors");
             graph.TraceReader = new PipeTraceIngestThread(threadListener, graph.ThreadID, graph);
             graph.TraceProcessor = new ThreadTraceProcessingThread(graph);
             graph.TraceReader.Begin();

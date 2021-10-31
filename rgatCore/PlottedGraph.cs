@@ -1314,8 +1314,25 @@ namespace rgat
                     if (keepCamera is false)
                     {
                         this.CameraState = new CAMERA_STATE();
-                        this.CameraState.MainCameraZoom = -100 * InternalProtoGraph.NodeCount;
                         this.CameraState.RotationMatrix = Matrix4x4.Identity;
+
+                        if (this.LayoutState.PresetStyle is LayoutStyles.Style.CylinderLayout)
+                        {
+                            this.CameraState.MainCameraZoom = -1 * OPT_CYLINDER_RADIUS;
+                            this.CameraState.MainCameraZoom -= 10000;
+                            this.CameraState.MainCameraYOffset += 1500;
+
+                            Matrix4x4 pitch = Matrix4x4.CreateFromAxisAngle(Vector3.UnitX, 0);
+                            Matrix4x4 yaw = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, -1.574f); //face the camera
+                            Matrix4x4 roll = Matrix4x4.CreateFromAxisAngle(Vector3.UnitZ, 0);
+                            Matrix4x4 offsetRotation = pitch * yaw * roll;
+                            this.CameraState.RotationMatrix = Matrix4x4.Identity * offsetRotation;
+                        }
+                        else
+                        {
+
+                            this.CameraState.MainCameraZoom = -100 * InternalProtoGraph.NodeCount;
+                        }
                     }
                 }
             }
@@ -2990,7 +3007,7 @@ namespace rgat
                 RegenerateLabels();
             }
         }
-        private bool _showSymbolModules = true;
+        private bool _showSymbolModules = false;
 
         /// <summary>
         /// Whether symbol labels include the full path of the module
@@ -3004,7 +3021,7 @@ namespace rgat
                 RegenerateLabels();
             }
         }
-        private bool _showSymbolModulePaths = true;
+        private bool _showSymbolModulePaths = false;
 
         /// <summary>
         /// Enable animated live instruction text

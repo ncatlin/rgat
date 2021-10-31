@@ -89,6 +89,11 @@ namespace ImGuiNET
         /// </summary>
         public bool DialogOpen => _dialogsOpen > 0;
 
+        /// <summary>
+        /// Quickmenu issues sometimes leave this as 1 with all dialogs closed
+        /// </summary>
+        public void HackyResetDialogsCount() => _dialogsOpen = 0;
+
         //todo this is an awful system, maybe make it an event
         /// <summary>
         /// A dialog opened or closed
@@ -98,6 +103,9 @@ namespace ImGuiNET
         {
 
             Debug.Assert(_dialogsOpen >= 0);
+            if (_dialogsOpen < 0) _dialogsOpen = 0;
+            if (_dialogsOpen is 0 && opened is false) return; //bug, quickmenu
+
             _dialogsOpen += opened ? 1 : -1;
         }
 

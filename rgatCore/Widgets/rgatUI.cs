@@ -676,6 +676,7 @@ namespace rgat
 
             visualiserTab?.AlertKeybindPressed(KeybindAction.Cancel, null);
             Debug.Assert(DialogOpen is false);
+            _controller?.HackyResetDialogsCount();
         }
 
         private void ToggleTestHarness()

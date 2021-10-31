@@ -56,6 +56,8 @@ namespace rgat
         private DeviceBuffer? _paramsBuffer;
         private int latestWrittenTexture = 1;
         private Vector2? _newGraphSize = null;
+        private ulong _lastThemeVersion = 0;
+
 
         public Vector2 WidgetPos { get; private set; }
 
@@ -94,7 +96,7 @@ namespace rgat
             _factory = _gd.ResourceFactory;
             LayoutEngine.Init(gdev);
             _QuickMenu.Init(_gd);
-            _imageTextureView = _controller.IconTexturesView;  //todo crash if closed early in load
+            _imageTextureView = _controller.IconTexturesView;
             SetupRenderingResources();
         }
 
@@ -644,6 +646,8 @@ namespace rgat
 
             Matrix4x4 pitch = Matrix4x4.CreateFromAxisAngle(Vector3.UnitX, _pitchDelta);
             Matrix4x4 yaw = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, _yawDelta);
+            if (_yawDelta != 0)
+                Console.WriteLine(_yawDelta);
             Matrix4x4 roll = Matrix4x4.CreateFromAxisAngle(Vector3.UnitZ, _rollDelta);
             _pitchDelta = 0; _yawDelta = 0f; _rollDelta = 0;
 
@@ -1243,8 +1247,6 @@ namespace rgat
         }
 
 
-        private ulong _lastThemeVersion = 0;
-
         /// <summary>
         /// Draws the various nodes, edges, captions and illustrations to the framebuffer for display
         /// </summary>
@@ -1309,8 +1311,7 @@ namespace rgat
             }
 
 
-            //todo - only do this on changes
-
+            //performance todo - only do this on changes, probably integrate it into GetMaingraphNodeVerts
             fixed (Position1DColour* vertsPtr = NodeVerts, pickingVertsPtr = nodePickingColors)
             {
                 cl.UpdateBuffer(_NodeVertexBuffer, 0, (IntPtr)vertsPtr, (uint)NodeVerts.Length * Position1DColour.SizeInBytes);

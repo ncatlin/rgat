@@ -27,6 +27,10 @@ a pin implementation of the drgat client
 // Global variables 
 /* ================================================================== */
 
+//magic performance number. adjust to taste
+//This many tags will be sent per block before it is pseudo-deinstrumented
+#define DEINSTRUMENTATION_LIMIT 10
+
 //declared extern in modules.h
 std::vector <moduleData*> loadedModulesInfo;
 std::map <ADDRINT, regionData*> loadedRegionInfo;
@@ -306,9 +310,6 @@ bool address_is_in_targets_v2(ADDRINT addr)
 
 
 
-//magic performance number. adjust to taste
-//This many tags will be sent per block before it is pseudo-deinstrumented
-#define DEINSTRUMENTATION_LIMIT 10
 
 inline ThreadBlockInfo* GetThreadBlockInfo(threadObject* threadObj, BLOCKDATA* block_data)
 {

@@ -1443,7 +1443,7 @@ namespace rgat
                 outfile.Write(Encoding.ASCII.GetBytes("\n"));
             }
             outfile.Close();
-            Logging.RecordLogEvent($"Exported thread {TID} to {outPath}");
+            Logging.RecordLogEvent($"Exported thread {TID} to {outPath}", LogFilterType.Alert);
         }
 
 

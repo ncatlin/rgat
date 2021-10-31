@@ -4445,7 +4445,7 @@
             <param name="plot">Graph the label belongs to</param>
             <param name="specificCallIndex">Index of the APi call in the graph</param>
         </member>
-        <member name="M:rgat.NodeData.CreateSymbolLabel(rgat.ProtoGraph,System.Int32)">
+        <member name="M:rgat.NodeData.CreateSymbolLabel(rgat.PlottedGraph,System.Int32)">
             <summary>
             Create a label for an API call with symbol + arguments
             </summary>
@@ -9356,7 +9356,7 @@
             Possitions buffer index
             </summary>
         </member>
-        <member name="F:rgat.VeldridGraphBuffers.Position2DColour.Color">
+        <member name="F:rgat.VeldridGraphBuffers.Position2DColour.Colour">
             <summary>
             Colour of the geometry
             </summary>
@@ -10311,6 +10311,11 @@
         <member name="P:ImGuiNET.ImGuiController.DialogOpen">
             <summary>
             Is a dialog open
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.HackyResetDialogsCount">
+            <summary>
+            Quickmenu issues sometimes leave this as 1 with all dialogs closed
             </summary>
         </member>
         <member name="M:ImGuiNET.ImGuiController.DialogChange(System.Boolean)">
