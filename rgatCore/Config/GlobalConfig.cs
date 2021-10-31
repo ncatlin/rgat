@@ -47,7 +47,7 @@ namespace rgat
             {
                 X509Certificate signer = X509Certificate.CreateFromSignedFile(path);
 
-                bool hasValidSigner = expectedSigners.Split(',').Any(validSigner => signer.Subject.ToLower().Contains($"O={validSigner},".ToLower()));
+                bool hasValidSigner = expectedSigners.Split(',').Any(validSigner => signer.Subject.ToLower().Contains($"CN={validSigner},".ToLower()));
                 if (!hasValidSigner)
                 {
                     error = "Unexpected signer " + signer.Subject;

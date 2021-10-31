@@ -1,6 +1,6 @@
-Changelog
+# Changelog
 
-## [Unreleased]
+## [0.6.0] - 2021-11-01
 ### Added
 - rgat has been completely re-written!
 - Now written in C# to run on .NET Core
@@ -10,7 +10,7 @@ Changelog
 - Remote-tracing mode to allow use of GPU computed UI+graph layouts while recording the actual trace on a different machine. This has the twin benefit of allowing tracing on GPU-constrained environments and providing a separation between the tracing environment and the analysis environment (ie: for malware analysis).
 - Circle graph layout
 - Builtin graph/graph+previews/full window capture to PNG
-- Builtin video capture mode, though the user needs to download FFmpeg seperately
+- Builtin video capture mode, though the user needs to download FFmpeg separately
 - Filterable log window with alert/error/info/debug log granularity
 - An optional bulk debug logging mode to write even more verbose logs to disk
 - YARA and Detect it easy signature scanning for loaded binaries
@@ -18,19 +18,19 @@ Changelog
 - A UI theme editor with support for importing/exporting
 - A prototype visualiser bar under the main plot, which doubles as a replay control slider
 - Blender-style keypress notifications
-- Trace pausing/stepping. This does not use any debug APIs or registers.
-- Auto centering feature to fit the graph in the window with a keypress
-- Continuous auto-centering option to keep the graph centered
+- Trace pausing/stepping. This does not use any debug APIs or registers. Stepping is not a stable feature yet.
+- Auto centering feature to fit the graph in the window with a keypress. It's bound to a keybind - default is Q.
+- Continuous auto-centering option to keep the graph centered. Default Shift-Q.
 - Disassembly preview box to show which instructions have been executed recently
 - Mini thread-activity plots in the preview pane
-- A box shows the approximate camera location in the selected graphs preview
+- A bounding box shows the approximate camera location in the selected graphs preview
 - The preview graph can be clicked to navigate around the selected graph
 - Preview highlights now show as they are typed in the preview settings
 - A testing framework with a JSON 'expected result' format. Tests can be queued and optionally continuously repeated.
 - Keybind editor
 - Update availability checks with categorised changelog display
 - Update download & installation functionality
-- Save format stable enough to avoid obsoleting any more saves (in the near future)) 
+- Save format - and saving/loading experience - improved. 
 - Force-directed wireframe when rotating
 
 ### Changed

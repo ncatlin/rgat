@@ -410,8 +410,6 @@ namespace rgat.Threads
 
             thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry[1..(1+(tokenpos - 1))]), NumberStyles.HexNumber);
 
-            dbgStopwatch.Restart();
-
             //this may be a bad idea, could just be running faster than the dissassembler thread
             int waits = 0;
             while (thistag.blockID >= protograph.ProcessData.BasicBlocksList.Count)
@@ -431,13 +429,7 @@ namespace rgat.Threads
                 protograph.TraceReader!.Terminate();
                 return;
             }
-
-            dbgStopwatch.Stop();
-            if (dbgStopwatch.ElapsedMilliseconds > 64)
-            {
-                Console.WriteLine($"TP::Block wait took {dbgStopwatch.ElapsedMilliseconds}ms");
-            }
-
+            
             ANIMATIONENTRY animUpdate = new ANIMATIONENTRY
             {
                 entryType = eTraceUpdateType.eAnimExecTag,
@@ -468,15 +460,8 @@ namespace rgat.Threads
                 return;
             }
 
-            dbgStopwatch.Restart();
             //this messy bit of code deals with uninstrumented APi code that has been called from a "jmp ptr [addr]" instruction
             eCodeInstrumentation targetCodeType = protograph.TraceData.FindContainingModule(nextBlockAddress, out int modnum);
-
-            dbgStopwatch.Stop();
-            if (dbgStopwatch.ElapsedMilliseconds > 100)
-            {
-                Logging.RecordLogEvent($"TP::FindContainingModule took {dbgStopwatch.ElapsedMilliseconds}ms", graph: this.protograph, filter: Logging.LogFilterType.Debug);
-            }
 
             /*
              Deal with a special case where a call is made to an intermediary instruction which then jumps to uninstrumented code
@@ -549,17 +534,7 @@ namespace rgat.Threads
                             //Debug.Assert(false, "Panik"); //todo: exceptions
                         }
 
-                        dbgStopwatch.Stop();
-                        if (dbgStopwatch.ElapsedMilliseconds > 4)
-                        {
-                            Console.WriteLine($"TP::Uninstru1 took {dbgStopwatch.ElapsedMilliseconds}ms");
-                        }
                         return;
-                    }
-                    dbgStopwatch.Stop();
-                    if (dbgStopwatch.ElapsedMilliseconds > 4)
-                    {
-                        Console.WriteLine($"TP::Uninstru2 took {dbgStopwatch.ElapsedMilliseconds}ms");
                     }
                 }
             }
@@ -1056,7 +1031,8 @@ namespace rgat.Threads
             PerformIrregularActions();
 
             
-            Logging.WriteConsole($"{WorkerThread?.Name} finished with {PendingEdges.Count} pending edges and {blockRepeatQueue.Count} blockrepeats outstanding");
+            Logging.RecordLogEvent($"{WorkerThread?.Name} finished with {PendingEdges.Count} " +
+                $"pending edges and {blockRepeatQueue.Count} blockrepeats outstanding", Logging.LogFilterType.Debug);
             Debug.Assert(blockRepeatQueue.Count == 0 || rgatState.rgatIsExiting || protograph.TraceReader.StopFlag);
 
             Finished();

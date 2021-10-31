@@ -387,9 +387,9 @@ namespace rgat
         /// <summary>
         /// Create a label for an API call with symbol + arguments
         /// </summary>
-        /// <param name="graph">The graph for the thread the call was made in</param>
+        /// <param name="plot">The graph for the thread the call was made in</param>
         /// <param name="specificCallIndex">The index of the API call in the graph</param>
-        /// <returns>The label</returns>
+        /// <returns>The generated label</returns>
         public string CreateSymbolLabel(PlottedGraph plot, int specificCallIndex = -1)
         {
             string? symbolText = "";

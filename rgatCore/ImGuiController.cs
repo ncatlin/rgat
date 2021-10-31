@@ -794,13 +794,26 @@ namespace ImGuiNET
             io.ConfigFlags |= ImGuiConfigFlags.DockingEnable; //doesnt work yet?
         }
 
+        /// <summary>
+        /// When the mouse was last moved in the window
+        /// </summary>
         public DateTime LastMouseMove { get; private set; } = DateTime.MinValue;
+        /// <summary>
+        /// Is the mouse in the window
+        /// </summary>
         public bool MousePresent { get; private set; } = false;
+        /// <summary>
+        /// Set the mouse in window state
+        /// </summary>
+        /// <param name="state">true = in window</param>
         public void SetMousePresent(bool state)
         {
             MousePresent = state;
             LastMouseMove = DateTime.Now;
         }
+        /// <summary>
+        /// When the mouse was last moved in the window (in ms)
+        /// </summary>
         public double LastMouseActivityMS => (DateTime.Now - LastMouseMove).TotalMilliseconds;
 
         private void UpdateImGuiInput(InputSnapshot snapshot)

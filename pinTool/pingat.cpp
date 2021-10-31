@@ -156,11 +156,11 @@ THREADID GetPINThreadID(OS_THREAD_ID tid) {
 }
 
 void RegisterThreadID(OS_THREAD_ID tid, THREADID PinID) {
-	writeEventPipe("!T1E%d 32", tid);
+	writeEventPipe("!RegisterThreadID T1E%d 32", tid);
 	PIN_MutexLock(&dataMutex);
-	writeEventPipe("!T1F%d 32", tid);
+	writeEventPipe("!RegisterThreadID T1F%d 32", tid);
 	ThreadIDs[tid] = PinID;
-	writeEventPipe("!T1G%d 32", tid);
+	writeEventPipe("!RegisterThreadID T1G%d 32", tid);
 	PIN_MutexUnlock(&dataMutex);
 }
 
@@ -186,7 +186,7 @@ void write_sync_bb(char* buf, USIZE strsize)
 	OS_RETURN_CODE osretcd = OS_WriteFD(bbpipe, buf, &strsize);
 	if (osretcd.generic_err != OS_RETURN_CODE_NO_ERROR) //fprintf truncates to internal buffer size!
 	{
-		printf("[pinggat]Abort called in write_sync_bb\n");
+		printf("[pingat]Abort called in write_sync_bb\n");
 		PIN_ExitApplication(-1);
 	}
 	OS_FlushFD(bbpipe);
@@ -883,7 +883,7 @@ void AssignBlockIndex(threadObject* tdata)
 */
 VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 {
-	wprintf(L"%s", "[pingat]in thread start 32\n");
+	//wprintf(L"%s", "[pingat]in thread start 32\n");
 	threadCount++;
 	threadObject* tdata = new threadObject(threadCount);
 	OS_GetTid(&tdata->osthreadid);
@@ -923,7 +923,9 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 
 		if (tdata->threadpipeHandle != -1)
 		{
+#ifdef DEBUG
 			std::cout << "thread pipe connected!" << std::endl;
+#endif
 
 			int fd = _open_osfhandle(tdata->threadpipeHandle, _O_APPEND);
 
@@ -967,7 +969,7 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 VOID ThreadEnd(THREADID threadIndex, const CONTEXT* ctxt, INT32 flags, VOID* v)
 {
 
-	std::cout << "In ThreadEnd" << std::endl;
+	//std::cout << "In ThreadEnd" << std::endl;
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadIndex));
 
 
@@ -1004,7 +1006,7 @@ VOID ThreadEnd(THREADID threadIndex, const CONTEXT* ctxt, INT32 flags, VOID* v)
 */
 VOID process_exit_event(INT32 code, VOID* v)
 {
-	std::cout << "In process_exit_event" << std::endl;
+	//std::cout << "In process_exit_event" << std::endl;
 	UINT64 endTime;
 	OS_Time(&endTime);
 
@@ -1014,6 +1016,7 @@ VOID process_exit_event(INT32 code, VOID* v)
 
 	processExiting = true;
 
+	/*
 	std::cout << "===============================================" << std::endl;
 	std::cout << "PINGat ended run. " << std::endl;
 	std::cout << "Number of basic blocks instrumented: " << std::dec << uniqueBBCountIns << std::endl;
@@ -1021,6 +1024,7 @@ VOID process_exit_event(INT32 code, VOID* v)
 	std::cout << "Number of threads: " << threadCount << std::endl;
 	std::cout << "Execution time: " << std::dec << ((endTime - startTime) / 1000) << " ms" << std::endl;
 	std::cout << "===============================================" << std::endl;
+	*/
 
 	free(basicBlockBuffer);
 	free(activeThreadUniqIDs);
@@ -1152,7 +1156,9 @@ DWORD extract_pipes(std::string programname, std::string coordinatorPipeName, st
 		}
 		else
 		{
+#ifdef DEBUG
 			wprintf(L"[pingat]Got [%d] bytes of pipe info from rgat!, msg: 0x%s\n", count, msg);
+#endif
 			char* marker = strtok(msg, "@");
 			if (marker == NULL) return false;
 			char* cmdPipeName = strtok(NULL, "@");
@@ -1175,9 +1181,9 @@ DWORD extract_pipes(std::string programname, std::string coordinatorPipeName, st
 			bbName = "\\\\.\\pipe\\" + std::string(bbPipeName);
 			cmdPipe = "\\\\.\\pipe\\" + std::string(cmdPipeName);
 			cmdResponsePipe = "\\\\.\\pipe\\" + std::string(responsePipeName);
-
+#ifdef DEBUG
 			wprintf(L"[pingat]Got pipenames. Cmd: %s, Response: %s, BB: %s\n", cmdPipeName, responsePipeName, bbPipeName);
-
+#endif
 		}
 	}
 
@@ -1198,7 +1204,9 @@ bool establishRGATConnection(std::string programName, std::string coordinatorPip
 	}
 	else
 	{
+#ifdef DEBUG
 		std::cout << "[pingat]Connecting to pipes " << cmdpipename << "," << eventpipename << "," << bbpipename << std::endl;
+#endif
 		bbpipe = -1;
 		commandPipe = -1;
 		eventPipe = -1;
@@ -1261,12 +1269,12 @@ bool establishRGATConnection(std::string programName, std::string coordinatorPip
 		{
 			setCommandPipe(commandPipe);
 			setEventPipe(eventPipe);
-			std::cout << "Connected to rgat! " << std::endl;
+			//std::cout << "Connected to rgat! " << std::endl;
 			return true;
 		}
 		else
 		{
-			std::cout << "Failed to connect to both pipes " << std::endl;
+			std::cout << "[pingat]Failed to connect to both pipes " << std::endl;
 			return false;
 		}
 	}
@@ -1708,12 +1716,15 @@ int main(int argc, char* argv[])
 		PIN_ExitProcess(1);
 	}
 
+#ifdef DEBUG
 	std::cout << "Connection established to rgat. Fetching trace settings" << std::endl;
+#endif //  DEBUG
 
 	ReadConfiguration();
 
-
+#ifdef DEBUG
 	std::cout << "Settings fetched, registering callbacks" << std::endl;
+#endif //  DEBUG
 
 	// Register function to be called to instrument traces
 
@@ -1742,9 +1753,6 @@ int main(int argc, char* argv[])
 
 	PIN_SpawnInternalThread(ControlPipeReader, NULL, 4096, NULL);
 	PIN_SpawnInternalThread(BreakerThread, NULL, 4096, NULL);
-
-	std::cout << "Calling PIN_StartProgram()" << std::endl;
-
 
 	// Start the program, never returns
 	PIN_StartProgram();

@@ -487,7 +487,7 @@ namespace rgat
             bool failed = false;
             if (File.Exists(new_rgatPath))
             {
-                if (GlobalConfig.VerifyCertificate(new_rgatPath, "Open Source Developer, Nia CATLIN", out string? error, out string? timeWarning))
+                if (GlobalConfig.VerifyCertificate(new_rgatPath, CONSTANTS.SIGNERS.RGAT_SIGNERS, out string? error, out string? timeWarning))
                 {
                     if (timeWarning != null)
                     {

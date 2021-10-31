@@ -334,7 +334,8 @@ namespace rgat
             RawIngestCompleteEvent.Set();
             TagDataReadyEvent.Set();
 
-            Logging.WriteConsole(WorkerThread?.Name + " finished after ingesting " + ProcessedDataSize + " bytes of trace data");
+            Logging.RecordLogEvent(WorkerThread?.Name + " finished after ingesting "
+                + ProcessedDataSize + " bytes of trace data", Logging.LogFilterType.Debug );
 
             if (protograph != null && !protograph.Terminated)
             {

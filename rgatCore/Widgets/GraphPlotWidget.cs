@@ -1057,6 +1057,7 @@ namespace rgat
         /// <param name="view"></param>
         /// <param name="world"></param>
         /// <param name="cl"></param>
+        /// <param name="paramsBuffer">The parameters devicebuffer to upload these values to</param>
         /// <returns></returns>
         public static void UpdateShaderParams(PlottedGraph plot, uint textureSize, int mousoverNode,
             Matrix4x4 projection, Matrix4x4 view, Matrix4x4 world, CommandList cl, DeviceBuffer paramsBuffer)

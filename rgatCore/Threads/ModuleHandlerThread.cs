@@ -188,12 +188,11 @@ namespace rgat
                 //debugging loop
                 if (!waitTask.IsCompleted)
                 {
-                    Console.WriteLine($"Wait task {pipename} not complete - {waitTask.Status}");
+                    Logging.RecordLogEvent($"Wait task {pipename} not complete - {waitTask.Status}");
                     Thread.Sleep(150);
                 }
                 else
                 {
-                    Console.WriteLine($"Wait task {pipename} IS complete - {waitTask.Status}");
                     break;
                 }
             }
@@ -283,7 +282,6 @@ namespace rgat
                 Logging.RecordError($"Bad thread start address (ID:{TID})");
                 return;
             }
-            Logging.WriteConsole($"HandleNewThread Thread {TID} started!");
 
             switch (trace.TraceType)
             {
@@ -291,7 +289,6 @@ namespace rgat
                     ProtoGraph newProtoGraph = new ProtoGraph(trace, TID, startAddr);
                     if (!rgatState.ConnectedToRemote)
                     {
-                        Console.WriteLine("ModuleHandlerThread Spawning processor");
                         System.Threading.Tasks.Task.Run(() => SpawnPipeTraceProcessorThreads(newProtoGraph));
                     }
                     else
@@ -473,7 +470,9 @@ namespace rgat
                 List<string> ignoredDirs = moduleChoices.GetIgnoredDirs();
                 List<string> ignoredFiles = moduleChoices.GetIgnoredFiles();
 
-                Console.WriteLine($"Sending default trace settings: {ignoredDirs.Count} ignored dirs and {ignoredFiles.Count} ignored files");
+                Logging.RecordLogEvent($"Sending default trace settings: {ignoredDirs.Count} " +
+                    $"ignored dirs and {ignoredFiles.Count} ignored files", Logging.LogFilterType.Debug);
+
                 foreach (string name in ignoredDirs)
                 {
                     Logging.RecordLogEvent($"Sending ignored dir {name}", Logging.LogFilterType.Debug);
@@ -567,7 +566,6 @@ namespace rgat
             {
                 if (buf[1] == 'I')
                 {
-                    Console.WriteLine("ModuleHandlerThread TI");
                     HandleNewThread(buf);
                     return;
                 }
@@ -631,7 +629,7 @@ namespace rgat
             {
                 string text = ASCIIEncoding.ASCII.GetString(buf.Take(bytesRead).ToArray());
                 Logging.RecordLogEvent($"!Log from instrumentation: '{text}'", trace: trace);
-                Logging.WriteConsole($"!Log from instrumentation: '{text}'");
+                //Logging.WriteConsole($"!Log from instrumentation: '{text}'");
                 return;
             }
 
@@ -853,10 +851,13 @@ namespace rgat
 
                 Thread.Sleep(1000);
                 totalWaited += 1000;
-                Logging.WriteConsole($"ModuleHandlerThread Awaiting Pipe Connections: Command:{commandPipe.IsConnected}, Event:{eventPipe.IsConnected}, TotalTime:{totalWaited}");
+                if (totalWaited > 4000)
+                {
+                    Logging.WriteConsole($"ModuleHandlerThread Awaiting Pipe Connections: Command:{commandPipe.IsConnected}, Event:{eventPipe.IsConnected}, TotalTime:{totalWaited}");
+                }
                 if (totalWaited > 8000)
                 {
-                    Logging.WriteConsole($"Timeout waiting for rgat client sub-connections. ControlPipeConnected:{eventPipe.IsConnected} ");
+                    Logging.RecordError($"Timeout waiting for rgat client sub-connections. ControlPipeConnected:{eventPipe.IsConnected} ");
                     break;
                 }
             }

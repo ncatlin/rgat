@@ -123,7 +123,6 @@ VOID wraphead_GetStdHandle(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT f
 		break;
 	case STD_OUTPUT_HANDLE:
 		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,STDOUT\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
-		printf("WritingD: A,%d,%lx,%lx,E,STDOUT\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
 		break;
 	case STD_ERROR_HANDLE:
 		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,STDERR\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);

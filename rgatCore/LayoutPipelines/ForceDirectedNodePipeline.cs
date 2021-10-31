@@ -144,7 +144,8 @@ namespace rgat.Layouts
         /// <summary>
         /// Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
         /// </summary>
-        /// <param name="RSetDesc">Velocity shader resource set</param>
+        /// <param name="RSetDesc">Position shader resource set</param>
+        /// <param name="cl">Commandlist to run the commands on</param>
         /// <param name="plot">PlottedGraph to compute</param>
         /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         private void RenderVelocity(ResourceSetDescription RSetDesc, CommandList cl, PlottedGraph plot, float delta)
@@ -199,6 +200,7 @@ namespace rgat.Layouts
         /// Used the velocity buffer to move the nodes in the positions buffer
         /// </summary>
         /// <param name="RSetDesc">Position shader resource set</param>
+        /// <param name="cl">Commandlist to run the commands on</param>
         /// <param name="plot">PlottedGraph to compute</param>
         /// <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         private unsafe void RenderPosition(ResourceSetDescription RSetDesc, CommandList cl, PlottedGraph plot, float delta)

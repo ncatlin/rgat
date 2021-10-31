@@ -566,7 +566,7 @@ namespace rgat
         /// <summary>
         /// Prepare a preset buffer to generate a non-force directed layout
         /// </summary>
-        /// <param name="plot"></param>
+        /// <param name="presetPositons">The vec4 positions to add to the preset buffer</param>
         public void InitialisePresetBuffer(float[] presetPositons)
         {
             _lock.EnterWriteLock();

@@ -118,7 +118,7 @@ namespace rgat
             try
             {
                 blockPipe!.EndWaitForConnection(ar);
-                Logging.WriteConsole("Block pipe connected for PID " + trace.PID);
+                Logging.RecordLogEvent("Block pipe connected for PID " + trace.PID);
             }
             catch (Exception e)
             {
@@ -396,10 +396,13 @@ namespace rgat
             {
                 Thread.Sleep(1000);
                 totalWaited += 1000;
-                Logging.WriteConsole($"BlockPipeThread Waiting BlockPipeConnected:{blockPipe.IsConnected} TotalTime:{totalWaited}");
+                if (totalWaited > 4000)
+                {
+                    Logging.WriteConsole($"BlockPipeThread Waiting BlockPipeConnected:{blockPipe.IsConnected} TotalTime:{totalWaited}");
+                }
                 if (totalWaited > 8000)
                 {
-                    Logging.WriteConsole($"Timeout waiting for rgat client sub-connections. BlockPipeConnected:{blockPipe.IsConnected} ");
+                    Logging.RecordError($"Timeout waiting for rgat client sub-connections. BlockPipeConnected:{blockPipe.IsConnected} ");
                     break;
                 }
             }
@@ -456,11 +459,9 @@ namespace rgat
                 }
             }
 
-
-
             blockPipe.Dispose();
             Finished();
-            Logging.WriteConsole($"BlockHandler Listener thread exited for PID {trace.PID}");
+            Logging.RecordLogEvent($"BlockHandler Listener thread exited for PID {trace.PID}", filter: Logging.LogFilterType.Debug);
         }
 
     }

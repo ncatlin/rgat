@@ -3868,7 +3868,7 @@
             <summary>
             Prepare a preset buffer to generate a non-force directed layout
             </summary>
-            <param name="plot"></param>
+            <param name="presetPositons">The vec4 positions to add to the preset buffer</param>
         </member>
         <member name="M:rgat.GraphLayoutState.CreateEdgeDataBuffers(rgat.PlottedGraph)">
             <summary>
@@ -3998,8 +3998,9 @@
             <summary>
             Used the velocity buffer to move the nodes in the positions buffer
             </summary>
-            <param name="plot">PlottedGraph to compute</param>
             <param name="RSetDesc">Position shader resource set</param>
+            <param name="cl">Commandlist to run the commands on</param>
+            <param name="plot">PlottedGraph to compute</param>
             <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         </member>
         <member name="M:rgat.Layouts.ForceDirectedBlockPipeline.CreateBlockMetadataBuffer(rgat.PlottedGraph,Veldrid.GraphicsDevice)">
@@ -4021,7 +4022,8 @@
             <summary>
             Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
             </summary>
-            <param name="RSetDesc">Velocity shader resource set</param>
+            <param name="RSetDesc">Position shader resource set</param>
+            <param name="cl">Commandlist to run the commands on</param>
             <param name="plot">PlottedGraph to compute</param>
             <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         </member>
@@ -4030,6 +4032,7 @@
             Used the velocity buffer to move the nodes in the positions buffer
             </summary>
             <param name="RSetDesc">Position shader resource set</param>
+            <param name="cl">Commandlist to run the commands on</param>
             <param name="plot">PlottedGraph to compute</param>
             <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         </member>
@@ -4043,7 +4046,8 @@
             <summary>
             Pass the graph plot through the velocity compute shader, to adjust the node velocity based on the positions of other nodes
             </summary>
-            <param name="RSetDesc">Velocity shader resource set description</param>
+            <param name="RSetDesc">Position shader resource set</param>
+            <param name="cl">Commandlist to run the commands on</param>
             <param name="plot">PlottedGraph to compute</param>
             <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         </member>
@@ -4051,7 +4055,8 @@
             <summary>
             Used the velocity buffer to move the nodes in the positions buffer
             </summary>
-            <param name="RSetDesc">Data for the shader</param>
+            <param name="RSetDesc">Position shader resource set</param>
+            <param name="cl">Commandlist to run the commands on</param>
             <param name="plot">PlottedGraph to compute</param>
             <param name="delta">A float representing how much time has passed since the last frame. Higher values => bigger movements</param>
         </member>
@@ -4454,9 +4459,9 @@
             <summary>
             Create a label for an API call with symbol + arguments
             </summary>
-            <param name="graph">The graph for the thread the call was made in</param>
+            <param name="plot">The graph for the thread the call was made in</param>
             <param name="specificCallIndex">The index of the API call in the graph</param>
-            <returns>The label</returns>
+            <returns>The generated label</returns>
         </member>
         <member name="M:rgat.NodeData.CreateColourisedSymbolCall(rgat.ProtoGraph,System.Int32,rgat.WritableRgbaFloat,rgat.WritableRgbaFloat)">
             <summary>
@@ -6113,6 +6118,11 @@
         <member name="P:rgat.Properties.Resources.springPNG">
             <summary>
               Looks up a localized resource of type System.Drawing.Bitmap.
+            </summary>
+        </member>
+        <member name="P:rgat.Properties.Resources.UpdateFinaliser_runtimeconfig">
+            <summary>
+              Looks up a localized resource of type System.Byte[].
             </summary>
         </member>
         <member name="P:rgat.Properties.Resources.UpdateFinaliserDLL">
@@ -9341,9 +9351,24 @@
             Size of this structure in bytes
             </summary>
         </member>
+        <member name="T:rgat.VeldridGraphBuffers.Position1DColourMultiVert">
+            <summary>
+            Used to describe edges for the relative shader
+            </summary>
+        </member>
         <member name="F:rgat.VeldridGraphBuffers.Position1DColourMultiVert.SrcPositionIndex">
             <summary>
-            Possitions buffer index
+            Positions buffer index of the source node
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position1DColourMultiVert.DestPositionIndex">
+            <summary>
+            Positions buffer index of the target node
+            </summary>
+        </member>
+        <member name="F:rgat.VeldridGraphBuffers.Position1DColourMultiVert.EdgeProgress">
+            <summary>
+            How far along the edge this vert is (0-1)
             </summary>
         </member>
         <member name="F:rgat.VeldridGraphBuffers.Position1DColourMultiVert.Color">
@@ -9785,6 +9810,7 @@
             <param name="view"></param>
             <param name="world"></param>
             <param name="cl"></param>
+            <param name="paramsBuffer">The parameters devicebuffer to upload these values to</param>
             <returns></returns>
         </member>
         <member name="M:rgat.GraphPlotWidget.DrawGraph(Veldrid.CommandList,rgat.PlottedGraph)">
@@ -10479,6 +10505,27 @@
             <summary>
             Sets per-frame data based on the associated window.
             This is called by Update(float).
+            </summary>
+        </member>
+        <member name="P:ImGuiNET.ImGuiController.LastMouseMove">
+            <summary>
+            When the mouse was last moved in the window
+            </summary>
+        </member>
+        <member name="P:ImGuiNET.ImGuiController.MousePresent">
+            <summary>
+            Is the mouse in the window
+            </summary>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.SetMousePresent(System.Boolean)">
+            <summary>
+            Set the mouse in window state
+            </summary>
+            <param name="state">true = in window</param>
+        </member>
+        <member name="P:ImGuiNET.ImGuiController.LastMouseActivityMS">
+            <summary>
+            When the mouse was last moved in the window (in ms)
             </summary>
         </member>
         <member name="M:ImGuiNET.ImGuiController.Dispose">

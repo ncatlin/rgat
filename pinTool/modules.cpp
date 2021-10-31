@@ -87,15 +87,12 @@ bool module_should_be_instrumented(std::string path)
 
 	if (DefaultIgnoreMode)
 	{
-		std::cout << "Checking if " << path << " is in the ignore list";
 		//check if module in whitelisted directory or is whitelisted
 		for each (std::string includedDir in TraceChoiceDirectoryList)
 		{
 			if (includedDir.size() > path.size()) continue;
 			if (path.compare(0, includedDir.size(), includedDir) >= 0)
 			{
-
-				std::cout << ".. it is in included dir (" << includedDir << ")" << std::endl;
 				return true;
 			}
 		}
@@ -104,24 +101,19 @@ bool module_should_be_instrumented(std::string path)
 			if (includedFile.size() > path.size()) continue;
 			if (path.compare(0, includedFile.size(), includedFile) == 0)
 			{
-
-				std::cout << ".. it is included file (" << includedFile << ")" << std::endl;
 				return true;
 			}
 		}
-		std::cout << ".. it isn't" << std::endl;
 		return false;
 	}
 	else
 	{
-		std::cout << "Checking if " << path << " is in the allow list ";
 		//Default include mode - instrument all except for ignored
 		for each (std::string ignoredDir in TraceChoiceDirectoryList)
 		{
 			if (ignoredDir.size() > ignoredDir.size()) continue;
 			if (path.compare(0, ignoredDir.size(), ignoredDir) >= 0)
 			{
-				std::cout << ".. it is in ignored dir ("<<ignoredDir  <<")"<< std::endl;
 				return false;
 			}
 		}
@@ -130,12 +122,9 @@ bool module_should_be_instrumented(std::string path)
 			if (ignoredFile.size() != path.size()) continue;
 			if (path.compare(0, ignoredFile.size(), ignoredFile) >= 0)
 				{
-				std::cout << ".. it is ignored file (" << ignoredFile << ")" << std::endl;
 					return false;
 				}
 		}
-
-		std::cout << ".. it isn't" << std::endl;
 		return true;
 	}
 }
@@ -214,7 +203,9 @@ void getModuleIncludeLists()
 		{
 			std::string path = b64decode(startchar, endchar - startchar);
 			std::transform(path.begin(), path.end(), path.begin(), std::tolower);
-			wprintf(L"Added Trace Choice Dir: %s [%s]\n", path.c_str(), DefaultIgnoreMode ? "Instrument" :"Ignore");
+#ifdef  DEBUG
+			wprintf(L"Added Trace Choice Dir: %s [%s]\n", path.c_str(), DefaultIgnoreMode ? "Instrument" : "Ignore");
+#endif //  DEBUG
 			TraceChoiceDirectoryList.push_back(path);
 			continue;
 		}
@@ -224,7 +215,9 @@ void getModuleIncludeLists()
 		{
 			std::string path = b64decode(startchar, endchar - startchar);
 			std::transform(path.begin(), path.end(), path.begin(), std::tolower);
+#ifdef  DEBUG
 			wprintf(L"Added Trace Choice File: %s [%s]\n", path.c_str(), DefaultIgnoreMode ? "Instrument" : "Ignore");
+#endif //  DEBUG
 			TraceChoiceFileList.push_back(path);
 			continue;
 		}
@@ -233,7 +226,10 @@ void getModuleIncludeLists()
 		break;
 	}
 
+#ifdef DEBUG
 	std::cout << "Finished reading trace ignore lists" << std::endl;
+#endif
+
 	free(recvBuf);
 }
 

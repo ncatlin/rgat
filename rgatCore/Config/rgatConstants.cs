@@ -273,7 +273,7 @@ namespace rgat
             /// <summary>
             /// Expected code certificate subject for rgat binaries
             /// </summary>
-            public const string RGAT_SIGNERS = "rgat dev";
+            public const string RGAT_SIGNERS = "\"Open Source Developer, Nia Catlin\"";
         }
 
         /// <summary>

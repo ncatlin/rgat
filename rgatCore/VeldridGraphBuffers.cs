@@ -358,13 +358,23 @@ namespace rgat
             public const uint SizeInBytes = 20;
         }
 
+        /// <summary>
+        /// Used to describe edges for the relative shader
+        /// </summary>
         public struct Position1DColourMultiVert
         {
             /// <summary>
-            /// Possitions buffer index
+            /// Positions buffer index of the source node
             /// </summary>
             public float SrcPositionIndex;
+
+            /// <summary>
+            /// Positions buffer index of the target node
+            /// </summary>
             public float DestPositionIndex;
+            /// <summary>
+            /// How far along the edge this vert is (0-1)
+            /// </summary>
             public float EdgeProgress;
             /// <summary>
             /// Colour of the geometry
