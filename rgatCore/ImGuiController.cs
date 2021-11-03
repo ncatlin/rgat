@@ -23,6 +23,9 @@ namespace ImGuiNET
 
         // Veldrid objects
         private DeviceBuffer? _vertexBuffer, _indexBuffer, _projMatrixBuffer;
+        /// <summary>
+        /// Texture for the main font
+        /// </summary>
         public Texture? _fontTexture;
         /// <summary>
         /// Shader accessible font texture
@@ -664,7 +667,11 @@ namespace ImGuiNET
             }
         }
 
-
+        /// <summary>
+        /// Get the bytes of an embedded resource by name (near enougb obsolete)
+        /// </summary>
+        /// <param name="resourceName"></param>
+        /// <returns></returns>
         public static byte[]? GetEmbeddedResourceBytes(string resourceName)
         {
             Assembly assembly = typeof(ImGuiController).Assembly;

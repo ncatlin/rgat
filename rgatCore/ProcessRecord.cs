@@ -589,7 +589,7 @@ namespace rgat
 
         /// <summary>
         /// Guard disassembly data structures
-        /// This needs to not be public
+        /// TODO: This needs to not be public and should be a RW lock
         /// </summary>
         public readonly object InstructionsLock = new object();
 

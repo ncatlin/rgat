@@ -87,6 +87,7 @@ namespace rgat.Threads
             {
                 StopFlag = true;
                 cancelTokens.Cancel();
+                base.Terminate();
             }
         }
 

@@ -833,7 +833,7 @@ namespace rgat
 
         private unsafe void DrawMainMenu()
         {
-            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText));
+            ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.MenuBarText));
             float logMenuX = 0;
             if (ImGui.BeginMenuBar())
             {

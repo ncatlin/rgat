@@ -78,16 +78,16 @@ namespace rgat.Properties {
         ///    &quot;PreviewPaneBorder&quot;: 4278190335,
         ///    &quot;PreviewPaneBackground&quot;: 4278979596,
         ///    &quot;PreviewZoomEnvelope&quot;: 2998055602,
-        ///    &quot;Heat0Lowest&quot;: 2993500722,
-        ///    &quot;Heat1&quot;: 4284890151,
-        ///    &quot;Heat2&quot;: 4286269967,
-        ///    &quot;Heat3&quot;: 4290797890,
+        ///    &quot;Heat0Lowest&quot;: 4292103244,
+        ///    &quot;Heat1&quot;: 4293091361,
+        ///    &quot;Heat2&quot;: 4290873926,
+        ///    &quot;Heat3&quot;: 4293692242,
         ///    &quot;Heat4&quot;: 4288161130,
         ///    &quot;Heat5&quot;: 4290528431,
         ///    &quot;Heat6&quot;: 4278543033,
         ///    &quot;Heat7&quot;: 4278217208,
         ///    &quot;Heat8&quot;: 4278190335,
-        ///    &quot;Heat9Highest&quot;: 4294901503,
+        ///    &quot;Heat9Highest&quot;: 4293519871,
         ///    &quot;VisBarPlotLine [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string BuiltinJSONThemes {
@@ -262,26 +262,6 @@ namespace rgat.Properties {
             get {
                 object obj = ResourceManager.GetObject("springPNG", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
-        internal static byte[] UpdateFinaliser_runtimeconfig {
-            get {
-                object obj = ResourceManager.GetObject("UpdateFinaliser_runtimeconfig", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
-        internal static byte[] UpdateFinaliserDLL {
-            get {
-                object obj = ResourceManager.GetObject("UpdateFinaliserDLL", resourceCulture);
-                return ((byte[])(obj));
             }
         }
         

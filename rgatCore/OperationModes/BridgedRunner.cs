@@ -1061,12 +1061,11 @@ namespace rgat.OperationModes
             if (pathTok != null && pathTok.Type == JTokenType.String)
             {
                 BinaryTarget target = rgatState.targets.AddTargetByPath(pathTok.ToString());
-                Console.WriteLine("GatherTargetInitData " + pathTok.ToString() + " " +target.GetSHA1Hash());
+                Logging.RecordLogEvent("GatherTargetInitData " + pathTok.ToString() + " " +target.GetSHA1Hash(), Logging.LogFilterType.Debug);
                 rgatState.YARALib?.StartYARATargetScan(target);
                 rgatState.DIELib?.StartDetectItEasyScan(target);
                 if (target != null)
                 {
-                    Console.WriteLine("Target not null");
                     return target.GetRemoteLoadInitData(requested: true);
                 }
             }

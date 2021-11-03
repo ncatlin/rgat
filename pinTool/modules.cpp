@@ -11,7 +11,6 @@ std::vector<std::string> TraceChoiceDirectoryList;
 std::vector<std::string> TraceChoiceFileList;
 bool DefaultIgnoreMode;
 
-
 void setCommandPipe(NATIVE_FD newpipe)
 {
 	commandPipe = newpipe;

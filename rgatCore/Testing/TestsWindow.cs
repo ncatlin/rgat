@@ -162,6 +162,7 @@ namespace rgat.Widgets
         public void Draw(ref bool openFlag)
         {
             UpdateStats();
+            ImGui.SetNextWindowSize(new Vector2(1000, 500), ImGuiCond.FirstUseEver);
             if (ImGui.Begin("Run Tests", ref openFlag, ImGuiWindowFlags.None))
             {
                 DrawTestsTree();

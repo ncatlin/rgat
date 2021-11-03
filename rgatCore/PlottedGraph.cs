@@ -1787,14 +1787,13 @@ namespace rgat
                 WritableRgbaFloat ecol = GetEdgeColor(edgeNodes, edge, renderingMode);
                 if (edge.edgeClass == EdgeNodeType.eEdgeOld || edge.edgeClass == EdgeNodeType.eEdgeReturn)
                 {
-                    cache.EdgeLineVerts[vertI++] =
-                    new Position1DColourMultiVert
-                    {
-                        SrcPositionIndex = srcNodeIdx,
-                        DestPositionIndex = destNodeIdx,
-                        EdgeProgress = 0,
-                        Color = ecol
-                    };
+                    cache.EdgeLineVerts[vertI++] = new Position1DColourMultiVert
+                        {
+                            SrcPositionIndex = srcNodeIdx,
+                            DestPositionIndex = destNodeIdx,
+                            EdgeProgress = 0,
+                            Color = ecol
+                        };
 
                     const float arcInnerVertCount = 8;
                     for (var arcI = 0; arcI < arcInnerVertCount; arcI++)
@@ -1849,8 +1848,8 @@ namespace rgat
             cache.ELVertIndex = vertI;
 
             sw.Stop();
-            if (sw.ElapsedMilliseconds > 60)
-                Console.WriteLine($"GetEdgeLineVertsloop took {sw.ElapsedMilliseconds}ms over {vertCount} verts ({sw.ElapsedMilliseconds / vertI} avg)");
+            if (sw.ElapsedMilliseconds > 150 && vertI > 0)
+                Logging.RecordLogEvent($"GetEdgeLineVertsloop took {sw.ElapsedMilliseconds}ms over {vertCount} verts ({sw.ElapsedMilliseconds / vertI} avg)", Logging.LogFilterType.Debug);
             return cache.EdgeLineVerts;
         }
 
@@ -2120,8 +2119,8 @@ namespace rgat
                     break;
                 }
                 sw.Stop();
-                if (sw.ElapsedMilliseconds > 50)
-                    Console.WriteLine($"ProcessLiveAnimationUpdates took {sw.ElapsedMilliseconds}ms with entry type {entry.entryType}");
+                if (sw.ElapsedMilliseconds > 150)
+                    Logging.RecordLogEvent($"ProcessLiveAnimationUpdates took {sw.ElapsedMilliseconds}ms with entry type {entry.entryType}", Logging.LogFilterType.Debug);
                 processedCount += 1;
             }
             InternalProtoGraph.ReleaseSavedAnimationDataReference();

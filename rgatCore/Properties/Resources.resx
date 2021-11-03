@@ -129,16 +129,16 @@
     "PreviewPaneBorder": 4278190335,
     "PreviewPaneBackground": 4278979596,
     "PreviewZoomEnvelope": 2998055602,
-    "Heat0Lowest": 2993500722,
-    "Heat1": 4284890151,
-    "Heat2": 4286269967,
-    "Heat3": 4290797890,
+    "Heat0Lowest": 4292103244,
+    "Heat1": 4293091361,
+    "Heat2": 4290873926,
+    "Heat3": 4293692242,
     "Heat4": 4288161130,
     "Heat5": 4290528431,
     "Heat6": 4278543033,
     "Heat7": 4278217208,
     "Heat8": 4278190335,
-    "Heat9Highest": 4294901503,
+    "Heat9Highest": 4293519871,
     "VisBarPlotLine": 4278190335,
     "VisBarBg": 4278190080,
     "AlertWindowBg": 4291648106,
@@ -146,7 +146,7 @@
     "Dull1": 4289835441,
     "Dull2": 4286414216,
     "Emphasis1": 4293263257,
-    "Emphasis2": 4294952447,
+    "Emphasis2": 4293984000,
     "BadStateColour": 4278190335,
     "WarnStateColour": 4278255615,
     "GoodStateColour": 4278225755,
@@ -192,8 +192,8 @@
     ]
   },
   "Metadata": {
-    "Name": "PaletteRedGrey5",
-    "Description": "Pre Theme-development collection of default/development colours",
+    "Name": "PaletteRedGrey",
+    "Description": "Default builtin theme",
     "Author": "rgat default theme",
     "Author2": "https://github.com/ncatlin/rgat"
   }
@@ -252,14 +252,8 @@
   <data name="springPNG" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\spring.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="UpdateFinaliserDLL" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\UpdateFinaliser.dll;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="UpdateFinaliserEXE" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\UpdateFinaliser.exe;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="UpdateFinaliser_runtimeconfig" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\UpdateFinaliser.runtimeconfig.json;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="vertexSpherePNG" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\vertexSphere.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>

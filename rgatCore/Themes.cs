@@ -137,7 +137,7 @@ namespace rgat
             /// </summary>
             SandboxChartBG,
 
-            /// ---------------
+            // ---------------
             //
             //Graph/Rendered Colours
             //
@@ -340,6 +340,7 @@ namespace rgat
             {ImGuiCol.Header, controlColour},
             {ImGuiCol.HeaderActive, controlActiveColour},
             {ImGuiCol.HeaderHovered, controlHoverColour},
+            {ImGuiCol.MenuBarBg, GetThemeColourUINT(Themes.eThemeColour.MenuBar)},
             {ImGuiCol.PopupBg, windowBackground},
             {ImGuiCol.ResizeGrip, frameColour},
             {ImGuiCol.ResizeGripActive, controlActiveColour},
@@ -660,7 +661,7 @@ namespace rgat
                     Themes.eThemeSize sizeEnum = (Themes.eThemeSize)dimI;
                     int size = (int)Themes.GetThemeSize(sizeEnum);
                     Vector2 sizelimit = Themes.ThemeSizeLimits[sizeEnum];
-                    if (ImGui.SliderInt(Enum.GetName(typeof(Themes.eThemeColour), dimI), ref size, (int)sizelimit.X, (int)sizelimit.Y))
+                    if (ImGui.SliderInt(Enum.GetName(typeof(Themes.eThemeSize), dimI), ref size, (int)sizelimit.X, (int)sizelimit.Y))
                     {
                         changed = true;
                         Themes.ThemeSizesCustom[sizeEnum] = size;
@@ -689,7 +690,11 @@ namespace rgat
                     }
                     IntPtr p = Marshal.StringToHGlobalUni(kvp.Key);
                     ImGuiInputTextFlags flags = ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackEdit;
-                    ImGui.InputText(kvp.Key, ref value, 1024, flags, TextCheckValid, p);
+                    if(ImGui.InputText(kvp.Key, ref value, 1024, flags, TextCheckValid, p))
+                    {
+                        Themes.ThemeMetadata[kvp.Key] = value;
+                        changed = true;
+                    }
 
                     if (!validValue)
                     {

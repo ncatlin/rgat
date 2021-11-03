@@ -1,8 +1,6 @@
 #pragma once
 
 #include "pin.H"
-
-
 #include "utilities.h"
 
 bool module_should_be_instrumented(std::string path);

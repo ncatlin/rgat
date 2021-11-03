@@ -338,7 +338,7 @@ namespace rgat
                 try
                 {
                     _processingItems = 0;
-                    NewDataEvent.Wait(rgatState.NetworkBridge.CancelToken);
+                    NewDataEvent.Wait(1000, rgatState.NetworkBridge.CancelToken);
                 }
                 catch (Exception e)
                 {
@@ -369,11 +369,7 @@ namespace rgat
                         return;
                     }
                 }
-
-
-                //todo: remote trace termination -> loop exit condition
             }
-
 
             base.Finished();
         }

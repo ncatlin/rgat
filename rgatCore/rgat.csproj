@@ -16,6 +16,11 @@
   <PropertyGroup>
     <Nullable>enable</Nullable>
 	<WarningsAsErrors>CS8600;CS8602;CS8603;</WarningsAsErrors>
+	<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+	<PackageIcon></PackageIcon>
+	<PackageIconUrl />
+	<Copyright>Nia Catlin</Copyright>
+	<Description>An instruction trace visualisation tool</Description>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -32,6 +37,7 @@
     <DebugSymbols>true</DebugSymbols>
     <Optimize>true</Optimize>
     <DefineConstants>TRACE</DefineConstants>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
@@ -87,7 +93,6 @@
     <PackageReference Include="Humanizer.Core" Version="2.11.10" />
     <PackageReference Include="ImGui.NET" Version="1.82.0" />
     <PackageReference Include="Jint" Version="3.0.0-beta-2034" />
-    <PackageReference Include="KaitaiStruct.Runtime.CSharp" Version="0.9.0" />
     <PackageReference Include="NaCl.Core" Version="2.0.2" />
     <PackageReference Include="NativeLibraryLoader" Version="1.0.12" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />

@@ -284,7 +284,19 @@ namespace rgat
             while (!StopFlag && !PipeBroke)
             {
                 byte[] TagReadBuffer = new byte[CONSTANTS.TRACING.TagCacheSize];
-                int bytesRead = await threadpipe.ReadAsync(TagReadBuffer.AsMemory(0, CONSTANTS.TRACING.TagCacheSize), CancelToken);
+                int bytesRead;
+                try
+                {
+                    bytesRead = await threadpipe.ReadAsync(TagReadBuffer.AsMemory(0, CONSTANTS.TRACING.TagCacheSize), CancelToken);
+                }
+                catch(Exception e)
+                {
+                    if (CancelToken.IsCancellationRequested is false)
+                    {
+                        Logging.RecordException("Exception in threadreader", e);
+                    }
+                    break;
+                }
 
                 if (bytesRead < CONSTANTS.TRACING.TagCacheSize)
                 {

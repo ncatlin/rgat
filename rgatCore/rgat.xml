@@ -5944,7 +5944,7 @@
         <member name="F:rgat.ProcessRecord.InstructionsLock">
             <summary>
             Guard disassembly data structures
-            This needs to not be public
+            TODO: This needs to not be public and should be a RW lock
             </summary>
         </member>
         <member name="F:rgat.ProcessRecord.disassembly">
@@ -6022,16 +6022,16 @@
                &quot;PreviewPaneBorder&quot;: 4278190335,
                &quot;PreviewPaneBackground&quot;: 4278979596,
                &quot;PreviewZoomEnvelope&quot;: 2998055602,
-               &quot;Heat0Lowest&quot;: 2993500722,
-               &quot;Heat1&quot;: 4284890151,
-               &quot;Heat2&quot;: 4286269967,
-               &quot;Heat3&quot;: 4290797890,
+               &quot;Heat0Lowest&quot;: 4292103244,
+               &quot;Heat1&quot;: 4293091361,
+               &quot;Heat2&quot;: 4290873926,
+               &quot;Heat3&quot;: 4293692242,
                &quot;Heat4&quot;: 4288161130,
                &quot;Heat5&quot;: 4290528431,
                &quot;Heat6&quot;: 4278543033,
                &quot;Heat7&quot;: 4278217208,
                &quot;Heat8&quot;: 4278190335,
-               &quot;Heat9Highest&quot;: 4294901503,
+               &quot;Heat9Highest&quot;: 4293519871,
                &quot;VisBarPlotLine [rest of string was truncated]&quot;;.
             </summary>
         </member>
@@ -6118,16 +6118,6 @@
         <member name="P:rgat.Properties.Resources.springPNG">
             <summary>
               Looks up a localized resource of type System.Drawing.Bitmap.
-            </summary>
-        </member>
-        <member name="P:rgat.Properties.Resources.UpdateFinaliser_runtimeconfig">
-            <summary>
-              Looks up a localized resource of type System.Byte[].
-            </summary>
-        </member>
-        <member name="P:rgat.Properties.Resources.UpdateFinaliserDLL">
-            <summary>
-              Looks up a localized resource of type System.Byte[].
             </summary>
         </member>
         <member name="P:rgat.Properties.Resources.UpdateFinaliserEXE">
@@ -6587,7 +6577,7 @@
             <param name="targVertID">Instruction node ID</param>
             <param name="repeats">How many times it executed</param>
         </member>
-        <member name="M:rgat.ProtoGraph.addBlockToGraph(System.UInt32,System.UInt64,System.Boolean,System.Boolean,System.Nullable{System.UInt32})">
+        <member name="M:rgat.ProtoGraph.AddBlockToGraph(System.UInt32,System.UInt64,System.Boolean,System.Boolean,System.Nullable{System.UInt32})">
             <summary>
             Add a new basic block to the graph
             </summary>
@@ -7059,7 +7049,7 @@
             <summary>
             Serialise the active trace to the trace directory
             </summary>
-            <param name="targ">A binaryTarget to save traces of</param>
+            <param name="trace">The trace to save</param>
         </member>
         <member name="M:rgat.rgatState.ExportTraceAsPajek(rgat.TraceRecord,System.UInt32)">
             <summary>
@@ -7088,6 +7078,14 @@
             </summary>
             <param name="ID">Test ID being set up</param>
             <param name="settings">Settings for the test</param>
+        </member>
+        <member name="M:rgat.rgatState.GetPendingTestSettings(System.Int64,rgat.ProcessLaunchSettings@)">
+            <summary>
+            Get tracing settings for a newly connecting test case run
+            </summary>
+            <param name="testID">The ID of the test</param>
+            <param name="settings">output settings for that test</param>
+            <returns></returns>
         </member>
         <member name="M:rgat.SplashScreenRenderer.#ctor(Veldrid.GraphicsDevice,ImGuiNET.ImGuiController)">
             <summary>
@@ -7449,6 +7447,12 @@
             Load a test case from a json file
             </summary>
             <param name="jsonpath">Path of a JSON test description file to load</param>
+        </member>
+        <member name="M:rgat.Testing.TestCase.CreateSettings">
+            <summary>
+            Create a settings object from the testcase
+            </summary>
+            <returns>A ProcessLaunchSettings object to pass to the test trace</returns>
         </member>
         <member name="M:rgat.Testing.TestCase.LoadFinalRequirements(Newtonsoft.Json.Linq.JObject)">
             <summary>
@@ -8875,6 +8879,11 @@
             The process is terminated
             </summary>
         </member>
+        <member name="P:rgat.TraceRecord.InvalidTrace">
+            <summary>
+            This trace failed to load
+            </summary>
+        </member>
         <member name="M:rgat.TraceRecord.#ctor(System.UInt32,System.Int64,rgat.BinaryTarget,System.DateTime,rgat.TraceRecord.TracingPurpose,System.Int32,System.Int64)">
             <summary>
             Create a trace record
@@ -9806,10 +9815,11 @@
             </summary>
             <param name="plot">The graph being drawn</param>
             <param name="textureSize"></param>
-            <param name="projection"></param>
-            <param name="view"></param>
-            <param name="world"></param>
-            <param name="cl"></param>
+            <param name="projection">Projection matrix of the graph</param>
+            <param name="mousoverNode">The index of the node the mouse is over, or -1 for none</param>
+            <param name="view">view matrix of the graph</param>
+            <param name="world">world matrix of the graph</param>
+            <param name="cl">The command list to run commands on</param>
             <param name="paramsBuffer">The parameters devicebuffer to upload these values to</param>
             <returns></returns>
         </member>
@@ -10314,6 +10324,11 @@
             Manages input for ImGui and handles rendering ImGui's DrawLists with Veldrid.
             </summary>
         </member>
+        <member name="F:ImGuiNET.ImGuiController._fontTexture">
+            <summary>
+            Texture for the main font
+            </summary>
+        </member>
         <member name="F:ImGuiNET.ImGuiController._fontTextureView">
             <summary>
             Shader accessible font texture
@@ -10477,6 +10492,13 @@
             <param name="name">shader name</param>
             <param name="stage">unused</param>
             <returns>shader bytes or null if not found</returns>
+        </member>
+        <member name="M:ImGuiNET.ImGuiController.GetEmbeddedResourceBytes(System.String)">
+            <summary>
+            Get the bytes of an embedded resource by name (near enougb obsolete)
+            </summary>
+            <param name="resourceName"></param>
+            <returns></returns>
         </member>
         <member name="M:ImGuiNET.ImGuiController.RecreateFontDeviceTexture(Veldrid.GraphicsDevice)">
             <summary>

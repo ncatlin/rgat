@@ -646,8 +646,6 @@ namespace rgat
 
             Matrix4x4 pitch = Matrix4x4.CreateFromAxisAngle(Vector3.UnitX, _pitchDelta);
             Matrix4x4 yaw = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, _yawDelta);
-            if (_yawDelta != 0)
-                Console.WriteLine(_yawDelta);
             Matrix4x4 roll = Matrix4x4.CreateFromAxisAngle(Vector3.UnitZ, _rollDelta);
             _pitchDelta = 0; _yawDelta = 0f; _rollDelta = 0;
 
@@ -677,9 +675,15 @@ namespace rgat
                     ActivePlot = plot;
                 }
 
-                if (ActivePlot != null)
+                if (ActivePlot != null && ActivePlot.RenderedEdgeCount > 0)
                 {
                     DrawGraphImage();
+                }
+                else
+                {
+                    Vector2 cursor = ImGui.GetCursorPos();
+                    ImGuiUtils.DrawRegionCenteredText("No instrumented data to plot");
+                    ImGui.SetCursorPos(cursor);
                 }
 
                 DrawHUD(graphSize, ActivePlot);
@@ -1053,10 +1057,11 @@ namespace rgat
         /// </summary>
         /// <param name="plot">The graph being drawn</param>
         /// <param name="textureSize"></param>
-        /// <param name="projection"></param>
-        /// <param name="view"></param>
-        /// <param name="world"></param>
-        /// <param name="cl"></param>
+        /// <param name="projection">Projection matrix of the graph</param>
+        /// <param name="mousoverNode">The index of the node the mouse is over, or -1 for none</param>
+        /// <param name="view">view matrix of the graph</param>
+        /// <param name="world">world matrix of the graph</param>
+        /// <param name="cl">The command list to run commands on</param>
         /// <param name="paramsBuffer">The parameters devicebuffer to upload these values to</param>
         /// <returns></returns>
         public static void UpdateShaderParams(PlottedGraph plot, uint textureSize, int mousoverNode,
@@ -1263,8 +1268,8 @@ namespace rgat
                 return;
             }
             st.Stop();
-            if (st.ElapsedMilliseconds > 100)
-                Console.WriteLine($"DGGetEdgeLineVerts took {st.ElapsedMilliseconds}");
+            if (st.ElapsedMilliseconds > 500)
+                Logging.RecordLogEvent($"DGGetEdgeLineVerts took {st.ElapsedMilliseconds}", Logging.LogFilterType.Debug);
 
             Debug.Assert(_gd is not null);
             if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent("rendergraph start", filter: Logging.LogFilterType.BulkDebugLogFile);
@@ -1299,8 +1304,8 @@ namespace rgat
             out List<Tuple<string?, uint>> captions, out int nodeCount);
 
             st.Stop();
-            if (st.ElapsedMilliseconds > 100)
-                Console.WriteLine($"DGGetMaingraphNodeVerts took {st.ElapsedMilliseconds}");
+            if (st.ElapsedMilliseconds > 500)
+                Logging.RecordLogEvent($"DGGetMaingraphNodeVerts took {st.ElapsedMilliseconds}", Logging.LogFilterType.Debug);
 
             if (_NodeVertexBuffer!.SizeInBytes < NodeVerts.Length * Position1DColour.SizeInBytes)
             {
@@ -1350,8 +1355,8 @@ namespace rgat
             UploadFontVerts(stringVerts, risingTextVerts.ToArray(), cl);
 
             st.Stop();
-            if (st.ElapsedMilliseconds > 100)
-                Console.WriteLine($"DGtexts took {st.ElapsedMilliseconds}");
+            if (st.ElapsedMilliseconds > 400)
+                Logging.RecordLogEvent($"DGtexts took {st.ElapsedMilliseconds}", Logging.LogFilterType.Debug);
 
 
             GetOutputFramebuffer(out Framebuffer drawtarget);
@@ -1432,8 +1437,8 @@ namespace rgat
             _gd.WaitForIdle();
 
             st.Stop();
-            if (st.ElapsedMilliseconds > 100)
-                Console.WriteLine($"DG WaitForIdle took {st.ElapsedMilliseconds}");
+            if (st.ElapsedMilliseconds > 200)
+                Logging.RecordLogEvent($"DG WaitForIdle took {st.ElapsedMilliseconds}");
 
             ReleaseOutputFramebuffer();
 
@@ -1582,10 +1587,8 @@ namespace rgat
             float maxWidth = 200;
 
             TraceRecord trace = graph.InternalProtoGraph.TraceData;
-            Stopwatch st = new Stopwatch();
-            st.Start();
             Logging.TIMELINE_EVENT[] evts = trace.GetTimeLineEntries(oldest: timenow - GlobalConfig.VisMessageMaxLingerTime, max: 5);
-            st.Stop(); if (st.ElapsedMilliseconds > 60) Console.WriteLine($"Get tlentres ({evts.Length}) took {st.ElapsedMilliseconds} ms");
+
 
             List<EVTLABEL> events = new();
 

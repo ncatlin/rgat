@@ -481,6 +481,7 @@ namespace rgat
             }
         }
 
+
         private static void InitiateFileSwap(string new_rgatPath)
         {
             Logging.RecordLogEvent($"Initialising update called with new rgat version {new_rgatPath}", filter: Logging.LogFilterType.Debug);
@@ -559,16 +560,10 @@ namespace rgat
             {
                 byte[]? installFinaliserEXE = global::rgat.Properties.Resources.UpdateFinaliserEXE;
                 File.WriteAllBytes(exeName, installFinaliserEXE);
-                string dllName = Path.Combine(GlobalConfig.BaseDirectory, "UpdateFinaliser.dll");
-                byte[]? installFinaliserDLL = global::rgat.Properties.Resources.UpdateFinaliserDLL;
-                File.WriteAllBytes(dllName, installFinaliserEXE);
-                string runconfig = Path.Combine(GlobalConfig.BaseDirectory, "UpdateFinaliser.runtimeconfig.json");
-                byte[]? runconfigJson = global::rgat.Properties.Resources.UpdateFinaliser_runtimeconfig;
-                File.WriteAllBytes(runconfig, runconfigJson);
             }
             catch (Exception e)
             {
-                Logging.RecordException($"Failed to write update finaliser to disk directory: {e.Message}", e);
+                Logging.RecordException($"Failed to write UpdateFinaliser.exe to disk directory: {e.Message}", e);
                 return;
             }
 

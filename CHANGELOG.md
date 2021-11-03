@@ -36,6 +36,7 @@
 ### Changed
 - Previous Saves Obsolete
 - Previous Configs Obsolete
+- Updated Pin to 3.21 (Headline: Windows 11 Support)
 
 ### Removed
 - Trace divergence plot. It may be re-added in the future if there is demand.

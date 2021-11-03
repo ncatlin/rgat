@@ -658,6 +658,10 @@ namespace rgat.Testing
             "HideAPIThunks"
         };
 
+        /// <summary>
+        /// Create a settings object from the testcase
+        /// </summary>
+        /// <returns>A ProcessLaunchSettings object to pass to the test trace</returns>
         public ProcessLaunchSettings CreateSettings()
         {
             ProcessLaunchSettings result = new ProcessLaunchSettings(BinaryPath);

@@ -470,7 +470,8 @@ namespace rgat.Threads
              */
             if (targetCodeType == eCodeInstrumentation.eUninstrumentedCode)// && protograph.NodeList.Count < protograph.ProtoLastLastVertID)
             {
-                if (protograph.NodeList[(int)protograph.ProtoLastVertID].VertType() == CONSTANTS.EdgeNodeType.eNodeCall)
+                if (protograph.NodeCount > protograph.ProtoLastVertID && 
+                    protograph.NodeList[(int)protograph.ProtoLastVertID].VertType() == CONSTANTS.EdgeNodeType.eNodeCall)
                 {
                     dbgStopwatch.Restart();
                     List<InstructionData>? preExternBlock = protograph.TraceData.DisassemblyData.getDisassemblyBlock(thistag.blockID);
@@ -1015,7 +1016,7 @@ namespace rgat.Threads
                 s.Stop();
                 if (s.ElapsedMilliseconds > 400)
                 {
-                    Console.WriteLine($"Tag {(char)msg[0]} took {s.ElapsedMilliseconds}ms to process");
+                    Logging.RecordLogEvent($"Tag {(char)msg[0]} took {s.ElapsedMilliseconds}ms to process", Logging.LogFilterType.Debug);
                 }
 
                 if (IrregularTimerFired)

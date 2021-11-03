@@ -52,18 +52,13 @@ namespace rgat.Threads
             {
                 if (graph.IsAnimated)
                 {
-                    System.Diagnostics.Stopwatch st = new();
-                    st.Start();
                     graph.ProcessLiveAnimationUpdates(out int doneCount);
-                    st.Stop();
-                    if (doneCount > 0 && st.ElapsedMilliseconds > 5)
-                        System.Console.WriteLine($"Live updates processed {doneCount} in {st.ElapsedMilliseconds} ms (avg: {st.ElapsedMilliseconds / doneCount:f})");
                 }
             }
             else
             {
                 if (graph.InternalProtoGraph.TraceData.DiscardTraceData is false &&
-                    (graph.ReplayState == PlottedGraph.REPLAY_STATE.Playing || 
+                    (graph.ReplayState == PlottedGraph.REPLAY_STATE.Playing ||
                     graph._userSelectedAnimPosition != -1))
                 {
                     if (--_nextReplayStep <= 0)
@@ -104,7 +99,7 @@ namespace rgat.Threads
 
                 st.Restart();
                 update_rendering(activeGraph);
-                st.Stop(); 
+                st.Stop();
                 //if (st.ElapsedMilliseconds > 0) System.Console.WriteLine($"u_R took {st.ElapsedMilliseconds} ms");
 
                 //st.Restart();

@@ -106,10 +106,8 @@ namespace rgat
             WorkerThread.Start(param);
         }
 
-        private string GetTracePipeName(ulong TID)
-        {
-            return GetTracePipeName(trace.PID, trace.randID, TID);
-        }
+        private string GetTracePipeName(ulong TID) => GetTracePipeName(trace.PID, trace.randID, TID);
+
 
         /// <summary>
         /// Derive a pipe name for threads in the instrumentation tool to connect on
@@ -163,11 +161,11 @@ namespace rgat
             //todo - these are valid in filenames. b64 encode in client? length field would be better with path at end
             //do same for symbol
             string[] fields = Encoding.ASCII.GetString(buf).Split('@', 4);
-            
+
             if (uint.TryParse(fields[1], System.Globalization.NumberStyles.Integer, null, out uint parent) &&
                 uint.TryParse(fields[2], System.Globalization.NumberStyles.Integer, null, out uint child))
             {
-               if (parent == this.trace.PID)
+                if (parent == this.trace.PID)
                 {
                     ProcessCoordinatorThread.RegisterIncomingChild(child, trace);
                 }
@@ -175,19 +173,41 @@ namespace rgat
         }
 
 
-
+        /// <summary>
+        /// Called after a new target thread has been spawned. We can expect it to try to 
+        /// connect to the named pipe in dozens of milliseconds
+        /// </summary>
+        /// <param name="graph"></param>
         private void SpawnPipeTraceProcessorThreads(ProtoGraph graph)
         {
             string pipename = GetTracePipeName(graph.ThreadID);
 
             Logging.RecordLogEvent($"Opening pipe {pipename} for PID:{graph.TraceData.PID} TID:{graph.ThreadID}", Logging.LogFilterType.Debug);
-            NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
+
+            NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.InOut, 1, PipeTransmissionMode.Byte);
+
             System.Threading.Tasks.Task waitTask = threadListener.WaitForConnectionAsync(rgatState.ExitToken);
+
+            int attempts = 0;
             while (true)
             {
                 //debugging loop
                 if (!waitTask.IsCompleted)
                 {
+                    attempts += 1;
+                    if (attempts > 10)
+                    {
+                        //https://trello.com/c/pqOdlGjc/256-sometimes-traces-just-dont-connect
+                        Logging.RecordError($"Pin pipe connection abandoned (known error). Try running the trace again.");
+                        graph.TraceData.ProcessThreads.BBthread?.Terminate();
+                        foreach (ProtoGraph p in graph.TraceData.ProtoGraphs)
+                        {
+                            p.TraceProcessor?.Terminate();
+                            p.TraceReader?.Terminate();
+                        }
+                        Terminate();
+                        return;
+                    }
                     Logging.RecordLogEvent($"Wait task {pipename} not complete - {waitTask.Status}");
                     Thread.Sleep(150);
                 }
@@ -195,6 +215,7 @@ namespace rgat
                 {
                     break;
                 }
+
             }
             Logging.RecordLogEvent($"Instrumentation connection to pipe {pipename} for PID:{graph.TraceData.PID} TID:{graph.ThreadID}", Logging.LogFilterType.Debug);
 
@@ -207,7 +228,8 @@ namespace rgat
 
             PreviewRendererThread.AddGraphToPreviewRenderQueue(MainGraph);
 
-            graph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph: graph);
+            graph.TraceData.RecordTimelineEvent(type: Logging.eTimelineEvent.ThreadStart, graph:
+                graph);
             if (!trace.InsertNewThread(graph, MainGraph))
             {
                 Logging.WriteConsole("[rgat]ERROR: Trace rendering thread creation failed");
@@ -306,7 +328,8 @@ namespace rgat
                             { "RID", trace.randID },
                             { "ref", traceRef }
                         };
-                        rgatState.NetworkBridge.SendCommand("ThreadIngest", trace.randID.ToString() + spawnedThreadCount.ToString(), SpawnRemoteTraceProcessorThreads, params_);
+                        rgatState.NetworkBridge.SendCommand("ThreadIngest", trace.randID.ToString() + spawnedThreadCount.ToString(), 
+                            SpawnRemoteTraceProcessorThreads, params_);
                     }
 
                     break;
@@ -385,7 +408,7 @@ namespace rgat
             {
                 try
                 {
-                    Logging.WriteConsole($"controlPipe.BeginWrite with {cmd.Length} bytes {Encoding.ASCII.GetString(cmd)}");
+                    Logging.RecordLogEvent($"controlPipe.BeginWrite with {cmd.Length} bytes: {Encoding.ASCII.GetString(cmd)}", Logging.LogFilterType.Debug);
                     //This is async because the commandPipe can block, hanging the caller
                     System.Threading.Tasks.Task.Run(() => commandPipe.WriteAsync(cmd, 0, cmd.Length, rgatState.ExitToken));
                 }
@@ -440,7 +463,7 @@ namespace rgat
             {
                 List<string> tracedDirs = moduleChoices.GetTracedDirs();
                 List<string> tracedFiles = moduleChoices.GetTracedFiles();
-               
+
                 if (tracedDirs.Count == 0 && tracedFiles.Count == 0)
                 {
                     Logging.RecordLogEvent("Warning: Exclude mode with nothing included. Nothing will be instrumented.");
@@ -583,7 +606,8 @@ namespace rgat
 
             if (buf[0] == 's' && buf[1] == '!')
             {
-                HandleSymbol(buf);
+                //Console.WriteLine("GHandlesym");
+                //HandleSymbol(buf);
                 return;
             }
 
@@ -754,7 +778,7 @@ namespace rgat
 
                 foreach (string item in newCommands)
                 {
-                    Console.WriteLine("Mhandler remote" + System.Text.ASCIIEncoding.ASCII.GetBytes(item));
+                    Logging.RecordLogEvent("RemoteCommandListener command:" + System.Text.ASCIIEncoding.ASCII.GetBytes(item), Logging.LogFilterType.Debug);
                     try
                     {
                         SendCommand(System.Text.ASCIIEncoding.ASCII.GetBytes(item));
@@ -926,7 +950,7 @@ namespace rgat
             if (this._remoteEventPipeID is not null)
             {
                 string termString = $"PX@{this.trace.PID}@";
-                MirrorMessageToUI(Encoding.ASCII.GetBytes(termString),2);
+                MirrorMessageToUI(Encoding.ASCII.GetBytes(termString), 2);
             }
 
 

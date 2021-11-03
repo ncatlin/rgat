@@ -130,8 +130,8 @@ namespace rgat
                         ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, Vector2.Zero);
 
                         sw.Stop();
-                        if (sw.ElapsedMilliseconds > 40)
-                            Console.WriteLine($"DrawVisualiserGraphs took {sw.ElapsedMilliseconds}ms");
+                        if (sw.ElapsedMilliseconds > 140)
+                            Logging.RecordLogEvent($"DrawVisualiserGraphs took {sw.ElapsedMilliseconds}ms", Logging.LogFilterType.Debug);
                         sw.Restart();
                     }
                     if (ImGui.TableNextColumn())
@@ -143,12 +143,12 @@ namespace rgat
                 ImGui.PopStyleVar();
 
                 sw.Stop();
-                if (sw.ElapsedMilliseconds > 40)
-                    Console.WriteLine($"DrawVisualiserControls took {sw.ElapsedMilliseconds}ms");
+                if (sw.ElapsedMilliseconds > 150)
+                   Logging.RecordLogEvent($"DrawVisualiserControls took {sw.ElapsedMilliseconds}ms", Logging.LogFilterType.Debug);
             }
         }
 
-        readonly Stopwatch swdbg2 = new();
+
         private void DrawMainVisualiser(float controlsHeight = 200)
         {
             if (rgatState.ActiveGraph == null)
@@ -178,24 +178,12 @@ namespace rgat
             if (ImGui.BeginChild(ImGui.GetID("MainGraphWidget"), graphSize))
             {
                 ImGui.PopStyleVar();
-                swdbg2.Restart();
                 MainGraphWidget.Draw(graphSize, rgatState.ActiveGraph);
-                swdbg2.Stop();
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
-                if (swdbg2.ElapsedMilliseconds > 52)
-                    Console.WriteLine($"MainGraphWidget.Draw took {swdbg2.ElapsedMilliseconds}ms");
 
                 Vector2 msgpos = ImGui.GetCursorScreenPos() + new Vector2(graphSize.X, -1 * graphSize.Y);
-                swdbg2.Restart();
                 MainGraphWidget.DisplayEventMessages(msgpos);
-                swdbg2.Stop();
-                if (swdbg2.ElapsedMilliseconds > 42)
-                    Console.WriteLine($"MainGraphWidget.DisplayEventMessages took {swdbg2.ElapsedMilliseconds}ms");
                 ImGui.EndChild();
-            }
-            else
-            {
-                Console.WriteLine("Fail2B");
             }
             ImGui.PopStyleVar();
 
@@ -217,10 +205,6 @@ namespace rgat
                         }
                     }
                     ImGui.EndChild();
-                }
-                else
-                {
-                    Console.WriteLine("Fail3");
                 }
             }
         }
@@ -491,7 +475,6 @@ namespace rgat
                 ImGui.Columns(2);
                 ImGui.SetColumnWidth(0, 65);
                 ImGui.SetColumnWidth(1, 90);
-
                 ImGui.BeginGroup();
                 {
                     if (ImGui.Button("Kill", new Vector2(50, 24)))
@@ -920,11 +903,6 @@ namespace rgat
                     }
                     ImGui.EndChild();
                 }
-                else
-                {
-                    Console.WriteLine("Fail4");
-                }
-
                 ImGui.EndChild();
             }
 
@@ -1197,16 +1175,12 @@ namespace rgat
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
             if (ImGui.BeginChild(ImGui.GetID("GLVisThreads"), previewPaneSize, false, ImGuiWindowFlags.NoScrollbar))
             {
-                swdbg2.Restart();
                 PreviewGraphWidget!.DrawWidget(MainGraphWidget.WidgetSize);
                 if (PreviewGraphWidget.clickedGraph != null)
                 {
                     SetActiveGraph(PreviewGraphWidget.clickedGraph);
                     PreviewGraphWidget.ResetClickedGraph();
                 }
-                swdbg2.Stop();
-                if (swdbg2.ElapsedMilliseconds > 62)
-                    Console.WriteLine($"PreviewGraphWidget.DrawWidget took {swdbg2.ElapsedMilliseconds}ms");
                 ImGui.EndChild();
             }
             ImGui.PopStyleVar(4);

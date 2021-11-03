@@ -522,9 +522,10 @@ namespace rgat
                 ActivatingPreset = true;
             }
 
-            if (v1 > 80 || v2 > 80 || v3 > 80)
-                Console.WriteLine($"Regen took: edged:{v1}ms, blockmd:{v2}ms, preset:{v3}ms");
-            if (GlobalConfig.Settings.Logs.BulkLogging) Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {plot.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
+            if (v1 > 280 || v2 > 280 || v3 > 280)
+                Logging.RecordLogEvent($"RegenerateEdgeDataBuffers took: edged:{v1}ms, blockmd:{v2}ms, preset:{v3}ms", Logging.LogFilterType.Debug);
+            if (GlobalConfig.Settings.Logs.BulkLogging) 
+                Logging.RecordLogEvent($"RegenerateEdgeDataBuffers  {plot.TID} complete", Logging.LogFilterType.BulkDebugLogFile);
         }
 
         /// <summary>
@@ -600,8 +601,8 @@ namespace rgat
                 return false;
             }
             st.Stop();
-            if (st.ElapsedMilliseconds > 80)
-                Console.WriteLine($"GetEdgeRenderingdata took {st.ElapsedMilliseconds} ms");
+            if (st.ElapsedMilliseconds > 250)
+                Logging.RecordLogEvent($"GetEdgeRenderingdata took {st.ElapsedMilliseconds} ms", Logging.LogFilterType.Debug);
 
             _VRAMBuffers.EdgeConnections = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeTargets.Length * sizeof(int), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeTargetsBuf_T{plot.TID}");
             _VRAMBuffers.EdgeStrengths = VeldridGraphBuffers.TrackedVRAMAlloc(_gd, (uint)edgeStrengths.Length * sizeof(float), BufferUsage.StructuredBufferReadOnly, 4, $"EdgeStrengthsBuf_T{plot.TID}");

@@ -199,7 +199,9 @@ namespace rgat
             eTerminated
         };
 
-
+        /// <summary>
+        /// This trace failed to load
+        /// </summary>
         public bool InvalidTrace { get; private set; } = false;
 
         /// <summary>

@@ -4,8 +4,6 @@
 //pin client lock is held
 VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 {
-	
-	//std::cout << "mod start" << std::endl;
 	UINT32 imageID = IMG_Id(img);
 
 	if (imageID >= loadedModulesInfo.size())
@@ -52,15 +50,9 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 		wrapAdvapi32Funcs(img, (UINT32)threadData_TLSKEY);
 	}
 	
-	
-
-	//std::cout << "Module " << path << std::endl;
 	for (SYM sym = IMG_RegsymHead(img); SYM_Valid(sym); sym = SYM_Next(sym))
 	{
-		//std::cout << "wsm "<< imageID << " , " << SYM_Value(sym) << ", "<<SYM_Name(sym) << std::endl;
 		std::string symname = SYM_Name(sym); //sym_name memory seems to become invalid in this call on x86-32
 		writeEventPipe("s!@%d@" PTR_prefix "@%s@", imageID, SYM_Value(sym), symname.c_str());
 	}
-	//std::cout << "mod done" << std::endl;
-
 }

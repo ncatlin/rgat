@@ -859,7 +859,7 @@ namespace rgat
         /// <summary>
         /// Serialise the active trace to the trace directory
         /// </summary>
-        /// <param name="targ">A binaryTarget to save traces of</param>
+        /// <param name="trace">The trace to save</param>
         public static int SaveTrace(TraceRecord? trace)
         {
             if (trace is null) return 0;
@@ -1005,6 +1005,12 @@ namespace rgat
         }
 
 
+        /// <summary>
+        /// Get tracing settings for a newly connecting test case run
+        /// </summary>
+        /// <param name="testID">The ID of the test</param>
+        /// <param name="settings">output settings for that test</param>
+        /// <returns></returns>
         public static bool GetPendingTestSettings(long testID, out ProcessLaunchSettings? settings)
         {
             lock (_staticLock)

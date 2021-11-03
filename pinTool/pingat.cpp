@@ -156,11 +156,8 @@ THREADID GetPINThreadID(OS_THREAD_ID tid) {
 }
 
 void RegisterThreadID(OS_THREAD_ID tid, THREADID PinID) {
-	writeEventPipe("!RegisterThreadID T1E%d 32", tid);
 	PIN_MutexLock(&dataMutex);
-	writeEventPipe("!RegisterThreadID T1F%d 32", tid);
 	ThreadIDs[tid] = PinID;
-	writeEventPipe("!RegisterThreadID T1G%d 32", tid);
 	PIN_MutexUnlock(&dataMutex);
 }
 
@@ -817,26 +814,26 @@ static VOID HandleUnixContextSwitch(THREADID threadIndex, CONTEXT_CHANGE_REASON 
 static VOID HandleWindowsContextSwitch(THREADID threadIndex, CONTEXT_CHANGE_REASON reason, const CONTEXT* ctxtFrom,
 	CONTEXT* ctxtTo, INT32 info, VOID* v)
 {
-	std::cout << "In HandleWindowsContextSwitch" << std::endl;
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tls_key, threadIndex));
 
 	std::stringstream ctxswitch_ss;
 	ctxswitch_ss << "![pingat] ";
 
 	ADDRINT srcAddress = (ctxtFrom != NULL) ? PIN_GetContextReg(ctxtFrom, REG_INST_PTR) : 0;
-	std::cout << "In exception " << reason << " " << srcAddress << " " << info << std::endl;
 	switch (reason)
 	{
 	case CONTEXT_CHANGE_REASON_APC:          ///< Receipt of Windows APC
+		std::cout << "[pingat]HandleWindowsContextSwitch: Exception reason " << reason << " src address 0x" << std::hex << srcAddress << " info: " << info << std::endl;
 		ctxswitch_ss << "APC - Receipt of Windows APC";
 		break;
 	case CONTEXT_CHANGE_REASON_EXCEPTION:    ///< Receipt of Windows exception
+		std::cout << "[pingat]HandleWindowsContextSwitch: Exception reason " << reason << " src address 0x" << std::hex << srcAddress << " info: " << info << std::endl;
 		ctxswitch_ss << "EXCEPTION - Receipt of windows exception code 0x" << std::hex << info << " (" << windowsExceptionName(info) << ")";
 		printTagCache(threaddata);
 		fprintf(threaddata->threadpipeFILE, EXCEPTION_MARKER"," PTR_prefix ",%lx,%lx\x01", srcAddress, info, 0);
 		break;
 	case CONTEXT_CHANGE_REASON_CALLBACK:      ///< Receipt of Windows call-back
-		std::cout << "WINDOWS CALLBACK " << std::endl;
+		std::cout << "[pingat]Context Switch via Windows Callback detected "<< std::endl;
 		ctxswitch_ss << "CALLBACK - Receipt of Windows call-back";
 		break;
 	}
@@ -891,46 +888,53 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 	ADDRINT startAddr = PIN_GetContextReg(ctxt, REG::REG_INST_PTR);
 
 	writeEventPipe("TI@%d@" PTR_prefix "@", tdata->osthreadid, startAddr);
-
+	
 	RegisterThreadID(tdata->osthreadid, threadIndex);
-
 	AssignBlockIndex(tdata);
 
 	char pname[1024];
 	NATIVE_PID pid;
 	OS_GetPid(&pid);
 	snprintf_s(pname, 1024, "\\\\.\\pipe\\TR%u%ld%u", pid, instanceID, tdata->osthreadid);
+	cout << "[pingat]Connecting to thread pipe " << tdata->osthreadid << " " << pname << std::endl;
 
-	int time = 0, expiry = 6000;
+	int time = 0, expiry = 3000;
 	while (time < expiry)
 	{
 		if (tdata->threadpipeHandle == -1)
 		{
-			tdata->threadpipeHandle = (NATIVE_FD)WINDOWS::CreateFileA(pname, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+			std::cout << "[pingat]pipe -1, doing createfile " << tdata->osthreadid << std::endl;
+			
+			//KNOWN BUG: Sometimes blocks and never returns, probably alertable syscall
+			
+			tdata->threadpipeHandle = (NATIVE_FD)WINDOWS::CreateFileA(pname, 
+				GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+				
+			int err = WINDOWS::GetLastError();
+			std::cout << "[pingat]pipe -1, after createfile err 0x" << err << "  " << tdata->osthreadid << std::endl;
 
 			if (tdata->threadpipeHandle == -1 && time > 1600 && (time % 600 == 0))
 			{
+				std::cout << "[pingat]Failed to connect after 1600 - err " << err << std::endl;
 				std::stringstream errstr;
 				errstr << "Failing to connect to thread pipe [" << std::string(pname) << "]. Error:";
-				int err = WINDOWS::GetLastError();
 				if (err == 2) errstr << " Pipe not found" << std::endl;
 				else if (err == 5)errstr << " Access Denied" << std::endl;
 				else errstr << err << std::endl;
 
-				writeEventPipe("! %s", errstr.str().c_str());
+				writeEventPipe("! Thread Connection Failure: %s", errstr.str().c_str());
 			}
 		}
 
 		if (tdata->threadpipeHandle != -1)
 		{
+
 #ifdef DEBUG
 			std::cout << "thread pipe connected!" << std::endl;
 #endif
-
+			//convert file HANDLE to FILE*
 			int fd = _open_osfhandle(tdata->threadpipeHandle, _O_APPEND);
-
 			tdata->threadpipeFILE = fdopen(fd, "wb");
-
 
 			if (!tdata->threadpipeFILE)
 			{
@@ -958,13 +962,110 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 			}
 			return;
 		}
-
-		writeEventPipe("!T8%d", tdata->osthreadid);
-		OS_Sleep(15);
-		time += 15;
+		
+		writeEventPipe("!ThreadStart connection failed %d", tdata->osthreadid);
+		OS_Sleep(200);
+		time += 200;
 	}
+
+	cout << "Failed to connect thread pipe, exiting process" << std::endl;
+	PIN_ExitProcess(1);
 }
 
+VOID ThreadStart_openFD(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
+{
+	//wprintf(L"%s", "[pingat]in thread start 32\n");
+	threadCount++;
+	threadObject* tdata = new threadObject(threadCount);
+	OS_GetTid(&tdata->osthreadid);
+
+	ADDRINT startAddr = PIN_GetContextReg(ctxt, REG::REG_INST_PTR);
+
+	writeEventPipe("TI@%d@" PTR_prefix "@", tdata->osthreadid, startAddr);
+
+	RegisterThreadID(tdata->osthreadid, threadIndex);
+
+	AssignBlockIndex(tdata);
+
+	char pname[1024];
+	NATIVE_PID pid;
+	OS_GetPid(&pid);
+	snprintf_s(pname, 1024, "\\\\?\\pipe\\TR%u%ld%u", pid, instanceID, tdata->osthreadid);
+	cout << "[pingat]Connecting to thread pipe " << tdata->osthreadid << " " << pname << std::endl;
+
+	int time = 0, expiry = 6000;
+	while (time < expiry)
+	{
+		if (tdata->threadpipeHandle == -1)
+		{
+			std::cout << "[pingat]pipe -1, doing OS_OpenFD " << tdata->osthreadid << std::endl;
+
+			OS_RETURN_CODE rtncd = OS_OpenFD(pname, OPEN_EXISTING, 0, &tdata->threadpipeHandle);
+
+			std::cout << "[pingat]pipe -1, after createfile err 0x" <<std::hex << rtncd.generic_err << " - " 
+				<< rtncd.os_specific_err << "  " << tdata->osthreadid << " HAND: " << tdata->threadpipeHandle << std::endl;
+
+			if (tdata->threadpipeHandle == -1 && time > 1600 && (time % 600 == 0))
+			{
+				std::cout << "[pingat]Failed to connect after 1600 - err " << tdata->osthreadid << std::endl;
+				std::stringstream errstr;
+				errstr << "Failing to connect to thread pipe [" << std::string(pname) << "]. Error:";
+				if (tdata->osthreadid == 2) errstr << " Pipe not found" << std::endl;
+				else if (tdata->osthreadid == 5)errstr << " Access Denied" << std::endl;
+				else errstr << tdata->osthreadid << std::endl;
+
+				writeEventPipe("! 1600err %s", errstr.str().c_str());
+			}
+			OS_Sleep(50);
+		}
+
+		if (tdata->threadpipeHandle != -1)
+		{
+
+#ifdef DEBUG
+			std::cout << "thread pipe connected!" << std::endl;
+#endif
+
+			int fd = _open_osfhandle(tdata->threadpipeHandle, _O_APPEND);
+			tdata->threadpipeFILE = fdopen(fd, "wb");
+
+			if (!tdata->threadpipeFILE)
+			{
+				if (errno == EACCES)
+				{
+					writeEventPipe("!ERROR: Permission denied when trying to fdopen handle of %s. Error 0x%x", pname, errno);
+				}
+				else
+				{
+					writeEventPipe("!ERROR: Failed to open thread pipe. Error 0x%x", errno);
+				}
+				PIN_ExitProcess(1);
+			}
+
+			if (PIN_SetThreadData(tls_key, tdata, threadIndex) == FALSE)
+			{
+				writeEventPipe("!ERROR: PIN_SetThreadData failed");
+				PIN_ExitProcess(1);
+			}
+
+			if (ConfigValueMatches("PAUSE_ON_START", "TRUE")) {
+				printf("Scheduled thread %d to pause on start, removing option\n", tdata->osthreadid);
+				traceOptions["PAUSE_ON_START"] = "";
+				SetProcessBrokenState(true);
+			}
+
+			std::cout << "[pingat] thread start done, retting " << tdata->osthreadid << std::endl;
+			return;
+		}
+
+		writeEventPipe("!T8 failed %d", tdata->osthreadid);
+		OS_Sleep(200);
+		time += 200;
+	}
+
+	cout << "Failed to connect thread pipe, exiting process" << std::endl;
+	PIN_ExitProcess(1);
+}
 
 VOID ThreadEnd(THREADID threadIndex, const CONTEXT* ctxt, INT32 flags, VOID* v)
 {
@@ -986,12 +1087,6 @@ VOID ThreadEnd(THREADID threadIndex, const CONTEXT* ctxt, INT32 flags, VOID* v)
 
 	activeThreadUniqIDs[threaddata->blocksIndex] = 0;
 
-	/*
-	fprintf(threaddata->threadpipeFILE, THREAD_END_MARKER"\x01");
-	fflush(threaddata->threadpipeFILE);
-	OS_CloseFD(threaddata->threadpipeHandle);
-	*/
-
 	delete threaddata;
 }
 
@@ -1006,7 +1101,6 @@ VOID ThreadEnd(THREADID threadIndex, const CONTEXT* ctxt, INT32 flags, VOID* v)
 */
 VOID process_exit_event(INT32 code, VOID* v)
 {
-	//std::cout << "In process_exit_event" << std::endl;
 	UINT64 endTime;
 	OS_Time(&endTime);
 
@@ -1015,16 +1109,6 @@ VOID process_exit_event(INT32 code, VOID* v)
 	writeEventPipe("PX@%ld@", pid);
 
 	processExiting = true;
-
-	/*
-	std::cout << "===============================================" << std::endl;
-	std::cout << "PINGat ended run. " << std::endl;
-	std::cout << "Number of basic blocks instrumented: " << std::dec << uniqueBBCountIns << std::endl;
-	std::cout << "Number of basic blocks ignored: " << std::dec << uniqueBBCountNoins << std::endl;
-	std::cout << "Number of threads: " << threadCount << std::endl;
-	std::cout << "Execution time: " << std::dec << ((endTime - startTime) / 1000) << " ms" << std::endl;
-	std::cout << "===============================================" << std::endl;
-	*/
 
 	free(basicBlockBuffer);
 	free(activeThreadUniqIDs);
@@ -1435,10 +1519,15 @@ void ResumeAllThreads()
 
 void ProcessControlCommand(std::string cmd)
 {
-	std::cout << " ------\nControl command: " << cmd << "\n-----------\n" << std::endl;
+#ifdef DEBUG
+	std::cout << "------\nControl command: " << cmd << "\n"------" << std::endl;
+#endif
 
 	if (cmd.compare(0, 4, "EXIT") == 0) {
+
+#ifdef DEBUG
 		std::cout << "[pingat]Exiting due to exit command" << std::endl;
+#endif
 		BreakAllThreads();
 		OutputAllThreads();
 		PIN_ExitProcess(0);
@@ -1481,7 +1570,6 @@ void ProcessControlCommand(std::string cmd)
 		if (processStateBroken) {
 			DWORD OSthreadID = std::atol(cmd.substr(4, cmd.length()).c_str());
 			std::cout << "[pingat]Stepping to next instruction of thread " << OSthreadID << std::endl;
-			THREADID pinThreadID;
 			PIN_SemaphoreSet(&stepSem);
 		}
 	}
@@ -1542,14 +1630,18 @@ static VOID BreakerThread(VOID* arg)
 	while (!processExiting) {
 		count += 1;
 		if (PIN_SemaphoreTimedWait(&breakSem, 500)) {
+#ifdef DEBUG
 			std::cout << "Break semaphore set" << std::endl;
+#endif
 			PIN_SemaphoreClear(&breakSem);
 			PIN_StopApplicationThreads(thisThreadID);
 			SetProcessBrokenState(true);
 
 			while (!processExiting) {
 				if (PIN_SemaphoreTimedWait(&continueSem, 500)) {
+#ifdef DEBUG
 					std::cout << "continueSem semaphore set" << std::endl;
+#endif
 					SetProcessBrokenState(false);
 					PIN_SemaphoreClear(&continueSem);
 					PIN_ResumeApplicationThreads(thisThreadID);
@@ -1614,7 +1706,7 @@ VOID ReadConfiguration()
 	readCommandPipe(recvBuf, &readsz);
 	const char startToken2[] = "CONFIGKEYS@";
 	if (strncmp(recvBuf, startToken2, sizeof(startToken2) - 1) != 0) {
-		printf("Err: %s\n", recvBuf);
+		printf("[pingat]ReadConfiguration error: %s\n", recvBuf);
 		DeclareTerribleEventAndExit(L"[pingat]Bad config keys start token");
 		return;
 	}
@@ -1735,6 +1827,8 @@ int main(int argc, char* argv[])
 
 	// Register function to be called for every thread before it starts running
 	PIN_AddThreadStartFunction(ThreadStart, 0);
+	//PIN_AddThreadStartFunction(ThreadStart_openFD, 0); //leaving this around in case a fix turns up
+	
 	PIN_AddThreadFiniFunction(ThreadEnd, 0);
 
 	// Register function to be called when the application exits

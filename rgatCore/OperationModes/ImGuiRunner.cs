@@ -69,6 +69,8 @@ namespace rgat.OperationModes
         public void Run()
         {
             Logging.RecordLogEvent("rgat is starting in GUI mode", Logging.LogFilterType.Debug);
+            Logging.WriteConsole("This is the rgat console. Traced programs can be interacted with here.");
+            Logging.WriteConsole("-----------------------------------------------------------------------", ConsoleColor.Gray);
 
             if (!Setup())
             {

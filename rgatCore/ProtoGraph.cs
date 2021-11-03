@@ -395,7 +395,7 @@ namespace rgat
 
             if (BlocksFirstLastNodeList.Count <= blockID)
             {
-                addBlockToGraph(blockID, 1);
+                AddBlockToGraph(blockID, 1);
                 return false;
             }
 
@@ -1180,7 +1180,7 @@ namespace rgat
             {
                 //Logging.WriteConsole($"Processing instrumented tag blockaddr 0x{thistag.blockaddr:X} [BLOCKID: {thistag.blockID}] inscount {thistag.insCount}");
                 sw.Start();
-                addBlockToGraph(thistag.blockID, 1, !skipFirstEdge);
+                AddBlockToGraph(thistag.blockID, 1, !skipFirstEdge);
                 sw.Stop();
                 if (sw.ElapsedMilliseconds > 250)
                     Console.WriteLine($"HandleTag::addblock to graph took {sw.ElapsedMilliseconds} ms");
@@ -1285,7 +1285,6 @@ namespace rgat
         /// </summary>
         public int NodeCount => NodeList.Count;
 
-
         /// <summary>
         /// Record the execution of an instruction on the graph
         /// </summary>
@@ -1310,23 +1309,11 @@ namespace rgat
             thisnode.HasSymbol = instruction.hasSymbol;
 
             Debug.Assert(!NodeExists(targVertID));
-
-            Stopwatch st = new Stopwatch();
-            st.Start();
+            
             InsertNode(thisnode);
-            st.Stop(); if (st.ElapsedMilliseconds > 100)
-            {
-                Console.WriteLine($"!!!!!!InsertNode nodelock is contended for {st.ElapsedMilliseconds}");
-            }
-
-            st.Restart();
-            lock (TraceData.DisassemblyData.InstructionsLock)
+            lock (TraceData.DisassemblyData.InstructionsLock) //this lock should probably be converted to a RW lock, gets congested a lot in big graphs
             {
                 instruction.AddThreadVert(ThreadID, targVertID);
-            }
-            st.Stop(); if (st.ElapsedMilliseconds > 100)
-            {
-                Console.WriteLine($"!!!!!!AddThreadVert InstructionsLock is contended for {st.ElapsedMilliseconds}");
             }
 
             //lastVertID = targVertID;
@@ -1356,7 +1343,7 @@ namespace rgat
         /// <param name="recordEdge">Does the edge need recording</param>
         /// <param name="setLastID">Should the tail be set as the last executed node</param>
         /// <param name="customPreviousVert">Add a custom node to set as the last executed node</param>
-        public void addBlockToGraph(uint blockID, ulong repeats, bool recordEdge = true, bool setLastID = true, uint? customPreviousVert = null)
+        public void AddBlockToGraph(uint blockID, ulong repeats, bool recordEdge = true, bool setLastID = true, uint? customPreviousVert = null)
         {
             Stopwatch st = new();
             st.Start();
@@ -1373,7 +1360,7 @@ namespace rgat
             int numInstructions = block.Count;
             st.Stop();
             if (st.ElapsedMilliseconds > 100)
-                Console.WriteLine($"abg getDisassemblyBlock took {st.ElapsedMilliseconds}");
+                Logging.RecordLogEvent($"AddBlockToGraph getDisassemblyBlock took {st.ElapsedMilliseconds}", Logging.LogFilterType.Debug);
 
             if (GlobalConfig.Settings.Logs.BulkLogging)
             {
@@ -1386,9 +1373,7 @@ namespace rgat
 
             TotalInstructions += ((ulong)numInstructions * repeats);
 
-            st.Start();
             uint firstVert = 0;
-            //Logging.WriteConsole($"addBlockLineToGraph adding block addr 0x{block[0].address:X} with {block.Count} instructions");
             for (int instructionIndex = 0; instructionIndex < numInstructions; ++instructionIndex)
             {
                 InstructionData instruction = block[instructionIndex];
@@ -1399,7 +1384,7 @@ namespace rgat
                     if (!NodeExists(ProtoLastVertID))
                     {
                         //had an odd error here where it returned false with idx 0 and node list size 1. can only assume race condition?
-                        Logging.WriteConsole($"\t\t[rgat]ERROR: RunBB- Last vert {ProtoLastVertID} not found. Node list size is: {NodeList.Count}");
+                        Logging.RecordError($"\t\tAddBlockToGraph - Last vert {ProtoLastVertID} not found. Node list size is: {NodeList.Count}");
                         Debug.Assert(false);
                     }
                 }
@@ -1410,12 +1395,9 @@ namespace rgat
                 bool alreadyExecuted = SetTargetInstruction(instruction);
                 if (!alreadyExecuted)
                 {
-                    targVertID = HandleNewInstruction(instruction, blockID, repeats);
-                    // Logging.WriteConsole($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} is new, handled as new. targid => {targVertID}");
-                }
+                    targVertID = HandleNewInstruction(instruction, blockID, repeats);                }
                 else
                 {
-                    // Logging.WriteConsole($"\t\tins addr 0x{instruction.address:X} {instruction.ins_text} exists [targVID => {targVertID}], handling as existing");
                     HandlePreviousInstruction(targVertID, repeats);
                 }
 
@@ -1450,15 +1432,8 @@ namespace rgat
                 {
                     ProtoLastLastVertID = ProtoLastVertID;
                     ProtoLastVertID = targVertID;
-                    // Logging.WriteConsole($"\t\t\t New LastVID:{ProtoLastVertID}, lastlastvid:{ProtoLastLastVertID}");
                 }
             }
-
-
-            st.Stop();
-            if (st.ElapsedMilliseconds > 100)
-                Console.WriteLine($"abg loop took {st.ElapsedMilliseconds} over {numInstructions} instructions");
-
 
             lock (edgeLock)
             {

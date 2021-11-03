@@ -231,6 +231,7 @@ namespace rgat
         }
 
 
+        //unused for now
         private static void DrawTraceTab_DiagnosticSettings(float width)
         {
             ImGui.BeginGroup();
@@ -770,7 +771,7 @@ namespace rgat
                     if (p != null)
                     {
                         watch.Start();
-                        if (p.WaitForExit(80)) //in testing it takes under 30ms to fail if pin can't load it
+                        if (p.WaitForExit(500)) //in testing it takes under 30ms to fail if pin can't load it
                         {
                             if (p.ExitCode != 0)
                             {

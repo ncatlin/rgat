@@ -5,12 +5,21 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
+[assembly: System.Reflection.AssemblyTitleAttribute("Update file verification and swapping")]
+
 namespace UpdateFinaliser
 {
     internal class Program
     {
-        private static readonly string[] validSigners = new string[] { "Nia Catlin", "Open Source Developer, Nia CATLIN" };
+        private static readonly string[] validSigners = new string[] { "CN=\"Open Source Developer, Nia Catlin\"", "CN=Nia Catlin", "CN=\"Nia Catlin\"", };
 
+        /// <summary>
+        /// Arg0: rgat processID to wait for termination
+        /// Arg1: rgat.exe being replaced
+        /// Arg2: new rgat.exe
+        /// Arg3: true/false -whether to run rgat after replacement
+        /// </summary>
+        /// <param name="args"></param>
         private static void Main(string[] args)
         {
             if (args.Length != 4)
@@ -94,6 +103,7 @@ namespace UpdateFinaliser
                 catch (Exception e)
                 {
                     log.Write(Encoding.ASCII.GetBytes($"Exception on replacement {newrgat} -> {originalrgat}) => {e.Message}"));
+                    return;
                 }
 
                 if (reLaunch)
@@ -106,7 +116,7 @@ namespace UpdateFinaliser
                     }
                     catch (Exception e)
                     {
-                        log.Write(Encoding.ASCII.GetBytes($"Exception launching rgat - {e.Message}\n"));
+                        log.Write(Encoding.ASCII.GetBytes($"Exception relaunching rgat - {e.Message}\n"));
                         return;
                     }
                 }
@@ -135,7 +145,7 @@ namespace UpdateFinaliser
             try
             {
                 X509Certificate signer = X509Certificate.CreateFromSignedFile(path);
-                bool hasValidSigner = expectedSigners.Any(validSigner => signer.Subject.ToLower().Contains($"O={validSigner},".ToLower()));
+                bool hasValidSigner = expectedSigners.Any(validSigner => signer.Subject.ToLower().Contains($"{validSigner},".ToLower()));
                 if (!hasValidSigner)
                 {
                     error = "Unexpected signer " + signer.Subject;

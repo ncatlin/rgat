@@ -72,7 +72,8 @@ namespace rgat.Widgets
                         string label = "PID " + selectableTrace.PID;
                         if (current is false)
                         {
-                            label = "Parent: " + label + $" ({selectableTrace.Target.FileName})";
+                            //label = "Parent: " + label + $" ({selectableTrace.Target.FileName})";
+                            label = label + $" ({selectableTrace.Target.FileName})";
                         }
                         if (ImGui.Selectable(label, current))
                         {
@@ -116,6 +117,8 @@ namespace rgat.Widgets
             if (trace is not null && graph is not null)
             {
                 string selString = $"{(abbreviate ? "TID" : "Thread")} {graph.ThreadID}: {graph.FirstInstrumentedModuleName}";
+                if (graph.NodeCount == 0)
+                    selString += " [Uninstrumented]";
                 List<PlottedGraph> graphs = trace.GetPlottedGraphs();
                 if (ImGui.TableNextColumn())
                 {

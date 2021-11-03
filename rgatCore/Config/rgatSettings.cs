@@ -347,13 +347,13 @@ namespace rgat.Config
             /// The test dialog appears in the menu bar
             /// </summary>
             public bool EnableTestHarness { get => _EnableTestHarness; set { _EnableTestHarness = value; MarkDirty(); } }
-            private bool _EnableTestHarness = true;
+            private bool _EnableTestHarness = false;
 
             /// <summary>
             /// The imgui demo dialog appears in the menu bar
             /// </summary>
             public bool EnableImGuiDemo { get => _EnableImGuiDemo; set { _EnableImGuiDemo = value; MarkDirty(); } }
-            private bool _EnableImGuiDemo = true;
+            private bool _EnableImGuiDemo = false;
 
             /// <summary>
             /// The version of rgat this config file was created by

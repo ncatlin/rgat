@@ -294,6 +294,7 @@ VOID wraphead_WriteFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT func
 	fflush(threaddata->threadpipeFILE);
 }
 
+
 void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 {
 	RTN rtn = RTN_FindByName(img, "CloseHandle");
@@ -411,7 +412,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 		RTN_Close(rtn);
 	}
 
-
+	
 	rtn = RTN_FindByName(img, "CreateFileA");
 	if (RTN_Valid(rtn))
 	{

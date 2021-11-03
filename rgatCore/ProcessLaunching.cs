@@ -87,15 +87,16 @@ namespace rgat
     /// <summary>
     /// Arch bitwidth
     /// </summary>
-    public enum BitWidth { 
+    public enum BitWidth
+    {
         /// <summary>
         /// 32 bit (x86)
         /// </summary>
-        Arch32, 
+        Arch32,
         /// <summary>
         /// 64 bit (x64)
         /// </summary>
-        Arch64 
+        Arch64
     };
 
     internal class ProcessLaunching
@@ -203,8 +204,22 @@ namespace rgat
             {
                 string pinpath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath);
                 Logging.RecordLogEvent($"Launching DLL trace: {pinpath} {runargs}", Logging.LogFilterType.Debug);
-                result = System.Diagnostics.Process.Start(pinpath, runargs);
-                result.Exited += (sender, args) => DeleteLoader(loaderPath);
+
+                ProcessStartInfo startInfo = new ProcessStartInfo()
+                {
+                    WorkingDirectory = binaryDir,
+                    Arguments = runargs,
+                    FileName = pinpath
+                };
+                result = System.Diagnostics.Process.Start(startInfo);
+                if (result is not null)
+                {
+                    result.Exited += (sender, args) => DeleteLoader(loaderPath);
+                }
+                else
+                {
+                    DeleteLoader(loaderPath);
+                }
             }
             catch (Exception e)
             {
@@ -240,8 +255,8 @@ namespace rgat
                 }
             }
 
-            byte[]? loaderBytes = (loaderWidth == BitWidth.Arch32) ? 
-                global::rgat.Properties.Resources.DllLoader32 : 
+            byte[]? loaderBytes = (loaderWidth == BitWidth.Arch32) ?
+                global::rgat.Properties.Resources.DllLoader32 :
                 global::rgat.Properties.Resources.DllLoader64;
             if (loaderBytes == null)
             {
@@ -282,6 +297,19 @@ namespace rgat
 
             try
             {
+                string? bindir = Path.GetDirectoryName(settings.BinaryPath);
+                if (bindir is null)
+                {
+                    Logging.RecordError($"Unable to get directory of {settings.BinaryPath}");
+                    return null;
+                }
+                ProcessStartInfo startInfo = new ProcessStartInfo()
+                {
+                    WorkingDirectory = bindir,
+                    Arguments = runargs,
+                    FileName = settings.BinaryPath
+                };
+
                 string pinpath = GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath);
                 Logging.RecordLogEvent($"Launching EXE trace: {pinpath} {runargs}", Logging.LogFilterType.Debug);
                 result = System.Diagnostics.Process.Start(pinpath, runargs);
@@ -291,7 +319,6 @@ namespace rgat
                 Logging.RecordException($"Failed to start process: {e.Message}", e);
             }
             return result;
-
         }
 
 
@@ -310,7 +337,7 @@ namespace rgat
             }
 
             startParamObj.Add("Settings", JObject.FromObject(settings));
-            
+
 
             rgatState.NetworkBridge.SendCommand("StartTrace", null, null, startParamObj);
         }
