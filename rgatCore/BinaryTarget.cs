@@ -172,8 +172,6 @@ namespace rgat
                 {
                     IgnoreDirs.Add(windowsDir);
                 }
-
-                //IgnoreFiles.Add("shf篸籊籔籲.txtui@siojf췳츲췥췂췂siojfios.dll"); //TODO: make+trace a test program loading this, fix whatever breaks
             }
         }
     }

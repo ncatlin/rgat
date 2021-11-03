@@ -896,23 +896,27 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 	NATIVE_PID pid;
 	OS_GetPid(&pid);
 	snprintf_s(pname, 1024, "\\\\.\\pipe\\TR%u%ld%u", pid, instanceID, tdata->osthreadid);
+#ifdef DEBUG
 	cout << "[pingat]Connecting to thread pipe " << tdata->osthreadid << " " << pname << std::endl;
+#endif
 
 	int time = 0, expiry = 3000;
 	while (time < expiry)
 	{
 		if (tdata->threadpipeHandle == -1)
 		{
+#ifdef DEBUG
 			std::cout << "[pingat]pipe -1, doing createfile " << tdata->osthreadid << std::endl;
-			
+#endif		
 			//KNOWN BUG: Sometimes blocks and never returns, probably alertable syscall
 			
 			tdata->threadpipeHandle = (NATIVE_FD)WINDOWS::CreateFileA(pname, 
 				GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 				
 			int err = WINDOWS::GetLastError();
+#ifdef DEBUG
 			std::cout << "[pingat]pipe -1, after createfile err 0x" << err << "  " << tdata->osthreadid << std::endl;
-
+#endif
 			if (tdata->threadpipeHandle == -1 && time > 1600 && (time % 600 == 0))
 			{
 				std::cout << "[pingat]Failed to connect after 1600 - err " << err << std::endl;
@@ -968,7 +972,7 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 		time += 200;
 	}
 
-	cout << "Failed to connect thread pipe, exiting process" << std::endl;
+	cout << "[pingat]Failed to connect thread pipe, exiting process" << std::endl;
 	PIN_ExitProcess(1);
 }
 

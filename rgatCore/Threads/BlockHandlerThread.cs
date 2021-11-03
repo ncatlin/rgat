@@ -342,10 +342,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    if (rgatState.rgatIsExiting is false)
-                    { 
-                        Logging.RecordException($"BlockThread::BlockProcessor exception {e.Message}", e); 
-                    }
+                    Logging.RecordLogEvent($"BlockThread::BlockProcessor wait exception {e.Message}. Usually just user cancellation."); 
                     break;
                 }
                 lock (_lock)

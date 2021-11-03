@@ -353,18 +353,15 @@ namespace rgat
                 case REPLAY_STATE.Stopped: //start it from beginning
                     ReplayState = REPLAY_STATE.Playing;
                     SetAnimated(true);
-                    Logging.WriteConsole("Animation state Stopped -> Playing");
                     break;
 
                 case REPLAY_STATE.Playing: //pause it
                     ReplayState = REPLAY_STATE.Paused;
-                    Logging.WriteConsole("Animation state Playing -> Paused");
                     break;
 
                 case REPLAY_STATE.Paused: //unpause it
                     ReplayState = REPLAY_STATE.Playing;
                     SetAnimated(true);
-                    Logging.WriteConsole("Animation state Paused -> Playing");
                     break;
 
             }

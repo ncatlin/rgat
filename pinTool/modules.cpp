@@ -28,11 +28,15 @@ OS_RETURN_CODE readCommandPipe(VOID *resultbuf, USIZE *ptrsize)
 	OS_RETURN_CODE retval = OS_ReadFD(commandPipe, ptrsize, resultbuf);
 	if (!OS_RETURN_CODE_IS_SUCCESS(retval))
 	{
+#ifdef DEBUG
 		std::cerr << "[pingat]Error " << retval.generic_err << "," << std::hex << retval.os_specific_err << " readControlPipe" << std::endl;
+#endif
 		if (retval.generic_err == OS_RETURN_CODE_FILE_READ_FAILED) {
 			if (retval.os_specific_err = 0xC0000008)
 			{
+#ifdef DEBUG
 				std::cerr << "\t modulepipe was invalid" << std::endl;
+#endif
 				PIN_ExitApplication(-1);
 			}
 		}

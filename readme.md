@@ -2,6 +2,8 @@
 
 *Note: rgat is an active research project that has emerged from a long re-write. 0.6.X will be a series of preview builds. Don't let the flashy videos entice you into thinking that it will be useful on real targets*
 
+[Look here for documentation](https://ncatlin.github.io/rgatPages/)
+
 **rgat** is a dynamic binary analysis tool for gathering and visualising instruction traces. It is intended to help software reverse engineers in bridging the gap between the high level API view of malware sandboxes and the low level function view of disassemblers and decompilers - particularly where code obfuscation is present. 
 
 

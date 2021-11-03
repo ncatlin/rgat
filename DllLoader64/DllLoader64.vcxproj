@@ -91,6 +91,7 @@
     <ResourceCompile Include="DllLoader64.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="icon2.ico" />
     <Image Include="tortico4_a7r_icon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -591,7 +591,7 @@ namespace rgat.Widgets
         private void DrawStatusBanner()
         {
             //ImGui.PushStyleColor(ImGuiCol.ChildBg, 0xff000000);
-            if (ImGui.BeginChild("#TestsStatusBar", new Vector2(ImGui.GetContentRegionAvail().X, 28)))
+            if (ImGui.BeginChild("#TestsStatusBar", new Vector2(ImGui.GetContentRegionAvail().X, 40)))
             {
                 float loadedCount = 0;
                 float execCount = 0;
@@ -609,7 +609,11 @@ namespace rgat.Widgets
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 8);
                 if (loadedCount is 0)
                 {
-                    ImGui.Text("No tests loaded. Ensure the test path is defined in settings and contains tests (see [URL - TODO])");
+                    if (ImGui.BeginChild("#testInfoCaptionfrm", new Vector2(500, 40)))
+                    {
+                        ImGui.TextWrapped("No tests loaded. Ensure the test path is defined in settings and contains tests (see https://ncatlin.github.io/rgatPages/devdocs/testing)");
+                        ImGui.EndChild();
+                    }
                 }
                 else
                 {

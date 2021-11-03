@@ -32,7 +32,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FileAPITest", "tests\Window
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RegistryAPITest", "tests\Windows\basic\RegistryAPITest\RegistryAPITest.vcxproj", "{6428EFF6-1A40-4157-A713-F92B7E868241}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DllLoader32", "rgatDLLRunner\rgatDLLRunner.vcxproj", "{45163E2D-41AB-40A9-BCAA-9AFCE0ECCB25}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DllLoader32", "DllLoader32\rgatDLLRunner.vcxproj", "{45163E2D-41AB-40A9-BCAA-9AFCE0ECCB25}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DllLoader64", "DllLoader64\DllLoader64.vcxproj", "{EE9D1058-F2D9-48CB-9D49-C5600F4FB3F7}"
 EndProject
