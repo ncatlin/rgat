@@ -1,0 +1,278 @@
+[
+	{
+		"Library":  "advapi32.dll" ,
+		"Interfaces": {
+			"CreateServiceA": {
+				"Filter": "Process",
+				"Label": "Create Service",
+				"Parameters": [
+					{"Index":1, "Name":"lpServiceName", "Type":"Info"},
+					{"Index":7, "Name":"lpBinaryPathName", "Type":"Entity", "EntityType": "File", "RawType": "Path"}
+				]
+			},
+			"CreateServiceW": {
+				"Filter": "Process",
+				"Label": "Create Service",
+				"Parameters": [
+					{"Index":1, "Name":"lpServiceName", "Type":"Info"},
+					{"Index":7, "Name":"lpBinaryPathName", "Type":"Entity", "EntityType": "File", "RawType": "Path"}
+				]
+			},
+			"RegCloseKey":  { 
+				"Filter" : "Registry",		
+				"Label": "Close",
+				"Effects": [{ "Type": "DestroyReference", "ReferenceIndex": 0 }],		
+				"Parameters": [
+					{"Index": 0, "Name":"hKey", "Type":"Reference", "EntityType": "Registry", "RawType": "HKEY"}
+				]
+			 },
+             "RegCreateKeyExA": { 
+				"Filter" : "Registry",
+				"Label": "Create",
+				"Effects": [{ "Type": "LinkReference", "EntityIndex": 1, "ReferenceIndex": 7 }],
+				"Parameters": [
+					{"Index":-1, "Name":"Result", "Type":"Info"},
+					{"Index":0, "Name":"hKey", "Type":"EntityModifier"},
+					{"Index":1, "Name":"lpSubKey", "Type":"Entity", "EntityType": "Registry", "RawType": "Path"},
+					{"Index":7, "Name":"phkResult", "Type":"Reference", "EntityType": "Registry", "RawType": "HKEY", "Conditional":true}
+				]
+			 },             
+			 "RegCreateKeyExW": { 
+				"Filter" : "Registry",
+				"Label": "Create",
+				"Effects": [{ "Type": "LinkReference", "EntityIndex": 1, "ReferenceIndex": 7 }],
+				"Parameters": [
+					{"Index":-1, "Name":"Result", "Type":"Info"},
+					{"Index":0, "Name":"hKey", "Type":"EntityModifier"},
+					{"Index":1, "Name":"lpSubKey", "Type":"Entity", "EntityType": "Registry", "RawType": "Path"},
+					{"Index":7, "Name":"phkResult", "Type":"Reference", "EntityType": "Registry", "RawType": "HKEY", "Conditional":true}
+				]
+			 },
+             "RegDeleteKeyExA": { "Filter" : "Registry" },
+             "RegDeleteKeyExW": { "Filter" : "Registry" },             
+			 "RegDeleteValueA": { 
+				"Filter" : "Registry",				
+				"Label": "Delete",
+				"Effects": [{ "Type": "UseReference", "ReferenceIndex": 0 }],
+				"Parameters": [
+					{"Index": 0, "Name":"hKey", "Type":"Reference", "EntityType": "Registry", "RawType": "HKEY"},
+					{"Index": 1, "Name":"lpSubKey", "Type":"Info"}
+				]
+			 },
+             "RegDeleteValueW":  { 
+				"Filter" : "Registry",				
+				"Label": "Delete",
+				"Effects": [{ "Type": "UseReference", "ReferenceIndex": 0 }],
+				"Parameters": [
+					{"Index": 0, "Name":"hKey", "Type":"Reference", "EntityType": "Registry", "RawType": "HKEY"},
+					{"Index": 1, "Name":"lpSubKey", "Type":"Info"}
+				]
+			 },
+             "RegOpenKeyExA": { 
+				"Filter" : "Registry",
+				"Label": "Open",
+				"Effects": [{ "Type": "LinkReference", "EntityIndex": 1, "ReferenceIndex": 4 }],
+				"Parameters": [
+					{"Index":-1, "Name":"Result", "Type":"Info"},
+					{"Index":0, "Name":"hKey", "Type":"EntityModifier"},
+					{"Index":1, "Name":"lpSubKey", "Type":"Entity", "EntityType": "Registry", "RawType": "Path"},
+					{"Index":4, "Name":"phkResult", "Type":"Reference", "EntityType": "Registry", "RawType": "HKEY", "Conditional":true}
+				]
+			 },
+             "RegOpenKeyExW": { 
+				"Filter" : "Registry",
+				"Label": "Open",
+				"Effects": [{ "Type": "LinkReference", "EntityIndex": 1, "ReferenceIndex": 4 }],
+				"Parameters": [
+					{"Index":-1, "Name":"Result", "Type":"Info"},
+					{"Index":0, "Name":"hKey", "Type":"EntityModifier"},
+					{"Index":1, "Name":"lpSubKey", "Type":"Entity", "EntityType": "Registry", "RawType": "Path"},
+					{"Index":4, "Name":"phkResult", "Type":"Reference", "EntityType": "Registry", "RawType": "HKEY", "Conditional":true}
+				]
+			 },
+             "RegQueryValueA": { 
+				"Filter" : "Registry",		
+				"Effects": [{ "Type": "UseReference", "ReferenceIndex": 0 }],		
+				"Label": "Read",
+				"Parameters": [
+					{"Index": 0, "Name":"hKey", "Type":"Reference", "EntityType": "Registry", "RawType": "HKEY"},
+					{"Index": 1, "Name":"lpSubKey", "Type":"Info"}
+				]
+			 },
+             "RegQueryValueW":  { 
+				"Filter" : "Registry",	
+				"Effects": [{ "Type": "UseReference", "ReferenceIndex": 0 }],			
+				"Label": "Read",
+				"Parameters": [
+					{"Index": 0, "Name":"hKey", "Type":"Reference", "EntityType": "Registry", "RawType": "HKEY"},
+					{"Index": 1, "Name":"lpSubKey", "Type":"Info"}
+				]
+			 },
+			 
+			 "RegSetValueA": { 
+				"Filter" : "Registry",				
+				"Label": "Write",
+				"Effects": [{ "Type": "UseReference", "ReferenceIndex": 0 }],
+				"Parameters": [
+					{"Index": 0, "Name":"hKey", "Type":"Reference", "EntityType": "Registry", "RawType": "HKEY"},
+					{"Index": 1, "Name":"lpSubKey", "Type":"Entity", "EntityType": "Registry", "RawType": "Path"},
+					{"Index": 3, "Name":"lpData", "Type":"Info"}					
+				]
+			 },
+			 "RegSetValueW": { 
+				"Filter" : "Registry",				
+				"Label": "Write",
+				"Effects": [{ "Type": "UseReference", "ReferenceIndex": 0 }],
+				"Parameters": [
+					{"Index": 0, "Name":"hKey", "Type":"Reference", "EntityType": "Registry", "RawType": "HKEY"},
+					{"Index": 1, "Name":"lpSubKey", "Type":"Entity", "EntityType": "Registry", "RawType": "Path"},
+					{"Index": 3, "Name":"lpData", "Type":"Info"}					
+				]
+			 },
+		}
+	},
+	{
+		"Library":  "crypt32.dll" ,	"DefaultFilter": "Crypt"
+	},
+	{
+		"Library":  "dhcpcsvc.dll" ,"DefaultFilter": "Network"
+	},
+	{
+		"Library":  "dnsapi.dll" ,
+		"DefaultFilter": "Network",
+		"Interfaces": {
+			"DnsQuery_A": {
+				"Label": "Query",
+				"Parameters": [
+					{"Index":0, "Name":"pszName", "Type":"Entity", "EntityType":"Host", "RawType": "Domain"}
+				]
+			},
+			"DnsQuery_W": {
+				"Label": "Query",
+				"Parameters": [
+					{"Index":0, "Name":"pszName", "Type":"Entity", "EntityType":"Host", "RawType": "Domain"}
+				]
+			}
+		}
+	},
+	{
+		"Library":  "kernel32.dll" ,
+		"Interfaces": {
+			
+			"CloseHandle":  { 
+				"Filter" : "File",				
+				"Label": "Close",
+				"Effects": [{ "Type": "DestroyReference", "ReferenceIndex": 0 }],
+				"Parameters": [
+					{"Index": 0, "Name":"hFile", "Type":"Reference", "EntityType": "File", "RawType": "Handle"}
+				]
+			 },
+			"CreateDirectoryA": { "Filter": "File" },
+			"CreateDirectoryW": { "Filter": "File" },
+			"CreateDirectoryExA": { "Filter": "File" },
+			"CreateDirectoryExW": { "Filter": "File" },
+			"CreateDirectoryTransactedA": { "Filter": "File" },
+			"CreateDirectoryTransactedW": { "Filter": "File" },
+			"CreateFileA": {
+				"Filter": "File",
+				"Comment": "Can also be used to delete, but keep the 'open' interaction caption for now",
+				"Label": "Open",
+				"Effects": [{ "Type": "LinkReference", "EntityIndex": 0, "ReferenceIndex": -1 }],
+				"Parameters": [
+					{"Index": -1, "Name":"Result",    "Type":"Reference", "EntityType": "File", "RawType": "Handle"},
+					{"Index": 0, "Name":"lpFileName", "Type":"Entity", "EntityType": "File", "RawType": "Path"}
+				]
+				},
+			"CreateFileW": {
+				"Filter": "File",
+				"Comment": "Can also be used to delete, but keep the 'open' interaction caption for now",
+				"Label": "Open",
+				"Effects": [{ "Type": "LinkReference", "EntityIndex": 0, "ReferenceIndex": -1 }],
+				"Parameters": [
+					{"Index": -1, "Name":"Result",    "Type":"Reference", "EntityType": "File", "RawType": "Handle"},
+					{"Index": 0, "Name":"lpFileName", "Type":"Entity", "EntityType": "File", "RawType": "Path"}
+				]
+				},
+			 "CreateFile2": { "Filter" : "File" },
+             "CreateProcessA": { "Filter" : "Process" },
+             "CreateProcessW": { "Filter" : "Process" },
+             "CreateThread": { "Filter" : "File" },
+             "ExitProcess": { "Filter" : "Process" },
+             "ExitThread": { "Filter" : "Process" },
+             "FindFirstFileA": { "Filter" : "File" },
+             "FindFirstFileExA": { "Filter" : "File" },
+             "FindFirstFileW": { "Filter" : "File" },
+             "FindFirstFileExW": { "Filter" : "File" },
+             "DeleteFileA": { "Filter" : "File" },
+             "DeleteFileW": { "Filter" : "File" },
+             "GetModuleHandleA": { "Filter" : "Process" },
+             "GetModuleHandleW": { "Filter" : "Process" },
+             "GetTempPathA": { "Filter" : "File" },
+             "GetTempPathW": { "Filter" : "File" },
+             "GetTempFileNameA": { "Filter" : "File" },
+             "GetTempFileNameW": { "Filter" : "File" },
+             "OpenProcess": { "Filter" : "Process" },
+             "OpenThread": { "Filter" : "Process" },
+             "ReadFile": { 
+				"Filter" : "File",				
+				"Label": "Read",
+				"Effects": [{ "Type": "UseReference", "ReferenceIndex": 0 }],
+				"Parameters": [
+					{"Index": 0, "Name":"hFile", "Type":"Reference", "EntityType": "File", "RawType": "Handle"},
+					{"Index": 2, "Name":"nNumberOfBytesToRead", "Type":"Info"}
+				]
+			 },
+             "ReadProcessMemory": { "Filter" : "Process" },
+             "RegCreateKeyExA": { "Filter" : "Registry" },
+             "RegCreateKeyExW": { "Filter" : "Registry" },
+             "RegDeleteKeyExA": { "Filter" : "Registry" },
+             "RegDeleteKeyExW": { "Filter" : "Registry" },
+             "RegDeleteValueA": { "Filter" : "Registry" },
+             "RegDeleteValueW": { "Filter" : "Registry" },
+             "ResumeThread": { "Filter" : "Process" },
+             "WriteFile": { 
+				"Filter" : "File",				
+				"Label": "Write",
+				"Effects": [{ "Type": "UseReference", "ReferenceIndex": 0 }],
+				"Parameters": [
+					{"Index": 0, "Name":"hFile", "Type":"Reference", "EntityType": "File", "RawType": "Handle"},
+					{"Index": 2, "Name":"nNumberOfBytesToWrite", "Type":"Info"}
+				]
+			 },
+             "WriteProcessMemory": { "Filter" : "Process" }
+		}
+	},
+	{
+		"Library":  "msvcrt.dll" ,
+	},
+	{
+		"Library":  "ntdll.dll" ,
+		"Interfaces": {
+			"A_SHAUpdate": {
+				"Filter": "Crypt"
+			}
+		}
+	},
+	{
+		"Library":  "ucrtbase.dll"
+	},
+	{
+		"Library":  "ucrtbased.dll"
+	},
+	{
+		"Library":  "urlmon.dll" ,
+		"DefaultFilter": "Network"
+	},
+	{
+		"Library":  "winhttp.dll" ,
+		"DefaultFilter": "Network"
+	},
+	{
+		"Library":  "wininet.dll" ,
+		"DefaultFilter": "Network"
+	},
+	{
+		"Library":  "ws2_32.dll" ,
+		"DefaultFilter": "Network"
+	}
+]

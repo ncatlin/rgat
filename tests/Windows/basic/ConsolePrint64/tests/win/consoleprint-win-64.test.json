@@ -1,0 +1,33 @@
+{
+	"Meta": 
+	{
+		"BinaryName": "0_ConsolePrint32.exe",
+		"Bits": 32,
+		"OS": "Win",
+		"Comment": "A few loops to test basic tracing is working"	
+	},
+	
+	"FinalRequirements":{
+		"Test":{ 
+			"TotalGraphs": { "Value": 1, "Condition": "Eq", "Comment": "X"  },
+			"TotalProcesses": { "Value": 1, "Condition": "Eq", "Comment": "X"  }
+		},
+		"Process":{
+			"ProcessRequirements": { 
+			   "GraphCount":{"Value": 1, "Condition": "Eq"}
+			},
+			"ThreadRequirements": [
+				{
+				   "EdgeCount": { "Value": 28, "Condition": "Eq" },
+				   "NodeCount": { "Value": 29, "Condition": "Eq" },
+				   "UniqueExceptionCount": { "Value": 0, "Condition": "Eq" } ,
+				   "ExternalNodeCount": { "Value": 5, "Condition": "Eq" } ,
+				   "InstructionExecs": { "Value": 24, "Condition": "Eq", "Comment": "29 nodes minus 5 API calls" }
+				}
+			]
+			
+		}
+	}
+	
+
+}

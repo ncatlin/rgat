@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <PINDIR>C:\devel\libs\pin-3.21</PINDIR>
+  </PropertyGroup>
+  <PropertyGroup />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(PINDIR)\extras\xed-intel64\include\xed;$(PINDIR)\source\include\pin;$(PINDIR)\source\include\pin\gen;$(PINDIR)\source\tools\InstLib;$(PINDIR)\extras\xed-intel64\include;$(PINDIR)\extras\components\include;$(PINDIR)\extras\stlport\include;$(PINDIR)\extras;$(PINDIR)\extras\libstdc++\include;$(PINDIR)\extras\crt\include;$(PINDIR)\extras\crt;$(PINDIR)\extras\crt\include\arch-x86_64;$(PINDIR)\extras\crt\include\kernel\uapi;$(PINDIR)\extras\crt\include\kernel\uapi\asm-x86;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="PINDIR">
+      <Value>$(PINDIR)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

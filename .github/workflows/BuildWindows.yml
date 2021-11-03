@@ -1,0 +1,69 @@
+name: MSBuild
+
+on: [push]
+
+env:
+  # Path to the solution file relative to the root of the project.
+  SOLUTION_FILE_PATH: .
+
+  # Configuration type to build.
+  # You can convert this to a build matrix if you need coverage of multiple configuration types.
+  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+  BUILD_CONFIGURATION: Release
+  PIN_VERSION: pin-3.20-98437-gf02b61307-msvc-windows
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+       
+    - name: Add Github package source
+      run: dotnet nuget add source --username ncatlin --password ${{ secrets.ACTIONS_BUILD_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/ncatlin/index.json"
+      
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Download Intel Pin
+      uses: carlosperate/download-file-action@v1.0.3
+      id: download-pin
+      with:
+        file-url: 'https://software.intel.com/sites/landingpage/pintool/downloads/${{env.PIN_VERSION}}.zip'
+        file-name: 'pin.zip'
+        location: './pindir'
+        
+    - name: Print the file path
+      run: echo "The file was downloaded to ${{ steps.download-pin.outputs.file-path }}"
+        
+    - name: Unzip Pin
+      run: 7z x pin.zip -opinexdir    
+      working-directory: pindir  
+        
+    - name: Print Pindir contents
+      run: dir
+      working-directory: pindir\pinexdir\${{env.PIN_VERSION}}
+      
+    # do this now or the resource builder will fail
+    - name: Build UpdateFinaliser
+      run: dotnet build --no-restore UpdateFinaliser
+    
+    - name: Build 32 bit compiled
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="x86" /p:PINDIR="${{github.workspace}}\pindir\pinexdir\${{env.PIN_VERSION}}" rgatCore.sln
+      
+    - name: Build 64 bit compiled
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="x64" /p:PINDIR="${{github.workspace}}\pindir\pinexdir\${{env.PIN_VERSION}}" rgatCore.sln
+      
+    - name: Build DotNet
+      run: dotnet build --no-restore
+      
+    - name: Test
+      run: dotnet test --no-build --verbosity normal

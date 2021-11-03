@@ -1,0 +1,136 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+    <AssemblyName>rgat</AssemblyName>
+    <Version>0.6.0-preview</Version>
+    <SignAssembly>false</SignAssembly>
+    <ApplicationIcon>tortico4_a7r_icon.ico</ApplicationIcon>
+    <Win32Resource />
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <DebugType Condition=" '$(Configuration)' == 'Release' ">pdbonly</DebugType>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+	<WarningsAsErrors>CS8600;CS8602;CS8603;</WarningsAsErrors>
+	<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+	<PackageIcon></PackageIcon>
+	<PackageIconUrl />
+	<Copyright>Nia Catlin</Copyright>
+	<Description>An instruction trace visualisation tool</Description>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>C:\Users\nia\Source\Repos\rgatPrivate\rgatCore\rgat.xml</DocumentationFile>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
+    <DefineConstants>DEBUG</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Plots\**" />
+    <EmbeddedResource Remove="Plots\**" />
+    <None Remove="Plots\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Shaders\GLSL\imgui-frag.glsl" />
+    <None Remove="Shaders\GLSL\imgui-vertex.glsl" />
+    <None Remove="Shaders\HLSL\imgui-frag.hlsl" />
+    <None Remove="Shaders\HLSL\imgui-frag.hlsl.bytes" />
+    <None Remove="Shaders\HLSL\imgui-vertex.hlsl" />
+    <None Remove="Shaders\HLSL\imgui-vertex.hlsl.bytes" />
+    <None Remove="Shaders\SPIR-V\imgui-frag.glsl" />
+    <None Remove="Shaders\SPIR-V\imgui-frag.spv" />
+    <None Remove="Shaders\SPIR-V\imgui-vertex.spv" />
+    <None Remove="Shaders\SPIR-V\sim-blockPosition.spv" />
+    <None Remove="Shaders\SPIR-V\sim-blockVelocity.spv" />
+    <None Remove="Shaders\SPIR-V\sim-nodePosition.spv" />
+    <None Remove="Shaders\SPIR-V\sim-nodeVelocity.spv" />
+    <None Remove="Shaders\SPIR-V\sim-presetVelocity.spv" />
+    <None Remove="Testing\TestsWindow.cs~RFc90675a.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Shaders\GLSL\imgui-frag.glsl" />
+    <EmbeddedResource Include="Shaders\GLSL\imgui-vertex.glsl" />
+    <EmbeddedResource Include="Shaders\HLSL\imgui-frag.hlsl" />
+    <EmbeddedResource Include="Shaders\HLSL\imgui-frag.hlsl.bytes" />
+    <EmbeddedResource Include="Shaders\HLSL\imgui-vertex.hlsl" />
+    <EmbeddedResource Include="Shaders\HLSL\imgui-vertex.hlsl.bytes" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-blockPosition.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-blockVelocity.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-nodePosition.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-nodeVelocity.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-presetVelocity.spv" />
+    <Resource Include="Shaders\SPIR-V\imgui-frag.glsl" />
+    <EmbeddedResource Include="Shaders\SPIR-V\imgui-frag.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\imgui-vertex.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-velocity.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\sim-nodeAttrib.spv" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.9.0-preview3" />
+    <PackageReference Include="DiELibDotNet" Version="0.0.1" />
+    <PackageReference Include="dnYara-rgat" Version="1.0.3.4" />
+    <PackageReference Include="FFMpegCore" Version="4.5.0" />
+    <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
+    <PackageReference Include="GraphShape" Version="1.2.1" />
+    <PackageReference Include="Humanizer.Core" Version="2.11.10" />
+    <PackageReference Include="ImGui.NET" Version="1.82.0" />
+    <PackageReference Include="Jint" Version="3.0.0-beta-2034" />
+    <PackageReference Include="NaCl.Core" Version="2.0.2" />
+    <PackageReference Include="NativeLibraryLoader" Version="1.0.12" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="PeNet" Version="2.9.1" />
+    <PackageReference Include="QuikGraph" Version="2.3.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.4" />
+    <PackageReference Include="System.Resources.Extensions" Version="6.0.0-rc.2.21480.5" />
+    <PackageReference Include="Veldrid" Version="4.9.0-gdc7c2ed06a" />
+    <PackageReference Include="Veldrid.ImageSharp" Version="4.9.0-gdc7c2ed06a" />
+    <PackageReference Include="Veldrid.MetalBindings" Version="4.9.0-gdc7c2ed06a" />
+    <PackageReference Include="Veldrid.OpenGLBindings" Version="4.9.0-gdc7c2ed06a" />
+    <PackageReference Include="Veldrid.SDL2" Version="4.9.0-gdc7c2ed06a" />
+    <PackageReference Include="Veldrid.SPIRV" Version="1.0.14" />
+    <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0-gdc7c2ed06a" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="cimgui.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="libyara.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

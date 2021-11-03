@@ -6,7 +6,6 @@
 *.user
 *.userosscache
 *.sln.docstates
-*.vcxproj
 *.vcxproj.filters
 
 
@@ -261,7 +260,6 @@ tracelog*
 *.la
 *.lai
 *.so
-*.dll
 *.dylib
 
 # Qt-es
@@ -302,27 +300,15 @@ CMakeLists.txt.user*
 #qt generated files
 */GeneratedFiles/*
 
-# FAKE - F# Make
-.fake/
-/issues
-/tracevis/drgat/DynamoRIO
-/tracevis/drgat/allegro_ttf-5.2.dll
-/tracevis/drgat/allegro_primitives-5.2.dll
-/tracevis/drgat/allegro_image-5.2.dll
-/tracevis/drgat/allegro_font-5.2.dll
-/tracevis/drgat/allegro_dialog-5.2.dll
-/tracevis/drgat/allegro-5.2.dll
-/tracevis/drgat/vcruntime140.dll
-/tracevis/drgat/msvcp140.dll
-/tracevis/drgat/drgat.dll
-/rgatTesting
-rgat*.7z
-rgat*.zip
-/debuglogs
-*.exe
-/releasedebug/output
-/pin.log.server.1608
-/enc_temp_folder
-/rgat/tests/themidatest-add.86.asm
-/rgat/tests/themidatest-addsub.86.asm
-/releasedbg/output
+# BeatPulse healthcheck temp database
+healthchecksdb
+/rgatCore/cimgui.dll
+/rgatCore/libyara.dll
+/tests/BlockingAPI/No
+/tests/*.exe
+/tests/Windows/basic/ConsolePrint64/tests/win/ConsolePrint64.exe
+/tests/Output/win/advanced/BufferExecution32/BufferExecution32.exe
+/tests/Output/win/advanced/BufferExecution/BufferExecution3232.exe
+/tests/Output/win/basic/ConsolePrint/ConsolePrint32.exe
+/tests/Output/win/basic/ConsolePrint/ConsolePrint64.exe
+/tests/Output/win/basic/NestedLoops/NestedLoops32.exe

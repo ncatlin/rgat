@@ -1,0 +1,34 @@
+name: Linux
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.ACTIONS_BUILD_TOKEN }} 
+        submodules: recursive
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+       
+    - name: Add Github package source
+      run: dotnet nuget add source --username ncatlin --password ${{ secrets.ACTIONS_BUILD_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/ncatlin/index.json"
+      
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal

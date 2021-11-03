@@ -1,0 +1,44 @@
+{
+	"Meta": 
+	{
+		"BinaryName": "ConsolePrint32.exe",
+		"Bits": 32,
+		"OS": "Win",
+		"Comment": "The hello world of rgat tests",
+		"Category": "Basic"		
+	},
+	"Configuration":{
+		"HideAPIThunks": true,
+		"DiscardTraceData": true
+	},
+	"FinalRequirements":{
+		"Test":{ 
+			"TotalGraphs": { "Value": 1, "Condition": "Eq" },
+			"TotalProcesses": { "Value": 1, "Condition": "Eq" }
+		},
+		"Process":{
+			"ProcessRequirements": { 
+			   "GraphCount":{"Value": 1, "Condition": "Eq"}
+			},
+			"ThreadRequirements": [
+				{
+				   "EdgeCount": { "Value": 28, "Condition": "Eq" },
+				   "NodeCount": { "Value": 29, "Condition": "Eq" },
+				   "UniqueExceptionCount": { "Value": 0, "Condition": "Eq" } ,
+				   "ExternalNodeCount": { "Value": 5, "Condition": "Eq" } ,
+				   "InstructionExecs": { "Value": 24, "Condition": "Eq", "Comment": "29 nodes minus 5 API calls" },
+				   "Edges":
+						{ "Value": 
+							[
+							{"Source": 3, "Target":4, "Count":1, "Comment": "1st call GetStdHandle external node"},
+							{"Source": 15, "Target":16, "Count":1, "Comment": "2nd call GetStdHandle external node"},
+							{"Source": 17, "Target":4, "Count":0, "Comment":  "Ensure this doesn't exist when hiding thunks"}
+							], "Condition":"ExistsIn"  }
+				}
+			]
+			
+		}
+	}
+	
+
+}

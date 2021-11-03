@@ -1,0 +1,24 @@
+{
+  "profiles": {
+    "rgat": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    },
+    "HeadlessListen": {
+      "commandName": "Project",
+      "commandLineArgs": "-p 13000"
+    },
+    "HeadlessConnect": {
+      "commandName": "Project",
+      "commandLineArgs": " -r 192.168.1.54:13000 -i 0"
+    },
+    "CmdlineRun": {
+      "commandName": "Project",
+      "commandLineArgs": " -t C:\\Users\\nia\\Source\\Repos\\rgatPrivate\\Debug\\SimpleLoops32.exe"
+    },
+    "helpcmd": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
+    }
+  }
+}
