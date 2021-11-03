@@ -8625,6 +8625,13 @@
             <param name="TID">Thread ID</param> //probably fine if everything is cleaned up? still need a unique thread ID. todo
             <returns></returns>
         </member>
+        <member name="M:rgat.ModuleHandlerThread.SpawnPipeTraceProcessorThreads(rgat.ProtoGraph)">
+            <summary>
+            Called after a new target thread has been spawned. We can expect it to try to 
+            connect to the named pipe in dozens of milliseconds
+            </summary>
+            <param name="graph"></param>
+        </member>
         <member name="M:rgat.ModuleHandlerThread.SendCommand(System.Byte[])">
             <summary>
             Send a command the the instrumentation tool in the traced process
