@@ -31,7 +31,7 @@ namespace rgatFilePicker
             _remoteMirror = remoteMirror;
             Created = DateTime.Now;
             myID = Created.ToString();
-            _refreshTimer = new System.Timers.Timer(2000);
+            _refreshTimer = new System.Timers.Timer(2500);
             _refreshTimer.AutoReset = false;
             _refreshTimer.Elapsed += FireTimer;
             _refreshTimer.Start();
@@ -319,6 +319,7 @@ namespace rgatFilePicker
                 fileData.Clear();
                 fileData = newFileData;
             }
+
 
             private void ExtractMetaData_Dirs()
             {
@@ -938,7 +939,6 @@ namespace rgatFilePicker
                     if (_remoteMirror != null)
                     {
                         Data.NextRemoteDirectory = Data.CurrentDirectory;
-                        _refreshTimerFired = false;
                     }
                     else
                     {
@@ -946,7 +946,7 @@ namespace rgatFilePicker
                         _sortedFiles = null;
                         SetFileSystemEntries(Data.CurrentDirectory, GetFileSystemEntries());
                     }
-
+                    _refreshTimerFired = false;
                 }
             }
 
@@ -1527,6 +1527,7 @@ namespace rgatFilePicker
 
         private List<Tuple<string, bool>> GetFileSystemEntries()
         {
+            Console.WriteLine("Gettem");
             Debug.Assert(Data.CurrentDirectory is not null);
             List<Tuple<string, bool>> newFileListing = new List<Tuple<string, bool>>();
             try
