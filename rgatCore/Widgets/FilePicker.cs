@@ -31,21 +31,15 @@ namespace rgatFilePicker
             _remoteMirror = remoteMirror;
             Created = DateTime.Now;
             myID = Created.ToString();
-            _refreshTimer = new System.Timers.Timer(2500);
-            _refreshTimer.AutoReset = false;
-            _refreshTimer.Elapsed += FireTimer;
-            _refreshTimer.Start();
-        }
-        private void FireTimer(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            _refreshTimerFired = true;
-
         }
 
-        private readonly System.Timers.Timer _refreshTimer;
-        private bool _refreshTimerFired = false;
+
         private readonly BridgeConnection? _remoteMirror;
-        private const int RefreshThresholdSeconds = 2;
+        private const double DriveRefreshGapSeconds = 10;
+        private const double FileRefreshGapSeconds = 3.5;
+        private DateTime LastFileRefresh = DateTime.MinValue;
+
+
         /// <summary>
         /// When the picker was created
         /// </summary>
@@ -97,11 +91,6 @@ namespace rgatFilePicker
                     return;
                 }
 
-                if (Directory.Exists(path))
-                {
-                    return;
-                }
-
                 try
                 {
                     FileInfo fileinfo = new FileInfo(path);
@@ -146,6 +135,8 @@ namespace rgatFilePicker
                 return 0xeeffffff;
             }
         }
+
+
         private class DirectoryContents
         {
 
@@ -282,6 +273,7 @@ namespace rgatFilePicker
                 fileData.Clear();
                 fileData = newFileData;
             }
+
 
             private void ExtractMetaData_Files()
             {
@@ -420,11 +412,6 @@ namespace rgatFilePicker
                 addedDirPaths.Clear();
                 addedFilePaths.Clear();
                 lastRefreshed = DateTime.Now;
-            }
-
-            public bool recentlyRefreshed()
-            {
-                return (DateTime.Now - lastRefreshed).TotalSeconds < RefreshThresholdSeconds;
             }
         }
         /*
@@ -868,11 +855,6 @@ namespace rgatFilePicker
                     SetActiveDirectory(Environment.CurrentDirectory);
                 }
 
-                if (pendingCmdCount == 0)
-                {
-                    _refreshTimer.Start();
-                }
-
                 return true;
             }
         }
@@ -899,8 +881,6 @@ namespace rgatFilePicker
                         int cmdid = rgatState.NetworkBridge.SendCommand("DirectoryInfo", recipientID: this.myID, callback: HandleRemoteDirInfoCallback, param: param);
                         lock (_lock)
                         {
-                            _refreshTimer.Stop();
-                            _refreshTimerFired = false;
                             pendingCmdCount += 1;
                         }
                         if (Data.CurrentDirectory == null)
@@ -932,9 +912,13 @@ namespace rgatFilePicker
                 }
             }
 
+
+            double secondsSinceRefresh = (DateTime.Now - LastFileRefresh).TotalSeconds;
+            bool recentlyRefreshed = secondsSinceRefresh < FileRefreshGapSeconds;
+
             lock (_lock)
             {
-                if (_refreshTimerFired && pendingCmdCount == 0)
+                if (recentlyRefreshed is false && pendingCmdCount == 0)
                 {
                     if (_remoteMirror != null)
                     {
@@ -946,7 +930,7 @@ namespace rgatFilePicker
                         _sortedFiles = null;
                         SetFileSystemEntries(Data.CurrentDirectory, GetFileSystemEntries());
                     }
-                    _refreshTimerFired = false;
+                    LastFileRefresh = DateTime.Now;
                 }
             }
 
@@ -1177,8 +1161,6 @@ namespace rgatFilePicker
             else
             {
                 Data.NextRemoteDirectory = dir;
-                _refreshTimer.Stop();
-                _refreshTimerFired = false;
                 return;
             }
 
@@ -1532,19 +1514,8 @@ namespace rgatFilePicker
             List<Tuple<string, bool>> newFileListing = new List<Tuple<string, bool>>();
             try
             {
-                string[] allpaths = Directory.GetFileSystemEntries(Data.CurrentDirectory);
-                foreach (string path in allpaths)
-                {
-                    if (Directory.Exists(path))
-                    {
-                        newFileListing.Add(new Tuple<string, bool>(path, true));
-                    }
-
-                    if (File.Exists(path))
-                    {
-                        newFileListing.Add(new Tuple<string, bool>(path, false));
-                    }
-                }
+                Array.ForEach(Directory.GetFiles(Data.CurrentDirectory), (path) => newFileListing.Add(new Tuple<string, bool>(path, false)));
+                Array.ForEach(Directory.GetDirectories(Data.CurrentDirectory), (path) => newFileListing.Add(new Tuple<string, bool>(path, true)));
             }
             catch (Exception e)
             {
@@ -1583,11 +1554,11 @@ namespace rgatFilePicker
          */
         private List<Tuple<string, string>> GetDriveListStrings()
         {
-            if ((DateTime.Now - LastDriveListRefresh).TotalSeconds < RefreshThresholdSeconds)
+            double secondsSinceRefresh = (DateTime.Now - LastDriveListRefresh).TotalSeconds;
+            if (secondsSinceRefresh < DriveRefreshGapSeconds)
             {
                 return Data.AvailableDriveStrings;
             }
-
 
             if (_remoteMirror != null && _remoteMirror.Connected)
             {
@@ -1647,10 +1618,6 @@ namespace rgatFilePicker
                 Data.AvailableDriveStrings = result;
                 LastDriveListRefresh = DateTime.Now;
                 pendingCmdCount -= 1;
-                if (pendingCmdCount == 0)
-                {
-                    _refreshTimer.Start();
-                }
             }
             return true;
         }
