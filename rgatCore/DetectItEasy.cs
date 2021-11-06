@@ -76,10 +76,11 @@ namespace rgat
 
             if (reload)
             {
-                dielib.ReloadScriptDatabase(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory), out string? error);
+                string scriptsPath = GetScriptsPath(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory));
+                dielib.ReloadScriptDatabase(scriptsPath, out string? error);
                 if(error is not null)
                 {
-
+                    Logging.RecordError($"Error loading database: {error}");
                 }
             }
 

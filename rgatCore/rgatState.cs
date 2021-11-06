@@ -236,6 +236,7 @@ namespace rgat
         /// <param name="path">Filesystem path of target</param>
         /// <param name="arch">32 or 64 bits</param>
         /// <param name="isLibrary">The target is a DLL</param>
+        /// <param name="isDotNet">The target is managed/apphost</param>
         /// <param name="makeActive">Set this as active in the UI</param>
         /// <returns>The BinaryTarget object describing the target</returns>
         public static BinaryTarget AddTargetByPath(string path, int arch = 0, bool isLibrary = false, bool isDotNet = false, bool makeActive = true)
