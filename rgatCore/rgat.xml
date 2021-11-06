@@ -499,6 +499,11 @@
             This file is a DLL
             </summary>
         </member>
+        <member name="F:rgat.BinaryTarget.IsDotNet">
+            <summary>
+            This file is .NET managed
+            </summary>
+        </member>
         <member name="F:rgat.BinaryTarget.SelectedExportIndex">
             <summary>
             Which library export to run
@@ -520,7 +525,7 @@
             and instrumentation toggles
             </summary>
         </member>
-        <member name="M:rgat.BinaryTarget.#ctor(System.String,System.Int32,System.String,System.Boolean)">
+        <member name="M:rgat.BinaryTarget.#ctor(System.String,System.Int32,System.String,System.Boolean,System.Boolean)">
             <summary>
             Create a BinaryTarget object for a binary that rgat can trace
             </summary>
@@ -528,6 +533,7 @@
             <param name="bitWidth_">32 or 64</param>
             <param name="remoteAddr">The address of the remote rgat instance where this target is being traced</param>
             <param name="isLibrary">if the target is a library or not. This value will be used if the binary cannot be found and parsed</param>
+            <param name="isDotNet">true if .NET managed</param>
         </member>
         <member name="M:rgat.BinaryTarget.GetRemoteLoadInitData(System.Boolean)">
             <summary>
@@ -705,13 +711,14 @@
             </summary>
             <returns>List of BinaryTargets</returns>
         </member>
-        <member name="M:rgat.BinaryTargets.AddTargetByPath(System.String,System.Boolean,System.Int32)">
+        <member name="M:rgat.BinaryTargets.AddTargetByPath(System.String,System.Boolean,System.Int32,System.Boolean)">
             <summary>
             Initialise and record a BinaryTarget object from a filesystem path
             </summary>
             <param name="path">Filesystem path of the target</param>
             <param name="isLibrary">true if a DLL</param>
             <param name="arch">32 or 64 bit, or 0 if unknown (remote)</param>
+            <param name="isDotNet">true if .NET managed</param>
             <returns>Created BinaryTarget object</returns>
         </member>
         <member name="M:rgat.BinaryTargets.RegisterTarget(rgat.BinaryTarget)">
@@ -6877,7 +6884,7 @@
             Terminate all spawned processes and internal workers, then exit
             </summary>
         </member>
-        <member name="M:rgat.rgatState.AddTargetByPath(System.String,System.Int32,System.Boolean,System.Boolean)">
+        <member name="M:rgat.rgatState.AddTargetByPath(System.String,System.Int32,System.Boolean,System.Boolean,System.Boolean)">
             <summary>
             Add a new target to the list of loaded target binaries
             </summary>

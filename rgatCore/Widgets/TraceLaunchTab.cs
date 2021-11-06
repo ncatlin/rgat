@@ -53,7 +53,7 @@ namespace rgat
             float sigBoxWidth = 800;
             ImGui.BeginGroup();
             {
-                if (width > 680 && ImGui.BeginChild("StaticTables", new Vector2(950,ImGui.GetContentRegionAvail().Y)))
+                if (width > 680 && ImGui.BeginChild("StaticTables", new Vector2(950, ImGui.GetContentRegionAvail().Y)))
                 {
                     if (ImGui.BeginTable("#BasicStaticFields", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp))
                     {
@@ -112,9 +112,9 @@ namespace rgat
                         ImGui.SameLine();
                         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
                         ImGui.PushStyleColor(ImGuiCol.Border, Themes.GetThemeColourUINT(Themes.eThemeColour.Emphasis2));
-                        if (ImGui.BeginChild("#TargBitFrm", new Vector2(50,23), border: true, flags: ImGuiWindowFlags.NoScrollbar))
+                        if (ImGui.BeginChild("#TargBitFrm", new Vector2(50, 23), border: true, flags: ImGuiWindowFlags.NoScrollbar))
                         {
-                            ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX()+ 9, ImGui.GetCursorPosY() +2 ));
+                            ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 9, ImGui.GetCursorPosY() + 2));
                             if (activeTarget.BitWidth is 32)
                             {
                                 ImGui.Text("32 Bit");
@@ -129,6 +129,20 @@ namespace rgat
                             }
                             ImGui.EndChild();
                         }
+
+                        if (activeTarget.IsDotNet)
+                        {
+                            ImGui.SameLine();
+                            if (ImGui.BeginChild("#dnFlagBox", new Vector2(50, 23), border: true, flags: ImGuiWindowFlags.NoScrollbar))
+                            {
+                                ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + 12, ImGui.GetCursorPosY() + 2));
+                                ImGui.Text(".NET");
+                                SmallWidgets.MouseoverText("This is either a managed binary or a .NET apphost executable.\n" +
+                                    "It will produce a large trace, mostly consisting of CLR internals which will not be useful to analyse.");
+                                ImGui.EndChild();
+                            }
+                        }
+
                         ImGui.PopStyleColor();
                         ImGui.PopStyleVar();
 
@@ -708,7 +722,7 @@ namespace rgat
 
                         ImGui.EndTable();
                     }
-    
+
                 }
                 ImGui.EndChild();
             }

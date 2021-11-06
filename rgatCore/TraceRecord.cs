@@ -1167,6 +1167,7 @@ namespace rgat
             metadata.Add("PID_ID", randID);
             metadata.Add("BinaryPath", Target.FilePath);
             metadata.Add("IsLibrary", Target.IsLibrary);
+            metadata.Add("IsDotNet", Target.IsDotNet);
             metadata.Add("rgatVersion", CONSTANTS.PROGRAMVERSION.RGAT_VERSION_SEMANTIC.ToString());
             metadata.Add("LaunchedTime", this.LaunchedTime);
 

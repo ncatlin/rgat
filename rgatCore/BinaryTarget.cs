@@ -259,6 +259,11 @@ namespace rgat
         public bool IsLibrary = false;
 
         /// <summary>
+        /// This file is .NET managed
+        /// </summary>
+        public bool IsDotNet = false;
+
+        /// <summary>
         /// Which library export to run
         /// </summary>
         public int SelectedExportIndex = -1;
@@ -286,11 +291,15 @@ namespace rgat
         /// <param name="bitWidth_">32 or 64</param>
         /// <param name="remoteAddr">The address of the remote rgat instance where this target is being traced</param>
         /// <param name="isLibrary">if the target is a library or not. This value will be used if the binary cannot be found and parsed</param>
-        public BinaryTarget(string filepath, int bitWidth_ = 0, string? remoteAddr = null, bool isLibrary = false)
+        /// <param name="isDotNet">true if .NET managed</param>
+        public BinaryTarget(string filepath, int bitWidth_ = 0, 
+            string? remoteAddr = null, bool isLibrary = false, bool isDotNet = false)
         {
             FilePath = filepath;
             BitWidth = bitWidth_; //overwritten by PE parser if PE
             IsLibrary = isLibrary;
+            IsDotNet = isDotNet;
+
             FileName = Path.GetFileName(FilePath);
             if ((rgatState.NetworkBridge.ActiveNetworking is false || rgatState.NetworkBridge.HeadlessMode) && File.Exists(filepath))
             {
@@ -348,6 +357,7 @@ namespace rgat
             {
                 result.Add("PEBitWidth", BitWidth);
                 result.Add("IsDLL", PEFileObj.IsDll);
+                result.Add("IsDotNet", PEFileObj.IsDotNet);
 
                 JArray exportsArr = new JArray();
                 foreach (var item in Exports)
@@ -405,6 +415,11 @@ namespace rgat
             if (data.TryGetValue("IsDLL", out JToken? dllBoolTok) && dllBoolTok.Type == JTokenType.Boolean)
             {
                 IsLibrary = dllBoolTok.ToObject<bool>();
+            }
+
+            if (data.TryGetValue("IsDotNet", out JToken? dotnetBoolTok) && dotnetBoolTok.Type == JTokenType.Boolean)
+            {
+                IsDotNet = dotnetBoolTok.ToObject<bool>();
             }
 
             if (data.TryGetValue("Exports", out JToken? exportArrTok) && exportArrTok.Type == JTokenType.Array)
@@ -824,6 +839,7 @@ namespace rgat
                 if (PeNet.PeFile.TryParse(FilePath, out PEFileObj) && PEFileObj is not null)
                 {
                     IsLibrary = PEFileObj.IsDll;
+                    IsDotNet = TestDotNet(PEFileObj);
                     this.BitWidth = PEFileObj.Is32Bit ? 32 :
                         (PEFileObj.Is64Bit ? 64 : 0);
                     if (IsLibrary && PEFileObj.ExportedFunctions is not null)
@@ -850,6 +866,33 @@ namespace rgat
                 HexPreview = "Error";
             }
         }
+
+        private static bool TestDotNet(PeNet.PeFile pefile)
+        {
+            try
+            {
+                if (pefile.IsDotNet) return true;
+                if (pefile.IsDll is false && pefile.ImageDebugDirectory is not null)
+                {
+                    foreach (var dbg in pefile.ImageDebugDirectory)
+                    {
+                        if (dbg.CvInfoPdb70 is not null && dbg.CvInfoPdb70.PdbFileName is not null)
+                        {
+                            string path = dbg.CvInfoPdb70.PdbFileName;
+                            string fname = Path.GetFileNameWithoutExtension(path);
+                            if (fname is "apphost" && path.Contains("\\corehost\\")) return true;
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordException("Error testing .NET status of loaded binary", e);
+            }
+            return false;
+        }
+
 
         private void InitPreviews()
         {

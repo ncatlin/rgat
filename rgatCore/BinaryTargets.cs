@@ -94,8 +94,9 @@ namespace rgat
         /// <param name="path">Filesystem path of the target</param>
         /// <param name="isLibrary">true if a DLL</param>
         /// <param name="arch">32 or 64 bit, or 0 if unknown (remote)</param>
+        /// <param name="isDotNet">true if .NET managed</param>
         /// <returns>Created BinaryTarget object</returns>
-        public BinaryTarget AddTargetByPath(string path, bool isLibrary = false, int arch = 0)
+        public BinaryTarget AddTargetByPath(string path, bool isLibrary = false, int arch = 0, bool isDotNet = false)
         {
             lock (targetslock)
             {
@@ -107,7 +108,7 @@ namespace rgat
                 }
                 if (!hostTargs.targetbins.TryGetValue(path, out BinaryTarget? target))
                 {
-                    target = new BinaryTarget(path, arch, addr, isLibrary: isLibrary);
+                    target = new BinaryTarget(path, arch, addr, isLibrary: isLibrary, isDotNet: isDotNet);
                     hostTargs.targetbins.Add(path, target);
                 }
                 return target;
@@ -182,13 +183,18 @@ namespace rgat
             BinaryTarget? target;
             if (!GetTargetByPath(binaryPath, out target))
             {
-                bool isLibrary = false;
+                bool isLibrary = false, isDotNet = false;
                 if (metadata.TryGetValue("IsLibrary", out JToken? isLibTok) && isLibTok.Type == JTokenType.Boolean)
                 {
                     isLibrary = isLibTok.ToObject<bool>();
                 }
+                
+                if (metadata.TryGetValue("IsDotNet", out JToken? isdn) && isdn.Type == JTokenType.Boolean)
+                {
+                    isDotNet = isdn.ToObject<bool>();
+                }
 
-                target = rgatState.AddTargetByPath(binaryPath, isLibrary: isLibrary);
+                target = rgatState.AddTargetByPath(binaryPath, isLibrary: isLibrary, isDotNet: isDotNet);
             }
 
             targetResult = target;

@@ -238,7 +238,7 @@ namespace rgat
         /// <param name="isLibrary">The target is a DLL</param>
         /// <param name="makeActive">Set this as active in the UI</param>
         /// <returns>The BinaryTarget object describing the target</returns>
-        public static BinaryTarget AddTargetByPath(string path, int arch = 0, bool isLibrary = false, bool makeActive = true)
+        public static BinaryTarget AddTargetByPath(string path, int arch = 0, bool isLibrary = false, bool isDotNet = false, bool makeActive = true)
         {
             BinaryTarget targ = targets.AddTargetByPath(path, isLibrary: isLibrary, arch: arch);
             if (GlobalConfig.Settings.Signatures.ScanOnLoadDIE)

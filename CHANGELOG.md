@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.1] - 2021-11-00
+
+### Added
+- .NET files are flagged on the trace launch tab
+
+### Changed
+- Reduced disk activity of the file dialog
+
+
 ## [0.6.0] - 2021-11-01
 ### Added
 - rgat has been completely re-written!
