@@ -932,6 +932,7 @@ private void DrawScalePopup()
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text("All Computation:");
+
                 ImGui.TableNextColumn();
                 if (SmallWidgets.ToggleButton("#ComputeActive", GlobalConfig.LayoutAllComputeEnabled, "Toggle GPU-based plot updates"))
                 {
@@ -941,6 +942,7 @@ private void DrawScalePopup()
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text("Display Computation:");
+
                 ImGui.TableNextColumn();
                 if (SmallWidgets.ToggleButton("#ComputeAttrib", GlobalConfig.LayoutAttribsActive, "Toggle the computation of transparency and animation effects", isEnabled: GlobalConfig.LayoutAllComputeEnabled))
                 {
@@ -950,6 +952,7 @@ private void DrawScalePopup()
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text("Layout Computation:");
+
                 ImGui.TableNextColumn();
                 if (SmallWidgets.ToggleButton("#ComputePosVel", GlobalConfig.LayoutPositionsActive, "Toggle the computation of graph layout", isEnabled: GlobalConfig.LayoutAllComputeEnabled))
                 {
@@ -959,6 +962,7 @@ private void DrawScalePopup()
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text("Max Node Speed");
+
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
                 ImGui.DragFloat("##MaxNodeSpeed", ref GlobalConfig.MaximumNodeTemperature, 1, 0, GlobalConfig.TemperatureLimit);
@@ -976,6 +980,7 @@ private void DrawScalePopup()
                     ImGui.Text("Replotting Spread");
                     ImGui.PopStyleColor();
                 }
+
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
                 ImGui.DragFloat("##_replotSpread", ref _replotSpread, 0.01f ,0.001f, 100f);
@@ -984,6 +989,7 @@ private void DrawScalePopup()
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text("Clump Degree");
+
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
                 if(ImGui.DragInt("##ClumpLim", ref GlobalConfig.NodeClumpLimit, 1f, 0, 300)){
@@ -995,6 +1001,7 @@ private void DrawScalePopup()
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text("Clump Multiplier");
+
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
                 if(ImGui.DragFloat("##ClumpFrc", ref GlobalConfig.NodeClumpForce, 0.01f, 0.00001f, 2f, "%f6"))
@@ -1006,6 +1013,7 @@ private void DrawScalePopup()
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.Text("Node Repulsion");
+
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
                 float repulsion = GlobalConfig.RepulsionK;
@@ -1028,6 +1036,7 @@ private void DrawScalePopup()
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     ImGui.Text("Temperature");
+
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(150);
                     float tempNow = Math.Min(graph.Temperature, GlobalConfig.TemperatureLimit);
@@ -1044,10 +1053,10 @@ private void DrawScalePopup()
                     }
                     ImGui.SameLine();
                     SmallWidgets.MouseoverText("A general rate modifer for force-directed graph layout");
-                    bool dolock = graph.OPT_LOCK_TEMPERATURE;
-                    if (ImGui.Checkbox($"{ImGuiController.FA_ICON_LOCK}", ref dolock))
+                    bool locktemp = graph.OPT_LOCK_TEMPERATURE;
+                    if (ImGui.Checkbox($"{ImGuiController.FA_ICON_LOCK}", ref locktemp))
                     {
-                        graph.OPT_LOCK_TEMPERATURE = dolock;
+                        graph.OPT_LOCK_TEMPERATURE = locktemp;
                     }
                     SmallWidgets.MouseoverText("Prevent the force layout rate from dropping over time");
                 }

@@ -10,10 +10,11 @@
 - Reduced disk activity of the file dialog
 - Improvements to DieLibDotNet - more signatures supported
 - Reduced plot rotation speed
-
 ### Fixed
 - Fixed a crash in dnYara
 - The final few blocks of a trace should no longer be missing from block layout edge calculations
+- Changes to plot settings like clump force are applied instantly instead of happening randomly. This also fixes stuttering when the plot is already laid out.
+
 
 
 
