@@ -988,6 +988,7 @@ private void DrawScalePopup()
                 ImGui.SetNextItemWidth(150);
                 if(ImGui.DragInt("##ClumpLim", ref GlobalConfig.NodeClumpLimit, 1f, 0, 300)){
                     Themes.DeclareThemeChanged();
+                    _currentPlot?.RegenerateEdges();
                 }
                 SmallWidgets.MouseoverText("How many connections a highly connected node has");
 
@@ -996,7 +997,10 @@ private void DrawScalePopup()
                 ImGui.Text("Clump Multiplier");
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(150);
-                ImGui.DragFloat("##ClumpFrc", ref GlobalConfig.NodeClumpForce, 0.01f, 0.00001f, 2f, "%f6");
+                if(ImGui.DragFloat("##ClumpFrc", ref GlobalConfig.NodeClumpForce, 0.01f, 0.00001f, 2f, "%f6"))
+                {
+                    _currentPlot?.RegenerateEdges();
+                }
                 SmallWidgets.MouseoverText("Control the forces acting on highly-connected nodes");
 
                 ImGui.TableNextRow();

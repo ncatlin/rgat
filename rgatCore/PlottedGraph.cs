@@ -2497,8 +2497,10 @@ namespace rgat
         {
             Stopwatch st = new();
             bool doneRegen = false;
-            if (edgesCount > RenderedEdgeCount || _rng.Next(0, 100) == 1) //todo this is a hack from when things were less reliable. disable and look for issues
+            if (edgesCount > RenderedEdgeCount || StaleEdgeData)
             {
+                StaleEdgeData = false;
+
                 st.Start();
                 LayoutState.Lock.EnterWriteLock();
                 try
@@ -2634,7 +2636,14 @@ namespace rgat
         /// <summary>
         /// How many edges have been added to compute buffers
         /// </summary>
-        public uint RenderedEdgeCount; //todo - this is really all we need
+        public uint RenderedEdgeCount; 
+
+        private bool StaleEdgeData = false;
+
+        /// <summary>
+        /// The edges have changed or their plot datastructures need regenerating
+        /// </summary>
+        public void RegenerateEdges() => StaleEdgeData = true;
 
         //must hold read lock
         /// <summary>

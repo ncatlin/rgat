@@ -182,6 +182,7 @@ namespace rgat
             }
         }
 
+
         public void ApplyMouseRotate(Vector2 delta)
         {
             if (ActivePlot != null)

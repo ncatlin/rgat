@@ -5234,6 +5234,11 @@
             How many edges have been added to compute buffers
             </summary>
         </member>
+        <member name="M:rgat.PlottedGraph.RegenerateEdges">
+            <summary>
+            The edges have changed or their plot datastructures need regenerating
+            </summary>
+        </member>
         <member name="M:rgat.PlottedGraph.RemoveHighlightedNodes(System.Collections.Generic.List{System.UInt32},rgat.CONSTANTS.HighlightType)">
             <summary>
             Unhighlight nodes
