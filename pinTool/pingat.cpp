@@ -833,7 +833,6 @@ static VOID HandleWindowsContextSwitch(THREADID threadIndex, CONTEXT_CHANGE_REAS
 		fprintf(threaddata->threadpipeFILE, EXCEPTION_MARKER"," PTR_prefix ",%lx,%lx\x01", srcAddress, info, 0);
 		break;
 	case CONTEXT_CHANGE_REASON_CALLBACK:      ///< Receipt of Windows call-back
-		std::cout << "[pingat]Context Switch via Windows Callback detected "<< std::endl;
 		ctxswitch_ss << "CALLBACK - Receipt of Windows call-back";
 		break;
 	}

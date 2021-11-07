@@ -606,8 +606,7 @@ namespace rgat
 
             if (buf[0] == 's' && buf[1] == '!')
             {
-                //Console.WriteLine("GHandlesym");
-                //HandleSymbol(buf);
+                HandleSymbol(buf);
                 return;
             }
 

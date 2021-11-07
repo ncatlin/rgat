@@ -489,7 +489,6 @@ namespace rgat.Widgets
             if (keyModTuple.Item1 == _activeEntry.Shortcut)
             {
                 CancelPressed();
-                Logging.WriteConsole($"Closing menu {_activeEntry.Action} because it is the active entry");
                 _activeEntry.active = false;
                 _activeEntry = _activeEntry.parent;
 

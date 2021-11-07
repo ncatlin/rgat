@@ -249,6 +249,7 @@
     <ClCompile Include="wrap_advapi32.cpp" />
     <ClCompile Include="wrap_kernel32.cpp" />
     <ClCompile Include="wrap_ucrtbase.cpp" />
+    <ClCompile Include="wrap_user32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="blockdata.h" />
@@ -261,6 +262,7 @@
     <ClInclude Include="wrap_kernel32.h" />
     <ClInclude Include="wrap_ucrtbase.h" />
     <ClInclude Include="moduleload_windows.h" />
+    <ClInclude Include="wrap_user32.h" />
     <ClInclude Include="yekneb_string.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

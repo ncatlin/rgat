@@ -1509,7 +1509,6 @@ namespace rgatFilePicker
 
         private List<Tuple<string, bool>> GetFileSystemEntries()
         {
-            Console.WriteLine("Gettem");
             Debug.Assert(Data.CurrentDirectory is not null);
             List<Tuple<string, bool>> newFileListing = new List<Tuple<string, bool>>();
             try

@@ -49,6 +49,10 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 	{
 		wrapAdvapi32Funcs(img, (UINT32)threadData_TLSKEY);
 	}
+	else if (path.find("\\user32.dll") != std::string::npos)
+	{
+		wrapUser32Funcs(img, (UINT32)threadData_TLSKEY);
+	}
 	
 	for (SYM sym = IMG_RegsymHead(img); SYM_Valid(sym); sym = SYM_Next(sym))
 	{

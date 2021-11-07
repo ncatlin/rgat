@@ -312,3 +312,7 @@ healthchecksdb
 /tests/Output/win/basic/ConsolePrint/ConsolePrint32.exe
 /tests/Output/win/basic/ConsolePrint/ConsolePrint64.exe
 /tests/Output/win/basic/NestedLoops/NestedLoops32.exe
+/rgatCore/Resources/pinTool.exp
+/rgatCore/Resources/pinTool.lib
+/rgatCore/Resources/pinTool64.exp
+/rgatCore/Resources/pinTool64.lib

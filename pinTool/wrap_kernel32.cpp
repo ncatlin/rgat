@@ -135,6 +135,7 @@ VOID wraphead_GetStdHandle(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT f
 }
 
 
+
 VOID wraphead_LoadlibraryW(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, const wchar_t* modulewstring)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
@@ -368,6 +369,8 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 
 		RTN_Close(rtn);
 	}
+
+
 
 
 

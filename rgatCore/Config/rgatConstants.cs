@@ -23,7 +23,7 @@ namespace rgat
             /// <summary>
             /// Patch version
             /// </summary>
-            public const int PATCH = 0;
+            public const int PATCH = 1;
             /// <summary>
             /// Optional, non-unique name for the given version (preview, release, bugfix, etc)
             /// Other values must still be unique (eg: '1.1.1 Preview' and '1.1.1 Release' cannot both exist)
@@ -48,7 +48,7 @@ namespace rgat
             /// <summary>
             /// In future updates this can be compared to the value at the start of the README file to see if a replacement is needed
             /// </summary>
-            public static string EXPECTED_PIN_VERISON = "3.20";
+            public static string EXPECTED_PIN_VERISON = "3.21";
         }
 
 
