@@ -22,7 +22,7 @@ namespace rgat
         public DetectItEasy(string DBPath)
         {
             dielib = new DiELibDotNet.DieLib(GetScriptsPath(DBPath));
-            dielib.SetLogCallback((string logevent) => { Logging.RecordLogEvent(logevent); });
+            dielib.SetLogCallback((string logevent) => { Logging.RecordLogEvent($"DiEScript log output: \"{logevent}\""); });
         }
 
 

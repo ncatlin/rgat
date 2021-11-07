@@ -157,28 +157,28 @@ namespace rgat
             {
                 bool shift = ImGui.GetIO().KeyShift;
                 bool ctrl = ImGui.GetIO().KeyCtrl;
-                float shiftMultiplier = shift ? CONSTANTS.UI.MOUSEWHEEL_SHIFTKEY_MULTIPLIER : 1;
-                float ctrlMultiplier = ctrl ? CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER : 1;
-
-                float xDelta = delta.X * shiftMultiplier * ctrlMultiplier;
-                float yDelta = delta.Y * shiftMultiplier * ctrlMultiplier;
-
+                float xDelta, yDelta;
                 if (shift && ctrl)
                 {
                     float zoom = Math.Abs(activePlot.CameraState.MainCameraZoom);
-                    float mainX = Math.Abs(activePlot.CameraState.MainCameraXOffset);
-                    float mainY = Math.Abs(activePlot.CameraState.MainCameraYOffset);
-                    if (zoom > 1500 && mainX > 1500)
-                    {
-                        xDelta = (mainX / 100) * (delta.X > 0 ? 1 : -1);
-                    }
-                    if (zoom > 1500 && mainY > 1500)
-                    {
-                        //yDelta = 0;
-                        yDelta = (mainY / 200) * (delta.Y > 0 ? 1 : -1);
-                    }
+                    float absFurthestDim = Math.Abs(activePlot.FurthestNodeDimension);
+                    if (zoom is 0) zoom += 1;
+                    double zoomLog = Math.Log10(zoom);
+                    float magnitude = absFurthestDim / (1000 * (80 / (float)(zoomLog * zoomLog)));
+                    if (absFurthestDim > zoom)
+                        magnitude *= 0.1f;
+                   
+                    xDelta = Math.Abs(delta.X) * magnitude * (delta.X > 0 ? 1 : -1);
+                    yDelta = Math.Abs(delta.Y) * magnitude * (delta.Y > 0 ? 1 : -1);
                 }
-                ActivePlot?.ApplyMouseDragDelta(new Vector2(xDelta, yDelta));                
+                else
+                {
+                    float shiftMultiplier = shift ? CONSTANTS.UI.MOUSEWHEEL_SHIFTKEY_MULTIPLIER : 1;
+                    float ctrlMultiplier = ctrl ? CONSTANTS.UI.MOUSEWHEEL_CTRLKEY_MULTIPLIER : 1;
+                    xDelta = delta.X * shiftMultiplier * ctrlMultiplier;
+                    yDelta = delta.Y * shiftMultiplier * ctrlMultiplier;
+                }
+                ActivePlot?.ApplyMouseDragDelta(new Vector2(xDelta, yDelta));
             }
         }
 
@@ -186,8 +186,8 @@ namespace rgat
         {
             if (ActivePlot != null)
             {
-                _yawDelta -= delta.X * 0.03f;
-                _pitchDelta -= delta.Y * 0.03f;
+                _yawDelta -= delta.X * 0.01f;
+                _pitchDelta -= delta.Y * 0.01f;
             }
         }
 
@@ -482,6 +482,7 @@ namespace rgat
 
             string? resultText = null;
             float shiftModifier = ImGui.GetIO().KeyShift ? 1 : 0;
+            float ctrlModifier = ImGui.GetIO().KeyCtrl ? 1 : 0;
             switch (boundAction)
             {
                 case KeybindAction.ToggleHeatmap:
@@ -497,64 +498,72 @@ namespace rgat
                 case KeybindAction.MoveUp:
 
                     float delta = 50;
-                    delta += (50 * (shiftModifier * 1.5f));
+                    delta += (75 * shiftModifier);
+                    delta += (300 * ctrlModifier);
+                    delta += ((graph.FurthestNodeDimension / 15) * shiftModifier * ctrlModifier);
                     graph.CameraState.MainCameraYOffset += delta;
                     break;
 
                 case KeybindAction.MoveDown:
                     delta = 50;
-                    delta += (50 * (shiftModifier * 1.5f));
+                    delta += (75 * shiftModifier);
+                    delta += (300 * ctrlModifier);
+                    delta += ((graph.FurthestNodeDimension / 15) * shiftModifier * ctrlModifier);
                     graph.CameraState.MainCameraYOffset -= delta;
                     break;
 
                 case KeybindAction.MoveLeft:
                     delta = 50;
-                    delta += (50 * (shiftModifier * 1.5f));
+                    delta += (75 * shiftModifier);
+                    delta += (300 * ctrlModifier);
+                    delta += ((graph.FurthestNodeDimension / 15) * shiftModifier * ctrlModifier);
                     graph.CameraState.MainCameraXOffset -= delta;
                     break;
 
                 case KeybindAction.MoveRight:
                     delta = 50;
-                    delta += (50 * (shiftModifier * 1.5f));
+                    delta += (75 * shiftModifier);
+                    delta += (300 * ctrlModifier);
+                    delta += ((graph.FurthestNodeDimension / 15) * shiftModifier * ctrlModifier);
                     graph.CameraState.MainCameraXOffset += delta;
                     break;
 
                 case KeybindAction.RollGraphZAnti:
                     {
-                        delta = 0.07f;
-                        delta += (shiftModifier * 0.13f);
+                        delta = 0.03f;
+                        delta += (shiftModifier * 0.07f);
                         _rollDelta += delta;
                         break;
                     }
 
                 case KeybindAction.RollGraphZClock:
                     {
-                        delta = 0.07f;
-                        delta += (shiftModifier * 0.13f);
+                        delta = 0.03f;
+                        delta += (shiftModifier * 0.07f);
                         _rollDelta += -1 * delta;
                         break;
                     }
 
                 case KeybindAction.YawYRight:
                     {
-                        _yawDelta += 0.04f + (shiftModifier * 0.13f);
+                        _yawDelta += 0.02f + (shiftModifier * 0.07f);
                         break;
                     }
 
                 case KeybindAction.YawYLeft:
                     {
-                        _yawDelta += -1 * (0.04f + (shiftModifier * 0.13f));
+                        _yawDelta += -1 * (0.02f + (shiftModifier * 0.07f));
                         break;
                     }
 
                 case KeybindAction.PitchXBack:
                     {
-                        _pitchDelta += 0.06f + (shiftModifier * 0.13f);
+                        _pitchDelta += 0.03f + (shiftModifier * 0.07f);
                         break;
                     }
                 case KeybindAction.PitchXFwd:
                     {
-                        _pitchDelta += -1 * (0.06f + (shiftModifier * 0.13f));
+                        _pitchDelta += -1 * (0.03f + (shiftModifier * 0.07f));
                         break;
                     }
 
@@ -1021,7 +1030,7 @@ namespace rgat
                 for (var i = 0; i < inputString.Length; i++)
                 {
                     ImFontGlyphPtr glyph = font.FindGlyph(inputString[i]);
-                    float charWidth = glyph.AdvanceX * fontScale * 0.5f ;
+                    float charWidth = glyph.AdvanceX * fontScale * 0.5f;
                     float charHeight = fontScale * (glyph.Y1 - glyph.Y0);
 
                     float xEnd = xPos + charWidth;
@@ -1433,7 +1442,7 @@ namespace rgat
             st.Restart();
 
             cl.End();
-            _gd.SubmitCommands(cl); 
+            _gd.SubmitCommands(cl);
             _gd.WaitForIdle();
 
             st.Stop();

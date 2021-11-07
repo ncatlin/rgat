@@ -85,9 +85,9 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.0-preview3" />
-    <PackageReference Include="DiELibDotNet" Version="0.0.1" />
     <PackageReference Include="dnYara-rgat" Version="1.0.3.4" />
-    <PackageReference Include="FFMpegCore" Version="4.5.0" />
+    <PackageReference Include="dnYara-rgat.NativePack" Version="1.0.3.4" />
+    <PackageReference Include="FFMpegCore" Version="4.6.0" />
     <PackageReference Include="Gee.External.Capstone" Version="2.0.2" />
     <PackageReference Include="GraphShape" Version="1.2.1" />
     <PackageReference Include="Humanizer.Core" Version="2.11.10" />
@@ -107,6 +107,10 @@
     <PackageReference Include="Veldrid.SDL2" Version="4.9.0-gdc7c2ed06a" />
     <PackageReference Include="Veldrid.SPIRV" Version="1.0.14" />
     <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0-gdc7c2ed06a" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Desktop\rgatstuff\nugetlesspackages\DiELibDotNet\DiELibDotNet.csproj" />
   </ItemGroup>
 
   <ItemGroup>

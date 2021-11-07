@@ -1601,16 +1601,25 @@ namespace rgat
                     return false;
                 }
 
-                FileStream fs = File.OpenRead(path);
-                if (fs.Length < 4)
+                byte[] preview = new byte[4];
+                try
                 {
-                    Logging.RecordLogEvent($"Loading binary {path} failed: File too small ({fs.Length} bytes)", filter: LogFilterType.Alert);
+                    FileStream fs = File.OpenRead(path);
+                    if (fs.Length < 4)
+                    {
+                        Logging.RecordLogEvent($"Loading binary {path} failed: File too small ({fs.Length} bytes)", filter: LogFilterType.Alert);
+                        fs.Close();
+                        return false;
+                    }
+
+                    fs.Read(preview, 0, preview.Length);
+                    fs.Close();
+                }
+                catch(Exception e)
+                {
+                    Logging.RecordException($"Error loading {path}: {e.Message}", e);
                     return false;
                 }
-
-                byte[] preview = new byte[4];
-                fs.Read(preview, 0, preview.Length);
-                fs.Close();
 
                 if (IsrgatSavedTrace(ASCIIEncoding.ASCII.GetString(preview)))
                 {

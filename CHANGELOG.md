@@ -4,9 +4,17 @@
 
 ### Added
 - .NET files are flagged on the trace launch tab
+- X and Y axis plot movement (ie: up,down,left,right) now supports the Ctrl modifier with a large magnitude and combined Shift&Ctrl modifiers for proportional magnitude.
 
 ### Changed
 - Reduced disk activity of the file dialog
+- Improvements to DieLibDotNet - more signatures supported
+- Reduced plot rotation speed
+
+### Fixed
+- Fixed a crash in dnYara
+- The final few blocks of a trace should no longer be missing from block layout edge calculations
+
 
 
 ## [0.6.0] - 2021-11-01

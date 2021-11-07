@@ -433,8 +433,8 @@ namespace rgat
                             x.EndsWith(".yar", StringComparison.OrdinalIgnoreCase))
                 .SelectMany(x => new List<DateTime>() { File.GetCreationTime(x), File.GetLastWriteTime(x) }.ToList()).ToList();
 
-            DateTime newestDir = sigDirs.Max();
-            DateTime newestFile = sigFiles.Max();
+            DateTime newestDir = sigDirs.Any() ? sigDirs.Max() : DateTime.MinValue;
+            DateTime newestFile = sigFiles.Any() ? sigFiles.Max() : DateTime.MinValue;
 
             NewestSignature = newestDir > newestFile ? newestDir : newestFile;
             return NewestSignature;
@@ -474,6 +474,18 @@ namespace rgat
         {
             List<object> args = (List<object>)argslist!;
             BinaryTarget targ = (BinaryTarget)args[0];
+            try
+            {
+                Inner(targ);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+
+        int Inner(BinaryTarget targ)
+        {
 
             try
             {
@@ -481,12 +493,12 @@ namespace rgat
                 {
                     if (LoadedRuleCount() == 0)
                     {
-                        return;
+                        return 0;
                     }
 
                     if (targ.PEFileObj == null)
                     {
-                        return;
+                        return 0;
                     }
 
                     targetScanProgress[targ] = eYaraScanProgress.eRunning;
@@ -498,15 +510,29 @@ namespace rgat
 
                     ExternalVariables externalVariables = new ExternalVariables();
                     externalVariables.StringVariables.Add("filename", targ.FileName);
-                    List<ScanResult> scanResults = scanner.ScanMemory(ref fileContentsBuf, loadedRules);// externalVariables);
-                                                                                                        //scanner.Release();
-
-                    foreach (ScanResult sighit in scanResults)
+                    try
                     {
-                        targ.AddYaraSignatureHit(sighit);
+                        List<ScanResult> scanResults = scanner.ScanMemory(ref fileContentsBuf, loadedRules);// externalVariables);
+                                                                                                            //scanner.Release();
+
+
+                        foreach (ScanResult sighit in scanResults)
+                        {
+                            targ.AddYaraSignatureHit(sighit);
+                        }
+                    }
+                    catch(Exception ev)
+                    {
+                        Console.WriteLine("sdf");
                     }
 
                 }
+            }
+            catch (dnYara.Exceptions.YaraException e)
+            {
+
+                Logging.RecordException("YARA Scan failed with exeption: " + e.Message, e);
+                targetScanProgress[targ] = eYaraScanProgress.eFailed;
             }
             catch (Exception e)
             {
@@ -514,7 +540,9 @@ namespace rgat
                 targetScanProgress[targ] = eYaraScanProgress.eFailed;
             }
 
+
             targetScanProgress[targ] = eYaraScanProgress.eComplete;
+            return 0;
         }
 
 

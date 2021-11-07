@@ -395,10 +395,8 @@ namespace rgat.Layouts
                 NodeData? n = graph.GetNode(nodeIdx);
                 Debug.Assert(n is not null);
 
-                uint blockSize;
-                int blockMid;
                 int blockID;
-                int offsetFromCenter = 0;
+                int offsetFromCenter;
                 Tuple<uint, uint>? FirstLastIdx;
                 if (!n.IsExternal)
                 {
@@ -419,11 +417,8 @@ namespace rgat.Layouts
                         continue;
                     }
 
-                    blockMid = blockMiddlesDict[blockID];
-
                     var blockEntry = graph.ProcessData.BasicBlocksList[(int)n.BlockID];
                     Debug.Assert(blockEntry is not null);
-                    blockSize = (uint)blockEntry.Item2.Count;
                     int midIdx = (int)Math.Ceiling((blockEntry.Item2.Count - 1.0) / 2.0);
                     offsetFromCenter = n.BlockIndex - midIdx;
                 }
@@ -431,8 +426,6 @@ namespace rgat.Layouts
                 {
                     externals += 1;
                     FirstLastIdx = new Tuple<uint, uint>(n.Index, n.Index);
-                    blockMid = (int)n.Index;
-                    blockSize = 1;
                     offsetFromCenter = 0;
                     blockMiddlesList.Add((int)n.Index);
 
@@ -445,7 +438,7 @@ namespace rgat.Layouts
 
                 int blockTopNodeIndex = -1;
                 int blockBaseNodeIndex = -1;
-                if (nodeIdx == blockMid || blockSize == 1)
+                if (offsetFromCenter is 0)
                 {
                     if (graph.GetNode(FirstLastIdx.Item1)?.IncomingNeighboursSet.Count > 0)
                     {
