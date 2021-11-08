@@ -10,6 +10,8 @@
 - Reduced disk activity of the file dialog
 - Improvements to DieLibDotNet - more signatures supported
 - Reduced plot rotation speed
+- Improved exception highlighting controls
+
 ### Fixed
 - Fixed a crash in dnYara
 - The final few blocks of a trace should no longer be missing from block layout edge calculations

@@ -428,11 +428,13 @@ namespace rgat.Widgets
             }
 
             string[] labels = exceptionNodes.Select(x => x.ToString()).ToArray();
-            if (ImGui.BeginTable("##ExceptionsTable", 2))
+            if (ImGui.BeginTable("##ExceptionsTable", 2, ImGuiTableFlags.ScrollY | ImGuiTableFlags.RowBg, ImGui.GetContentRegionAvail() - new Vector2(10, _activeHighlights.SelectedExceptionNodes.Any() ? 30 : 0)))
             {
                 ImGui.TableSetupColumn("Address", ImGuiTableColumnFlags.WidthFixed, 160);
                 ImGui.TableSetupColumn("Module");
+                ImGui.TableSetupScrollFreeze(0, 1);
                 ImGui.TableHeadersRow();
+
                 foreach (uint nodeidx in exceptionNodes)
                 {
                     NodeData? n = plot.InternalProtoGraph.GetNode(nodeidx);
@@ -472,9 +474,13 @@ namespace rgat.Widgets
 
         }
 
-        public void DrawExceptionSelectControls()
+        public void DrawExceptionSelectControls(PlottedGraph plot)
         {
-
+            if (plot.HighlightedExceptionNodes.Any() && ImGui.Button("Clear"))
+            {
+                plot.RemoveHighlightedNodes(_activeHighlights.SelectedExceptionNodes, CONSTANTS.HighlightType.Exceptions);
+                _activeHighlights.SelectedExceptionNodes.Clear();
+            }
         }
 
         public bool PopoutHighlight = false;
@@ -511,7 +517,7 @@ namespace rgat.Widgets
 
                 }
 
-                
+
                 else
                 {
 
@@ -537,7 +543,7 @@ namespace rgat.Widgets
                         {
                             _activeHighlights.selectedHighlightTab = 2;
                             DrawExceptionSelectBox(_ActiveGraph);
-                            DrawExceptionSelectControls();
+                            DrawExceptionSelectControls(_ActiveGraph);
                             ImGui.EndTabItem();
                         }
                         ImGui.EndTabBar();

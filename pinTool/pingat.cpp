@@ -245,7 +245,7 @@ bool address_is_in_targets_v1(ADDRINT addr)
 			r->end = (ADDRINT)info.BaseAddress + info.MapSize;
 			/*
 			* TODO
-			This bit is dubious.We want to look at this memory if execution came from an instrumented area. 
+			This bit is dubious.We want to look at this memory if execution came from an instrumented area.
 			What this *actually* does is test if the last analyzed code was from an instrumented area
 			Fix:       pass thread object to this function and, uh - figure it out
 			Next step: create a multi-threaded test case that breaks
@@ -386,7 +386,7 @@ inline VOID RecordEdge(threadObject* threadObj, BLOCKDATA* sourceBlock, ADDRINT 
 
 	//printf("recordedge. src_%d -> targ 0x%lx blk->execs[%d] blck->act[%d] thread->act[%d]\n", sourceBlock->blockID, targblockAddr,
 	//	blockStats->execCount, blockStats->activityLevel, threadObj->activityLevel);
-	
+
 	//PART 1: Do basic count for every block
 	//record block execution and increase block activity
 	blockStats->execCount += 1;
@@ -623,7 +623,6 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 	if (thread->requestTerminate) {
 		PIN_ExitThread(0);
 	}
-
 	int dbg_blockct = -1;
 
 	bool pendingThreadBreakpoints = thread->HasPendingBreakpoints();
@@ -719,7 +718,6 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		++blockCounter;
 
 		AFUNPTR insrumentationFunction = NULL;
-
 		if (INS_IsBranchOrCall(lastins))
 		{
 			if (INS_HasFallThrough(lastins))
@@ -764,15 +762,24 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 			//writeEventPipe("!Error: Unhandled block end syscall instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
 			//COUNTER *pedg = Lookup(EDGE(INS_Address(ins), ADDRINT(~0), INS_NextAddress(ins), ETYPE_SYSCALL));
 			//INS_InsertPredicatedCall(lastins, IPOINT_BEFORE, (AFUNPTR)docount, IARG_ADDRINT, pedg, IARG_END);
-			INS_InsertCall(lastins, IPOINT_AFTER, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
-				IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
+			
+			//error!
+			//INS_InsertCall(lastins, IPOINT_ANYWHERE, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
+			//	IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
 		}
 		else if (!INS_IsBranch(lastins))
 		{
 			std::string disas = INS_Disassemble(lastins);
 			//writeEventPipe("!Non branch block end instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
-			INS_InsertCall(lastins, IPOINT_AFTER, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
-				IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
+			if (INS_IsValidForIpointAfter(lastins))
+			{
+				INS_InsertCall(lastins, IPOINT_AFTER, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
+					IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
+			}
+			else {
+				INS_InsertCall(lastins, IPOINT_ANYWHERE, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
+					IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
+			}
 		}
 		else
 		{
@@ -887,7 +894,7 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 	ADDRINT startAddr = PIN_GetContextReg(ctxt, REG::REG_INST_PTR);
 
 	writeEventPipe("TI@%d@" PTR_prefix "@", tdata->osthreadid, startAddr);
-	
+
 	RegisterThreadID(tdata->osthreadid, threadIndex);
 	AssignBlockIndex(tdata);
 
@@ -908,10 +915,10 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 			std::cout << "[pingat]pipe -1, doing createfile " << tdata->osthreadid << std::endl;
 #endif		
 			//KNOWN BUG: Sometimes blocks and never returns, probably alertable syscall
-			
-			tdata->threadpipeHandle = (NATIVE_FD)WINDOWS::CreateFileA(pname, 
+
+			tdata->threadpipeHandle = (NATIVE_FD)WINDOWS::CreateFileA(pname,
 				GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-				
+
 			int err = WINDOWS::GetLastError();
 #ifdef DEBUG
 			std::cout << "[pingat]pipe -1, after createfile err 0x" << err << "  " << tdata->osthreadid << std::endl;
@@ -965,7 +972,7 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 			}
 			return;
 		}
-		
+
 		writeEventPipe("!ThreadStart connection failed %d", tdata->osthreadid);
 		OS_Sleep(200);
 		time += 200;
@@ -1005,7 +1012,7 @@ VOID ThreadStart_openFD(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* 
 
 			OS_RETURN_CODE rtncd = OS_OpenFD(pname, OPEN_EXISTING, 0, &tdata->threadpipeHandle);
 
-			std::cout << "[pingat]pipe -1, after createfile err 0x" <<std::hex << rtncd.generic_err << " - " 
+			std::cout << "[pingat]pipe -1, after createfile err 0x" << std::hex << rtncd.generic_err << " - "
 				<< rtncd.os_specific_err << "  " << tdata->osthreadid << " HAND: " << tdata->threadpipeHandle << std::endl;
 
 			if (tdata->threadpipeHandle == -1 && time > 1600 && (time % 600 == 0))
@@ -1020,7 +1027,7 @@ VOID ThreadStart_openFD(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* 
 				writeEventPipe("! 1600err %s", errstr.str().c_str());
 			}
 			OS_Sleep(50);
-		}
+			}
 
 		if (tdata->threadpipeHandle != -1)
 		{
@@ -1064,11 +1071,11 @@ VOID ThreadStart_openFD(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* 
 		writeEventPipe("!T8 failed %d", tdata->osthreadid);
 		OS_Sleep(200);
 		time += 200;
-	}
+		}
 
 	cout << "Failed to connect thread pipe, exiting process" << std::endl;
 	PIN_ExitProcess(1);
-}
+	}
 
 VOID ThreadEnd(THREADID threadIndex, const CONTEXT* ctxt, INT32 flags, VOID* v)
 {
@@ -1272,7 +1279,7 @@ DWORD extract_pipes(std::string programname, std::string coordinatorPipeName, st
 			wprintf(L"[pingat]Got pipenames. Cmd: %s, Response: %s, BB: %s\n", cmdPipeName, responsePipeName, bbPipeName);
 #endif
 		}
-	}
+}
 
 
 	return true;
@@ -1526,74 +1533,74 @@ void ProcessControlCommand(std::string cmd)
 	std::cout << "------\nControl command: " << cmd << "\n"------" << std::endl;
 #endif
 
-	if (cmd.compare(0, 4, "EXIT") == 0) {
+		if (cmd.compare(0, 4, "EXIT") == 0) {
 
 #ifdef DEBUG
-		std::cout << "[pingat]Exiting due to exit command" << std::endl;
+			std::cout << "[pingat]Exiting due to exit command" << std::endl;
 #endif
-		BreakAllThreads();
-		OutputAllThreads();
-		PIN_ExitProcess(0);
-	}
-	else if (cmd.compare(0, 4, "KILL") == 0) {
-		DWORD OSthreadID = std::atol(cmd.substr(5, cmd.length()).c_str());
-		THREADID pinThreadID = GetPINThreadID(OSthreadID);
-		threadObject* threadObj = static_cast<threadObject*>(PIN_GetThreadData(tls_key, pinThreadID));
-		std::cout << "exiting thread " << std::dec << OSthreadID << std::endl;
-
-		BreakAllThreads();
-		OutputAllThreads();
-		PIN_RemoveInstrumentation();
-		threadObj->requestTerminate = true;
-		ResumeAllThreads();
-
-		//won't work, causes caller to execute
-		//OS_RETURN_CODE ret1 = OS_ExitThread(OSthreadID);
-
-	}
-	else if (cmd.compare(0, 3, "BRK") == 0) {
-		std::cout << "b1" << std::endl;
-		if (processStateBroken == false) {
-			std::cout << "[pingat]Pausing application threads" << std::endl;
-			PIN_SemaphoreClear(&stepSem);
 			BreakAllThreads();
 			OutputAllThreads();
-			SetProcessBrokenState(true);
+			PIN_ExitProcess(0);
 		}
-	}
-	else if (cmd.compare(0, 3, "CTU") == 0) {
-		if (processStateBroken) {
-			SetProcessBrokenState(false);
-			PIN_SemaphoreSet(&stepSem);
-			std::cout << "[pingat]Resuming application threads" << std::endl;
-			ResumeAllThreads();
-		}
-	}
-	else if (cmd.compare(0, 3, "SIN") == 0) {
-		if (processStateBroken) {
-			DWORD OSthreadID = std::atol(cmd.substr(4, cmd.length()).c_str());
-			std::cout << "[pingat]Stepping to next instruction of thread " << OSthreadID << std::endl;
-			PIN_SemaphoreSet(&stepSem);
-		}
-	}
-	else if (cmd.compare(0, 4, "SOV,") == 0) {
-		//remove all BPs, set a breakpoint at next instruction, continue
-		if (processStateBroken) {
-			int atPos = cmd.find('@');
-			DWORD OSthreadID = std::atol(cmd.substr(atPos, cmd.length()).c_str());
-			ADDRINT targAddr = std::strtol(cmd.substr(4, atPos).c_str(), NULL, 16);
-			std::cout << "[pingat]Breaking at instruction 0x" << std::hex << targAddr << " of thread " << OSthreadID << std::endl;
+		else if (cmd.compare(0, 4, "KILL") == 0) {
+			DWORD OSthreadID = std::atol(cmd.substr(5, cmd.length()).c_str());
 			THREADID pinThreadID = GetPINThreadID(OSthreadID);
 			threadObject* threadObj = static_cast<threadObject*>(PIN_GetThreadData(tls_key, pinThreadID));
-			threadObj->AddPendingBreakPoint(targAddr);
+			std::cout << "exiting thread " << std::dec << OSthreadID << std::endl;
+
+			BreakAllThreads();
+			OutputAllThreads();
 			PIN_RemoveInstrumentation();
-			SetProcessBrokenState(false);
-			PIN_SemaphoreSet(&stepSem);
+			threadObj->requestTerminate = true;
+			ResumeAllThreads();
+
+			//won't work, causes caller to execute
+			//OS_RETURN_CODE ret1 = OS_ExitThread(OSthreadID);
+
 		}
-	}
-	else {
-		std::cout << "[pingat]!Unhandled control command: " << cmd << std::endl;
-	}
+		else if (cmd.compare(0, 3, "BRK") == 0) {
+			std::cout << "b1" << std::endl;
+			if (processStateBroken == false) {
+				std::cout << "[pingat]Pausing application threads" << std::endl;
+				PIN_SemaphoreClear(&stepSem);
+				BreakAllThreads();
+				OutputAllThreads();
+				SetProcessBrokenState(true);
+			}
+		}
+		else if (cmd.compare(0, 3, "CTU") == 0) {
+			if (processStateBroken) {
+				SetProcessBrokenState(false);
+				PIN_SemaphoreSet(&stepSem);
+				std::cout << "[pingat]Resuming application threads" << std::endl;
+				ResumeAllThreads();
+			}
+		}
+		else if (cmd.compare(0, 3, "SIN") == 0) {
+			if (processStateBroken) {
+				DWORD OSthreadID = std::atol(cmd.substr(4, cmd.length()).c_str());
+				std::cout << "[pingat]Stepping to next instruction of thread " << OSthreadID << std::endl;
+				PIN_SemaphoreSet(&stepSem);
+			}
+		}
+		else if (cmd.compare(0, 4, "SOV,") == 0) {
+			//remove all BPs, set a breakpoint at next instruction, continue
+			if (processStateBroken) {
+				int atPos = cmd.find('@');
+				DWORD OSthreadID = std::atol(cmd.substr(atPos, cmd.length()).c_str());
+				ADDRINT targAddr = std::strtol(cmd.substr(4, atPos).c_str(), NULL, 16);
+				std::cout << "[pingat]Breaking at instruction 0x" << std::hex << targAddr << " of thread " << OSthreadID << std::endl;
+				THREADID pinThreadID = GetPINThreadID(OSthreadID);
+				threadObject* threadObj = static_cast<threadObject*>(PIN_GetThreadData(tls_key, pinThreadID));
+				threadObj->AddPendingBreakPoint(targAddr);
+				PIN_RemoveInstrumentation();
+				SetProcessBrokenState(false);
+				PIN_SemaphoreSet(&stepSem);
+			}
+		}
+		else {
+			std::cout << "[pingat]!Unhandled control command: " << cmd << std::endl;
+		}
 
 }
 
@@ -1831,7 +1838,7 @@ int main(int argc, char* argv[])
 	// Register function to be called for every thread before it starts running
 	PIN_AddThreadStartFunction(ThreadStart, 0);
 	//PIN_AddThreadStartFunction(ThreadStart_openFD, 0); //leaving this around in case a fix turns up
-	
+
 	PIN_AddThreadFiniFunction(ThreadEnd, 0);
 
 	// Register function to be called when the application exits
@@ -1854,7 +1861,7 @@ int main(int argc, char* argv[])
 	// Start the program, never returns
 	PIN_StartProgram();
 	return 0;
-}
+	}
 
 /* ===================================================================== */
 /* eof */

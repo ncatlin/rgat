@@ -1300,6 +1300,7 @@ namespace rgat
         /// <param name="keepCamera">If set to true then the camera will not be reset</param>
         public void BeginNewLayout(bool keepCamera = false)
         {
+            RegenerateEdges();
             lock (_renderLock)
             {
                 if (_layoutCameraStates.TryGetValue(this.LayoutState.PresetStyle, out CAMERA_STATE savedState))

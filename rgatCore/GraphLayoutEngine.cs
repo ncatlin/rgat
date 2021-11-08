@@ -355,13 +355,14 @@ namespace rgat
 
                 //If activating a preset, find the fasted node. If below a threshold, move the positions to their targets
                 //This avoids preset snapping taking too long at low speeds
-                if (layout.ActivatingPreset && layout.IncrementPresetSteps() > 10) //todo look at this again, should it be done after compute?
+                int steps = layout.IncrementPresetSteps();
+                if (layout.ActivatingPreset && steps > 10) //todo look at this again, should it be done after compute?
                 {
                     if (layout.VelocitiesVRAM1 is not null && (plot.ComputeBufferNodeCount * 4 * sizeof(float)) <= layout.VelocitiesVRAM1.SizeInBytes)
                     {
                         //when the nodes are near their targets, instead of bouncing around while coming to a stop, just snap them into position
                         float fastest = FindHighXYZ(layout.VelocitiesVRAM1, plot.ComputeBufferNodeCount, out int _);
-                        if (fastest < 1)
+                        if (fastest < 1 || steps > 20)
                         {
                             if (GlobalConfig.BulkLog)
                             {
