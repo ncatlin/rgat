@@ -4448,6 +4448,11 @@
             <param name="processinfo">The process record this node was generated with</param>
             <returns></returns>
         </member>
+        <member name="M:rgat.NodeData.SetException">
+            <summary>
+            Mark this node as having caused an exception
+            </summary>
+        </member>
         <member name="M:rgat.NodeData.VertType">
             <summary>
             The control flow type of this node
@@ -4514,6 +4519,11 @@
         <member name="P:rgat.NodeData.IsExternal">
             <summary>
             The node is an entry to uninstrumented code
+            </summary>
+        </member>
+        <member name="P:rgat.NodeData.CausedException">
+            <summary>
+            The node caused at least one exception
             </summary>
         </member>
         <member name="F:rgat.NodeData.ThunkCaller">

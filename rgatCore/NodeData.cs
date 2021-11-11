@@ -236,6 +236,15 @@ namespace rgat
 
 
         /// <summary>
+        /// Mark this node as having caused an exception
+        /// </summary>
+        public void SetException()
+        {
+            CausedException = true;
+            _nodeType = EdgeNodeType.eEdgeException;
+        }
+
+        /// <summary>
         /// The control flow type of this node
         /// </summary>
         /// <returns>An eEdgeNodeType value</returns>
@@ -333,7 +342,7 @@ namespace rgat
 
             if (plot.Opt_ShowNodeIndexes)
             {
-                Label += $"{this.Index}:";
+                Label += $"{this.Index}<{this.BlockID}>:";
             }
 
             if (plot.Opt_ShowNodeAddresses)
@@ -607,6 +616,11 @@ namespace rgat
         /// The node is an entry to uninstrumented code
         /// </summary>
         public bool IsExternal { get; set; } = false;
+
+        /// <summary>
+        /// The node caused at least one exception
+        /// </summary>
+        public bool CausedException { get; private set; } = false;
 
         /// <summary>
         /// The node calls an API thunk

@@ -884,6 +884,10 @@ namespace rgat
                     Logging.RecordException($"Error saving trace {trace.PID} - {e.Message}", e);
                 }
             }
+            else
+            {
+                Logging.RecordLogEvent("Trace was previously loaded from save file", Logging.LogFilterType.Alert);
+            }
 
             SerialisationProgress = null;
             return 1;

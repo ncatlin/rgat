@@ -308,7 +308,6 @@ namespace rgat.Threads
                             }
                             else
                             {
-                                Logging.WriteConsole($"No callers for node 0x{n.Address:X} A");
                                 needWait = true;
                                 break;
                             }
@@ -408,7 +407,7 @@ namespace rgat.Threads
                 }
             }
 
-            thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry[1..(1+(tokenpos - 1))]), NumberStyles.HexNumber);
+            thistag.blockID = uint.Parse(Encoding.ASCII.GetString(entry[1..(1 + (tokenpos - 1))]), NumberStyles.HexNumber);
 
             //this may be a bad idea, could just be running faster than the dissassembler thread
             int waits = 0;
@@ -429,7 +428,7 @@ namespace rgat.Threads
                 protograph.TraceReader!.Terminate();
                 return;
             }
-            
+
             ANIMATIONENTRY animUpdate = new ANIMATIONENTRY
             {
                 entryType = eTraceUpdateType.eAnimExecTag,
@@ -470,7 +469,7 @@ namespace rgat.Threads
              */
             if (targetCodeType == eCodeInstrumentation.eUninstrumentedCode)// && protograph.NodeList.Count < protograph.ProtoLastLastVertID)
             {
-                if (protograph.NodeCount > protograph.ProtoLastVertID && 
+                if (protograph.NodeCount > protograph.ProtoLastVertID &&
                     protograph.NodeList[(int)protograph.ProtoLastVertID].VertType() == CONSTANTS.EdgeNodeType.eNodeCall)
                 {
                     dbgStopwatch.Restart();
@@ -504,7 +503,7 @@ namespace rgat.Threads
                         {
 
                             thunkInstruction.AddThreadVert(protograph.ThreadID, protograph.ProtoLastVertID);
-                            
+
                             if (protograph.ProtoLastLastVertID < protograph.NodeList.Count)
                             {
                                 protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller = true;
@@ -688,7 +687,10 @@ namespace rgat.Threads
             protograph.PushAnimUpdate(animUpdate);
 
             protograph.ProtoLastLastVertID = protograph.ProtoLastVertID;
-            var blockNodes = protograph.BlocksFirstLastNodeList[(int)animUpdate.BlockID];
+
+            Tuple<uint, uint>? blockNodes = animUpdate.BlockID < protograph.BlocksFirstLastNodeList.Count ?
+                protograph.BlocksFirstLastNodeList[(int)animUpdate.BlockID] :
+                null;
 
             if (blockNodes != null)
             { protograph.ProtoLastVertID = blockNodes.Item2; }
@@ -880,14 +882,51 @@ namespace rgat.Threads
             //going to have to assume it's the most recent mutation
             if (!gotDisas)
             {
-                Thread.Sleep(50);
-                lock (protograph.ProcessData.InstructionsLock) //read lock
+                bool resolved = false;
+                if (code is not 0xC000001D) //invalid instruction
                 {
-                    if (!protograph.ProcessData.disassembly.TryGetValue(address, out faultingBlock))
+                    while (true)
                     {
+                        Thread.Sleep(50);
+                        lock (protograph.ProcessData.InstructionsLock) //read lock
+                        {
+                            if (protograph.ProcessData.disassembly.TryGetValue(address, out faultingBlock))
+                            {
+                                resolved = true;
+                                break;
+                            }
+                        }
                         Logging.WriteConsole($"[rgat]Exception address 0x{address:X} not found in disassembly");
-                        return;
                     }
+                }
+                else
+                {
+                    NodeData? lastNode = protograph.GetNode(protograph.ProtoLastVertID);
+                    if (lastNode is not null && lastNode.BlockID > 0 && lastNode.BlockID < protograph.ProcessData.BasicBlocksList.Count)
+                    {
+                        var block = protograph.ProcessData.BasicBlocksList[(int)lastNode.BlockID];
+                        if (block is not null)
+                        {
+                            lock (protograph.ProcessData.InstructionsLock)
+                            {
+                                InstructionData invalidIns = new InstructionData();
+                                invalidIns.Address = address;
+                                invalidIns.conditional = false;
+                                invalidIns.ContainingBlockIDs = new List<uint>() { lastNode.BlockID };
+                                invalidIns.InsText = "INVALID INSTRUCTION";
+                                invalidIns.itype = CONSTANTS.NodeType.eInsUndefined;
+                                block.Item2.Add(invalidIns);
+                                faultingBlock = block.Item2;
+                                protograph.ProcessData.disassembly.Add(address, new List<InstructionData>() { invalidIns });
+                            }
+                            resolved = true;
+                        }
+                    }
+                }
+                if (!resolved)
+                {
+                    Logging.RecordError($"Failed to resolve an exception at 0x{address:X}");
+                    return;
                 }
             }
 
@@ -913,7 +952,7 @@ namespace rgat.Threads
             Debug.Assert(faultblock is not null);
             TAG interruptedBlockTag;
             interruptedBlockTag.blockaddr = faultblock.Item2[0].Address;
-            interruptedBlockTag.insCount = (ulong)instructionsUntilFault;
+            interruptedBlockTag.insCount = (ulong)instructionsUntilFault + 1;
             interruptedBlockTag.blockID = faultingBasicBlock_ID;
             interruptedBlockTag.InstrumentationState = eCodeInstrumentation.eInstrumentedCode;
             interruptedBlockTag.foundExtern = null;
@@ -923,7 +962,7 @@ namespace rgat.Threads
             animUpdate.entryType = eTraceUpdateType.eAnimExecException;
             animUpdate.Address = interruptedBlockTag.blockaddr;
             animUpdate.BlockID = interruptedBlockTag.blockID;
-            animUpdate.Count = (ulong)instructionsUntilFault;
+            animUpdate.Count = (ulong)instructionsUntilFault + 1;
             animUpdate.edgeCounts = null;
             protograph.PushAnimUpdate(animUpdate);
         }
@@ -1031,7 +1070,7 @@ namespace rgat.Threads
             //final pass
             PerformIrregularActions();
 
-            
+
             Logging.RecordLogEvent($"{WorkerThread?.Name} finished with {PendingEdges.Count} " +
                 $"pending edges and {blockRepeatQueue.Count} blockrepeats outstanding", Logging.LogFilterType.Debug);
             Debug.Assert(blockRepeatQueue.Count == 0 || rgatState.rgatIsExiting || protograph.TraceReader.StopFlag);

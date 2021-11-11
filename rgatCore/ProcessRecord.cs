@@ -1099,7 +1099,16 @@ namespace rgat
 
                 foreach (var mutation in addr_inslist.Value)
                 {
-                    string opcodestring = System.Convert.ToBase64String(mutation.Opcodes!);
+                    string opcodestring;
+                    if (mutation.Opcodes is null)
+                    {
+                        Debug.Assert(mutation.InsText.Contains("INVALID"));
+                        opcodestring = "";
+                    }
+                    else
+                    {
+                        opcodestring = System.Convert.ToBase64String(mutation.Opcodes!);
+                    }
                     insentry.Add(opcodestring);
 
                     List<Tuple<uint, uint>> threadVerts = mutation.ThreadVerts;
@@ -1206,13 +1215,20 @@ namespace rgat
                 {
                     GlobalModNum = addressData.moduleID,
                     hasSymbol = addressData.hasSym,
-                    Opcodes = System.Convert.FromBase64String(opcodeB64),
                     Address = addressData.address,
                     BlockBoundary = addressData.blockBoundary
                 };
 
-                if (DisassembleIns(disassembler, addressData.address, ins) is 0)
-                    return false;
+                if (opcodeB64.Length > 0)
+                {
+                    ins.Opcodes = System.Convert.FromBase64String(opcodeB64);
+                    if (DisassembleIns(disassembler, addressData.address, ins) is 0)
+                        return false;
+                }
+                else
+                {
+                    ins.InsText = "INVALID INSTRUCTION";
+                }
 
                 int threadvertCount = (int)entry[entryIndex + mi];
                 entryIndex += 1;
@@ -1312,7 +1328,10 @@ namespace rgat
                     {
                         ulong insAddress = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
                         int mutationIndex = serializer.Deserialize<int>(jsnReader); jsnReader.Read();
-
+                        if (insAddress is 5850545)
+                        {
+                            Console.WriteLine("s");
+                        }
                         InstructionData ins = disassembly[insAddress][mutationIndex];
                         blkInstructions.Add(ins);
                         if (ins.ContainingBlockIDs == null)

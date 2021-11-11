@@ -18,7 +18,7 @@ a pin implementation of the drgat client
 #include <iostream>
 #include <string>
 
-#define RGAT_VERSION "0.6.0"
+#define RGAT_VERSION "0.6.1"
 
 #ifdef WIN32
 #include "moduleload_windows.h"
@@ -837,7 +837,7 @@ static VOID HandleWindowsContextSwitch(THREADID threadIndex, CONTEXT_CHANGE_REAS
 		std::cout << "[pingat]HandleWindowsContextSwitch: Exception reason " << reason << " src address 0x" << std::hex << srcAddress << " info: " << info << std::endl;
 		ctxswitch_ss << "EXCEPTION - Receipt of windows exception code 0x" << std::hex << info << " (" << windowsExceptionName(info) << ")";
 		printTagCache(threaddata);
-		fprintf(threaddata->threadpipeFILE, EXCEPTION_MARKER"," PTR_prefix ",%lx,%lx\x01", srcAddress, info, 0);
+		fprintf(threaddata->threadpipeFILE, EXCEPTION_MARKER"," PTR_prefix ",%lx,%lx\x01", srcAddress, info, 0); //address, code, flags
 		break;
 	case CONTEXT_CHANGE_REASON_CALLBACK:      ///< Receipt of Windows call-back
 		ctxswitch_ss << "CALLBACK - Receipt of Windows call-back";

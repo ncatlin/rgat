@@ -4,7 +4,7 @@ using rgat.Config;
 using rgat.OperationModes;
 using System;
 
-[assembly: System.Reflection.AssemblyTitleAttribute("An instruction trace visualisation tool")]
+[assembly: System.Reflection.AssemblyTitleAttribute("rgat - Instruction Trace Visualiser")]
 
 namespace ImGuiNET
 {

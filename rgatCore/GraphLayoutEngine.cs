@@ -256,7 +256,7 @@ namespace rgat
         {
             Debug.Assert(_gd is not null);
 
-            if (plot.DrawnEdgesCount == 0 || !GlobalConfig.LayoutAllComputeEnabled || ErrorState)
+            if (plot.DrawnEdgesCount == 0 || !GlobalConfig.LayoutAllComputeEnabled) // || ErrorState)
             {
                 return plot.LayoutState.RenderVersion;
             }
@@ -271,7 +271,7 @@ namespace rgat
             _stepTimer.Restart();
             try
             {
-                if (!layout.ActivatingPreset)
+                if (!layout.ActivatingPreset || layout.Initialised is false)
                 {
                     plot.AddNewEdgesToLayoutBuffers(edgesCount);
                 }

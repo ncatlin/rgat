@@ -686,6 +686,7 @@ namespace rgat
                     var bufferFloatCount = bufferWidth * bufferWidth * 4;
                     var bufferSize = bufferFloatCount * sizeof(float);
                     Debug.Assert(bufferSize >= updateSize);
+                    Debug.Assert(bufferSize >= (4 * 4 * newNodeCount));
 
                     if (_VRAMBuffers.Initialised)
                     {
@@ -721,10 +722,13 @@ namespace rgat
             }
 
             float[] newAttribs = RAMbufs.NodeAttribArray;
-            fixed (float* dataPtr = newAttribs)
+            if (newAttribs.Any())
             {
-                cl.UpdateBuffer(_VRAMBuffers.Attributes1, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
-                cl.UpdateBuffer(_VRAMBuffers.Attributes2, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
+                fixed (float* dataPtr = newAttribs)
+                {
+                    cl.UpdateBuffer(_VRAMBuffers.Attributes1, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
+                    cl.UpdateBuffer(_VRAMBuffers.Attributes2, offset, (IntPtr)(dataPtr + endOfComputeBufferOffset), updateSize);
+                }
             }
             cl.End();
             _gd.SubmitCommands(cl);

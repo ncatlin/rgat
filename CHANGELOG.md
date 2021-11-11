@@ -11,6 +11,7 @@
 - Improvements to DieLibDotNet - more signatures supported
 - Reduced plot rotation speed
 - Improved exception highlighting controls
+- Improved preview envelope drawing
 
 ### Fixed
 - Fixed a crash in dnYara

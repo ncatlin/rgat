@@ -329,7 +329,13 @@ namespace rgat
                 }
                 else
                 {
-                    if (targetAlreadyExecuted)
+                    if (sourcenode.CausedException)
+                    {
+                        //todo: this assumed all edges from an exception node are exception edges, which is wrong.
+                        //need to mark targets of faulting blocks as exception targets
+                        newEdge.edgeClass = EdgeNodeType.eEdgeException;
+                    }
+                    else if (targetAlreadyExecuted)
                     {
                         newEdge.edgeClass = EdgeNodeType.eEdgeOld;
                     }
@@ -427,7 +433,8 @@ namespace rgat
                 return;
             }
 
-            for (int instructionIndex = 0; (ulong)instructionIndex <= tag.insCount; ++instructionIndex)
+            uint firstVert = 0;
+            for (int instructionIndex = 0; (ulong)instructionIndex < tag.insCount; ++instructionIndex)
             {
                 InstructionData instruction = block[instructionIndex];
 
@@ -448,29 +455,41 @@ namespace rgat
                     GetNode(targVertID)?.IncreaseExecutionCount(1);
                 }
 
+                if (instructionIndex == 0)
+                {
+                    firstVert = targVertID;
+                }
+
                 AddEdge_LastToTargetVert(alreadyExecuted, instructionIndex, 1);
 
                 //BB_addExceptionEdge(alreadyExecuted, instructionIndex, 1);
 
-                //setup conditions for next instruction
-                if ((ulong)instructionIndex < tag.insCount)
-                {
-                    lastNodeType = EdgeNodeType.eNodeNonFlow;
-                }
-                else
-                {
-                    lastNodeType = EdgeNodeType.eNodeException;
-                    lock (highlightsLock)
-                    {
-                        if (!exceptionSet.Contains(targVertID))
-                        {
-                            exceptionSet.Add(targVertID);
-                        }
-                    }
-                }
 
+                lastNodeType = EdgeNodeType.eNodeNonFlow;
                 ProtoLastLastVertID = ProtoLastVertID;
                 ProtoLastVertID = targVertID;
+            }
+
+            NodeList[(int)ProtoLastVertID].SetException();
+
+            lastNodeType = EdgeNodeType.eNodeException;
+            lock (highlightsLock)
+            {
+                if (!exceptionSet.Contains(targVertID))
+                {
+                    exceptionSet.Add(targVertID);
+                    NodeList[(int)targVertID].SetException();
+                }
+            }
+
+            lock (edgeLock)
+            {
+                while (BlocksFirstLastNodeList.Count <= (int)tag.blockID)
+                {
+                    BlocksFirstLastNodeList.Add(null);
+                }
+                //no if statement here - exceptions can expand basic blocks by adding invalid instructions
+                BlocksFirstLastNodeList[(int)tag.blockID] = new Tuple<uint, uint>(firstVert, ProtoLastVertID);
             }
         }
 
@@ -748,7 +767,7 @@ namespace rgat
                     uint callerNodeIdx = (uint)arg.HiddenThunkSourceNode;
 
                     APICALLDATA callRecord;
-                    callRecord.edgeIdx = new Tuple<uint, uint>(callerNodeIdx, (uint) arg.SourceNode);
+                    callRecord.edgeIdx = new Tuple<uint, uint>(callerNodeIdx, (uint)arg.SourceNode);
                     callRecord.argList = BuildArgStringList(cacheI);
                     completecount += callRecord.argList.Count;
 
@@ -829,7 +848,7 @@ namespace rgat
                 sourceBlock = sourceBlockID,
                 isReturnVal = argpos == -1,
                 SourceNode = (int)ProtoLastVertID,
-                HiddenThunkSourceNode = (int)ProtoLastLastVertID                
+                HiddenThunkSourceNode = (int)ProtoLastLastVertID
             };
             lock (argsLock)
             {
@@ -878,7 +897,7 @@ namespace rgat
                 }
                 else if (node.ins!.hasSymbol)
                 {
-                    internalNodeList.Add(node.Index);
+                    InternalSymbolNodeList.Add(node.Index);
                 }
 
                 NodeList.Add(node);
@@ -1121,7 +1140,7 @@ namespace rgat
                         }
                     }
                 }
-         
+
                 _edgeDict.Add(edgePair, e);
                 EdgeList.Add(edgePair);
                 edgeObjList.Add(e);
@@ -1234,7 +1253,7 @@ namespace rgat
         /// Get a dictionary describing the number of edges of each type
         /// </summary>
         /// <returns>Copy of edge type count dictionary</returns>
-        public Dictionary<EdgeNodeType, int> GetEdgeTypeCounts() 
+        public Dictionary<EdgeNodeType, int> GetEdgeTypeCounts()
         {
             lock (edgeLock)
             {
@@ -1309,7 +1328,7 @@ namespace rgat
             thisnode.HasSymbol = instruction.hasSymbol;
 
             Debug.Assert(!NodeExists(targVertID));
-            
+
             InsertNode(thisnode);
             lock (TraceData.DisassemblyData.InstructionsLock) //this lock should probably be converted to a RW lock, gets congested a lot in big graphs
             {
@@ -1395,7 +1414,8 @@ namespace rgat
                 bool alreadyExecuted = SetTargetInstruction(instruction);
                 if (!alreadyExecuted)
                 {
-                    targVertID = HandleNewInstruction(instruction, blockID, repeats);                }
+                    targVertID = HandleNewInstruction(instruction, blockID, repeats);
+                }
                 else
                 {
                     HandlePreviousInstruction(targVertID, repeats);
@@ -1454,10 +1474,10 @@ namespace rgat
         /*
         void handle_loop_contents();
 
-		int getAnimDataSize() { return savedAnimationData.Count; }
-		List<ANIMATIONENTRY>* getSavedAnimData() { return &savedAnimationData; }
-		
-		*/
+        int getAnimDataSize() { return savedAnimationData.Count; }
+        List<ANIMATIONENTRY>* getSavedAnimData() { return &savedAnimationData; }
+
+        */
 
         //list of all external nodes
         private readonly List<uint> externalNodeList = new List<uint>();
@@ -1478,7 +1498,7 @@ namespace rgat
         }
 
         //list of all internal nodes with symbols. Unused.
-        private readonly List<uint> internalNodeList = new List<uint>();
+        private readonly List<uint> InternalSymbolNodeList = new List<uint>();
 
         /// <summary>
         /// Get a NodeData object by index
@@ -1689,12 +1709,15 @@ namespace rgat
                         var blocktuple = BlocksFirstLastNodeList[i];
                         if (blocktuple == null)
                         {
+                            writer.WriteNull();
+                            /*
                             var block = ProcessData.BasicBlocksList[i];
                             Debug.Assert(block is not null);
                             block.Item2[0].GetThreadVert(ThreadID, out uint startVert);
                             block.Item2[^1].GetThreadVert(ThreadID, out uint endVert);
                             writer.WriteValue(startVert);
                             writer.WriteValue(endVert);
+                            */
                         }
                         else
                         {
@@ -2037,10 +2060,18 @@ namespace rgat
 
             for (var i = 0; i < blockCount; i++)
             {
-                uint firstNode = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
-                uint lastNode = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
-                BlocksFirstLastNodeList.Add(new Tuple<uint, uint>(firstNode, lastNode));
+                if (jsnReader.TokenType is JsonToken.Null)
+                {
+                    BlocksFirstLastNodeList.Add(null); jsnReader.Read();
+                }
+                else
+                {
+                    uint firstNode = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                    uint lastNode = serializer.Deserialize<uint>(jsnReader); jsnReader.Read();
+                    BlocksFirstLastNodeList.Add(new Tuple<uint, uint>(firstNode, lastNode));
+                }
                 progress.SectionProgress = i / (float)blockCount;
+
                 if (progress.Cancelled) return false;
             }
 

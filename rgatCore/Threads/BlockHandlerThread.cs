@@ -223,7 +223,6 @@ namespace rgat
                 {
                     dbginscount++;
 
-
                     if (trace.DisassemblyData.disassembly.TryGetValue(insaddr, out foundList))
                     {
 

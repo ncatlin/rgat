@@ -290,7 +290,7 @@ namespace rgat.Layouts
 
         public struct NODE_BLOCK_METADATA_COMPUTEBUFFER
         {
-            public int BlockIndex;
+            public int MetaBlockIndex;
             public int OffsetFromCenter;
             public int BlockTopEdgeList;
             public int BlockBaseEdgeList;
@@ -316,7 +316,8 @@ namespace rgat.Layouts
 
             NODE_BLOCK_METADATA_COMPUTEBUFFER[] blockDataInts = new NODE_BLOCK_METADATA_COMPUTEBUFFER[nodeCount];
             Dictionary<int, int> blockMiddlesDict = new Dictionary<int, int>();
-            List<int> blockMiddlesList = new List<int>();
+            List<int> blockMiddleNodesList = new List<int>();
+            Dictionary<int, NodeData> exceptionBlocks = new();
 
             /*
              * Step 1: Build a list of active blocks (ie: blocks which currently have instructions in,
@@ -327,29 +328,39 @@ namespace rgat.Layouts
             Dictionary<int, int> BlockMetaToBlockFirstLastIndex = new();
             for (var i = 0; i < nodeCount; i++)
             {
-                int nodeBlockID = (int)graph.NodeList[i].BlockID;
+                NodeData n = graph.NodeList[i];
+                int nodeBlockID = (int)n.BlockID;
                 if (NodeBlockToBlockMetaIndex.TryGetValue(nodeBlockID, out int metaBlockID) is false || activeBlockIDs.Contains(metaBlockID) is false)
                 {
-                    NodeBlockToBlockMetaIndex[nodeBlockID] = activeBlockIDs.Count;
-                    BlockMetaToBlockFirstLastIndex[activeBlockIDs.Count] = nodeBlockID;
-                    activeBlockIDs.Add(activeBlockIDs.Count);
+                    metaBlockID = activeBlockIDs.Count;
+                    NodeBlockToBlockMetaIndex[nodeBlockID] = metaBlockID;
+                    BlockMetaToBlockFirstLastIndex[metaBlockID] = nodeBlockID;
+                    activeBlockIDs.Add(metaBlockID);
+
+                    if(n.CausedException)
+                    {
+                        exceptionBlocks[metaBlockID] = n;
+                    }
                 }
             }
 
 
             //Step 2: Build the list of block center nodes that the block velocity shader will run over
-            blockMiddlesList.Capacity = activeBlockIDs.Count;
+            blockMiddleNodesList.Capacity = activeBlockIDs.Count;
             foreach (int blockIdx in activeBlockIDs)
             {
                 if (blockIdx == -1)
                 {
-                    blockMiddlesList.Add(-1);
+                    blockMiddleNodesList.Add(-1);
                 }
 
                 int originalBlockIndex = BlockMetaToBlockFirstLastIndex[blockIdx];
 
                 if (originalBlockIndex < 0 || originalBlockIndex >= graph.BlocksFirstLastNodeList.Count)
                 {
+                    blockMiddlesDict[blockIdx] = -1; //instructions sent and not executed? why?
+                    blockMiddleNodesList.Add((int)-1);
+
                     continue;
                 }
 
@@ -361,9 +372,15 @@ namespace rgat.Layouts
 
                 if (firstIdx_LastIdx.Item1 == firstIdx_LastIdx.Item2)
                 {
-                    if (blockMiddlesList.Contains((int)firstIdx_LastIdx.Item1)) continue;
+                    if (blockMiddleNodesList.Contains((int)firstIdx_LastIdx.Item1))
+                    {
+                        continue; 
+                    }
+
                     blockMiddlesDict[blockIdx] = (int)firstIdx_LastIdx.Item1; //1 node block, top/mid/base is the same
-                    blockMiddlesList.Add((int)firstIdx_LastIdx.Item1);
+                    blockMiddleNodesList.Add((int)firstIdx_LastIdx.Item1);
+                    
+                    //Debug.Assert(blockIdx == (blockMiddleNodesList.Count-1));
                 }
                 else
                 {
@@ -378,12 +395,17 @@ namespace rgat.Layouts
                     }
                     else
                     {
-                        if (blockMiddlesList.Contains((int)centerNodeID)) continue;
+                        if (blockMiddleNodesList.Contains((int)centerNodeID))
+                        {
+                            continue; 
+                        }
                         blockMiddlesDict[blockIdx] = (int)centerNodeID;
-                        blockMiddlesList.Add((int)centerNodeID);
+                        blockMiddleNodesList.Add((int)centerNodeID);
+                        //Debug.Assert(blockIdx == (blockMiddleNodesList.Count - 1));
                     }
                 }
             }
+
 
             /*
              * Step 3: Build the block metadata buffer which allows the position and velocity shaders to process each
@@ -419,7 +441,19 @@ namespace rgat.Layouts
 
                     var blockEntry = graph.ProcessData.BasicBlocksList[(int)n.BlockID];
                     Debug.Assert(blockEntry is not null);
-                    int midIdx = (int)Math.Ceiling((blockEntry.Item2.Count - 1.0) / 2.0);
+                    int blockNodeCount = blockEntry.Item2.Count;
+                    if (exceptionBlocks.TryGetValue(blockID, out NodeData? exceptionNode) && exceptionNode is not null)
+                    {
+                        for (int bIdx = 0; bIdx < blockNodeCount; bIdx++)
+                        {
+                            if (blockEntry.Item2[bIdx].Address == exceptionNode.Address)
+                            {
+                                blockNodeCount = bIdx + 1;
+                                break;
+                            }
+                        }
+                    }
+                    int midIdx = (int)Math.Ceiling((blockNodeCount - 1.0) / 2.0);
                     offsetFromCenter = n.BlockIndex - midIdx;
                 }
                 else
@@ -427,11 +461,11 @@ namespace rgat.Layouts
                     externals += 1;
                     FirstLastIdx = new Tuple<uint, uint>(n.Index, n.Index);
                     offsetFromCenter = 0;
-                    blockMiddlesList.Add((int)n.Index);
+                    blockMiddleNodesList.Add((int)n.Index);
 
                     //external nodes dont have a block id so just give them a unique one
                     //all that matters in the shader is it's unique
-                    blockID = blockMiddlesList.Count;
+                    blockID = blockMiddleNodesList.Count;
                     blockMiddlesDict[blockID] = (int)n.Index;
                 }
 
@@ -472,14 +506,15 @@ namespace rgat.Layouts
                         blockBaseNodeIndex = (int)FirstLastIdx.Item2;
                     }
                 }
-
-                blockDataInts[nodeIdx].BlockIndex = blockID;
+                
+                blockDataInts[nodeIdx].MetaBlockIndex = blockID;
                 blockDataInts[nodeIdx].OffsetFromCenter = offsetFromCenter;
                 blockDataInts[nodeIdx].BlockTopEdgeList = blockTopNodeIndex;
                 blockDataInts[nodeIdx].BlockBaseEdgeList = blockBaseNodeIndex != blockTopNodeIndex ? blockBaseNodeIndex : -1;
+                //Debug.Assert(offsetFromCenter is not 0 || n.IsExternal || (blockMiddleNodesList[blockID] == (int)nodeIdx));
             }
 
-            blockMiddles = blockMiddlesList.ToArray();
+            blockMiddles = blockMiddleNodesList.ToArray();
             blockData = blockDataInts;
 
             return true;

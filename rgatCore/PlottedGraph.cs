@@ -2328,10 +2328,12 @@ namespace rgat
                 {
                     return;
                 }
-                Thread.Sleep(5);
+                int sleepTime = 5;
+                Thread.Sleep(sleepTime);
                 while (!get_block_nodelist(entry.Address, entry.BlockID, out nodeIDList))
                 {
-                    Thread.Sleep(15);
+                    sleepTime += 10;
+                    Thread.Sleep(sleepTime);
                     Logging.WriteConsole($"[rgat] process_replay_update waiting for block 0x{entry.Address:x}");
                     if (rgatState.rgatIsExiting || this.InternalProtoGraph.Terminated)
                     {

@@ -144,7 +144,7 @@ namespace rgat
             {
                 return;
             }
-            
+
 
             float captionHeight = ImGui.CalcTextSize("123456789").Y;
 
@@ -421,8 +421,6 @@ namespace rgat
 
             plot.GetPreviewVisibleRegion(new Vector2(EachGraphWidth, EachGraphHeight), PreviewProjection, out Vector2 TopLeft, out Vector2 BaseRight);
 
-            float C1X = subGraphPosition.X + TopLeft.X;
-            float C2X = subGraphPosition.X + BaseRight.X;
             float C1Y = previewBaseY - TopLeft.Y;
             float C2Y = previewBaseY - BaseRight.Y;
 
@@ -430,11 +428,12 @@ namespace rgat
             uint colour = verySmall ? Themes.GetThemeColourUINT(Themes.eThemeColour.Emphasis1) :
                 Themes.GetThemeColourUINT(Themes.eThemeColour.PreviewZoomEnvelope);
 
+            float C1X = Math.Max(subGraphPosition.X + TopLeft.X, subGraphPosition.X);
+            float C2X = Math.Min(subGraphPosition.X + BaseRight.X, subGraphPosition.X + EachGraphWidth - 1);
             C1Y = Math.Min(previewBaseY - 1, C1Y);
             C2Y = Math.Max(subGraphPosition.Y, C2Y);
 
-
-            if (C1Y > subGraphPosition.Y && C1Y < previewBaseY)
+            if (C1Y > subGraphPosition.Y && C1Y < previewBaseY && C2X > subGraphPosition.X)
             {
                 imdp.AddLine(new Vector2(C1X, C1Y), new Vector2(C2X, C1Y), colour);
             }
@@ -446,8 +445,15 @@ namespace rgat
 
             if (C2Y < previewBaseY && C1Y > subGraphPosition.Y)
             {
-                imdp.AddLine(new Vector2(C2X, C1Y), new Vector2(C2X, C2Y), colour);
-                imdp.AddLine(new Vector2(C1X, C2Y), new Vector2(C1X, C1Y), colour);
+                C2Y = Math.Max(C2Y, subGraphPosition.Y);
+                if (C2X > subGraphPosition.X && C2X < subGraphPosition.X + EachGraphWidth)
+                {
+                    imdp.AddLine(new Vector2(C2X, C1Y), new Vector2(C2X, C2Y), colour);
+                }
+                if (C1X > subGraphPosition.X && C1X < subGraphPosition.X + EachGraphWidth)
+                {
+                    imdp.AddLine(new Vector2(C1X, C2Y), new Vector2(C1X, C1Y), colour);
+                }
             }
 
         }
@@ -547,11 +553,11 @@ namespace rgat
                 }
                 else
                 {
-                    maxVal = invalues.Max(); 
+                    maxVal = invalues.Max();
                 }
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, captionBackgroundcolor);
                 ImGui.PlotLines("", ref invalues[0], invalues.Length, 0, "", 0, maxVal, new Vector2(40, captionHeight));
-                if (ImGui.IsItemHovered()) 
+                if (ImGui.IsItemHovered())
                     canHover = false; //The PlotLines widget doesn't allow disabling the mouseover, so have to prevent our mousover to avoid a merged tooltip
                 ImGui.PopStyleColor();
             }
@@ -568,7 +574,7 @@ namespace rgat
                     Vector2 clickPos = ImGui.GetMousePos();
                     Vector2 clickOffset = clickPos - subGraphPosition;
                     clickOffset.Y = EachGraphHeight - clickOffset.Y;
-                    plot.MoveCameraToPreviewClick(clickOffset, new Vector2(EachGraphWidth, EachGraphHeight), 
+                    plot.MoveCameraToPreviewClick(clickOffset, new Vector2(EachGraphWidth, EachGraphHeight),
                         mainGraphWidgetSize: mainWidgetSize, PreviewProjection);
                 }
 
@@ -591,7 +597,7 @@ namespace rgat
         /// <returns></returns>
         public bool IsCenteringRequired(PlottedGraph plot)
         {
-            lock(_lock)
+            lock (_lock)
             {
                 return _centeringRequired.TryGetValue(plot, out bool required) && required;
             }
@@ -603,7 +609,7 @@ namespace rgat
         /// <param name="plot">The graph</param>
         public void StartCentering(PlottedGraph plot)
         {
-            lock(_lock)
+            lock (_lock)
             {
                 _centeringRequired[plot] = true;
             }
@@ -616,7 +622,7 @@ namespace rgat
         /// <param name="plot">The graph</param>
         public void StopCentering(PlottedGraph plot)
         {
-            lock(_lock)
+            lock (_lock)
             {
                 _centeringRequired[plot] = false;
             }
