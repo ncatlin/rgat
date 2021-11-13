@@ -10,8 +10,8 @@ env:
   # You can convert this to a build matrix if you need coverage of multiple configuration types.
   # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
   BUILD_CONFIGURATION: Release
-  PIN_VERSION: pin-3.20-98437-gf02b61307-msvc-windows
-
+  PIN_VERSION: pin-3.21-98484-ge7cd811fd-msvc-windows
+  
 jobs:
   build:
     runs-on: windows-latest
