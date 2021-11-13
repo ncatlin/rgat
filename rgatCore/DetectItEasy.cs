@@ -78,7 +78,7 @@ namespace rgat
             {
                 string scriptsPath = GetScriptsPath(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.DiESigsDirectory));
                 dielib.ReloadScriptDatabase(scriptsPath, out string? error);
-                if(error is not null)
+                if (error is not null)
                 {
                     Logging.RecordError($"Error loading database: {error}");
                 }
@@ -165,7 +165,7 @@ namespace rgat
         /// A DIE scan thread
         /// </summary>
         /// <param name="argslist">scanner, target args object</param> 
-        private static void DetectItScanThread(object? argslist)
+        private void DetectItScanThread(object? argslist)
         {
             if (argslist is null)
             {
@@ -194,6 +194,17 @@ namespace rgat
                 options.deepScan = false; //very slow
                 while (true)
                 {
+                    if (rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
+                    {
+                        DieScript.SCANPROGRESS? progress = dielib.QueryProgress(handle);
+                        JObject statusObj = new JObject{
+                                { "TargetSHA1", targ.GetSHA1Hash() },
+                                { "Type", "DIE" },
+                                { "Progress", progress is null ?  null : JToken.FromObject(progress) }
+                            };
+                        rgatState.NetworkBridge.SendAsyncData("SigStatus", statusObj);
+                    }
+
                     result = scanner.ScanFile(handle, targ.FilePath, options, out string? error);
                     if (result == "Reload In Progress")
                     {
@@ -204,12 +215,23 @@ namespace rgat
                     {
                         if (error?.Length > 0)
                         {
-
                             Logging.RecordLogEvent($"DetectItEasy error: '{error}' for target {targ.FilePath}");
                         }
                         break;
                     }
                 }
+
+                if (rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
+                {
+                    DieScript.SCANPROGRESS? progress = dielib.QueryProgress(handle);
+                    JObject statusObj = new JObject{
+                                { "TargetSHA1", targ.GetSHA1Hash() },
+                                { "Type", "DIE" },
+                                { "Progress", progress is null ?  null : JToken.FromObject(progress) }
+                            };
+                    rgatState.NetworkBridge.SendAsyncData("SigStatus", statusObj);
+                }
+
                 scanner.CloseScanHandle(handle);
             }
             catch (Exception e)
@@ -231,6 +253,14 @@ namespace rgat
         {
             lock (scansLock)
             {
+                if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.GUIMode)
+                {
+                    if (_remoteProgress.TryGetValue(targ, out DieScript.SCANPROGRESS? progress))
+                    {
+                        return progress;
+                    }
+                }
+
                 if (DIEScanHandles.TryGetValue(targ, out ulong handle))
                 {
                     return dielib?.QueryProgress(handle);
@@ -238,6 +268,7 @@ namespace rgat
                 return new DieScript.SCANPROGRESS();
             }
         }
+
 
         /// <summary>
         /// Cancel the scan for the specified target
@@ -348,5 +379,27 @@ namespace rgat
                 rgatState.NetworkBridge.SendLog($"DIE signature sync failed: {e.Message}", Logging.LogFilterType.Error);
             }
         }
+
+        public void SetRemoteStatus(BinaryTarget target, JToken? scanProgressTok)
+        {
+            if (scanProgressTok is null) return;
+            try
+            {
+                DieScript.SCANPROGRESS? progress = scanProgressTok.ToObject<DieScript.SCANPROGRESS>();
+                if (progress is not null)
+                {
+                    lock (scansLock)
+                    {
+                        _remoteProgress[target] = progress;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Logging.RecordLogEvent($"Failed to parse DIE scan status: {e.Message}");
+            }
+        }
+
+        readonly Dictionary<BinaryTarget, DieScript.SCANPROGRESS> _remoteProgress = new();
     }
 }

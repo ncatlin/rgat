@@ -8885,46 +8885,6 @@
             A record of a traced process
             </summary>
         </member>
-        <member name="T:rgat.TraceRecord.TracingPurpose">
-            <summary>
-            The type of tracing done
-            </summary>
-        </member>
-        <member name="F:rgat.TraceRecord.TracingPurpose.eVisualiser">
-            <summary>
-            Gather trace data of the process executing normally to visualise it
-            </summary>
-        </member>
-        <member name="F:rgat.TraceRecord.TracingPurpose.eFuzzer">
-            <summary>
-            Not implemented
-            </summary>
-        </member>
-        <member name="T:rgat.TraceRecord.ProcessState">
-            <summary>
-            The state of the process being traced
-            </summary>
-        </member>
-        <member name="F:rgat.TraceRecord.ProcessState.eNew">
-            <summary>
-            The process has not been recorded starting yet
-            </summary>
-        </member>
-        <member name="F:rgat.TraceRecord.ProcessState.eRunning">
-            <summary>
-            The process is running
-            </summary>
-        </member>
-        <member name="F:rgat.TraceRecord.ProcessState.eSuspended">
-            <summary>
-            The process is suspended by rgat
-            </summary>
-        </member>
-        <member name="F:rgat.TraceRecord.ProcessState.eTerminated">
-            <summary>
-            The process is terminated
-            </summary>
-        </member>
         <member name="P:rgat.TraceRecord.InvalidTrace">
             <summary>
             This trace failed to load
@@ -8966,6 +8926,31 @@
         <member name="P:rgat.TraceRecord.HideAPIThunks">
             <summary>
             Write thunks out of the graph (so an extern/API node is created next to each caller)
+            </summary>
+        </member>
+        <member name="P:rgat.TraceRecord.DisassemblyData">
+            <summary>
+            The disassembly associated with each address
+            </summary>
+        </member>
+        <member name="P:rgat.TraceRecord.LaunchedTime">
+            <summary>
+            the time the user pressed start, not when the first process was seen
+            </summary>
+        </member>
+        <member name="P:rgat.TraceRecord.Target">
+            <summary>
+            The BinaryTarget associated with this trace object
+            </summary>
+        </member>
+        <member name="P:rgat.TraceRecord.IsRunning">
+            <summary>
+            false if the process is no longer being traced
+            </summary>
+        </member>
+        <member name="P:rgat.TraceRecord.TraceState">
+            <summary>
+            The state of the trace process
             </summary>
         </member>
         <member name="M:rgat.TraceRecord.SetTraceState(rgat.TraceRecord.ProcessState)">
@@ -9198,31 +9183,6 @@
             <param name="threadID">The thread ID</param>
             <param name="command">A command</param>
         </member>
-        <member name="P:rgat.TraceRecord.DisassemblyData">
-            <summary>
-            The disassembly associated with each address
-            </summary>
-        </member>
-        <member name="P:rgat.TraceRecord.LaunchedTime">
-            <summary>
-            the time the user pressed start, not when the first process was seen
-            </summary>
-        </member>
-        <member name="P:rgat.TraceRecord.Target">
-            <summary>
-            The BinaryTarget associated with this trace object
-            </summary>
-        </member>
-        <member name="P:rgat.TraceRecord.IsRunning">
-            <summary>
-            false if the process is no longer being traced
-            </summary>
-        </member>
-        <member name="P:rgat.TraceRecord.TraceState">
-            <summary>
-            The state of the trace process
-            </summary>
-        </member>
         <member name="P:rgat.TraceRecord.ProcessingRemaining_Trace">
             <summary>
             Is the process terminated, with all the trace records integrated into their graphs
@@ -9247,6 +9207,46 @@
             </summary>
             <param name="threadTestReqs">REQUIREMENTS_LIST</param>
             <returns>A dictionary of REQUIREMENT_TEST_RESULTS for each thread</returns>
+        </member>
+        <member name="T:rgat.TraceRecord.TracingPurpose">
+            <summary>
+            The type of tracing done
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.TracingPurpose.eVisualiser">
+            <summary>
+            Gather trace data of the process executing normally to visualise it
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.TracingPurpose.eFuzzer">
+            <summary>
+            Not implemented
+            </summary>
+        </member>
+        <member name="T:rgat.TraceRecord.ProcessState">
+            <summary>
+            The state of the process being traced
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.ProcessState.eNew">
+            <summary>
+            The process has not been recorded starting yet
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.ProcessState.eRunning">
+            <summary>
+            The process is running
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.ProcessState.eSuspended">
+            <summary>
+            The process is suspended by rgat
+            </summary>
+        </member>
+        <member name="F:rgat.TraceRecord.ProcessState.eTerminated">
+            <summary>
+            The process is terminated
+            </summary>
         </member>
         <member name="M:rgat.Updates.ParseChangelogChanges(System.String)">
             <summary>
@@ -10363,6 +10363,14 @@
             Replace the signatures on this device with signatures from the remote device
             </summary>
             <param name="zipfile">bytes of a zipped signature directory</param>
+        </member>
+        <member name="M:rgat.YARAScanner.SetRemoteStatus(rgat.BinaryTarget,System.UInt32,rgat.YARAScanner.eYaraScanProgress)">
+            <summary>
+            Set the status of a remote yara scan
+            </summary>
+            <param name="target"></param>
+            <param name="loadedRules"></param>
+            <param name="status"></param>
         </member>
         <member name="T:ImGuiNET.ImGuiController">
             <summary>

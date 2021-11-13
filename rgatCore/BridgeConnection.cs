@@ -470,8 +470,11 @@ namespace rgat
                 }
                 else
                 {
-                    Logging.RecordError($"Receive Failed: {IOExcep.Message}");
-                    AddNetworkDisplayLogMessage($"Receive Failed: {IOExcep.Message}", Themes.eThemeColour.WarnStateColour);
+                    if (rgatState.rgatIsExiting is false)
+                    {
+                        Logging.RecordError($"Receive Failed: {IOExcep.Message}");
+                        AddNetworkDisplayLogMessage($"Receive Failed: {IOExcep.Message}", Themes.eThemeColour.WarnStateColour);
+                    }
                 }
             }
             catch (Exception e)
@@ -751,8 +754,10 @@ namespace rgat
 
         private void StartConnectionDataHandlers()
         {
-            Logging.WriteConsole($"Client {_ActiveClient} authenticated, serving...");
-
+            if (_ActiveClient is not null)
+            {
+                Logging.WriteConsole($"Client {_ActiveClient.Client.RemoteEndPoint} authenticated, serving...");
+            }
             Task reader = Task.Run(() => ReceiveIncomingTraffic());
             Task sender = Task.Run(() => SendOutgoingTraffic());
         }

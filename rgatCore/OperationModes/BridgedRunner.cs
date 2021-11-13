@@ -114,7 +114,7 @@ namespace rgat.OperationModes
 
             if (GlobalConfig.StartOptions.NetworkKey == null || GlobalConfig.StartOptions.NetworkKey.Length == 0)
             {
-                if (GlobalConfig.Settings.Network.DefaultNetworkKey is not null && 
+                if (GlobalConfig.Settings.Network.DefaultNetworkKey is not null &&
                     GlobalConfig.Settings.Network.DefaultNetworkKey.Length > 0)
                 {
                     GlobalConfig.StartOptions.NetworkKey = GlobalConfig.Settings.Network.DefaultNetworkKey;
@@ -162,7 +162,6 @@ namespace rgat.OperationModes
             List<NETWORK_MSG> incoming = new List<NETWORK_MSG>();
             while (!rgatState.rgatIsExiting && connection.Connected)
             {
-                Logging.WriteConsole($"Headless bridge running while connected {connection.ConnectionState}");
                 NewDataEvent.Wait();
                 lock (_lock)
                 {
@@ -233,7 +232,7 @@ namespace rgat.OperationModes
                     }
                     catch (Exception e)
                     {
-                        Logging.WriteConsole($"Exception processing command  {item.msgType}: {e}");
+                        Logging.RecordException($"Exception processing command  {item.msgType}", e);
                         rgatState.NetworkBridge.Teardown($"Command Exception ({item.msgType})");
                     }
 
@@ -248,12 +247,11 @@ namespace rgat.OperationModes
                             rgatState.NetworkBridge.Teardown($"Bad command ({commandID}) response");
                             break;
                         }
-                        Logging.WriteConsole($"Delivering response {response}");
                         RemoteDataMirror.DeliverResponse(commandID, response);
                     }
                     catch (Exception e)
                     {
-                        Logging.WriteConsole($"Exception processing command response {item.msgType} {GetString(item.data)}: {e}");
+                        Logging.RecordException($"Exception processing command response {item.msgType} {GetString(item.data)}", e);
                         rgatState.NetworkBridge.Teardown($"Command Reponse Exception ({GetString(item.data)})");
                     }
 
@@ -276,7 +274,6 @@ namespace rgat.OperationModes
 
                 case MsgType.TraceData:
                     {
-
                         //Logging.WriteConsole("handletracedata to ui: " + System.Text.ASCIIEncoding.ASCII.GetString(item.data, 0, item.data.Length));
                         if (RemoteDataMirror.GetPipeInterface(item.destinationID, out RemoteDataMirror.ProcessIncomingWorkerData? dataFunc))
                         {
@@ -390,6 +387,10 @@ namespace rgat.OperationModes
                         success = ProcessSignatureHit(data);
                         break;
 
+                    case "SigStatus":
+                        success = ProcessSignatureStatus(data);
+                        break;
+
                     case "TraceState":
                         success = ProcessTraceState(data);
                         break;
@@ -496,6 +497,73 @@ namespace rgat.OperationModes
         }
 
 
+        private static bool ProcessSignatureStatus(JToken data)
+        {
+            if (data.Type is not JTokenType.Object)
+            {
+                return false;
+            }
+
+            JObject? values = data.ToObject<JObject>();
+            if (values is null || !values.TryGetValue("Type", out JToken? sigObjTok))
+            {
+                return false;
+            }
+
+            if (!values.TryGetValue("TargetSHA1", out JToken? shaTok))
+            {
+                return false;
+            }
+
+
+            if (values.TryGetValue("Type", out JToken? typeTok) && typeTok.Type is JTokenType.String)
+            {
+                if (!rgatState.targets.GetTargetBySHA1(shaTok.ToString(), out BinaryTarget? target) || target is null)
+                {
+                    return true; //target sha not loaded yet, not an error
+                }
+
+                string sigType = typeTok.ToString();
+                switch (sigType)
+                {
+                    case "YARA":
+                        uint loadedSigs = 0;
+                        if (values.TryGetValue("Loaded", out JToken? loadedSigsTok) &&
+                            loadedSigsTok is not null &&
+                            loadedSigsTok.Type is JTokenType.Integer)
+                        {
+                            loadedSigs = loadedSigsTok.ToObject<uint>();
+                        }
+                        YARAScanner.eYaraScanProgress progress = YARAScanner.eYaraScanProgress.eNotStarted;
+                        if (values.TryGetValue("State", out JToken? statusTok) &&
+                            statusTok is not null && statusTok.Type is JTokenType.String &&
+                            Enum.TryParse(typeof(YARAScanner.eYaraScanProgress), statusTok.ToString(),
+                            out object? progressObj) &&
+                                progressObj is not null)
+                        {
+                            progress = (YARAScanner.eYaraScanProgress)progressObj;
+                        }
+
+                        rgatState.YARALib?.SetRemoteStatus(target, loadedSigs, progress);
+
+                        break;
+
+                    case "DIE":
+                        if (values.TryGetValue("Progress", out JToken? progressTok))
+                        {
+                            rgatState.DIELib?.SetRemoteStatus(target, progressTok);
+                        }
+                        break;
+
+                    default:
+                        Logging.RecordError("ProcessSignatureStatus processing bad signature type:" + sigType.Substring(0, Math.Min(50, sigType.Length)));
+                        return false;
+                }
+            }
+            return true;
+        }
+
+
         private static bool ProcessTraceState(JToken data)
         {
             Logging.RecordLogEvent("Remote trace state change notification received");
@@ -571,7 +639,7 @@ namespace rgat.OperationModes
             BinaryTarget remoteTarget = rgatState.targets.AddTargetByPath(remotePath);
             if (remoteTarget is null)
             {
-                Logging.RecordError("Unable to add remote target with path: "+ remotePath);
+                Logging.RecordError("Unable to add remote target with path: " + remotePath);
                 return false;
             }
 
@@ -734,7 +802,6 @@ namespace rgat.OperationModes
             }
 
 
-            Logging.WriteConsole("Processing command " + cmd);
             switch (actualCmd)
             {
                 case "GetRecentBinaries":
@@ -961,7 +1028,6 @@ namespace rgat.OperationModes
                 paramObj.TryGetValue("ref", out JToken? refTok) && tidTok.Type == JTokenType.Integer)
             {
                 string pipename = ModuleHandlerThread.GetTracePipeName(pidTok.ToObject<uint>(), ridTok.ToObject<long>(), tidTok.ToObject<ulong>());
-                Logging.WriteConsole("Opening pipe " + pipename);
                 uint pipeID = RemoteDataMirror.RegisterPipe(pipename);
                 NamedPipeServerStream threadListener = new NamedPipeServerStream(pipename, PipeDirection.In, 1, PipeTransmissionMode.Message, PipeOptions.None);
 
@@ -1018,7 +1084,6 @@ namespace rgat.OperationModes
             JArray files = new JArray();
             JArray dirs = new JArray();
             error = "";
-            Logging.WriteConsole("listing " + param);
             try
             {
                 if (Directory.Exists(param))
@@ -1061,7 +1126,7 @@ namespace rgat.OperationModes
             if (pathTok != null && pathTok.Type == JTokenType.String)
             {
                 BinaryTarget target = rgatState.targets.AddTargetByPath(pathTok.ToString());
-                Logging.RecordLogEvent("GatherTargetInitData " + pathTok.ToString() + " " +target.GetSHA1Hash(), Logging.LogFilterType.Debug);
+                Logging.RecordLogEvent("GatherTargetInitData " + pathTok.ToString() + " " + target.GetSHA1Hash(), Logging.LogFilterType.Debug);
                 rgatState.YARALib?.StartYARATargetScan(target);
                 rgatState.DIELib?.StartDetectItEasyScan(target);
                 if (target != null)
@@ -1262,7 +1327,7 @@ namespace rgat.OperationModes
             Stopwatch waitwatch = new Stopwatch();
             NETWORK_MSG[]? incoming = null;
             //everything in this loop is a hot path, must be spinning instead of waiting?
-            while (!rgatState.rgatIsExiting) 
+            while (!rgatState.rgatIsExiting)
             {
                 try
                 {
@@ -1285,7 +1350,7 @@ namespace rgat.OperationModes
                 }
                 lock (_lock)
                 {
-                    if (_incomingData.Any()) 
+                    if (_incomingData.Any())
                     {
                         incoming = _incomingData.ToArray();
                         _incomingData.Clear();

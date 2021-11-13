@@ -447,13 +447,15 @@ namespace rgat
         /// <returns></returns>
         public uint LoadedRuleCount()
         {
-            if (loadedRules == null)
+            if (rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is true)
             {
-                return 0;
+                return _remoteLoadedRules;
             }
 
-            return loadedRules.RuleCount;
+            return loadedRules?.RuleCount ?? 0;
         }
+
+        uint _remoteLoadedRules = 0;
 
 
         /// <summary>
@@ -463,9 +465,12 @@ namespace rgat
         /// <returns>a eYaraScanProgress value</returns>
         public eYaraScanProgress Progress(BinaryTarget target)
         {
-            if (targetScanProgress.TryGetValue(target, out eYaraScanProgress result))
+            lock (_scanLock)
             {
-                return result;
+                if (targetScanProgress.TryGetValue(target, out eYaraScanProgress result))
+                {
+                    return result;
+                }
             }
             return eYaraScanProgress.eNotStarted;
         }
@@ -478,9 +483,9 @@ namespace rgat
             {
                 Inner(targ);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                Console.WriteLine(e);
+                Logging.RecordException($"Yara Target scan thread error: {e.Message}", e);
             }
         }
 
@@ -493,39 +498,82 @@ namespace rgat
                 {
                     if (LoadedRuleCount() == 0)
                     {
+                        if (rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
+                        {
+                            JObject statusObj = new JObject{
+                                { "TargetSHA1", targ.GetSHA1Hash() },
+                                { "Type", "YARA" },
+                                { "Loaded", 0 },
+                                { "State", eYaraScanProgress.eNotStarted.ToString() }
+                            };
+                            rgatState.NetworkBridge.SendAsyncData("SigStatus", statusObj);
+                        }
                         return 0;
                     }
 
-                    if (targ.PEFileObj == null)
+                    byte[] fileContentsBuf;
+                    try
                     {
+                        if (targ.PEFileObj is not null)
+                        {
+                            fileContentsBuf = targ.PEFileObj.RawFile.ToArray();
+                        }
+                        else
+                        {
+                            fileContentsBuf = File.ReadAllBytes(targ.FilePath);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.RecordException($"Failed to get file bytes to YARA scan: {e.Message}", e);
                         return 0;
                     }
 
+                    if (rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
+                    {
+                        JObject statusObj = new JObject{
+                            { "TargetSHA1", targ.GetSHA1Hash() },
+                            { "Type", "YARA" },
+                            { "Loaded", LoadedRuleCount() },
+                            { "State", eYaraScanProgress.eRunning.ToString() }
+                        };
+                        rgatState.NetworkBridge.SendAsyncData("SigStatus", statusObj);
+                    }
                     targetScanProgress[targ] = eYaraScanProgress.eRunning;
-                    byte[] fileContentsBuf = targ.PEFileObj.RawFile.ToArray();
 
                     // Initialize the scanner
-                    //var scanner = new dnYara.CustomScanner(loadedRules);
-                    var scanner = new dnYara.Scanner();
+                    var scanner = new dnYara.CustomScanner(loadedRules);
 
                     ExternalVariables externalVariables = new ExternalVariables();
                     externalVariables.StringVariables.Add("filename", targ.FileName);
                     try
                     {
-                        List<ScanResult> scanResults = scanner.ScanMemory(ref fileContentsBuf, loadedRules);// externalVariables);
-                                                                                                            //scanner.Release();
-
-
+                        //bugs here tend to happen in unmanaged code, so this try-catch is unlikely to help
+                        List<ScanResult> scanResults = scanner.ScanMemory(ref fileContentsBuf, externalVariables);
                         foreach (ScanResult sighit in scanResults)
                         {
                             targ.AddYaraSignatureHit(sighit);
                         }
                     }
-                    catch(Exception ev)
+                    catch (Exception e)
                     {
-                        Console.WriteLine("sdf");
+                        Logging.RecordException($"Yara ScanMemory exception: {e.Message}", e);
+                    }
+                    finally
+                    {
+                        scanner.Release();
                     }
 
+                    if (rgatState.NetworkBridge.Connected && rgatState.NetworkBridge.GUIMode is false)
+                    {
+                        JObject statusObj = new JObject{
+                            { "TargetSHA1", targ.GetSHA1Hash() },
+                            { "Type", "YARA" },
+                            { "Loaded", LoadedRuleCount() },
+                            { "State", eYaraScanProgress.eComplete.ToString() }
+                        };
+                        rgatState.NetworkBridge.SendAsyncData("SigStatus", statusObj);
+                    }
                 }
             }
             catch (dnYara.Exceptions.YaraException e)
@@ -612,5 +660,19 @@ namespace rgat
             }
         }
 
+        /// <summary>
+        /// Set the status of a remote yara scan
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="loadedRules"></param>
+        /// <param name="status"></param>
+        public void SetRemoteStatus(BinaryTarget target, uint loadedRules, eYaraScanProgress status)
+        {
+            lock (_scanLock)
+            {
+                targetScanProgress[target] = status;
+                _remoteLoadedRules = loadedRules;
+            }
+        }
     }
 }

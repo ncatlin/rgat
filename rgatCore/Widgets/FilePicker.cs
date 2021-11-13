@@ -711,7 +711,9 @@ namespace rgatFilePicker
                 return false;
             }
 
-            if (!response.TryGetValue("Parent", out JToken? parentTok) || parentTok.Type != JTokenType.String)
+            if (!response.TryGetValue("Parent", out JToken? parentTok) || (parentTok.Type is not JTokenType.String 
+                && 
+                parentTok.Type is not JTokenType.Null))
             {
                 return false;
             }

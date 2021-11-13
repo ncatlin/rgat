@@ -51,7 +51,6 @@ namespace ImGuiNET
                     }
                     finally
                     {
-                        Logging.WriteConsole("Headless mode complete");
                         rgatState.Shutdown();
                     }
                     break;

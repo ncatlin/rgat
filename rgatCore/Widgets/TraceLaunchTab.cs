@@ -818,7 +818,7 @@ namespace rgat
             }
             DiELibDotNet.DieScript.SCANPROGRESS? DEProgress = rgatState.DIELib.GetDIEScanProgress(activeTarget);
 
-            uint textColour = Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText);
+            //uint textColour = Themes.GetThemeColourUINT(Themes.eThemeColour.WindowText);
             if (DEProgress is null)
             {
                 ImGui.Text("Not Inited");

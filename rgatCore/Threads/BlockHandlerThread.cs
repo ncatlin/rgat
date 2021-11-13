@@ -204,8 +204,13 @@ namespace rgat
                 return;
             }
 
+            if (BlockAddress > 0xc772d90 && BlockAddress < 0xc772db0)
+            {
+                Console.WriteLine("F");
+            }
             List<InstructionData> blockInstructions = new List<InstructionData>();
             ulong insaddr = BlockAddress;
+
             //Logging.WriteConsole($"Ingesting block ID {blockID} address 0x{insaddr:X} modnum {globalModNum} data: {System.Text.Encoding.ASCII.GetString(buf, 0, bytesRead)}");
 
             int dbginscount = -1;

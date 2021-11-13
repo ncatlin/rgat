@@ -344,22 +344,20 @@ namespace rgat
         /// <returns>The ID of the block</returns>
         public ulong WaitForBlockAtAddress(ulong address)
         {
-            bool hasBlock = false;
-            while (!hasBlock && !rgatState.rgatIsExiting)
+            while (!rgatState.rgatIsExiting)
             {
                 lock (_instructionsLock)
                 {
-                    hasBlock = blockIDDict.ContainsKey(address);
-                }
-                if (hasBlock)
-                {
-                    break;
+                    if (blockIDDict.TryGetValue(address, out List<ulong>? blockaddrlist) && blockaddrlist is not null)
+                    {
+                        return blockaddrlist[^1];
+                    }
                 }
 
                 bool found = FindContainingModule(address, out int? moduleNo);
                 if (!found || ModuleTraceStates.Count <= moduleNo)
                 {
-                    Logging.WriteConsole($"Warning: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
+                    Logging.WriteConsole($"Warning: Unable to find extern module with address 0x{address:X} in ModuleTraceStates dict");
                     Thread.Sleep(15);
                     continue;
                 }
@@ -371,6 +369,8 @@ namespace rgat
                 Thread.Sleep(15);
 
             }
+
+            if (rgatState.rgatIsExiting) return 0;
             return blockIDDict[address][^1];
         }
 

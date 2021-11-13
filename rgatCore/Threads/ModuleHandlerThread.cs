@@ -765,7 +765,10 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    Logging.RecordException($"BlockThread::RemoteCommandListener exception {e.Message}", e);
+                    if (rgatState.rgatIsExiting is false)
+                    {
+                        Logging.RecordException($"BlockThread::RemoteCommandListener exception: {e.Message}", e);
+                    }
                     break;
                 }
                 lock (_lock)
@@ -804,7 +807,7 @@ namespace rgat
             SendTraceSettings();
 
             byte[][] newEvents;
-            while (!rgatState.rgatIsExiting)
+            while (rgatState.rgatIsExiting is false)
             {
                 try
                 {
