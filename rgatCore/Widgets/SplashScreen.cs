@@ -12,18 +12,10 @@ namespace rgat
         private void DrawStartSplash()
         {
 
-            var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Trace);
+            var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Trace, false);
+            var recentbins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Binary);
+            DrawSplash(recentbins, recenttraces);
 
-
-            if (rgatState.NetworkBridge != null && rgatState.ConnectedToRemote)
-            {
-                DrawSplash(RemoteDataMirror.GetRecentBins(), recenttraces);
-            }
-            else
-            {
-                var recentbins = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Binary);
-                DrawSplash(recentbins, recenttraces);
-            }
         }
 
 
@@ -140,7 +132,7 @@ namespace rgat
                                             _badPaths.Add(entry.Path);
                                         }
                                     }
-                                    else if (!_missingPaths.Contains(entry.Path))
+                                    else if (!_missingPaths.Contains(entry.Path) && rgatState.ConnectedToRemote is false)
                                     {
                                         _scheduleMissingPathCheck = true;
                                         _missingPaths.Add(entry.Path);

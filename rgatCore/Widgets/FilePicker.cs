@@ -538,7 +538,9 @@ namespace rgatFilePicker
             if (!_filePickers.TryGetValue(o, out FilePicker? fp) || fp._remoteMirror == null || (fp._remoteMirror.LastAddress != connection.LastAddress))
             {
                 fp = new FilePicker(remoteMirror: connection);
-                fp.Data.CurrentDirectory = RemoteDataMirror.RootDirectory;
+
+                rgatSettings.PathRecord[] recentDirs = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Directory);
+                fp.Data.CurrentDirectory = recentDirs.Length > 0 ? recentDirs[0].Path : RemoteDataMirror.RootDirectory;
                 fp.OnlyAllowFolders = onlyAllowFolders;
                 fp.AllowMultiSelect = allowMulti;
 

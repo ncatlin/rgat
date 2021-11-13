@@ -197,7 +197,7 @@ namespace rgat
         {
             UIDrawFPS = Math.Min(101, 1000.0 / (_lastFrameTimeMS.Average()));
 
-            if (_scheduleMissingPathCheck)
+            if (_scheduleMissingPathCheck && rgatState.ConnectedToRemote is false)
             {
                 CheckMissingPaths();
                 _scheduleMissingPathCheck = false;
@@ -868,7 +868,7 @@ namespace rgat
 
                 if (ImGui.MenuItem("Open Saved Trace")) { ToggleLoadTraceWindow(); }
 
-                var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Trace);
+                var recenttraces = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Trace, allowRemoteFetch: false);
                 if (ImGui.BeginMenu("Recent Traces", recenttraces.Any()))
                 {
                     foreach (var entry in recenttraces.Take(Math.Min(10, recenttraces.Length)))
@@ -1592,6 +1592,7 @@ namespace rgat
             {
                 if (isRemote)
                 {
+                    GlobalConfig.Settings.RecentPaths.RecordRecentPath(rgatSettings.PathType.Binary, path);
                     return LoadRemoteBinary(path);
                 }
 
@@ -1672,6 +1673,7 @@ namespace rgat
             if (ImGui.BeginPopupModal(title, ref show_select_exe_window, ImGuiWindowFlags.NoScrollbar))
             {
 
+
                 rgatFilePicker.FilePicker picker;
                 bool isRemote = rgatState.ConnectedToRemote;
                 if (isRemote)
@@ -1680,7 +1682,8 @@ namespace rgat
                 }
                 else
                 {
-                    picker = rgatFilePicker.FilePicker.GetFilePicker(this, Environment.CurrentDirectory);
+                    rgatSettings.PathRecord[] recentDirs = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Directory);
+                    picker = rgatFilePicker.FilePicker.GetFilePicker(this, recentDirs.Length > 0 ? recentDirs[0].Path : Environment.CurrentDirectory);
                 }
 
                 rgatFilePicker.FilePicker.PickerResult result = picker.Draw(this);

@@ -21,75 +21,9 @@ namespace rgat
     /// </summary>
     public class BridgeConnection
     {
-        /// <summary>
-        /// Message types
-        /// </summary>
-        public enum MsgType
-        {
-            /// <summary>
-            /// Involved in the management of the connection
-            /// </summary>
-            Meta,
-            /// <summary>
-            /// A GUI-issued command
-            /// </summary>
-            Command,
-            /// <summary>
-            /// A response to the GUI
-            /// </summary>
-            CommandResponse,
-            /// <summary>
-            /// Involved in managing the transfer of trace data
-            /// </summary>
-            TraceMeta,
-            /// <summary>
-            /// Trace data from an instrumented process
-            /// </summary>
-            TraceData,
-            /// <summary>
-            /// A trace command
-            /// </summary>
-            TraceCommand,
-            /// <summary>
-            /// A log event
-            /// </summary>
-            Log,
-            /// <summary>
-            /// Non-trace related data sent without requiring a command to generate it (eg: result of signature scanning)
-            /// </summary>
-            AsyncData,
-            /// <summary>
-            /// No
-            /// </summary>
-            BAD
-        };
 
-        /// <summary>
-        /// Connection activity
-        /// </summary>
-        public enum BridgeState
-        {
-            /// <summary>
-            /// There is no network activity
-            /// </summary>
-            Inactive,
-            /// <summary>
-            /// rgat is connecting out
-            /// </summary>
-            Connecting,
-            /// <summary>
-            /// rgat is waiting for an incoming connection
-            /// </summary>
-            Listening,
-            /// <summary>
-            /// rgat is connected
-            /// </summary>
-            Connected,
-            /// <summary>
-            /// The connecton has been torn down
-            /// </summary>
-            Teardown
-        };
+
+        private readonly object _lock = new object();
 
         /// <summary>
         /// A handler for a network message
@@ -140,6 +74,9 @@ namespace rgat
         private BigInteger _sendIV;
         private readonly object _messagesLock = new object();
         private List<Tuple<string, Themes.eThemeColour?>> _displayLogMessages = new List<Tuple<string, Themes.eThemeColour?>>();
+
+        public string ConnectedHostID { get; private set; } = "";
+        public void SetConnectedHostID(string ID) => ConnectedHostID = ID; 
 
         /// <summary>
         /// Whether this instance is the GUI.
@@ -445,7 +382,7 @@ namespace rgat
             catch (System.IO.IOException IOExcep)
             {
                 data = null;
-                if (cancelTokens.IsCancellationRequested)
+                if (cancelTokens.IsCancellationRequested || rgatState.rgatIsExiting)
                 {
                     return false;
                 }
@@ -744,6 +681,7 @@ namespace rgat
                 Logging.RecordError($"ServeAuthenticatedConnection got null remote endpoint");
                 return;
             }
+
             RemoteEndPoint = (IPEndPoint)_ActiveClient.Client.RemoteEndPoint;
             LastAddress = RemoteEndPoint.Address.ToString();
             ConnectionState = BridgeState.Connected;
@@ -1096,10 +1034,9 @@ namespace rgat
             }
             string expectedConnectResponse = GUIMode ? connectResponseHeadless : connectResponseGUI;
 
-            Logging.WriteConsole($"AuthenticateOutgoingConnection Comparing response '{response}' to gui:{GUIMode} expected '{expectedConnectResponse}'");
             if (authString == expectedConnectResponse)
             {
-                Logging.WriteConsole($"Auth succeeded");
+                SendInitialConnectData();
                 return true;
             }
             else
@@ -1131,6 +1068,17 @@ namespace rgat
 
         }
 
+        void SendInitialConnectData()
+        {
+            Logging.WriteConsole("Auth succeeded");
+            if (!GUIMode)
+            {
+                Newtonsoft.Json.Linq.JObject newTarget = new();
+                newTarget.Add("HostID", GlobalConfig.Settings.Network.HostID);
+                SendAsyncData("InitialConnectData", newTarget);
+            }
+        }
+
 
         /// <summary>
         /// Ensure the rgat client connecting to us knows our network key and is running in the opposite mode type (GUI/Headless) 
@@ -1158,7 +1106,7 @@ namespace rgat
             string connectPrelude = GUIMode ? connectPreludeHeadless : connectPreludeGUI;
             if (authString == connectPrelude && RawSendData(MsgType.Meta, GUIMode ? connectResponseGUI : connectResponseHeadless))
             {
-                Logging.WriteConsole($"Auth succeeded");
+                SendInitialConnectData();
                 return true;
             }
             else
@@ -1191,8 +1139,75 @@ namespace rgat
 
         }
 
-        private readonly object _lock = new object();
+        /// <summary>
+        /// Message types
+        /// </summary>
+        public enum MsgType
+        {
+            /// <summary>
+            /// Involved in the management of the connection
+            /// </summary>
+            Meta,
+            /// <summary>
+            /// A GUI-issued command
+            /// </summary>
+            Command,
+            /// <summary>
+            /// A response to the GUI
+            /// </summary>
+            CommandResponse,
+            /// <summary>
+            /// Involved in managing the transfer of trace data
+            /// </summary>
+            TraceMeta,
+            /// <summary>
+            /// Trace data from an instrumented process
+            /// </summary>
+            TraceData,
+            /// <summary>
+            /// A trace command
+            /// </summary>
+            TraceCommand,
+            /// <summary>
+            /// A log event
+            /// </summary>
+            Log,
+            /// <summary>
+            /// Non-trace related data sent without requiring a command to generate it (eg: result of signature scanning)
+            /// </summary>
+            AsyncData,
+            /// <summary>
+            /// No
+            /// </summary>
+            BAD
+        };
 
+        /// <summary>
+        /// Connection activity
+        /// </summary>
+        public enum BridgeState
+        {
+            /// <summary>
+            /// There is no network activity
+            /// </summary>
+            Inactive,
+            /// <summary>
+            /// rgat is connecting out
+            /// </summary>
+            Connecting,
+            /// <summary>
+            /// rgat is waiting for an incoming connection
+            /// </summary>
+            Listening,
+            /// <summary>
+            /// rgat is connected
+            /// </summary>
+            Connected,
+            /// <summary>
+            /// The connecton has been torn down
+            /// </summary>
+            Teardown
+        };
 
     }
 }

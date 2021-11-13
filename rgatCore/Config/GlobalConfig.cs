@@ -779,6 +779,10 @@ namespace rgat
             {
                 Settings = new rgatSettings();
             }
+            if (Settings.Network.HostID.Length is 0)
+            {
+                Settings.Network.HostID = Guid.NewGuid().ToString();
+            }
             Settings.FilePath = settingsPath;
             rgatSettings.SetChangeCallback(MarkDirty);
             Settings.EnsureValidity();

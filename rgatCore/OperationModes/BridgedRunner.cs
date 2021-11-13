@@ -125,6 +125,10 @@ namespace rgat.OperationModes
                     return;
                 }
             }
+            else
+            {
+                GlobalConfig.Settings.Network.DefaultNetworkKey = GlobalConfig.StartOptions.NetworkKey;
+            }
 
             if (GlobalConfig.StartOptions.ListenPort != null)
             {
@@ -175,7 +179,11 @@ namespace rgat.OperationModes
 
                 foreach (NETWORK_MSG item in incoming)
                 {
-                    //Logging.WriteConsole($"RunConnection Processing indata {item.msgType}: {GetString(item.data)}");
+                    if (GlobalConfig.BulkLog)
+                    {
+                        Logging.RecordLogEvent($"RunConnection Processing indata {item.msgType}: {GetString(item.data)}", filter: Logging.LogFilterType.BulkDebugLogFile);
+                    }
+
                     if (item.data.Length > 0)
                     {
                         try
@@ -207,20 +215,22 @@ namespace rgat.OperationModes
             {
                 case MsgType.Meta:
                     string metaparam = GetString(item.data);
-                    if (metaparam != null && metaparam.StartsWith("Teardown:"))
+                    if (metaparam != null)
                     {
-                        var split = metaparam.Split(':');
-                        string reason = "";
-                        if (split.Length > 1 && split[1].Length > 0)
+                        if (metaparam.StartsWith("Teardown:"))
                         {
-                            reason = split[1];
+                            var split = metaparam.Split(':');
+                            string reason = "";
+                            if (split.Length > 1 && split[1].Length > 0)
+                            {
+                                reason = split[1];
+                            }
+
+                            Logging.RecordLogEvent($"Disconnected - Remote party tore down the connection{((reason.Length > 0) ? $": {reason}" : "")}", Logging.LogFilterType.Error);
+                            rgatState.NetworkBridge.Teardown(reason);
+                            return;
                         }
-
-                        Logging.RecordLogEvent($"Disconnected - Remote party tore down the connection{((reason.Length > 0) ? $": {reason}" : "")}", Logging.LogFilterType.Error);
-                        rgatState.NetworkBridge.Teardown(reason);
-                        return;
                     }
-
                     Logging.WriteConsole($"Unhandled meta message: {metaparam}");
                     break;
 
@@ -397,6 +407,10 @@ namespace rgat.OperationModes
 
                     case "ChildBinary":
                         success = ProcessChildBinary(data);
+                        break;
+
+                    case "InitialConnectData":
+                        success = ProcessInitialConnectData(data);
                         break;
 
                     default:
@@ -654,6 +668,30 @@ namespace rgat.OperationModes
         }
 
 
+        private static bool ProcessInitialConnectData(JToken data)
+        {
+            if (data.Type is not JTokenType.Object)
+            {
+                Logging.RecordError("ProcessInitialConnectData non-object");
+                return false;
+            }
+
+            JObject? values = data.ToObject<JObject>();
+            if (values is null ||
+                !values.TryGetValue("HostID", out JToken? idTok) ||
+                idTok.Type is not JTokenType.String
+                )
+            {
+                Logging.RecordError("ProcessInitialConnectData bad data");
+                return false;
+            }
+
+            rgatState.NetworkBridge.SetConnectedHostID(idTok.ToString());
+
+            return true;
+        }
+
+
         /// <summary>
         /// Parse internal control information used to setup/manage remote tracing
         /// </summary>
@@ -804,11 +842,6 @@ namespace rgat.OperationModes
 
             switch (actualCmd)
             {
-                case "GetRecentBinaries":
-                    rgatSettings.PathRecord[] recentPaths = GlobalConfig.Settings.RecentPaths.Get(rgatSettings.PathType.Binary);
-                    rgatState.NetworkBridge.SendResponseObject(cmdID, recentPaths);
-                    break;
-
                 case "DirectoryInfo":
                     rgatState.NetworkBridge.SendResponseJSON(cmdID, GetDirectoryInfo(paramfield));
                     break;
@@ -1210,7 +1243,6 @@ namespace rgat.OperationModes
         {
             Thread dataProcessor = new Thread(new ParameterizedThreadStart(ResponseHandlerThread));
             dataProcessor.Start(rgatState.NetworkBridge.CancelToken);
-            rgatState.NetworkBridge.SendCommand("GetRecentBinaries", recipientID: "GUI", callback: RemoteDataMirror.HandleRecentBinariesList);
         }
 
         private static bool GetRemoteAddress(string param, out string address, out int port)

@@ -118,7 +118,7 @@ namespace rgat.Config
         /// <summary>
         /// Dictionary of launch settings for SHA1s of targets
         /// </summary>
-        public Dictionary<string, ProcessLaunchSettings> SavedLaunchSettings {get; set;} = new();
+        public Dictionary<string, ProcessLaunchSettings> SavedLaunchSettings { get; set; } = new();
 
 
         /// <summary>
@@ -272,6 +272,12 @@ namespace rgat.Config
             [JsonPropertyName("RecentConnectedAddresses")]
             public List<string> _RecentConnectedAddresses { get; set; } = new List<string>();
 
+            private string _HostID = "";
+            /// <summary>
+            /// Unique identifier for this host
+            /// </summary>
+            public string HostID { get => _HostID; set { _HostID = value; MarkDirty(); } }
+
 
             /// <summary>
             /// Record an address we have connected to
@@ -423,8 +429,10 @@ namespace rgat.Config
             /// Get the number of non-english language glyph toggles enabled
             /// </summary>
             [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-            public int EnabledLanguageCount {
-                get {
+            public int EnabledLanguageCount
+            {
+                get
+                {
                     int total = 0;
                     total += _UnicodeLoad_Korean ? 1 : 0;
                     total += _UnicodeLoad_ChineseSimplified ? 1 : 0;
@@ -434,7 +442,7 @@ namespace rgat.Config
                     total += _UnicodeLoad_Cyrillic ? 1 : 0;
                     total += _UnicodeLoad_Vietnamese ? 1 : 0;
                     return total;
-                }    
+                }
             }
         }
 
@@ -1041,17 +1049,38 @@ namespace rgat.Config
             public Dictionary<PathType, List<PathRecord>> RecentPaths { get; set; } = new Dictionary<PathType, List<PathRecord>>();
 
             /// <summary>
+            /// Filesystem locations the user has accessed in remote tracing mode
+            /// The key is the remote system ID
+            /// </summary>
+            public Dictionary<string, Dictionary<PathType, List<PathRecord>>> RecentRemotePaths { get; set; } = new();
+
+            /// <summary>
             /// Fetch recent paths of a specified category
             /// </summary>
             /// <param name="pathType">Category of paths</param>
+            /// <param name="allowRemoteFetch">If false, paths will only be checked against the local system</param>
             /// <returns>PathRecord array</returns>
-            public PathRecord[] Get(PathType pathType)
+            public PathRecord[] Get(PathType pathType, bool allowRemoteFetch = true)
             {
                 lock (_lock)
                 {
-                    if (RecentPaths.ContainsKey(pathType))
+                    if (allowRemoteFetch && rgatState.ConnectedToRemote && rgatState.NetworkBridge.GUIMode)
                     {
-                        return RecentPaths[pathType].ToArray();
+                        string remoteID = rgatState.NetworkBridge.ConnectedHostID;
+                        if (RecentRemotePaths.TryGetValue(remoteID, out Dictionary<PathType, List<PathRecord>>? pathDict))
+                        {
+                            if (pathDict is not null && pathDict.TryGetValue(pathType, out List<PathRecord>? recs))
+                            {
+                                if (recs is not null) return recs.ToArray();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (RecentPaths.ContainsKey(pathType))
+                        {
+                            return RecentPaths[pathType].ToArray();
+                        }
                     }
                 }
                 return Array.Empty<PathRecord>();
@@ -1068,7 +1097,34 @@ namespace rgat.Config
                 lock (_lock)
                 {
                     List<PathRecord> targetList = new List<PathRecord>();
-                    targetList = RecentPaths[pathType];
+
+                    if (rgatState.ConnectedToRemote && rgatState.NetworkBridge.GUIMode)
+                    {
+                        string remoteID = rgatState.NetworkBridge.ConnectedHostID;
+                        if (RecentRemotePaths.TryGetValue(remoteID, out Dictionary<PathType, List<PathRecord>>? pathDict) &&
+                            pathDict is not null)
+                        {
+                            if (pathDict.TryGetValue(pathType, out List<PathRecord>? reclist) && reclist is not null)
+                            {
+                                targetList = reclist;
+                            }
+                            else
+                            {
+                                targetList = new List<PathRecord>();
+                                pathDict[pathType] = targetList;
+                            }
+                        }
+                        else
+                        {
+                            targetList = new List<PathRecord>();
+                            RecentRemotePaths[remoteID] = new();
+                            RecentRemotePaths[remoteID].Add(pathType, targetList);
+                        }
+                    }
+                    else
+                    {
+                        targetList = RecentPaths[pathType];
+                    }
 
                     PathRecord? found = targetList.Find(x => x.Path == path);
                     if (found == null)
