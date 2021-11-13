@@ -22,7 +22,7 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 	thisModule->end = IMG_HighAddress(img);
 	thisModule->instrumented = isInstrumented;
 	thisModule->name = path;
-	thisModule->ID = imageID;
+	thisModule->ID = (INT32)imageID;
 	loadedModulesInfo[imageID] = thisModule;
 
 	writeEventPipe("mn@%s@%d@" PTR_prefix "@" PTR_prefix "@%d@", path.c_str(), imageID, thisModule->start, thisModule->end, isInstrumented);

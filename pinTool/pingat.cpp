@@ -642,7 +642,8 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		memcpy(basicBlockBuffer + bufpos, (void*)&blockAddress, sizeof(ADDRINT));
 		bufpos += sizeof(ADDRINT);
 		basicBlockBuffer[bufpos++] = '@';
-		memcpy(basicBlockBuffer + bufpos, &lastBBModule->ID, sizeof(UINT32));
+		INT32 modID = lastBBModule != 0 ? lastBBModule->ID : -1;
+		memcpy(basicBlockBuffer + bufpos, &modID, sizeof(INT32));
 		bufpos += sizeof(UINT32);
 		basicBlockBuffer[bufpos++] = '@';
 		basicBlockBuffer[bufpos++] = 1;
@@ -830,11 +831,15 @@ static VOID HandleWindowsContextSwitch(THREADID threadIndex, CONTEXT_CHANGE_REAS
 	switch (reason)
 	{
 	case CONTEXT_CHANGE_REASON_APC:          ///< Receipt of Windows APC
+#ifdef DEBUG
 		std::cout << "[pingat]HandleWindowsContextSwitch: Exception reason " << reason << " src address 0x" << std::hex << srcAddress << " info: " << info << std::endl;
+#endif
 		ctxswitch_ss << "APC - Receipt of Windows APC";
 		break;
 	case CONTEXT_CHANGE_REASON_EXCEPTION:    ///< Receipt of Windows exception
+#ifdef DEBUG
 		std::cout << "[pingat]HandleWindowsContextSwitch: Exception reason " << reason << " src address 0x" << std::hex << srcAddress << " info: " << info << std::endl;
+#endif
 		ctxswitch_ss << "EXCEPTION - Receipt of windows exception code 0x" << std::hex << info << " (" << windowsExceptionName(info) << ")";
 		printTagCache(threaddata);
 		fprintf(threaddata->threadpipeFILE, EXCEPTION_MARKER"," PTR_prefix ",%lx,%lx\x01", srcAddress, info, 0); //address, code, flags

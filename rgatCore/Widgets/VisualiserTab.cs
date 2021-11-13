@@ -1105,7 +1105,14 @@ namespace rgat
                         if (ImGui.TableNextColumn())
                         {
                             if (n.ins is not null)
+                            {
                                 ImGui.Text($"'{n.ins.InsText}'");
+                            }
+                            else
+                            {
+                                if (n.Label is not null)
+                                    ImGui.Text(n.Label);
+                            }
 
                         }
 

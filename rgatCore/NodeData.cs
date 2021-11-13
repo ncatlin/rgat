@@ -342,7 +342,7 @@ namespace rgat
 
             if (plot.Opt_ShowNodeIndexes)
             {
-                Label += $"{this.Index}<{this.BlockID}>:";
+                Label += $"{this.Index}:";
             }
 
             if (plot.Opt_ShowNodeAddresses)

@@ -948,7 +948,7 @@ namespace rgat
             bufs.PositionsArray[currentOffset] = nodePositionEntry[0];      //X
             bufs.PositionsArray[currentOffset + 1] = nodePositionEntry[1];  //Y
             bufs.PositionsArray[currentOffset + 2] = nodePositionEntry[2];  //Z
-            bufs.PositionsArray[currentOffset + 3] = nodePositionEntry[3];  //type of position (none, preset, force directed)
+            bufs.PositionsArray[currentOffset + 3] = 1; //todo, purge this dimension? debug usage only
 
             bufs.PresetPositions[currentOffset] = 0;      //X
             bufs.PresetPositions[currentOffset + 1] = 0;  //Y
@@ -995,9 +995,9 @@ namespace rgat
             for (var i = endLength; i < size; i++)
             {
                 newVelocityArr1[i] = -1;
-                newPositionsArr1[i] = -1;
+                newPositionsArr1[i] = 1;
                 newAttsArr1[i] = -1;
-                newPresetsArray[i] = -1;
+                newPresetsArray[i] = 1;
             }
 
 
@@ -1086,16 +1086,16 @@ namespace rgat
             switch (resetMethod)
             {
                 case PositionResetStyle.Scatter:
-                    ScatterPositions(oldData, spread: spread);
+                    ScatterPositions(oldData, GraphPlot.ComputeBufferNodeCount, spread: spread);
                     break;
                 case PositionResetStyle.Explode:
-                    ExplodePositions(oldData);
+                    ExplodePositions(oldData, GraphPlot.ComputeBufferNodeCount);
                     break;
                 case PositionResetStyle.Implode:
-                    ImplodePositions(oldData, spread: spread);
+                    ImplodePositions(oldData, GraphPlot.ComputeBufferNodeCount, spread: spread);
                     break;
                 case PositionResetStyle.Pillar:
-                    PillarPositions(oldData, spread: spread);
+                    PillarPositions(oldData, GraphPlot.ComputeBufferNodeCount, spread: spread);
                     break;
 
             }
@@ -1110,19 +1110,14 @@ namespace rgat
         /// and then into arrangement
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
-        private static void ExplodePositions(CPUBuffers layoutRAMBuffers)
+        /// <param name="nodeCount">Limit replot to this many nodes</param>
+        private static void ExplodePositions(CPUBuffers layoutRAMBuffers, int nodeCount)
         {
             Random rnd = new Random();
 
-            int endLength = layoutRAMBuffers.PositionsArray.Length;
+            int endLength = Math.Min(nodeCount*4, layoutRAMBuffers.PositionsArray.Length);
             for (var i = 0; i < endLength; i += 4)
             {
-
-                if (layoutRAMBuffers.PositionsArray[i + 3] <= 0)
-                {
-                    break;
-                }
-
                 layoutRAMBuffers.VelocityArray[i] = 0; //rnd.Next(100);
                 layoutRAMBuffers.VelocityArray[i + 1] = 0; //rnd.Next(100);
                 layoutRAMBuffers.VelocityArray[i + 2] = 0;// rnd.Next(100);
@@ -1139,21 +1134,16 @@ namespace rgat
         /// Attraction dominates the intial stages of layout
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+        /// <param name="nodeCount">Limit replot to this many nodes</param>
         /// <param name="spread">How far to spread nodes</param>
-        private static void ImplodePositions(CPUBuffers layoutRAMBuffers, float spread = 2)
+        private static void ImplodePositions(CPUBuffers layoutRAMBuffers, int nodeCount, float spread = 2)
         {
             Random rnd = new Random();
 
             float radius = (layoutRAMBuffers.PositionsArray.Length / 4) * 2 * spread;
-            int endLength = layoutRAMBuffers.PositionsArray.Length;
+            int endLength = Math.Min(nodeCount * 4, layoutRAMBuffers.PositionsArray.Length);
             for (var i = 0; i < endLength; i += 4)
             {
-
-                if (layoutRAMBuffers.PositionsArray[i + 3] == 0)
-                {
-                    break;
-                }
-
                 layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);
                 layoutRAMBuffers.VelocityArray[i + 1] = rnd.Next(100);
                 layoutRAMBuffers.VelocityArray[i + 2] = rnd.Next(100);
@@ -1189,14 +1179,15 @@ namespace rgat
         /// Balance of attraction and repulsion will move them into position
         /// </summary>
         /// <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+        /// <param name="nodeCount">Limit replot to this many nodes</param>
         /// <param name="spread">How far to spread nodes</param>
-        private static void ScatterPositions(CPUBuffers layoutRAMBuffers, float spread = 2)
+        private static void ScatterPositions(CPUBuffers layoutRAMBuffers, int nodeCount, float spread = 2)
         {
             Random rnd = new Random();
             float MaxDimension = (layoutRAMBuffers.VelocityArray.Length / 4) * spread;
             float MinDimension = -1 * MaxDimension;
 
-            int endLength = layoutRAMBuffers.VelocityArray.Length;
+            int endLength = Math.Min(nodeCount * 4, layoutRAMBuffers.PositionsArray.Length);
             for (var i = 0; i < endLength; i += 4)
             {
                 layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);
@@ -1211,14 +1202,14 @@ namespace rgat
         }
 
 
-        private static void PillarPositions(CPUBuffers layoutRAMBuffers, float spread = 2)
+        private static void PillarPositions(CPUBuffers layoutRAMBuffers, int nodeCount, float spread = 2)
         {
 
             Random rnd = new Random();
             float MaxDimension = 40 * spread;
             float MinDimension = -1 * MaxDimension;
 
-            int endLength = layoutRAMBuffers.VelocityArray.Length;
+            int endLength = Math.Min(nodeCount * 4, layoutRAMBuffers.PositionsArray.Length);
             for (var i = 0; i < endLength; i += 4)
             {
                 layoutRAMBuffers.VelocityArray[i] = rnd.Next(100);

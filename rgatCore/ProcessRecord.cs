@@ -347,7 +347,7 @@ namespace rgat
             bool hasBlock = false;
             while (!hasBlock && !rgatState.rgatIsExiting)
             {
-                lock (InstructionsLock)
+                lock (_instructionsLock)
                 {
                     hasBlock = blockIDDict.ContainsKey(address);
                 }
@@ -387,7 +387,7 @@ namespace rgat
             while (true)
             {
 
-                lock (InstructionsLock)
+                lock (_instructionsLock)
                 {
                     if (BasicBlocksList.Count > blockID)
                     {
@@ -443,7 +443,7 @@ namespace rgat
         public void AddDisassembledBlock(uint blockID, ulong address, List<InstructionData> instructions)
         {
             //these arrive out of order so have to add some dummy entries
-            lock (InstructionsLock)
+            lock (_instructionsLock)
             {
                 if (BasicBlocksList.Count > blockID)
                 {
@@ -558,7 +558,7 @@ namespace rgat
         /// <returns></returns>
         public List<uint> GetNodesAtAddress(ulong addr, uint TID)
         {
-            lock (InstructionsLock)
+            lock (_instructionsLock)
             {
                 if (!disassembly.TryGetValue(addr, out List<InstructionData>? inslist))
                 {
@@ -591,7 +591,38 @@ namespace rgat
         /// Guard disassembly data structures
         /// TODO: This needs to not be public and should be a RW lock
         /// </summary>
-        public readonly object InstructionsLock = new object();
+        public readonly object _instructionsLock = new object();
+
+        // performance todo - These should really operate on page granularity address ranges rather than invididual addresses
+        // there  is also no mechanism of removing an address from this list - is there a situation where an address can be non-image 
+        // and then become image mapped?
+
+        /// <summary>
+        /// Declare this address as being in non-image memory
+        /// </summary>
+        /// <param name="address"></param>
+        public void AddNonImageAddress(ulong address)
+        {
+            lock (_instructionsLock)
+            {
+                NonImageAddresses.Add(address);
+            }
+        }
+
+        /// <summary>
+        /// Is this address in non-image memory?
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public bool IsNonImageAddress(ulong address)
+        {
+            lock (_instructionsLock)
+            {
+                return NonImageAddresses.Contains(address);
+            }
+        }
+
+        private readonly HashSet<ulong> NonImageAddresses = new();
 
 
         /// <summary>
@@ -752,7 +783,7 @@ namespace rgat
             SerialiseSymbols(writer, progress);
             progress.SectionsComplete += 1;
 
-            lock (InstructionsLock)
+            lock (_instructionsLock)
             {
                 SerialiseDisassembly(writer, progress);
                 progress.SectionsComplete += 1;

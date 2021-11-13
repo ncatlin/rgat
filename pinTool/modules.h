@@ -10,7 +10,7 @@ struct moduleData
 	ADDRINT start, end;
 	bool instrumented;
 	std::string name;
-	UINT32 ID;
+	INT32 ID;
 };
 
 struct regionData

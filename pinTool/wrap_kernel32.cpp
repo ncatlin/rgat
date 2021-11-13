@@ -373,7 +373,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 
 
 
-
+	/*
 	rtn = RTN_FindByName(img, "GetStdHandle");
 	if (RTN_Valid(rtn))
 	{
@@ -386,7 +386,7 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 
 		RTN_Close(rtn);
 	}
-
+	*/
 	rtn = RTN_FindByName(img, "ReadFile");
 	if (RTN_Valid(rtn))
 	{

@@ -395,10 +395,10 @@ namespace rgat.Layouts
                     }
                     else
                     {
-                        if (blockMiddleNodesList.Contains((int)centerNodeID))
-                        {
-                            continue; 
-                        }
+                        //if (blockMiddleNodesList.Contains((int)centerNodeID))
+                        //{
+                        //    continue;
+                        //}
                         blockMiddlesDict[blockIdx] = (int)centerNodeID;
                         blockMiddleNodesList.Add((int)centerNodeID);
                         //Debug.Assert(blockIdx == (blockMiddleNodesList.Count - 1));

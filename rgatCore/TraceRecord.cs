@@ -107,8 +107,7 @@ namespace rgat
         /// How many bytes of opcodes the instruction has
         /// </summary>
         public int NumBytes => Opcodes!.Length;
-
-
+        
         /// <summary>
         /// The index of the node containing this instruction in each thread [Thread ID/instruction index]
         /// </summary>
@@ -161,48 +160,15 @@ namespace rgat
     /// </summary>
     public class TraceRecord
     {
-        /// <summary>
-        /// The type of tracing done
-        /// </summary>
-        public enum TracingPurpose
-        {
-            /// <summary>
-            /// Gather trace data of the process executing normally to visualise it
-            /// </summary>
-            eVisualiser,
-            /// <summary>
-            /// Not implemented
-            /// </summary>
-            eFuzzer
-        };
 
-        /// <summary>
-        /// The state of the process being traced
-        /// </summary>
-        public enum ProcessState
-        {
-            /// <summary>
-            /// The process has not been recorded starting yet
-            /// </summary>
-            eNew,
-            /// <summary>
-            /// The process is running
-            /// </summary>
-            eRunning,
-            /// <summary>
-            /// The process is suspended by rgat
-            /// </summary>
-            eSuspended,
-            /// <summary>
-            /// The process is terminated
-            /// </summary>
-            eTerminated
-        };
 
         /// <summary>
         /// This trace failed to load
         /// </summary>
         public bool InvalidTrace { get; private set; } = false;
+
+        private readonly object GraphListLock = new object();
+        private readonly Dictionary<uint, ProtoGraph> _protoGraphs = new Dictionary<uint, ProtoGraph>();
 
         /// <summary>
         /// Create a trace record
@@ -290,6 +256,32 @@ namespace rgat
         /// Write thunks out of the graph (so an extern/API node is created next to each caller)
         /// </summary>
         public bool HideAPIThunks { get; private set; }
+
+        /// <summary>
+        /// The disassembly associated with each address
+        /// </summary>
+        public ProcessRecord DisassemblyData { private set; get; }
+
+        /// <summary>
+        /// the time the user pressed start, not when the first process was seen
+        /// </summary>
+        public DateTime LaunchedTime { private set; get; }
+
+        /// <summary>
+        /// The BinaryTarget associated with this trace object
+        /// </summary>
+        public BinaryTarget Target { private set; get; }
+
+        /// <summary>
+        /// false if the process is no longer being traced
+        /// </summary>
+        public bool IsRunning => TraceState != ProcessState.eTerminated;
+        private bool killed = false;
+
+        /// <summary>
+        /// The state of the trace process
+        /// </summary>
+        public ProcessState TraceState { private set; get; } = ProcessState.eNew;
 
         private string GetModpathID() { return PID.ToString() + randID.ToString(); }
 
@@ -714,14 +706,26 @@ namespace rgat
                 return DisassemblyData.ModuleTraceStates[localmodID];
             }
 
-            // Todo: the issue here is usually either code that hasn't been disassembled (full trace buffers?) or code executing in a buffer 
+            if (DisassemblyData.IsNonImageAddress(address))
+            {
+                localmodID = -1;
+                return eCodeInstrumentation.eInstrumentedCode;
+            }
+
+            // the issue here is usually either code that hasn't been disassembled (full trace buffers?) or code executing in a buffer 
+
 
             localmodID = -1;
-            Logging.WriteConsole($"Warning: Unknown module in traceRecord::FindContainingModule for address 0x{address:X}");
             int attempts = 22;
             while (attempts-- != 0)
             {
                 Thread.Sleep(30);
+                if (DisassemblyData.IsNonImageAddress(address))
+                {
+                    localmodID = -1;
+                    return eCodeInstrumentation.eInstrumentedCode;
+                }
+
                 found = DisassemblyData.FindContainingModule(address, out outID);
                 if (found)
                 {
@@ -730,12 +734,20 @@ namespace rgat
                     break;
                 }
             }
-            if (!found) return eCodeInstrumentation.eInvalid;
+            if (!found)
+            {
+                if (_unknownModMsgCount-- < 10)
+                {
+                    Logging.RecordLogEvent($"Warning: Unknown module in traceRecord::FindContainingModule for address 0x{address:X}", LogFilterType.Debug);
+                }
+                return eCodeInstrumentation.eInvalid; 
+            }
             return DisassemblyData.ModuleTraceStates[localmodID!];
         }
 
-        private readonly object GraphListLock = new object();
-        private readonly Dictionary<uint, ProtoGraph> _protoGraphs = new Dictionary<uint, ProtoGraph>();
+        //lightweight limiter to prevent this message filling logs
+        int _unknownModMsgCount = 0;
+
 
         /// <summary>
         /// get a copy of the protographs list
@@ -1523,32 +1535,6 @@ namespace rgat
             }
         }
 
-        /// <summary>
-        /// The disassembly associated with each address
-        /// </summary>
-        public ProcessRecord DisassemblyData { private set; get; }
-
-        /// <summary>
-        /// the time the user pressed start, not when the first process was seen
-        /// </summary>
-        public DateTime LaunchedTime { private set; get; }
-
-        /// <summary>
-        /// The BinaryTarget associated with this trace object
-        /// </summary>
-        public BinaryTarget Target { private set; get; }
-
-        /// <summary>
-        /// false if the process is no longer being traced
-        /// </summary>
-        public bool IsRunning => TraceState != ProcessState.eTerminated;
-        private bool killed = false;
-
-        /// <summary>
-        /// The state of the trace process
-        /// </summary>
-        public ProcessState TraceState { private set; get; } = ProcessState.eNew;
-
 
         /// <summary>
         /// Is the process terminated, with all the trace records integrated into their graphs
@@ -1657,6 +1643,42 @@ namespace rgat
             return results;
         }
 
+        /// <summary>
+        /// The type of tracing done
+        /// </summary>
+        public enum TracingPurpose
+        {
+            /// <summary>
+            /// Gather trace data of the process executing normally to visualise it
+            /// </summary>
+            eVisualiser,
+            /// <summary>
+            /// Not implemented
+            /// </summary>
+            eFuzzer
+        };
 
+        /// <summary>
+        /// The state of the process being traced
+        /// </summary>
+        public enum ProcessState
+        {
+            /// <summary>
+            /// The process has not been recorded starting yet
+            /// </summary>
+            eNew,
+            /// <summary>
+            /// The process is running
+            /// </summary>
+            eRunning,
+            /// <summary>
+            /// The process is suspended by rgat
+            /// </summary>
+            eSuspended,
+            /// <summary>
+            /// The process is terminated
+            /// </summary>
+            eTerminated
+        };
     }
 }

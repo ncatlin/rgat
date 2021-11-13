@@ -413,11 +413,11 @@ namespace rgat.Threads
             int waits = 0;
             while (thistag.blockID >= protograph.ProcessData.BasicBlocksList.Count)
             {
-                Thread.Sleep(4);
+                Thread.Sleep(4 + waits*5);
                 waits += 1;
                 if (waits > 5)
                 {
-                    Logging.WriteConsole($"TID {this.protograph.ThreadID} Waiting for block {thistag.blockID} to appear ({protograph.ProcessData.BasicBlocksList.Count} available)");
+                    Logging.RecordLogEvent($"TID {this.protograph.ThreadID} Waiting for block {thistag.blockID} to appear ({protograph.ProcessData.BasicBlocksList.Count} available)");
                 }
             }
             Debug.Assert(thistag.blockID < protograph.ProcessData.BasicBlocksList.Count, "ProcessTraceTag tried to process block that hasn't been disassembled");
@@ -868,11 +868,10 @@ namespace rgat.Threads
             ulong code = ulong.Parse(entries[2], NumberStyles.HexNumber);
             ulong flags = ulong.Parse(entries[3], NumberStyles.HexNumber);
 
-
-            Logging.WriteConsole($"[rgat]Exception detected in PID{protograph.TraceData.PID} TID: {protograph.ThreadID} [code 0x{code:X} flags: 0x{flags:X}] at address 0x{address:X}");
+            Logging.RecordLogEvent($"Exception detected in trace PID{protograph.TraceData.PID} TID: {protograph.ThreadID} [code 0x{code:X} flags: 0x{flags:X}] at address 0x{address:X}");
             List<InstructionData>? faultingBlock;
             bool gotDisas = false;
-            lock (protograph.ProcessData.InstructionsLock) //read lock
+            lock (protograph.ProcessData._instructionsLock) //read lock
             {
                 gotDisas = protograph.ProcessData.disassembly.TryGetValue(address, out faultingBlock);
             }
@@ -888,7 +887,7 @@ namespace rgat.Threads
                     while (true)
                     {
                         Thread.Sleep(50);
-                        lock (protograph.ProcessData.InstructionsLock) //read lock
+                        lock (protograph.ProcessData._instructionsLock) //read lock
                         {
                             if (protograph.ProcessData.disassembly.TryGetValue(address, out faultingBlock))
                             {
@@ -907,7 +906,7 @@ namespace rgat.Threads
                         var block = protograph.ProcessData.BasicBlocksList[(int)lastNode.BlockID];
                         if (block is not null)
                         {
-                            lock (protograph.ProcessData.InstructionsLock)
+                            lock (protograph.ProcessData._instructionsLock)
                             {
                                 InstructionData invalidIns = new InstructionData();
                                 invalidIns.Address = address;
@@ -1005,9 +1004,14 @@ namespace rgat.Threads
 
 
 
-                //if (msg[0] != 'A') Logging.WriteConsole("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
-                //Logging.RecordLogEvent("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length), filter: Logging.LogFilterType.BulkDebugLogFile);
-                s.Restart();
+                if (GlobalConfig.BulkLog) 
+                    Logging.RecordLogEvent($"TraceMsg TID{protograph.ThreadID}: {Encoding.ASCII.GetString(msg, 0, msg.Length)}", Logging.LogFilterType.BulkDebugLogFile);
+
+                //if (msg[0] != (byte)'j')
+                //    Logging.WriteConsole("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length));
+
+                    //Logging.RecordLogEvent("IngestedMsg: " + Encoding.ASCII.GetString(msg, 0, msg.Length), filter: Logging.LogFilterType.BulkDebugLogFile);
+                    s.Restart();
                 lock (debug_tag_lock) //todo dont forget to remove this
                 {
                     switch (msg[0])

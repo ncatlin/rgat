@@ -44,8 +44,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BufferExecution32", "tests\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NestedLoops32", "NestedLoops32\NestedLoops32.vcxproj", "{13569016-5A7A-4882-A777-55EB72A88314}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiELibDotNet", "..\..\..\Desktop\rgatstuff\nugetlesspackages\DiELibDotNet\DiELibDotNet.csproj", "{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -187,18 +185,6 @@ Global
 		{13569016-5A7A-4882-A777-55EB72A88314}.Release|x64.ActiveCfg = Release|x64
 		{13569016-5A7A-4882-A777-55EB72A88314}.Release|x86.ActiveCfg = Release|Win32
 		{13569016-5A7A-4882-A777-55EB72A88314}.Release|x86.Build.0 = Release|Win32
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Debug|x64.Build.0 = Debug|Any CPU
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Debug|x86.Build.0 = Debug|Any CPU
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Release|x64.ActiveCfg = Release|Any CPU
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Release|x64.Build.0 = Release|Any CPU
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Release|x86.ActiveCfg = Release|Any CPU
-		{0C64A4DB-C0C9-4497-A3F8-BBF30C358EFC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

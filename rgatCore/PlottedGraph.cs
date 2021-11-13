@@ -963,11 +963,6 @@ namespace rgat
 
             int nodeCount = _graphStructureLinear.Count;
             uint textureSize = LinearIndexTextureSize();
-
-            if (InternalProtoGraph.EdgeCount > RenderedEdgeCount)
-            {
-                Logging.WriteConsole($"Drawing preset {InternalProtoGraph.EdgeCount }  > {RenderedEdgeCount}  edges with {nodeCount} nodes tex size {textureSize}");
-            }
             float increase = ((float)Math.PI * 2.0f) / _graphStructureLinear.Count;
             float angle = 0;
             float radius = nodeCount * CONSTANTS.Layout_Constants.CircleLayoutRadiusMultiplier;
@@ -1977,7 +1972,7 @@ namespace rgat
                 return false;
             }
 
-            lock (InternalProtoGraph.TraceData.DisassemblyData.InstructionsLock)
+            lock (InternalProtoGraph.TraceData.DisassemblyData._instructionsLock)
             {
                 foreach (InstructionData ins in block)
                 {

@@ -161,19 +161,20 @@ namespace rgat
 
             Debug.Assert(buf[bufPos] == '@'); bufPos++;
 
-            uint localmodnum = BitConverter.ToUInt32(buf, bufPos); bufPos += 4;
+            int localmodnum = BitConverter.ToInt32(buf, bufPos); bufPos += 4;
             Debug.Assert(buf[bufPos] == '@'); bufPos++;
 
-            int globalModNum = trace.DisassemblyData.modIDTranslationVec[(int)localmodnum];
-            if (globalModNum < 0 || globalModNum >= trace.DisassemblyData.LoadedModuleBounds.Count)
+            int globalModNum = localmodnum >= 0 ? trace.DisassemblyData.modIDTranslationVec[localmodnum] : 0; //for now just mark non-image code as being part of the target
+            if (localmodnum >= 0 && (globalModNum < 0 || globalModNum >= trace.DisassemblyData.LoadedModuleBounds.Count))
             {
                 if (globalModNum == -1)
                     Logging.RecordError("Known IngestBlockLocal module translation error condition -1");
                 //todo this can be -1 with super laggy remote tracing. deal with remote trace lag first.
                 throw new IndexOutOfRangeException($"IngestBlockLocal: Bad module ID {globalModNum} not recorded"); 
             }
-            ulong moduleStart = trace.DisassemblyData.LoadedModuleBounds[globalModNum].Item1;
-            ulong modoffset = BlockAddress - moduleStart;
+
+            //ulong moduleStart = trace.DisassemblyData.LoadedModuleBounds[globalModNum].Item1;
+            //ulong modoffset = BlockAddress - moduleStart;
 
             eBlkInstrumentation instrumentedStatusByte = (eBlkInstrumentation)buf[bufPos++];
             Debug.Assert(instrumentedStatusByte >= 0 && (int)instrumentedStatusByte <= 2);
@@ -199,14 +200,13 @@ namespace rgat
 
             if (!instrumented) //should no longer happen
             {
-                Logging.WriteConsole($"[rgat] Error: Uninstrumented block at address 0x{BlockAddress:X} module {trace.DisassemblyData.LoadedModulePaths[globalModNum]} has been... instrumented?");
+                Logging.RecordError($"[rgat] Error: Uninstrumented block at address 0x{BlockAddress:X} module {trace.DisassemblyData.LoadedModulePaths[globalModNum]} has been... instrumented?");
                 return;
             }
 
             List<InstructionData> blockInstructions = new List<InstructionData>();
             ulong insaddr = BlockAddress;
-
-            //Logging.WriteConsole($"Ingesting block ID {blockID} address 0x{insaddr:X}");
+            //Logging.WriteConsole($"Ingesting block ID {blockID} address 0x{insaddr:X} modnum {globalModNum} data: {System.Text.Encoding.ASCII.GetString(buf, 0, bytesRead)}");
 
             int dbginscount = -1;
             while (bufPos < buf.Length && buf[bufPos] == '@') //er here
@@ -219,9 +219,10 @@ namespace rgat
                 byte[] opcodes = new ReadOnlySpan<byte>(buf, bufPos, insByteCount).ToArray(); bufPos += insByteCount;
                 List<InstructionData>? foundList = null;
 
-                lock (trace.DisassemblyData.InstructionsLock)
+                lock (trace.DisassemblyData._instructionsLock)
                 {
                     dbginscount++;
+
 
                     if (trace.DisassemblyData.disassembly.TryGetValue(insaddr, out foundList))
                     {
@@ -239,6 +240,8 @@ namespace rgat
                             continue;
                         }
                     }
+
+
                     //Logging.WriteConsole($"Blockaddrhandler, Ins 0x{insaddr:X} not previously disassembled");
 
                     InstructionData instruction = new InstructionData();
@@ -260,6 +263,10 @@ namespace rgat
                     }
 
 
+                    if (localmodnum is -1)
+                    {
+                        trace.DisassemblyData.AddNonImageAddress(insaddr);
+                    }
                     //need to move this out of the lock
                     if (ProcessRecord.DisassembleIns(disassembler, insaddr, instruction) < 1)
                     {

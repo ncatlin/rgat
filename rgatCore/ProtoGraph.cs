@@ -277,7 +277,7 @@ namespace rgat
         private bool SetTargetInstruction(InstructionData instruction)
         {
             //ReadLock(piddata->disassemblyRWLock);
-            lock (TraceData.DisassemblyData.InstructionsLock) //todo this can be a read lock
+            lock (TraceData.DisassemblyData._instructionsLock) //todo this can be a read lock
             {
                 //Logging.WriteConsole($"Checking if instruction 0x{instruction.address:X}, dbgid {instruction.DebugID} mut {instruction.mutationIndex} executed");
                 if (instruction.GetThreadVert(ThreadID, out uint targetID))
@@ -1330,7 +1330,7 @@ namespace rgat
             Debug.Assert(!NodeExists(targVertID));
 
             InsertNode(thisnode);
-            lock (TraceData.DisassemblyData.InstructionsLock) //this lock should probably be converted to a RW lock, gets congested a lot in big graphs
+            lock (TraceData.DisassemblyData._instructionsLock) //this lock should probably be converted to a RW lock, gets congested a lot in big graphs
             {
                 instruction.AddThreadVert(ThreadID, targVertID);
             }

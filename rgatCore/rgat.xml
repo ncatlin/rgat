@@ -3972,27 +3972,30 @@
             <param name="resetMethod">The initial randomisation method</param>
             <param name="spread">How far to spread the replotted nodes</param>
         </member>
-        <member name="M:rgat.GraphLayoutState.ExplodePositions(rgat.GraphLayoutState.CPUBuffers)">
+        <member name="M:rgat.GraphLayoutState.ExplodePositions(rgat.GraphLayoutState.CPUBuffers,System.Int32)">
             <summary>
             Distributes the nodes in a concentrated central mass so they repel each other out
             and then into arrangement
             </summary>
             <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+            <param name="nodeCount">Limit replot to this many nodes</param>
         </member>
-        <member name="M:rgat.GraphLayoutState.ImplodePositions(rgat.GraphLayoutState.CPUBuffers,System.Single)">
+        <member name="M:rgat.GraphLayoutState.ImplodePositions(rgat.GraphLayoutState.CPUBuffers,System.Int32,System.Single)">
             <summary>
             Distributes the nodes on the edge of a sphere. 
             Attraction dominates the intial stages of layout
             </summary>
             <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+            <param name="nodeCount">Limit replot to this many nodes</param>
             <param name="spread">How far to spread nodes</param>
         </member>
-        <member name="M:rgat.GraphLayoutState.ScatterPositions(rgat.GraphLayoutState.CPUBuffers,System.Single)">
+        <member name="M:rgat.GraphLayoutState.ScatterPositions(rgat.GraphLayoutState.CPUBuffers,System.Int32,System.Single)">
             <summary>
             Distributes the nodes randomly in a wide area. 
             Balance of attraction and repulsion will move them into position
             </summary>
             <param name="layoutRAMBuffers">CPUBuffers of the plot to be randomised</param>
+            <param name="nodeCount">Limit replot to this many nodes</param>
             <param name="spread">How far to spread nodes</param>
         </member>
         <member name="M:rgat.GraphLayoutState.CompleteLayoutChange">
@@ -5963,11 +5966,24 @@
             <param name="TID">The thread with the instructions in it</param>
             <returns></returns>
         </member>
-        <member name="F:rgat.ProcessRecord.InstructionsLock">
+        <member name="F:rgat.ProcessRecord._instructionsLock">
             <summary>
             Guard disassembly data structures
             TODO: This needs to not be public and should be a RW lock
             </summary>
+        </member>
+        <member name="M:rgat.ProcessRecord.AddNonImageAddress(System.UInt64)">
+            <summary>
+            Declare this address as being in non-image memory
+            </summary>
+            <param name="address"></param>
+        </member>
+        <member name="M:rgat.ProcessRecord.IsNonImageAddress(System.UInt64)">
+            <summary>
+            Is this address in non-image memory?
+            </summary>
+            <param name="address"></param>
+            <returns></returns>
         </member>
         <member name="F:rgat.ProcessRecord.disassembly">
             <summary>
