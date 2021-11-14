@@ -934,13 +934,12 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 #endif
 			if (tdata->threadpipeHandle == -1 && time > 1600 && (time % 600 == 0))
 			{
-				std::cout << "[pingat]Failed to connect after 1600 - err " << err << std::endl;
+				std::cout << "[pingat]Failed to connect thread pipe after 1600 ms - err " << err << std::endl;
 				std::stringstream errstr;
 				errstr << "Failing to connect to thread pipe [" << std::string(pname) << "]. Error:";
 				if (err == 2) errstr << " Pipe not found" << std::endl;
 				else if (err == 5)errstr << " Access Denied" << std::endl;
 				else errstr << err << std::endl;
-
 				writeEventPipe("! Thread Connection Failure: %s", errstr.str().c_str());
 			}
 		}
@@ -1084,7 +1083,7 @@ VOID ThreadStart_openFD(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* 
 
 	cout << "Failed to connect thread pipe, exiting process" << std::endl;
 	PIN_ExitProcess(1);
-	}
+}
 
 VOID ThreadEnd(THREADID threadIndex, const CONTEXT* ctxt, INT32 flags, VOID* v)
 {

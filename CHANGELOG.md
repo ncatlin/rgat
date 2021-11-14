@@ -1,11 +1,12 @@
 # Changelog
 
-## [0.6.1] - 2021-11-00
+## [0.6.1] - 2021-11-14
 
 ### Added
 - .NET files are flagged on the trace launch tab
 - X and Y axis plot movement (ie: up,down,left,right) now supports the Ctrl modifier with a large magnitude and combined Shift&Ctrl modifiers for proportional magnitude.
 - Handling for exceptions caused by invalid instructions
+- Recent files are remembered in remote tracing mode
 
 ### Changed
 - Reduced disk activity of the file dialog
@@ -13,12 +14,14 @@
 - Reduced plot rotation speed
 - Improved exception highlighting controls
 - Improved preview envelope drawing
+- Significantly improved Cylinder plot performance by limiting wireframe loops
 
 ### Fixed
 - Fixed a crash in dnYara
 - The final few blocks of a trace should no longer be missing from block layout edge calculations
 - Changes to plot settings like clump force are applied instantly instead of happening randomly. This also fixes stuttering when the plot is already laid out.
 - Fixed a crash in non-image code under certain conditions
+- Fix file picker not switching back to local mode after disconnection
 
 
 

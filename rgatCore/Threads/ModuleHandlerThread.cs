@@ -652,6 +652,10 @@ namespace rgat
             {
                 string text = ASCIIEncoding.ASCII.GetString(buf.Take(bytesRead).ToArray());
                 Logging.RecordLogEvent($"!Log from instrumentation: '{text}'", trace: trace);
+                if (text.Contains("Thread Connection Failure"))
+                {
+                    Logging.RecordError("Pin thread connection failure. Terminating trace.");
+                }
                 //Logging.WriteConsole($"!Log from instrumentation: '{text}'");
                 return;
             }

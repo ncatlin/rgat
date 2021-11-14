@@ -947,14 +947,14 @@ namespace rgat
             {
                 st.Stop();
                 if (st.ElapsedMilliseconds > 60)
-                    Console.WriteLine($"GetEdgelistSpans edgelog was contended for {st.ElapsedMilliseconds}ms ");
+                    Logging.RecordLogEvent($"GetEdgelistSpans edgelog was contended for {st.ElapsedMilliseconds}ms ");
                 st.Restart();
                 nodesList = CollectionsMarshal.AsSpan(EdgeList);
                 edgesList = CollectionsMarshal.AsSpan(edgeObjList);
             }
             st.Stop();
             if (st.ElapsedMilliseconds > 60)
-                Console.WriteLine($"GetEdgelistSpans marshalling took {st.ElapsedMilliseconds}ms ");
+                Logging.RecordLogEvent($"GetEdgelistSpans marshalling took {st.ElapsedMilliseconds}ms ");
         }
 
 

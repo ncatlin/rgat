@@ -1366,10 +1366,7 @@ namespace rgat
                     {
                         ulong insAddress = serializer.Deserialize<ulong>(jsnReader); jsnReader.Read();
                         int mutationIndex = serializer.Deserialize<int>(jsnReader); jsnReader.Read();
-                        if (insAddress is 5850545)
-                        {
-                            Console.WriteLine("s");
-                        }
+
                         InstructionData ins = disassembly[insAddress][mutationIndex];
                         blkInstructions.Add(ins);
                         if (ins.ContainingBlockIDs == null)

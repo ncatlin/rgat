@@ -1192,7 +1192,7 @@ namespace rgat
             st.Stop(); v4 = st.ElapsedMilliseconds; st.Restart();
 
             if (v4 > 80)
-                Console.WriteLine($"GetEdgeRenderingData: v1:{v1}, v2:{v2}, v3:{v3}, v4:{v4}");
+                Logging.RecordLogEvent($"GetEdgeRenderingData: v1:{v1}, v2:{v2}, v3:{v3}, v4:{v4}", Logging.LogFilterType.Debug);
 
             return true;
         }

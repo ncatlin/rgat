@@ -310,7 +310,6 @@ namespace rgat
             }
             TraceState = newState;
 
-            Logging.RecordLogEvent("\tactioning it", Logging.LogFilterType.Debug);
             if (newState != ProcessState.eSuspended)
             {
                 lock (GraphListLock)

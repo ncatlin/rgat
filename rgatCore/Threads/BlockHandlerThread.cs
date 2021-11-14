@@ -345,7 +345,8 @@ namespace rgat
                 try
                 {
                     _processingItems = 0;
-                    NewDataEvent.Wait(1000, rgatState.NetworkBridge.CancelToken);
+                    CancellationToken token = rgatState.ConnectedToRemote ? rgatState.NetworkBridge.CancelToken : rgatState.ExitToken;
+                    NewDataEvent.Wait(1000, token);
                 }
                 catch (System.OperationCanceledException)
                 {

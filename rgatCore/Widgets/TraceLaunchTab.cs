@@ -261,11 +261,9 @@ namespace rgat
 
                         if (ImGui.Selectable("Essential", true))
                         {
-                            Console.Write("Esel");
                         }
                         if (ImGui.Selectable("Verbose", false))
                         {
-                            Console.Write("vbsel");
                         }
                         ImGui.EndCombo();
                     }
