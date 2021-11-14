@@ -274,7 +274,6 @@ namespace rgat.OperationModes
                         rgatState.NetworkBridge.Teardown($"Bad Trace Metadata");
                         break;
                     }
-                    Logging.WriteConsole($"Processing trace meta {GetString(item.data)}");
                     if (!HandleTraceMeta(trace, items!))
                     {
                         Logging.RecordLogEvent($"Failed processing trace meta {GetString(item.data)}", Logging.LogFilterType.Error);
@@ -300,7 +299,6 @@ namespace rgat.OperationModes
 
                 case MsgType.TraceCommand:
                     {
-                        Logging.WriteConsole("Incoming trace command:" + GetString(item.data));
                         if (rgatState.NetworkBridge.HeadlessMode &&
                             RemoteDataMirror.GetPipeWorker(item.destinationID, out TraceProcessorWorker? moduleHandler) &&
                             moduleHandler!.GetType() == typeof(ModuleHandlerThread))

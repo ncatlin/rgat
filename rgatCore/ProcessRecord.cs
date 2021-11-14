@@ -88,7 +88,7 @@ namespace rgat
                     bool found = FindContainingModule(externBlockaddr, out int? moduleNo);
                     if (!found || ModuleTraceStates.Count <= moduleNo)
                     {
-                        Logging.WriteConsole($"Error: Unable to find extern module {moduleNo} in ModuleTraceStates dict");
+                        Logging.WriteConsole($"Error: Unable to find extern module 0x{externBlockaddr:X} in ModuleTraceStates dict");
                         externBlock = null;
                         return null;
                     }
@@ -344,6 +344,7 @@ namespace rgat
         /// <returns>The ID of the block</returns>
         public ulong WaitForBlockAtAddress(ulong address)
         {
+            int limit = 1000;
             while (!rgatState.rgatIsExiting)
             {
                 lock (_instructionsLock)
@@ -357,8 +358,14 @@ namespace rgat
                 bool found = FindContainingModule(address, out int? moduleNo);
                 if (!found || ModuleTraceStates.Count <= moduleNo)
                 {
-                    Logging.WriteConsole($"Warning: Unable to find extern module with address 0x{address:X} in ModuleTraceStates dict");
                     Thread.Sleep(15);
+                    limit -= 20;
+                    if (limit <= 0)
+                    {
+                        Logging.WriteConsole($"Warning: Unable to find extern module with address 0x{address:X} in ModuleTraceStates dict");
+                        Logging.WriteConsole($"This is a known issue with the handling of some non-image code");
+                        return ulong.MaxValue;
+                    }
                     continue;
                 }
                 if (ModuleTraceStates[moduleNo!.Value] == eCodeInstrumentation.eUninstrumentedCode)

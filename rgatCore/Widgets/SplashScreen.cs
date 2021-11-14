@@ -123,9 +123,9 @@ namespace rgat
                             ImGui.TableNextRow();
                             if (ImGui.TableNextColumn())
                             {
-                                if (DrawRecentPathEntry(entry, false))
+                                if (DrawRecentPathEntry(entry, menu: false))
                                 {
-                                    if (File.Exists(entry.Path))
+                                    if (File.Exists(entry.Path) || rgatState.ConnectedToRemote)
                                     {
                                         if (!LoadSelectedBinary(entry.Path, rgatState.ConnectedToRemote) && !_badPaths.Contains(entry.Path))
                                         {

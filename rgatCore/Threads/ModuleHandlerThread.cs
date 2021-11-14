@@ -580,7 +580,7 @@ namespace rgat
             {
                 if (bytesRead != 0)
                 {
-                    Logging.RecordLogEvent($"MH:ReadCallback() Unhandled tiny control pipe message: {buf}", Logging.LogFilterType.Error);
+                    Logging.RecordLogEvent($"MH:ReadCallback() Unhandled tiny control pipe message: {BitConverter.ToString(buf)}", Logging.LogFilterType.Error);
                 }
                 return;
             }
@@ -765,7 +765,7 @@ namespace rgat
                 }
                 catch (Exception e)
                 {
-                    if (rgatState.rgatIsExiting is false)
+                    if (cancelToken.IsCancellationRequested is false && rgatState.rgatIsExiting is false)
                     {
                         Logging.RecordException($"BlockThread::RemoteCommandListener exception: {e.Message}", e);
                     }
@@ -807,15 +807,19 @@ namespace rgat
             SendTraceSettings();
 
             byte[][] newEvents;
-            while (rgatState.rgatIsExiting is false)
+            while (rgatState.rgatIsExiting is false && this.trace.IsRunning)
             {
                 try
                 {
                     NewDataEvent.Wait(rgatState.NetworkBridge.CancelToken);
                 }
+                catch (System.OperationCanceledException)
+                {
+                    break;
+                }
                 catch (Exception e)
                 {
-                    Logging.RecordException($"BlockThread::RemoteEventListener exception {e.Message}", e);
+                    Logging.RecordException($"ModuleThread::RemoteEventListener exception {e.Message}", e);
                     break;
                 }
                 lock (_lock)
@@ -839,7 +843,7 @@ namespace rgat
                         return;
                     }
                 }
-
+                if (!this.trace.IsRunning) break;
 
                 //todo: remote trace termination -> loop exit condition
             }

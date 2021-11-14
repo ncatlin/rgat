@@ -224,6 +224,7 @@ bool address_is_in_targets_v1(ADDRINT addr)
 		return (lastBBModule->instrumented);
 	}
 
+
 	//Address is not in an image region
 	NATIVE_PID pid;
 	OS_GetPid(&pid);
@@ -252,7 +253,7 @@ bool address_is_in_targets_v1(ADDRINT addr)
 			*/
 			if (lastBBModule == 0 && lastNonImgRegion != 0)
 			{
-				r->instrumented = lastNonImgRegion->instrumented;
+				 r->instrumented = lastNonImgRegion->instrumented;
 			}
 			else if (lastBBModule != 0 && lastNonImgRegion == 0)
 			{
@@ -260,7 +261,7 @@ bool address_is_in_targets_v1(ADDRINT addr)
 			}
 			else
 			{
-				return false; //??
+				return true; //??
 			}
 			loadedRegionInfo[r->start] = r; //todo - size limit, better data structure (something with binary search)
 			lastNonImgRegion = r;
@@ -618,7 +619,11 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 	*/
 	bool isInstrumented = address_is_in_targets_v1(traceStartAddr);
 
-	if (!isInstrumented) { return; }
+	if (!isInstrumented) { 
+		//std::cout << "\t uninsTraceBlock " << std::dec << blockCounter << " generated at 0x" << 
+		//	std::hex << traceStartAddr << " with insct " << TRACE_NumIns(trace) << std::endl;	
+		return; 
+	}
 
 	if (thread->requestTerminate) {
 		PIN_ExitThread(0);
@@ -635,7 +640,6 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		++uniqueBBCountIns;
 
 		ADDRINT blockAddress = BBL_Address(bbl);
-		//std::cout << "\t TraceBlock " << std::dec << blockCounter << " generated at 0x" << std::hex << blockAddress << std::endl;
 		unsigned int bufpos = 0;
 
 		basicBlockBuffer[bufpos++] = 'B';

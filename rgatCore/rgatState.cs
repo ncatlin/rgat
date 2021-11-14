@@ -221,9 +221,15 @@ namespace rgat
                     }
 
                     //wait for all workers to terminate
+                    int limit = 10;
                     while (trace.ProcessThreads is not null && trace.ProcessThreads.Running())
                     {
-                        Thread.Sleep(10);
+                        Thread.Sleep(100);
+                        limit--;
+                        if (limit<= 0)
+                        {
+                            return;
+                        }
                     }
                 }
             }

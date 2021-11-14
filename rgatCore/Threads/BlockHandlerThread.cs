@@ -81,7 +81,7 @@ namespace rgat
                         WorkerThread = new Thread(BlockProcessor);
                         param = DissasembleBlock;
                     }
-                    WorkerThread.Name = $"TraceModuleHandler_Remote_{_remotePipeID}";
+                    WorkerThread.Name = $"TraceBlockHandler_Remote_{_remotePipeID}";
                 }
                 else
                 {
@@ -204,17 +204,13 @@ namespace rgat
                 return;
             }
 
-            if (BlockAddress > 0xc772d90 && BlockAddress < 0xc772db0)
-            {
-                Console.WriteLine("F");
-            }
             List<InstructionData> blockInstructions = new List<InstructionData>();
             ulong insaddr = BlockAddress;
 
             //Logging.WriteConsole($"Ingesting block ID {blockID} address 0x{insaddr:X} modnum {globalModNum} data: {System.Text.Encoding.ASCII.GetString(buf, 0, bytesRead)}");
 
             int dbginscount = -1;
-            while (bufPos < buf.Length && buf[bufPos] == '@') //er here
+            while (bufPos < buf.Length && buf[bufPos] == '@')
             {
                 bufPos++;
                 byte insByteCount = buf[bufPos];
@@ -350,6 +346,10 @@ namespace rgat
                 {
                     _processingItems = 0;
                     NewDataEvent.Wait(1000, rgatState.NetworkBridge.CancelToken);
+                }
+                catch (System.OperationCanceledException)
+                {
+                    break;
                 }
                 catch (Exception e)
                 {

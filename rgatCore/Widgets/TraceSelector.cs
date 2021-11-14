@@ -122,8 +122,9 @@ namespace rgat.Widgets
                 List<PlottedGraph> graphs = trace.GetPlottedGraphs();
                 if (ImGui.TableNextColumn())
                 {
+                    ImGui.AlignTextToFramePadding();
                     ImGuiUtils.DrawHorizCenteredText($"{graphs.Count}x");
-                    SmallWidgets.MouseoverText($"This trace has {graphs.Count} thread{(graphs.Count != 1 ? 's' : "")} with instrumented trace data");
+                    SmallWidgets.MouseoverText($"This trace has {graphs.Count} thread{(graphs.Count != 1 ? 's' : "")}");
                 }
 
                 if (ImGui.TableNextColumn())

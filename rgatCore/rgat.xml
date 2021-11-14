@@ -1972,11 +1972,6 @@
             The most recent time the file was opened
             </summary>
         </member>
-        <member name="P:rgat.Config.rgatSettings.PathRecord.HostID">
-            <summary>
-            Identifies the remote host this file was opened on
-            </summary>
-        </member>
         <member name="T:rgat.Config.rgatSettings.PathRecord.SortLatestAccess">
             <summary>
             Sort by the latest open time
