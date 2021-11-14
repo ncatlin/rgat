@@ -702,12 +702,19 @@ namespace rgat
 
         private void GenerateCylinderWireframe(ref List<GeomPositionColour> verts, ref List<uint> edgeIndices)
         {
+            float alpha = OPT_WIREFRAME_ALPHA * 255f;
+            if (alpha is 0) return;
             int CYLINDER_PIXELS_PER_ROW = 500;
             float WF_POINTSPERLINE = 50f;
+
             int wireframe_loop_count = (int)Math.Ceiling((_lowestWireframeLoop * OPT_CYLINDER_PIXELS_PER_B) / CYLINDER_PIXELS_PER_ROW) + 1;
+            if(wireframe_loop_count  > 100)
+            {
+                wireframe_loop_count = 100;
+                CYLINDER_PIXELS_PER_ROW = (int)(_lowestWireframeLoop / (float)(wireframe_loop_count/OPT_CYLINDER_PIXELS_PER_B));
+            }
             float radius = OPT_CYLINDER_RADIUS;
 
-            float alpha = OPT_WIREFRAME_ALPHA * 255f;
             WritableRgbaFloat wireframeColour = new WritableRgbaFloat(Themes.GetThemeColourWRF(Themes.eThemeColour.WireFrame).ToUint((uint)alpha));
             for (int rowY = 0; rowY < wireframe_loop_count; rowY++)
             {
@@ -800,7 +807,9 @@ namespace rgat
         }
 
         private float _lowestWireframeLoop;
-        //todo cache
+
+
+        List<uint> _wireframeCache = new();
 
 
         /// <summary>

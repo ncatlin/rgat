@@ -893,15 +893,19 @@ namespace rgat
                 {
                     try
                     {
-                        if (_ActiveClient != null && _ActiveClient.Connected)
+                        try
                         {
-                            RawSendData(MsgType.Meta, "Teardown:" + reason);
-                            AddNetworkDisplayLogMessage($"Disconnected{(reason.Length > 0 ? $": {reason}" : "")}", Themes.eThemeColour.WarnStateColour);
+                            if (_ActiveClient != null && _ActiveClient.Connected)
+                            {
+                                AddNetworkDisplayLogMessage($"Disconnected{(reason.Length > 0 ? $": {reason}" : "")}", Themes.eThemeColour.WarnStateColour);
+                                RawSendData(MsgType.Meta, "Teardown:" + reason);
+                            }
+                            else
+                            {
+                                AddNetworkDisplayLogMessage($"Connection Disabled{(reason.Length > 0 ? $": {reason}" : "")}", null);
+                            }
                         }
-                        else
-                        {
-                            AddNetworkDisplayLogMessage($"Connection Disabled{(reason.Length > 0 ? $": {reason}" : "")}", null);
-                        }
+                        catch { } //avoid recursive exceptions caused by rawsend failing again
 
                         Thread.Sleep(250); //give the UI a chance to close the connection gracefully so the right error message appears first. 
                         ConnectionState = BridgeState.Teardown;

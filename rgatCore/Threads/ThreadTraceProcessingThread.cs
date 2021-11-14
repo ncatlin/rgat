@@ -859,6 +859,7 @@ namespace rgat.Threads
             PendingEdges.Add(edgeNotification);
         }
 
+
         private void AddExceptionUpdate(byte[] entry)
         {
             string msg = Encoding.ASCII.GetString(entry, 0, entry.Length);
@@ -884,7 +885,8 @@ namespace rgat.Threads
                 bool resolved = false;
                 if (code is not 0xC000001D) //invalid instruction
                 {
-                    while (true)
+                    int attempts = 5;
+                    while (rgatState.rgatIsExiting is false && protograph.TraceData.IsRunning)
                     {
                         Thread.Sleep(50);
                         lock (protograph.ProcessData._instructionsLock) //read lock
@@ -895,7 +897,11 @@ namespace rgat.Threads
                                 break;
                             }
                         }
-                        Logging.WriteConsole($"[rgat]Exception address 0x{address:X} not found in disassembly");
+                        if (attempts-- <= 0)
+                        {
+                            Logging.WriteConsole($"[rgat]Exception address 0x{address:X} not found in disassembly");
+                            break;
+                        }
                     }
                 }
                 else

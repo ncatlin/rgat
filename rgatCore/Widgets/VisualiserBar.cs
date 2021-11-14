@@ -629,6 +629,13 @@ namespace rgat.Widgets
                     //probably not worth drawing
                     break;
 
+                case eTraceUpdateType.eAnimExecException:
+                    lines.Add(new Position2DColour() { Colour = new WritableRgbaFloat(Color.LightCyan), Position = new Vector2(Xoffset, 2) });
+                    lines.Add(new Position2DColour() { Colour = new WritableRgbaFloat(Color.LightCyan), Position = new Vector2(Xoffset + tagWidth, 12f) });
+                    lines.Add(new Position2DColour() { Colour = new WritableRgbaFloat(Color.LightCyan), Position = new Vector2(Xoffset + tagWidth, 2) });
+                    lines.Add(new Position2DColour() { Colour = new WritableRgbaFloat(Color.LightCyan), Position = new Vector2(Xoffset + tagWidth, 12f) });
+                    break;
+
                 default:
                     lines.Add(new Position2DColour() { Colour = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset, 2) });
                     lines.Add(new Position2DColour() { Colour = new WritableRgbaFloat(Color.Magenta), Position = new Vector2(Xoffset + tagWidth, 12f) });

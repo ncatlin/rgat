@@ -956,7 +956,7 @@ namespace rgat
             if (this._remoteEventPipeID is not null)
             {
                 string termString = $"PX@{this.trace.PID}@";
-                MirrorMessageToUI(Encoding.ASCII.GetBytes(termString), 2);
+                MirrorMessageToUI(Encoding.ASCII.GetBytes(termString), termString.Length);
             }
 
 

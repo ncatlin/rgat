@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 
 namespace rgat.Threads
 {
@@ -77,8 +78,8 @@ namespace rgat.Threads
         {
             System.Diagnostics.Stopwatch st = new();
             PlottedGraph? activeGraph;
+            int exceptionCount = 0;
 
-            int rounds = 0;
             Veldrid.CommandList cl = _clientState!._GraphicsDevice!.ResourceFactory.CreateCommandList();
             while (!rgatState.rgatIsExiting)
             {
@@ -98,29 +99,50 @@ namespace rgat.Threads
 
 
                 st.Restart();
-                update_rendering(activeGraph);
+                try
+                {
+                    update_rendering(activeGraph);
+                }
+                catch (Exception e)
+                {
+                    Logging.RecordException($"update_rendering error: {e.Message}", e);
+                    if (exceptionCount++ > 5)
+                    {
+                        Logging.RecordError("Maingraph renderer terminating due to excess exceptions");
+                        break;
+                    }
+                }
+
                 st.Stop();
                 //if (st.ElapsedMilliseconds > 0) System.Console.WriteLine($"u_R took {st.ElapsedMilliseconds} ms");
 
                 //st.Restart();
-                _graphWidget.GenerateMainGraph(cl);
-                rounds += 1;
-                if (rounds % 1 == 0)
+
+                try
                 {
-                    //clear staging buffers
-                    //https://github.com/mellinoe/veldrid/issues/411
-                    cl.Dispose();
-                    cl = _clientState!._GraphicsDevice!.ResourceFactory.CreateCommandList();
-                    rounds = 0;
+                    _graphWidget.GenerateMainGraph(cl);
                 }
+                catch (Exception e)
+                {
+                    Logging.RecordException($"update_rendering error: {e.Message}", e);
+                    if (exceptionCount++ > 5)
+                    {
+                        Logging.RecordError("Maingraph renderer terminating due to excess exceptions");
+                        break;
+                    }
+                }
+
+
+
+                //clear staging buffers
+                //https://github.com/mellinoe/veldrid/issues/411
+                cl.Dispose();
+                cl = _clientState!._GraphicsDevice!.ResourceFactory.CreateCommandList();
                 st.Stop();
                 //if (st.ElapsedMilliseconds > 0) System.Console.WriteLine($"gmg took {st.ElapsedMilliseconds} ms");
 
-                //todo get rid of this 1000 after testing
-                if (GlobalConfig.MainGraphRenderDelay > 0)
-                {
-                    Thread.Sleep(GlobalConfig.MainGraphRenderDelay);
-                }
+                Thread.Sleep(GlobalConfig.MainGraphRenderDelay);
+
             }
 
             Finished();

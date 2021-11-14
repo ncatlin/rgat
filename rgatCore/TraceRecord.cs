@@ -315,10 +315,8 @@ namespace rgat
             {
                 lock (GraphListLock)
                 {
-                    Logging.RecordLogEvent($"\t\t {_protoGraphs.Count} graphs", Logging.LogFilterType.Debug);
                     foreach (ProtoGraph graph in _protoGraphs.Values)
                     {
-                        Logging.RecordLogEvent("\t\t clearing flag step", Logging.LogFilterType.Debug);
                         graph.ClearRecentStep();
                     }
                 }
