@@ -183,8 +183,55 @@ namespace rgat
         /// </summary>
         public static void IncreaseLoadedTraceCount() => TotalTraceCount += 1;
 
+        static Dictionary<int, string> _pendingDeletionLoaders = new();
+        public static void AddDLLLoaderForDeletion(int PID, string path)
+        {
+            lock (_staticLock)
+            {
+                if (_pendingDeletionLoaders.TryGetValue(PID, out string? otherLoaderPath))
+                {
+                    if (File.Exists(otherLoaderPath))
+                    {
+                        DeleteSignedBinary(otherLoaderPath);
+                    }
+                }
+                _pendingDeletionLoaders.Add(PID, path);
+            }
+        }
 
+        /// <summary>
+        /// Delete a binary signed by the rgat dev
+        /// </summary>
+        /// <param name="path">Path to the binary</param>
+        public static void DeleteSignedBinary(string path)
+        {
+            if (File.Exists(path) &&
+                GlobalConfig.VerifyCertificate(path, CONSTANTS.SIGNERS.RGAT_SIGNERS, out string? error, out string? timeWarning))
+            {
+                File.Delete(path);
+            }
+        }
 
+        /// <summary>
+        /// Delete any registered DLL loaders that are no longer running
+        /// </summary>
+        public static void DeleteStaleLoaders()
+        {
+            lock (_staticLock)
+            {
+                foreach(KeyValuePair<int, string> pid_path in _pendingDeletionLoaders)
+                {
+                    try
+                    {
+                        Process.GetProcessById(pid_path.Key);
+                    }
+                    catch
+                    {
+                        DeleteSignedBinary(pid_path.Value);
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// Terminate all spawned processes and internal workers, then exit
@@ -226,7 +273,7 @@ namespace rgat
                     {
                         Thread.Sleep(100);
                         limit--;
-                        if (limit<= 0)
+                        if (limit <= 0)
                         {
                             return;
                         }

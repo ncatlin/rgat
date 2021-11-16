@@ -15,7 +15,7 @@ namespace UpdateFinaliser
 
         /// <summary>
         /// Arg0: rgat processID to wait for termination
-        /// Arg1: rgat.exe being replaced
+        /// Arg1: directory of rgat.exe being replaced
         /// Arg2: new rgat.exe
         /// Arg3: true/false -whether to run rgat after replacement
         /// </summary>
@@ -28,7 +28,8 @@ namespace UpdateFinaliser
                 return;
             }
 
-            string logf = Path.Combine(Path.GetDirectoryName(args[1]), "rgatupdatelog.txt");
+            string originalDirectory = args[1];
+            string logf = Path.Combine(originalDirectory, "rgatupdatelog.txt");
             using FileStream log = File.OpenWrite(logf);
             log.Write(Encoding.ASCII.GetBytes($"Started with args len {args.Length} {string.Join(",", args)}\n"));
 
@@ -40,7 +41,7 @@ namespace UpdateFinaliser
             }
 
             log.Write(Encoding.ASCII.GetBytes("Checking original rgat exists\n"));
-            string originalrgat = args[1];
+            string originalrgat = Path.Combine(originalDirectory, "rgat.exe");
             if (!File.Exists(originalrgat))
             {
                 log.Write(Encoding.ASCII.GetBytes($"Error: {originalrgat} did not exist\n"));

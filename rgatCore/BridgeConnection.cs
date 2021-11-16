@@ -75,7 +75,14 @@ namespace rgat
         private readonly object _messagesLock = new object();
         private List<Tuple<string, Themes.eThemeColour?>> _displayLogMessages = new List<Tuple<string, Themes.eThemeColour?>>();
 
+        /// <summary>
+        /// Unique ID for the connected host
+        /// </summary>
         public string ConnectedHostID { get; private set; } = "";
+        /// <summary>
+        /// Set the unique reference for the connected host
+        /// </summary>
+        /// <param name="ID"></param>
         public void SetConnectedHostID(string ID) => ConnectedHostID = ID; 
 
         /// <summary>
@@ -990,6 +997,7 @@ namespace rgat
 
                 foreach (var item in items)
                 {
+                    Console.WriteLine($"Sending raw {ASCIIEncoding.ASCII.GetString(item.data)}");
                     if (!RawSendData(item))
                     {
                         Teardown("Send outgoing loop failed");

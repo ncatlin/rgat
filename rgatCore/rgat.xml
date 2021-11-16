@@ -791,6 +791,17 @@
             The state of the connection
             </summary>
         </member>
+        <member name="P:rgat.BridgeConnection.ConnectedHostID">
+            <summary>
+            Unique ID for the connected host
+            </summary>
+        </member>
+        <member name="M:rgat.BridgeConnection.SetConnectedHostID(System.String)">
+            <summary>
+            Set the unique reference for the connected host
+            </summary>
+            <param name="ID"></param>
+        </member>
         <member name="P:rgat.BridgeConnection.GUIMode">
             <summary>
             Whether this instance is the GUI.

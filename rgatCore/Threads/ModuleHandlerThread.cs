@@ -408,6 +408,7 @@ namespace rgat
             {
                 try
                 {
+                    Console.WriteLine($"Commandpipe outputting async: {ASCIIEncoding.ASCII.GetString(cmd)}");
                     Logging.RecordLogEvent($"controlPipe.BeginWrite with {cmd.Length} bytes: {Encoding.ASCII.GetString(cmd)}", Logging.LogFilterType.Debug);
                     //This is async because the commandPipe can block, hanging the caller
                     System.Threading.Tasks.Task.Run(() => commandPipe.WriteAsync(cmd, 0, cmd.Length, rgatState.ExitToken));
@@ -436,7 +437,7 @@ namespace rgat
                 return false;
             }
 
-
+            Console.WriteLine($"Commandpipe outputting: {msg}");
             byte[] buf = Encoding.UTF8.GetBytes(msg);
             try { commandPipe!.Write(buf, 0, buf.Length); }
             catch (Exception e)
@@ -977,6 +978,11 @@ namespace rgat
 
             Logging.RecordLogEvent($"ControlHandler Listener thread exited for PID {trace.PID}", trace: trace);
             Finished();
+
+            if (this.target.IsLibrary)
+            {
+                rgatState.DeleteStaleLoaders();
+            }
         }
 
     }

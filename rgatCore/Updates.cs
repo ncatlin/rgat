@@ -67,7 +67,7 @@ namespace rgat
 
                         if (((JObject)releaseTok).TryGetValue("tag_name", out JToken? releaseTagTok)
                             &&
-                            ((JObject)releaseTok).TryGetValue("zipball_url", out JToken? zipUrlTok)
+                            ((JObject)releaseTok).TryGetValue("assets", out JToken? assetsTok) && assetsTok.Type is JTokenType.Array
                             )
                         {
                             string tagString = releaseTagTok.ToString();
@@ -76,7 +76,29 @@ namespace rgat
                                 tagString = tagString.Substring(1);
                             }
 
-                            if (tagString.Count(x => x == '.') >= 2)
+                            JArray? assets = assetsTok.ToObject<JArray>();
+                            if (assets is null)
+                            {
+                                Logging.RecordError($"Bad assets entry in release {tagString}");
+                                return;
+                            }
+
+                            string downloadLink = "";
+                            foreach(JToken assetTok in assets)
+                            {
+                                JObject? asset = assetTok.ToObject<JObject>();
+                                if (asset is not null && asset.TryGetValue("name", out JToken? nameTok) && 
+                                    nameTok is not null && nameTok.ToString() == "rgat.zip")
+                                {
+                                    if (asset.TryGetValue("browser_download_url", out JToken? linkTok) && linkTok is not null)
+                                    {
+                                        downloadLink = linkTok.ToString();
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (tagString.Count(x => x == '.') >= 2 && downloadLink.StartsWith("https:"))
                             {
                                 Version releaseVersion = new Version(tagString);
                                 //todo replace these lines when dev is done
@@ -84,7 +106,7 @@ namespace rgat
                                 {
                                     newVersion = true;
                                     latestVersion = releaseVersion;
-                                    latestZip = zipUrlTok.ToString();
+                                    latestZip = downloadLink;
                                 }
                             }
                         }

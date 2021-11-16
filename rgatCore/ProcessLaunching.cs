@@ -214,6 +214,7 @@ namespace rgat
                 result = System.Diagnostics.Process.Start(startInfo);
                 if (result is not null)
                 {
+                    rgatState.AddDLLLoaderForDeletion(result.Id, loaderPath);
                     result.Exited += (sender, args) => DeleteLoader(loaderPath);
                 }
                 else
@@ -232,7 +233,10 @@ namespace rgat
         {
             try
             {
-                File.Delete(loader);
+                if (File.Exists(loader))
+                {
+                    File.Delete(loader);
+                }
             }
             catch (Exception e)
             {
@@ -245,12 +249,13 @@ namespace rgat
             loaderPath = Path.Combine(directory, name);
 
             int attempts = 10;
+            
             while (File.Exists(loaderPath))
             {
                 loaderPath = Path.Combine(directory, $"{Path.GetRandomFileName().Substring(0, 4)}_{name}");
                 if (attempts-- < 0)
                 {
-                    Logging.RecordError("Unable to create loader due to prexisting loaders with similar name");
+                    Logging.RecordError("Unable to create loader due to pre-existing loaders with similar name");
                     return false;
                 }
             }
@@ -320,6 +325,7 @@ namespace rgat
             }
             return result;
         }
+
 
 
         public static void StartRemoteTrace(BinaryTarget target, ProcessLaunchSettings settings, long testID = -1)

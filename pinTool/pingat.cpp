@@ -1083,7 +1083,7 @@ VOID ThreadStart_openFD(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* 
 
 	cout << "Failed to connect thread pipe, exiting process" << std::endl;
 	PIN_ExitProcess(1);
-}
+	}
 
 VOID ThreadEnd(THREADID threadIndex, const CONTEXT* ctxt, INT32 flags, VOID* v)
 {

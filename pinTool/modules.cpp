@@ -139,7 +139,6 @@ void getModuleIncludeLists()
 
 	char *recvBuf = (char *)malloc(maxEntrySize);
 	if (!recvBuf) {
-		wprintf(L"X1\n");
 		std::wstring message = L"Failed to allocate a buffer for include lists, terminating process.";
 		writeEventPipe("!getModuleIncludeLists(): %s", message.c_str());
 		DeclareTerribleEventAndExit(message);
