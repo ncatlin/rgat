@@ -193,6 +193,7 @@ namespace rgat
                     if (File.Exists(otherLoaderPath))
                     {
                         DeleteSignedBinary(otherLoaderPath);
+                        _pendingDeletionLoaders.Remove(PID);
                     }
                 }
                 _pendingDeletionLoaders.Add(PID, path);
@@ -200,16 +201,33 @@ namespace rgat
         }
 
         /// <summary>
-        /// Delete a binary signed by the rgat dev
+        /// Delete a binary signed by the rgat dev - the signature
+        /// doesn't have to be valid - it's just a safeguard against deleting something important
+        /// Some analysis VMs are bad at building legit cert chains
         /// </summary>
         /// <param name="path">Path to the binary</param>
         public static void DeleteSignedBinary(string path)
         {
-            if (File.Exists(path) &&
-                GlobalConfig.VerifyCertificate(path, CONSTANTS.SIGNERS.RGAT_SIGNERS, out string? error, out string? timeWarning))
+            string? error = null;
+            if (File.Exists(path) is false) return;
+            if(GlobalConfig.VerifyCertificate(path, CONSTANTS.SIGNERS.RGAT_SIGNERS, out error, out string? timeWarning))
             {
                 File.Delete(path);
+                return;
             }
+
+            if (error is null && timeWarning is not null)
+            {
+                File.Delete(path);
+                return;
+            }
+
+            if(error is not null && error.Contains("Unexpected Signer") is false)
+            {
+                File.Delete(path);
+                return;
+            }
+            
         }
 
         /// <summary>
@@ -219,15 +237,18 @@ namespace rgat
         {
             lock (_staticLock)
             {
-                foreach(KeyValuePair<int, string> pid_path in _pendingDeletionLoaders)
+                var _staleList = _pendingDeletionLoaders.Keys;
+                foreach (int pid in _staleList)
                 {
                     try
                     {
-                        Process.GetProcessById(pid_path.Key);
+                        Process.GetProcessById(pid);
+                        //still running if it gets here
                     }
                     catch
                     {
-                        DeleteSignedBinary(pid_path.Value);
+                        DeleteSignedBinary(_pendingDeletionLoaders[pid]);
+                        _pendingDeletionLoaders.Remove(pid);
                     }
                 }
             }

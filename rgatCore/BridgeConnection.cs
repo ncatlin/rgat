@@ -997,7 +997,8 @@ namespace rgat
 
                 foreach (var item in items)
                 {
-                    Console.WriteLine($"Sending raw {ASCIIEncoding.ASCII.GetString(item.data)}");
+                    if (rgatState.NetworkBridge.GUIMode)
+                        Console.WriteLine($"Sending raw {ASCIIEncoding.ASCII.GetString(item.data)}");
                     if (!RawSendData(item))
                     {
                         Teardown("Send outgoing loop failed");

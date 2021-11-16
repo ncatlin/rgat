@@ -79,7 +79,7 @@ namespace rgat
 
                 if (!certificateChain.Build(certificate))
                 {
-                    error = "Unverifiable signature";
+                    error = $"Unverifiable signature for {path}";
                     return false;
                 }
                 error = "Success";

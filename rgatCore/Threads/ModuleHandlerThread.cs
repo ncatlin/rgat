@@ -981,7 +981,10 @@ namespace rgat
 
             if (this.target.IsLibrary)
             {
-                rgatState.DeleteStaleLoaders();
+                System.Threading.Tasks.Task.Run(() => {
+                    System.Threading.Tasks.Task.Delay(2500).Wait();
+                    rgatState.DeleteStaleLoaders();
+                });
             }
         }
 

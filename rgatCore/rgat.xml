@@ -6933,6 +6933,17 @@
             Record the connection of a new trace
             </summary>
         </member>
+        <member name="M:rgat.rgatState.DeleteSignedBinary(System.String)">
+            <summary>
+            Delete a binary signed by the rgat dev
+            </summary>
+            <param name="path">Path to the binary</param>
+        </member>
+        <member name="M:rgat.rgatState.DeleteStaleLoaders">
+            <summary>
+            Delete any registered DLL loaders that are no longer running
+            </summary>
+        </member>
         <member name="M:rgat.rgatState.Shutdown">
             <summary>
             Terminate all spawned processes and internal workers, then exit
