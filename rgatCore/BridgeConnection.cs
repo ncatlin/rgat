@@ -83,7 +83,7 @@ namespace rgat
         /// Set the unique reference for the connected host
         /// </summary>
         /// <param name="ID"></param>
-        public void SetConnectedHostID(string ID) => ConnectedHostID = ID; 
+        public void SetConnectedHostID(string ID) => ConnectedHostID = ID;
 
         /// <summary>
         /// Whether this instance is the GUI.
@@ -405,20 +405,17 @@ namespace rgat
                     switch (innerE.SocketErrorCode)
                     {
                         case SocketError.ConnectionReset:
-                            AddNetworkDisplayLogMessage($"Receive Failed: The connection was reset ({innerE.ErrorCode})", Themes.eThemeColour.WarnStateColour);
+                            AddNetworkDisplayLogMessage($"ReadData Receive Failed: The connection was reset ({innerE.ErrorCode})", Themes.eThemeColour.WarnStateColour);
                             break;
                         default:
-                            AddNetworkDisplayLogMessage($"Receive Failed: {innerE.SocketErrorCode} ({innerE.ErrorCode})", Themes.eThemeColour.WarnStateColour);
+                            AddNetworkDisplayLogMessage($"ReadData Receive Failed: {innerE.SocketErrorCode} ({innerE.ErrorCode})", Themes.eThemeColour.WarnStateColour);
                             break;
                     }
                 }
                 else
                 {
-                    if (rgatState.rgatIsExiting is false)
-                    {
-                        Logging.RecordError($"Receive Failed: {IOExcep.Message}");
-                        AddNetworkDisplayLogMessage($"Receive Failed: {IOExcep.Message}", Themes.eThemeColour.WarnStateColour);
-                    }
+                    Logging.RecordError($"ReadData Receive Failed: {IOExcep.Message}");
+                    AddNetworkDisplayLogMessage($"ReadData Receive Failed: {IOExcep.Message}", Themes.eThemeColour.WarnStateColour);
                 }
             }
             catch (Exception e)

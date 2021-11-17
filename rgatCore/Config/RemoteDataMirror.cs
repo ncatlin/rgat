@@ -223,7 +223,10 @@ namespace rgat.Config
                         rgatState.NetworkBridge.Teardown($"Command failed: {commandID}:{cmdref}");
                     }
                     _pendingCommandCallbacks.Remove(commandID);
-                    _pendingEvents.Remove(_pendingEventsReverse[commandID]);
+                    if (_pendingEvents.ContainsKey(cmdref))
+                    {
+                        _pendingEvents.Remove(cmdref);
+                    }
                     _pendingEventsReverse.Remove(commandID);
 
                 }

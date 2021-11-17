@@ -328,7 +328,7 @@ namespace rgat
                             { "RID", trace.randID },
                             { "ref", traceRef }
                         };
-                        rgatState.NetworkBridge.SendCommand("ThreadIngest", trace.randID.ToString() + spawnedThreadCount.ToString(), 
+                        rgatState.NetworkBridge.SendCommand("ThreadIngest", trace.randID.ToString() + spawnedThreadCount.ToString(),
                             SpawnRemoteTraceProcessorThreads, params_);
                     }
 
@@ -981,10 +981,8 @@ namespace rgat
 
             if (this.target.IsLibrary)
             {
-                System.Threading.Tasks.Task.Run(() => {
-                    System.Threading.Tasks.Task.Delay(2500).Wait();
-                    rgatState.DeleteStaleLoaders();
-                });
+                Thread.Sleep(2500);
+                rgatState.DeleteStaleLoaders();
             }
         }
 

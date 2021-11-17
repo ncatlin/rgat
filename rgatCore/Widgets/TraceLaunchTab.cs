@@ -80,7 +80,7 @@ namespace rgat
                             if (activeTarget.IsAccessible)
                             {
                                 ImGui.Text("[Remote Target]");
-                                SmallWidgets.MouseoverText($"This target is loaded on {activeTarget.RemoteHost}");
+                                SmallWidgets.MouseoverText($"This target is present on {activeTarget.RemoteHost}");
                             }
                             else
                             {
@@ -98,6 +98,7 @@ namespace rgat
                                 ImGui.PushStyleColor(ImGuiCol.Text, Themes.GetThemeColourUINT(Themes.eThemeColour.BadStateColour));
                                 ImGui.Text("[Local]");
                                 ImGui.PopStyleColor();
+                                SmallWidgets.MouseoverText("Local files cannot be traced in remote mode");
                             }
                         }
 
@@ -246,6 +247,7 @@ namespace rgat
 
 
         //unused for now
+        /*
         private static void DrawTraceTab_DiagnosticSettings(float width)
         {
             ImGui.BeginGroup();
@@ -276,7 +278,7 @@ namespace rgat
             }
             ImGui.EndGroup();
         }
-
+        */
 
         private void DrawTraceTab_InstrumentationSettings(BinaryTarget activeTarget, float width)
         {
@@ -603,7 +605,7 @@ namespace rgat
 
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y - (40 + 5));
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + width - 140);
-                    StartButton(activeTarget, pintoolpath, 40);
+                    StartButton(activeTarget,  40);
 
                     ImGui.EndChild();
                 }
@@ -746,7 +748,7 @@ namespace rgat
         }
 
 
-        private void StartButton(BinaryTarget activeTarget, string pintoolpath, float height)
+        private void StartButton(BinaryTarget activeTarget, float height)
         {
 
             bool runnable = _activeTargetRunnable && GlobalConfig.Loaded && rgatUI.StartupProgress >= 1;
@@ -779,7 +781,7 @@ namespace rgat
 
                     //todo loadername, ordinal
                     System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
-                    System.Diagnostics.Process? p = ProcessLaunching.StartLocalTrace(pintoolpath, settings: settings, targetPE: activeTarget.PEFileObj);
+                    System.Diagnostics.Process? p = ProcessLaunching.StartLocalTrace(activeTarget.BitWidth, settings: settings, targetPE: activeTarget.PEFileObj);
                     if (p != null)
                     {
                         watch.Start();

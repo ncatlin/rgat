@@ -1467,6 +1467,11 @@
             <param name="GUI">true if loading in GUI mode</param>
             <param name="progress">optional IProgress</param>
         </member>
+        <member name="M:rgat.GlobalConfig.InstallNewTools">
+            <summary>
+            Install the pintools from the resources in the tools subdirectory
+            </summary>
+        </member>
         <member name="T:rgat.GlobalConfig.SignatureSource">
             <summary>
             Github signature sources
@@ -6935,7 +6940,9 @@
         </member>
         <member name="M:rgat.rgatState.DeleteSignedBinary(System.String)">
             <summary>
-            Delete a binary signed by the rgat dev
+            Delete a binary signed by the rgat dev - the signature
+            doesn't have to be valid - it's just a safeguard against deleting something important
+            Some analysis VMs are bad at building legit cert chains
             </summary>
             <param name="path">Path to the binary</param>
         </member>

@@ -1027,11 +1027,8 @@ namespace rgat.OperationModes
                 rgatState.NetworkBridge.Teardown("Bad Target");
                 return;
             }
-            string pintool = target.BitWidth == 32 ?
-                GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
-                GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
 
-            Process? p = ProcessLaunching.StartLocalTrace(pintool, settings, testID: testID);
+            Process? p = ProcessLaunching.StartLocalTrace(target.BitWidth, settings, testID: testID);
             if (p != null)
             {
                 rgatState.NetworkBridge.SendLog($"Trace of {path} launched as remote process ID {p.Id}", Logging.LogFilterType.Alert);

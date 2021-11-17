@@ -109,10 +109,7 @@ namespace rgat.OperationModes
                 settings.TraceChoices.InitDefaultExclusions();
             }
             
-            string pintoolpath = target.BitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
-                GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
-
-            ProcessLaunching.StartLocalTrace(pintoolpath, settings, target.PEFileObj);
+            ProcessLaunching.StartLocalTrace(target.BitWidth, settings, target.PEFileObj);
 
             while (true)
             {

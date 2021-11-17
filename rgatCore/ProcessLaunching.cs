@@ -101,12 +101,24 @@ namespace rgat
 
     internal class ProcessLaunching
     {
-        public static System.Diagnostics.Process? StartLocalTrace(string pintool, ProcessLaunchSettings settings, PeNet.PeFile? targetPE = null, long testID = -1)
+        public static System.Diagnostics.Process? StartLocalTrace(int bitWidth, ProcessLaunchSettings settings, PeNet.PeFile? targetPE = null, long testID = -1)
         {
             if (!File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath)))
             {
                 Logging.RecordError($"Pin.exe path is not correctly configured (Settings->Files->Pin Executable)");
                 return null;
+            }
+
+
+            string pintool = bitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
+                GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
+
+            if (File.Exists(pintool) is false)
+            {
+                Logging.RecordError("Valid pintool not found - installing");
+                GlobalConfig.InstallNewTools(); 
+                pintool = bitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
+                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
             }
 
             if (!File.Exists(pintool))

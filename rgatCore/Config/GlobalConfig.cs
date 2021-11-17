@@ -873,8 +873,10 @@ namespace rgat
             }
         }
 
-
-        private static void InstallNewTools()
+        /// <summary>
+        /// Install the pintools from the resources in the tools subdirectory
+        /// </summary>
+        public static void InstallNewTools()
         {
             string toolsDirectory = GetStorageDirectoryPath(BaseDirectory, "tools");
             if (!Directory.Exists(toolsDirectory))

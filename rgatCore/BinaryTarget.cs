@@ -212,7 +212,7 @@ namespace rgat
         /// <summary>
         /// Is this file accessible at the moment?
         /// </summary>
-        public bool IsAccessible => IsRemoteBinary ? RemoteAccessible : File.Exists(FilePath);
+        public bool IsAccessible => IsRemoteBinary ? RemoteAccessible : (rgatState.ConnectedToRemote is false && File.Exists(FilePath));
 
         /// <summary>
         /// A snippet of the first bytes of the file
@@ -472,6 +472,11 @@ namespace rgat
                 }
                 else
                 {
+                    if (fileSize is 0)
+                    {
+                        Logging.RecordLogEvent($"InitialiseFromRemoteData failed - file may no longer exist", Logging.LogFilterType.Error);
+                        return true;
+                    }
                     Logging.RecordLogEvent($"InitialiseFromRemoteData invalid SHA1", Logging.LogFilterType.Error);
                     return false;
                 }
