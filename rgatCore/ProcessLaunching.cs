@@ -105,25 +105,29 @@ namespace rgat
         {
             if (!File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath)))
             {
-                Logging.RecordError($"Pin.exe path is not correctly configured (Settings->Files->Pin Executable)");
-                return null;
+                GlobalConfig.InstallNewPin();
+                if (!File.Exists(GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinPath)))
+                {
+                    Logging.RecordError($"Pin.exe path is not correctly configured (Settings->Files->Pin Executable)");
+                    return null;
+                }
             }
 
 
-            string pintool = bitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
+            string pintool = bitWidth is 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                 GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
 
             if (File.Exists(pintool) is false)
             {
                 Logging.RecordError("Valid pintool not found - installing");
-                GlobalConfig.InstallNewTools(); 
-                pintool = bitWidth == 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
+                GlobalConfig.InstallNewTools();
+                pintool = bitWidth is 32 ? GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath32) :
                  GlobalConfig.GetSettingPath(CONSTANTS.PathKey.PinToolPath64);
             }
 
             if (!File.Exists(pintool))
             {
-                if (pintool == null)
+                if (pintool is null)
                 {
                     Logging.RecordError($"Pintool path was not set");
                 }
@@ -142,10 +146,10 @@ namespace rgat
 
             try
             {
-                if (targetPE == null)
+                if (targetPE is null)
                 {
                     targetPE = new PeNet.PeFile(settings.BinaryPath);
-                    if (targetPE == null)
+                    if (targetPE is null)
                     {
                         Logging.RecordError($"Unable to parse PE file: {settings.BinaryPath}");
                         return null;
@@ -190,7 +194,7 @@ namespace rgat
 
 
             string? binaryDir = Path.GetDirectoryName(settings.BinaryPath);
-            if (binaryDir is null || Directory.Exists(binaryDir) == false)
+            if (binaryDir is null || Directory.Exists(binaryDir) is false)
             {
                 Logging.RecordError("No binary directory");
                 return null;
@@ -261,7 +265,7 @@ namespace rgat
             loaderPath = Path.Combine(directory, name);
 
             int attempts = 10;
-            
+
             while (File.Exists(loaderPath))
             {
                 loaderPath = Path.Combine(directory, $"{Path.GetRandomFileName().Substring(0, 4)}_{name}");
@@ -272,12 +276,12 @@ namespace rgat
                 }
             }
 
-            byte[]? loaderBytes = (loaderWidth == BitWidth.Arch32) ?
+            byte[]? loaderBytes = (loaderWidth is BitWidth.Arch32) ?
                 global::rgat.Properties.Resources.DllLoader32 :
                 global::rgat.Properties.Resources.DllLoader64;
-            if (loaderBytes == null)
+            if (loaderBytes is null)
             {
-                string loaderName = (loaderWidth == BitWidth.Arch32) ? "DllLoader32" : "DllLoader64";
+                string loaderName = (loaderWidth is BitWidth.Arch32) ? "DllLoader32" : "DllLoader64";
                 Logging.RecordError($"Unable to retrieve loader {loaderName} from resources");
                 return false;
             }

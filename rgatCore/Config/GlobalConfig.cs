@@ -832,7 +832,10 @@ namespace rgat
         }
 
 
-        private static void InstallNewPin(bool forceNew = false)
+        /// <summary>
+        /// Install the pin.exe from the resources in the tools subdirectory
+        /// </summary>
+        public static void InstallNewPin(bool forceNew = false)
         {
 
             string toolsDir = Path.Combine(GlobalConfig.BaseDirectory, "tools");
