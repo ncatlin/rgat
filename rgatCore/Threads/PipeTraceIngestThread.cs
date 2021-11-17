@@ -90,6 +90,19 @@ namespace rgat
             rgatState.NetworkBridge.SendRawTraceData(_remotePipe!.Value, buf, buf.Length);
         }
 
+        /// <summary>
+        /// Clear the queues
+        /// </summary>
+        public override void ClearQueue()
+        {
+            lock (QueueSwitchLock)
+            {
+                ReadingQueue?.Clear();
+                WritingQueue?.Clear();
+                PendingDataSize = 0;
+                QueueSize = 0;
+            }
+        }
 
         /// <summary>
         /// Fetch the next trace data item to process

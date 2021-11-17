@@ -14,6 +14,63 @@ VOID wraphead_CloseHandle(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT fu
 }
 
 
+VOID wraphead_CreateProcessA(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, 
+	WINDOWS::LPCSTR lpApplicationName,
+	WINDOWS::LPSTR lpCommandLine
+	)
+{
+	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
+	if (threaddata->lastBlock->blockID == -1) return;
+
+	if (lpApplicationName != 0) {
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpApplicationName);
+	}
+	else {
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,NULL\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+	}
+
+	if (lpCommandLine != 0) {
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,%s\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, lpCommandLine);
+	}
+	else {
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+	}
+
+
+	fflush(threaddata->threadpipeFILE);
+}
+
+VOID wraphead_CreateProcessW(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr,
+	WINDOWS::LPCWSTR lpApplicationName,
+	WINDOWS::LPWSTR lpCommandLine
+)
+{
+	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
+	if (threaddata->lastBlock->blockID == -1) return;
+
+	char buf[PATH_MAX]; //if its bigger than this then its not going to fit on the screen anyway
+
+	if (lpApplicationName != 0) {
+		wcstombs(buf, lpApplicationName, PATH_MAX);
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,%s\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, buf);
+	}
+	else {
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,M,NULL\x01", 0, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+	}
+
+	if (lpCommandLine != 0) {
+		wcstombs(buf, lpCommandLine, PATH_MAX);
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,%s\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID, buf);
+	}
+	else {
+		fprintf(threaddata->threadpipeFILE, ARG_MARKER",%d," PTR_prefix ",%lx,E,NULL\x01", 1, (void*)funcaddr, (void*)threaddata->lastBlock->blockID);
+	}
+
+
+	fflush(threaddata->threadpipeFILE);
+}
+
+
 VOID wraphead_ReadFile(LEVEL_VM::THREADID threadid, UINT32 tlskey, ADDRINT funcaddr, DWORD handleArg, DWORD bytesInArg)
 {
 	threadObject* threaddata = static_cast<threadObject*>(PIN_GetThreadData(tlskey, threadid));
@@ -305,6 +362,30 @@ void wrapKernel32Funcs(IMG img, UINT32 TLS_KEY)
 		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_CloseHandle,
 			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR, 
 			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+			IARG_END);
+		RTN_Close(rtn);
+	}
+
+	rtn = RTN_FindByName(img, "CreateProcessA");
+	if (RTN_Valid(rtn))
+	{
+		RTN_Open(rtn);
+		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_CreateProcessA,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR,
+			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+			IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+			IARG_END);
+		RTN_Close(rtn);
+	}
+
+	rtn = RTN_FindByName(img, "CreateProcessW");
+	if (RTN_Valid(rtn))
+	{
+		RTN_Open(rtn);
+		RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)wraphead_CreateProcessW,
+			IARG_THREAD_ID, IARG_UINT32, TLS_KEY, IARG_INST_PTR,
+			IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+			IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
 			IARG_END);
 		RTN_Close(rtn);
 	}

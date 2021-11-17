@@ -239,6 +239,10 @@ namespace rgat
 
             int NewPosition = (int)(position * InternalProtoGraph.UpdateCount);
             _userSelectedAnimPosition = NewPosition;
+            if (ReplayState == REPLAY_STATE.Paused)
+            {
+                process_replay_animation_updates(forcePaused: true);
+            }
         }
 
         /// <summary>
@@ -338,7 +342,7 @@ namespace rgat
         /// <param name="steps">The number of animation entries to process</param>
         public void StepPausedAnimation(int steps)
         {
-            process_replay_animation_updates(steps);
+            process_replay_animation_updates(optionalStepSize: steps);
             AnimationIndex = (int)Math.Floor(AnimationIndex);
         }
 
@@ -2209,7 +2213,7 @@ namespace rgat
             return true;
         }
 
-        private void process_replay_animation_updates(double optionalStepSize = 0)
+        private void process_replay_animation_updates(double optionalStepSize = 0, bool forcePaused = false)
         {
 
             var animationData = InternalProtoGraph.GetSavedAnimationDataReference();
@@ -2228,7 +2232,7 @@ namespace rgat
             }
             else
             {
-                stepSize = (ReplayState != REPLAY_STATE.Paused) ? AnimationRate : 0;
+                stepSize = (ReplayState is not REPLAY_STATE.Paused || forcePaused is true) ? AnimationRate : 0;
             }
 
             double targetAnimIndex = AnimationIndex + stepSize;

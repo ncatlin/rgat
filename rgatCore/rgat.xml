@@ -1467,6 +1467,11 @@
             <param name="GUI">true if loading in GUI mode</param>
             <param name="progress">optional IProgress</param>
         </member>
+        <member name="M:rgat.GlobalConfig.InstallNewPin(System.Boolean)">
+            <summary>
+            Install the pin.exe from the resources in the tools subdirectory
+            </summary>
+        </member>
         <member name="M:rgat.GlobalConfig.InstallNewTools">
             <summary>
             Install the pintools from the resources in the tools subdirectory
@@ -8601,6 +8606,11 @@
             Stop processing, cause the worker to exit
             </summary>
         </member>
+        <member name="M:rgat.Threads.TraceIngestWorker.ClearQueue">
+            <summary>
+            Empty the queue
+            </summary>
+        </member>
         <member name="M:rgat.Threads.TraceIngestWorker.DeQueueData">
             <summary>
             Fetch the next data from the queue
@@ -8786,6 +8796,11 @@
         <member name="M:rgat.PipeTraceIngestThread.Begin">
             <summary>
             Start work
+            </summary>
+        </member>
+        <member name="M:rgat.PipeTraceIngestThread.ClearQueue">
+            <summary>
+            Clear the queues
             </summary>
         </member>
         <member name="M:rgat.PipeTraceIngestThread.DeQueueData">

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.2] - 2021-11-??
+
+### Added 
+
+- Missing pin/pintool binaries are now re-installed on trace start
+
+### Fixed
+- The animation will update when the user selects a new position while paused
+- DLL Loader stubs are now more reliably deleted
+- Trace queue purging is now more reliable
+- The Ignore/Trace list file picker now works in remote tracing mode
+
 ## [0.6.1] - 2021-11-14
 
 ### Added

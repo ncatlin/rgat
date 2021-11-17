@@ -1672,8 +1672,6 @@ namespace rgat
             ImGui.OpenPopup(title);
             if (ImGui.BeginPopupModal(title, ref show_select_exe_window, ImGuiWindowFlags.NoScrollbar))
             {
-
-
                 rgatFilePicker.FilePicker picker;
                 bool isRemote = rgatState.ConnectedToRemote;
                 if (isRemote)
@@ -1783,13 +1781,22 @@ namespace rgat
         public void DrawTraceListSelectBox(ref bool shown)
         {
 
-            string? startdir = rgatState.ActiveTarget != null ? Path.GetDirectoryName(rgatState.ActiveTarget.FilePath) : null;
-            if (startdir is null || !Directory.Exists(startdir))
-            {
-                startdir = Environment.CurrentDirectory;
-            }
 
-            var picker = rgatFilePicker.FilePicker.GetFilePicker(this, startdir, allowMulti: true);
+
+            rgatFilePicker.FilePicker? picker = null;
+            if (rgatState.ConnectedToRemote)
+            {
+                picker = rgatFilePicker.FilePicker.GetRemoteFilePicker(this, allowMulti: true);
+            }
+            else
+            {
+                string? startdir = rgatState.ActiveTarget != null ? Path.GetDirectoryName(rgatState.ActiveTarget.FilePath) : null;
+                if (startdir is null || !Directory.Exists(startdir))
+                {
+                    startdir = Environment.CurrentDirectory;
+                }
+                picker = rgatFilePicker.FilePicker.GetFilePicker(this, startdir, allowMulti: true);
+            }
 
             string title = "Select Files to List";
             if (picker != null && picker.AllowMultiSelect)

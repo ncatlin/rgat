@@ -59,6 +59,15 @@ namespace rgat.Threads
             IncreaseMessageCount();
         }
 
+        public override void ClearQueue()
+        {
+            lock (_lock)
+            {
+                InQueue.Clear();
+                PendingDataSize = 0;
+                QueueSize = 0;
+            }
+        }
 
         public override byte[]? DeQueueData()
         {

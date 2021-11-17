@@ -62,6 +62,7 @@
     <None Remove="Shaders\SPIR-V\sim-nodeVelocity.spv" />
     <None Remove="Shaders\SPIR-V\sim-presetVelocity.spv" />
     <None Remove="Testing\TestsWindow.cs~RFc90675a.TMP" />
+    <None Remove="Threads\ModuleHandlerThread.cs~RF330c0eba.TMP" />
   </ItemGroup>
 
   <ItemGroup>

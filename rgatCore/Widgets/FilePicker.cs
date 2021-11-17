@@ -561,6 +561,8 @@ namespace rgatFilePicker
                 _filePickers[o] = fp;
             }
 
+            fp.OnlyAllowFolders = onlyAllowFolders;
+            fp.AllowMultiSelect = allowMulti;
             return fp;
         }
 

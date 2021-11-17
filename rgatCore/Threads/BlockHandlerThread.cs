@@ -271,7 +271,7 @@ namespace rgat
                     //need to move this out of the lock
                     if (ProcessRecord.DisassembleIns(disassembler, insaddr, instruction) < 1)
                     {
-                        Logging.RecordLogEvent($"[rgat]ERROR: Bad dissasembly in PID {trace.PID}. Corrupt trace?", Logging.LogFilterType.Error);
+                        Logging.RecordLogEvent($"[rgat]ERROR: Bad disassembly in PID {trace.PID} at 0x{insaddr:X}. Corrupt trace?", Logging.LogFilterType.Error);
                         return;
                     }
 

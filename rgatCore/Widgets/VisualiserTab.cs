@@ -945,6 +945,7 @@ namespace rgat
                     {
                         graph.TraceProcessor?.Terminate();
                         graph.TraceReader?.Terminate();
+                        graph.TraceReader?.ClearQueue();
                     }
                     SmallWidgets.MouseoverText("Discard the trace backlog");
                     ImGui.PopStyleVar();

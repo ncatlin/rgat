@@ -91,6 +91,10 @@ namespace rgat.Threads
             }
         }
 
+        /// <summary>
+        /// Empty the queue
+        /// </summary>
+        public abstract void ClearQueue();
 
         /// <summary>
         /// Fetch the next data from the queue

@@ -421,7 +421,7 @@ namespace rgat
             catch (Exception e)
             {
                 data = null;
-                if (cancelTokens.IsCancellationRequested)
+                if (cancelTokens.IsCancellationRequested || rgatState.rgatIsExiting)
                 {
                     return false;
                 }
