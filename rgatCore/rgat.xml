@@ -6011,9 +6011,9 @@
             </summary>
             <param name="address"></param>
         </member>
-        <member name="M:rgat.ProcessRecord.IsNonImageAddress(System.UInt64)">
+        <member name="M:rgat.ProcessRecord.IsAddressNonImage(System.UInt64)">
             <summary>
-            Is this address in non-image memory?
+            Check if the address is part of known-executing non-image backed memory
             </summary>
             <param name="address"></param>
             <returns></returns>

@@ -15,7 +15,8 @@ VOID moduleLoad(IMG img, VOID * threadData_TLSKEY)
 	
 	std::transform(path.begin(), path.end(), path.begin(), std::tolower);
 
-	bool isInstrumented = module_should_be_instrumented(path);
+	
+	bool isInstrumented = IMG_IsMainExecutable(img) ? true : module_should_be_instrumented(path);
 
 	moduleData *thisModule = new moduleData; 
 	thisModule->start = IMG_LowAddress(img);

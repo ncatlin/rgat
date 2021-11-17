@@ -172,6 +172,20 @@ namespace rgat
             }
         }
 
+        private void RecordNonImageRegionExecution(byte[] buf)
+        {
+            string[] fields = Encoding.ASCII.GetString(buf).Split('@', 4);
+            if (fields[0] is not "XMEM" || fields.Length != 4)
+            {
+                Logging.RecordError("Bad executable memory region trace report");
+                return;
+            }
+            ulong start = ulong.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
+            ulong end = ulong.Parse(fields[2], System.Globalization.NumberStyles.HexNumber);
+            bool instrumented = fields[3] == "1";
+            trace.DisassemblyData.AddNonImageRegion(start, end, instrumented);
+        }
+
 
         /// <summary>
         /// Called after a new target thread has been spawned. We can expect it to try to 
@@ -408,7 +422,6 @@ namespace rgat
             {
                 try
                 {
-                    Console.WriteLine($"Commandpipe outputting async: {ASCIIEncoding.ASCII.GetString(cmd)}");
                     Logging.RecordLogEvent($"controlPipe.BeginWrite with {cmd.Length} bytes: {Encoding.ASCII.GetString(cmd)}", Logging.LogFilterType.Debug);
                     //This is async because the commandPipe can block, hanging the caller
                     System.Threading.Tasks.Task.Run(() => commandPipe.WriteAsync(cmd, 0, cmd.Length, rgatState.ExitToken));
@@ -643,9 +656,15 @@ namespace rgat
                 return;
             }
 
-            if (buf[0] == 'P' && buf[1] == 'X')
+            if (buf[0] == 'P' && buf[1] == 'X') //process terminated
             {
                 HandleTerminatedProcess(buf);
+                return;
+            }
+
+            if (buf[0] == 'X' && buf[1] == 'M') //executing in a non-image backed buffer 
+            {
+                RecordNonImageRegionExecution(buf);
                 return;
             }
 

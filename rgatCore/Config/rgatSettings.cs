@@ -131,8 +131,8 @@ namespace rgat.Config
             lock (_lock)
             {
                 SavedLaunchSettings[targetSHA1] = settings;
-                MarkDirty();
             }
+            MarkDirty();
         }
 
 
@@ -295,9 +295,8 @@ namespace rgat.Config
                         {
                             _RecentConnectedAddresses.RemoveRange(5, _RecentConnectedAddresses.Count - 1);
                         }
-
-                        MarkDirty();
                     }
+                    MarkDirty();
                 }
             }
 
@@ -603,6 +602,7 @@ namespace rgat.Config
             /// <param name="userSpecified">Is a user specified keybind</param>
             public void SetKeybind(KeybindAction action, int bindIndex, Key k, ModifierKeys mod, bool userSpecified = false)
             {
+                bool dirty = false;
                 lock (_lock)
                 {
                     //reserved actions cant have modifier keys
@@ -644,7 +644,7 @@ namespace rgat.Config
                         };
                         UserKeybinds.RemoveAll(x => x.Key == k && x.Modifiers == mod);
                         UserKeybinds.Add(bind);
-                        MarkDirty();
+                        dirty = true;
                     }
 
                     //regenerate the keybinds lists
@@ -654,6 +654,9 @@ namespace rgat.Config
 
                     ResponsiveKeys = Active.Where(x => ResponsiveHeldActions!.Contains(x.Value)).Select(x => x.Key.Item1).ToList();
                 }
+
+                if (dirty)
+                    MarkDirty();
             }
 
             /// <summary>
@@ -706,9 +709,9 @@ namespace rgat.Config
                     if (!Paths.TryGetValue(setting, out string? oldval) || oldval != value)
                     {
                         Paths[setting] = value;
-                        MarkDirty();
                     }
                 }
+                MarkDirty();
             }
 
 
@@ -1233,8 +1236,8 @@ namespace rgat.Config
                 lock (_lock)
                 {
                     SignatureSources[source.FetchPath] = source;
-                    MarkDirty();
                 }
+                MarkDirty();
             }
 
             /// <summary>
@@ -1246,8 +1249,8 @@ namespace rgat.Config
                 lock (_lock)
                 {
                     SignatureSources[source.FetchPath] = source;
-                    MarkDirty();
                 }
+                MarkDirty();
             }
 
             /// <summary>
@@ -1262,9 +1265,9 @@ namespace rgat.Config
                     if (_signatureSources!.ContainsKey(sourcePath))
                     {
                         _signatureSources.Remove(sourcePath);
-                        MarkDirty();
                     }
                 }
+                MarkDirty();
             }
 
             /// <summary>
@@ -1317,8 +1320,8 @@ namespace rgat.Config
                 lock (_lock)
                 {
                     _signatureSources = result;
-                    MarkDirty();
                 }
+                MarkDirty();
             }
 
 

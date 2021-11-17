@@ -107,7 +107,7 @@ namespace rgat
         /// How many bytes of opcodes the instruction has
         /// </summary>
         public int NumBytes => Opcodes!.Length;
-        
+
         /// <summary>
         /// The index of the node containing this instruction in each thread [Thread ID/instruction index]
         /// </summary>
@@ -180,8 +180,8 @@ namespace rgat
         /// <param name="purpose">A purpose value for the trace [only visualiser is supported]</param>
         /// <param name="arch">32 or 64 bits, or 0 if unknown (remote)</param>
         /// <param name="testID">Optional test ID to apply to the record</param>
-        public TraceRecord(uint newPID, long randomNo, BinaryTarget? target, 
-            DateTime timeStarted, TracingPurpose purpose = TracingPurpose.eVisualiser, 
+        public TraceRecord(uint newPID, long randomNo, BinaryTarget? target,
+            DateTime timeStarted, TracingPurpose purpose = TracingPurpose.eVisualiser,
             int arch = 0, long testID = -1)
         {
             PID = newPID;
@@ -317,6 +317,13 @@ namespace rgat
                     foreach (ProtoGraph graph in _protoGraphs.Values)
                     {
                         graph.ClearRecentStep();
+                    }
+                    if (newState is ProcessState.eTerminated)
+                    {
+                        foreach (ProtoGraph graph in _protoGraphs.Values)
+                        {
+                            graph.SetTerminated();
+                        }
                     }
                 }
             }
@@ -703,7 +710,7 @@ namespace rgat
                 return DisassemblyData.ModuleTraceStates[localmodID];
             }
 
-            if (DisassemblyData.IsNonImageAddress(address))
+            if (DisassemblyData.IsAddressNonImage(address))
             {
                 localmodID = -1;
                 return eCodeInstrumentation.eInstrumentedCode;
@@ -717,7 +724,7 @@ namespace rgat
             while (attempts-- != 0)
             {
                 Thread.Sleep(30);
-                if (DisassemblyData.IsNonImageAddress(address))
+                if (DisassemblyData.IsAddressNonImage(address))
                 {
                     localmodID = -1;
                     return eCodeInstrumentation.eInstrumentedCode;
@@ -737,7 +744,7 @@ namespace rgat
                 {
                     Logging.RecordLogEvent($"Warning: Unknown module in traceRecord::FindContainingModule for address 0x{address:X}", LogFilterType.Debug);
                 }
-                return eCodeInstrumentation.eInvalid; 
+                return eCodeInstrumentation.eInvalid;
             }
             return DisassemblyData.ModuleTraceStates[localmodID!];
         }
@@ -1440,7 +1447,7 @@ namespace rgat
                     else
                     {
                         outfile.Write(Encoding.ASCII.GetBytes($"{n.Index} - Unknown\n"));
-                    } 
+                    }
                 }
             }
 

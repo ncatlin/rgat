@@ -3,14 +3,19 @@
 ## [0.6.2] - 2021-11-??
 
 ### Added 
-
 - Missing pin/pintool binaries are now re-installed on trace start
+
+### Changed
+- The main executable being traced is now always instrumented. Trace/ignore lists only apply to libraries.
+- The trace selector shows if a process has no graphs
+- Handling of non-image backed code regions is improved
 
 ### Fixed
 - The animation will update when the user selects a new position while paused
 - DLL Loader stubs are now more reliably deleted
 - Trace queue purging is now more reliable
 - The Ignore/Trace list file picker now works in remote tracing mode
+- Fix a deadlock from updating config and recording a new connection address
 
 ## [0.6.1] - 2021-11-14
 

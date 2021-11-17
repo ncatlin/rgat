@@ -75,6 +75,10 @@ namespace rgat.Widgets
                             //label = "Parent: " + label + $" ({selectableTrace.Target.FileName})";
                             label = label + $" ({selectableTrace.Target.FileName})";
                         }
+                        if (selectableTrace.GraphCount == 0)
+                        {
+                            label = label + "[0 graphs]";
+                        }
                         if (ImGui.Selectable(label, current))
                         {
                             rgatState.SelectActiveTrace(selectableTrace);

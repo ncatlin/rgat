@@ -111,6 +111,7 @@ bool module_should_be_instrumented(std::string path)
 	}
 	else
 	{
+		
 		//Default include mode - instrument all except for ignored
 		for each (std::string ignoredDir in TraceChoiceDirectoryList)
 		{

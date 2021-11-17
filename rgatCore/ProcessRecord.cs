@@ -88,7 +88,6 @@ namespace rgat
                     bool found = FindContainingModule(externBlockaddr, out int? moduleNo);
                     if (!found || ModuleTraceStates.Count <= moduleNo)
                     {
-                        Logging.WriteConsole($"Error: Unable to find extern module 0x{externBlockaddr:X} in ModuleTraceStates dict");
                         externBlock = null;
                         return null;
                     }
@@ -344,7 +343,7 @@ namespace rgat
         /// <returns>The ID of the block</returns>
         public ulong WaitForBlockAtAddress(ulong address)
         {
-            int limit = 1000;
+            int limit = 2;
             while (!rgatState.rgatIsExiting)
             {
                 lock (_instructionsLock)
@@ -358,8 +357,12 @@ namespace rgat
                 bool found = FindContainingModule(address, out int? moduleNo);
                 if (!found || ModuleTraceStates.Count <= moduleNo)
                 {
+                    if (IsAddressNonImage(address) is true)
+                    {
+                        return ulong.MaxValue;
+                    }
                     Thread.Sleep(15);
-                    limit -= 20;
+                    limit -= 1;
                     if (limit <= 0)
                     {
                         Logging.WriteConsole($"Warning: Unable to find extern module with address 0x{address:X} in ModuleTraceStates dict");
@@ -616,20 +619,72 @@ namespace rgat
             }
         }
 
-        /// <summary>
-        /// Is this address in non-image memory?
-        /// </summary>
-        /// <param name="address"></param>
-        /// <returns></returns>
-        public bool IsNonImageAddress(ulong address)
+        public void AddNonImageRegion(ulong start, ulong end, bool instrumented)
         {
             lock (_instructionsLock)
             {
-                return NonImageAddresses.Contains(address);
+                int nearest = NonImageRegionStarts.BinarySearch(start);
+                if (nearest < 0)
+                {
+                    MEM_REGION region = new MEM_REGION()
+                    {
+                        start = start,
+                        end = end,
+                        instrumented = instrumented
+                    };
+                    _lastExaminedRegion = region;
+                    NonImageRegions.Add(start, region);
+                    NonImageRegionStarts.Add(start);
+                    NonImageRegionStarts.Sort();
+                }
+
             }
         }
 
+        /// <summary>
+        /// Check if the address is part of known-executing non-image backed memory
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public bool IsAddressNonImage(ulong address)
+        {
+            lock (_instructionsLock)
+            {
+                if (_lastExaminedRegion is not null)
+                {
+                    if (address >= _lastExaminedRegion.Value.start && address < _lastExaminedRegion.Value.end) return true;
+                }
+
+                int nearest = NonImageRegionStarts.BinarySearch(address);
+                if (nearest > 0) return true; //start of region
+                nearest = ~nearest - 1; // the next largest region, - 1 => next smallest region
+                if (nearest >= 0 && nearest < NonImageRegionStarts.Count)
+                {
+                    ulong start = NonImageRegionStarts[nearest];
+                    MEM_REGION region = NonImageRegions[start];
+                    if (region.start <= address && address < region.end)
+                    {
+                        _lastExaminedRegion = region;
+                        return true; 
+                    }
+                }
+                return false;
+            }
+        }
+
+        //optimisation - most address lookups will be in the same region as the last check
+        MEM_REGION? _lastExaminedRegion = null; 
+
+        struct MEM_REGION
+        {
+            public ulong start;
+            public ulong end;
+            public bool instrumented;
+        }
         private readonly HashSet<ulong> NonImageAddresses = new();
+
+        private readonly Dictionary<ulong, MEM_REGION> NonImageRegions = new();
+        private readonly List<ulong> NonImageRegionStarts = new();
 
 
         /// <summary>
@@ -753,8 +808,9 @@ namespace rgat
                     try
                     {
                         insdata.branchAddress = Convert.ToUInt64(insdata.OpStr, 16);
-                    } 
-                    catch {
+                    }
+                    catch
+                    {
                         insdata.branchAddress = 0;
                     }
                     insdata.condDropAddress = insdata.Address + (ulong)insdata.NumBytes;
@@ -1188,7 +1244,7 @@ namespace rgat
 
             X86DisassembleMode disasMode = (BitWidth == 32) ? X86DisassembleMode.Bit32 : X86DisassembleMode.Bit64;
             using CapstoneX86Disassembler disassembler = CapstoneDisassembler.CreateX86Disassembler(disasMode);
-            
+
             int insCount = countTok.ToObject<int>();
             for (int i = 0; i < insCount; i++)
             {
@@ -1447,7 +1503,7 @@ namespace rgat
                 Logging.RecordLogEvent("No Externs count in LoadExterns");
                 return false;
             }
-            int count = countTok.ToObject<int>(); 
+            int count = countTok.ToObject<int>();
 
             for (var externI = 0; externI < count; externI++)
             {
