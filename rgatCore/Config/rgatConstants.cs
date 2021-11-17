@@ -23,7 +23,7 @@ namespace rgat
             /// <summary>
             /// Patch version
             /// </summary>
-            public const int PATCH = 1;
+            public const int PATCH = 2;
             /// <summary>
             /// Optional, non-unique name for the given version (preview, release, bugfix, etc)
             /// Other values must still be unique (eg: '1.1.1 Preview' and '1.1.1 Release' cannot both exist)

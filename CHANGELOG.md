@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.6.2] - 2021-11-??
+## [0.6.2] - 2021-11-17
 
 ### Added 
 - Missing pin/pintool binaries are now re-installed on trace start

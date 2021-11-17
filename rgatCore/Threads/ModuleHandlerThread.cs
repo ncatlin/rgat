@@ -450,7 +450,6 @@ namespace rgat
                 return false;
             }
 
-            Console.WriteLine($"Commandpipe outputting: {msg}");
             byte[] buf = Encoding.UTF8.GetBytes(msg);
             try { commandPipe!.Write(buf, 0, buf.Length); }
             catch (Exception e)

@@ -18,7 +18,7 @@ a pin implementation of the drgat client
 #include <iostream>
 #include <string>
 
-#define RGAT_VERSION "0.6.1"
+#define RGAT_VERSION "0.6.2"
 
 #ifdef WIN32
 #include "moduleload_windows.h"
@@ -700,7 +700,6 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 			{
 				if (pendingThreadBreakpoints && thread->TestAndActivateBP(INS_Address(ins)))
 				{
-					std::cout << "[pingatnewTrace]placing thread BP at " << std::hex << INS_Address(ins) << std::endl;
 					InsertSinglestepFunc(thread, ins, block_data);
 					//hit breakpoint, going into broken mode, adorn the rest of the instructions in the block with single steps
 					SetProcessBrokenState(true);
@@ -709,7 +708,6 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 				else
 				{
 					if (processStateBroken) {
-						std::cout << "[pingatnewTrace]placing SingleStep at " << std::hex << INS_Address(ins) << std::endl;
 						InsertSinglestepFunc(thread, ins, block_data);
 					}
 				}
@@ -1715,8 +1713,7 @@ VOID ReadConfiguration()
 
 	if (strncmp(recvBuf, startToken, sizeof(startToken) - 1) != 0) {
 		std::cout << "Got: '" << recvBuf << "' size " << readsz << ", expected: " << startToken << " size (" << sizeof(startToken) << ")" << std::endl;
-
-		DeclareTerribleEventAndExit(L"[pingat]Bad include list start token");
+		DeclareTerribleEventAndExit(L"[pingat]Bad include list start token. You may need to reset the connection.");
 		return;
 	}
 	getModuleIncludeLists();

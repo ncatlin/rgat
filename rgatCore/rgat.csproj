@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>rgat</AssemblyName>
-    <Version>0.6.1-preview</Version>
+    <Version>0.6.2-preview</Version>
     <SignAssembly>false</SignAssembly>
     <ApplicationIcon>tortico4_a7r_icon.ico</ApplicationIcon>
     <Win32Resource />
@@ -47,6 +47,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Resources\DllLoader32.exe" />
+    <None Remove="Resources\DllLoader64.exe" />
+    <None Remove="Resources\pin-redistrib.zip" />
+    <None Remove="Resources\pinTool.dll" />
+    <None Remove="Resources\pinTool64.dll" />
+    <None Remove="Resources\UpdateFinaliser.exe" />
     <None Remove="Shaders\GLSL\imgui-frag.glsl" />
     <None Remove="Shaders\GLSL\imgui-vertex.glsl" />
     <None Remove="Shaders\HLSL\imgui-frag.hlsl" />
@@ -77,6 +83,12 @@
     <EmbeddedResource Include="Shaders\SPIR-V\sim-nodePosition.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\sim-nodeVelocity.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\sim-presetVelocity.spv" />
+    <Resource Include="Resources\DllLoader32.exe" />
+    <Resource Include="Resources\DllLoader64.exe" />
+    <Resource Include="Resources\pin-redistrib.zip" />
+    <Resource Include="Resources\pinTool.dll" />
+    <Resource Include="Resources\pinTool64.dll" />
+    <Resource Include="Resources\UpdateFinaliser.exe" />
     <Resource Include="Shaders\SPIR-V\imgui-frag.glsl" />
     <EmbeddedResource Include="Shaders\SPIR-V\imgui-frag.spv" />
     <EmbeddedResource Include="Shaders\SPIR-V\imgui-vertex.spv" />

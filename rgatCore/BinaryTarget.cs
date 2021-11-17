@@ -384,7 +384,6 @@ namespace rgat
 
         private bool InitialiseFromRemoteDataInner(Newtonsoft.Json.Linq.JToken dataTok)
         {
-            Logging.WriteConsole("Initing from remote");
             if (dataTok.Type != JTokenType.Object)
             {
                 Logging.RecordLogEvent($"Got non-obj InitialiseFromRemoteData param <{dataTok.Type}>", Logging.LogFilterType.Error);
