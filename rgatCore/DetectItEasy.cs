@@ -217,6 +217,8 @@ namespace rgat
                         {
                             Logging.RecordLogEvent($"DetectItEasy error: '{error}' for target {targ.FilePath}");
                         }
+                        if (rgatState.rgatIsExiting) return;
+
                         break;
                     }
                 }

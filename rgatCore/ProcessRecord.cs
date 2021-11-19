@@ -1315,7 +1315,14 @@ namespace rgat
 
                 if (opcodeB64.Length > 0)
                 {
-                    ins.Opcodes = System.Convert.FromBase64String(opcodeB64);
+                    try
+                    {
+                        ins.Opcodes = System.Convert.FromBase64String(opcodeB64);
+                    }
+                    catch(Exception BE)
+                    {
+                        Console.WriteLine(BE);
+                    }
                     if (DisassembleIns(disassembler, addressData.address, ins) is 0)
                         return false;
                 }
@@ -1336,6 +1343,7 @@ namespace rgat
 
                     ins.ThreadVerts.Add(new Tuple<uint, uint>(thread, vertIndex));
                 }
+                entryIndex -= 1;
                 opcodeVariants.Add(ins);
             }
 
