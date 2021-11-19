@@ -181,7 +181,7 @@ namespace rgat
 
             System.Diagnostics.Process? result = null;
 
-            string runargs = $" -follow_execv -t \"{pintool}\" ";
+            string runargs = $" -follow_execv -t \"{pintool}\"  -support_jit_api ";
             if (testID > -1)
             {
                 runargs += $"-T {testID} ";
@@ -304,7 +304,7 @@ namespace rgat
         {
             System.Diagnostics.Process? result = null;
 
-            string runargs = $" -follow_execv -t \"{pintool}\" ";
+            string runargs = $" -follow_execv -t \"{pintool}\"  -support_jit_api ";
             if (testID > -1)
             {
                 runargs += $"-T {testID} ";

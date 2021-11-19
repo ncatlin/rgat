@@ -770,7 +770,7 @@ namespace rgat
 
                         ANIMATIONENTRY lastEntry = animData[lastAnimIdx];
 
-                        ImGui.Text($"Trace Tag: {lastEntry.entryType} Location: 0x{lastEntry.Address} (Block {lastEntry.BlockID})");
+                        ImGui.Text($"Trace Tag: {lastEntry.entryType} Location: 0x{lastEntry.Address:X} (Block {lastEntry.BlockID})");
                         switch (lastEntry.entryType)
                         {
                             case eTraceUpdateType.eAnimExecTag:
