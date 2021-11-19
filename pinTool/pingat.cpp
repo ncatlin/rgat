@@ -264,7 +264,7 @@ bool address_is_in_targets_v1(ADDRINT addr)
 				return true; //??
 			}
 			loadedRegionInfo[r->start] = r; //todo - size limit, better data structure (something with binary search)
-			writeEventPipe("XMEM@%lx@%lx@%d", r->start, r->end, r->instrumented);
+			writeEventPipe("XMEM@" PTR_prefix "@" PTR_prefix "@%d", r->start, r->end, r->instrumented);
 			lastNonImgRegion = r;
 			return r->instrumented;
 		}

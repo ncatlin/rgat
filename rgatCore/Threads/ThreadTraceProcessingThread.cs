@@ -751,7 +751,9 @@ namespace rgat.Threads
                     }
                     Debug.Assert(false, $"Bad thunk state, node {protograph.ProtoLastVertID} does not call this thunk");
                 }
-                Debug.Assert(false, $"Bad thunk state, block {animUpdate.BlockID} has null listing but is not a thunk");
+               //Debug.Assert(false, $"Bad thunk state, block {animUpdate.BlockID} has null listing but is not a thunk");
+                Logging.RecordLogEvent($"Error: bad thunk state, block {animUpdate.BlockID} has null listing but is not a thunk", Logging.LogFilterType.Debug);
+                return;
             }
 
             if (!protograph.NodeList[(int)protograph.ProtoLastLastVertID].ThunkCaller)
