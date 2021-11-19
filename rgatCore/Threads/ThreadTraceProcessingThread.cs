@@ -765,8 +765,10 @@ namespace rgat.Threads
                     }
                     else
                     {
+                        //Making this info instead of an error because it's very common
+                        //todo: diagnose, fix
                         Logging.RecordLogEvent($"Error: AddUnchainedUpdate for missing edge {protograph.ProtoLastLastVertID},{blockNodes.Item1}",
-                            filter: Logging.LogFilterType.Error);
+                            filter: Logging.LogFilterType.Info);
                     }
                     protograph.PerformingUnchainedExecution = true;
                 }
@@ -978,6 +980,19 @@ namespace rgat.Threads
         private readonly object debug_tag_lock = new object();
 
         private void Processor()
+        {
+            try
+            {
+                ProcessorInner();
+            }
+            catch (Exception e)
+            {
+                Finished();
+                Logging.RecordException($"Exception in trace processor for thread {protograph.TraceData.PID}:{protograph.ThreadID}: {e.Message}", e);
+            }
+        }
+
+        private void ProcessorInner ()
         {
             if (protograph.TraceReader is null)
             {

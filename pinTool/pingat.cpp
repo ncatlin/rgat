@@ -253,7 +253,7 @@ bool address_is_in_targets_v1(ADDRINT addr)
 			*/
 			if (lastBBModule == 0 && lastNonImgRegion != 0)
 			{
-				 r->instrumented = lastNonImgRegion->instrumented;
+				r->instrumented = lastNonImgRegion->instrumented;
 			}
 			else if (lastBBModule != 0 && lastNonImgRegion == 0)
 			{
@@ -264,7 +264,7 @@ bool address_is_in_targets_v1(ADDRINT addr)
 				return true; //??
 			}
 			loadedRegionInfo[r->start] = r; //todo - size limit, better data structure (something with binary search)
-			writeEventPipe("XMEM@%lx@%lx@%d",r->start, r->end, r->instrumented);
+			writeEventPipe("XMEM@%lx@%lx@%d", r->start, r->end, r->instrumented);
 			lastNonImgRegion = r;
 			return r->instrumented;
 		}
@@ -620,10 +620,10 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 	*/
 	bool isInstrumented = address_is_in_targets_v1(traceStartAddr);
 
-	if (!isInstrumented) { 
+	if (!isInstrumented) {
 		//std::cout << "\t uninsTraceBlock " << std::dec << blockCounter << " generated at 0x" << 
 		//	std::hex << traceStartAddr << " with insct " << TRACE_NumIns(trace) << std::endl;	
-		return; 
+		return;
 	}
 
 	if (thread->requestTerminate) {
@@ -721,19 +721,19 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		write_sync_bb((char*)basicBlockBuffer, bufpos);
 		++blockCounter;
 
-		AFUNPTR insrumentationFunction = NULL;
+		AFUNPTR instrumentationFunction = NULL;
 		if (INS_IsBranchOrCall(lastins))
 		{
 			if (INS_HasFallThrough(lastins))
 			{
-				insrumentationFunction = !singleShotInstrumentation ? (AFUNPTR)at_conditional_branch : (AFUNPTR)at_conditional_branch_oneshot;
-				INS_InsertCall(lastins, IPOINT_BEFORE, insrumentationFunction, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
+				instrumentationFunction = !singleShotInstrumentation ? (AFUNPTR)at_conditional_branch : (AFUNPTR)at_conditional_branch_oneshot;
+				INS_InsertCall(lastins, IPOINT_BEFORE, instrumentationFunction, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
 					IARG_PTR, block_data, IARG_BRANCH_TAKEN, IARG_BRANCH_TARGET_ADDR, IARG_FALLTHROUGH_ADDR, IARG_THREAD_ID, IARG_END);
 			}
 			else
 			{
 
-				insrumentationFunction = !singleShotInstrumentation ? (AFUNPTR)at_unconditional_branch : (AFUNPTR)at_unconditional_branch_oneshot;
+				instrumentationFunction = !singleShotInstrumentation ? (AFUNPTR)at_unconditional_branch : (AFUNPTR)at_unconditional_branch_oneshot;
 				INS_InsertCall(lastins, IPOINT_BEFORE, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
 					IARG_PTR, block_data, IARG_BRANCH_TARGET_ADDR, IARG_THREAD_ID, IARG_END);
 
@@ -741,7 +741,7 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		}
 		else if (INS_RepPrefix(lastins) || INS_RepnePrefix(lastins))
 		{
-			insrumentationFunction = !singleShotInstrumentation ? (AFUNPTR)at_first_rep : (AFUNPTR)at_first_rep_oneshot;
+			instrumentationFunction = !singleShotInstrumentation ? (AFUNPTR)at_first_rep : (AFUNPTR)at_first_rep_oneshot;
 
 			block_data->repexec = false;
 			//https://trello.com/c/I89DMjjh/160-repxx-handling-with-ecx-0
@@ -766,7 +766,7 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 			//writeEventPipe("!Error: Unhandled block end syscall instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
 			//COUNTER *pedg = Lookup(EDGE(INS_Address(ins), ADDRINT(~0), INS_NextAddress(ins), ETYPE_SYSCALL));
 			//INS_InsertPredicatedCall(lastins, IPOINT_BEFORE, (AFUNPTR)docount, IARG_ADDRINT, pedg, IARG_END);
-			
+
 			//error!
 			//INS_InsertCall(lastins, IPOINT_ANYWHERE, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
 			//	IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
@@ -780,9 +780,17 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 				INS_InsertCall(lastins, IPOINT_AFTER, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
 					IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
 			}
-			else {
-				INS_InsertCall(lastins, IPOINT_ANYWHERE, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
-					IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
+			else 
+			{
+				std::cout << "NonBranch, non i point after: " << disas << std::endl;
+				std::cout << "nopstate: " << INS_IsNop(lastins) << std::endl;
+				std::cout << INS_IsControlFlow(lastins) << std::endl;
+				std::cout << INS_IsNop(lastins) << std::endl;
+				//if (!INS_)
+				//{
+				//	INS_InsertCall(lastins, IPOINT_ANYWHERE, (AFUNPTR)at_unconditional_branch, IARG_CALL_ORDER, CALL_ORDER_DEFAULT,
+				//		IARG_PTR, block_data, IARG_ADDRINT, INS_Address(lastins) + INS_Size(lastins), IARG_THREAD_ID, IARG_END);
+				//}
 			}
 		}
 		else
@@ -850,7 +858,7 @@ static VOID HandleWindowsContextSwitch(THREADID threadIndex, CONTEXT_CHANGE_REAS
 	case CONTEXT_CHANGE_REASON_CALLBACK:      ///< Receipt of Windows call-back
 		ctxswitch_ss << "CALLBACK - Receipt of Windows call-back";
 		break;
-	}
+}
 
 	if (ctxtFrom)
 		ctxswitch_ss << " at address 0x" << std::hex << srcAddress;
@@ -978,7 +986,7 @@ VOID ThreadStart(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* v)
 				SetProcessBrokenState(true);
 			}
 			return;
-		}
+}
 
 		writeEventPipe("!ThreadStart connection failed %d", tdata->osthreadid);
 		OS_Sleep(200);
@@ -1034,7 +1042,7 @@ VOID ThreadStart_openFD(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* 
 				writeEventPipe("! 1600err %s", errstr.str().c_str());
 			}
 			OS_Sleep(50);
-			}
+		}
 
 		if (tdata->threadpipeHandle != -1)
 		{
@@ -1073,12 +1081,12 @@ VOID ThreadStart_openFD(THREADID threadIndex, CONTEXT* ctxt, INT32 flags, VOID* 
 
 			std::cout << "[pingat] thread start done, retting " << tdata->osthreadid << std::endl;
 			return;
-		}
+	}
 
 		writeEventPipe("!T8 failed %d", tdata->osthreadid);
 		OS_Sleep(200);
 		time += 200;
-		}
+}
 
 	cout << "Failed to connect thread pipe, exiting process" << std::endl;
 	PIN_ExitProcess(1);
@@ -1286,11 +1294,11 @@ DWORD extract_pipes(std::string programname, std::string coordinatorPipeName, st
 			wprintf(L"[pingat]Got pipenames. Cmd: %s, Response: %s, BB: %s\n", cmdPipeName, responsePipeName, bbPipeName);
 #endif
 		}
-}
+		}
 
 
 	return true;
-}
+	}
 
 
 // I can't get full duplex async named pipes to work between PIN and the .net core NamedPipeServerStream, so use seperate pipes for cmds/responses
@@ -1380,7 +1388,7 @@ bool establishRGATConnection(std::string programName, std::string coordinatorPip
 		}
 	}
 	return false;
-}
+	}
 
 
 EXCEPT_HANDLING_RESULT pingat_exception_handler(THREADID threadIndex, EXCEPTION_INFO* pExceptInfo,
@@ -1548,7 +1556,7 @@ void ProcessControlCommand(std::string cmd)
 			BreakAllThreads();
 			OutputAllThreads();
 			PIN_ExitProcess(0);
-		}
+}
 		else if (cmd.compare(0, 4, "KILL") == 0) {
 			DWORD OSthreadID = std::atol(cmd.substr(5, cmd.length()).c_str());
 			THREADID pinThreadID = GetPINThreadID(OSthreadID);
@@ -1664,9 +1672,9 @@ static VOID BreakerThread(VOID* arg)
 					PIN_ResumeApplicationThreads(thisThreadID);
 					break;
 				}
-			}
 		}
-	}
+}
+}
 }
 
 

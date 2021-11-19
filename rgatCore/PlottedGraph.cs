@@ -1768,8 +1768,13 @@ namespace rgat
                 {
                     cache.EdgeLineVerts = new Position1DColourMultiVert[evTexSize];
                 }
-                Logging.RecordLogEvent($"Graph {PID}:{TID} has {edgeCount} edges with {vertCount} verts ({vertCount * Position1DColourMultiVert.SizeInBytes} bytes) -" +
-                    $" Buffer allocated for it is {evTexSize} verts - {evTexSize * Position1DColourMultiVert.SizeInBytes} bytes", Logging.LogFilterType.Debug);
+
+                if (GlobalConfig.BulkLog)
+                {
+                    Logging.RecordLogEvent($"Graph {PID}:{TID} has {edgeCount} edges with {vertCount} verts ({vertCount * Position1DColourMultiVert.SizeInBytes} bytes) -" +
+                        $" Buffer allocated for it is {evTexSize} verts - {evTexSize * Position1DColourMultiVert.SizeInBytes} bytes", Logging.LogFilterType.BulkDebugLogFile);
+                }
+
                 cache.EdgeLineVerts = new Position1DColourMultiVert[evTexSize];
                 cache.ELVertIndex = 0;
                 cache.EdgesRendered = 0;

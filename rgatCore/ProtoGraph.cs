@@ -1202,7 +1202,7 @@ namespace rgat
                 AddBlockToGraph(thistag.blockID, 1, !skipFirstEdge);
                 sw.Stop();
                 if (sw.ElapsedMilliseconds > 250)
-                    Console.WriteLine($"HandleTag::addblock to graph took {sw.ElapsedMilliseconds} ms");
+                    Logging.RecordLogEvent($"Warning: HandleTag::addblock to graph took {sw.ElapsedMilliseconds} ms");
             }
 
             else if (thistag.InstrumentationState == eCodeInstrumentation.eUninstrumentedCode)
