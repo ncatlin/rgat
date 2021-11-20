@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>rgat</AssemblyName>
-    <Version>0.6.2-preview</Version>
+    <Version>0.6.3-preview</Version>
     <SignAssembly>false</SignAssembly>
     <ApplicationIcon>tortico4_a7r_icon.ico</ApplicationIcon>
     <Win32Resource />

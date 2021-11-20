@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.3] - 2021-11-20
+
+### Changed 
+- Reduced console output
+
+### Fixed
+- JIT/self modifying code is properly handled in 64 bit processes
+- Fixed address in the visualiser disassembly preview
+- Fixed loading saved traces with multiple instructions associated with the same address
+- Long-running Detect-It-Easy scans no longer delay exit
+- Handle exceptions in the outer trace processor loop
+
 ## [0.6.2] - 2021-11-17
 
 ### Added 

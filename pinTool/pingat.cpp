@@ -18,7 +18,7 @@ a pin implementation of the drgat client
 #include <iostream>
 #include <string>
 
-#define RGAT_VERSION "0.6.2"
+#define RGAT_VERSION "0.6.3"
 
 #ifdef WIN32
 #include "moduleload_windows.h"
@@ -773,7 +773,6 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 		}
 		else if (!INS_IsBranch(lastins))
 		{
-			std::string disas = INS_Disassemble(lastins);
 			//writeEventPipe("!Non branch block end instruction 0x" PTR_prefix ": %s", INS_Address(lastins), disas.c_str());
 			if (INS_IsValidForIpointAfter(lastins))
 			{
@@ -782,6 +781,7 @@ VOID InstrumentNewTrace(TRACE trace, VOID* v)
 			}
 			else 
 			{
+				std::string disas = INS_Disassemble(lastins);
 				std::cout << "NonBranch, non i point after: " << disas << std::endl;
 				std::cout << "nopstate: " << INS_IsNop(lastins) << std::endl;
 				std::cout << INS_IsControlFlow(lastins) << std::endl;

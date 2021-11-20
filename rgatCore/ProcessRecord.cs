@@ -375,7 +375,7 @@ namespace rgat
                 {
                     return ulong.MaxValue;
                 }
-                Logging.WriteConsole($"Waiting for block at 0x{address:x}");
+                Logging.RecordLogEvent($"WaitForBlockAtAddress() Waiting for block at 0x{address:x}");
                 Thread.Sleep(15);
 
             }

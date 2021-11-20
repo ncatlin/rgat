@@ -579,7 +579,7 @@ namespace rgatFilePicker
         public static FilePicker GetFilePicker(object o, string startingPath, string? searchFilter = null, bool onlyAllowFolders = false, bool allowMulti = false)
         {
 
-            if (!_filePickers.TryGetValue(o, out FilePicker? fp) 
+            if (!_filePickers.TryGetValue(o, out FilePicker? fp)
                 || (rgatState.NetworkBridge.ActiveNetworking is true && fp._remoteMirror is null)
                 || (rgatState.NetworkBridge.ActiveNetworking is false && fp._remoteMirror is not null)
                 )
@@ -718,8 +718,8 @@ namespace rgatFilePicker
                 return false;
             }
 
-            if (!response.TryGetValue("Parent", out JToken? parentTok) || (parentTok.Type is not JTokenType.String 
-                && 
+            if (!response.TryGetValue("Parent", out JToken? parentTok) || (parentTok.Type is not JTokenType.String
+                &&
                 parentTok.Type is not JTokenType.Null))
             {
                 return false;
@@ -755,6 +755,7 @@ namespace rgatFilePicker
             {
                 _sortedDirs = null;
                 _sortedFiles = null;
+
                 Data.Contents.RefreshDirectoryContents(newDirContents.AllPaths(), newDirContents);
             }
             else
@@ -1386,82 +1387,84 @@ namespace rgatFilePicker
 
         private PickerResult DrawDirsFilesList()
         {
-            if (_sortedDirs is null || _sortedFiles is null)
-            {
-                return PickerResult.eNoAction;
-            }
-
             PickerResult result = PickerResult.eNoAction;
-            float longestFilename = 100;
-            foreach (var path_data in _sortedDirs)
+            lock (_lock)
             {
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-
-                FileMetadata md = path_data.Value;
-                string path = path_data.Key;
-                ImGui.PushStyleColor(ImGuiCol.Text, md.ListingColour());
-                bool selected = AllowMultiSelect && SelectedDirectories.Contains(path);
-                ImGui.Selectable($"{ImGuiController.FA_ICON_DIRECTORY} {path_data.Value.filename}/", selected, ImGuiSelectableFlags.SpanAllColumns);
-
-                if (AllowMultiSelect &&
-                    (ImGui.IsItemClicked(ImGuiMouseButton.Right) ||
-                    (ImGui.IsItemClicked(ImGuiMouseButton.Left) && ImGui.GetIO().KeyCtrl)))
+                if (_sortedDirs is null || _sortedFiles is null)
                 {
-                    if (selected)
+                    return PickerResult.eNoAction;
+                }
+                float longestFilename = 100;
+                foreach (var path_data in _sortedDirs)
+                {
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+
+                    FileMetadata md = path_data.Value;
+                    string path = path_data.Key;
+                    ImGui.PushStyleColor(ImGuiCol.Text, md.ListingColour());
+                    bool selected = AllowMultiSelect && SelectedDirectories.Contains(path);
+                    ImGui.Selectable($"{ImGuiController.FA_ICON_DIRECTORY} {path_data.Value.filename}/", selected, ImGuiSelectableFlags.SpanAllColumns);
+
+                    if (AllowMultiSelect &&
+                        (ImGui.IsItemClicked(ImGuiMouseButton.Right) ||
+                        (ImGui.IsItemClicked(ImGuiMouseButton.Left) && ImGui.GetIO().KeyCtrl)))
                     {
-                        this.SelectedDirectories.RemoveAll(x => x == path);
+                        if (selected)
+                        {
+                            this.SelectedDirectories.RemoveAll(x => x == path);
+                        }
+                        else
+                        {
+                            this.SelectedDirectories.Add(path);
+                        }
                     }
                     else
                     {
-                        this.SelectedDirectories.Add(path);
+                        if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                        {
+                            SetActiveDirectory(path);
+                        }
                     }
-                }
-                else
-                {
-                    if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                    SmallWidgets.MouseoverText("Ctrl-left click or right click to select directories.");
+
+                    if (path_data.Value.namewidth > longestFilename)
                     {
-                        SetActiveDirectory(path);
+                        longestFilename = path_data.Value.namewidth;
                     }
-                }
-                SmallWidgets.MouseoverText("Ctrl-left click or right click to select directories.");
 
-                if (path_data.Value.namewidth > longestFilename)
-                {
-                    longestFilename = path_data.Value.namewidth;
-                }
-
-                ImGui.TableNextColumn();
-                if (ImGui.TableNextColumn())
-                {
-                    //size
-                    ImGui.Text(path_data.Value.size_str);
-                }
-                if (ImGui.TableNextColumn())
-                {
-                    ImGui.Text("");
-                }
-                ImGui.PopStyleColor();
-            }
-
-            foreach (var path_data in _sortedFiles)
-            {
-                FileMetadata filemd = path_data.Value;
-                if (EmitFileSelectableEntry(path: path_data.Key, filemeta: filemd))
-                {
-                    this.SelectedFile = path_data.Key;
-                    ImGui.CloseCurrentPopup();
-                    result = PickerResult.eTrue;
-                }
-                if (path_data.Value.namewidth > longestFilename)
-                {
-                    longestFilename = path_data.Value.namewidth;
+                    ImGui.TableNextColumn();
+                    if (ImGui.TableNextColumn())
+                    {
+                        //size
+                        ImGui.Text(path_data.Value.size_str);
+                    }
+                    if (ImGui.TableNextColumn())
+                    {
+                        ImGui.Text("");
+                    }
+                    ImGui.PopStyleColor();
                 }
 
-                if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(0))
+                foreach (var path_data in _sortedFiles)
                 {
-                    result = PickerResult.eTrue;
-                    ImGui.CloseCurrentPopup();
+                    FileMetadata filemd = path_data.Value;
+                    if (EmitFileSelectableEntry(path: path_data.Key, filemeta: filemd))
+                    {
+                        this.SelectedFile = path_data.Key;
+                        ImGui.CloseCurrentPopup();
+                        result = PickerResult.eTrue;
+                    }
+                    if (path_data.Value.namewidth > longestFilename)
+                    {
+                        longestFilename = path_data.Value.namewidth;
+                    }
+
+                    if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(0))
+                    {
+                        result = PickerResult.eTrue;
+                        ImGui.CloseCurrentPopup();
+                    }
                 }
             }
             return result;

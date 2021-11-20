@@ -734,7 +734,6 @@ namespace rgat
                 if (found)
                 {
                     localmodID = outID!.Value;
-                    Logging.WriteConsole("FindContainingModule found!");
                     break;
                 }
             }
