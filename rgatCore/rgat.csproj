@@ -109,7 +109,7 @@
     <PackageReference Include="Jint" Version="3.0.0-beta-2034" />
     <PackageReference Include="NaCl.Core" Version="2.0.2" />
     <PackageReference Include="NativeLibraryLoader" Version="1.0.12" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="PeNet" Version="2.9.1" />
     <PackageReference Include="QuikGraph" Version="2.3.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.4" />
